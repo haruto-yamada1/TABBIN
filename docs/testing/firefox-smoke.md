@@ -46,7 +46,7 @@ artifact 構造を検証する。
 
 Playwright Firefox で実際に Firefox artifact を profile に install し、起動失敗を検出する smoke を用意する。CI の push / pull_request では実行せず、`workflow_dispatch` または `FIREFOX_EXTENSION_SMOKE=1` で実行する manual / nightly gate に置く。
 
-- `e2e/helpers/firefox-extension.ts` が `firefox.launchPersistentContext` で専用 profile を起動し、profile の `extensions/` に Firefox artifact を unpacked copy する。`firefoxUserPrefs` で `extensions.autoDisableScopes = 0` と `xpinstall.signatures.required = false` を立て、`extensions.json` poll で Firefix が割り当てた internal UUID を取り出す。
+- `e2e/helpers/firefox-extension.ts` が `firefox.launchPersistentContext` で専用 profile を起動し、profile の `extensions/` に Firefox artifact を unpacked copy する。`firefoxUserPrefs` で `extensions.autoDisableScopes = 0` と `xpinstall.signatures.required = false` を立て、`extensions.json` poll で Firefox が割り当てた internal UUID を取り出す。
 - `e2e/firefox.extension.smoke.spec.ts` は取り出した UUID で `moz-extension://UUID/options.html` を開き、render を assert する。環境変数がないと skip する。
 - `playwright.firefox.config.ts` が smoke 用の単独 config。`workers=1`、`retries: process.env.CI ? 1 : 0`、`trace: 'on-first-retry'` を維持。
 - `bun run test:firefox:smoke` で実行。`bunx playwright install firefox` 済みの環境が必要。
@@ -63,8 +63,8 @@ Phase 3 は Phase 2 の helper を前提に UI と storage read/write の煙を�
 `tools/scripts/firefoxSourceContract.ts` が production source (`src/**`、test file / storybook / `src/test/` 除外) で次の違反を純粋関数で collect する:
 
 - `chrome-extension://` literal (Firefox では `moz-extension://` に成るため非移植)
-- Firefix で未提供の `chrome.*` API 直接呼び出し (`chrome.debugger` / `chrome.gcm` / `chrome.system.display` / `chrome.platformKeys` / `chrome.printerProvider` / `chrome.fileBrowserHandler` / `chrome.input` / `chrome.ttsengine` / `chrome.tabCapture` / `chrome.pageCapture` / `chrome.identity` / `chrome.vpnProvider` / `chrome.enterprise`)
-- `chrome.tabs` / `chrome.storage` / `chrome.runtime` 等 Firefix polyfill 互換の API は許可
+- Firefox で未提供の `chrome.*` API 直接呼び出し (`chrome.debugger` / `chrome.gcm` / `chrome.system.display` / `chrome.platformKeys` / `chrome.printerProvider` / `chrome.fileBrowserHandler` / `chrome.input` / `chrome.ttsengine` / `chrome.tabCapture` / `chrome.pageCapture` / `chrome.identity` / `chrome.vpnProvider` / `chrome.enterprise`)
+- `chrome.tabs` / `chrome.storage` / `chrome.runtime` 等 Firefox polyfill 互換の API は許可
 
 `KNOWN_CHROME_EXTENSION_LITERAL_DEBT` allowlist は既存負債 5 file (ai-chat background fallback、OllamaErrorNotice default、userSettingsDefaultsMerge default exclude pattern、i18n messages の placeholder text、urlIdentityCorpus の property-based corpus) を明示。新規追加は verifier が block する。allowlist への追加は同一 PR で該当 file の Firefox 追従を伴う場合のみ。
 

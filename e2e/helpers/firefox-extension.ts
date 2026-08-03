@@ -64,8 +64,12 @@ const findInstallUuid = (parsed: unknown): string | undefined => {
     if (addonPath === undefined || !addonPath.includes('firefox-mv2')) {
       continue
     }
-    const internalUuid =
-      getString(entry, 'internalUUID') ?? getString(entry, 'id')
+    // `moz-extension://` origin uses Firefox's installation-specific
+    // `internalUUID`, NOT the add-on manifest `id`. Falling back to `id`
+    // would produce `moz-extension://tabbin@local/` which Firefox rejects
+    // as an invalid origin. We refuse to return a UUID unless
+    // `internalUUID` is actually present in extensions.json.
+    const internalUuid = getString(entry, 'internalUUID')
     if (internalUuid !== undefined) {
       return internalUuid
     }
@@ -161,7 +165,7 @@ export const test = base.extend<FirefoxExtensionSmokeFixtures>({
     const uuid = await pollExtensionsJsonUuid(firefoxExtensionProfile)
     if (uuid === undefined) {
       throw new Error(
-        'Firefox smoke did not find TABBIN in extensions.json before timeout. Firefox release builds reject unsigned unpacked extensions; use a dev/Unbranded build or set up AMO signing.',
+        'Firefox smoke did not find TABBIN with an internalUUID in extensions.json before timeout. Likely causes: Firefox release build rejects unsigned unpacked extensions (use a dev/Unbranded build or set up AMO signing); wxt.config.ts does not declare browser_specific_settings.gecko.id so Firefox assigns an unstable ID; or the extension failed to install during profile launch.',
       )
     }
     await runFixture(uuid)
