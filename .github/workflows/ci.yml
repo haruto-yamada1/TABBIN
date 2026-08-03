@@ -38,6 +38,9 @@ jobs:
       - name: Audit dependencies
         run: bun run security:audit
 
+      - name: Verify Firefox source contract
+        run: bun run verify:firefox-source
+
       - name: Run type checking
         run: bun run compile
 
