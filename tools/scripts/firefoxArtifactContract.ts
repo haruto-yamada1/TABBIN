@@ -208,6 +208,9 @@ const collectArtifactFileViolations = (
   if (isStringRecord(icons)) {
     for (const size of REQUIRED_ICON_SIZES) {
       const iconPath = icons[size]
+      if (typeof iconPath !== 'string') {
+        continue
+      }
       if (!fileExists(iconPath)) {
         violations.push({
           category: 'artifact',

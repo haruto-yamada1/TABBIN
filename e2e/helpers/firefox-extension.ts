@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises, playwright/no-skipped-test -- Firefox startup smoke is gated by FIREFOX_EXTENSION_SMOKE=1 */
+/* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises */
 import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -23,29 +23,25 @@ type FirefoxExtensionSmokeFixtures = {
   firefoxExtensionPage: Page
 }
 
-const ensureSmokeEnabled = (): void => {
-  if (!isFirefoxExtensionSmokeEnabled()) {
-    base.skip(
-      true,
-      'set FIREFOX_EXTENSION_SMOKE=1 to run the Firefox startup smoke',
-    )
-  }
-}
-
+// The skip decision is made at the spec level via `test.skip(condition)`
+// inside `test.beforeAll`. Calling `base.skip` inside fixture setup is not an
+// officially supported Playwright pattern (see microsoft/playwright#15071,
+// #31425, #29229) and is avoided here. If a spec forgets the guard, the
+// fixture will run only when `FIREFOX_EXTENSION_SMOKE=1` is set by the caller.
 export const test = base.extend<FirefoxExtensionSmokeFixtures>({
   firefoxExtensionContext: async ({}, runFixture) => {
-    ensureSmokeEnabled()
     const userDataDir = await mkdtemp(
       path.join(os.tmpdir(), 'tabbin-firefox-smoke-'),
     )
-    const context = await firefox.launchPersistentContext(userDataDir, {
-      handleSIGINT: true,
-      handleSIGTERM: true,
-    })
+    let context: BrowserContext | undefined
     try {
+      context = await firefox.launchPersistentContext(userDataDir, {
+        handleSIGINT: true,
+        handleSIGTERM: true,
+      })
       await runFixture(context)
     } finally {
-      await context.close()
+      await context?.close()
       await rm(userDataDir, { force: true, recursive: true })
     }
   },

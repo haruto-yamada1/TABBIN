@@ -440,6 +440,42 @@ describe('collectFirefoxArtifactContractViolations', () => {
 
     expect(violations.length).toBeGreaterThanOrEqual(3)
   })
+
+  it('does not crash when icons declares only some required sizes (no undefined reaches fileExists)', () => {
+    const manifest = createCompliantManifest()
+    manifest.icons = {
+      '16': 'icon/16.png',
+      '32': 'icon/32.png',
+    }
+
+    const throwingFileExists = (relativePath: string): boolean => {
+      if (typeof relativePath !== 'string') {
+        throw new TypeError(
+          `fileExists received a non-string path: ${String(relativePath)}`,
+        )
+      }
+      return createFileExists(createCompliantArtifacts())(relativePath)
+    }
+
+    const violations = collectFirefoxArtifactContractViolations({
+      manifest,
+      fileExists: throwingFileExists,
+      label: 'firefox-mv2',
+    })
+
+    // The missing sizes 48/96/128 are reported as a single manifest violation
+    // by the icons-size contract, and the artifact loop must not invoke
+    // fileExists with undefined for the missing sizes.
+    expect(violations).toContainEqual({
+      category: 'manifest',
+      path: 'firefox-mv2.icons',
+      reason:
+        'Firefox artifact must declare the required icon sizes 16, 32, 48, 96, 128',
+    })
+    for (const violation of violations) {
+      expect(violation.reason).not.toMatch(/declared icon file missing/i)
+    }
+  })
 })
 
 describe('assertFirefoxArtifactContract', () => {

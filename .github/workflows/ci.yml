@@ -287,3 +287,14 @@ jobs:
         run: bun run test:firefox:smoke
         env:
           FIREFOX_EXTENSION_SMOKE: '1'
+
+      - name: Upload Firefox smoke test results on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: firefox-smoke-test-results
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
