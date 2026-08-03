@@ -1738,6 +1738,81 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
   })
+
+  describe('issue #729 phase 1: production cutover remains deferred', () => {
+    const sourceRoot = resolve(repoRoot, 'src')
+    const productionFiles = collectSourceFiles(sourceRoot).filter(
+      (path) =>
+        !/\.(?:test|testing)\.tsx?$/.test(path) &&
+        !path.includes(`${sep}testing${sep}`),
+    )
+
+    // production source が testing 専用 seam を import しないことを検証する正規表現。
+    // 静的 import (from / side-effect import) と動的 import('...') の両方を検出し、
+    // /testing/<path> ディレクトリと .testing ファイル接尾辞の両方をカバーする。
+    // ガード自体が将来壊れないよう、下方の self-test で検出対象を明示する。
+    const testingSeamImportPattern =
+      /(?:from\s+|import\s+|import\s*\()['"][^'"]*(?:\/testing\/[^'"]*|\.testing)['"]/
+
+    it('production source does not enable complete cutover', () => {
+      for (const absolutePath of productionFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} must not enable production complete cutover`,
+        ).not.toMatch(/cutoverPolicy\s*:\s*['"]complete['"]/)
+      }
+    })
+
+    it('production source does not import testing-only cutover seams', () => {
+      for (const absolutePath of productionFiles) {
+        const relativePath = relative(repoRoot, absolutePath)
+          .split(sep)
+          .join('/')
+        const source = stripComments(readFileSync(absolutePath, 'utf8'))
+        expect(
+          source,
+          `${relativePath} must not import a testing-only cutover seam`,
+        ).not.toMatch(testingSeamImportPattern)
+      }
+    })
+
+    it('testing seam import guard detects every forbidden import shape', () => {
+      // ガード正規表現が testing seam への import を取りこぼさないことを保証する。
+      // production source にこれらが現れた場合、上記 not.toMatch が失敗する。
+      const forbidden = [
+        "import { x } from '@/contexts/saved-tabs/testing/foo'",
+        "import x from './foo.testing'",
+        "import {\n  createCompletePersistenceBootstrapServiceForTesting,\n} from '@/contexts/saved-tabs/testing/createCompletePersistenceBootstrapService'",
+        "import '@/contexts/saved-tabs/testing/foo'",
+        "import('@/contexts/saved-tabs/testing/foo')",
+        "import('./foo.testing')",
+      ]
+      for (const source of forbidden) {
+        expect(
+          testingSeamImportPattern.test(source),
+          `guard must detect: ${source}`,
+        ).toBe(true)
+      }
+
+      // 許容される import を誤検出しないことも保証する。
+      const allowed = [
+        "import { x } from '@/contexts/saved-tabs/application/foo'",
+        "import { x } from '@/contexts/saved-tabs/infrastructure/foo'",
+        "import { x } from '@/lib/testing-utils/foo'",
+        "import { x } from 'react'",
+      ]
+      for (const source of allowed) {
+        expect(
+          testingSeamImportPattern.test(source),
+          `guard must not flag: ${source}`,
+        ).toBe(false)
+      }
+    })
+  })
   describe('issue #739: persistence invalidation contract', () => {
     const unitOfWorkPortPath = resolve(
       repoRoot,

@@ -7,12 +7,14 @@ import type {
   PersistenceControlStateRepositoryPort,
   PersistenceControlStateTransition,
   PersistenceCoordinationPort,
+  PersistenceDataPlaneRouterPort,
   PersistenceMigrationLifecyclePort,
   PersistenceOperationGatePort,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceMigrationRecoveryLifecyclePort } from '@/contexts/saved-tabs/application/ports/PersistenceMigrationRecoveryPort'
 import { PersistenceBootstrapService } from '@/contexts/saved-tabs/application/services/PersistenceBootstrapService'
 import { transitionPersistenceControlState } from '@/contexts/saved-tabs/application/services/PersistenceControlStateService'
+import { PersistenceDataPlaneRouterService } from '@/contexts/saved-tabs/application/services/PersistenceDataPlaneRouterService'
 import { PersistenceOperationGateService } from '@/contexts/saved-tabs/application/services/PersistenceOperationGateService'
 import { PersistenceRecoveryService } from '@/contexts/saved-tabs/application/services/PersistenceRecoveryService'
 import { PersistenceV2MigrationService } from '@/contexts/saved-tabs/application/services/PersistenceV2MigrationService'
@@ -30,6 +32,7 @@ export type PersistenceBootstrapRuntime = {
   readonly bootstrap: PersistenceBootstrapPort
   readonly coordination: PersistenceCoordinationPort
   readonly controlStateRepository: PersistenceControlStateRepositoryPort
+  readonly dataPlaneRouter: PersistenceDataPlaneRouterPort
   readonly migrationLifecycle?: PersistenceMigrationLifecyclePort
   readonly migrationRecovery?: PersistenceMigrationRecoveryLifecyclePort
   readonly operationGate: PersistenceOperationGatePort
@@ -227,10 +230,17 @@ export const createPersistenceBootstrapRuntime = (
     coordination,
     recovery,
   })
+  const dataPlaneRouter = new PersistenceDataPlaneRouterService({
+    bootstrap,
+    controlStateRepository,
+    coordination,
+    recovery,
+  })
   return {
     bootstrap,
     coordination,
     controlStateRepository,
+    dataPlaneRouter,
     migrationLifecycle,
     migrationRecovery,
     operationGate,

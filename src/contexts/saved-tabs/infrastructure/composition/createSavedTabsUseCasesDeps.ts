@@ -46,6 +46,12 @@ export type CreateSavedTabsUseCasesDepsOptions = {
   readonly resolveActive?: () => boolean
 }
 
+type SavedTabsDomainStorageLocal = {
+  readonly get: (key: string) => Promise<Record<string, unknown>>
+  readonly remove: (key: string) => Promise<void>
+  readonly set: (value: Record<string, unknown>) => Promise<void>
+}
+
 type ChromeLike = ChromeApiLikeBase & {
   readonly tabs?: {
     readonly create?: (createProperties: {
@@ -100,11 +106,17 @@ const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
  * const controller = useSavedTabsController({ deps })
  * ```
  */
-export const createSavedTabsUseCasesDeps = (
-  options: CreateSavedTabsUseCasesDepsOptions = {},
-): SavedTabsUseCasesDeps => {
-  const domainLocal = getPersistenceStorageLocal()
-  const settingsLocal = getChromeStorageLocal()
+type SavedTabsUseCasesDepsFromStorageArgs = {
+  readonly options: CreateSavedTabsUseCasesDepsOptions
+  readonly domainLocal: SavedTabsDomainStorageLocal | null
+  readonly settingsLocal: SavedTabsDomainStorageLocal | null
+}
+
+const createSavedTabsUseCasesDepsFromStorage = ({
+  options,
+  domainLocal,
+  settingsLocal,
+}: SavedTabsUseCasesDepsFromStorageArgs): SavedTabsUseCasesDeps => {
   if (!domainLocal || !settingsLocal) {
     warnMissingChromeStorage('createSavedTabsUseCasesDeps')
   }
@@ -163,4 +175,42 @@ export const createSavedTabsUseCasesDeps = (
     urlRecordRepository: createChromeUrlRecordRepository(domainPort),
     userSettingsRepository: createChromeUserSettingsRepository(settingsPort),
   }
+}
+
+export const createSavedTabsUseCasesDeps = (
+  options: CreateSavedTabsUseCasesDepsOptions = {},
+): SavedTabsUseCasesDeps =>
+  createSavedTabsUseCasesDepsFromStorage({
+    options,
+    domainLocal: getPersistenceStorageLocal(),
+    settingsLocal: getChromeStorageLocal(),
+  })
+
+/**
+ * Builds the already-selected legacy branch for the outer data-plane router.
+ *
+ * The raw Chrome port is intentional here: applying the legacy operation gate
+ * again inside `PersistenceDataPlaneRouterService` would acquire the same
+ * coordination barrier twice and preselect the route. Only the outer router is
+ * allowed to choose this branch.
+ */
+export const createSelectedLegacySavedTabsUseCasesDeps = (
+  options: CreateSavedTabsUseCasesDepsOptions = {},
+): SavedTabsUseCasesDeps => {
+  const storage = getChromeStorageLocal()
+  // `storage.*` の直接呼び出しを保つことで、この composition ファイルが
+  // machine-checked storage writer inventory (docs/architecture/current-storage-writer-inventory.md)
+  // の mutation boundary として分類され続ける。wrapper を省略すると inventory 検証が壊れる。
+  const selectedLegacyStorage = storage
+    ? {
+        get: async (key: string) => storage.get(key),
+        remove: async (key: string) => storage.remove(key),
+        set: async (value: Record<string, unknown>) => storage.set(value),
+      }
+    : null
+  return createSavedTabsUseCasesDepsFromStorage({
+    options,
+    domainLocal: selectedLegacyStorage,
+    settingsLocal: storage,
+  })
 }

@@ -161,7 +161,7 @@ export class PersistenceBootstrapService implements PersistenceBootstrapPort {
     }
 
     if (state.status === 'cutover-pending') {
-      if (this.options.cutoverPolicy === 'defer') {
+      if (this.options.cutoverPolicy !== 'complete') {
         return
       }
       await this.options.controlStateRepository.transition({
