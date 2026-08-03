@@ -225,7 +225,7 @@ describe('Renovate dependency update policy', () => {
         .map((section) => section.split('\n      - ')[0]),
     )
 
-    expect(checkoutSteps).toHaveLength(8)
+    expect(checkoutSteps).toHaveLength(9)
     for (const checkoutStep of checkoutSteps) {
       expect(checkoutStep).toContain('persist-credentials: false')
     }
