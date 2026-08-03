@@ -99,6 +99,9 @@ jobs:
       - name: Verify production network policy
         run: bun run verify:production-network-policy
 
+      - name: Verify Firefox artifact contract
+        run: bun run verify:firefox-artifact
+
   run-tests-shard-1:
     name: Run Vitest Tests
     runs-on: ubuntu-latest
@@ -244,3 +247,43 @@ jobs:
 
       - name: Run axe accessibility E2E tests
         run: bun run e2e:a11y
+
+  firefox-extension-smoke:
+    name: Firefox Extension Smoke
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Firefox
+        run: bunx playwright install --with-deps firefox
+
+      - name: Build Firefox artifact
+        run: bun run build:firefox
+
+      - name: Verify Firefox artifact contract
+        run: bun run verify:firefox-artifact
+
+      - name: Run Firefox startup smoke
+        run: bun run test:firefox:smoke
+        env:
+          FIREFOX_EXTENSION_SMOKE: '1'

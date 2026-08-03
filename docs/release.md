@@ -18,8 +18,11 @@ bun run release:check
 1. `bun run quality` — フォーマット、lint、テスト、重複チェックなど
 2. `bun run build` — Chrome 拡張機能のビルド
 3. `bun run build:firefox` — Firefox 拡張機能のビルド
-4. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
-5. `bun run verify:persistence-release-compatibility` — 生成された artifact の Persistence v2 compatibility metadata を検証
+4. `bun run verify:production-logging` — production build から console / debugger が除去済みであること
+5. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
+6. `bun run verify:persistence-release-compatibility` — 生成された artifact の Persistence v2 compatibility metadata を検証
+7. `bun run verify:production-network-policy` — 生成された manifest の host / CSP / permission 契約を検証
+8. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
 
 ## Persistence v2 compatibility check
 
