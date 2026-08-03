@@ -103,9 +103,11 @@ const findNamedFunctionBody = (
   return body
 }
 
-// expect().toBeDefined() は実行時に throw するが TS はそれを認識できず、
-// 2 引数 expect は vitest/valid-expect で弾かれるため、制御フローで narrow
-// して non-null assertion を使わずに値を返す。
+// expect().toBeDefined() は実行時に throw するが TS はそれを認識できず、戻り値を
+// narrow するには non-null assertion が必要になる。typescript/no-non-null-assertion
+// (error) を満たすため、制御フローで narrow して non-null assertion を使わずに
+// 値を返す。以降の expect(actual, message) は戻り値を再利用しない純粋な assertion
+// 用途の直接呼び出しなので、両者の使い分けは役割分担で矛盾しない。
 const requireDefined = <T>(value: T | undefined, message: string): T => {
   if (value === undefined) {
     throw new Error(message)
