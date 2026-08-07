@@ -6,7 +6,7 @@ export default defineConfig({
   reporter: 'line',
   retries: process.env.CI ? 1 : 0,
   testDir: './e2e',
-  testMatch: '**/firefox.extension.smoke.spec.ts',
+  testMatch: '**/firefox.extension.*.spec.ts',
   use: {
     ...devices['Desktop Firefox'],
     trace: 'on-first-retry',

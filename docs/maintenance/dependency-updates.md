@@ -73,9 +73,15 @@ baseline test と build に不要だったため allowlist は空にした。
 - `GHSA-qwww-vcr4-c8h2`: TABBIN は client-side browser extension であり、対象の
   unstable React Server Components API を使用しない。修正版 `react-router` 8.3.0
   に対応する `react-router-dom` は未公開で、現行 7.18.1 が core 7.18.1 を固定するため。
+- `GHSA-rgw5-rvv9-x895`: `brace-expansion` 4.x に起因する DoS advisory を回避する
+  修正版 5.0.8+ は、`minimatch` 3系 (`web-ext-run` → `multimatch` 経由) が 1.x に
+  固定しているため nested override で解決できない。`GHSA-mh99-v99m-4gvg` と同じ
+  build / test tooling 経路のみで WXT production bundle には含まれず、TABBIN は
+  外部入力の glob を渡さない。期限 2026-08-12 までに `minimatch` 複数世代の解消状況を再確認する。
 
 追加した2件の owner は dependency maintenance。期限内に WXT の旧 glob chain と
-`react-router-dom` の 8.x 対応を再確認する。
+`react-router-dom` の 8.x 対応を再確認する。`GHSA-rgw5-rvv9-x895` は
+`GHSA-mh99-v99m-4gvg` と同じ経路なので同じ owner / 期限で追跡する。
 
 修正版が同じ互換世代にある `defu`、`lodash-es`、`node-forge`、`postcss`、
 `rollup`、`shell-quote`、`tmp`、`undici` は `overrides` で固定し、例外にしない。
