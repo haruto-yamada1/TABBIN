@@ -5,40 +5,20 @@ import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects
  * undo 用途の生 snapshot shape。
  *
  * domain entity 化されない rich 補助フィールド
- * （`urls` / `urlMetadata` / `projectKeywords` / `categoryOrder`）を
- * 含めた storage 上の `customProjects` エントリを表現する。
+ * （`urls` / `projectKeywords` / `categoryOrder`）を含めた repository
+ * boundary の snapshot を表現する。
  *
  * 実装 (`ChromeCustomProjectRepository` 等) は zod で parse した
  * 結果をこの shape で返す。domain interface は実装の zod スキーマへの
  * 直接依存を避けるため、structural な interface として公開する。
  */
-export type CustomProjectRawSnapshot = {
-  id: string
-  name: string
-  categories: readonly string[]
-  createdAt: number
-  updatedAt: number
-  urlIds?: readonly string[]
-  urls?: readonly {
-    id?: string
-    url: string
-    title: string
-    savedAt?: number
-  }[]
-  urlMetadata?: Readonly<Record<string, { notes?: string; category?: string }>>
-  projectKeywords?: {
-    urlKeywords: readonly string[]
-    titleKeywords: readonly string[]
-    domainKeywords: readonly string[]
-  }
-  categoryOrder?: readonly string[]
-}
+export type CustomProjectRawSnapshot = CustomProject
 
 /**
  * `CustomProject` の永続化責務だけを抽出した repository interface。
  *
- * プロジェクト単位での URL 集約 (`urlIds` / `categories` / `createdAt` /
- * `updatedAt`) の読み書きと、表示順 (`order`) の読み書きだけを
+ * プロジェクト単位での URL 所属関係 (`memberships` / `categories` /
+ * `createdAt` / `updatedAt`) の読み書きと、表示順 (`order`) の読み書きだけを
  * domain interface に閉じ込める。並び替え・カテゴリ追加・URL 追加などは
  * use-case 側で表現する。
  *
@@ -53,10 +33,10 @@ export type CustomProjectRawSnapshot = {
  * `src/contexts/saved-tabs/infrastructure/persistence/chrome-storage/` 側に置く。
  *
  * `findAllRaw` / `restoreAllRaw` は undo 用途に domain entity 化できない
- * rich フィールド（`urls` / `urlMetadata` / `projectKeywords`）を含む
+ * rich フィールド（`urls` / `projectKeywords`）を含む
  * 生 storage shape を読み書きする。`saveAll` は entity ↔ raw の merge を
  * 伴うため、削除→undo のような「生 snapshot をそのまま書き戻す」場面で
- * `urls` / `urlMetadata` が脱落する。これを防ぐため undo 専用に raw
+ * `urls` が脱落する。これを防ぐため undo 専用に raw
  * 入出力を公開する。
  *
  * @example
@@ -75,7 +55,7 @@ export type CustomProjectRepository = {
   saveOrder: (order: readonly CustomProjectId[]) => Promise<void>
   /**
    * undo 用の生 snapshot 取得。domain entity 化されない `urls` /
-   * `urlMetadata` / `projectKeywords` を含む全フィールドを保持する。
+   * `projectKeywords` を含む全フィールドを保持する。
    *
    * テスト等で未実装のモックは省略可能。presentation の undo handler
    * は存在チェックの上で呼び分ける。

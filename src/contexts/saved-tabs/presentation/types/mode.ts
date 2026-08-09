@@ -3,7 +3,7 @@ import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 export type ViewMode = 'domain' | 'custom'
 

@@ -14,13 +14,13 @@ import {
 import { useCallback } from 'react'
 
 import { CardContent } from '@/components/ui/card'
-import type {
-  SavedTabsTabGroupDto as TabGroup,
-  SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { SortableCategorySection } from '@/contexts/saved-tabs/presentation/components/SortableCategorySection'
 import { CategorySection } from '@/contexts/saved-tabs/presentation/components/TimeRemaining'
+import type {
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useDomainCard } from './DomainCardContext'

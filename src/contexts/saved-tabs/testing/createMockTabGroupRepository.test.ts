@@ -58,7 +58,7 @@ describe('createMockTabGroupRepository', () => {
     await expect(repo.findRawDomainById('missing' as never)).resolves.toBeNull()
   })
 
-  it('raw tab group は rich fields を deep copy し、無ければ null を返す', async () => {
+  it('tab group summary は normalized projection を返し、無ければ null を返す', async () => {
     const keywords = ['guide', 'reference']
     const source = toMockTabGroup({
       categoryKeywords: [{ categoryName: 'Docs', keywords }],
@@ -71,22 +71,28 @@ describe('createMockTabGroupRepository', () => {
 
     const raw = await repo.findRawTabGroupById('g1' as never)
 
-    expect(raw).toStrictEqual({
-      categoryKeywords: [
-        { categoryName: 'Docs', keywords: ['guide', 'reference'] },
-      ],
-      domain: 'example.com',
+    expect(raw?.collection).toStrictEqual({
+      createdAt: 0,
+      definition: { domain: 'example.com', type: 'domain' },
+      groupId: 'category-1',
       id: 'g1',
-      parentCategoryId: 'category-1',
-      subCategories: ['Docs'],
+      name: 'example.com',
+      sortOrder: 0,
+      updatedAt: 0,
     })
-    expect(raw?.categoryKeywords[0]?.keywords).not.toBe(keywords)
+    expect(raw?.collectionCategories).toStrictEqual([
+      expect.objectContaining({
+        keywords: ['guide', 'reference'],
+        name: 'Docs',
+      }),
+    ])
+    expect(raw?.collectionCategories[0]?.keywords).not.toBe(keywords)
     await expect(
       repo.findRawTabGroupById('missing' as never),
     ).resolves.toBeNull()
   })
 
-  it('toMockTabGroup は full/minimal 入力の optional fields を保持する', () => {
+  it('toMockTabGroup は full/minimal 入力を normalized projection に変換する', () => {
     const full = toMockTabGroup({
       categoryKeywords: [{ categoryName: 'Docs', keywords: ['guide'] }],
       domain: 'example.com',
@@ -109,19 +115,28 @@ describe('createMockTabGroupRepository', () => {
     })
     const minimal = toMockTabGroup({ domain: 'minimal.example', id: 'g2' })
 
-    expect(full).toMatchObject({
-      subCategoryOrder: ['Docs'],
-      subCategoryOrderWithUncategorized: ['Docs', 'uncategorized'],
-      urlIds: ['url-1'],
-      urls: [{ id: 'url-1' }],
+    expect(full.collection).toMatchObject({
+      definition: { domain: 'example.com', type: 'domain' },
+      groupId: 'category-1',
+      id: 'g1',
     })
+    expect(full.collectionCategories).toStrictEqual([
+      expect.objectContaining({ name: 'Docs' }),
+    ])
+    expect(full.memberships).toStrictEqual([
+      expect.objectContaining({
+        categoryId: 'g1:category:0',
+        collectionId: 'g1',
+        urlId: 'url-1',
+      }),
+    ])
     expect(minimal).toMatchObject({
-      categoryKeywords: undefined,
-      subCategories: undefined,
-      subCategoryOrder: undefined,
-      subCategoryOrderWithUncategorized: undefined,
-      urlIds: undefined,
-      urls: undefined,
+      collection: {
+        definition: { domain: 'minimal.example', type: 'domain' },
+        id: 'g2',
+      },
+      collectionCategories: [],
+      memberships: [],
     })
   })
 })

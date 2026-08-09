@@ -129,12 +129,6 @@ const persistenceBootstrapFiles = [
 
 const legacyPersistencePaths = [
   'src/features/ai-chat/lib/conversation-history.ts',
-  'src/features/analytics/routes/AnalyticsRoute.tsx',
-  'src/features/analytics/routes/analyticsRoute.helpers.ts',
-  'src/features/options/lib/import-export/flows.ts',
-  'src/lib/background/expired-tabs.ts',
-  'src/lib/background/ai-chat.ts',
-  'src/lib/background/url-storage.ts',
   'src/lib/storage/analytics.ts',
   'src/lib/storage/categories.ts',
   'src/lib/storage/migration.ts',
@@ -142,6 +136,16 @@ const legacyPersistencePaths = [
   'src/lib/storage/tabs.ts',
   'src/lib/storage/url-migration.ts',
   'src/lib/storage/urls.ts',
+] as const
+
+const routeAwareBackgroundPersistencePaths = [
+  'src/features/analytics/lib/loadAnalyticsRecords.ts',
+  'src/features/analytics/routes/AnalyticsRoute.tsx',
+  'src/features/analytics/routes/analyticsRoute.helpers.ts',
+  'src/lib/background/ai-chat.ts',
+  'src/lib/background/expired-tabs.ts',
+  'src/lib/background/extension-actions.ts',
+  'src/lib/background/url-storage.ts',
 ] as const
 
 const gatedChromeRepositoryPaths = [
@@ -209,6 +213,27 @@ describe('PersistenceBootstrap architecture policy', () => {
       expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
       expect(executableSource).not.toContain('getChromeStorageLocal')
     }
+  })
+
+  it('routes background, AI, and analytics through the selected data plane', () => {
+    for (const path of routeAwareBackgroundPersistencePaths) {
+      const source = readRepositoryFile(path)
+      const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+      expect(source).toContain(
+        "from '@/app/composition/backgroundSavedTabsDataPlane'",
+      )
+      expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
+      expect(executableSource).not.toContain('getChromeStorageLocal')
+    }
+
+    const dataPlane = readRepositoryFile(
+      'src/app/composition/backgroundSavedTabsDataPlane.ts',
+    )
+    expect(dataPlane).toContain('router: runtime.dataPlaneRouter')
+    expect(dataPlane).toContain('IndexedDbSavedTabsSessionService')
+    expect(dataPlane).toContain('createBackgroundSavedTabsIndexedDbDataPlane')
+    expect(dataPlane).not.toContain('runIndexedDbSession')
+    expect(dataPlane).toContain('legacyStorage')
   })
 
   it('requires the operation gate at both IndexedDB boundaries', () => {

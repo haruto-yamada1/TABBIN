@@ -108,8 +108,8 @@ describe('savedTabsStorageSchema', () => {
   describe('ParentCategoryRawSchema', () => {
     it('必須フィールドを持つ parent category を通す', () => {
       const result = ParentCategoryRawSchema.safeParse({
-        domainNames: ['example.com'],
         domains: ['group-1'],
+        domainNames: ['example.com'],
         id: 'cat-1',
         name: 'Docs',
       })

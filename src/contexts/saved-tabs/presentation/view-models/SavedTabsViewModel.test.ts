@@ -26,12 +26,12 @@ describe('SavedTabsViewModel', () => {
         toTabGroupViewModel({
           domain: 'example.com',
           id: 'g1',
-          urlIds: ['u1', 'u2', 'u3'],
+          memberships: ['u1', 'u2', 'u3'].map((urlId) => ({ urlId })),
         }),
         toTabGroupViewModel({
           domain: 'news.example',
           id: 'g2',
-          urlIds: [],
+          memberships: [].map((urlId) => ({ urlId })),
           urls: [
             { id: 'u4', title: 'a', url: 'https://news.example/a' },
             { id: 'u5', title: 'b', url: 'https://news.example/b' },
@@ -45,7 +45,7 @@ describe('SavedTabsViewModel', () => {
           id: 'p1',
           name: 'Reading',
           updatedAt: 1,
-          urlIds: ['u9', 'u10'],
+          memberships: ['u9', 'u10'].map((urlId) => ({ urlId })),
         }),
       ]
       const vm = createSavedTabsViewModel({
@@ -75,12 +75,12 @@ describe('SavedTabsViewModel', () => {
 })
 
 describe('TabGroupViewModel.toTabGroupViewModel', () => {
-  it('urlIds / urls / subCategories から displayUrlCount と subCategoryCount を導出する', () => {
+  it('memberships / urls / subCategories から表示件数を導出する', () => {
     const vm = toTabGroupViewModel({
       domain: 'example.com',
       id: 'g1',
       subCategories: ['a', 'b', 'c'],
-      urlIds: ['u1', 'u2'],
+      memberships: ['u1', 'u2'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'u1',
@@ -101,17 +101,17 @@ describe('TabGroupViewModel.toTabGroupViewModel', () => {
     expect(vm.hasUrls).toBe(true)
   })
 
-  it('urls が無く urlIds のみでも displayUrlCount を返す', () => {
+  it('urls が無く memberships のみでも displayUrlCount を返す', () => {
     const vm = toTabGroupViewModel({
       domain: 'example.com',
       id: 'g1',
-      urlIds: ['u1', 'u2', 'u3'],
+      memberships: ['u1', 'u2', 'u3'].map((urlId) => ({ urlId })),
     })
     expect(vm.displayUrlCount).toBe(3)
     expect(vm.hasUrls).toBe(true)
   })
 
-  it('urls / urlIds が空なら hasUrls=false', () => {
+  it('urls / memberships が空なら hasUrls=false', () => {
     const vm = toTabGroupViewModel({
       domain: 'example.com',
       id: 'g1',
@@ -122,7 +122,7 @@ describe('TabGroupViewModel.toTabGroupViewModel', () => {
 })
 
 describe('CustomProjectViewModel.toCustomProjectViewModel', () => {
-  it('urls / urlIds から displayUrlCount を導出する', () => {
+  it('urls / memberships から displayUrlCount を導出する', () => {
     const vm = toCustomProjectViewModel({
       categories: ['news', 'work'],
       categoryOrder: ['work', 'news'],
@@ -130,7 +130,7 @@ describe('CustomProjectViewModel.toCustomProjectViewModel', () => {
       id: 'p1',
       name: 'Reading',
       updatedAt: 2,
-      urlIds: ['u1', 'u2'],
+      memberships: ['u1', 'u2'].map((urlId) => ({ urlId })),
     })
     expect(vm.displayUrlCount).toBe(2)
     expect(vm.hasUrls).toBe(true)
@@ -145,7 +145,7 @@ describe('CustomProjectViewModel.toCustomProjectViewModel', () => {
       id: 'p1',
       name: 'Reading',
       updatedAt: 1,
-      urlIds: ['u1', 'u2', 'u3'],
+      memberships: ['u1', 'u2', 'u3'].map((urlId) => ({ urlId })),
       urls: [
         { id: 'u1', title: 'a', url: 'https://example.com/a' },
         { id: 'u2', title: 'b', url: 'https://example.com/b' },

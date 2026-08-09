@@ -1,9 +1,9 @@
+import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
 import type {
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUrlRecordDto as UrlRecord,
   SavedTabsParentCategoryDto as ParentCategoryDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { PresentationCategoryLookup } from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 /**
  * `tabGroup` 内の表示用 URL 件数を数える。
@@ -16,7 +16,7 @@ import { redactUrlForLog } from '@/lib/logging/redact-url'
  * `presentation/lib/tab-group-state.ts` へ移設 (issue #512)。
  */
 export const countTabGroupUrls = (group: TabGroup): number =>
-  group.urlIds?.length ?? group.urls?.length ?? 0
+  group.urls?.length ?? group.memberships?.length ?? 0
 
 /**
  * `idsToExclude` に含まれない `TabGroup` だけを返す。
@@ -75,24 +75,26 @@ export const removeUrlIdsFromSavedTabs = (
   const updatedSavedTabs: TabGroup[] = []
 
   for (const group of savedTabs) {
-    if (!(group.urlIds && group.urlIds.length > 0)) {
+    if (!(group.memberships && group.memberships.length > 0)) {
       updatedSavedTabs.push(group)
       continue
     }
 
-    const remainingUrlIds = group.urlIds.filter((id) => !idsToRemove.has(id))
-    if (remainingUrlIds.length === group.urlIds.length) {
+    const remainingMemberships = group.memberships.filter(
+      ({ urlId }) => !idsToRemove.has(urlId),
+    )
+    if (remainingMemberships.length === group.memberships.length) {
       updatedSavedTabs.push(group)
       continue
     }
 
     hasChanges = true
-    if (remainingUrlIds.length === 0) {
+    if (remainingMemberships.length === 0) {
       continue
     }
 
     updatedSavedTabs.push(
-      buildUpdatedGroupAfterUrlIdRemoval(group, remainingUrlIds, idsToRemove),
+      buildUpdatedGroupAfterUrlIdRemoval(group, remainingMemberships),
     )
   }
 
@@ -109,28 +111,21 @@ export const removeUrlIdsFromSavedTabs = (
  */
 export const buildUpdatedGroupAfterUrlIdRemoval = (
   group: TabGroup,
-  remainingUrlIds: string[],
-  idsToRemove: ReadonlySet<string>,
+  remainingMemberships: NonNullable<TabGroup['memberships']>,
 ): TabGroup => {
-  const updatedGroup: TabGroup = {
+  return {
     ...group,
-    urlIds: remainingUrlIds,
+    memberships: [...remainingMemberships],
+    ...(group.urls
+      ? {
+          urls: group.urls.filter(
+            ({ id }) =>
+              id === undefined ||
+              remainingMemberships.some(({ urlId }) => urlId === id),
+          ),
+        }
+      : {}),
   }
-
-  if (!group.urlSubCategories) {
-    return updatedGroup
-  }
-
-  const nextUrlSubCategories = { ...group.urlSubCategories }
-  for (const id of idsToRemove) {
-    Reflect.deleteProperty(nextUrlSubCategories, id)
-  }
-  updatedGroup.urlSubCategories =
-    Object.keys(nextUrlSubCategories).length > 0
-      ? nextUrlSubCategories
-      : undefined
-
-  return updatedGroup
 }
 
 /**
@@ -197,7 +192,7 @@ export const syncGroupCategoryAssignment = (
     return state
   }
   if (
-    foundByDomainName.domains.includes(group.id) ||
+    foundByDomainName.collections.some(({ id }) => id === group.id) ||
     foundByDomainName.id === idBasedCategory?.id
   ) {
     return state
@@ -206,7 +201,10 @@ export const syncGroupCategoryAssignment = (
     category.id === foundByDomainName.id
       ? {
           ...category,
-          domains: [...category.domains, group.id],
+          collections: [
+            ...category.collections,
+            { domain: group.domain, id: group.id },
+          ],
         }
       : category,
   )

@@ -67,16 +67,7 @@ const createChromeTabGroupRepositoryImpl = (
     if (!raw) {
       return null
     }
-    return {
-      categoryKeywords: (raw.categoryKeywords ?? []).map((keyword) => ({
-        categoryName: keyword.categoryName,
-        keywords: [...keyword.keywords],
-      })),
-      domain: raw.domain,
-      id: raw.id,
-      parentCategoryId: raw.parentCategoryId,
-      subCategories: [...(raw.subCategories ?? [])],
-    }
+    return ChromeSavedTabsStorageMapper.toTabGroupFromRaw(raw)
   }
 
   const saveAll = async (groups: readonly TabGroup[]): Promise<void> => {
@@ -154,34 +145,30 @@ export const createChromeSavedTabsTabGroupReadAdapter = (
   }
   return {
     findAll: async () =>
-      (await findAllRawTabGroups(port)).map((group) => ({
-        ...group,
-        ...(group.urlIds ? { urlIds: [...group.urlIds] } : {}),
-        ...(group.urls ? { urls: group.urls.map((url) => ({ ...url })) } : {}),
-        ...(group.urlSubCategories
-          ? { urlSubCategories: { ...group.urlSubCategories } }
-          : {}),
-        ...(group.subCategories
-          ? { subCategories: [...group.subCategories] }
-          : {}),
-        ...(group.categoryKeywords
-          ? {
-              categoryKeywords: group.categoryKeywords.map((entry) => ({
-                categoryName: entry.categoryName,
-                keywords: [...entry.keywords],
-              })),
-            }
-          : {}),
-        ...(group.subCategoryOrder
-          ? { subCategoryOrder: [...group.subCategoryOrder] }
-          : {}),
-        ...(group.subCategoryOrderWithUncategorized
-          ? {
-              subCategoryOrderWithUncategorized: [
-                ...group.subCategoryOrderWithUncategorized,
-              ],
-            }
-          : {}),
-      })),
+      (await findAllRawTabGroups(port)).flatMap((raw) => {
+        const group = ChromeSavedTabsStorageMapper.toTabGroupFromRaw(raw)
+        if (!group) {
+          return []
+        }
+        return [
+          {
+            ...group,
+            ...(raw.urls
+              ? {
+                  resolvedUrls: raw.urls.map((url, index) => {
+                    const id = raw.urlIds?.[index]
+                    return {
+                      ...url,
+                      ...(id ? { id } : {}),
+                      ...(id && raw.urlSubCategories?.[id]
+                        ? { subCategory: raw.urlSubCategories[id] }
+                        : {}),
+                    }
+                  }),
+                }
+              : {}),
+          },
+        ]
+      }),
   }
 }

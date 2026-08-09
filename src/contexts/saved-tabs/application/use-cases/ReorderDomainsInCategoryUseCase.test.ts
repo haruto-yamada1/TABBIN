@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
-import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createReorderDomainsInCategoryUseCase } from './ReorderDomainsInCategoryUseCase'
 import type { ReorderDomainsInCategoryUseCaseDeps } from './ReorderDomainsInCategoryUseCase'
@@ -36,8 +36,8 @@ const createDeps = (
   parentCategoryRepository: repo,
 })
 
-const buildTabGroup = (id: string): TabGroup =>
-  ({ id: createTabGroupId(id) }) as unknown as TabGroup
+const buildTabGroup = (id: string, domain = `${id}.example.com`): TabGroup =>
+  createTabGroup({ domain, id })
 
 describe('createReorderDomainsInCategoryUseCase', () => {
   let repo: ParentCategoryRepository
@@ -45,27 +45,33 @@ describe('createReorderDomainsInCategoryUseCase', () => {
   beforeEach(() => {
     repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: ['example.com', 'docs.com', 'extra.com'],
-        domains: ['tab-1', 'tab-2', 'tab-3'],
+        collections: ['tab-1', 'tab-2', 'tab-3'].map((id, index) => ({
+          id,
+          domain: ['example.com', 'docs.com', 'extra.com'][index] ?? id,
+        })),
         id: 'cat-docs',
         name: 'Docs',
       }),
     ])
   })
 
-  it('新しい domainIds 順で categories.domains を更新して saveAll する', async () => {
+  it('新しい domainIds 順で categories.collections.map(({ id }) => id) を更新して saveAll する', async () => {
     const useCase = createReorderDomainsInCategoryUseCase(createDeps(repo))
     const saveAllSpy = vi.spyOn(repo, 'saveAll')
     const result = await useCase({
       categoryId: 'cat-docs',
       updatedDomains: [
-        buildTabGroup('tab-3'),
-        buildTabGroup('tab-1'),
-        buildTabGroup('tab-2'),
+        buildTabGroup('tab-3', 'extra.com'),
+        buildTabGroup('tab-1', 'example.com'),
+        buildTabGroup('tab-2', 'docs.com'),
       ],
     })
     const docs = result.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-3', 'tab-1', 'tab-2'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-3',
+      'tab-1',
+      'tab-2',
+    ])
     expect(saveAllSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -77,7 +83,7 @@ describe('createReorderDomainsInCategoryUseCase', () => {
       updatedDomains: [],
     })
     const docs = result.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual([])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([])
     expect(saveAllSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -89,10 +95,16 @@ describe('createReorderDomainsInCategoryUseCase', () => {
     const useCase = createReorderDomainsInCategoryUseCase(createDeps(repo))
     const result = await useCase({
       categoryId: 'cat-docs',
-      updatedDomains: [buildTabGroup('tab-extra'), buildTabGroup('tab-1')],
+      updatedDomains: [
+        buildTabGroup('tab-extra', 'new.com'),
+        buildTabGroup('tab-1', 'example.com'),
+      ],
     })
     const docs = result.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-extra', 'tab-1'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-extra',
+      'tab-1',
+    ])
   })
 
   it('対象カテゴリが見つからない場合は no-op として現在値を返す', async () => {
@@ -102,20 +114,26 @@ describe('createReorderDomainsInCategoryUseCase', () => {
       updatedDomains: [buildTabGroup('tab-1')],
     })
     const docs = result.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-1', 'tab-2', 'tab-3'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-1',
+      'tab-2',
+      'tab-3',
+    ])
   })
 
   it('domainNames は変更しない (並び替えは domains のみ)', async () => {
     const useCase = createReorderDomainsInCategoryUseCase(createDeps(repo))
     const result = await useCase({
       categoryId: 'cat-docs',
-      updatedDomains: [buildTabGroup('tab-3'), buildTabGroup('tab-1')],
+      updatedDomains: [
+        buildTabGroup('tab-3', 'extra.com'),
+        buildTabGroup('tab-1', 'example.com'),
+      ],
     })
     const docs = result.find((c) => c.id === 'cat-docs')
-    expect(docs?.domainNames).toStrictEqual([
-      'example.com',
-      'docs.com',
+    expect(docs?.collections.map(({ domain }) => domain)).toStrictEqual([
       'extra.com',
+      'example.com',
     ])
   })
 })

@@ -1,16 +1,24 @@
-import { normalizeDomainString } from '@/contexts/saved-tabs/public-api'
-import type { AiChatConversation } from '@/features/ai-chat/types'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { SavedAnalyticsView } from '@/lib/storage/analytics'
-import { getUserSettings } from '@/lib/storage/settings'
-import { createOrUpdateUrlRecordsBatch } from '@/lib/storage/urls'
 import type {
   ParentCategory,
   SubCategoryKeyword,
   TabGroup,
   UrlRecord,
-  UserSettings,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
+import { normalizeDomainString } from '@/contexts/saved-tabs/public-api'
+import type { AiChatConversation } from '@/features/ai-chat/types'
+import type {
+  BackupData,
+  ConvertedUrlData,
+  ImportedCustomProjectData,
+  ImportedCustomProjectUrlData,
+  ImportedTabData,
+  ImportedUrlData,
+} from '@/features/options/lib/import-export/schemas'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
+import type { SavedAnalyticsView } from '@/lib/storage/analytics'
+import { getUserSettings } from '@/lib/storage/settings'
+import { createOrUpdateUrlRecordsBatch } from '@/lib/storage/urls'
+import type { UserSettings } from '@/types/storage'
 
 import {
   alignCustomProjectsWithSavedTabs,
@@ -26,14 +34,6 @@ import {
   normalizeSubCategoryOrderWithUncategorized,
   overwriteImportedCustomProjects,
 } from './custom-projects'
-import type {
-  BackupData,
-  ConvertedUrlData,
-  ImportedCustomProjectData,
-  ImportedCustomProjectUrlData,
-  ImportedTabData,
-  ImportedUrlData,
-} from './schemas'
 import {
   convertImportedUrlsToNewFormat,
   convertTabGroupToExportUrls,

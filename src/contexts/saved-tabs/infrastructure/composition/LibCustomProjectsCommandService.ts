@@ -1,3 +1,5 @@
+import type { ResolvedCustomProjectUrlDto } from '@/contexts/saved-tabs/application/dto/ResolvedCustomProjectUrlDto'
+import type { SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 import {
   addCategoryToProject,
@@ -14,7 +16,6 @@ import {
   updateCategoryOrder,
   updateProjectKeywords,
 } from '@/lib/storage/projects'
-import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
 
 /**
  * `CustomProjectsCommandService` の `lib/storage` delegate 実装。
@@ -86,9 +87,12 @@ export const createLibCustomProjectsCommandService =
     },
     reorderProjectUrls: async (
       projectId: string,
-      urls: CustomProject['urls'],
+      urls: readonly ResolvedCustomProjectUrlDto[],
     ): Promise<void> => {
-      await reorderProjectUrls(projectId, urls)
+      await reorderProjectUrls(
+        projectId,
+        urls.map((url) => ({ ...url })),
+      )
     },
     setUrlCategory: async (
       projectId: string,

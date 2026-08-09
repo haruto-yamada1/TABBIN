@@ -62,8 +62,23 @@ export type PersistenceCommitResult = {
 
 export type PersistenceDurability = 'default' | 'relaxed' | 'strict'
 
+export class PersistenceRevisionConflictError extends Error {
+  readonly actualRevision: number
+  readonly expectedRevision: number
+
+  constructor(expectedRevision: number, actualRevision: number) {
+    super(
+      `Persistence revision conflict: expected ${expectedRevision}, received ${actualRevision}.`,
+    )
+    this.name = 'PersistenceRevisionConflictError'
+    this.actualRevision = actualRevision
+    this.expectedRevision = expectedRevision
+  }
+}
+
 export type PersistenceCommitOptions = {
   readonly durability?: PersistenceDurability
+  readonly expectedRevision?: number
 }
 
 export type PersistenceV2UnitOfWorkPort = {

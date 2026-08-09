@@ -1,9 +1,9 @@
+import type { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
+import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
-import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** ProjectCard のコンテキスト型 */

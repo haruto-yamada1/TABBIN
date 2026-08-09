@@ -1,7 +1,7 @@
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import type { CustomProjectViewModel } from './CustomProjectViewModel'
 import type { TabGroupViewModel } from './TabGroupViewModel'
@@ -26,10 +26,12 @@ export type DomainModeViewModel = {
 }
 
 export type ParentCategoryViewModel = {
+  readonly collections: readonly {
+    readonly domain: string
+    readonly id: string
+  }[]
   readonly id: string
   readonly name: string
-  readonly domains: readonly string[]
-  readonly domainNames: readonly string[]
 }
 
 /**
@@ -38,8 +40,7 @@ export type ParentCategoryViewModel = {
 export const toParentCategoryViewModel = (
   category: ParentCategory,
 ): ParentCategoryViewModel => ({
-  domainNames: [...category.domainNames],
-  domains: [...category.domains],
+  collections: category.collections.map((collection) => ({ ...collection })),
   id: category.id,
   name: category.name,
 })

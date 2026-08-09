@@ -3,38 +3,44 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  createSavedTabsCustomProjectDto,
+  createSavedTabsCustomProjectDto as createCurrentCustomProject,
   createSavedTabsParentCategoryDto,
-  createSavedTabsTabGroupDto,
+  createSavedTabsTabGroupDto as createCurrentTabGroup,
   createSavedTabsUrlRecordDto,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 import {
   createSavedTabsPresentationPortsStub,
   createSavedTabsUseCasesStub,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import {
+  toSavedTabsCustomProjectViewModel,
+  toSavedTabsTabGroupViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 
 import { useSavedTabsController } from './useSavedTabsController'
 
 afterEach(() => vi.restoreAllMocks())
 
-const group = createSavedTabsTabGroupDto({
+const currentGroup = createCurrentTabGroup({
   domain: 'example.com',
   id: 'group-1',
-  urlIds: ['url-1'],
+  memberships: ['url-1'].map((urlId) => ({ urlId })),
 })
-const project = createSavedTabsCustomProjectDto({
+const group = toSavedTabsTabGroupViewModel(currentGroup)
+const currentProject = createCurrentCustomProject({
   id: 'project-1',
   name: 'Reading',
-  urlIds: ['url-1'],
+  memberships: ['url-1'].map((urlId) => ({ urlId })),
 })
+const project = toSavedTabsCustomProjectViewModel(currentProject)
 const record = createSavedTabsUrlRecordDto({
   id: 'url-1',
   url: 'https://example.com/article',
 })
 
 const setup = (options: { initial?: boolean } = {}) => {
-  let groups = [group]
-  let projects = [project]
+  let groups = [currentGroup]
+  let projects = [currentProject]
   const open = vi.fn(async ({ url }: { url: string }) => ({ url }))
   const getSavedTabs = vi.fn(async () => groups)
   const getCustomProjects = vi.fn(async () => projects)
@@ -93,7 +99,7 @@ const setup = (options: { initial?: boolean } = {}) => {
     useSavedTabsController({
       deps,
       ...(options.initial
-        ? { initialCustomProjects: projects, initialTabGroups: groups }
+        ? { initialCustomProjects: [project], initialTabGroups: [group] }
         : {}),
       useCases,
     }),
@@ -164,9 +170,9 @@ describe('useSavedTabsController', () => {
       name: 'Docs',
     })
     const snapshot = {
-      customProjects: [project],
+      customProjects: [currentProject],
       parentCategories: [category],
-      savedTabs: [group],
+      savedTabs: [currentGroup],
       urlRecords: [record],
     }
     let summary:
@@ -235,15 +241,17 @@ describe('useSavedTabsController', () => {
   it('openSavedUrl の full/empty snapshot を安全にコピーする', async () => {
     const { result, useCases } = setup({ initial: true })
     const category = createSavedTabsParentCategoryDto({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'category-1',
       name: 'Docs',
     })
     const fullSnapshot = {
-      customProjects: [project],
+      customProjects: [currentProject],
       parentCategories: [category],
-      savedTabs: [group],
+      savedTabs: [currentGroup],
       urlRecords: [record],
     }
     vi.mocked(useCases.openSavedUrl)
@@ -285,8 +293,10 @@ describe('useSavedTabsController', () => {
   it('deleteTabGroup の full/empty snapshot を安全にコピーする', async () => {
     const { result, useCases } = setup({ initial: true })
     const category = createSavedTabsParentCategoryDto({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'category-1',
       name: 'Docs',
     })
@@ -295,9 +305,9 @@ describe('useSavedTabsController', () => {
         removedTabGroupId: group.id,
         removedUrlRecordIds: [record.id],
         snapshot: {
-          customProjects: [project],
+          customProjects: [currentProject],
           parentCategories: [category],
-          savedTabs: [group],
+          savedTabs: [currentGroup],
           urlRecords: [record],
         },
       })

@@ -13,7 +13,7 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
  * `removedUrlRecords` は実際に削除された `UrlRecord` の配列。
  * Undo 時に「消した UrlRecord を戻す」用途に使う。
  *
- * `removedTabGroupIds` は対象 `TabGroup` のうち、`urlIds` 配列から
+ * `removedTabGroupIds` は対象 `TabGroup` のうち、`memberships` から
  * 該当 `UrlRecordId` をすべて取り除いた結果空になって削除されたもの。
  * `TabGroup` が残った場合はその ID は含まれない。
  *

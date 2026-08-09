@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { moveCustomProjectUrlAndSyncState } from './custom-project-move'
 
@@ -11,7 +11,7 @@ describe('moveCustomProjectUrlAndSyncState', () => {
       {
         id: 'project-a',
         name: 'Project A',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 1,
         updatedAt: 10,
@@ -19,7 +19,7 @@ describe('moveCustomProjectUrlAndSyncState', () => {
       {
         id: 'project-b',
         name: 'Project B',
-        urlIds: ['url-1'],
+        memberships: ['url-1'].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 2,
         updatedAt: 10,

@@ -4,8 +4,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { useMemo } from 'react'
 import type { CSSProperties } from 'react'
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { DomainCardContext } from './DomainCardContext'

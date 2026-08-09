@@ -1,245 +1,33 @@
 import { describe, expect, it } from 'vitest' // eslint-disable-line
 
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UrlRecord,
-} from '@/types/storage'
+import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
 
-import {
-  buildAiSavedUrlRecords,
-  findUrlsAddedInMonth,
-  searchSavedUrls,
-} from './buildAiContext'
+import { findUrlsAddedInMonth, searchSavedUrls } from './buildAiContext'
 
-describe('buildAiSavedUrlRecords', () => {
-  it('savedTabs と customProjects の文脈を URL ごとに統合する', () => {
-    const urlRecords: UrlRecord[] = [
-      {
-        id: 'url-1',
-        url: 'https://react.dev/learn',
-        title: 'React Learn',
-        savedAt: new Date('2026-03-01T12:00:00.000Z').getTime(),
-      },
-      {
-        id: 'url-2',
-        url: 'https://vercel.com/blog/ai',
-        title: 'AI Blog',
-        savedAt: new Date('2026-02-10T12:00:00.000Z').getTime(),
-      },
-    ]
-    const savedTabs: TabGroup[] = [
-      {
-        id: 'group-1',
-        domain: 'react.dev',
-        urlIds: ['url-1'],
-        urlSubCategories: {
-          'url-1': 'Frontend',
-        },
-      },
-    ]
-    const customProjects: CustomProject[] = [
-      {
-        id: 'project-1',
-        name: 'UI Research',
-        urlIds: ['url-1', 'url-2'],
-        urlMetadata: {
-          'url-1': {
-            category: 'Favorites',
-          },
-          'url-2': {
-            category: 'Reading',
-          },
-        },
-        categories: ['Favorites', 'Reading'],
-        createdAt: 1,
-        updatedAt: 1,
-      },
-    ]
-    const parentCategories: ParentCategory[] = [
-      {
-        id: 'cat-1',
-        name: 'Frontend',
-        domains: ['group-1'],
-        domainNames: ['react.dev'],
-      },
-    ]
-
-    const records = buildAiSavedUrlRecords({
-      customProjects,
-      parentCategories,
-      savedTabs,
-      urlRecords,
-    })
-
-    expect(records).toStrictEqual([
-      {
-        id: 'url-1',
-        url: 'https://react.dev/learn',
-        title: 'React Learn',
-        domain: 'react.dev',
-        savedAt: new Date('2026-03-01T12:00:00.000Z').getTime(),
-        savedInTabGroups: ['react.dev'],
-        savedInProjects: ['UI Research'],
-        subCategories: ['Frontend'],
-        projectCategories: ['Favorites'],
-        parentCategories: ['Frontend'],
-      },
-      {
-        id: 'url-2',
-        url: 'https://vercel.com/blog/ai',
-        title: 'AI Blog',
-        domain: 'vercel.com',
-        savedAt: new Date('2026-02-10T12:00:00.000Z').getTime(),
-        savedInTabGroups: [],
-        savedInProjects: ['UI Research'],
-        subCategories: [],
-        projectCategories: ['Reading'],
-        parentCategories: [],
-      },
-    ])
-  })
-
-  it('parent category は domainNames 側の一致でも拾う', () => {
-    const records = buildAiSavedUrlRecords({
-      urlRecords: [
-        {
-          id: 'url-1',
-          url: 'https://react.dev/learn',
-          title: 'React Learn',
-          savedAt: 1,
-        },
-      ],
-      savedTabs: [
-        {
-          id: 'group-1',
-          domain: 'react.dev',
-          urlIds: ['url-1'],
-        },
-      ],
-      customProjects: [],
-      parentCategories: [
-        {
-          id: 'cat-1',
-          name: 'Domain Match',
-          domains: [],
-          domainNames: ['react.dev'],
-        },
-      ],
-    })
-
-    expect(records[0]?.parentCategories).toStrictEqual(['Domain Match'])
-  })
-
-  // 回帰 (Finding B): ストレージ形 (スキーム付き domainNames) と
-  // hostname 形 (group.domain) が混在しても normalizeDomainLookupKey で一致する。
-  it('domainNames (スキーム付き) と group.domain (hostname) の形式差を吸収して一致する', () => {
-    const records = buildAiSavedUrlRecords({
-      urlRecords: [
-        {
-          id: 'url-1',
-          url: 'https://react.dev/learn',
-          title: 'React Learn',
-          savedAt: 1,
-        },
-      ],
-      savedTabs: [
-        {
-          id: 'group-1',
-          domain: 'react.dev',
-          urlIds: ['url-1'],
-        },
-      ],
-      customProjects: [],
-      parentCategories: [
-        {
-          id: 'cat-1',
-          name: 'Mixed Form Match',
-          domains: [],
-          domainNames: ['https://react.dev'],
-        },
-      ],
-    })
-
-    expect(records[0]?.parentCategories).toStrictEqual(['Mixed Form Match'])
-  })
-
-  it('project metadata と parent category が一致しない場合はカテゴリ配列を空にする', () => {
-    const records = buildAiSavedUrlRecords({
-      urlRecords: [
-        {
-          id: 'url-1',
-          url: 'not-a-url',
-          title: 'Invalid URL',
-          savedAt: 1,
-        },
-      ],
-      savedTabs: [
-        {
-          id: 'group-1',
-          domain: 'plain-domain',
-          urlIds: ['url-1'],
-        },
-      ],
-      customProjects: [
-        {
-          categories: [],
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Project without metadata',
-          updatedAt: 1,
-          urlIds: ['url-1'],
-        },
-      ],
-      parentCategories: [
-        {
-          domainNames: ['other-domain'],
-          domains: ['other-group'],
-          id: 'cat-1',
-          name: 'Other',
-        },
-      ],
-    })
-
-    expect(records[0]).toStrictEqual(
-      expect.objectContaining({
-        domain: '',
-        parentCategories: [],
-        projectCategories: [],
-        savedInProjects: ['Project without metadata'],
-      }),
-    )
-  })
+const createRecord = (
+  overrides: Partial<AiSavedUrlRecord> = {},
+): AiSavedUrlRecord => ({
+  domain: 'react.dev',
+  id: 'url-1',
+  parentCategories: [],
+  projectCategories: [],
+  savedAt: new Date('2026-03-01T00:00:00.000Z').getTime(),
+  savedInProjects: [],
+  savedInTabGroups: [],
+  subCategories: [],
+  title: 'React Learn',
+  url: 'https://react.dev/learn',
+  ...overrides,
 })
 
 describe('findUrlsAddedInMonth', () => {
   it('指定した月に追加された URL だけを返す', () => {
     const records = [
-      {
-        id: 'url-1',
-        url: 'https://react.dev/learn',
-        title: 'React Learn',
-        domain: 'react.dev',
-        savedAt: new Date('2026-03-01T00:00:00.000Z').getTime(),
-        savedInTabGroups: [],
-        savedInProjects: [],
-        subCategories: [],
-        projectCategories: [],
-        parentCategories: [],
-      },
-      {
+      createRecord(),
+      createRecord({
         id: 'url-2',
-        url: 'https://vercel.com/blog/ai',
-        title: 'AI Blog',
-        domain: 'vercel.com',
         savedAt: new Date('2026-02-28T14:59:59.000Z').getTime(),
-        savedInTabGroups: [],
-        savedInProjects: [],
-        subCategories: [],
-        projectCategories: [],
-        parentCategories: [],
-      },
+      }),
     ]
 
     expect(findUrlsAddedInMonth(records, 2026, 3)).toStrictEqual([records[0]])
@@ -247,30 +35,13 @@ describe('findUrlsAddedInMonth', () => {
 
   it('指定した月をタイムゾーン基準で判定する', () => {
     const records = [
-      {
-        id: 'url-1',
-        url: 'https://react.dev/learn',
-        title: 'React Learn',
-        domain: 'react.dev',
+      createRecord({
         savedAt: new Date('2026-02-28T15:30:00.000Z').getTime(),
-        savedInTabGroups: [],
-        savedInProjects: [],
-        subCategories: [],
-        projectCategories: [],
-        parentCategories: [],
-      },
-      {
+      }),
+      createRecord({
         id: 'url-2',
-        url: 'https://vercel.com/blog/ai',
-        title: 'AI Blog',
-        domain: 'vercel.com',
         savedAt: new Date('2026-02-28T14:30:00.000Z').getTime(),
-        savedInTabGroups: [],
-        savedInProjects: [],
-        subCategories: [],
-        projectCategories: [],
-        parentCategories: [],
-      },
+      }),
     ]
 
     expect(findUrlsAddedInMonth(records, 2026, 3, 'Asia/Tokyo')).toStrictEqual([
@@ -282,52 +53,34 @@ describe('findUrlsAddedInMonth', () => {
 describe('searchSavedUrls', () => {
   it('title, domain, project, category を横断して検索する', () => {
     const records = [
-      {
-        id: 'url-1',
-        url: 'https://react.dev/learn',
-        title: 'React Learn',
-        domain: 'react.dev',
-        savedAt: 1,
-        savedInTabGroups: ['react.dev'],
-        savedInProjects: ['UI Research'],
-        subCategories: ['Frontend'],
-        projectCategories: ['Favorites'],
+      createRecord({
         parentCategories: ['Frontend'],
-      },
-      {
-        id: 'url-2',
-        url: 'https://zenn.dev/articles/ai',
-        title: 'Interesting Article',
+        projectCategories: ['Favorites'],
+        savedInProjects: ['UI Research'],
+        savedInTabGroups: ['react.dev'],
+        subCategories: ['Frontend'],
+      }),
+      createRecord({
         domain: 'zenn.dev',
-        savedAt: 2,
-        savedInTabGroups: ['zenn.dev'],
-        savedInProjects: ['Reading'],
-        subCategories: [],
+        id: 'url-2',
         projectCategories: ['Later'],
-        parentCategories: [],
-      },
+        savedInProjects: ['Reading'],
+        savedInTabGroups: ['zenn.dev'],
+        title: 'Interesting Article',
+        url: 'https://zenn.dev/articles/ai',
+      }),
     ]
 
     expect(searchSavedUrls(records, 'frontend')).toStrictEqual([records[0]])
     expect(searchSavedUrls(records, 'reading')).toStrictEqual([records[1]])
   })
 
-  it('空クエリなら全件を返し、不正URLは domain を空にする', () => {
-    const records = buildAiSavedUrlRecords({
-      urlRecords: [
-        {
-          id: 'url-1',
-          url: 'not a url',
-          title: 'Broken',
-          savedAt: 1,
-        },
-      ],
-      savedTabs: [],
-      customProjects: [],
-      parentCategories: [],
-    })
+  it('空クエリなら全件を返し、current projectionの不正URL domainも扱う', () => {
+    const records = [
+      createRecord({ domain: '', title: 'Broken', url: 'not a url' }),
+    ]
 
-    expect(records[0]?.domain).toBe('')
     expect(searchSavedUrls(records, '   ')).toStrictEqual(records)
+    expect(searchSavedUrls(records, 'broken')).toStrictEqual(records)
   })
 })

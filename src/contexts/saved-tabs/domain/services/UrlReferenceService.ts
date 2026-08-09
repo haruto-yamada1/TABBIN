@@ -35,12 +35,12 @@ export const collectReferencedUrlRecordIds = ({
 }): ReadonlySet<UrlRecordId> => {
   const referenced = new Set<UrlRecordId>()
   for (const group of tabGroups) {
-    for (const urlId of group.urlIds) {
+    for (const { urlId } of group.memberships) {
       referenced.add(urlId)
     }
   }
   for (const project of customProjects) {
-    for (const urlId of project.urlIds) {
+    for (const { urlId } of project.memberships) {
       referenced.add(urlId)
     }
   }
@@ -79,7 +79,7 @@ export const isUrlRecordReferencedElsewhere = ({
     if (origin?.kind === 'tabGroup' && origin.id === group.id) {
       continue
     }
-    if (group.urlIds.includes(urlRecordId)) {
+    if (group.memberships.some(({ urlId }) => urlId === urlRecordId)) {
       return true
     }
   }
@@ -87,7 +87,7 @@ export const isUrlRecordReferencedElsewhere = ({
     if (origin?.kind === 'customProject' && origin.id === project.id) {
       continue
     }
-    if (project.urlIds.includes(urlRecordId)) {
+    if (project.memberships.some(({ urlId }) => urlId === urlRecordId)) {
       return true
     }
   }

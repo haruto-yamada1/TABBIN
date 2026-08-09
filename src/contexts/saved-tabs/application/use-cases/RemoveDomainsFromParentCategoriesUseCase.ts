@@ -32,8 +32,8 @@ export type RemoveDomainsFromParentCategoriesUseCase = (
  *
  * 責務 (issue #523):
  * 1. `parentCategoryRepository.findAll` で全 `ParentCategory` を取得する
- * 2. 各 `ParentCategory.domains` から `command.domainIds` に含まれる
- *    `TabGroupId` を取り除く
+ * 2. 各 `ParentCategory.collections` から `command.domainIds` に含まれる
+ *    collection relation を取り除く
  * 3. `parentCategoryRepository.saveAll` で全カテゴリを書き戻す
  * 4. 更新後のカテゴリを application DTO に変換して返す
  *
@@ -44,8 +44,7 @@ export type RemoveDomainsFromParentCategoriesUseCase = (
  *   (一括 TabGroup 削除後)
  *
  * 旧挙動との互換性:
- * - `domainNames` は変更しない (旧 `removeDomainFromParentCategories` と同じく
- *   `domains` のみを操作する)。
+ * - ID と domain の片側だけを残さず、relation 全体を取り除く。
  * - 該当 ID がどのカテゴリにも含まれない場合は no-op として成功する。
  * - 副作用は `parentCategories` 1 つの storage key のみ。
  */
@@ -60,7 +59,7 @@ export const createRemoveDomainsFromParentCategoriesUseCase = (
     const idSet = new Set<TabGroupId>(command.domainIds.map(createTabGroupId))
     const updatedCategories = allCategories.map((category) => ({
       ...category,
-      domains: category.domains.filter((domainId) => !idSet.has(domainId)),
+      collections: category.collections.filter(({ id }) => !idSet.has(id)),
     }))
     await deps.parentCategoryRepository.saveAll(updatedCategories)
     return updatedCategories.map(toSavedTabsParentCategoryDto)

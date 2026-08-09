@@ -82,7 +82,7 @@ describe('persistenceBootstrapRuntime storage facade', () => {
     )
   })
 
-  it('injects the migration lifecycle without automatically starting cutover', async () => {
+  it('completes production cutover after explicit migration', async () => {
     let state: PersistenceControlState = { status: 'legacy' }
     const lifecycle: PersistenceMigrationLifecyclePort = {
       migrate: vi.fn(async () => undefined),
@@ -116,15 +116,17 @@ describe('persistenceBootstrapRuntime storage facade', () => {
     expect(lifecycle.migrate).toHaveBeenCalledWith('migration-1')
     expect(lifecycle.verify).toHaveBeenCalledWith('migration-1')
     expect(state).toEqual({
-      status: 'cutover-pending',
       migrationId: 'migration-1',
+      persistenceGeneration: 2,
+      status: 'indexeddb',
     })
 
     await runtime.bootstrap.ready()
 
     expect(state).toEqual({
-      status: 'cutover-pending',
       migrationId: 'migration-1',
+      persistenceGeneration: 2,
+      status: 'indexeddb',
     })
   })
 

@@ -72,7 +72,7 @@ export const createDeleteTabGroupUseCase = (
       (group) => group.id !== targetGroup.id,
     )
     const urlRecordsInTarget = allUrlRecords.filter((record) =>
-      targetGroup.urlIds.includes(record.id),
+      targetGroup.memberships.some(({ urlId }) => urlId === record.id),
     )
     const unreferenced = filterUnreferencedUrlRecords({
       customProjects: allCustomProjects,

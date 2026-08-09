@@ -5,6 +5,7 @@ import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createReorderTabGroupUrlsUseCase } from './ReorderTabGroupUrlsUseCase'
 import type { ReorderTabGroupUrlsUseCaseDeps } from './ReorderTabGroupUrlsUseCase'
@@ -18,14 +19,16 @@ const createUrlRecord = (overrides: Partial<UrlRecord>): UrlRecord => ({
   ...overrides,
 })
 
-const createDomainTabGroup = (
-  overrides: Partial<DomainTabGroup>,
-): DomainTabGroup => ({
-  domain: 'example.com' as never,
-  id: 'group-1' as never,
-  urlIds: [],
-  ...overrides,
-})
+const createDomainTabGroup = (overrides: {
+  readonly domain?: string
+  readonly id?: string
+  readonly memberships?: readonly { readonly urlId: string }[]
+}): DomainTabGroup =>
+  createTabGroup({
+    domain: overrides.domain ?? 'example.com',
+    id: overrides.id ?? 'group-1',
+    memberships: overrides.memberships ?? [],
+  })
 
 const createInMemoryUrlRecordRepository = (
   records: readonly UrlRecord[],
@@ -98,12 +101,16 @@ describe('ReorderTabGroupUrlsUseCase', () => {
       tabGroupRepository: createInMemoryTabGroupRepository([
         createDomainTabGroup({
           id: 'group-1' as never,
-          urlIds: ['url-1' as never, 'url-2' as never, 'url-3' as never],
+          memberships: [
+            'url-1' as never,
+            'url-2' as never,
+            'url-3' as never,
+          ].map((urlId) => ({ urlId })),
         }),
         createDomainTabGroup({
           domain: 'other.com' as never,
           id: 'group-2' as never,
-          urlIds: ['url-1' as never],
+          memberships: ['url-1' as never].map((urlId) => ({ urlId })),
         }),
       ]),
     }
@@ -118,7 +125,11 @@ describe('ReorderTabGroupUrlsUseCase', () => {
     })
     const updated = await deps.tabGroupRepository.findAll()
     const target = updated.find((group) => group.id === ('group-1' as never))
-    expect(target?.urlIds).toStrictEqual(['url-3', 'url-1', 'url-2'])
+    expect(target?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-3',
+      'url-1',
+      'url-2',
+    ])
   })
 
   it('newUrlOrder に含まれない urlId は末尾に残る', async () => {
@@ -130,7 +141,11 @@ describe('ReorderTabGroupUrlsUseCase', () => {
     })
     const updated = await deps.tabGroupRepository.findAll()
     const target = updated.find((group) => group.id === ('group-1' as never))
-    expect(target?.urlIds).toStrictEqual(['url-3', 'url-1', 'url-2'])
+    expect(target?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-3',
+      'url-1',
+      'url-2',
+    ])
   })
 
   it('newUrlOrder に存在しない URL は無視される', async () => {
@@ -142,7 +157,11 @@ describe('ReorderTabGroupUrlsUseCase', () => {
     })
     const updated = await deps.tabGroupRepository.findAll()
     const target = updated.find((group) => group.id === ('group-1' as never))
-    expect(target?.urlIds).toStrictEqual(['url-3', 'url-1', 'url-2'])
+    expect(target?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-3',
+      'url-1',
+      'url-2',
+    ])
   })
 
   it('存在しない tabGroupId の場合は SavedTabsDomainError を投げる', async () => {
@@ -165,7 +184,11 @@ describe('ReorderTabGroupUrlsUseCase', () => {
     })
     const updated = await deps.tabGroupRepository.findAll()
     const target = updated.find((group) => group.id === ('group-1' as never))
-    expect(target?.urlIds).toStrictEqual(['url-1', 'url-2', 'url-3'])
+    expect(target?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-1',
+      'url-2',
+      'url-3',
+    ])
   })
 
   it('他の TabGroup は変更されない', async () => {
@@ -177,6 +200,8 @@ describe('ReorderTabGroupUrlsUseCase', () => {
     })
     const updated = await deps.tabGroupRepository.findAll()
     const other = updated.find((group) => group.id === ('group-2' as never))
-    expect(other?.urlIds).toStrictEqual(['url-1'])
+    expect(other?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-1',
+    ])
   })
 })

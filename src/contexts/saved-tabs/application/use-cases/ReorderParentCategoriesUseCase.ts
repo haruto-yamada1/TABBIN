@@ -41,8 +41,7 @@ export const createReorderParentCategoriesUseCase = (
   return async (command) => {
     const categories: ParentCategory[] = command.categories.map((category) =>
       createParentCategory({
-        domainNames: category.domainNames,
-        domains: category.domains,
+        collections: category.collections,
         id: category.id,
         name: category.name,
       }),

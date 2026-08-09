@@ -175,8 +175,9 @@ describe('persistence change flow regression', () => {
         kind: 'committed_and_published',
       })
       expect(applied).toEqual([
-        { collections: [], groups: [], revision: 0 },
+        { categories: [], collections: [], groups: [], revision: 0 },
         {
+          categories: [],
           collections: [
             {
               collection,

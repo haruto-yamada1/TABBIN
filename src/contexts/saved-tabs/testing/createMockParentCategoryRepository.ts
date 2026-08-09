@@ -51,12 +51,18 @@ export const createMockParentCategoryRepository = (
 export const toMockParentCategory = (input: {
   id: string
   name: string
+  collections?: readonly { id: string; domain: string }[]
   domains?: readonly string[]
   domainNames?: readonly string[]
 }): ParentCategory =>
   ({
-    domainNames: input.domainNames ? [...input.domainNames] : [],
-    domains: input.domains ? [...input.domains] : [],
+    collections:
+      input.collections?.map((collection) => ({ ...collection })) ??
+      input.domains?.map((id, index) => ({
+        domain: input.domainNames?.[index] ?? id,
+        id,
+      })) ??
+      [],
     id: input.id as unknown as ParentCategoryId,
     name: input.name,
   }) as unknown as ParentCategory

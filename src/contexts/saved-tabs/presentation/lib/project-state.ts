@@ -1,6 +1,6 @@
 import { produce } from 'immer'
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 type ProjectUrl = NonNullable<CustomProject['urls']>[number]
 

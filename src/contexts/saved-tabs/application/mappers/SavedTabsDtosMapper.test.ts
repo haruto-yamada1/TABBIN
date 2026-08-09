@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   toDomainCategoryMappingDtoArray,
-  toDomainCategorySettingsDtoArray,
   toStorageDomainCategoryMappings,
-  toStorageDomainCategorySettings,
   toStorageUserSettings,
   toUserSettingsDto,
 } from './SavedTabsDtosMapper'
@@ -130,47 +128,6 @@ describe('SavedTabsDtosMapper.toStorageDomainCategoryMappings', () => {
   })
 })
 
-describe('SavedTabsDtosMapper.toDomainCategorySettingsDtoArray', () => {
-  it('storage 形 DomainCategorySettings[] を DTO 配列へ変換する', () => {
-    const result = toDomainCategorySettingsDtoArray([
-      {
-        categoryKeywords: [{ categoryName: 'news', keywords: ['headline'] }],
-        domain: 'example.com',
-        subCategories: ['news', 'docs'],
-      },
-    ])
-    expect(result).toHaveLength(1)
-    expect(result[0]?.domain).toBe('example.com')
-    expect(result[0]?.subCategories).toStrictEqual(['news', 'docs'])
-    expect(result[0]?.categoryKeywords).toStrictEqual([
-      { categoryName: 'news', keywords: ['headline'] },
-    ])
-  })
-})
-
-describe('SavedTabsDtosMapper.toStorageDomainCategorySettings', () => {
-  it('DTO 配列を storage 形配列へ逆変換する', () => {
-    const result = toStorageDomainCategorySettings([
-      {
-        categoryKeywords: [
-          { categoryName: 'docs', keywords: ['doc', 'manual'] },
-        ],
-        domain: 'docs.example.com',
-        subCategories: ['docs'],
-      },
-    ])
-    expect(result).toStrictEqual([
-      {
-        categoryKeywords: [
-          { categoryName: 'docs', keywords: ['doc', 'manual'] },
-        ],
-        domain: 'docs.example.com',
-        subCategories: ['docs'],
-      },
-    ])
-  })
-})
-
 describe('SavedTabsDtosMapper round-trip', () => {
   it('toStorageUserSettings は全optional fieldを復元する', () => {
     const result = toStorageUserSettings({
@@ -248,21 +205,6 @@ describe('SavedTabsDtosMapper round-trip', () => {
     expect(
       toStorageDomainCategoryMappings(
         toDomainCategoryMappingDtoArray(original),
-      ),
-    ).toStrictEqual(original)
-  })
-
-  it('DomainCategorySettingsDto の round-trip は元の storage 形と等価', () => {
-    const original = [
-      {
-        categoryKeywords: [{ categoryName: 'news', keywords: ['x', 'y'] }],
-        domain: 'a.example.com',
-        subCategories: ['news'],
-      },
-    ]
-    expect(
-      toStorageDomainCategorySettings(
-        toDomainCategorySettingsDtoArray(original),
       ),
     ).toStrictEqual(original)
   })

@@ -1,9 +1,9 @@
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 export type CustomProjectCardProps = {
   project: CustomProject

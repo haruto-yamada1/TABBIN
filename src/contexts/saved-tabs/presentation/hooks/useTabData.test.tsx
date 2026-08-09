@@ -1,11 +1,15 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import {
+  toSavedTabsTabGroupViewModel,
+  toTabGroupFromViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { useTabData } from './useTabData'
 
@@ -58,10 +62,16 @@ const buildPageData = (params: {
   parentCategories?: readonly ParentCategory[]
   userSettings?: UserSettingsDto
 }) => ({
-  tabGroups: params.tabGroups ?? [],
+  tabGroups: (params.tabGroups ?? []).map(toTabGroupFromViewModel),
   parentCategories: params.parentCategories ?? [],
   userSettings: params.userSettings ?? ({} as UserSettingsDto),
 })
+
+const toPresentedTabGroup = (group: TabGroup): TabGroup =>
+  toSavedTabsTabGroupViewModel(toTabGroupFromViewModel(group))
+
+const toCurrentTabGroups = (groups: readonly TabGroup[]) =>
+  groups.map(toTabGroupFromViewModel)
 
 describe('useTabData', () => {
   beforeEach(() => {
@@ -103,10 +113,12 @@ describe('useTabData', () => {
       {
         id: 'group-by-id',
         domain: 'id.example.com',
-        urlIds: ['url-1'],
-        urlSubCategories: {
-          'url-1': 'Docs',
-        },
+        memberships: ['url-1'].map((urlId) => ({
+          urlId,
+          ...({ 'url-1': 'Docs' }?.[urlId]
+            ? { category: { 'url-1': 'Docs' }[urlId] }
+            : {}),
+        })),
       },
       {
         id: 'group-by-name',
@@ -128,14 +140,22 @@ describe('useTabData', () => {
       {
         id: 'category-by-id',
         name: 'By ID',
-        domains: ['group-by-id'],
-        domainNames: [],
+        collections: [
+          {
+            id: 'group-by-id',
+            domain: 'id.example.com',
+          },
+        ],
       },
       {
         id: 'category-by-name',
         name: 'By Name',
-        domains: [],
-        domainNames: ['name.example.com'],
+        collections: [
+          {
+            id: 'group-by-name',
+            domain: 'name.example.com',
+          },
+        ],
       },
       {
         id: 'legacy-category',
@@ -147,12 +167,7 @@ describe('useTabData', () => {
         buildPageData({
           tabGroups: savedTabs,
           parentCategories: [
-            {
-              id: 'invalid',
-              name: 'Invalid',
-              domains: ['group-by-id'],
-              domainNames: undefined as unknown as string[],
-            },
+            { id: 'invalid', name: 'Invalid' } as ParentCategory,
           ],
           userSettings: settings,
         }),
@@ -179,7 +194,7 @@ describe('useTabData', () => {
       savedTabs[2],
     ]
     repairTabGroupParentCategoryIdsUseCaseMock.mockImplementationOnce(() => ({
-      tabGroups: expectedRepaired,
+      tabGroups: toCurrentTabGroups(expectedRepaired),
       updated: true,
     }))
 
@@ -196,14 +211,10 @@ describe('useTabData', () => {
     expect(onCategoriesLoaded).toHaveBeenCalledWith(repairedCategories)
     expect(repairTabGroupParentCategoryIdsUseCaseMock).toHaveBeenCalledWith({
       parentCategories: repairedCategories,
-      tabGroups: savedTabs,
+      tabGroups: toCurrentTabGroups(savedTabs),
     })
     expect(result.current.tabGroups).toStrictEqual(
-      expectedRepaired.map((group) => ({
-        ...group,
-        savedAt: undefined,
-        urlIds: group.urlIds ?? [],
-      })),
+      expectedRepaired.map(toPresentedTabGroup),
     )
   })
 
@@ -253,8 +264,10 @@ describe('useTabData', () => {
       {
         id: 'category-1',
         name: 'Valid',
-        domains: [],
-        domainNames: ['example.com'],
+        collections: [].map((id, index) => ({
+          id,
+          domain: ['example.com'][index] ?? id,
+        })),
       },
     ]
     getSavedTabsPageDataQueryMock.mockResolvedValue(
@@ -275,11 +288,11 @@ describe('useTabData', () => {
     const group: TabGroup = {
       id: 'group-1',
       domain: 'example.com',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
 
     loadTabGroupsWithUrlsUseCaseMock.mockResolvedValue({
-      tabGroups: [
+      tabGroups: toCurrentTabGroups([
         {
           ...group,
           urls: [
@@ -290,9 +303,9 @@ describe('useTabData', () => {
             },
           ],
         },
-      ],
+      ]),
     })
-    getSavedTabsQueryMock.mockResolvedValueOnce([group])
+    getSavedTabsQueryMock.mockResolvedValueOnce(toCurrentTabGroups([group]))
 
     const { result } = renderUseTabData()
 
@@ -309,7 +322,7 @@ describe('useTabData', () => {
 
     await waitFor(() => {
       expect(result.current.tabGroupsWithUrls).toStrictEqual([
-        {
+        toPresentedTabGroup({
           ...group,
           urls: [
             {
@@ -318,14 +331,14 @@ describe('useTabData', () => {
               title: 'A',
             },
           ],
-        },
+        }),
       ])
     })
 
     expect(getSavedTabsQueryMock).toHaveBeenCalledTimes(1)
     expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledTimes(1)
     expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledWith({
-      tabGroups: [group],
+      tabGroups: toCurrentTabGroups([group]),
     })
   })
 
@@ -333,11 +346,11 @@ describe('useTabData', () => {
     const group: TabGroup = {
       id: 'group-1',
       domain: 'example.com',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
 
     loadTabGroupsWithUrlsUseCaseMock.mockResolvedValue({
-      tabGroups: [
+      tabGroups: toCurrentTabGroups([
         {
           ...group,
           urls: [
@@ -348,7 +361,7 @@ describe('useTabData', () => {
             },
           ],
         },
-      ],
+      ]),
     })
 
     const { result } = renderUseTabData()
@@ -366,7 +379,7 @@ describe('useTabData', () => {
 
     await waitFor(() => {
       expect(result.current.tabGroupsWithUrls).toStrictEqual([
-        {
+        toPresentedTabGroup({
           ...group,
           urls: [
             {
@@ -375,14 +388,14 @@ describe('useTabData', () => {
               title: 'A',
             },
           ],
-        },
+        }),
       ])
     })
 
     expect(getSavedTabsQueryMock).not.toHaveBeenCalled()
     expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledTimes(1)
     expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledWith({
-      tabGroups: [group],
+      tabGroups: toCurrentTabGroups([group]),
     })
   })
 
@@ -391,7 +404,7 @@ describe('useTabData', () => {
       {
         id: 'new-format',
         domain: 'new.example.com',
-        urlIds: ['url-1'],
+        memberships: ['url-1'].map((urlId) => ({ urlId })),
       },
       {
         id: 'legacy',
@@ -409,7 +422,7 @@ describe('useTabData', () => {
       },
     ]
     loadTabGroupsWithUrlsUseCaseMock.mockResolvedValueOnce({
-      tabGroups: groups,
+      tabGroups: toCurrentTabGroups(groups),
     })
 
     const { result } = renderUseTabData()
@@ -423,10 +436,10 @@ describe('useTabData', () => {
     ).resolves.toStrictEqual([])
     await expect(
       result.current.loadTabGroupsWithUrls(groups),
-    ).resolves.toStrictEqual(groups)
+    ).resolves.toStrictEqual(groups.map(toPresentedTabGroup))
 
     expect(loadTabGroupsWithUrlsUseCaseMock).toHaveBeenCalledWith({
-      tabGroups: groups,
+      tabGroups: toCurrentTabGroups(groups),
     })
   })
 
@@ -469,7 +482,9 @@ describe('useTabData', () => {
     getSavedTabsPageDataQueryMock.mockResolvedValue(
       buildPageData({ tabGroups: storedGroups }),
     )
-    getSavedTabsQueryMock.mockResolvedValueOnce(storedGroups)
+    getSavedTabsQueryMock.mockResolvedValueOnce(
+      toCurrentTabGroups(storedGroups),
+    )
 
     const { result } = renderUseTabData()
 
@@ -482,12 +497,7 @@ describe('useTabData', () => {
     })
 
     expect(result.current.tabGroups).toStrictEqual([
-      {
-        ...storedGroups[0],
-        parentCategoryId: undefined,
-        savedAt: undefined,
-        urlIds: [],
-      },
+      toPresentedTabGroup(storedGroups[0]),
       appendedGroup,
     ])
 
@@ -501,7 +511,9 @@ describe('useTabData', () => {
       await result.current.refreshTabGroupsWithUrls()
     })
 
-    expect(result.current.tabGroups).toStrictEqual(storedGroups)
+    expect(result.current.tabGroups).toStrictEqual(
+      storedGroups.map(toPresentedTabGroup),
+    )
 
     getSavedTabsQueryMock.mockResolvedValueOnce([])
 

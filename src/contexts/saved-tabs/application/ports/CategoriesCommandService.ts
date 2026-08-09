@@ -1,4 +1,7 @@
-import type { SubCategoryKeywordDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
+import type {
+  PersistenceV2Collection,
+  PersistenceV2CollectionCategory,
+} from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 
 /**
  * 旧 `src/lib/storage/categories` の高レベル操作のうち entity 化
@@ -31,9 +34,8 @@ export type CategoriesCommandService = {
    * 旧 `lib/storage/categories.updateDomainCategorySettings` の port 版。
    * 単一ドメインの `DomainCategorySettings` を upsert する。
    */
-  updateDomainCategorySettings: (
-    domain: string,
-    subCategories: string[],
-    categoryKeywords: SubCategoryKeywordDto[],
+  updateCollectionCategories: (
+    collection: PersistenceV2Collection,
+    categories: readonly PersistenceV2CollectionCategory[],
   ) => Promise<void>
 }

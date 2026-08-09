@@ -1739,32 +1739,72 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     }
   })
 
-  describe('issue #729 phase 1: production cutover remains deferred', () => {
+  describe('issue #729-B: production complete cutover boundary', () => {
     const sourceRoot = resolve(repoRoot, 'src')
     const productionFiles = collectSourceFiles(sourceRoot).filter(
       (path) =>
-        !/\.(?:test|testing)\.tsx?$/.test(path) &&
+        !/\.(?:fixture|test|testing)\.tsx?$/.test(path) &&
         !path.includes(`${sep}testing${sep}`),
     )
 
     // production source が testing 専用 seam を import しないことを検証する正規表現。
     // 静的 import (from / side-effect import) と動的 import('...') の両方を検出し、
-    // /testing/<path> ディレクトリと .testing ファイル接尾辞の両方をカバーする。
+    // /testing/<path> ディレクトリと .testing / .fixture 接尾辞をカバーする。
     // ガード自体が将来壊れないよう、下方の self-test で検出対象を明示する。
-    const testingSeamImportPattern =
-      /(?:from\s+|import\s+|import\s*\()['"][^'"]*(?:\/testing\/[^'"]*|\.testing)['"]/
+    const testOnlySeamImportPattern =
+      /(?:from\s+|import\s+|import\s*\()['"][^'"]*(?:\/testing\/[^'"]*|\.(?:fixture|testing))['"]/
 
-    it('production source does not enable complete cutover', () => {
+    it('enables complete cutover only in the production bootstrap runtime', () => {
+      const completeCutoverFiles: string[] = []
+
       for (const absolutePath of productionFiles) {
         const relativePath = relative(repoRoot, absolutePath)
           .split(sep)
           .join('/')
         const source = stripComments(readFileSync(absolutePath, 'utf8'))
-        expect(
-          source,
-          `${relativePath} must not enable production complete cutover`,
-        ).not.toMatch(/cutoverPolicy\s*:\s*['"]complete['"]/)
+        if (/cutoverPolicy\s*:\s*['"]complete['"]/.test(source)) {
+          completeCutoverFiles.push(relativePath)
+        }
       }
+
+      expect(completeCutoverFiles).toEqual([
+        'src/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime.ts',
+      ])
+
+      const runtime = readFileSync(
+        resolve(
+          repoRoot,
+          'src/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime.ts',
+        ),
+        'utf8',
+      )
+      expect(runtime).toMatch(/cutoverPolicy\s*:\s*['"]complete['"]/)
+    })
+
+    it('starts and resumes the production migration through the startup controller', () => {
+      const background = readFileSync(
+        resolve(repoRoot, 'src/entrypoints/background.ts'),
+        'utf8',
+      )
+      const controller = readFileSync(
+        resolve(
+          repoRoot,
+          'src/app/composition/createMigrationPreflightController.ts',
+        ),
+        'utf8',
+      )
+
+      expect(background).toContain('getMigrationPreflightController')
+      expect(background).toMatch(
+        /await\s+getMigrationPreflightController\(\)\.run\(\)/,
+      )
+      expect(background).not.toContain('@/lib/storage/categories')
+      expect(background).not.toContain('@/lib/storage/migration')
+      expect(controller).toContain('PRODUCTION_PERSISTENCE_V2_MIGRATION_ID')
+      expect(controller).toMatch(
+        /options\.bootstrap\.migrate\(options\.migrationId\)/,
+      )
+      expect(controller).toMatch(/options\.bootstrap\.ready\(\)/)
     })
 
     it('production source does not import testing-only cutover seams', () => {
@@ -1776,7 +1816,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         expect(
           source,
           `${relativePath} must not import a testing-only cutover seam`,
-        ).not.toMatch(testingSeamImportPattern)
+        ).not.toMatch(testOnlySeamImportPattern)
       }
     })
 
@@ -1790,10 +1830,12 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         "import '@/contexts/saved-tabs/testing/foo'",
         "import('@/contexts/saved-tabs/testing/foo')",
         "import('./foo.testing')",
+        "import { x } from './foo.fixture'",
+        "import('./foo.fixture')",
       ]
       for (const source of forbidden) {
         expect(
-          testingSeamImportPattern.test(source),
+          testOnlySeamImportPattern.test(source),
           `guard must detect: ${source}`,
         ).toBe(true)
       }
@@ -1807,7 +1849,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       ]
       for (const source of allowed) {
         expect(
-          testingSeamImportPattern.test(source),
+          testOnlySeamImportPattern.test(source),
           `guard must not flag: ${source}`,
         ).toBe(false)
       }

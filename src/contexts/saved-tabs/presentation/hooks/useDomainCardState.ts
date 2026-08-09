@@ -2,18 +2,19 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import {
-  toPresentationTabGroups,
-  toStorageParentCategory,
-} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import {
+  toPresentationTabGroups,
+  toStorageParentCategory,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 /** UseDomainCardState フックの引数 */
@@ -286,7 +287,9 @@ export const useDomainCardState = ({
           }
           return tab
         })
-        await categoryAssignmentPort.saveTabGroups(updatedTabs)
+        await categoryAssignmentPort.saveTabGroups(
+          updatedTabs.map(toTabGroupFromViewModel),
+        )
       } catch (error) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
       }

@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import type { CategoryManagementModalUseCases } from './CategoryManagementModal.types'
 

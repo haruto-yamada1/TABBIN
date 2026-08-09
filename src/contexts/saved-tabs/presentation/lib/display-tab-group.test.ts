@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { buildDisplayTabGroup, getDisplayUrlCount } from './display-tab-group'
 
@@ -21,8 +21,6 @@ const makeProject = (
   id: 'project-1',
   name: 'My Project',
   updatedAt: 0,
-  urlIds: [],
-  urls: [],
   ...overrides,
 })
 
@@ -41,16 +39,20 @@ describe('getDisplayUrlCount', () => {
   })
 
   it('urlIds が指定されていればその長さを返す (旧形式)', () => {
-    expect(getDisplayUrlCount(makeGroup({ urlIds: ['u1', 'u2', 'u3'] }))).toBe(
-      3,
-    )
+    expect(
+      getDisplayUrlCount(
+        makeGroup({
+          memberships: ['u1', 'u2', 'u3'].map((urlId) => ({ urlId })),
+        }),
+      ),
+    ).toBe(3)
   })
 
   it('urls が優先で urlIds はフォールバック', () => {
     expect(
       getDisplayUrlCount(
         makeGroup({
-          urlIds: ['u1'],
+          memberships: ['u1'].map((urlId) => ({ urlId })),
           urls: [
             { title: 'a', url: 'https://a.example.com' },
             { title: 'b', url: 'https://b.example.com' },
@@ -65,7 +67,11 @@ describe('getDisplayUrlCount', () => {
   })
 
   it('両方空配列なら 0', () => {
-    expect(getDisplayUrlCount(makeGroup({ urlIds: [], urls: [] }))).toBe(0)
+    expect(
+      getDisplayUrlCount(
+        makeGroup({ memberships: [].map((urlId) => ({ urlId })), urls: [] }),
+      ),
+    ).toBe(0)
   })
 })
 
@@ -83,7 +89,7 @@ describe('buildDisplayTabGroup', () => {
       makeProject({ id: 'p1', name: 'No Urls' }),
     )
     expect(result.urls).toStrictEqual([])
-    expect(result.urlIds).toStrictEqual([])
+    expect(result.memberships).toBeUndefined()
   })
 
   it('urls / urlIds があればそのままコピーする', () => {
@@ -91,11 +97,14 @@ describe('buildDisplayTabGroup', () => {
       makeProject({
         id: 'p1',
         name: 'With Urls',
-        urlIds: ['u1', 'u2'],
+        memberships: ['u1', 'u2'].map((urlId) => ({ urlId })),
         urls: [{ title: 'a', url: 'https://a.example.com' }],
       }),
     )
-    expect(result.urlIds).toStrictEqual(['u1', 'u2'])
+    expect(result.memberships?.map(({ urlId }) => urlId)).toStrictEqual([
+      'u1',
+      'u2',
+    ])
     expect(result.urls).toStrictEqual([
       { title: 'a', url: 'https://a.example.com' },
     ])

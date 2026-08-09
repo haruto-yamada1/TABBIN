@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { createCustomProject } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
-  createCustomProject,
+  createCustomProject as createNormalizedCustomProject,
   customProjectContainsUrlRecord,
   customProjectUrlCount,
   isSameCustomProject,
@@ -13,7 +14,7 @@ import {
 const baseInput = {
   id: 'project-1',
   name: 'Q4 Research',
-  urlIds: ['url-1', 'url-2'],
+  memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
   categories: ['Research', 'Notes'],
   createdAt: 1_700_000_000_000,
   updatedAt: 1_700_000_000_001,
@@ -24,21 +25,39 @@ describe('CustomProject entity', () => {
     const project = createCustomProject(baseInput)
     expect(project.id).toBe('project-1')
     expect(project.name).toBe('Q4 Research')
-    expect(project.urlIds).toStrictEqual(['url-1', 'url-2'])
-    expect(project.categories).toStrictEqual(['Research', 'Notes'])
+    expect(project.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-1',
+      'url-2',
+    ])
+    expect(project.collectionCategories.map(({ name }) => name)).toStrictEqual([
+      'Research',
+      'Notes',
+    ])
     expect(project.createdAt).toBe(1_700_000_000_000)
     expect(project.updatedAt).toBe(1_700_000_000_001)
   })
 
-  it('urlIds に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
+  it('membership の URL ID に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
     expect(() =>
-      createCustomProject({ ...baseInput, urlIds: ['dup', 'dup'] }),
+      createCustomProject({
+        ...baseInput,
+        memberships: ['dup', 'dup'].map((urlId) => ({ urlId })),
+      }),
     ).toThrow(SavedTabsDomainError)
   })
 
-  it('categories に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
+  it('collection category ID に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
+    const project = createCustomProject(baseInput)
+    const category = project.collectionCategories[0]
+    if (!category) {
+      throw new Error('expected category fixture')
+    }
     expect(() =>
-      createCustomProject({ ...baseInput, categories: ['x', 'x'] }),
+      createNormalizedCustomProject({
+        collection: project.collection,
+        collectionCategories: [category, category],
+        memberships: project.memberships,
+      }),
     ).toThrow(SavedTabsDomainError)
   })
 

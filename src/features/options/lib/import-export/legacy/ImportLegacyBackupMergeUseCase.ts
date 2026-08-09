@@ -1,5 +1,4 @@
 import type { PersistenceLogicalSnapshot } from '@/contexts/saved-tabs/public-api'
-import { mergeUserSettings } from '@/features/options/lib/import-export/settings-merge'
 import type {
   BackupV2Inspection,
   BackupV2Preview,
@@ -9,6 +8,7 @@ import type { BackupDataV2 } from '@/features/options/lib/import-export/v2/Backu
 import type { UserSettings } from '@/types/storage'
 
 import type { LegacyBackupV0 } from './LegacyBackupV0Schema'
+import { mergeUserSettings } from './settings-merge'
 
 type LegacyBackupPreview = Extract<
   BackupV2Preview,

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
   decideUrlRecordIdsToRemoveAfterOpen,
@@ -94,21 +94,24 @@ describe('OpenedUrlRemovalPolicy.removeUrlRecordIdsFromTabGroups', () => {
     const group = createTabGroup({
       id: 'group-1',
       domain: 'example.com',
-      urlIds: ['url-1', 'url-2', 'url-3'],
+      memberships: ['url-1', 'url-2', 'url-3'].map((urlId) => ({ urlId })),
     })
     const result = removeUrlRecordIdsFromTabGroups({
       tabGroups: [group],
       urlRecordIdsToRemove: new Set([createUrlRecordId('url-2')]),
     })
     expect(result).toHaveLength(1)
-    expect(result[0]?.urlIds).toStrictEqual(['url-1', 'url-3'])
+    expect(result[0]?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-1',
+      'url-3',
+    ])
   })
 
   it('すべての URL が削除されたら TabGroup ごと除外する', () => {
     const group = createTabGroup({
       id: 'group-1',
       domain: 'example.com',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const result = removeUrlRecordIdsFromTabGroups({
       tabGroups: [group],
@@ -121,7 +124,7 @@ describe('OpenedUrlRemovalPolicy.removeUrlRecordIdsFromTabGroups', () => {
     const group = createTabGroup({
       id: 'group-1',
       domain: 'example.com',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const result = removeUrlRecordIdsFromTabGroups({
       tabGroups: [group],
@@ -134,7 +137,9 @@ describe('OpenedUrlRemovalPolicy.removeUrlRecordIdsFromTabGroups', () => {
     const group = createTabGroup({
       id: 'group-1',
       domain: 'example.com',
-      urlIds: ['url-1', 'url-2', 'url-3', 'url-4'],
+      memberships: ['url-1', 'url-2', 'url-3', 'url-4'].map((urlId) => ({
+        urlId,
+      })),
     })
     const result = removeUrlRecordIdsFromTabGroups({
       tabGroups: [group],
@@ -143,7 +148,10 @@ describe('OpenedUrlRemovalPolicy.removeUrlRecordIdsFromTabGroups', () => {
         createUrlRecordId('url-4'),
       ]),
     })
-    expect(result[0]?.urlIds).toHaveLength(2)
-    expect(result[0]?.urlIds).toStrictEqual(['url-1', 'url-3'])
+    expect(result[0]?.memberships.map(({ urlId }) => urlId)).toHaveLength(2)
+    expect(result[0]?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-1',
+      'url-3',
+    ])
   })
 })

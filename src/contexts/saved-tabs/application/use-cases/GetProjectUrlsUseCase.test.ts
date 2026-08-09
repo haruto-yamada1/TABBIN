@@ -1,17 +1,23 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
-import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
-import { createUrl } from '@/contexts/saved-tabs/domain/value-objects/Url'
-import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { createCustomProject } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createGetProjectUrlsUseCase } from './GetProjectUrlsUseCase'
 
+const createCustomProjectRepository = (): CustomProjectRepository => ({
+  findAll: vi.fn(async () => []),
+  findById: vi.fn(async () => null),
+  findOrder: vi.fn(async () => []),
+  removeByIds: vi.fn(async () => {}),
+  saveAll: vi.fn(async () => {}),
+  saveOrder: vi.fn(async () => {}),
+})
+
 const createUrlRecordRepository = (
-  records: readonly UrlRecord[],
+  records: readonly ReturnType<typeof createUrlRecord>[],
 ): UrlRecordRepository => ({
   findAll: vi.fn(async () => records),
   findById: vi.fn(
@@ -21,142 +27,86 @@ const createUrlRecordRepository = (
   saveAll: vi.fn(async () => {}),
 })
 
-const createCustomProjectRepository = (
-  raws: Awaited<ReturnType<NonNullable<CustomProjectRepository['findAllRaw']>>>,
-): CustomProjectRepository => ({
-  findAll: vi.fn(async () => []),
-  findAllRaw: vi.fn(async () => raws),
-  findById: vi.fn(async () => null),
-  findOrder: vi.fn(async () => []),
-  removeByIds: vi.fn(async () => {}),
-  saveAll: vi.fn(async () => {}),
-  saveOrder: vi.fn(async () => {}),
-})
-
 describe('GetProjectUrlsUseCase', () => {
-  it('urlIds が空の場合は空配列を返す', async () => {
-    const project: CustomProject = {
-      categories: [],
-      createdAt: 1,
-      id: 'project-empty',
-      name: 'Empty',
-      updatedAt: 1,
-      urlIds: [],
+  it('current membershipをsortOrder順にURL・category・notesへ解決する', async () => {
+    const project = createCustomProject({
+      categories: ['Reading'],
+      id: 'project-1',
+      memberships: [
+        { category: 'Reading', notes: 'second', urlId: 'url-b' },
+        { notes: 'first', urlId: 'url-a' },
+      ],
+      name: 'Research',
+    })
+    const [second, first] = project.memberships
+    if (!(first && second)) {
+      throw new Error('expected two membership fixtures')
     }
+    const reversedMemberships = [
+      { ...second, sortOrder: 1 },
+      { ...first, sortOrder: 0 },
+    ]
+    const currentProject = { ...project, memberships: reversedMemberships }
     const useCase = createGetProjectUrlsUseCase({
-      customProjectRepository: createCustomProjectRepository([]),
+      customProjectRepository: createCustomProjectRepository(),
+      urlRecordRepository: createUrlRecordRepository([
+        createUrlRecord({
+          id: 'url-a',
+          savedAt: 10,
+          title: 'A',
+          url: 'https://example.com/a',
+        }),
+        createUrlRecord({
+          favIconUrl: 'https://example.com/b.ico',
+          id: 'url-b',
+          savedAt: 11,
+          title: 'B',
+          url: 'https://example.com/b',
+        }),
+      ]),
+    })
+
+    await expect(useCase(currentProject)).resolves.toStrictEqual([
+      {
+        id: 'url-a',
+        notes: 'first',
+        savedAt: 10,
+        title: 'A',
+        url: 'https://example.com/a',
+      },
+      {
+        category: 'Reading',
+        favIconUrl: 'https://example.com/b.ico',
+        id: 'url-b',
+        notes: 'second',
+        savedAt: 11,
+        title: 'B',
+        url: 'https://example.com/b',
+      },
+    ])
+  })
+
+  it('URL recordが存在しないmembershipをsilent legacy fallbackせずskipする', async () => {
+    const project = createCustomProject({
+      id: 'project-1',
+      memberships: [{ urlId: 'missing' }],
+    })
+    const useCase = createGetProjectUrlsUseCase({
+      customProjectRepository: createCustomProjectRepository(),
       urlRecordRepository: createUrlRecordRepository([]),
     })
 
     await expect(useCase(project)).resolves.toStrictEqual([])
   })
 
-  it('UrlRecord が未解決でも import raw の urls から custom project 一覧を復元する (issue #548)', async () => {
-    const project: CustomProject = {
-      categories: ['Reading'],
-      createdAt: 1,
-      id: 'project-1',
-      name: 'Research',
-      updatedAt: 2,
-      urlIds: ['url-imported-a', 'url-imported-b'],
-    }
+  it('membershipが空なら空配列を返す', async () => {
     const useCase = createGetProjectUrlsUseCase({
-      customProjectRepository: createCustomProjectRepository([
-        {
-          categories: ['Reading'],
-          categoryOrder: ['Reading'],
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Research',
-          updatedAt: 2,
-          urlIds: ['url-imported-a', 'url-imported-b'],
-          urlMetadata: {
-            'url-imported-a': { category: 'Reading', notes: 'A memo' },
-            'url-imported-b': { category: 'Reading', notes: 'B memo' },
-          },
-          urls: [
-            {
-              id: 'url-imported-a',
-              savedAt: 10,
-              title: 'Imported A',
-              url: 'https://imported.example.com/a',
-            },
-            {
-              id: 'url-imported-b',
-              savedAt: 11,
-              title: 'Imported B',
-              url: 'https://imported.example.com/b',
-            },
-          ],
-        },
-      ]),
+      customProjectRepository: createCustomProjectRepository(),
       urlRecordRepository: createUrlRecordRepository([]),
     })
 
-    await expect(useCase(project)).resolves.toStrictEqual([
-      {
-        category: 'Reading',
-        id: 'url-imported-a',
-        notes: 'A memo',
-        savedAt: 10,
-        title: 'Imported A',
-        url: 'https://imported.example.com/a',
-      },
-      {
-        category: 'Reading',
-        id: 'url-imported-b',
-        notes: 'B memo',
-        savedAt: 11,
-        title: 'Imported B',
-        url: 'https://imported.example.com/b',
-      },
-    ])
-  })
-
-  it('UrlRecord が解決できる場合は UrlRecordRepository の値を優先する', async () => {
-    const project: CustomProject = {
-      categories: ['Reading'],
-      createdAt: 1,
-      id: 'project-1',
-      name: 'Research',
-      updatedAt: 2,
-      urlIds: ['url-existing'],
-    }
-    const record: UrlRecord = {
-      id: createUrlRecordId('url-existing'),
-      savedAt: createSavedAt(20),
-      title: 'Current title',
-      url: createUrl('https://current.example.com'),
-    }
-    const useCase = createGetProjectUrlsUseCase({
-      customProjectRepository: createCustomProjectRepository([
-        {
-          categories: ['Reading'],
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Research',
-          updatedAt: 2,
-          urlIds: ['url-existing'],
-          urls: [
-            {
-              id: 'url-existing',
-              savedAt: 10,
-              title: 'Stale title',
-              url: 'https://stale.example.com',
-            },
-          ],
-        },
-      ]),
-      urlRecordRepository: createUrlRecordRepository([record]),
-    })
-
-    await expect(useCase(project)).resolves.toStrictEqual([
-      {
-        id: 'url-existing',
-        savedAt: 20,
-        title: 'Current title',
-        url: 'https://current.example.com',
-      },
-    ])
+    await expect(
+      useCase(createCustomProject({ id: 'project-empty' })),
+    ).resolves.toStrictEqual([])
   })
 })

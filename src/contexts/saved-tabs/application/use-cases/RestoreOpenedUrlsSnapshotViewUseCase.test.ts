@@ -6,9 +6,11 @@ import {
   toSavedTabsParentCategoryDto,
   toSavedTabsTabGroupDto,
 } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { RestoreOpenedUrlsSnapshotUseCase } from './RestoreOpenedUrlsSnapshotUseCase'
 import { createRestoreOpenedUrlsSnapshotViewUseCase } from './RestoreOpenedUrlsSnapshotViewUseCase'
@@ -36,7 +38,7 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
             id: 'project-1',
             name: 'Reading',
             updatedAt: 2,
-            urlIds: ['url-1'],
+            memberships: ['url-1'].map((urlId) => ({ urlId })),
           }),
         ),
       ],
@@ -44,8 +46,10 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
       parentCategories: [
         toSavedTabsParentCategoryDto(
           createParentCategory({
-            domains: ['group-1'],
-            domainNames: ['example.com'],
+            collections: ['group-1'].map((id, index) => ({
+              id,
+              domain: ['example.com'][index] ?? id,
+            })),
             id: 'cat-1',
             name: 'Reading',
           }),
@@ -58,7 +62,7 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
             id: 'group-1',
             parentCategoryId: 'cat-1',
             savedAt: 10,
-            urlIds: ['url-1'],
+            memberships: ['url-1'].map((urlId) => ({ urlId })),
           }),
         ),
       ],
@@ -69,33 +73,9 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
 
     expect(restoreOpenedUrlsSnapshot).toHaveBeenCalledWith({ snapshot })
     expect(result).toStrictEqual({
-      customProjects: [
-        {
-          categories: ['cat-1'],
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Reading',
-          updatedAt: 2,
-          urlIds: ['url-1'],
-        },
-      ],
-      parentCategories: [
-        {
-          domains: ['group-1'],
-          domainNames: ['example.com'],
-          id: 'cat-1',
-          name: 'Reading',
-        },
-      ],
-      savedTabs: [
-        {
-          domain: 'example.com',
-          id: 'group-1',
-          parentCategoryId: 'cat-1',
-          savedAt: 10,
-          urlIds: ['url-1'],
-        },
-      ],
+      customProjects: snapshot.customProjects,
+      parentCategories: snapshot.parentCategories,
+      savedTabs: snapshot.savedTabs,
     })
   })
 

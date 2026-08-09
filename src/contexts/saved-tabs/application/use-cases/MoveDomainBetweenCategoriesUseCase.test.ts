@@ -4,6 +4,7 @@ import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/app
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createMoveDomainBetweenCategoriesUseCase } from './MoveDomainBetweenCategoriesUseCase'
 import type { MoveDomainBetweenCategoriesUseCaseDeps } from './MoveDomainBetweenCategoriesUseCase'
@@ -37,14 +38,7 @@ const createDeps = (
 })
 
 const buildTabGroup = (id: string, domain: string): TabGroup =>
-  ({
-    domain,
-    id: createTabGroupId(id),
-    parentCategoryId: null,
-    savedAt: 0,
-    subCategories: [],
-    urls: [],
-  }) as unknown as TabGroup
+  createTabGroup({ domain, id })
 
 describe('createMoveDomainBetweenCategoriesUseCase', () => {
   let repo: ParentCategoryRepository
@@ -52,14 +46,18 @@ describe('createMoveDomainBetweenCategoriesUseCase', () => {
   beforeEach(() => {
     repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: ['example.com', 'docs.com'],
-        domains: ['tab-1', 'tab-2'],
+        collections: ['tab-1', 'tab-2'].map((id, index) => ({
+          id,
+          domain: ['example.com', 'docs.com'][index] ?? id,
+        })),
         id: 'cat-docs',
         name: 'Docs',
       }),
       createParentCategory({
-        domainNames: ['news.com'],
-        domains: ['tab-3'],
+        collections: ['tab-3'].map((id, index) => ({
+          id,
+          domain: ['news.com'][index] ?? id,
+        })),
         id: 'cat-news',
         name: 'News',
       }),
@@ -80,10 +78,18 @@ describe('createMoveDomainBetweenCategoriesUseCase', () => {
     })
     const docs = result.find((c) => c.id === 'cat-docs')
     const news = result.find((c) => c.id === 'cat-news')
-    expect(docs?.domains).toStrictEqual(['tab-2'])
-    expect(docs?.domainNames).toStrictEqual(['docs.com'])
-    expect(news?.domains).toStrictEqual(['tab-3', 'tab-1'])
-    expect(news?.domainNames).toStrictEqual(['news.com', 'example.com'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual(['tab-2'])
+    expect(docs?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'docs.com',
+    ])
+    expect(news?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-3',
+      'tab-1',
+    ])
+    expect(news?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'news.com',
+      'example.com',
+    ])
   })
 
   it('domainId が tabGroups 中に存在しない場合は no-op', async () => {
@@ -95,13 +101,12 @@ describe('createMoveDomainBetweenCategoriesUseCase', () => {
       tabGroups,
       toCategoryId: 'cat-news',
     })
-    expect(result.find((c) => c.id === 'cat-docs')?.domains).toStrictEqual([
-      'tab-1',
-      'tab-2',
-    ])
-    expect(result.find((c) => c.id === 'cat-news')?.domains).toStrictEqual([
-      'tab-3',
-    ])
+    expect(
+      result.find((c) => c.id === 'cat-docs')?.collections.map(({ id }) => id),
+    ).toStrictEqual(['tab-1', 'tab-2'])
+    expect(
+      result.find((c) => c.id === 'cat-news')?.collections.map(({ id }) => id),
+    ).toStrictEqual(['tab-3'])
   })
 
   it('fromCategoryId が null の場合は追加のみ行う', async () => {
@@ -114,8 +119,12 @@ describe('createMoveDomainBetweenCategoriesUseCase', () => {
       toCategoryId: 'cat-docs',
     })
     const docs = result.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-1', 'tab-2', 'tab-99'])
-    expect(docs?.domainNames).toStrictEqual([
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-1',
+      'tab-2',
+      'tab-99',
+    ])
+    expect(docs?.collections.map(({ domain }) => domain)).toStrictEqual([
       'example.com',
       'docs.com',
       'new.com',

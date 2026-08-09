@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
   collectReferencedUrlRecordIds,
@@ -16,17 +18,17 @@ import {
 const tabGroupA = createTabGroup({
   id: 'group-a',
   domain: 'a.example.com',
-  urlIds: ['url-1', 'url-2'],
+  memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
 })
 const tabGroupB = createTabGroup({
   id: 'group-b',
   domain: 'b.example.com',
-  urlIds: ['url-2', 'url-3'],
+  memberships: ['url-2', 'url-3'].map((urlId) => ({ urlId })),
 })
 const project = createCustomProject({
   id: 'project-1',
   name: 'Project 1',
-  urlIds: ['url-3', 'url-4'],
+  memberships: ['url-3', 'url-4'].map((urlId) => ({ urlId })),
   categories: [],
   createdAt: 1,
   updatedAt: 1,

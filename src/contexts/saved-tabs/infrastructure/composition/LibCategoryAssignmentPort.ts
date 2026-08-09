@@ -3,7 +3,6 @@ import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/Pare
 import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 
 /**
  * `CategoryAssignmentPort` の `parentCategoryRepository` /
@@ -30,14 +29,18 @@ export const createLibCategoryAssignmentPort = (deps: {
   saveTabGroups: async (tabGroups) => {
     await deps.tabGroupRepository.saveAll(
       tabGroups.map((group) =>
-        // 保存フローが `https://example.com` のようにスキーム付き domain を
-        // 書き込む既存データと互換するため、toDomainTabGroupFromStorage /
-        // toTabGroupFromRaw / RepairTabGroupParentCategoryIdsUseCase と同じく
-        // createTabGroup 入口で hostname へ正規化する。
         createTabGroup({
-          ...group,
-          domain: normalizeDomainString(group.domain),
-          urlIds: group.urlIds ?? [],
+          collection: {
+            ...group.collection,
+            definition: { ...group.collection.definition },
+          },
+          collectionCategories: group.collectionCategories.map((category) => ({
+            ...category,
+            keywords: [...category.keywords],
+          })),
+          memberships: group.memberships.map((membership) => ({
+            ...membership,
+          })),
         }),
       ),
     )

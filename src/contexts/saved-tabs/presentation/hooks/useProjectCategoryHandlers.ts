@@ -2,8 +2,8 @@ import { useCallback, useEffect } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { toRawStorageCustomProject } from './projectManagementDefaults'
 import type { ProjectManagementRefs } from './useProjectManagementRefs'
@@ -148,9 +148,20 @@ const useProjectCategoryHandlers = ({
   const handleReorderUrls = useCallback(
     async (projectId: string, urls: CustomProject['urls']): Promise<void> => {
       try {
+        const resolvedUrls = (urls ?? []).flatMap((url) =>
+          url.id
+            ? [
+                {
+                  ...url,
+                  id: url.id,
+                  savedAt: url.savedAt ?? 0,
+                },
+              ]
+            : [],
+        )
         await refs.reorderCustomProjectUrlsUseCaseRef.current({
           projectId,
-          urls,
+          urls: resolvedUrls,
         })
         setCustomProjects((prev) =>
           prev.map((p) =>

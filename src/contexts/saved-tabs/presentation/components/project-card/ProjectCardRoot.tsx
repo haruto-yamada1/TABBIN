@@ -219,7 +219,9 @@ export const ProjectCardRoot = ({
     isProjectReorderMode || isCrossProjectUrlDragActive || userCollapsedState
 
   const projectUrlCount =
-    project.urlIds?.length ?? project.urls?.length ?? sortedProjectUrls.length
+    project.urls?.length ??
+    project.memberships?.length ??
+    sortedProjectUrls.length
 
   const handleOpenAllUrls = useCallback(() => {
     if (projectUrlCount === 0) {

@@ -1,3 +1,8 @@
+import type { CollectionReferenceDto } from '@/contexts/saved-tabs/domain/dto/CollectionProjectionDto'
+import type { ResolvedTabGroupUrlDto } from '@/contexts/saved-tabs/domain/dto/ResolvedTabGroupUrlDto'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+
 export type SavedTabsAiSystemPromptDto = {
   readonly id: string
   readonly name: string
@@ -10,15 +15,6 @@ export type SavedTabsProjectKeywordSettingsDto = {
   titleKeywords: string[]
   urlKeywords: string[]
   domainKeywords: string[]
-}
-
-export type SavedTabsCustomProjectUrlDto = {
-  id?: string
-  url: string
-  title: string
-  notes?: string
-  savedAt?: number
-  category?: string
 }
 
 export type SavedTabsUserSettingsDto = {
@@ -46,44 +42,15 @@ export type SavedTabsUserSettingsDto = {
   activeAiSystemPromptId?: string
 }
 
-export type SavedTabsCustomProjectDto = {
-  id: string
-  name: string
-  urlIds?: string[]
-  categories: string[]
-  createdAt: number
-  updatedAt: number
-  projectKeywords?: SavedTabsProjectKeywordSettingsDto
-  urls?: SavedTabsCustomProjectUrlDto[]
-  urlMetadata?: Record<string, { notes?: string; category?: string }>
-  categoryOrder?: string[]
-}
+export type SavedTabsCustomProjectDto = CustomProject
 
 export type SavedTabsParentCategoryDto = {
+  readonly collections: readonly CollectionReferenceDto[]
   readonly id: string
   readonly name: string
-  readonly domains: readonly string[]
-  readonly domainNames: readonly string[]
 }
 
-export type SavedTabsCategoryKeywordDto = {
-  categoryName: string
-  keywords: string[]
-}
-
-export type SavedTabsTabGroupDto = {
-  id: string
-  domain: string
-  urlIds?: string[]
-  urlSubCategories?: Record<string, string>
-  subCategories?: string[]
-  categoryKeywords?: SavedTabsCategoryKeywordDto[]
-  subCategoryOrder?: string[]
-  subCategoryOrderWithUncategorized?: string[]
-  parentCategoryId?: string
-  savedAt?: number
-  urls?: SavedTabsDisplayUrlDto[]
-}
+export type SavedTabsTabGroupDto = TabGroup
 
 export type SavedTabsDisplayUrlDto = {
   id?: string
@@ -93,28 +60,13 @@ export type SavedTabsDisplayUrlDto = {
   savedAt?: number
 }
 
-export type SavedTabsDisplayCategoryKeywordDto = {
-  categoryName: string
-  keywords: string[]
-}
-
 /**
- * Storage migration fields and hydrated URL data used by the saved-tabs view.
- * This is separate from `SavedTabsTabGroupDto`, whose `urlIds` are guaranteed
- * by the domain entity mapper.
+ * Hydrated collection projection used by the saved-tabs view. URL identity and
+ * membership category are carried by each projected item rather than parallel
+ * storage arrays/maps.
  */
-export type SavedTabsDisplayTabGroupDto = {
-  id: string
-  domain: string
-  parentCategoryId?: string
-  urlIds?: string[]
-  urls?: SavedTabsDisplayUrlDto[]
-  urlSubCategories?: Record<string, string>
-  subCategories?: string[]
-  categoryKeywords?: SavedTabsDisplayCategoryKeywordDto[]
-  subCategoryOrder?: string[]
-  subCategoryOrderWithUncategorized?: string[]
-  savedAt?: number
+export type SavedTabsDisplayTabGroupDto = TabGroup & {
+  readonly resolvedUrls?: readonly ResolvedTabGroupUrlDto[]
 }
 
 export type SavedTabsUrlRecordDto = {

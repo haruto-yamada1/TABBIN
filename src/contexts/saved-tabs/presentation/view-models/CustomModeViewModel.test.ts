@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createSavedTabsCustomProjectDto as createCustomProject } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
+import { createSavedTabsCustomProjectDto as createCustomProject } from '@/contexts/saved-tabs/presentation/testing/SavedTabsCompatibilityFixtures'
 
 import { createCustomModeViewModel } from './CustomModeViewModel'
 
@@ -14,7 +14,7 @@ describe('CustomModeViewModel', () => {
           id: 'p1',
           name: 'Reading',
           updatedAt: 1,
-          urlIds: ['u1', 'u2', 'u3'],
+          memberships: ['u1', 'u2', 'u3'].map((urlId) => ({ urlId })),
         }),
         createCustomProject({
           categories: [],
@@ -22,7 +22,7 @@ describe('CustomModeViewModel', () => {
           id: 'p2',
           name: 'Work',
           updatedAt: 1,
-          urlIds: ['u4'],
+          memberships: ['u4'].map((urlId) => ({ urlId })),
         }),
       ]
       const vm = createCustomModeViewModel({
@@ -61,7 +61,7 @@ describe('CustomModeViewModel', () => {
       expect(vm.error).toBe('load failed')
     })
 
-    it('project view-model の urlIds を独立コピーとして保持する', () => {
+    it('project view-model の memberships を独立コピーとして扱う', () => {
       const projects = [
         createCustomProject({
           categories: [],
@@ -69,7 +69,7 @@ describe('CustomModeViewModel', () => {
           id: 'p1',
           name: 'Reading',
           updatedAt: 1,
-          urlIds: ['u1', 'u2'],
+          memberships: ['u1', 'u2'].map((urlId) => ({ urlId })),
         }),
       ]
       const vm = createCustomModeViewModel({
@@ -82,7 +82,8 @@ describe('CustomModeViewModel', () => {
       if (!vmProject) {
         throw new Error('project view-model is missing')
       }
-      expect(vmProject.urlIds).toStrictEqual(['u1', 'u2'])
+      expect(vmProject.displayUrlCount).toBe(2)
+      expect(vmProject.urls).toStrictEqual([])
     })
   })
 })

@@ -51,16 +51,13 @@ export const createRemoveUrlsFromCustomProjectsUseCase = (
   deps: RemoveUrlsFromCustomProjectsUseCaseDeps,
 ): RemoveUrlsFromCustomProjectsUseCase => {
   return async (command) => {
-    const groupsWithUrlIds = command.tabGroups.filter(
-      (group) => (group.urlIds?.length ?? 0) > 0,
-    )
-    const groupsWithoutUrlIds = command.tabGroups.filter(
-      (group) => (group.urlIds?.length ?? 0) === 0,
-    )
-
-    const allUrlIdsToDelete: string[] = groupsWithUrlIds.flatMap(
-      (group) => group.urlIds ?? [],
-    )
+    const allUrlIdsToDelete = [
+      ...new Set(
+        command.tabGroups.flatMap((group) =>
+          group.memberships.map(({ urlId }) => urlId),
+        ),
+      ),
+    ]
     if (allUrlIdsToDelete.length > 0) {
       await deps.customProjectsCommandService.removeUrlIdsFromAllCustomProjects(
         allUrlIdsToDelete,
@@ -68,32 +65,9 @@ export const createRemoveUrlsFromCustomProjectsUseCase = (
       )
     }
 
-    let urlsByGroup: { url: string }[][]
-    try {
-      urlsByGroup = await Promise.all(
-        groupsWithoutUrlIds.map(async (group) => {
-          const { urls } = await deps.loadTabGroupUrls({ tabGroup: group })
-          return urls.map((item) => ({ url: item.url }))
-        }),
-      )
-    } catch (error) {
-      console.error('複数グループのURL取得エラー:', error)
-      urlsByGroup = []
-    }
-
-    const allUrlsToDelete: string[] = urlsByGroup.flatMap((urls) =>
-      urls.map((item) => item.url),
-    )
-    if (allUrlsToDelete.length > 0) {
-      await deps.customProjectsCommandService.removeUrlsFromAllCustomProjects(
-        allUrlsToDelete,
-        { throwOnError: true },
-      )
-    }
-
     return {
       removedUrlIdCount: allUrlIdsToDelete.length,
-      removedUrlCount: allUrlsToDelete.length,
+      removedUrlCount: 0,
     }
   }
 }

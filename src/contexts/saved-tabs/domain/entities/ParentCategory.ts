@@ -11,11 +11,11 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
 /**
  * 親カテゴリを表すドメインエンティティ。
  *
- * 1 つのカテゴリは、紐づく `TabGroupId` の集合（`domains`）と
- * `DomainName` の集合（`domainNames`）を持つ。前者はストレージ上の
- * `parentCategories[].domains`、後者は同 `domainNames` と対応する。
+ * 1 つのカテゴリは、紐づく collection の ID と domain を同じ参照に
+ * まとめて保持する。parallel array を持たないため、relation の片側だけが
+ * 更新される状態を表現できない。
  *
- * カテゴリ自動判定（URL のドメインと `domainNames` の一致など）は
+ * カテゴリ自動判定（URL のドメインと collection domain の一致など）は
  * `CategoryAssignmentPolicy` / `TabGroupCategorizationService` に置く。
  *
  * @example
@@ -23,32 +23,34 @@ import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabG
  * const category = createParentCategory({
  *   id: 'docs',
  *   name: 'Docs',
- *   domains: ['group-1'],
- *   domainNames: ['example.com'],
+ *   collections: [{ id: 'group-1', domain: 'example.com' }],
  * })
  * ```
  */
+export type ParentCategoryCollection = {
+  readonly domain: DomainName
+  readonly id: TabGroupId
+}
+
 export type ParentCategory = {
+  readonly collections: readonly ParentCategoryCollection[]
   readonly id: ParentCategoryId
   readonly name: CategoryName
-  readonly domains: readonly TabGroupId[]
-  readonly domainNames: readonly string[]
 }
 
 type CreateParentCategoryInput = {
+  collections: readonly {
+    readonly domain: string
+    readonly id: string
+  }[]
   id: string
   name: string
-  domains: readonly string[]
-  domainNames: readonly string[]
 }
 
-const assertStringArray = (
-  value: unknown,
-  field: 'domains' | 'domainNames',
-): void => {
+const assertCollections = (value: unknown): void => {
   if (!Array.isArray(value)) {
     throw new SavedTabsDomainError(
-      `ParentCategory の ${field} は配列で指定してください`,
+      'ParentCategory の collections は配列で指定してください',
       'INVALID_PARENT_CATEGORY',
     )
   }
@@ -57,30 +59,35 @@ const assertStringArray = (
 /**
  * `ParentCategory` を生成する。
  *
- * `domains` と `domainNames` は重複を許容する既存データと互換するため、
- * 重複検査はしない（重複は service 層で意味付けして扱う）。
- * 空配列は許容する。
+ * 同じ collection ID の重複は relation の一意性違反として拒否する。
+ * 永続化境界から不正な domain が渡された場合は relation 全体を除外し、
+ * 1 件の互換データ不備でカテゴリ全体を読み込めなくしない。
  */
 export const createParentCategory = (
   input: CreateParentCategoryInput,
 ): ParentCategory => {
-  assertStringArray(input.domains, 'domains')
-  assertStringArray(input.domainNames, 'domainNames')
+  assertCollections(input.collections)
+  const seen = new Set<string>()
+  const collections: ParentCategoryCollection[] = []
+  for (const collection of input.collections) {
+    const domain = tryCreateDomainName(collection.domain)
+    if (!domain) {
+      continue
+    }
+    const id = createTabGroupId(collection.id)
+    if (seen.has(id)) {
+      throw new SavedTabsDomainError(
+        'ParentCategory の collections に重複があります',
+        'INVALID_PARENT_CATEGORY',
+      )
+    }
+    seen.add(id)
+    collections.push({ domain, id })
+  }
   return {
+    collections,
     id: createParentCategoryId(input.id),
     name: createCategoryName(input.name),
-    domains: input.domains.map((domain) => createTabGroupId(domain)),
-    // 保存フロー (getTabDomain) が `https://example.com` のようにスキーム付き
-    // 文字列を domainNames に書き込む既存データと互換するため、TabGroup.domain
-    // と同じく normalizeDomainString で hostname へ正規化してから DomainName 化する。
-    // さらに `https://` (host-less) や `://invalid` (パース失敗) のように
-    // 正規化後に有効な hostname が取れない不正エントリは tryCreateDomainName で
-    // null 化して除外し、1 件の不正値でカテゴリ全体の読み込み
-    // (toDomainParentCategories) が落ちないようにする
-    // (CodeRabbit PR #625 review 指摘)。
-    domainNames: input.domainNames
-      .map(tryCreateDomainName)
-      .filter((name): name is DomainName => name !== null),
   }
 }
 
@@ -98,7 +105,7 @@ export const isSameParentCategory = (
 export const parentCategoryContainsTabGroup = (
   category: ParentCategory,
   tabGroupId: TabGroupId,
-): boolean => category.domains.includes(tabGroupId)
+): boolean => category.collections.some(({ id }) => id === tabGroupId)
 
 /**
  * 指定の `DomainName` がこのカテゴリに登録されているかを判定する。
@@ -106,7 +113,7 @@ export const parentCategoryContainsTabGroup = (
 export const parentCategoryContainsDomainName = (
   category: ParentCategory,
   domainName: DomainName,
-): boolean => category.domainNames.includes(domainName)
+): boolean => category.collections.some(({ domain }) => domain === domainName)
 
 /**
  * ID で `ParentCategory` を検索する。見つからない場合は `undefined`。

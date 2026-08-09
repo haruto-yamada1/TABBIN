@@ -42,14 +42,18 @@ describe('createRenameParentCategoryUseCase', () => {
   beforeEach(() => {
     repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: ['example.com'],
-        domains: ['tab-1'],
+        collections: ['tab-1'].map((id, index) => ({
+          id,
+          domain: ['example.com'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       }),
       createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
         id: 'cat-2',
         name: 'News',
       }),
@@ -64,12 +68,14 @@ describe('createRenameParentCategoryUseCase', () => {
     })
     expect(result.find((c) => c.id === 'cat-1')?.name).toBe('Documents')
     // domains / domainNames は保持する
-    expect(result.find((c) => c.id === 'cat-1')?.domains).toStrictEqual([
-      'tab-1',
-    ])
-    expect(result.find((c) => c.id === 'cat-1')?.domainNames).toStrictEqual([
-      'example.com',
-    ])
+    expect(
+      result.find((c) => c.id === 'cat-1')?.collections.map(({ id }) => id),
+    ).toStrictEqual(['tab-1'])
+    expect(
+      result
+        .find((c) => c.id === 'cat-1')
+        ?.collections.map(({ domain }) => domain),
+    ).toStrictEqual(['example.com'])
   })
 
   it('他のカテゴリには影響しない', async () => {

@@ -19,15 +19,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { DeleteEntityConfirmPanel } from '@/contexts/saved-tabs/presentation/components/shared/DeleteEntityConfirmPanel'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import { toSavedTabsDisplayTabGroupViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type {
+  SavedTabsDisplayTabGroupDto as TabGroup,
+  SavedTabsParentCategoryDto as ParentCategory,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import type {
@@ -123,7 +124,9 @@ const buildAvailableDomains = ({
   const targetCategory = parentCategories.find(
     (parentCategory) => parentCategory.id === categoryId,
   )
-  const currentDomainIdSet = new Set(targetCategory?.domains)
+  const currentDomainIdSet = new Set(
+    targetCategory?.collections.map(({ id }) => id),
+  )
 
   return savedTabs.reduce<AvailableDomain[]>((domains, tab) => {
     if (!currentDomainIdSet.has(tab.id)) {
@@ -482,8 +485,7 @@ const useCategoryManagementModalView = ({
           return
         }
         setSavedTabGroups(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.TabGroup (branded readonly) を storage 層 TabGroup へ投影
-          [...pageData.tabGroups],
+          pageData.tabGroups.map(toSavedTabsDisplayTabGroupViewModel),
         )
         setParentCategories(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影

@@ -42,14 +42,18 @@ describe('createDeleteParentCategoryUseCase', () => {
   beforeEach(() => {
     repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: ['example.com'],
-        domains: ['tab-1'],
+        collections: ['tab-1'].map((id, index) => ({
+          id,
+          domain: ['example.com'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       }),
       createParentCategory({
-        domainNames: ['news.com'],
-        domains: ['tab-2'],
+        collections: ['tab-2'].map((id, index) => ({
+          id,
+          domain: ['news.com'][index] ?? id,
+        })),
         id: 'cat-2',
         name: 'News',
       }),
@@ -86,8 +90,10 @@ describe('createDeleteParentCategoryUseCase', () => {
     })
     const remaining = result.all.find((c) => c.id === 'cat-2')
     expect(remaining?.name).toBe('News')
-    expect(remaining?.domainNames).toStrictEqual(['news.com'])
-    expect(remaining?.domains).toStrictEqual(['tab-2'])
+    expect(remaining?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'news.com',
+    ])
+    expect(remaining?.collections.map(({ id }) => id)).toStrictEqual(['tab-2'])
   })
 
   it('対象カテゴリが見つからない場合は SavedTabsDomainError を投げる', async () => {

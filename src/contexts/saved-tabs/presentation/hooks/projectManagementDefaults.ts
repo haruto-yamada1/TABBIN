@@ -6,11 +6,6 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type {
-  SavedTabsCustomProjectDto as CustomProject,
-  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import { toStorageCustomProjectFromRaw } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
 import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
 import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
@@ -36,7 +31,13 @@ import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
+import { toSavedTabsCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import { toStorageCustomProjectFromRaw } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const asyncNoopCreate: CreateCustomProjectUseCase = () => {
   throw new Error('createCustomProjectUseCase is not provided')
@@ -182,19 +183,7 @@ const showCustomProjectDeleteUndoToast = ({
             setCustomProjects(
               payload.customProjectsRaw
                 ? payload.customProjectsRaw.map(toRawStorageCustomProject)
-                : payload.customProjects.map((project) => {
-                    const result: CustomProject = {
-                      categories: [...project.categories],
-                      createdAt: project.createdAt,
-                      id: project.id,
-                      name: project.name,
-                      updatedAt: project.updatedAt,
-                    }
-                    if ((project.urlIds ?? []).length > 0) {
-                      result.urlIds = [...(project.urlIds ?? [])]
-                    }
-                    return result
-                  }),
+                : payload.customProjects.map(toSavedTabsCustomProjectViewModel),
             )
             toast.success(t('savedTabs.undo.restored'))
           } catch (error) {

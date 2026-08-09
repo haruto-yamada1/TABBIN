@@ -1,6 +1,9 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
+import { toSavedTabsCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+
 const moveState = vi.hoisted(() => ({
   moveCustomProjectUrlAndSyncState: vi.fn(),
   toastError: vi.fn(),
@@ -38,47 +41,33 @@ describe('useProjectMoveHandlers', () => {
   it('application DTO を storage 形へ projection して project 間移動に渡す', async () => {
     const setCustomProjects = vi.fn()
     const moveUrlBetweenCustomProjects = vi.fn()
+    const currentProjects = [
+      createSavedTabsCustomProjectDto({
+        categories: ['Docs'],
+        createdAt: 1,
+        id: 'project-1',
+        name: 'Project One',
+        updatedAt: 2,
+        urlIds: ['url-1'],
+      }),
+      createSavedTabsCustomProjectDto({
+        categories: [],
+        createdAt: 3,
+        id: 'project-2',
+        name: 'Project Two',
+        updatedAt: 4,
+      }),
+    ]
     const savedTabsUseCases = {
-      getCustomProjects: vi.fn(async () => [
-        {
-          categories: ['Docs'],
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Project One',
-          updatedAt: 2,
-          urlIds: ['url-1'],
-        },
-        {
-          categories: [],
-          createdAt: 3,
-          id: 'project-2',
-          name: 'Project Two',
-          updatedAt: 4,
-          urlIds: [],
-        },
-      ]),
+      getCustomProjects: vi.fn(async () => currentProjects),
       moveUrlBetweenCustomProjects,
     }
     moveState.moveCustomProjectUrlAndSyncState.mockImplementation(
       async (options) => {
         const projects = await options.getCustomProjects()
-        expect(projects).toStrictEqual([
-          {
-            categories: ['Docs'],
-            createdAt: 1,
-            id: 'project-1',
-            name: 'Project One',
-            updatedAt: 2,
-            urlIds: ['url-1'],
-          },
-          {
-            categories: [],
-            createdAt: 3,
-            id: 'project-2',
-            name: 'Project Two',
-            updatedAt: 4,
-          },
-        ])
+        expect(projects).toStrictEqual(
+          currentProjects.map(toSavedTabsCustomProjectViewModel),
+        )
         expect(options.moveUrlBetweenCustomProjects).toBe(
           moveUrlBetweenCustomProjects,
         )

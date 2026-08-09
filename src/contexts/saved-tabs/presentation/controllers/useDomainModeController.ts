@@ -4,7 +4,7 @@ import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
 import type {
   DomainModeViewModel,
@@ -123,28 +123,29 @@ export const useDomainModeController = (
 
   const tabGroupsForView = useMemo<readonly TabGroupViewModel[]>(() => {
     if (
+      parentViewModel.loading &&
       initialTabGroups &&
       initialTabGroups.length > 0 &&
       parentViewModel.tabGroups.length === 0
     ) {
       return initialTabGroups.map((group) => ({
-        displayUrlCount: (group.urlIds ?? []).length,
+        displayUrlCount: group.urls?.length ?? group.memberships?.length ?? 0,
         domain: group.domain,
-        hasUrls: (group.urlIds ?? []).length > 0,
+        hasUrls: (group.urls?.length ?? group.memberships?.length ?? 0) > 0,
         id: group.id,
         parentCategoryId: group.parentCategoryId,
         subCategoryCount: 0,
-        urlIds: [...(group.urlIds ?? [])],
-        urls: [],
+        urls: group.urls?.map((url) => ({ ...url })) ?? [],
       }))
     }
     return parentViewModel.tabGroups
-  }, [initialTabGroups, parentViewModel.tabGroups])
+  }, [initialTabGroups, parentViewModel.loading, parentViewModel.tabGroups])
 
   const customProjectsForView = useMemo<
     readonly CustomProjectViewModel[]
   >(() => {
     if (
+      parentViewModel.loading &&
       initialCustomProjects &&
       initialCustomProjects.length > 0 &&
       parentViewModel.customProjects.length === 0
@@ -153,17 +154,21 @@ export const useDomainModeController = (
         categories: [...project.categories],
         categoryOrder: project.categories,
         createdAt: project.createdAt,
-        displayUrlCount: (project.urlIds ?? []).length,
-        hasUrls: (project.urlIds ?? []).length > 0,
+        displayUrlCount:
+          project.urls?.length ?? project.memberships?.length ?? 0,
+        hasUrls: (project.urls?.length ?? project.memberships?.length ?? 0) > 0,
         id: project.id,
         name: project.name,
         updatedAt: project.updatedAt,
-        urlIds: [...(project.urlIds ?? [])],
-        urls: [],
+        urls: project.urls?.map((url) => ({ ...url })) ?? [],
       }))
     }
     return parentViewModel.customProjects
-  }, [initialCustomProjects, parentViewModel.customProjects])
+  }, [
+    initialCustomProjects,
+    parentViewModel.customProjects,
+    parentViewModel.loading,
+  ])
 
   const viewModel = useMemo<DomainModeViewModel>(
     () =>
@@ -182,7 +187,7 @@ export const useDomainModeController = (
           domain: vm.domain,
           id: vm.id,
           parentCategoryId: vm.parentCategoryId,
-          urlIds: [...vm.urlIds],
+          urls: [...vm.urls],
         })),
       }),
     [

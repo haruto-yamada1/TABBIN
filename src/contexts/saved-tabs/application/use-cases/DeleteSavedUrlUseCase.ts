@@ -84,7 +84,9 @@ export const createDeleteSavedUrlUseCase = (
     }
 
     const targetUrlId: UrlRecordId = targetUrlRecord.id
-    const isReferencedInGroup = targetGroup.urlIds.includes(targetUrlId)
+    const isReferencedInGroup = targetGroup.memberships.some(
+      ({ urlId }) => urlId === targetUrlId,
+    )
     if (!isReferencedInGroup) {
       // 対象 TabGroup に該当 URL が無い場合は no-op。
       return {
@@ -100,15 +102,15 @@ export const createDeleteSavedUrlUseCase = (
     const previousCustomProjects: readonly CustomProject[] = allCustomProjects
 
     // 該当 URL を TabGroup から取り除く。
-    const remainingUrlIds = targetGroup.urlIds.filter(
-      (urlId) => urlId !== targetUrlId,
+    const remainingMemberships = targetGroup.memberships.filter(
+      ({ urlId }) => urlId !== targetUrlId,
     )
-    const isGroupEmpty = remainingUrlIds.length === 0
+    const isGroupEmpty = remainingMemberships.length === 0
     const updatedGroups = isGroupEmpty
       ? allTabGroups.filter((group) => group.id !== targetGroup.id)
       : allTabGroups.map((group) =>
           group.id === targetGroup.id
-            ? { ...group, urlIds: remainingUrlIds }
+            ? { ...group, memberships: remainingMemberships }
             : group,
         )
 
@@ -117,13 +119,13 @@ export const createDeleteSavedUrlUseCase = (
     // custom モード上に幽霊表示が残らないようにする。
     const updatedCustomProjects: readonly CustomProject[] =
       allCustomProjects.map((project) => {
-        const remaining = project.urlIds.filter(
-          (urlId) => urlId !== targetUrlId,
+        const remaining = project.memberships.filter(
+          ({ urlId }) => urlId !== targetUrlId,
         )
-        if (remaining.length === project.urlIds.length) {
+        if (remaining.length === project.memberships.length) {
           return project
         }
-        return { ...project, urlIds: remaining }
+        return { ...project, memberships: remaining }
       })
 
     // UrlRecord が他で参照されていなければ削除する。

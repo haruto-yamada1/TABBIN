@@ -60,10 +60,14 @@ describe('createMockParentCategoryRepository', () => {
     })
 
     expect(category).toMatchObject({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
     })
-    expect(category.domainNames).not.toBe(domainNames)
-    expect(category.domains).not.toBe(domains)
+    expect(category.collections.map(({ domain }) => domain)).not.toBe(
+      domainNames,
+    )
+    expect(category.collections.map(({ id }) => id)).not.toBe(domains)
   })
 })

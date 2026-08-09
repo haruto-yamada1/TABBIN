@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type {
   CustomProject,
   ProjectKeywordSettings,
   TabGroup,
   UrlRecord,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { domainMatches, toHostname } from '@/utils/domain-normalize'
 
 import {

@@ -3,11 +3,11 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useSortOrder } from './useSortOrder'

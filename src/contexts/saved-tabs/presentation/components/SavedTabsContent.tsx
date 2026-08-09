@@ -11,8 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableCategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 

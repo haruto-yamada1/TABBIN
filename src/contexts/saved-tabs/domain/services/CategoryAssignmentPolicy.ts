@@ -1,5 +1,10 @@
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import {
+  tabGroupCollectionGroupId,
+  tabGroupDomainName,
+} from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
@@ -38,14 +43,12 @@ export const buildCategoryLookup = (
   const byDomainName = new Map<string, ParentCategory>()
   for (const category of categories) {
     byId.set(category.id, category)
-    for (const tabGroupId of category.domains) {
-      if (!byTabGroupId.has(tabGroupId)) {
-        byTabGroupId.set(tabGroupId, category)
+    for (const collection of category.collections) {
+      if (!byTabGroupId.has(collection.id)) {
+        byTabGroupId.set(collection.id, category)
       }
-    }
-    for (const domainName of category.domainNames) {
-      if (!byDomainName.has(domainName)) {
-        byDomainName.set(domainName, category)
+      if (!byDomainName.has(collection.domain)) {
+        byDomainName.set(collection.domain, category)
       }
     }
   }
@@ -73,8 +76,9 @@ export const resolveCategoryForTabGroup = (
   group: TabGroup,
   lookup: CategoryLookup,
 ): ParentCategory | undefined => {
-  if (group.parentCategoryId) {
-    const direct = lookup.byId.get(group.parentCategoryId)
+  const groupId = tabGroupCollectionGroupId(group)
+  if (groupId) {
+    const direct = lookup.byId.get(createParentCategoryId(groupId))
     if (direct) {
       return direct
     }
@@ -83,7 +87,7 @@ export const resolveCategoryForTabGroup = (
   if (byTabGroupId) {
     return byTabGroupId
   }
-  return lookup.byDomainName.get(group.domain)
+  return lookup.byDomainName.get(tabGroupDomainName(group))
 }
 
 /**

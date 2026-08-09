@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { projectNameSchema } from './useProjectNameSchema'

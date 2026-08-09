@@ -10,7 +10,7 @@ import { PersistenceDataPlaneRouterService } from '@/contexts/saved-tabs/applica
 import { PersistenceRecoveryService } from '@/contexts/saved-tabs/application/services/PersistenceRecoveryService'
 import { createCompletePersistenceBootstrapServiceForTesting } from '@/contexts/saved-tabs/testing/createCompletePersistenceBootstrapService'
 
-describe('phase 1 cutover-capable data plane', () => {
+describe('production complete-cutover data plane', () => {
   it('lets migration integration tests complete cutover and route to IndexedDB only', async () => {
     let state: PersistenceControlState = {
       status: 'cutover-pending',

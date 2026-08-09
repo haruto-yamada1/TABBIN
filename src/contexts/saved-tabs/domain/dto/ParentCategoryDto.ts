@@ -1,3 +1,5 @@
+import type { CollectionReferenceDto } from './CollectionProjectionDto'
+
 /**
  * `SavedTabsCategorizationService` が受け取る `ParentCategory` の
  * domain 入力 DTO (issue #511)。
@@ -18,8 +20,7 @@
  * 互換のため readonly 修飾を敢えて付けず、mutable として公開する。
  */
 export type ParentCategoryDto = {
+  collections: CollectionReferenceDto[]
   id: string
   name: string
-  domains: string[]
-  domainNames: string[]
 }

@@ -1,4 +1,5 @@
-import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
+import type { PersistenceVersionedSavedTabsSnapshot } from '@/contexts/saved-tabs/public-api'
 import type {
   AiChartSpec,
   AiChatConversationMessage,
@@ -12,16 +13,9 @@ import {
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { isObjectLike } from '@/lib/browser/chrome-global'
-import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UrlRecord,
-} from '@/types/storage'
 
 const isAnalyticsQuery = (value: unknown): value is AnalyticsQuery => {
   if (!value || typeof value !== 'object') {
@@ -324,68 +318,17 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> => {
   }
 }
 
-type AnalyticsDeleteUndoSnapshot = {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-  urls?: UrlRecord[]
-}
+type AnalyticsDeleteUndoSnapshot = PersistenceVersionedSavedTabsSnapshot
 
-type AnalyticsDeleteUndoPayload = {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-  urls?: UrlRecord[]
-}
+type AnalyticsDeleteUndoPayload = PersistenceVersionedSavedTabsSnapshot
 
 const getAnalyticsDeleteUndoSnapshot =
-  async (): Promise<AnalyticsDeleteUndoSnapshot> => {
-    const storageLocal = getPersistenceStorageLocal()
-    if (!storageLocal) {
-      warnMissingChromeStorage('分析削除アンドゥスナップショット')
-      return {}
-    }
-    return storageLocal.get<AnalyticsDeleteUndoSnapshot>([
-      'savedTabs',
-      'customProjects',
-      'customProjectOrder',
-      'parentCategories',
-      'urls',
-    ])
-  }
+  async (): Promise<AnalyticsDeleteUndoSnapshot> =>
+    getBackgroundSavedTabsDataPlane().readUndoSnapshot()
 
-const getSnapshotArray = <T>(value: T[] | undefined): T[] | undefined =>
-  Array.isArray(value) ? value : undefined
 const createAnalyticsDeleteUndoPayload = (
   snapshot: AnalyticsDeleteUndoSnapshot,
-): AnalyticsDeleteUndoPayload => {
-  const payload: AnalyticsDeleteUndoPayload = {}
-  const savedTabs = getSnapshotArray(snapshot.savedTabs)
-  const customProjects = getSnapshotArray(snapshot.customProjects)
-  const customProjectOrder = getSnapshotArray(snapshot.customProjectOrder)
-  const parentCategories = getSnapshotArray(snapshot.parentCategories)
-  const urls = getSnapshotArray(snapshot.urls)
-
-  if (savedTabs) {
-    payload.savedTabs = savedTabs
-  }
-  if (customProjects) {
-    payload.customProjects = customProjects
-  }
-  if (customProjectOrder) {
-    payload.customProjectOrder = customProjectOrder
-  }
-  if (parentCategories) {
-    payload.parentCategories = parentCategories
-  }
-  if (urls) {
-    payload.urls = urls
-  }
-
-  return payload
-}
+): AnalyticsDeleteUndoPayload => snapshot
 
 const normalizeAnalyticsRouteQuery = (
   analyticsQuery: AnalyticsQuery,

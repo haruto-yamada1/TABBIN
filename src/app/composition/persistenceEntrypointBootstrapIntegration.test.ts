@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { resetBackgroundSavedTabsDataPlaneForTesting } from '@/app/composition/backgroundSavedTabsDataPlane'
 import {
   getPersistenceBootstrapRuntime,
   resetPersistenceBootstrapRuntimeForTesting,
 } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
-import { exportSettings } from '@/features/options/lib/import-export/flows'
+import { exportSettings } from '@/features/options/lib/import-export/legacy/LegacyImportExportFlows.fixture'
 import { removeUrlRecordsFromStorage } from '@/lib/background/url-storage'
 
 type StorageState = Record<string, unknown>
@@ -72,6 +73,7 @@ const setupRuntime = (events: string[]) => {
     runtime: { getManifest: () => ({ version: 'test' }) },
     storage,
   })
+  resetBackgroundSavedTabsDataPlaneForTesting()
   resetPersistenceBootstrapRuntimeForTesting()
   const runtime = getPersistenceBootstrapRuntime()
   const ready = vi.spyOn(runtime.bootstrap, 'ready')
@@ -87,6 +89,7 @@ describe('production entrypoint persistence readiness', () => {
   })
 
   afterEach(() => {
+    resetBackgroundSavedTabsDataPlaneForTesting()
     resetPersistenceBootstrapRuntimeForTesting()
     vi.unstubAllGlobals()
   })

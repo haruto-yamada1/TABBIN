@@ -99,7 +99,7 @@ export const createDeleteSavedUrlsUseCase = (
       targetUrlRecords.map((record) => record.id),
     )
 
-    const groupHasMatch = targetGroup.urlIds.some((urlId) =>
+    const groupHasMatch = targetGroup.memberships.some(({ urlId }) =>
       targetUrlIds.has(urlId),
     )
     if (!groupHasMatch) {
@@ -112,28 +112,28 @@ export const createDeleteSavedUrlsUseCase = (
       }
     }
 
-    const remainingUrlIds = targetGroup.urlIds.filter(
-      (urlId) => !targetUrlIds.has(urlId),
+    const remainingMemberships = targetGroup.memberships.filter(
+      ({ urlId }) => !targetUrlIds.has(urlId),
     )
-    const isGroupEmpty = remainingUrlIds.length === 0
+    const isGroupEmpty = remainingMemberships.length === 0
     const updatedGroups = isGroupEmpty
       ? allTabGroups.filter((group) => group.id !== targetGroup.id)
       : allTabGroups.map((group) =>
           group.id === targetGroup.id
-            ? { ...group, urlIds: remainingUrlIds }
+            ? { ...group, memberships: remainingMemberships }
             : group,
         )
 
     // 同じ URL を保持している CustomProject からも取り除く。
     const updatedCustomProjects: readonly CustomProject[] =
       allCustomProjects.map((project) => {
-        const remaining = project.urlIds.filter(
-          (urlId) => !targetUrlIds.has(urlId),
+        const remaining = project.memberships.filter(
+          ({ urlId }) => !targetUrlIds.has(urlId),
         )
-        if (remaining.length === project.urlIds.length) {
+        if (remaining.length === project.memberships.length) {
           return project
         }
-        return { ...project, urlIds: remaining }
+        return { ...project, memberships: remaining }
       })
 
     const urlRecordsToDelete: UrlRecordId[] = []

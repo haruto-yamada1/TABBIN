@@ -1,4 +1,3 @@
-import { toStorageDomainCategorySettings } from '@/contexts/saved-tabs/application/mappers/SavedTabsDtosMapper'
 import type { DomainCategorySettingsDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
 import type { DomainCategorySettingsRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategorySettingsRepository'
 import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
@@ -21,13 +20,28 @@ const parseSettings = (raw: unknown): readonly DomainCategorySettingsDto[] => {
   for (const item of raw) {
     const parsed = DomainCategorySettingsRawSchema.safeParse(item)
     if (parsed.success) {
+      const collectionId = `legacy-domain:${parsed.data.domain}`
       valid.push({
-        categoryKeywords: parsed.data.categoryKeywords.map((keyword) => ({
-          categoryName: keyword.categoryName,
-          keywords: [...keyword.keywords],
+        collection: {
+          createdAt: 0,
+          definition: { domain: parsed.data.domain, type: 'domain' },
+          id: collectionId,
+          name: parsed.data.domain,
+          sortOrder: 0,
+          updatedAt: 0,
+        },
+        collectionCategories: parsed.data.subCategories.map((name, index) => ({
+          collectionId,
+          createdAt: 0,
+          id: `${collectionId}:category:${index}`,
+          keywords:
+            parsed.data.categoryKeywords.find(
+              ({ categoryName }) => categoryName === name,
+            )?.keywords ?? [],
+          name,
+          sortOrder: index,
+          updatedAt: 0,
         })),
-        domain: parsed.data.domain,
-        subCategories: [...parsed.data.subCategories],
       })
     }
   }
@@ -45,7 +59,24 @@ const createChromeDomainCategorySettingsRepositoryImpl = (
   const saveAll = async (
     settings: readonly DomainCategorySettingsDto[],
   ): Promise<void> => {
-    const storage = toStorageDomainCategorySettings(settings)
+    const storage = settings.flatMap(({ collection, collectionCategories }) => {
+      if (collection.definition.type !== 'domain') {
+        return []
+      }
+      const orderedCategories = collectionCategories.toSorted(
+        (left, right) => left.sortOrder - right.sortOrder,
+      )
+      return [
+        {
+          categoryKeywords: orderedCategories.map(({ keywords, name }) => ({
+            categoryName: name,
+            keywords: [...keywords],
+          })),
+          domain: collection.definition.domain,
+          subCategories: orderedCategories.map(({ name }) => name),
+        },
+      ]
+    })
     await port.set({ [DOMAIN_CATEGORY_SETTINGS_KEY]: storage })
   }
 

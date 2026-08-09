@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type {
-  SavedTabsCustomProjectDto as CustomProject,
-  SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import { SavedTabsPresentationLayout } from '@/contexts/saved-tabs/presentation/components/SavedTabsPresentationLayout'
 import {
@@ -16,6 +12,10 @@ import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/contr
 import type { UseSavedTabsControllerReturn } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SavedTabsViewModel } from '@/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel'
 import { getSavedTabsModeFromLocation } from '@/features/navigation/lib/pageNavigation'
 

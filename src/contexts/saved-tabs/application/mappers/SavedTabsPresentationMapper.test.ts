@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
   toSavedTabsCustomProjectDto,
@@ -21,16 +23,23 @@ describe('SavedTabsPresentationMapper', () => {
       id: 'project-1',
       name: 'Research',
       updatedAt: 20,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const category = createParentCategory({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'category-1',
       name: 'Docs',
     })
     const group = createTabGroup({
-      categoryKeywords: [{ categoryName: 'docs', keywords: ['guide'] }],
+      categoryKeywords: [
+        {
+          categoryName: 'docs',
+          keywords: ['guide'],
+        },
+      ],
       domain: 'example.com',
       id: 'group-1',
       parentCategoryId: 'category-1',
@@ -38,8 +47,12 @@ describe('SavedTabsPresentationMapper', () => {
       subCategories: ['docs'],
       subCategoryOrder: ['docs'],
       subCategoryOrderWithUncategorized: ['docs', 'uncategorized'],
-      urlIds: ['url-1'],
-      urlSubCategories: { 'url-1': 'docs' },
+      memberships: ['url-1'].map((urlId) => ({
+        urlId,
+        ...({ 'url-1': 'docs' }?.[urlId]
+          ? { category: { 'url-1': 'docs' }[urlId] }
+          : {}),
+      })),
     })
     const record = createUrlRecord({
       favIconUrl: 'https://example.com/favicon.ico',
@@ -49,32 +62,24 @@ describe('SavedTabsPresentationMapper', () => {
       url: 'https://example.com',
     })
 
-    expect(toSavedTabsCustomProjectDto(project)).toStrictEqual({
-      categories: ['research'],
-      createdAt: 10,
-      id: 'project-1',
-      name: 'Research',
-      updatedAt: 20,
-      urlIds: ['url-1'],
-    })
+    const projectDto = toSavedTabsCustomProjectDto(project)
+    expect(projectDto).toStrictEqual(project)
+    expect(projectDto).not.toBe(project)
+    expect(projectDto.collectionCategories).not.toBe(
+      project.collectionCategories,
+    )
     expect(toSavedTabsParentCategoryDto(category)).toStrictEqual({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'category-1',
       name: 'Docs',
     })
-    expect(toSavedTabsTabGroupDto(group)).toStrictEqual({
-      categoryKeywords: [{ categoryName: 'docs', keywords: ['guide'] }],
-      domain: 'example.com',
-      id: 'group-1',
-      parentCategoryId: 'category-1',
-      savedAt: 30,
-      subCategories: ['docs'],
-      subCategoryOrder: ['docs'],
-      subCategoryOrderWithUncategorized: ['docs', 'uncategorized'],
-      urlIds: ['url-1'],
-      urlSubCategories: { 'url-1': 'docs' },
-    })
+    const groupDto = toSavedTabsTabGroupDto(group)
+    expect(groupDto).toStrictEqual(group)
+    expect(groupDto).not.toBe(group)
+    expect(groupDto.collectionCategories).not.toBe(group.collectionCategories)
     expect(toSavedTabsUrlRecordDto(record)).toStrictEqual({
       favIconUrl: 'https://example.com/favicon.ico',
       id: 'url-1',

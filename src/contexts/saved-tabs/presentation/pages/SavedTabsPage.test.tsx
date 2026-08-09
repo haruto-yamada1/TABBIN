@@ -3,13 +3,17 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
-  createSavedTabsCustomProjectDto,
-  createSavedTabsTabGroupDto,
+  createSavedTabsCustomProjectDto as createCurrentCustomProject,
+  createSavedTabsTabGroupDto as createCurrentTabGroup,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 import {
   createSavedTabsPresentationPortsStub,
   createSavedTabsUseCasesStub,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import {
+  toSavedTabsCustomProjectViewModel,
+  toSavedTabsTabGroupViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 
 const layoutPropsSpy = vi.hoisted(() => vi.fn())
 
@@ -49,20 +53,22 @@ afterEach(() => {
   layoutPropsSpy.mockClear()
 })
 
-const group = createSavedTabsTabGroupDto({
+const currentGroup = createCurrentTabGroup({
   domain: 'example.com',
   id: 'group-1',
-  urlIds: ['url-1'],
+  memberships: ['url-1'].map((urlId) => ({ urlId })),
 })
-const project = createSavedTabsCustomProjectDto({
+const group = toSavedTabsTabGroupViewModel(currentGroup)
+const currentProject = createCurrentCustomProject({
   id: 'project-1',
   name: 'Reading',
 })
+const project = toSavedTabsCustomProjectViewModel(currentProject)
 
 const createBoundary = () => {
   const deps = createSavedTabsPresentationPortsStub()
-  const getSavedTabs = vi.fn(async () => [group])
-  const getCustomProjects = vi.fn(async () => [project])
+  const getSavedTabs = vi.fn(async () => [currentGroup])
+  const getCustomProjects = vi.fn(async () => [currentProject])
   const useCases = createSavedTabsUseCasesStub({
     getCustomProjects,
     getSavedTabs,

@@ -2,35 +2,19 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import {
+  toCustomProjectFromViewModel,
+  toSavedTabsCustomProjectViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 // @vitest-environment jsdom
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { useProjectManagement } from './useProjectManagement'
 
-type CustomProjectRawSnapshot = {
-  id: string
-  name: string
-  categories: readonly string[]
-  createdAt: number
-  updatedAt: number
-  urlIds?: readonly string[]
-  urls?: readonly {
-    id?: string
-    url: string
-    title: string
-    savedAt?: number
-  }[]
-  urlMetadata?: Readonly<Record<string, { notes?: string; category?: string }>>
-  projectKeywords?: {
-    urlKeywords: readonly string[]
-    titleKeywords: readonly string[]
-    domainKeywords: readonly string[]
-  }
-  categoryOrder?: readonly string[]
-}
+type CustomProjectRawSnapshot = ReturnType<typeof toCustomProjectFromViewModel>
 
 const projectManagementMocks = vi.hoisted(() => ({
   // issue #539 / #540 で application use-case へ移設した 10 操作の
@@ -122,7 +106,7 @@ const projectSnapshot: CustomProject[] = [
   {
     id: 'project-1',
     name: 'Project A',
-    urlIds: ['url-a', 'url-b'],
+    memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
     categories: [],
     createdAt: 1,
     updatedAt: 2,
@@ -132,7 +116,7 @@ const projectSnapshot: CustomProject[] = [
 const updatedProjects: CustomProject[] = [
   {
     ...projectSnapshot[0],
-    urlIds: ['url-b'],
+    memberships: ['url-b'].map((urlId) => ({ urlId })),
     updatedAt: 3,
   },
 ]
@@ -165,35 +149,21 @@ const waitForLoadedProjects = async (
   expectedProjects: CustomProject[] = projectSnapshot,
 ) => {
   await waitFor(() => {
-    expect(result.current.customProjects).toStrictEqual(expectedProjects)
+    expect(result.current.customProjects).toStrictEqual(
+      expectedProjects.map((project) =>
+        toSavedTabsCustomProjectViewModel(
+          toCustomProjectFromViewModel(project),
+        ),
+      ),
+    )
   })
 }
 
-const toRawSnapshot = (project: CustomProject): CustomProjectRawSnapshot => {
-  const result: CustomProjectRawSnapshot = {
-    categories: project.categories,
-    createdAt: project.createdAt,
-    id: project.id,
-    name: project.name,
-    updatedAt: project.updatedAt,
-  }
-  if (project.urlIds) {
-    result.urlIds = project.urlIds
-  }
-  if (project.urls) {
-    result.urls = project.urls
-  }
-  if (project.urlMetadata) {
-    result.urlMetadata = project.urlMetadata
-  }
-  if (project.projectKeywords) {
-    result.projectKeywords = project.projectKeywords
-  }
-  if (project.categoryOrder) {
-    result.categoryOrder = project.categoryOrder
-  }
-  return result
-}
+const toRawSnapshot = (project: CustomProject): CustomProjectRawSnapshot =>
+  toCustomProjectFromViewModel(project)
+
+const toPresentedSnapshot = (project: CustomProject): CustomProject =>
+  toSavedTabsCustomProjectViewModel(toRawSnapshot(project))
 
 describe('useProjectManagement', () => {
   /**
@@ -319,21 +289,7 @@ describe('useProjectManagement', () => {
           base.customProjectOrder = order
         }
         const raws = await projectManagementMocks.getCustomProjectRaws()
-        const projects: {
-          categories: readonly string[]
-          createdAt: number
-          id: string
-          name: string
-          updatedAt: number
-          urlIds: readonly string[]
-        }[] = raws.map((raw: CustomProjectRawSnapshot) => ({
-          categories: [...raw.categories],
-          createdAt: raw.createdAt,
-          id: raw.id,
-          name: raw.name,
-          updatedAt: raw.updatedAt,
-          urlIds: [...(raw.urlIds ?? [])],
-        }))
+        const projects = raws.map((raw: CustomProjectRawSnapshot) => raw)
         return {
           ...base,
           ...(projects.length > 0 ? { customProjects: projects } : {}),
@@ -441,9 +397,11 @@ describe('useProjectManagement', () => {
 
     await expect(
       act(async () => result.current.syncDomainDataToCustomProjects()),
-    ).resolves.toStrictEqual(latestProjects)
+    ).resolves.toStrictEqual(latestProjects.map(toPresentedSnapshot))
 
-    expect(result.current.customProjects).toStrictEqual(latestProjects)
+    expect(result.current.customProjects).toStrictEqual(
+      latestProjects.map(toPresentedSnapshot),
+    )
     expect(console.error).toHaveBeenCalledWith(
       'データ同期エラー:',
       expect.any(Error),
@@ -632,7 +590,9 @@ describe('useProjectManagement', () => {
     })
 
     expect(result.current.viewMode).toBe('custom')
-    expect(result.current.customProjects).toStrictEqual([projectWithCategories])
+    expect(result.current.customProjects).toStrictEqual([
+      toPresentedSnapshot(projectWithCategories),
+    ])
   })
 
   it('initialViewMode 未指定なら domain モードで初期化する', async () => {
@@ -678,13 +638,14 @@ describe('useProjectManagement', () => {
       categories: [],
       createdAt: 30,
       updatedAt: 30,
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     }
-    let resolveCreate: (value: { project: CustomProject }) => void = () =>
-      undefined
+    let resolveCreate: (value: {
+      project: CustomProjectRawSnapshot
+    }) => void = () => undefined
     projectManagementMocks.createCustomProject.mockImplementation(
       async () =>
-        new Promise<{ project: CustomProject }>((resolve) => {
+        new Promise<{ project: CustomProjectRawSnapshot }>((resolve) => {
           resolveCreate = resolve
         }),
     )
@@ -729,7 +690,7 @@ describe('useProjectManagement', () => {
     await act(async () => {
       const firstCreate = result.current.handleCreateProject(' New Project ')
       const duplicateCreate = result.current.handleCreateProject('new project')
-      resolveCreate({ project: createdProject })
+      resolveCreate({ project: toRawSnapshot(createdProject) })
       await Promise.all([firstCreate, duplicateCreate])
     })
 
@@ -737,7 +698,9 @@ describe('useProjectManagement', () => {
     expect(projectManagementMocks.createCustomProject).toHaveBeenCalledWith({
       name: 'New Project',
     })
-    expect(result.current.customProjects[0]).toStrictEqual(createdProject)
+    expect(result.current.customProjects[0]).toStrictEqual(
+      toPresentedSnapshot(createdProject),
+    )
     expect(toast.success).toHaveBeenCalledWith(
       'プロジェクト「New Project」を追加しました',
     )
@@ -868,7 +831,9 @@ describe('useProjectManagement', () => {
       name: 'Renamed',
       projectKeywords,
     })
-    expect(result.current.customProjects[1]).toStrictEqual(untouchedProject)
+    expect(result.current.customProjects[1]).toStrictEqual(
+      toPresentedSnapshot(untouchedProject),
+    )
 
     await act(async () => {
       await result.current.handleDeleteProject('missing-project')
@@ -884,7 +849,9 @@ describe('useProjectManagement', () => {
       projectId: 'project-1',
     })
     expect(projectManagementMocks.deleteCustomProject).toHaveBeenCalledTimes(1)
-    expect(result.current.customProjects).toStrictEqual([untouchedProject])
+    expect(result.current.customProjects).toStrictEqual([
+      toPresentedSnapshot(untouchedProject),
+    ])
   })
 
   it('URL追加、カテゴリ削除、URL分類は最新プロジェクトを再取得する', async () => {
@@ -938,7 +905,9 @@ describe('useProjectManagement', () => {
       title: 'Example C',
       url: 'https://example.com/c',
     })
-    expect(result.current.customProjects).toStrictEqual([projectWithCategories])
+    expect(result.current.customProjects).toStrictEqual([
+      toPresentedSnapshot(projectWithCategories),
+    ])
 
     await act(async () => {
       await result.current.handleDeleteProjectCategory('project-1', 'Inbox')
@@ -962,7 +931,9 @@ describe('useProjectManagement', () => {
       projectId: 'project-1',
       url: 'https://example.com/a',
     })
-    expect(result.current.customProjects).toStrictEqual(updatedProjects)
+    expect(result.current.customProjects).toStrictEqual(
+      updatedProjects.map(toPresentedSnapshot),
+    )
   })
 
   it('カテゴリ追加、カテゴリ順序、URL順序、プロジェクト順序、カテゴリ名変更を state に反映する', async () => {
@@ -996,6 +967,8 @@ describe('useProjectManagement', () => {
     ])
     const reorderedUrls = [
       {
+        id: 'url-b',
+        savedAt: 20,
         url: 'https://example.com/b',
         title: 'Example B',
         category: 'Done',
@@ -1078,7 +1051,7 @@ describe('useProjectManagement', () => {
       result.current.customProjects.map((project) => project.id),
     ).toStrictEqual(['project-1', 'project-2', 'project-3', 'project-4'])
     expect(result.current.customProjects[1]).toMatchObject({
-      categories: ['Later', 'Done', 'Review'],
+      categories: ['Done', 'Later', 'Review'],
       categoryOrder: ['Review', 'Later'],
       urls: reorderedUrls,
     })
@@ -1088,14 +1061,8 @@ describe('useProjectManagement', () => {
     })
     expect(result.current.customProjects[3]).toMatchObject({
       categories: ['New'],
-      categoryOrder: undefined,
-      urls: [
-        {
-          url: 'https://example.com/old',
-          title: 'Old',
-          category: 'New',
-        },
-      ],
+      categoryOrder: ['New'],
+      urls: undefined,
     })
   })
 
@@ -1388,7 +1355,9 @@ describe('useProjectManagement', () => {
     expect(
       projectManagementMocks.saveCustomProjectOrder,
     ).toHaveBeenLastCalledWith({ newOrder: ['project-1'] })
-    expect(result.current.customProjects).toStrictEqual(projectSnapshot)
+    expect(result.current.customProjects).toStrictEqual(
+      projectSnapshot.map(toPresentedSnapshot),
+    )
   })
 
   it('Undo は生 snapshot があれば restoreCustomProjectsSnapshot 経由で urls / urlMetadata を含めて復元する（PR #506 review P2 対応）', async () => {
@@ -1396,7 +1365,7 @@ describe('useProjectManagement', () => {
     // entity snapshot には載らないため、saveAll 経由だと merge で脱落する。
     // restoreCustomProjectsSnapshot 経由で書けば全フィールドを保存できる。
     const projectSnapshotRaw = [
-      {
+      toRawSnapshot({
         categories: ['research'],
         createdAt: 1,
         id: 'project-1',
@@ -1407,12 +1376,22 @@ describe('useProjectManagement', () => {
           urlKeywords: ['plan'],
         },
         updatedAt: 2,
-        urlIds: ['url-1'],
-        urlMetadata: {
-          'url-1': { category: 'research', notes: 'memo' },
-        },
-        urls: [{ title: 'A', url: 'https://example.com/a' }],
-      },
+        memberships: ['url-1'].map((urlId) => ({
+          urlId,
+          ...{
+            'url-1': {
+              category: 'research',
+              notes: 'memo',
+            },
+          }?.[urlId],
+        })),
+        urls: [
+          {
+            title: 'A',
+            url: 'https://example.com/a',
+          },
+        ],
+      }),
     ]
     // 1 回目: 初回 load, 2 回目: undo snapshot, 3 回目: 削除後
     // 初期 load / undo snapshot で rich な `projectSnapshotRaw` を返し、

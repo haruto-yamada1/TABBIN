@@ -4,7 +4,7 @@ import type { SavedTabsDisplayTabGroupDto } from './SavedTabsPresentationDto'
  * `LoadTabGroupsWithUrlsUseCase` の結果 DTO。
  *
  * URL 解決済み `TabGroupDto[]` をそのまま返す。各 `TabGroupDto` には
- * 入力と同じ id / domain / urlIds などのフィールドが保持され、
+ * 入力と同じ id / domain などのフィールドが保持され、
  * `urls` フィールドだけが `ResolvedTabGroupUrlDto[]` で追加される。
  *
  * `urlSubCategories` 引き継ぎは use-case / domain サービス側で

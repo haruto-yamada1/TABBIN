@@ -1,23 +1,23 @@
+import type { TabGroup, UrlRecord } from '@/contexts/saved-tabs/public-api'
 import { normalizeDomainString } from '@/contexts/saved-tabs/public-api'
 import {
   getBrowserUiLocale,
   getMessage,
   resolveLanguage,
 } from '@/features/i18n/lib/language'
+import type {
+  ConvertedUrlData,
+  ImportedTabData,
+  ImportedUrlData,
+  ImportedUrlRecordData,
+} from '@/features/options/lib/import-export/schemas'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import {
   createOrUpdateUrlRecord,
   getUrlRecords,
   saveUrlRecords,
 } from '@/lib/storage/urls'
-import type { TabGroup, UrlRecord, UserSettings } from '@/types/storage'
-
-import type {
-  ConvertedUrlData,
-  ImportedTabData,
-  ImportedUrlData,
-  ImportedUrlRecordData,
-} from './schemas'
+import type { UserSettings } from '@/types/storage'
 
 const IMPORT_URL_RECORD_OPTIONS = {
   preserveExistingOnDuplicate: true,

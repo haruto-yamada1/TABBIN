@@ -1,4 +1,7 @@
-import type { CustomProject, ProjectKeywordSettings } from '@/types/storage'
+import type {
+  CustomProject,
+  ProjectKeywordSettings,
+} from '@/contexts/saved-tabs/public-api'
 import { toHostname } from '@/utils/domain-normalize'
 
 type SavedTabKeywordMatchTarget = {

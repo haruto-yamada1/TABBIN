@@ -138,19 +138,19 @@ export const removeUrlRecordIdsFromTabGroups = ({
   }
   const result: TabGroup[] = []
   for (const group of tabGroups) {
-    const remainingUrlIds = group.urlIds.filter(
-      (urlId) => !urlRecordIdsToRemove.has(urlId),
+    const remainingMemberships = group.memberships.filter(
+      ({ urlId }) => !urlRecordIdsToRemove.has(urlId),
     )
-    if (remainingUrlIds.length === group.urlIds.length) {
+    if (remainingMemberships.length === group.memberships.length) {
       result.push(group)
       continue
     }
-    if (remainingUrlIds.length === 0) {
+    if (remainingMemberships.length === 0) {
       continue
     }
     result.push({
       ...group,
-      urlIds: remainingUrlIds,
+      memberships: remainingMemberships,
     })
   }
   return result

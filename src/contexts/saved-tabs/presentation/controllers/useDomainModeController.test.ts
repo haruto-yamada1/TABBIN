@@ -3,33 +3,41 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  createSavedTabsCustomProjectDto,
+  createSavedTabsCustomProjectDto as createCurrentCustomProject,
   createSavedTabsParentCategoryDto,
-  createSavedTabsTabGroupDto,
+  createSavedTabsTabGroupDto as createCurrentTabGroup,
   createSavedTabsUrlRecordDto,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 import {
   createSavedTabsPresentationPortsStub,
   createSavedTabsUseCasesStub,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import {
+  toSavedTabsCustomProjectViewModel,
+  toSavedTabsTabGroupViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 
 import { useDomainModeController } from './useDomainModeController'
 import { useSavedTabsController } from './useSavedTabsController'
 
 afterEach(() => vi.restoreAllMocks())
 
-const group = createSavedTabsTabGroupDto({
+const currentGroup = createCurrentTabGroup({
   domain: 'example.com',
   id: 'group-1',
-  urlIds: ['url-1'],
+  memberships: ['url-1'].map((urlId) => ({ urlId })),
 })
-const project = createSavedTabsCustomProjectDto({
+const group = toSavedTabsTabGroupViewModel(currentGroup)
+const currentProject = createCurrentCustomProject({
   id: 'project-1',
   name: 'Reading',
 })
+const project = toSavedTabsCustomProjectViewModel(currentProject)
 const category = createSavedTabsParentCategoryDto({
-  domainNames: ['example.com'],
-  domains: ['group-1'],
+  collections: ['group-1'].map((id, index) => ({
+    id,
+    domain: ['example.com'][index] ?? id,
+  })),
   id: 'category-1',
   name: 'Docs',
 })
@@ -39,7 +47,7 @@ const record = createSavedTabsUrlRecordDto({
 })
 
 const setup = (hasRecord = true, parentHasInitial = true) => {
-  let groups = [group]
+  let groups = [currentGroup]
   const open = vi.fn(async ({ url }: { url: string }) => ({ url }))
   const deps = createSavedTabsPresentationPortsStub({
     browserTabPort: { open },
@@ -62,7 +70,7 @@ const setup = (hasRecord = true, parentHasInitial = true) => {
         ? { id: record.id, title: record.title, url: record.url }
         : null,
     })),
-    getCustomProjects: vi.fn(async () => [project]),
+    getCustomProjects: vi.fn(async () => [currentProject]),
     getSavedTabs: vi.fn(async () => groups),
     openSavedUrl: vi.fn(async () => {
       const opened = await open({ url: record.url })
@@ -78,7 +86,7 @@ const setup = (hasRecord = true, parentHasInitial = true) => {
     const controller = useSavedTabsController({
       deps,
       ...(parentHasInitial
-        ? { initialCustomProjects: [project], initialTabGroups: groups }
+        ? { initialCustomProjects: [project], initialTabGroups: [group] }
         : {}),
       useCases,
     })
@@ -86,7 +94,7 @@ const setup = (hasRecord = true, parentHasInitial = true) => {
       controller,
       initialCustomProjects: [project],
       initialParentCategories: [category],
-      initialTabGroups: groups,
+      initialTabGroups: [group],
     })
   })
   return { ...hook, open }

@@ -3,6 +3,88 @@ import type {
   RawLegacyStorageSnapshot,
 } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 
+export type UrlRecord = {
+  id: string
+  url: string
+  title: string
+  savedAt: number
+  favIconUrl?: string
+}
+
+export type ParentCategory = {
+  id: string
+  name: string
+  domains: string[]
+  domainNames: string[]
+}
+
+export type SubCategoryKeyword = {
+  categoryName: string
+  keywords: string[]
+}
+
+export type ProjectKeywordSettings = {
+  titleKeywords: string[]
+  urlKeywords: string[]
+  domainKeywords: string[]
+}
+
+export type TabGroup = {
+  id: string
+  domain: string
+  parentCategoryId?: string
+  urlIds?: string[]
+  urls?: {
+    id?: string
+    url: string
+    title: string
+    subCategory?: string
+    savedAt?: number
+  }[]
+  urlSubCategories?: Record<string, string>
+  subCategories?: string[]
+  categoryKeywords?: SubCategoryKeyword[]
+  subCategoryOrder?: string[]
+  subCategoryOrderWithUncategorized?: string[]
+  savedAt?: number
+}
+
+export type DomainCategorySettings = {
+  domain: string
+  subCategories: string[]
+  categoryKeywords: SubCategoryKeyword[]
+}
+
+export type DomainParentCategoryMapping = {
+  domain: string
+  categoryId: string
+}
+
+export type CustomProject = {
+  id: string
+  name: string
+  projectKeywords?: ProjectKeywordSettings
+  urlIds?: string[]
+  urls?: {
+    url: string
+    title: string
+    notes?: string
+    savedAt?: number
+    category?: string
+  }[]
+  urlMetadata?: Record<
+    string,
+    {
+      notes?: string
+      category?: string
+    }
+  >
+  categories: string[]
+  categoryOrder?: string[]
+  createdAt: number
+  updatedAt: number
+}
+
 export type LegacyChromeStorageDto = {
   readonly activeAiChatConversationId: unknown
   readonly aiChatConversations: readonly unknown[]

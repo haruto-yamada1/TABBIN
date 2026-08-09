@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { createCategorizedDisplayState } from './categorized-display'
 
@@ -21,7 +21,7 @@ const makeProject = (
   id: 'project-1',
   name: 'My Project',
   updatedAt: 0,
-  urlIds: [],
+  memberships: [].map((urlId) => ({ urlId })),
   urls: [],
   ...overrides,
 })
@@ -39,8 +39,14 @@ const baseInput = {
 
 describe('createCategorizedDisplayState.hasContentTabGroups', () => {
   it('categorized と uncategorized のうち表示対象 URL を持つグループだけ返す', () => {
-    const displayable = makeGroup({ id: 'a', urlIds: ['u1'] })
-    const empty = makeGroup({ id: 'b', urlIds: [] })
+    const displayable = makeGroup({
+      id: 'a',
+      memberships: ['u1'].map((urlId) => ({ urlId })),
+    })
+    const empty = makeGroup({
+      id: 'b',
+      memberships: [].map((urlId) => ({ urlId })),
+    })
     const result = createCategorizedDisplayState({
       ...baseInput,
       categorized: { cat: [empty, displayable] },
@@ -55,7 +61,9 @@ describe('createCategorizedDisplayState.hasContentTabGroups', () => {
   it('何も表示対象がないときは空配列', () => {
     const result = createCategorizedDisplayState({
       ...baseInput,
-      uncategorized: [makeGroup({ id: 'a', urlIds: [] })],
+      uncategorized: [
+        makeGroup({ id: 'a', memberships: [].map((urlId) => ({ urlId })) }),
+      ],
     })
     expect(result.hasContentTabGroups).toStrictEqual([])
   })
@@ -63,8 +71,14 @@ describe('createCategorizedDisplayState.hasContentTabGroups', () => {
 
 describe('createCategorizedDisplayState.visibleUncategorizedGroups', () => {
   it('uncategorized のうち表示対象 URL を持つグループだけ返す', () => {
-    const empty = makeGroup({ id: 'b', urlIds: [] })
-    const displayable = makeGroup({ id: 'a', urlIds: ['u1'] })
+    const empty = makeGroup({
+      id: 'b',
+      memberships: [].map((urlId) => ({ urlId })),
+    })
+    const displayable = makeGroup({
+      id: 'a',
+      memberships: ['u1'].map((urlId) => ({ urlId })),
+    })
     const result = createCategorizedDisplayState({
       ...baseInput,
       uncategorized: [empty, displayable],
@@ -108,7 +122,9 @@ describe('createCategorizedDisplayState.shouldShowUncategorizedSectionHeader', (
     const result = createCategorizedDisplayState({
       ...baseInput,
       enableCategories: false,
-      uncategorized: [makeGroup({ id: 'a', urlIds: ['u1'] })],
+      uncategorized: [
+        makeGroup({ id: 'a', memberships: ['u1'].map((urlId) => ({ urlId })) }),
+      ],
     })
     expect(result.shouldShowUncategorizedSectionHeader).toBe(false)
   })
@@ -126,7 +142,9 @@ describe('createCategorizedDisplayState.shouldShowUncategorizedSectionHeader', (
     const result = createCategorizedDisplayState({
       ...baseInput,
       enableCategories: true,
-      uncategorized: [makeGroup({ id: 'a', urlIds: ['u1'] })],
+      uncategorized: [
+        makeGroup({ id: 'a', memberships: ['u1'].map((urlId) => ({ urlId })) }),
+      ],
     })
     expect(result.shouldShowUncategorizedSectionHeader).toBe(true)
   })
@@ -140,7 +158,9 @@ describe('createCategorizedDisplayState.shouldShowUncategorizedSectionHeader', (
       ...baseInput,
       enableCategories: true,
       searchQuery: 'nomatch',
-      uncategorized: [makeGroup({ id: 'a', urlIds: [] })],
+      uncategorized: [
+        makeGroup({ id: 'a', memberships: [].map((urlId) => ({ urlId })) }),
+      ],
     })
     expect(result.shouldShowUncategorizedSectionHeader).toBe(false)
   })
@@ -150,7 +170,9 @@ describe('createCategorizedDisplayState.shouldShowUncategorizedList', () => {
   it('visibleUncategorizedGroups が1件以上なら true', () => {
     const result = createCategorizedDisplayState({
       ...baseInput,
-      uncategorized: [makeGroup({ id: 'a', urlIds: ['u1'] })],
+      uncategorized: [
+        makeGroup({ id: 'a', memberships: ['u1'].map((urlId) => ({ urlId })) }),
+      ],
     })
     expect(result.shouldShowUncategorizedList).toBe(true)
   })
@@ -158,7 +180,9 @@ describe('createCategorizedDisplayState.shouldShowUncategorizedList', () => {
   it('表示対象未分類が0件なら false', () => {
     const result = createCategorizedDisplayState({
       ...baseInput,
-      uncategorized: [makeGroup({ id: 'a', urlIds: [] })],
+      uncategorized: [
+        makeGroup({ id: 'a', memberships: [].map((urlId) => ({ urlId })) }),
+      ],
     })
     expect(result.shouldShowUncategorizedList).toBe(false)
   })
@@ -170,8 +194,8 @@ describe('createCategorizedDisplayState.uncategorizedForDisplay', () => {
       ...baseInput,
       isUncategorizedReorderMode: false,
       uncategorized: [
-        makeGroup({ id: 'a', urlIds: ['u1'] }),
-        makeGroup({ id: 'b', urlIds: [] }),
+        makeGroup({ id: 'a', memberships: ['u1'].map((urlId) => ({ urlId })) }),
+        makeGroup({ id: 'b', memberships: [].map((urlId) => ({ urlId })) }),
       ],
     })
     expect(result.uncategorizedForDisplay.map((g) => g.id)).toStrictEqual(['a'])
@@ -182,9 +206,9 @@ describe('createCategorizedDisplayState.uncategorizedForDisplay', () => {
       ...baseInput,
       isUncategorizedReorderMode: true,
       tempUncategorizedOrder: [
-        makeGroup({ id: 'a', urlIds: ['u1'] }),
-        makeGroup({ id: 'b', urlIds: [] }),
-        makeGroup({ id: 'c', urlIds: ['u2'] }),
+        makeGroup({ id: 'a', memberships: ['u1'].map((urlId) => ({ urlId })) }),
+        makeGroup({ id: 'b', memberships: [].map((urlId) => ({ urlId })) }),
+        makeGroup({ id: 'c', memberships: ['u2'].map((urlId) => ({ urlId })) }),
       ],
       uncategorized: [],
     })
@@ -199,7 +223,9 @@ describe('createCategorizedDisplayState.headerFilteredTabGroups', () => {
   it('viewMode=domain なら hasContentTabGroups をそのまま返す', () => {
     const result = createCategorizedDisplayState({
       ...baseInput,
-      uncategorized: [makeGroup({ id: 'a', urlIds: ['u1'] })],
+      uncategorized: [
+        makeGroup({ id: 'a', memberships: ['u1'].map((urlId) => ({ urlId })) }),
+      ],
       viewMode: 'domain',
     })
     expect(result.headerFilteredTabGroups.map((g) => g.id)).toStrictEqual(['a'])

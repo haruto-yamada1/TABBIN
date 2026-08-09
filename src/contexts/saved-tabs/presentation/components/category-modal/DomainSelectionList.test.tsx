@@ -9,7 +9,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { DomainSelectionList } from './DomainSelectionList'
 
@@ -57,7 +57,7 @@ const createTabGroups = (count: number): TabGroup[] =>
   Array.from({ length: count }, (_, idx) => ({
     id: `group-${idx}`,
     domain: `domain-${String(idx).padStart(3, '0')}.example.com`,
-    urlIds: [],
+    memberships: [].map((urlId) => ({ urlId })),
   }))
 
 const setCategoryModalContext = ({
@@ -220,8 +220,16 @@ describe('DomainSelectionList', () => {
 
   it('分類済み/未分類のソート順を安定して適用する（分類済み→未分類順）', async () => {
     const tabGroups: TabGroup[] = [
-      { id: 'cat-domain', domain: 'cat.example.com', urlIds: [] },
-      { id: 'uncat-domain', domain: 'uncat.example.com', urlIds: [] },
+      {
+        id: 'cat-domain',
+        domain: 'cat.example.com',
+        memberships: [].map((urlId) => ({ urlId })),
+      },
+      {
+        id: 'uncat-domain',
+        domain: 'uncat.example.com',
+        memberships: [].map((urlId) => ({ urlId })),
+      },
     ]
     const domainCategories = {
       'cat-domain': { id: 'cat-1', name: 'カテゴリ1' },
@@ -245,8 +253,16 @@ describe('DomainSelectionList', () => {
 
   it('分類済み/未分類のソート順を安定して適用する（未分類→分類済み順）', async () => {
     const tabGroups: TabGroup[] = [
-      { id: 'uncat-domain', domain: 'uncat.example.com', urlIds: [] },
-      { id: 'cat-domain', domain: 'cat.example.com', urlIds: [] },
+      {
+        id: 'uncat-domain',
+        domain: 'uncat.example.com',
+        memberships: [].map((urlId) => ({ urlId })),
+      },
+      {
+        id: 'cat-domain',
+        domain: 'cat.example.com',
+        memberships: [].map((urlId) => ({ urlId })),
+      },
     ]
     const domainCategories = {
       'cat-domain': { id: 'cat-1', name: 'カテゴリ1' },

@@ -2,12 +2,6 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useCallback } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type {
-  SavedTabsCustomProjectDto as CustomProject,
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import {
   countTabGroupUrls,
   createFilterGroupsByExcludedIdsUpdater,
@@ -17,6 +11,13 @@ import {
   toDomainParentCategories,
 } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
 import type { OpenedUrlsStorageSnapshot } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
+import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import { toStorageParentCategory } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 
@@ -98,7 +99,7 @@ export const useTabGroupDeletionHandlers = ({
         // (issue #512: presentation helper から application use-case
         //  `removeUrlsFromCustomProjects` へ移設済み)。
         await savedTabsUseCases.removeUrlsFromCustomProjects({
-          tabGroups: [groupToDelete],
+          tabGroups: [toTabGroupFromViewModel(groupToDelete)],
         })
 
         // 以降は従来通りの処理
@@ -222,7 +223,7 @@ export const useTabGroupDeletionHandlers = ({
         // issue #512 で `removeUrlsFromCustomProjects` use-case へ
         // 移設済み (issue #540 範囲)。
         await savedTabsUseCases.removeUrlsFromCustomProjects({
-          tabGroups: groupsToDelete,
+          tabGroups: groupsToDelete.map(toTabGroupFromViewModel),
         })
 
         const idSet = new Set(ids)

@@ -6,6 +6,7 @@ import type {
   PersistenceV2UnitOfWorkPort,
   PersistenceV2WritePlan,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
+import { PersistenceRevisionConflictError } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import { isJsonValue } from '@/lib/persistence/jsonValue'
 
 import type { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
@@ -145,24 +146,40 @@ export class IndexedDbPersistenceUnitOfWork implements PersistenceV2UnitOfWorkPo
           mode: 'readwrite',
           storeNames: [...storeNames, PERSISTENCE_STORE_NAMES.metadata],
         },
-        (transaction) => {
-          for (const key of entries) {
-            queueMutation(
-              transaction.objectStore(PLAN_STORE_NAMES[key]),
-              plan[key],
-            )
-          }
-
+        (transaction, abortWithError) => {
           const metadata = transaction.objectStore(
             PERSISTENCE_STORE_NAMES.metadata,
           )
           const revisionRequest = metadata.get('revision')
           revisionRequest.addEventListener('success', () => {
-            const current = decodePersistenceRevision(
-              readIndexedDbRequestResult(revisionRequest),
-            )
-            committedRevision = current + 1
-            metadata.put({ key: 'revision', value: committedRevision })
+            try {
+              const current = decodePersistenceRevision(
+                readIndexedDbRequestResult(revisionRequest),
+              )
+              if (
+                options.expectedRevision !== undefined &&
+                current !== options.expectedRevision
+              ) {
+                abortWithError(
+                  new PersistenceRevisionConflictError(
+                    options.expectedRevision,
+                    current,
+                  ),
+                )
+                return
+              }
+
+              for (const key of entries) {
+                queueMutation(
+                  transaction.objectStore(PLAN_STORE_NAMES[key]),
+                  plan[key],
+                )
+              }
+              committedRevision = current + 1
+              metadata.put({ key: 'revision', value: committedRevision })
+            } catch (error) {
+              abortWithError(error)
+            }
           })
         },
       )
