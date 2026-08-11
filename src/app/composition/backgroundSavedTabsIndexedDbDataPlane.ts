@@ -12,6 +12,7 @@ import { toHostname } from '@/utils/domain-normalize'
 import type {
   BackgroundSavedTabInput,
   BackgroundSavedTabsDataPlane,
+  SavedTabsAnalyticsRecord,
   SavedTabsInsightRecord,
 } from './backgroundSavedTabsDataPlaneTypes'
 
@@ -123,6 +124,89 @@ const buildInsightRecords = (
       }
     })
     .toSorted((left, right) => right.savedAt - left.savedAt)
+}
+
+const buildAnalyticsRecords = (
+  snapshot: PersistenceV2Snapshot,
+): SavedTabsAnalyticsRecord[] => {
+  const collections = new Map(
+    snapshot.collections.map((collection) => [collection.id, collection]),
+  )
+  const categories = new Map(
+    snapshot.categories.map((category) => [category.id, category]),
+  )
+  const groups = new Map(snapshot.groups.map((group) => [group.id, group]))
+  const urls = new Map(snapshot.urls.map((url) => [url.id, url]))
+  const urlMetrics = snapshot.urls.flatMap(
+    (url): SavedTabsAnalyticsRecord[] => {
+      const base = {
+        domain: toHostname(url.url),
+        parentCategories: [],
+        projectCategories: [],
+        savedInProjects: [],
+        savedInTabGroups: [],
+        subCategories: [],
+        title: url.title,
+        url: url.url,
+      }
+      return [
+        {
+          ...base,
+          eventId: `${url.id}:first-saved`,
+          id: url.id,
+          metric: 'first-saved',
+          savedAt: url.firstSavedAt,
+          timestampAccuracy: url.firstSavedAtProvenance ?? 'legacy-fallback',
+        },
+        {
+          ...base,
+          eventId: `${url.id}:last-saved`,
+          id: url.id,
+          metric: 'last-saved',
+          savedAt: url.lastSavedAt,
+          timestampAccuracy: url.lastSavedAtProvenance ?? 'legacy-fallback',
+        },
+      ]
+    },
+  )
+  const membershipEvents = snapshot.memberships.flatMap(
+    (membership): SavedTabsAnalyticsRecord[] => {
+      const collection = collections.get(membership.collectionId)
+      const url = urls.get(membership.urlId)
+      if (!collection || !url) {
+        return []
+      }
+      const category = membership.categoryId
+        ? categories.get(membership.categoryId)
+        : undefined
+      const group = collection.groupId
+        ? groups.get(collection.groupId)
+        : undefined
+      const isDomain = collection.definition.type === 'domain'
+      return [
+        {
+          collectionType: collection.definition.type,
+          domain: toHostname(url.url),
+          eventId: `${collection.id}:${url.id}`,
+          id: url.id,
+          metric: 'membership-added',
+          parentCategories: isDomain && group ? [group.name] : [],
+          projectCategories: !isDomain && category ? [category.name] : [],
+          savedAt: membership.addedAt,
+          savedInProjects: isDomain ? [] : [collection.name],
+          savedInTabGroups: isDomain ? [collection.definition.domain] : [],
+          subCategories: isDomain && category ? [category.name] : [],
+          timestampAccuracy: membership.addedAtProvenance ?? 'legacy-fallback',
+          title: url.title,
+          url: url.url,
+        },
+      ]
+    },
+  )
+  return [...urlMetrics, ...membershipEvents].toSorted(
+    (left, right) =>
+      left.savedAt - right.savedAt || left.eventId.localeCompare(right.eventId),
+  )
 }
 
 const removeEmptyDomainCollections = (
@@ -259,6 +343,7 @@ const ensureUrl = (
     const updated: PersistenceV2Url = {
       ...existing,
       lastSavedAt: timestamp,
+      lastSavedAtProvenance: 'exact',
       title: input.title || existing.title,
       updatedAt: timestamp,
       url: normalizedUrl,
@@ -270,8 +355,10 @@ const ensureUrl = (
   }
   const created: PersistenceV2Url = {
     firstSavedAt: timestamp,
+    firstSavedAtProvenance: 'exact',
     id: idGenerator(),
     lastSavedAt: timestamp,
+    lastSavedAtProvenance: 'exact',
     normalizedUrl,
     title: input.title,
     updatedAt: timestamp,
@@ -334,6 +421,7 @@ const upsertMembership = (
   }
   state.memberships.push({
     addedAt: timestamp,
+    addedAtProvenance: 'exact',
     ...(categoryId ? { categoryId } : {}),
     collectionId: collection.id,
     sortOrder: nextSortOrder(collectionMemberships(state, collection.id)),
@@ -448,6 +536,8 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   readSnapshot,
   session,
 }: CreateBackgroundSavedTabsIndexedDbDataPlaneOptions): BackgroundSavedTabsDataPlane => ({
+  readAnalyticsRecords: async () =>
+    buildAnalyticsRecords((await readSnapshot()).savedTabs),
   readInsightRecords: async () =>
     buildInsightRecords((await readSnapshot()).savedTabs),
   readUndoSnapshot: readSnapshot,
@@ -494,7 +584,12 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
       }
       state.urls = state.urls.map((url) =>
         urlIds.has(url.id)
-          ? { ...url, lastSavedAt: timestamp, updatedAt: timestamp }
+          ? {
+              ...url,
+              lastSavedAt: timestamp,
+              lastSavedAtProvenance: 'exact',
+              updatedAt: timestamp,
+            }
           : url,
       )
       return { success: true }

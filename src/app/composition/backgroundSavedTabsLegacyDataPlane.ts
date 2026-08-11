@@ -15,6 +15,7 @@ import {
 import type {
   BackgroundSavedTabInput,
   BackgroundSavedTabsDataPlane,
+  SavedTabsAnalyticsRecord,
   SavedTabsInsightRecord,
 } from './backgroundSavedTabsDataPlaneTypes'
 
@@ -117,6 +118,48 @@ const comparableUrl = (rawUrl: string): string | null => {
   }
 }
 
+const getParentCategoriesForGroup = (
+  group: TabGroup,
+  parentCategories: readonly ParentCategory[],
+): string[] =>
+  parentCategories.flatMap((category) =>
+    tabGroupMatchesCategory(
+      category.domains,
+      category.domainNames,
+      group.id,
+      group.domain,
+    )
+      ? [category.name]
+      : [],
+  )
+
+const getProjectCategoriesForUrl = (
+  project: CustomProject,
+  urlId: string,
+): string[] => {
+  const category = project.urlMetadata?.[urlId]?.category
+  return category ? [category] : []
+}
+
+const indexCollectionsByUrlId = <
+  Collection extends { readonly urlIds?: readonly string[] },
+>(
+  collections: readonly Collection[],
+): ReadonlyMap<string, readonly Collection[]> => {
+  const collectionsByUrlId = new Map<string, Collection[]>()
+  for (const collection of collections) {
+    for (const urlId of collection.urlIds ?? []) {
+      const matchingCollections = collectionsByUrlId.get(urlId)
+      if (matchingCollections) {
+        matchingCollections.push(collection)
+      } else {
+        collectionsByUrlId.set(urlId, [collection])
+      }
+    }
+  }
+  return collectionsByUrlId
+}
+
 const buildSavedTabsInsightRecords = ({
   customProjects,
   parentCategories,
@@ -136,23 +179,13 @@ const buildSavedTabsInsightRecords = ({
         id: record.id,
         parentCategories: unique(
           matchingGroups.flatMap((group) =>
-            parentCategories.flatMap((category) =>
-              tabGroupMatchesCategory(
-                category.domains,
-                category.domainNames,
-                group.id,
-                group.domain,
-              )
-                ? [category.name]
-                : [],
-            ),
+            getParentCategoriesForGroup(group, parentCategories),
           ),
         ),
         projectCategories: unique(
-          matchingProjects.flatMap((project) => {
-            const category = project.urlMetadata?.[record.id]?.category
-            return category ? [category] : []
-          }),
+          matchingProjects.flatMap((project) =>
+            getProjectCategoriesForUrl(project, record.id),
+          ),
         ),
         savedAt: record.savedAt,
         savedInProjects: unique(
@@ -170,6 +203,67 @@ const buildSavedTabsInsightRecords = ({
       }
     })
     .sort((left, right) => right.savedAt - left.savedAt)
+
+const buildSavedTabsAnalyticsRecords = (
+  state: SavedTabsCompatibilityState,
+): SavedTabsAnalyticsRecord[] => {
+  const insightRecords = buildSavedTabsInsightRecords(state)
+  const groupsByUrlId = indexCollectionsByUrlId(state.savedTabs)
+  const projectsByUrlId = indexCollectionsByUrlId(state.customProjects)
+  return insightRecords
+    .flatMap((record): SavedTabsAnalyticsRecord[] => {
+      const matchingGroups = groupsByUrlId.get(record.id) ?? []
+      const matchingProjects = projectsByUrlId.get(record.id) ?? []
+      return [
+        {
+          ...record,
+          eventId: `${record.id}:first-saved`,
+          metric: 'first-saved',
+          timestampAccuracy: 'legacy-fallback',
+        },
+        {
+          ...record,
+          eventId: `${record.id}:last-saved`,
+          metric: 'last-saved',
+          timestampAccuracy: 'legacy-fallback',
+        },
+        ...matchingGroups.map((group) => ({
+          ...record,
+          collectionType: 'domain' as const,
+          eventId: `legacy:domain:${group.id}:${record.id}`,
+          metric: 'membership-added' as const,
+          parentCategories: getParentCategoriesForGroup(
+            group,
+            state.parentCategories,
+          ),
+          projectCategories: [],
+          savedInProjects: [],
+          savedInTabGroups: [group.domain],
+          subCategories: group.urlSubCategories?.[record.id]
+            ? [group.urlSubCategories[record.id]]
+            : [],
+          timestampAccuracy: 'legacy-fallback' as const,
+        })),
+        ...matchingProjects.map((project) => ({
+          ...record,
+          collectionType: 'custom' as const,
+          eventId: `legacy:custom:${project.id}:${record.id}`,
+          metric: 'membership-added' as const,
+          parentCategories: [],
+          projectCategories: getProjectCategoriesForUrl(project, record.id),
+          savedInProjects: [project.name],
+          savedInTabGroups: [],
+          subCategories: [],
+          timestampAccuracy: 'legacy-fallback' as const,
+        })),
+      ]
+    })
+    .toSorted(
+      (left, right) =>
+        left.savedAt - right.savedAt ||
+        left.eventId.localeCompare(right.eventId),
+    )
+}
 
 const removeSelectedUrls = async (
   storage: SavedTabsCompatibilityStorage,
@@ -528,6 +622,10 @@ export const createBackgroundSavedTabsDataPlane = ({
     })
 
   return {
+    readAnalyticsRecords: async () =>
+      routeRead(async (storage) =>
+        buildSavedTabsAnalyticsRecords(await readState(storage)),
+      ),
     readInsightRecords: async () =>
       routeRead(async (storage) =>
         buildSavedTabsInsightRecords(await readState(storage)),

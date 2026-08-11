@@ -1,5 +1,8 @@
 # IndexedDB persistence infrastructure
 
+The verified-snapshot Analytics projection and metric definitions are documented
+in [analytics-metrics.md](./analytics-metrics.md).
+
 Status: implemented infrastructure contract for Issue #726
 Parent: #724
 Logical model: `docs/architecture/persistence-model-v2.md`

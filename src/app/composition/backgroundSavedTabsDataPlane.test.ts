@@ -152,6 +152,84 @@ describe('backgroundSavedTabsDataPlane', () => {
     expect(legacy.get).not.toHaveBeenCalled()
   })
 
+  it('keeps same-named legacy collection memberships distinct in analytics records', async () => {
+    const legacy = createStorage({
+      ...baseState,
+      customProjectOrder: ['project-1', 'project-2'],
+      customProjects: [
+        {
+          categories: ['Reading'],
+          createdAt: 1,
+          id: 'project-1',
+          name: 'Research',
+          updatedAt: 1,
+          urlIds: ['url-1'],
+          urlMetadata: { 'url-1': { category: 'Reading' } },
+        },
+        {
+          categories: ['Review'],
+          createdAt: 1,
+          id: 'project-2',
+          name: 'Research',
+          updatedAt: 1,
+          urlIds: ['url-1'],
+          urlMetadata: { 'url-1': { category: 'Review' } },
+        },
+      ],
+      savedTabs: [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          urlIds: ['url-1'],
+          urlSubCategories: { 'url-1': 'Docs' },
+        },
+        {
+          domain: 'example.com',
+          id: 'group-2',
+          urlIds: ['url-1'],
+          urlSubCategories: { 'url-1': 'Reference' },
+        },
+      ],
+    })
+    const dataPlane = createBackgroundSavedTabsDataPlane({
+      idGenerator: () => 'unused',
+      legacyStorage: legacy,
+      now: () => 10,
+      router: createRouter('legacy'),
+      runIndexedDbSession: vi.fn(),
+    })
+
+    const membershipRecords = (await dataPlane.readAnalyticsRecords()).filter(
+      ({ metric }) => metric === 'membership-added',
+    )
+
+    expect(membershipRecords).toHaveLength(4)
+    expect(membershipRecords).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventId: 'legacy:custom:project-1:url-1',
+          projectCategories: ['Reading'],
+          savedInProjects: ['Research'],
+        }),
+        expect.objectContaining({
+          eventId: 'legacy:custom:project-2:url-1',
+          projectCategories: ['Review'],
+          savedInProjects: ['Research'],
+        }),
+        expect.objectContaining({
+          eventId: 'legacy:domain:group-1:url-1',
+          savedInTabGroups: ['example.com'],
+          subCategories: ['Docs'],
+        }),
+        expect.objectContaining({
+          eventId: 'legacy:domain:group-2:url-1',
+          savedInTabGroups: ['example.com'],
+          subCategories: ['Reference'],
+        }),
+      ]),
+    )
+  })
+
   it('deduplicates save input and restores domain/custom/category placement', async () => {
     const legacy = createStorage({
       customProjectOrder: ['project-second', 'project-first'],

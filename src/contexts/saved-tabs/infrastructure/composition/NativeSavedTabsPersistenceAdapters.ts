@@ -291,8 +291,15 @@ const createUrlRecordRepository = (
         return {
           ...(record.favIconUrl ? { favIconUrl: record.favIconUrl } : {}),
           firstSavedAt: existing?.firstSavedAt ?? record.savedAt,
+          firstSavedAtProvenance: existing
+            ? (existing.firstSavedAtProvenance ?? 'legacy-fallback')
+            : 'exact',
           id: record.id,
           lastSavedAt: record.savedAt,
+          lastSavedAtProvenance:
+            existing?.lastSavedAt === record.savedAt
+              ? (existing.lastSavedAtProvenance ?? 'legacy-fallback')
+              : 'exact',
           normalizedUrl: existing?.normalizedUrl ?? record.url,
           title: record.title,
           updatedAt: record.savedAt,
@@ -378,8 +385,10 @@ const createCustomProjectsCommandService = (
       if (!record) {
         record = {
           firstSavedAt: timestamp,
+          firstSavedAtProvenance: 'exact',
           id: deps.idGenerator.generate(),
           lastSavedAt: timestamp,
+          lastSavedAtProvenance: 'exact',
           normalizedUrl: url,
           title,
           updatedAt: timestamp,
@@ -397,6 +406,7 @@ const createCustomProjectsCommandService = (
           : undefined
         state.memberships.push({
           addedAt: timestamp,
+          addedAtProvenance: 'exact',
           ...(category ? { categoryId: category.id } : {}),
           collectionId: projectId,
           ...(options?.notes ? { notes: options.notes } : {}),
@@ -423,12 +433,14 @@ const createCustomProjectsCommandService = (
           ({ urlId }) => urlId === record.id,
         )
       ) {
+        const timestamp = now()
         state.memberships.push({
-          addedAt: now(),
+          addedAt: timestamp,
+          addedAtProvenance: 'exact',
           collectionId: targetId,
           ...(source?.notes ? { notes: source.notes } : {}),
           sortOrder: membershipsFor(state, targetId).length,
-          updatedAt: now(),
+          updatedAt: timestamp,
           urlId: record.id,
         })
       }

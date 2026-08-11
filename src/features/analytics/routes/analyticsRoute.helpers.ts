@@ -8,7 +8,9 @@ import type {
 import {
   filterAnalyticsRecords,
   generateAnalyticsResult,
+  getLabelsForGroup,
   normalizeAnalyticsQuery,
+  parseAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
@@ -17,23 +19,11 @@ import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
 
-const isAnalyticsQuery = (value: unknown): value is AnalyticsQuery => {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const chartType: unknown = Reflect.get(value, 'chartType')
-  const groupBy: unknown = Reflect.get(value, 'groupBy')
-  const mode: unknown = Reflect.get(value, 'mode')
-  return (
-    typeof chartType === 'string' &&
-    typeof groupBy === 'string' &&
-    typeof mode === 'string'
-  )
-}
-
 const parseGroupBy = (value: string): AnalyticsQuery['groupBy'] => {
   switch (value) {
+    case 'collection':
+    case 'collectionCategory':
+    case 'collectionGroup':
     case 'domain':
     case 'parentCategory':
     case 'project':
@@ -64,6 +54,34 @@ const parseChartType = (value: string): AnalyticsQuery['chartType'] => {
   }
 }
 
+const parseMetric = (value: string): NonNullable<AnalyticsQuery['metric']> => {
+  switch (value) {
+    case 'first-saved':
+    case 'last-saved':
+    case 'membership-added': {
+      return value
+    }
+    default: {
+      return 'first-saved'
+    }
+  }
+}
+
+const parseCollectionType = (
+  value: string,
+): NonNullable<AnalyticsQuery['collectionType']> => {
+  switch (value) {
+    case 'all':
+    case 'custom':
+    case 'domain': {
+      return value
+    }
+    default: {
+      return 'all'
+    }
+  }
+}
+
 const getLatestAnalyticsQuery = (
   toolTraces: AiChatToolTrace[] | undefined,
 ): AnalyticsQuery | null => {
@@ -80,8 +98,9 @@ const getLatestAnalyticsQuery = (
       toolTrace.output && typeof toolTrace.output === 'object'
         ? Reflect.get(toolTrace.output, 'query')
         : undefined
-    if (isAnalyticsQuery(query)) {
-      return query
+    const parsedQuery = parseAnalyticsQuery(query)
+    if (parsedQuery) {
+      return parsedQuery
     }
   }
 
@@ -368,45 +387,24 @@ const getDrilldownLabelsForRecord = (
   uncategorizedLabel: string,
   chartMessages: AnalyticsChartMessages,
 ): string[] => {
-  // eslint-disable-next-line typescript/switch-exhaustiveness-check
-  switch (query.groupBy) {
-    case 'timeRecent':
-    case 'timeTop': {
-      return getAnalyticsChartDatumLabels(
-        generateAnalyticsResult(
-          [record],
-          {
-            ...query,
-            compareBy: 'none',
-          },
-          { messages: chartMessages },
-        ).chartSpecs[0]?.data,
-      )
-    }
-    case 'parentCategory': {
-      return record.parentCategories.length > 0
-        ? record.parentCategories
-        : [uncategorizedLabel]
-    }
-    case 'subCategory': {
-      return record.subCategories.length > 0
-        ? record.subCategories
-        : [uncategorizedLabel]
-    }
-    case 'project': {
-      return record.savedInProjects.length > 0
-        ? record.savedInProjects
-        : [uncategorizedLabel]
-    }
-    case 'projectCategory': {
-      return record.projectCategories.length > 0
-        ? record.projectCategories
-        : [uncategorizedLabel]
-    }
-    default: {
-      return [record.domain]
-    }
+  if (query.groupBy === 'timeRecent' || query.groupBy === 'timeTop') {
+    return getAnalyticsChartDatumLabels(
+      generateAnalyticsResult(
+        [record],
+        {
+          ...query,
+          compareBy: 'none',
+        },
+        { messages: chartMessages },
+      ).chartSpecs[0]?.data,
+    )
   }
+  return getLabelsForGroup(
+    record,
+    query.groupBy,
+    uncategorizedLabel,
+    query.collectionType,
+  )
 }
 
 const matchesDrilldownMode = ({
@@ -559,7 +557,9 @@ export {
   noop,
   normalizeAnalyticsRouteQuery,
   parseChartType,
+  parseCollectionType,
   parseGroupBy,
+  parseMetric,
   rebuildAnalyticsDrilldownSelection,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,

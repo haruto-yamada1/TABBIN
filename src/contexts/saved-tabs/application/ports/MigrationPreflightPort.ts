@@ -1,4 +1,5 @@
 import { PERSISTENCE_V2_INVARIANT_CODES } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
+import type { PersistenceTimestampMigrationSummary } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import type { PersistenceSourceEntityCounts } from '@/lib/persistence/capacity'
 
 import type { RawLegacyStorageSnapshot } from './RawLegacyStorageReaderPort'
@@ -43,6 +44,7 @@ export type MigrationPreflightDiagnostic = {
   readonly issueCodes: readonly MigrationPreflightIssueCode[]
   readonly preflightVersion: number
   readonly sourceFingerprintVersion: number
+  readonly timestampMigrationSummary?: PersistenceTimestampMigrationSummary
 }
 
 export type MigrationPreflightStatus =

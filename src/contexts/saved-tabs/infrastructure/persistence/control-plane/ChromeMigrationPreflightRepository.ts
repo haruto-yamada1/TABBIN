@@ -11,6 +11,10 @@ import {
   MIGRATION_SOURCE_FINGERPRINT_VERSION,
 } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
 import type {
+  PersistenceTimestampMigrationSummary,
+  PersistenceTimestampQualityCount,
+} from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
+import type {
   PersistenceSourceEntityCounts,
   PersistenceSourceEntityKind,
 } from '@/lib/persistence/capacity'
@@ -62,6 +66,66 @@ const decodeIssueCodes = (
   return value
 }
 
+const decodeTimestampQualityCount = (
+  value: unknown,
+): PersistenceTimestampQualityCount => {
+  if (
+    !isRecord(value) ||
+    !isNonNegativeInteger(value.exactCount) ||
+    !isNonNegativeInteger(value.legacyFallbackCount)
+  ) {
+    throw new MigrationPreflightRecordError()
+  }
+  return {
+    exactCount: value.exactCount,
+    legacyFallbackCount: value.legacyFallbackCount,
+  }
+}
+
+const decodeTimestampMigrationSummary = (
+  value: unknown,
+  entityCounts: PersistenceSourceEntityCounts,
+): PersistenceTimestampMigrationSummary => {
+  if (value === undefined) {
+    return {
+      membershipAddedAt: {
+        exactCount: 0,
+        legacyFallbackCount: entityCounts.memberships ?? 0,
+      },
+      urlFirstSavedAt: {
+        exactCount: 0,
+        legacyFallbackCount: entityCounts.urls ?? 0,
+      },
+      urlLastSavedAt: {
+        exactCount: 0,
+        legacyFallbackCount: entityCounts.urls ?? 0,
+      },
+    }
+  }
+  if (!isRecord(value)) {
+    throw new MigrationPreflightRecordError()
+  }
+  const summary = {
+    membershipAddedAt: decodeTimestampQualityCount(value.membershipAddedAt),
+    urlFirstSavedAt: decodeTimestampQualityCount(value.urlFirstSavedAt),
+    urlLastSavedAt: decodeTimestampQualityCount(value.urlLastSavedAt),
+  }
+  const hasExpectedTotal = (
+    count: PersistenceTimestampQualityCount,
+    expectedTotal: number,
+  ): boolean =>
+    count.exactCount <= expectedTotal &&
+    count.legacyFallbackCount === expectedTotal - count.exactCount
+  if (
+    !hasExpectedTotal(summary.urlFirstSavedAt, entityCounts.urls ?? 0) ||
+    !hasExpectedTotal(summary.urlLastSavedAt, entityCounts.urls ?? 0) ||
+    !hasExpectedTotal(summary.membershipAddedAt, entityCounts.memberships ?? 0)
+  ) {
+    throw new MigrationPreflightRecordError()
+  }
+  return summary
+}
+
 const decodeDiagnostic = (value: unknown): MigrationPreflightDiagnostic => {
   if (
     !isRecord(value) ||
@@ -72,13 +136,18 @@ const decodeDiagnostic = (value: unknown): MigrationPreflightDiagnostic => {
   ) {
     throw new MigrationPreflightRecordError()
   }
+  const entityCounts = decodeEntityCounts(value.entityCounts)
   return {
     capacityStatus: value.capacityStatus,
     collisionCount: value.collisionCount,
-    entityCounts: decodeEntityCounts(value.entityCounts),
+    entityCounts,
     issueCodes: decodeIssueCodes(value.issueCodes),
     preflightVersion: MIGRATION_PREFLIGHT_VERSION,
     sourceFingerprintVersion: MIGRATION_SOURCE_FINGERPRINT_VERSION,
+    timestampMigrationSummary: decodeTimestampMigrationSummary(
+      value.timestampMigrationSummary,
+      entityCounts,
+    ),
   }
 }
 

@@ -116,6 +116,7 @@ const requireDefined = <T>(value: T | undefined, message: string): T => {
 }
 
 const persistenceBootstrapFiles = [
+  'src/app/composition/analyticsViewsDataPlane.ts',
   'src/app/composition/persistenceStorageLocal.ts',
   'src/contexts/saved-tabs/application/ports/PersistenceBootstrapPort.ts',
   'src/contexts/saved-tabs/application/services/PersistenceBootstrapService.ts',
@@ -129,7 +130,6 @@ const persistenceBootstrapFiles = [
 
 const legacyPersistencePaths = [
   'src/features/ai-chat/lib/conversation-history.ts',
-  'src/lib/storage/analytics.ts',
   'src/lib/storage/categories.ts',
   'src/lib/storage/migration.ts',
   'src/lib/storage/projects.ts',
@@ -213,6 +213,14 @@ describe('PersistenceBootstrap architecture policy', () => {
       expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
       expect(executableSource).not.toContain('getChromeStorageLocal')
     }
+  })
+
+  it('routes analytics views through the route-aware data plane', () => {
+    const source = readRepositoryFile('src/lib/storage/analytics.ts')
+    const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    expect(source).toContain("from '@/app/composition/analyticsViewsDataPlane'")
+    expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
+    expect(executableSource).not.toContain('getChromeStorageLocal')
   })
 
   it('routes background, AI, and analytics through the selected data plane', () => {

@@ -4,6 +4,19 @@ export type PersistenceV2ProjectKeywordSettings = {
   readonly urlKeywords: readonly string[]
 }
 
+export type PersistenceTimestampProvenance = 'exact' | 'legacy-fallback'
+
+export type PersistenceTimestampQualityCount = {
+  readonly exactCount: number
+  readonly legacyFallbackCount: number
+}
+
+export type PersistenceTimestampMigrationSummary = {
+  readonly membershipAddedAt: PersistenceTimestampQualityCount
+  readonly urlFirstSavedAt: PersistenceTimestampQualityCount
+  readonly urlLastSavedAt: PersistenceTimestampQualityCount
+}
+
 export type PersistenceV2CollectionDefinition =
   | {
       readonly domain: string
@@ -17,8 +30,10 @@ export type PersistenceV2CollectionDefinition =
 export type PersistenceV2Url = {
   readonly favIconUrl?: string
   readonly firstSavedAt: number
+  readonly firstSavedAtProvenance?: PersistenceTimestampProvenance
   readonly id: string
   readonly lastSavedAt: number
+  readonly lastSavedAtProvenance?: PersistenceTimestampProvenance
   readonly normalizedUrl: string
   readonly title: string
   readonly updatedAt: number
@@ -41,6 +56,7 @@ export type PersistenceV2Collection = {
  */
 export type PersistenceV2CollectionMembership = {
   readonly addedAt: number
+  readonly addedAtProvenance?: PersistenceTimestampProvenance
   readonly categoryId?: string
   readonly collectionId: string
   readonly notes?: string

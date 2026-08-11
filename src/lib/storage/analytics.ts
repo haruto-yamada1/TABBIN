@@ -1,10 +1,12 @@
-import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getAnalyticsViewsDataPlane } from '@/app/composition/analyticsViewsDataPlane'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+import {
+  normalizeAnalyticsQuery,
+  parseAnalyticsQuery,
+} from '@/features/analytics/lib/analytics'
 import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 const HEX_RADIX_AS = 16
-
-const SAVED_ANALYTICS_VIEWS_KEY = 'savedAnalyticsViews'
 
 type SavedAnalyticsView = {
   createdAt: number
@@ -12,6 +14,31 @@ type SavedAnalyticsView = {
   name: string
   query: AnalyticsQuery
   updatedAt: number
+}
+
+const isJsonRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const parseSavedAnalyticsView = (value: unknown): SavedAnalyticsView | null => {
+  if (
+    !isJsonRecord(value) ||
+    typeof value.id !== 'string' ||
+    typeof value.name !== 'string' ||
+    typeof value.createdAt !== 'number' ||
+    typeof value.updatedAt !== 'number'
+  ) {
+    return null
+  }
+  const query = parseAnalyticsQuery(value.query)
+  return query
+    ? {
+        createdAt: value.createdAt,
+        id: value.id,
+        name: value.name,
+        query,
+        updatedAt: value.updatedAt,
+      }
+    : null
 }
 
 const createSavedAnalyticsView = ({
@@ -26,44 +53,41 @@ const createSavedAnalyticsView = ({
   createdAt: now,
   id: `analytics-view-${now}-${Math.random().toString(HEX_RADIX_AS).slice(2)}`,
   name,
-  query,
+  query: normalizeAnalyticsQuery(query),
   updatedAt: now,
 })
 
 const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
-  const storageLocal = getPersistenceStorageLocal()
+  const dataPlane = getAnalyticsViewsDataPlane()
 
-  if (!storageLocal) {
+  if (!dataPlane) {
     warnMissingChromeStorage('分析ビューの読み込み')
     return []
   }
 
-  const stored = await storageLocal.get(SAVED_ANALYTICS_VIEWS_KEY)
-  const rawViews = stored[SAVED_ANALYTICS_VIEWS_KEY]
-  return Array.isArray(rawViews)
-    ? rawViews.filter(
-        (item): item is SavedAnalyticsView =>
-          typeof item === 'object' &&
-          item !== null &&
-          'id' in item &&
-          'name' in item,
-      )
-    : []
+  const rawViews = await dataPlane.readValues()
+  return rawViews.flatMap((item): SavedAnalyticsView[] => {
+    const parsed = parseSavedAnalyticsView(item)
+    return parsed ? [parsed] : []
+  })
 }
 
 const saveSavedAnalyticsViews = async (
   views: SavedAnalyticsView[],
 ): Promise<void> => {
-  const storageLocal = getPersistenceStorageLocal()
+  const dataPlane = getAnalyticsViewsDataPlane()
 
-  if (!storageLocal) {
+  if (!dataPlane) {
     warnMissingChromeStorage('分析ビューの保存')
     return
   }
 
-  await storageLocal.set({
-    [SAVED_ANALYTICS_VIEWS_KEY]: views,
-  })
+  await dataPlane.replaceValues(
+    views.map((view) => ({
+      ...view,
+      query: normalizeAnalyticsQuery(view.query),
+    })),
+  )
 }
 
 const deleteSavedAnalyticsView = async (viewId: string): Promise<void> => {
@@ -74,7 +98,6 @@ const deleteSavedAnalyticsView = async (viewId: string): Promise<void> => {
 
 export type { SavedAnalyticsView }
 export {
-  SAVED_ANALYTICS_VIEWS_KEY,
   createSavedAnalyticsView,
   deleteSavedAnalyticsView,
   loadSavedAnalyticsViews,

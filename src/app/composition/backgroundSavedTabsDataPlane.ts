@@ -23,6 +23,8 @@ export { createBackgroundSavedTabsDataPlane } from './backgroundSavedTabsLegacyD
 export type {
   BackgroundSavedTabInput,
   BackgroundSavedTabsDataPlane,
+  SavedTabsAnalyticsMetric,
+  SavedTabsAnalyticsRecord,
   SavedTabsInsightRecord,
 } from './backgroundSavedTabsDataPlaneTypes'
 export type {
@@ -41,6 +43,11 @@ export const createRouteAwareBackgroundSavedTabsDataPlane = ({
   legacy,
   router,
 }: CreateRouteAwareBackgroundSavedTabsDataPlaneOptions): BackgroundSavedTabsDataPlane => ({
+  readAnalyticsRecords: async () =>
+    router.read({
+      indexeddb: indexeddb.readAnalyticsRecords,
+      legacy: legacy.readAnalyticsRecords,
+    }),
   readInsightRecords: async () =>
     router.read({
       indexeddb: indexeddb.readInsightRecords,

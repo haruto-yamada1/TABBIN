@@ -18,7 +18,10 @@ import {
   generateAnalyticsResult,
   getDefaultAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
-import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+import type {
+  AnalyticsHistoricalDataQuality,
+  AnalyticsQuery,
+} from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
 import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
@@ -78,6 +81,7 @@ const CanvasPane = ({
   isDeleteActionDisabled,
   isUsingAiCharts,
   language,
+  historicalDataQuality,
   summary,
   t,
 }: {
@@ -95,6 +99,7 @@ const CanvasPane = ({
   isDeleteActionDisabled: boolean
   isUsingAiCharts: boolean
   language: string
+  historicalDataQuality: AnalyticsHistoricalDataQuality
   summary: string
   t: (key: string) => string
 }) => (
@@ -109,6 +114,11 @@ const CanvasPane = ({
             {t('analytics.canvasTitle')}
           </h2>
           <p className='mt-1 text-sm text-muted-foreground'>{summary}</p>
+          {historicalDataQuality === 'partial' ? (
+            <output className='mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100'>
+              {t('analytics.timestampQualityNotice')}
+            </output>
+          ) : null}
         </div>
       </div>
       <div
@@ -146,6 +156,10 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
       chartDescriptionAggregated: t('analytics.chart.descriptionAggregated'),
       chartDescriptionCompareMode: t('analytics.chart.descriptionCompareMode'),
       chartMonthlySavedTrend: t('analytics.chart.monthlySavedTrend'),
+      chartSavedCountByCollection: t('analytics.chart.savedCountByCollection'),
+      chartSavedCountByCollectionCategory: t(
+        'analytics.chart.savedCountByCollectionCategory',
+      ),
       chartSavedCountByDomain: t('analytics.chart.savedCountByDomain'),
       chartSavedCountByParentCategory: t(
         'analytics.chart.savedCountByParentCategory',
@@ -171,9 +185,12 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
     { label: t('analytics.groupBy.domain'), value: 'domain' },
     { label: t('analytics.groupBy.timeRecent'), value: 'timeRecent' },
     { label: t('analytics.groupBy.timeTop'), value: 'timeTop' },
-    { label: t('analytics.groupBy.parentCategory'), value: 'parentCategory' },
-    { label: t('analytics.groupBy.subCategory'), value: 'subCategory' },
-    { label: t('analytics.groupBy.project'), value: 'project' },
+    { label: t('analytics.groupBy.collectionGroup'), value: 'collectionGroup' },
+    { label: t('analytics.groupBy.collection'), value: 'collection' },
+    {
+      label: t('analytics.groupBy.collectionCategory'),
+      value: 'collectionCategory',
+    },
   ] as const satisfies readonly {
     label: string
     value: AnalyticsQuery['groupBy']
@@ -656,6 +673,9 @@ const useAnalyticsRouteView = () => {
               isDeleteActionDisabled={isDeleteActionDisabled}
               isUsingAiCharts={isUsingAiCharts}
               language={language}
+              historicalDataQuality={
+                generatedAnalyticsResult.historicalDataQuality
+              }
               summary={summary}
               t={t}
             />

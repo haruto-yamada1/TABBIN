@@ -13,12 +13,27 @@ export type SavedTabsInsightRecord = {
   readonly url: string
 }
 
+export type SavedTabsAnalyticsMetric =
+  | 'first-saved'
+  | 'last-saved'
+  | 'membership-added'
+
+export type SavedTabsAnalyticsRecord = SavedTabsInsightRecord & {
+  readonly collectionType?: 'custom' | 'domain'
+  readonly eventId: string
+  readonly metric: SavedTabsAnalyticsMetric
+  readonly timestampAccuracy: 'exact' | 'legacy-fallback'
+}
+
 export type BackgroundSavedTabInput = {
   readonly title?: string
   readonly url?: string
 }
 
 export type BackgroundSavedTabsDataPlane = {
+  readonly readAnalyticsRecords: () => Promise<
+    readonly SavedTabsAnalyticsRecord[]
+  >
   readonly readInsightRecords: () => Promise<readonly SavedTabsInsightRecord[]>
   readonly readUndoSnapshot: () => Promise<PersistenceVersionedSavedTabsSnapshot>
   readonly removeExpiredUrls: (

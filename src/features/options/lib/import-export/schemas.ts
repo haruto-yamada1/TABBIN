@@ -163,6 +163,9 @@ const importedCustomProjectSchema = z.object({
 const analyticsGroupBySchema = z.preprocess(
   (value) => (value === 'time' ? 'timeRecent' : value),
   z.enum([
+    'collection',
+    'collectionCategory',
+    'collectionGroup',
     'domain',
     'parentCategory',
     'project',
@@ -175,6 +178,7 @@ const analyticsGroupBySchema = z.preprocess(
 
 const analyticsQuerySchema = z.object({
   chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']),
+  collectionType: z.enum(['all', 'custom', 'domain']).optional(),
   compareBy: z.enum(['mode', 'none']),
   customDateRange: z
     .object({
@@ -196,8 +200,10 @@ const analyticsQuerySchema = z.object({
   }),
   groupBy: analyticsGroupBySchema,
   limit: z.number(),
+  metric: z.enum(['first-saved', 'last-saved', 'membership-added']).optional(),
   mode: z.enum(['both', 'custom', 'domain']),
   normalize: z.boolean(),
+  schemaVersion: z.literal(2).optional(),
   sort: z.enum(['label-asc', 'label-desc', 'value-asc', 'value-desc']),
   stacked: z.boolean(),
   timeBucket: z.enum(['day', 'month', 'week']),

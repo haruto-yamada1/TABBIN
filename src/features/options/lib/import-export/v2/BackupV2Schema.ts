@@ -55,8 +55,10 @@ export const PersistenceV2UrlSchema: z.ZodType<PersistenceV2Url> =
   z.strictObject({
     favIconUrl: z.string().optional(),
     firstSavedAt: BackupV2EpochMillisecondsSchema,
+    firstSavedAtProvenance: z.enum(['exact', 'legacy-fallback']).optional(),
     id: z.string(),
     lastSavedAt: BackupV2EpochMillisecondsSchema,
+    lastSavedAtProvenance: z.enum(['exact', 'legacy-fallback']).optional(),
     normalizedUrl: z.string(),
     title: z.string(),
     updatedAt: BackupV2EpochMillisecondsSchema,
@@ -77,6 +79,7 @@ export const PersistenceV2CollectionSchema: z.ZodType<PersistenceV2Collection> =
 export const PersistenceV2CollectionMembershipSchema: z.ZodType<PersistenceV2CollectionMembership> =
   z.strictObject({
     addedAt: BackupV2EpochMillisecondsSchema,
+    addedAtProvenance: z.enum(['exact', 'legacy-fallback']).optional(),
     categoryId: z.string().optional(),
     collectionId: z.string(),
     notes: z.string().optional(),

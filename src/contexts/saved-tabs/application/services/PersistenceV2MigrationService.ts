@@ -215,6 +215,7 @@ const createReport = (
   migratedUrlCount: analysis.target.savedTabs.urls.length,
   migrationId,
   sourceEntityCounts: { ...analysis.entityCounts },
+  timestampMigrationSummary: analysis.timestampMigrationSummary,
   warningCounts: analysis.issues
     .filter(({ severity }) => severity === 'warning')
     .map(({ code, occurrenceCount }) => ({ code, occurrenceCount })),

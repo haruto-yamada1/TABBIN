@@ -74,6 +74,70 @@ describe('analyzeLegacyMigrationPreflight', () => {
     expect(result.targetSerializedBytes).toBeGreaterThan(0)
   })
 
+  it('classifies explicit nested membership timestamps separately from URL fallbacks', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'urls', [
+      {
+        id: 'url-1',
+        savedAt: 10,
+        title: 'Canonical',
+        url: 'https://example.com/a',
+      },
+      {
+        id: 'url-2',
+        savedAt: 20,
+        title: 'Fallback',
+        url: 'https://example.com/b',
+      },
+    ])
+    source = withSource(source, 'savedTabs', [
+      {
+        domain: 'example.com',
+        id: 'domain-1',
+        savedAt: 99,
+        urls: [
+          {
+            id: 'url-1',
+            savedAt: 10,
+            title: 'Canonical',
+            url: 'https://example.com/a',
+          },
+        ],
+        urlIds: ['url-2'],
+      },
+    ])
+
+    const result = mapLegacyStorageToPersistenceV2(source)
+
+    expect(result.timestampMigrationSummary).toStrictEqual({
+      membershipAddedAt: { exactCount: 1, legacyFallbackCount: 1 },
+      urlFirstSavedAt: { exactCount: 0, legacyFallbackCount: 2 },
+      urlLastSavedAt: { exactCount: 2, legacyFallbackCount: 0 },
+    })
+    expect(result.snapshot.memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          addedAt: 10,
+          addedAtProvenance: 'exact',
+          urlId: 'url-1',
+        }),
+        expect.objectContaining({
+          addedAt: 99,
+          addedAtProvenance: 'legacy-fallback',
+          urlId: 'url-2',
+        }),
+      ]),
+    )
+    expect(result.snapshot.urls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          firstSavedAtProvenance: 'legacy-fallback',
+          lastSavedAtProvenance: 'exact',
+        }),
+      ]),
+    )
+  })
+
   it('reports non-JSON-safe target values without throwing', () => {
     const source = withSource(createEmptySnapshot(), 'savedAnalyticsViews', [
       1n,

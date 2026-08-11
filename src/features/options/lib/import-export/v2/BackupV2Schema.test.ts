@@ -38,8 +38,10 @@ const createSavedTabs = (reverse = false): PersistenceV2Snapshot => {
   const urls = [
     {
       firstSavedAt: 10,
+      firstSavedAtProvenance: 'legacy-fallback' as const,
       id: 'url-z',
       lastSavedAt: 20,
+      lastSavedAtProvenance: 'exact' as const,
       normalizedUrl: 'https://z.example/',
       title: 'Z title',
       updatedAt: 20,
@@ -47,8 +49,10 @@ const createSavedTabs = (reverse = false): PersistenceV2Snapshot => {
     },
     {
       firstSavedAt: 10,
+      firstSavedAtProvenance: 'legacy-fallback' as const,
       id: 'url-a',
       lastSavedAt: 20,
+      lastSavedAtProvenance: 'exact' as const,
       normalizedUrl: 'https://a.example/',
       title: 'A title',
       updatedAt: 20,
@@ -57,6 +61,7 @@ const createSavedTabs = (reverse = false): PersistenceV2Snapshot => {
   ] as const
   const memberships = urls.map(({ id }, index) => ({
     addedAt: 10,
+    addedAtProvenance: 'exact' as const,
     collectionId: 'collection-1',
     notes: id,
     sortOrder: (index + 1) * 1024,
