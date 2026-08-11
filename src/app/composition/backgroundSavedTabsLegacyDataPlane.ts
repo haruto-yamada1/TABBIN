@@ -141,6 +141,25 @@ const getProjectCategoriesForUrl = (
   return category ? [category] : []
 }
 
+const indexCollectionsByUrlId = <
+  Collection extends { readonly urlIds?: readonly string[] },
+>(
+  collections: readonly Collection[],
+): ReadonlyMap<string, readonly Collection[]> => {
+  const collectionsByUrlId = new Map<string, Collection[]>()
+  for (const collection of collections) {
+    for (const urlId of collection.urlIds ?? []) {
+      const matchingCollections = collectionsByUrlId.get(urlId)
+      if (matchingCollections) {
+        matchingCollections.push(collection)
+      } else {
+        collectionsByUrlId.set(urlId, [collection])
+      }
+    }
+  }
+  return collectionsByUrlId
+}
+
 const buildSavedTabsInsightRecords = ({
   customProjects,
   parentCategories,
@@ -189,14 +208,12 @@ const buildSavedTabsAnalyticsRecords = (
   state: SavedTabsCompatibilityState,
 ): SavedTabsAnalyticsRecord[] => {
   const insightRecords = buildSavedTabsInsightRecords(state)
+  const groupsByUrlId = indexCollectionsByUrlId(state.savedTabs)
+  const projectsByUrlId = indexCollectionsByUrlId(state.customProjects)
   return insightRecords
     .flatMap((record): SavedTabsAnalyticsRecord[] => {
-      const matchingGroups = state.savedTabs.filter((group) =>
-        (group.urlIds ?? []).includes(record.id),
-      )
-      const matchingProjects = state.customProjects.filter((project) =>
-        (project.urlIds ?? []).includes(record.id),
-      )
+      const matchingGroups = groupsByUrlId.get(record.id) ?? []
+      const matchingProjects = projectsByUrlId.get(record.id) ?? []
       return [
         {
           ...record,
