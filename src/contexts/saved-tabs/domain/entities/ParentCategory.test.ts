@@ -14,8 +14,7 @@ import {
 const baseInput = {
   id: 'docs',
   name: 'Docs',
-  domains: ['group-1'],
-  domainNames: ['example.com'],
+  collections: [{ id: 'group-1', domain: 'example.com' }],
 }
 
 describe('ParentCategory entity', () => {
@@ -23,18 +22,19 @@ describe('ParentCategory entity', () => {
     const category = createParentCategory(baseInput)
     expect(category.id).toBe('docs')
     expect(category.name).toBe('Docs')
-    expect(category.domains).toStrictEqual(['group-1'])
-    expect(category.domainNames).toStrictEqual(['example.com'])
+    expect(category.collections.map(({ id }) => id)).toStrictEqual(['group-1'])
+    expect(category.collections.map(({ domain }) => domain)).toStrictEqual([
+      'example.com',
+    ])
   })
 
-  it('空配列の domains / domainNames を許容する', () => {
+  it('空の collections を許容する', () => {
     const category = createParentCategory({
       ...baseInput,
-      domains: [],
-      domainNames: [],
+      collections: [],
     })
-    expect(category.domains).toStrictEqual([])
-    expect(category.domainNames).toStrictEqual([])
+    expect(category.collections.map(({ id }) => id)).toStrictEqual([])
+    expect(category.collections.map(({ domain }) => domain)).toStrictEqual([])
   })
 
   it('不正な category name は INVALID_CATEGORY_NAME を投げる', () => {
@@ -73,37 +73,45 @@ describe('ParentCategory entity', () => {
   })
 
   // 回帰: 保存フロー (getTabDomain) が `https://example.com` のように
-  // スキーム付き文字列を domainNames に書き込む既存データを開くとき、
+  // スキーム付き文字列を collection domain に書き込む既存データを開くとき、
   // createDomainName が「ドメイン名にスキームを含めることはできません」で
   // 例外を投げてタブを開けなくする不具合 (issue: タブ消失・保存タブ開封失敗) の回帰。
-  it('domainNames にスキーム付き文字列が含まれても hostname へ正規化して保持する', () => {
+  it('collection domain にスキーム付き文字列が含まれても hostname へ正規化して保持する', () => {
     const category = createParentCategory({
       ...baseInput,
-      domainNames: [
+      collections: [
         'https://example.com',
         'http://other.com/path',
         'plain.org',
-      ],
+      ].map((domain) => ({ id: domain, domain })),
     })
-    expect(category.domainNames).toStrictEqual([
+    expect(category.collections.map(({ domain }) => domain)).toStrictEqual([
       'example.com',
       'other.com',
       'plain.org',
     ])
   })
 
-  it('domainNames のスキーム付き値は小文字へ正規化される', () => {
+  it('collection domain のスキーム付き値は小文字へ正規化される', () => {
     const category = createParentCategory({
       ...baseInput,
-      domainNames: ['https://Example.COM'],
+      collections: ['https://Example.COM'].map((domain) => ({
+        id: domain,
+        domain,
+      })),
     })
-    expect(category.domainNames).toStrictEqual(['example.com'])
+    expect(category.collections.map(({ domain }) => domain)).toStrictEqual([
+      'example.com',
+    ])
   })
 
-  it('parentCategoryContainsDomainName は正規化済みの domainNames と一致する', () => {
+  it('parentCategoryContainsDomainName は正規化済みの collection domain と一致する', () => {
     const category = createParentCategory({
       ...baseInput,
-      domainNames: ['https://example.com'],
+      collections: ['https://example.com'].map((domain) => ({
+        id: domain,
+        domain,
+      })),
     })
     expect(
       parentCategoryContainsDomainName(
@@ -117,27 +125,32 @@ describe('ParentCategory entity', () => {
   // 不正エントリ (host-less スキーム / パース失敗形 / 空白のみ) が混入していても、
   // 1 件の不正値でカテゴリ全体の生成 (toDomainParentCategories) が落ちず、
   // 不正エントリだけ除外して有効なドメインだけ残る。
-  it('host-less / パース失敗 / 空白のみの domainNames は除外されカテゴリ生成は成功する', () => {
+  it('host-less / パース失敗 / 空白のみの collection は除外されカテゴリ生成は成功する', () => {
     const category = createParentCategory({
       ...baseInput,
-      domainNames: [
+      collections: [
         'https://example.com',
         'https://',
         '://invalid',
         '   ',
         '',
         'other.com',
-      ],
+      ].map((domain) => ({ id: domain, domain })),
     })
-    expect(category.domainNames).toStrictEqual(['example.com', 'other.com'])
+    expect(category.collections.map(({ domain }) => domain)).toStrictEqual([
+      'example.com',
+      'other.com',
+    ])
   })
 
-  it('domainNames が全て不正でもカテゴリ生成は例外を投げず空配列になる', () => {
+  it('collection domain が全て不正でもカテゴリ生成は例外を投げず空配列になる', () => {
     const category = createParentCategory({
       ...baseInput,
-      domains: [],
-      domainNames: ['https://', '://invalid', '   '],
+      collections: ['https://', '://invalid', '   '].map((domain) => ({
+        id: domain,
+        domain,
+      })),
     })
-    expect(category.domainNames).toStrictEqual([])
+    expect(category.collections.map(({ domain }) => domain)).toStrictEqual([])
   })
 })

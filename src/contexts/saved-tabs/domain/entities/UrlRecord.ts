@@ -10,7 +10,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * 共通 URL レコードを表すドメインエンティティ。
  *
  * `chrome.storage.local` 上の `urlRecords[]` と 1:1 対応する不変モデル。
- * 複数の `TabGroup` / `CustomProject` から `urlIds` を介して参照される。
+ * 複数の `TabGroup` / `CustomProject` から membership を介して参照される。
  *
  * `title` は空文字列を許容する（ページタイトルが取得できないケースがある）。
  * `favIconUrl` は省略可能。`savedAt` は保存時刻（必須）。

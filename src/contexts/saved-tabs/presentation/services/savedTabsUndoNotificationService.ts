@@ -4,14 +4,18 @@ import { toast } from 'sonner'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import type {
-  SavedTabsCustomProjectDto as CustomProject,
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type {
   RestoredSnapshotViewDto,
   RestoreOpenedUrlsSnapshotViewUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
+import {
+  toSavedTabsCustomProjectViewModel,
+  toSavedTabsTabGroupViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 /**
  * `SavedTabsUndoNotificationService` 群が共通で必要とする presenter 依存。
@@ -82,12 +86,16 @@ const showOpenedUrlsUndoToast = ({
             snapshot,
           })
           if (restored.customProjects) {
-            setCustomProjects([...restored.customProjects])
+            setCustomProjects(
+              restored.customProjects.map(toSavedTabsCustomProjectViewModel),
+            )
           }
           if (restored.parentCategories && setCategories) {
             setCategories([...restored.parentCategories])
           }
-          await refreshTabGroupsWithUrls([...restored.savedTabs])
+          await refreshTabGroupsWithUrls(
+            restored.savedTabs.map(toSavedTabsTabGroupViewModel),
+          )
           toast.success(t('savedTabs.undo.restored'))
         } catch (error) {
           console.error('開いた後に削除したURLの復元に失敗しました:', error)
@@ -127,12 +135,16 @@ const notifyDeleteFailure = async ({
       const restored: RestoredSnapshotViewDto =
         await savedTabsUseCases.restoreOpenedUrlsSnapshotView({ snapshot })
       if (restored.customProjects) {
-        setCustomProjects([...restored.customProjects])
+        setCustomProjects(
+          restored.customProjects.map(toSavedTabsCustomProjectViewModel),
+        )
       }
       if (restored.parentCategories && setCategories) {
         setCategories([...restored.parentCategories])
       }
-      await refreshTabGroupsWithUrls([...restored.savedTabs])
+      await refreshTabGroupsWithUrls(
+        restored.savedTabs.map(toSavedTabsTabGroupViewModel),
+      )
     } catch (restoreError) {
       console.error('削除失敗後の保存データ復元に失敗しました:', restoreError)
     }

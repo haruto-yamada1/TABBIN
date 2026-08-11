@@ -2,6 +2,11 @@ import type { MoveDomainToCategoryCommand } from '@/contexts/saved-tabs/applicat
 import type { CategorySyncDto } from '@/contexts/saved-tabs/application/dto/CategorySyncDto'
 import { parentCategoryContainsDomainName } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import {
+  assignTabGroupToCollectionGroup,
+  tabGroupCollectionGroupId,
+  tabGroupDomainName,
+} from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
@@ -71,15 +76,25 @@ const syncSingleDomain = async (
   }
 
   const updatedCategoryIds: ParentCategory['id'][] = []
-  const nextCategory = parentCategoryContainsDomainName(
-    targetCategory,
-    targetDomainName,
+  const matchingCollections = allTabGroups
+    .filter((group) => tabGroupDomainName(group) === targetDomainName)
+    .map((group) => ({
+      domain: createDomainName(tabGroupDomainName(group)),
+      id: group.id,
+    }))
+  const missingCollections = matchingCollections.filter(
+    (candidate) =>
+      !targetCategory.collections.some(
+        ({ domain, id }) => domain === candidate.domain && id === candidate.id,
+      ),
   )
-    ? targetCategory
-    : ({
-        ...targetCategory,
-        domainNames: [...targetCategory.domainNames, targetDomainName],
-      } satisfies ParentCategory)
+  const nextCategory =
+    missingCollections.length === 0
+      ? targetCategory
+      : ({
+          ...targetCategory,
+          collections: [...targetCategory.collections, ...missingCollections],
+        } satisfies ParentCategory)
   if (nextCategory !== targetCategory) {
     updatedCategoryIds.push(targetCategory.id)
   }
@@ -87,16 +102,16 @@ const syncSingleDomain = async (
   const assignedTabGroupIds: TabGroup['id'][] = []
   const unassignedTabGroupIds: TabGroup['id'][] = []
   const updatedTabGroups = allTabGroups.map((group) => {
-    if (group.domain !== targetDomainName) {
+    if (tabGroupDomainName(group) !== targetDomainName) {
       return group
     }
-    if (group.parentCategoryId === targetCategory.id) {
+    if (tabGroupCollectionGroupId(group) === targetCategory.id) {
       return group
     }
     // 他のカテゴリからの付け替えは「assigned」にだけ数え、未分類への
     // 退避 (unassigned) とは区別する。
     assignedTabGroupIds.push(group.id)
-    return { ...group, parentCategoryId: targetCategory.id }
+    return assignTabGroupToCollectionGroup(group, targetCategory.id)
   })
 
   const previousCategoryIdsWithThisDomain = allCategories.filter((category) =>
@@ -116,11 +131,13 @@ const syncSingleDomain = async (
         if (!parentCategoryContainsDomainName(category, targetDomainName)) {
           return category
         }
-        const filteredDomainNames = category.domainNames.filter(
-          (name) => name !== targetDomainName,
-        )
         updatedCategoryIds.push(category.id)
-        return { ...category, domainNames: filteredDomainNames }
+        return {
+          ...category,
+          collections: category.collections.filter(
+            ({ domain }) => domain !== targetDomainName,
+          ),
+        }
       })
     }
     if (nextCategory !== targetCategory) {
@@ -167,22 +184,24 @@ const syncAll = async (
   const updatedTabGroups = allTabGroups.map((group) => {
     const category = resolveCategoryForTabGroup(group, lookup)
     if (!category) {
-      if (group.parentCategoryId !== undefined) {
+      if (tabGroupCollectionGroupId(group) !== undefined) {
         unassignedTabGroupIds.push(group.id)
-        return { ...group, parentCategoryId: undefined }
+        return assignTabGroupToCollectionGroup(group, undefined)
       }
       return group
     }
-    if (group.parentCategoryId === category.id) {
+    if (tabGroupCollectionGroupId(group) === category.id) {
       if (
-        !category.domainNames.includes(group.domain) &&
-        !category.domains.includes(group.id)
+        !category.collections.some(
+          ({ domain, id }) =>
+            domain === tabGroupDomainName(group) && id === group.id,
+        )
       ) {
         updatedCategoryIds.add(category.id)
       }
       return group
     }
-    if (group.parentCategoryId !== undefined) {
+    if (tabGroupCollectionGroupId(group) !== undefined) {
       unassignedTabGroupIds.push(group.id)
     }
     assignedTabGroupIds.push(group.id)
@@ -190,7 +209,7 @@ const syncAll = async (
     // `domainNames` を member groups から再計算するため、
     // updatedCategoryIds に追加して saveAll 対象にする。
     updatedCategoryIds.add(category.id)
-    return { ...group, parentCategoryId: category.id }
+    return assignTabGroupToCollectionGroup(group, category.id)
   })
 
   const updatedCategories = allCategories.map((category) => {
@@ -198,18 +217,14 @@ const syncAll = async (
       return category
     }
     const memberGroups = updatedTabGroups.filter(
-      (group) => group.parentCategoryId === category.id,
-    )
-    const memberDomainNames = Array.from(
-      new Set(memberGroups.map((group) => group.domain)),
-    )
-    const memberDomainIds = Array.from(
-      new Set(memberGroups.map((group) => group.id)),
+      (group) => tabGroupCollectionGroupId(group) === category.id,
     )
     return {
       ...category,
-      domainNames: memberDomainNames,
-      domains: memberDomainIds,
+      collections: memberGroups.map((group) => ({
+        domain: createDomainName(tabGroupDomainName(group)),
+        id: group.id,
+      })),
     }
   })
 

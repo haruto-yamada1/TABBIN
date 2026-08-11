@@ -7,11 +7,6 @@ import type {
   DomainCategoryMappingDto,
 } from '@/contexts/saved-tabs/domain/dto/DomainCategoryMappingDto'
 import type {
-  DomainCategorySettingsDto as DomainCategorySettings,
-  SubCategoryKeywordDto as SubCategoryKeyword,
-  DomainCategorySettingsDto,
-} from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
-import type {
   AiSystemPromptPresetDto,
   UserSettingsDto,
 } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
@@ -153,39 +148,3 @@ export const toStorageDomainCategoryMappings = (
 /**
  * storage 形 `DomainCategorySettings[]` を domain DTO 配列へ変換する。
  */
-export const toDomainCategorySettingsDtoArray = (
-  storage: readonly DomainCategorySettings[],
-): readonly DomainCategorySettingsDto[] =>
-  storage.map((settings) => ({
-    categoryKeywords: settings.categoryKeywords.map(toSubCategoryKeywordDto),
-    domain: settings.domain,
-    subCategories: [...settings.subCategories],
-  }))
-
-/**
- * domain DTO 配列を storage 形 `DomainCategorySettings[]` へ逆変換する。
- */
-export const toStorageDomainCategorySettings = (
-  dto: readonly DomainCategorySettingsDto[],
-): readonly DomainCategorySettings[] =>
-  dto.map((settings) => ({
-    categoryKeywords: settings.categoryKeywords.map(
-      toStorageSubCategoryKeyword,
-    ),
-    domain: settings.domain,
-    subCategories: [...settings.subCategories],
-  }))
-
-const toSubCategoryKeywordDto = (
-  keyword: SubCategoryKeyword,
-): DomainCategorySettingsDto['categoryKeywords'][number] => ({
-  categoryName: keyword.categoryName,
-  keywords: [...keyword.keywords],
-})
-
-const toStorageSubCategoryKeyword = (
-  keyword: DomainCategorySettingsDto['categoryKeywords'][number],
-): SubCategoryKeyword => ({
-  categoryName: keyword.categoryName,
-  keywords: [...keyword.keywords],
-})

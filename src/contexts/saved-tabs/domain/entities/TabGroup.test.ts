@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
-  createTabGroup,
   isSameTabGroup,
   tabGroupContainsUrlRecord,
   tabGroupUrlCount,
@@ -13,17 +13,20 @@ import {
 const baseInput = {
   id: 'group-1',
   domain: 'example.com',
-  urlIds: ['url-1', 'url-2'],
+  memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
 }
 
 describe('TabGroup entity', () => {
   it('正常な入力からエンティティを生成できる', () => {
     const group = createTabGroup(baseInput)
     expect(group.id).toBe('group-1')
-    expect(group.domain).toBe('example.com')
-    expect(group.urlIds).toStrictEqual(['url-1', 'url-2'])
-    expect(group.parentCategoryId).toBeUndefined()
-    expect(group.savedAt).toBeUndefined()
+    expect(group.collection.definition.domain).toBe('example.com')
+    expect(group.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-1',
+      'url-2',
+    ])
+    expect(group.collection.groupId).toBeUndefined()
+    expect(group.savedAt).toBe(0)
   })
 
   it('parentCategoryId / savedAt を保持できる', () => {
@@ -32,20 +35,26 @@ describe('TabGroup entity', () => {
       parentCategoryId: 'docs',
       savedAt: 1_700_000_000_000,
     })
-    expect(group.parentCategoryId).toBe('docs')
+    expect(group.collection.groupId).toBe('docs')
     expect(group.savedAt).toBe(1_700_000_000_000)
   })
 
-  it('urlIds に重複があると INVALID_TAB_GROUP を投げる', () => {
+  it('membership の URL ID に重複があると INVALID_TAB_GROUP を投げる', () => {
     expect(() =>
-      createTabGroup({ ...baseInput, urlIds: ['dup', 'dup'] }),
+      createTabGroup({
+        ...baseInput,
+        memberships: ['dup', 'dup'].map((urlId) => ({ urlId })),
+      }),
     ).toThrow(SavedTabsDomainError)
   })
 
-  it('urlIds に空文字列が混ざると INVALID_ID を投げる', () => {
-    expect(() => createTabGroup({ ...baseInput, urlIds: ['ok', ''] })).toThrow(
-      SavedTabsDomainError,
-    )
+  it('membership の URL ID に空文字列が混ざると INVALID_ID を投げる', () => {
+    expect(() =>
+      createTabGroup({
+        ...baseInput,
+        memberships: ['ok', ''].map((urlId) => ({ urlId })),
+      }),
+    ).toThrow(SavedTabsDomainError)
   })
 
   it('tabGroupUrlCount は URL 件数を返す', () => {

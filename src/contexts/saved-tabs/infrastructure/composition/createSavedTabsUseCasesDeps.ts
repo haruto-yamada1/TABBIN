@@ -32,6 +32,7 @@ import { createLibCategoriesCommandService } from './LibCategoriesCommandService
 import { createLibCategoryAssignmentPort } from './LibCategoryAssignmentPort'
 import { createLibCustomProjectsCommandService } from './LibCustomProjectsCommandService'
 import { getPersistenceStorageLocal } from './persistenceBootstrapRuntime'
+import type { SavedTabsDomainStorageLocal } from './persistenceBootstrapRuntime'
 
 export type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
 
@@ -44,12 +45,6 @@ export type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/Sa
  */
 export type CreateSavedTabsUseCasesDepsOptions = {
   readonly resolveActive?: () => boolean
-}
-
-type SavedTabsDomainStorageLocal = {
-  readonly get: (key: string) => Promise<Record<string, unknown>>
-  readonly remove: (key: string) => Promise<void>
-  readonly set: (value: Record<string, unknown>) => Promise<void>
 }
 
 type ChromeLike = ChromeApiLikeBase & {
@@ -109,12 +104,22 @@ const getChromeMessagingApi = (): ChromeMessagingApiLike | undefined => {
 type SavedTabsUseCasesDepsFromStorageArgs = {
   readonly options: CreateSavedTabsUseCasesDepsOptions
   readonly domainLocal: SavedTabsDomainStorageLocal | null
+  readonly persistenceAdapters?: Pick<
+    SavedTabsUseCasesDeps,
+    | 'categoriesCommandService'
+    | 'customProjectsCommandService'
+    | 'migrationPort'
+    | 'removeSubCategoryFromTabGroupPort'
+    | 'setCategoryKeywordsPort'
+  >
   readonly settingsLocal: SavedTabsDomainStorageLocal | null
 }
 
+// eslint-disable-next-line complexity -- composition root selects explicit infrastructure adapters
 const createSavedTabsUseCasesDepsFromStorage = ({
   options,
   domainLocal,
+  persistenceAdapters,
   settingsLocal,
 }: SavedTabsUseCasesDepsFromStorageArgs): SavedTabsUseCasesDeps => {
   if (!domainLocal || !settingsLocal) {
@@ -143,7 +148,9 @@ const createSavedTabsUseCasesDepsFromStorage = ({
     browserWindowPort: createChromeBrowserWindowAdapter({
       getApi: () => getChromeApi(),
     }),
-    categoriesCommandService: createLibCategoriesCommandService(),
+    categoriesCommandService:
+      persistenceAdapters?.categoriesCommandService ??
+      createLibCategoriesCommandService(),
     clock: createSystemClock(),
     idGenerator: createSystemIdGenerator(),
     categoryAssignmentPort: createLibCategoryAssignmentPort({
@@ -152,20 +159,26 @@ const createSavedTabsUseCasesDepsFromStorage = ({
       tabGroupRepository: createChromeTabGroupRepository(domainPort),
     }),
     customProjectRepository: createChromeCustomProjectRepository(domainPort),
-    customProjectsCommandService: createLibCustomProjectsCommandService(),
+    customProjectsCommandService:
+      persistenceAdapters?.customProjectsCommandService ??
+      createLibCustomProjectsCommandService(),
     domainCategoryMappingRepository:
       createChromeDomainCategoryMappingRepository(domainPort),
     domainCategorySettingsRepository:
       createChromeDomainCategorySettingsRepository(domainPort),
-    migrationPort: createChromeMigrationAdapter(),
+    migrationPort:
+      persistenceAdapters?.migrationPort ?? createChromeMigrationAdapter(),
     messagingPort: createChromeMessagingAdapter({
       getApi: getChromeMessagingApi,
     }),
     notificationPort: createSonnerNotificationAdapter(),
     parentCategoryRepository: createChromeParentCategoryRepository(domainPort),
     removeSubCategoryFromTabGroupPort:
+      persistenceAdapters?.removeSubCategoryFromTabGroupPort ??
       createLibRemoveSubCategoryFromTabGroupAdapter(),
-    setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
+    setCategoryKeywordsPort:
+      persistenceAdapters?.setCategoryKeywordsPort ??
+      createLibSetCategoryKeywordsAdapter(),
     storageChangePort: createChromeStorageChangeAdapter({
       getApi: () => getChromeApi(),
     }),
@@ -176,6 +189,21 @@ const createSavedTabsUseCasesDepsFromStorage = ({
     userSettingsRepository: createChromeUserSettingsRepository(settingsPort),
   }
 }
+
+export const createSavedTabsUseCasesDepsFromSelectedStorage = (
+  options: CreateSavedTabsUseCasesDepsOptions,
+  domainLocal: SavedTabsDomainStorageLocal,
+  settingsLocal: SavedTabsDomainStorageLocal | null,
+  persistenceAdapters: NonNullable<
+    SavedTabsUseCasesDepsFromStorageArgs['persistenceAdapters']
+  >,
+): SavedTabsUseCasesDeps =>
+  createSavedTabsUseCasesDepsFromStorage({
+    domainLocal,
+    options,
+    persistenceAdapters,
+    settingsLocal,
+  })
 
 export const createSavedTabsUseCasesDeps = (
   options: CreateSavedTabsUseCasesDepsOptions = {},

@@ -1,11 +1,10 @@
 import { generateText, isStepCount } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
 
-import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { getAiChatToolTitle } from '@/constants/aiChatTools'
 import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
-import { buildAiSavedUrlRecords } from '@/features/ai-chat/lib/buildAiContext'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
 import { listSavedUrlPage } from '@/features/ai-chat/lib/savedUrlQuery'
 import {
@@ -28,12 +27,9 @@ import {
   resolveLanguage,
 } from '@/features/i18n/lib/language'
 import type { AppLanguage } from '@/features/i18n/messages'
-import { getParentCategories } from '@/lib/storage/categories'
-import { getCustomProjects } from '@/lib/storage/projects'
 import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
-import { getUrlRecords } from '@/lib/storage/urls'
 import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
-import type { TabGroup, UserSettings } from '@/types/storage'
+import type { UserSettings } from '@/types/storage'
 
 import { createAiChatTools } from './ai-chat-tools'
 
@@ -730,24 +726,9 @@ const runAiChatRequest = async (
   }
   const { ollamaModel } = settings
 
-  const [urlRecords, customProjects, parentCategories, savedTabsResult] =
-    await Promise.all([
-      getUrlRecords(),
-      getCustomProjects(),
-      getParentCategories(),
-      getRequiredPersistenceStorageLocal().get<{
-        savedTabs?: TabGroup[]
-      }>('savedTabs'),
-    ])
-
-  const records = buildAiSavedUrlRecords({
-    customProjects,
-    parentCategories,
-    savedTabs: Array.isArray(savedTabsResult.savedTabs)
-      ? savedTabsResult.savedTabs
-      : [],
-    urlRecords,
-  })
+  const records: AiSavedUrlRecord[] = [
+    ...(await getBackgroundSavedTabsDataPlane().readInsightRecords()),
+  ]
 
   const ollama = createOllama({
     baseURL: OLLAMA_BASE_URL,

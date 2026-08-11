@@ -3,7 +3,10 @@ import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/Custo
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import {
+  createTabGroup,
+  tabGroupDomainName,
+} from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
@@ -38,11 +41,59 @@ import type {
  *   `null` を返し、repository 実装側で警告ログを出せるようにする。
  * - 既存 `src/lib/storage/*` と同じ chrome.storage 形式を読み書きする。
  *
- * 子カテゴリ表示と再保存に必要な rich フィールド
- * （`urlSubCategories` / `subCategories` / `categoryKeywords` /
- * `subCategoryOrder` など）も domain entity に投影し、repository の
- * read → write や画面再読込で失われないようにする。
+ * legacy category fields はこの mapper の内側だけで解釈し、domain には
+ * Collection / CollectionCategory / Membership projection として渡す。
  */
+
+const ORDER_GAP = 1024
+
+const uniqueCategoryNames = (
+  candidates: readonly (readonly string[] | undefined)[],
+): readonly string[] => {
+  const names: string[] = []
+  const seen = new Set<string>()
+  for (const candidate of candidates) {
+    for (const name of candidate ?? []) {
+      if (
+        name === '__uncategorized' ||
+        name === 'uncategorized' ||
+        seen.has(name)
+      ) {
+        continue
+      }
+      seen.add(name)
+      names.push(name)
+    }
+  }
+  return names
+}
+
+const createCollectionCategories = (input: {
+  readonly collectionId: string
+  readonly createdAt: number
+  readonly keywords?: ReadonlyMap<string, readonly string[]>
+  readonly names: readonly string[]
+  readonly updatedAt: number
+}) =>
+  input.names.map((name, index) => ({
+    collectionId: input.collectionId,
+    createdAt: input.createdAt,
+    id: `${input.collectionId}:category:${index}`,
+    keywords: [...(input.keywords?.get(name) ?? [])],
+    name,
+    sortOrder: index * ORDER_GAP,
+    updatedAt: input.updatedAt,
+  }))
+
+const categoryIdByName = (
+  categories: readonly { readonly id: string; readonly name: string }[],
+): ReadonlyMap<string, string> =>
+  new Map(categories.map(({ id, name }) => [name, id]))
+
+const categoryNameById = (
+  categories: readonly { readonly id: string; readonly name: string }[],
+): ReadonlyMap<string, string> =>
+  new Map(categories.map(({ id, name }) => [id, name]))
 
 const isSavedTabsDomainError = (
   error: unknown,
@@ -50,17 +101,58 @@ const isSavedTabsDomainError = (
 
 const toTabGroupFromRaw = (raw: SavedTabRaw): TabGroup | null => {
   try {
+    const urlIds = raw.urlIds ?? []
+    const timestamp = raw.savedAt ?? 0
+    const keywordMap = new Map(
+      raw.categoryKeywords?.map(({ categoryName, keywords }) => [
+        categoryName,
+        keywords,
+      ]),
+    )
+    const declaredCategoryNames = uniqueCategoryNames([
+      raw.subCategoryOrder,
+      raw.subCategoryOrderWithUncategorized,
+      raw.subCategories,
+      raw.categoryKeywords?.map(({ categoryName }) => categoryName),
+    ])
+    const categoryNames =
+      declaredCategoryNames.length > 0
+        ? declaredCategoryNames
+        : uniqueCategoryNames([
+            raw.urlSubCategories
+              ? Object.values(raw.urlSubCategories)
+              : undefined,
+          ])
+    const collectionCategories = createCollectionCategories({
+      collectionId: raw.id,
+      createdAt: timestamp,
+      keywords: keywordMap,
+      names: categoryNames,
+      updatedAt: timestamp,
+    })
+    const idsByName = categoryIdByName(collectionCategories)
+    const domain = normalizeDomainString(raw.domain)
     return createTabGroup({
-      domain: normalizeDomainString(raw.domain),
-      id: raw.id,
-      parentCategoryId: raw.parentCategoryId,
-      savedAt: raw.savedAt,
-      categoryKeywords: raw.categoryKeywords,
-      subCategories: raw.subCategories,
-      subCategoryOrder: raw.subCategoryOrder,
-      subCategoryOrderWithUncategorized: raw.subCategoryOrderWithUncategorized,
-      urlIds: raw.urlIds ?? [],
-      urlSubCategories: raw.urlSubCategories,
+      collection: {
+        createdAt: timestamp,
+        definition: { domain, type: 'domain' },
+        ...(raw.parentCategoryId ? { groupId: raw.parentCategoryId } : {}),
+        id: raw.id,
+        name: domain,
+        sortOrder: 0,
+        updatedAt: timestamp,
+      },
+      collectionCategories,
+      memberships: urlIds.map((urlId, index) => ({
+        addedAt: timestamp,
+        ...(raw.urlSubCategories?.[urlId]
+          ? { categoryId: idsByName.get(raw.urlSubCategories[urlId]) }
+          : {}),
+        collectionId: raw.id,
+        sortOrder: index * ORDER_GAP,
+        updatedAt: timestamp,
+        urlId,
+      })),
     })
   } catch (error) {
     if (isSavedTabsDomainError(error)) {
@@ -92,8 +184,10 @@ const toParentCategoryFromRaw = (
 ): ParentCategory | null => {
   try {
     return createParentCategory({
-      domainNames: raw.domainNames.map((name) => normalizeDomainString(name)),
-      domains: raw.domains,
+      collections: raw.domains.flatMap((id, index) => {
+        const domain = raw.domainNames[index]
+        return domain ? [{ domain: normalizeDomainString(domain), id }] : []
+      }),
       id: raw.id,
       name: raw.name,
     })
@@ -112,13 +206,54 @@ const toCustomProjectFromRaw = (
     // `categories` / `createdAt` / `updatedAt` は raw 段階では optional
     // （旧バージョン互換、issue #530 review P1）。entity 化段階で
     // default を入れて domain 不変条件を満たす。
+    const createdAt = raw.createdAt ?? 0
+    const updatedAt = raw.updatedAt ?? createdAt
+    const categoryNames = uniqueCategoryNames([
+      raw.categoryOrder,
+      raw.categories,
+      raw.urlMetadata
+        ? Object.values(raw.urlMetadata).flatMap(({ category }) =>
+            category ? [category] : [],
+          )
+        : undefined,
+    ])
+    const collectionCategories = createCollectionCategories({
+      collectionId: raw.id,
+      createdAt,
+      names: categoryNames,
+      updatedAt,
+    })
+    const idsByName = categoryIdByName(collectionCategories)
     return createCustomProject({
-      categories: raw.categories ?? [],
-      createdAt: raw.createdAt ?? 0,
-      id: raw.id,
-      name: raw.name,
-      updatedAt: raw.updatedAt ?? 0,
-      urlIds: raw.urlIds ?? [],
+      collection: {
+        createdAt,
+        definition: {
+          projectKeywords: raw.projectKeywords ?? {
+            domainKeywords: [],
+            titleKeywords: [],
+            urlKeywords: [],
+          },
+          type: 'custom',
+        },
+        id: raw.id,
+        name: raw.name,
+        sortOrder: 0,
+        updatedAt,
+      },
+      collectionCategories,
+      memberships: (raw.urlIds ?? []).map((urlId, index) => ({
+        addedAt: createdAt,
+        ...(raw.urlMetadata?.[urlId]?.category
+          ? { categoryId: idsByName.get(raw.urlMetadata[urlId].category) }
+          : {}),
+        collectionId: raw.id,
+        ...(raw.urlMetadata?.[urlId]?.notes
+          ? { notes: raw.urlMetadata[urlId].notes }
+          : {}),
+        sortOrder: index * ORDER_GAP,
+        updatedAt,
+        urlId,
+      })),
     })
   } catch (error) {
     if (isSavedTabsDomainError(error)) {
@@ -143,38 +278,15 @@ const toUrlRecordRaw = (entity: UrlRecord): UrlRecordRaw => {
   return base
 }
 
-const copyArrayField = (
-  base: SavedTabRaw,
-  field:
-    | 'subCategories'
-    | 'subCategoryOrder'
-    | 'subCategoryOrderWithUncategorized',
-  value: readonly string[] | undefined,
-): void => {
-  if (value) {
-    base[field] = [...value]
-  }
-}
-
-const copyKeywordsField = (
-  base: SavedTabRaw,
-  value: TabGroup['categoryKeywords'],
-): void => {
-  if (value) {
-    base.categoryKeywords = value.map((keyword) => ({
-      categoryName: keyword.categoryName,
-      keywords: [...keyword.keywords],
-    }))
-  }
-}
-
 const copySavedTabRichFields = (
   base: SavedTabRaw,
   entity: TabGroup,
-  original: SavedTabRaw,
+  original?: SavedTabRaw,
 ): void => {
-  const preservedUrlIds = new Set<string>(entity.urlIds)
-  if (original.urls) {
+  const preservedUrlIds = new Set<string>(
+    entity.memberships.map(({ urlId }) => urlId),
+  )
+  if (original?.urls) {
     const filteredUrls = original.urls.filter((item) =>
       item.id === undefined ? true : preservedUrlIds.has(item.id),
     )
@@ -182,8 +294,14 @@ const copySavedTabRichFields = (
       base.urls = filteredUrls
     }
   }
-  const urlSubCategories = entity.urlSubCategories ?? original.urlSubCategories
-  if (urlSubCategories) {
+  const namesById = categoryNameById(entity.collectionCategories)
+  const urlSubCategories = Object.fromEntries(
+    entity.memberships.flatMap(({ categoryId, urlId }) => {
+      const categoryName = categoryId ? namesById.get(categoryId) : undefined
+      return categoryName ? [[urlId, categoryName]] : []
+    }),
+  )
+  if (Object.keys(urlSubCategories).length > 0) {
     const filteredSubCategories: Record<string, string> = {}
     for (const [urlId, subCategory] of Object.entries(urlSubCategories)) {
       if (preservedUrlIds.has(urlId)) {
@@ -194,20 +312,31 @@ const copySavedTabRichFields = (
       base.urlSubCategories = filteredSubCategories
     }
   }
-  const subCategories = entity.subCategories ?? original.subCategories
-  copyArrayField(base, 'subCategories', subCategories)
-  const categoryKeywords = entity.categoryKeywords ?? original.categoryKeywords
-  copyKeywordsField(base, categoryKeywords)
-  const subCategoryOrder = entity.subCategoryOrder ?? original.subCategoryOrder
-  copyArrayField(base, 'subCategoryOrder', subCategoryOrder)
-  const subCategoryOrderWithUncategorized =
-    entity.subCategoryOrderWithUncategorized ??
-    original.subCategoryOrderWithUncategorized
-  copyArrayField(
-    base,
-    'subCategoryOrderWithUncategorized',
-    subCategoryOrderWithUncategorized,
+  const orderedCategories = entity.collectionCategories.toSorted(
+    (left, right) => left.sortOrder - right.sortOrder,
   )
+  const categoryNames = orderedCategories.map(({ name }) => name)
+  if (categoryNames.length > 0) {
+    base.subCategories = categoryNames
+    base.subCategoryOrder = categoryNames
+    const originalOrder = original?.subCategoryOrderWithUncategorized
+    const hasUncategorized = originalOrder?.some(
+      (name) => name === '__uncategorized' || name === 'uncategorized',
+    )
+    base.subCategoryOrderWithUncategorized = hasUncategorized
+      ? (originalOrder ?? []).flatMap((name) =>
+          name === '__uncategorized' ||
+          name === 'uncategorized' ||
+          categoryNames.includes(name)
+            ? [name]
+            : [],
+        )
+      : categoryNames
+    base.categoryKeywords = orderedCategories.map(({ keywords, name }) => ({
+      categoryName: name,
+      keywords: [...keywords],
+    }))
+  }
 }
 
 const toSavedTabRaw = (
@@ -229,23 +358,21 @@ const toSavedTabRaw = (
   // 既存 raw があればそちらの schemeful 形式を保持し、新規エンティティの
   // 場合のみ entity 側の正規化済み domain を使う。
   const base: SavedTabRaw = {
-    domain: original?.domain ?? entity.domain,
+    domain: original?.domain ?? tabGroupDomainName(entity),
     id: entity.id,
   }
-  if (entity.urlIds.length > 0) {
-    base.urlIds = [...entity.urlIds]
+  if (entity.memberships.length > 0) {
+    base.urlIds = entity.memberships.map(({ urlId }) => urlId)
   }
-  if (entity.parentCategoryId !== undefined) {
-    base.parentCategoryId = entity.parentCategoryId
+  if (entity.collection.groupId !== undefined) {
+    base.parentCategoryId = entity.collection.groupId
   }
-  if (entity.savedAt !== undefined) {
+  if (entity.savedAt !== undefined && entity.savedAt !== 0) {
     base.savedAt = entity.savedAt
   }
-  if (!original) {
-    return base
-  }
-  // entity が持つ分類情報を優先し、legacy `urls` は original から補完する。
-  // URL 単位の補助データは entity.urlIds に揃えて孤立参照を除く。
+  // normalized category / membership を authoritative とし、legacy `urls` のみ
+  // original から補完する。
+  // URL 単位の補助データは membership に揃えて孤立参照を除く。
   copySavedTabRichFields(base, entity, original)
   return base
 }
@@ -263,28 +390,24 @@ const toParentCategoryRaw = (
   // category と新規割当の `domainNames` 比較でミスマッチが起きる
   // （issue #501 review P1 と同根の問題）。
   //
-  // 一方、entity 側の `domainNames` は use-case
+  // 一方、entity 側の `collections` は use-case
   // （AddDomainTo / RemoveDomainFromParentCategory）が更新した結果
   // を反映している。`original.domainNames` をそのままコピーすると
   // 追加・削除が無視されてしまうため、entity の順序と内容を採用
   // しつつ、original に schemeful 形式で残っている既存エントリは
   // hostname 比較で引き継ぐ。
-  let domainNames: string[]
+  const originalByHostname = new Map<string, string>()
   if (original) {
-    const originalByHostname = new Map<string, string>()
     for (const name of original.domainNames) {
       originalByHostname.set(normalizeDomainString(name), name)
     }
-    domainNames = entity.domainNames.map((name) => {
-      const hostname = normalizeDomainString(name)
-      return originalByHostname.get(hostname) ?? name
-    })
-  } else {
-    domainNames = [...entity.domainNames]
   }
+  const domainNames = entity.collections.map(
+    ({ domain }) => originalByHostname.get(domain) ?? domain,
+  )
   const base: ParentCategoryRaw = {
     domainNames,
-    domains: [...entity.domains],
+    domains: entity.collections.map(({ id }) => id),
     id: entity.id,
     name: entity.name,
   }
@@ -295,54 +418,58 @@ const toCustomProjectRaw = (
   entity: CustomProject,
   original?: CustomProjectRaw,
 ): CustomProjectRaw => {
+  const orderedCategories = entity.collectionCategories.toSorted(
+    (left, right) => left.sortOrder - right.sortOrder,
+  )
+  const namesById = categoryNameById(orderedCategories)
+  const categoryNames = orderedCategories.map(({ name }) => name)
   const base: CustomProjectRaw = {
-    categories: [...entity.categories],
+    categories: categoryNames,
+    categoryOrder: categoryNames,
     createdAt: entity.createdAt,
     id: entity.id,
     name: entity.name,
     updatedAt: entity.updatedAt,
   }
-  if (entity.urlIds.length > 0) {
-    base.urlIds = [...entity.urlIds]
+  if (entity.memberships.length > 0) {
+    base.urlIds = entity.memberships.map(({ urlId }) => urlId)
   }
-  if (!original) {
-    return base
+  base.projectKeywords = {
+    domainKeywords: [
+      ...entity.collection.definition.projectKeywords.domainKeywords,
+    ],
+    titleKeywords: [
+      ...entity.collection.definition.projectKeywords.titleKeywords,
+    ],
+    urlKeywords: [...entity.collection.definition.projectKeywords.urlKeywords],
   }
-  // domain entity 未表現のリッチ補助フィールドを original から持ち越す。
-  // urls / urlMetadata は urlIds の集合に合わせて整合性を取り、
-  // projectKeywords / categoryOrder はそのまま保持する。
-  // entity.urlIds は branded `UrlRecordId[]` だが、original.urlMetadata の
-  // キーは raw 文字列なので Set<string> に揃える。
-  const preservedUrlIds = new Set<string>(entity.urlIds)
-  if (original.projectKeywords) {
-    base.projectKeywords = {
-      domainKeywords: [...original.projectKeywords.domainKeywords],
-      titleKeywords: [...original.projectKeywords.titleKeywords],
-      urlKeywords: [...original.projectKeywords.urlKeywords],
-    }
+  // legacy nested URL payload は original からだけ補完する。
+  // URL 単位の category / notes は membership を authoritative projection
+  // として raw metadata に戻し、削除済み metadata を復活させない。
+  const urlMetadata = Object.fromEntries(
+    entity.memberships.flatMap(({ categoryId, notes, urlId }) => {
+      const category = categoryId ? namesById.get(categoryId) : undefined
+      return category || notes
+        ? [
+            [
+              urlId,
+              {
+                ...(category ? { category } : {}),
+                ...(notes ? { notes } : {}),
+              },
+            ],
+          ]
+        : []
+    }),
+  )
+  if (Object.keys(urlMetadata).length > 0) {
+    base.urlMetadata = urlMetadata
   }
-  if (original.urlMetadata) {
-    const filteredMetadata: Record<
-      string,
-      { notes?: string; category?: string }
-    > = {}
-    for (const [urlId, metadata] of Object.entries(original.urlMetadata)) {
-      if (preservedUrlIds.has(urlId)) {
-        filteredMetadata[urlId] = metadata
-      }
-    }
-    if (Object.keys(filteredMetadata).length > 0) {
-      base.urlMetadata = filteredMetadata
-    }
-  }
-  if (original.categoryOrder) {
-    base.categoryOrder = [...original.categoryOrder]
-  }
-  // urls 配列は legacy 形式（URL 文字列を保持）。urlIds 同期は不能なので、
-  // entity の urlIds が空ではない限り original.urls をそのまま保持する。
-  // entity.urlIds が空になった場合は対象 project の URL がすべて削除された
+  // urls 配列は legacy 形式（URL 文字列を保持）。ID 同期は不能なので、
+  // membership が空ではない限り original.urls をそのまま保持する。
+  // membership が空になった場合は対象 project の URL がすべて削除された
   // と解釈し、urls 配列も省略する。
-  if (original.urls && entity.urlIds.length > 0) {
+  if (original?.urls && entity.memberships.length > 0) {
     base.urls = original.urls.map((entry) => ({ ...entry }))
   }
   return base

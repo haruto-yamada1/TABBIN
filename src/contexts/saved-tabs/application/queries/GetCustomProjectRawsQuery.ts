@@ -1,5 +1,6 @@
 import type { SavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/dto/SavedTabsCustomProjectRawSnapshotDto'
 import { toSavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsCustomProjectRawSnapshotMapper'
+import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
@@ -32,14 +33,7 @@ export type GetCustomProjectRawsQueryDeps = {
 
 const entityToRawSnapshot = (
   project: CustomProject,
-): SavedTabsCustomProjectRawSnapshotDto => ({
-  categories: [...project.categories],
-  createdAt: project.createdAt,
-  id: project.id,
-  name: project.name,
-  updatedAt: project.updatedAt,
-  ...(project.urlIds.length > 0 ? { urlIds: [...project.urlIds] } : {}),
-})
+): SavedTabsCustomProjectRawSnapshotDto => toSavedTabsCustomProjectDto(project)
 
 /**
  * `GetCustomProjectRawsQuery` を生成する。

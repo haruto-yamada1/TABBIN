@@ -30,6 +30,7 @@ import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 
 export type PersistenceBootstrapRuntime = {
   readonly bootstrap: PersistenceBootstrapPort
+  readonly connectionManager?: IndexedDbConnectionManager
   readonly coordination: PersistenceCoordinationPort
   readonly controlStateRepository: PersistenceControlStateRepositoryPort
   readonly dataPlaneRouter: PersistenceDataPlaneRouterPort
@@ -47,6 +48,7 @@ export type PersistenceV2MigrationStorage = {
 
 export type PersistenceV2MigrationLifecycleOptions = {
   readonly batchSize?: number
+  readonly connectionManager?: IndexedDbConnectionManager
   readonly indexedDb?: IDBFactory
   readonly storage: PersistenceV2MigrationStorage
 }
@@ -61,7 +63,8 @@ export const createPersistenceV2MigrationLifecycle = (
     get: async (key) => options.storage.get(key),
   })
   const target = new IndexedDbPersistenceMigrationTarget(
-    new IndexedDbConnectionManager({ indexedDb: options.indexedDb }),
+    options.connectionManager ??
+      new IndexedDbConnectionManager({ indexedDb: options.indexedDb }),
   )
   return new PersistenceV2MigrationService({
     batchSize: options.batchSize,
@@ -87,6 +90,12 @@ export type PersistenceStorageLocal = {
   readonly set: <T = Record<string, unknown>>(
     items: Partial<T>,
   ) => Promise<void>
+}
+
+export type SavedTabsDomainStorageLocal = {
+  readonly get: (key: string) => Promise<Record<string, unknown>>
+  readonly remove: (key: string) => Promise<void>
+  readonly set: (value: Record<string, unknown>) => Promise<void>
 }
 
 export const createGatedPersistenceStorageLocal = (
@@ -200,17 +209,19 @@ const isMigrationRecoveryLifecycle = (
   'readReport' in lifecycle &&
   typeof lifecycle.readReport === 'function'
 
+// eslint-disable-next-line max-params -- public composition seam retained for existing bootstrap callers
 export const createPersistenceBootstrapRuntime = (
   access: PersistenceControlStateAccessPort,
   controlStateRepository: PersistenceControlStateRepositoryPort,
   coordination: PersistenceCoordinationPort,
   migrationLifecycle?: PersistenceMigrationLifecyclePort,
+  connectionManager?: IndexedDbConnectionManager,
 ): PersistenceBootstrapRuntime => {
   const bootstrap = new PersistenceBootstrapService({
     access,
     controlStateRepository,
     coordination,
-    cutoverPolicy: 'defer',
+    cutoverPolicy: 'complete',
     migrationLifecycle,
   })
   const migrationRecovery = isMigrationRecoveryLifecycle(migrationLifecycle)
@@ -238,6 +249,7 @@ export const createPersistenceBootstrapRuntime = (
   })
   return {
     bootstrap,
+    ...(connectionManager ? { connectionManager } : {}),
     coordination,
     controlStateRepository,
     dataPlaneRouter,
@@ -271,7 +283,9 @@ const createDefaultRuntime = (): PersistenceBootstrapRuntime => {
       'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
     )
   }
+  const connectionManager = new IndexedDbConnectionManager()
   const migrationLifecycle = createPersistenceV2MigrationLifecycle({
+    connectionManager,
     storage: {
       get: async (keys) => {
         const selected = typeof keys === 'string' ? keys : [...keys]
@@ -290,6 +304,7 @@ const createDefaultRuntime = (): PersistenceBootstrapRuntime => {
       getLockManager: getNavigatorLocks,
     }),
     migrationLifecycle,
+    connectionManager,
   )
 }
 

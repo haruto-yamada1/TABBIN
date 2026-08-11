@@ -3,24 +3,26 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  createSavedTabsCustomProjectDto,
+  createSavedTabsCustomProjectDto as createCurrentCustomProject,
   createSavedTabsUrlRecordDto,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 import {
   createSavedTabsPresentationPortsStub,
   createSavedTabsUseCasesStub,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import { toSavedTabsCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 
 import { useCustomModeController } from './useCustomModeController'
 import { useSavedTabsController } from './useSavedTabsController'
 
 afterEach(() => vi.restoreAllMocks())
 
-const project = createSavedTabsCustomProjectDto({
+const currentProject = createCurrentCustomProject({
   id: 'project-1',
   name: 'Reading',
-  urlIds: ['url-1'],
+  memberships: ['url-1'].map((urlId) => ({ urlId })),
 })
+const project = toSavedTabsCustomProjectViewModel(currentProject)
 const record = createSavedTabsUrlRecordDto({
   id: 'url-1',
   url: 'https://example.com/article',
@@ -37,7 +39,7 @@ const setup = (hasRecord = true) => {
         ? { id: record.id, title: record.title, url: record.url }
         : null,
     })),
-    getCustomProjects: vi.fn(async () => [project]),
+    getCustomProjects: vi.fn(async () => [currentProject]),
     getSavedTabs: vi.fn(async () => []),
     openSavedUrl: vi.fn(async ({ urlRecordId }) => {
       const target = urlRecordId === record.id ? record : null

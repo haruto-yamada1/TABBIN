@@ -16,9 +16,9 @@
  * }
  * ```
  */
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { ResolvedCustomProjectUrlDto } from '@/contexts/saved-tabs/application/dto/ResolvedCustomProjectUrlDto'
 
 export type ReorderCustomProjectUrlsCommand = {
   readonly projectId: string
-  readonly urls: CustomProject['urls']
+  readonly urls: readonly ResolvedCustomProjectUrlDto[]
 }

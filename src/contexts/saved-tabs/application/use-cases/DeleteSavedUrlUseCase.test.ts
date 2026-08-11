@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { DeleteSavedUrlUseCaseDeps } from './DeleteSavedUrlUseCase'
 import { createDeleteSavedUrlUseCase } from './DeleteSavedUrlUseCase'
@@ -94,7 +96,7 @@ describe('DeleteSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -124,7 +126,9 @@ describe('DeleteSavedUrlUseCase', () => {
     expect(result.removedTabGroupId).toBeNull()
     expect(result.snapshot).not.toBeNull()
     const remaining = await repos.tabGroupRepository.findAll()
-    expect(remaining[0].urlIds).toStrictEqual(['url-2'])
+    expect(remaining[0].memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-2',
+    ])
     const remainingRecords = await repos.urlRecordRepository.findAll()
     expect(remainingRecords.map((record) => record.id)).toStrictEqual(['url-2'])
   })
@@ -133,7 +137,7 @@ describe('DeleteSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -161,7 +165,7 @@ describe('DeleteSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: [],
@@ -169,7 +173,7 @@ describe('DeleteSavedUrlUseCase', () => {
       id: 'project-1',
       name: 'P',
       updatedAt: 1,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -198,7 +202,9 @@ describe('DeleteSavedUrlUseCase', () => {
     expect(result.snapshot?.customProjects).toContainEqual(project)
     await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
     const remainingProjects = await repos.customProjectRepository.findAll()
-    expect(remainingProjects[0].urlIds).toStrictEqual([])
+    expect(
+      remainingProjects[0].memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual([])
     const remainingRecords = await repos.urlRecordRepository.findAll()
     expect(remainingRecords.map((record) => record.id)).toStrictEqual([])
   })
@@ -207,12 +213,12 @@ describe('DeleteSavedUrlUseCase', () => {
     const targetGroup = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const otherGroup = createTabGroup({
       domain: 'other.com',
       id: 'group-2',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -245,7 +251,7 @@ describe('DeleteSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -267,7 +273,9 @@ describe('DeleteSavedUrlUseCase', () => {
     expect(result.removedUrlRecordId).toBeNull()
     expect(result.snapshot).toBeNull()
     const remainingTabGroups = await repos.tabGroupRepository.findAll()
-    expect(remainingTabGroups[0].urlIds).toStrictEqual(['url-2'])
+    expect(
+      remainingTabGroups[0].memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual(['url-2'])
   })
 
   it('存在しない TabGroup のときは SavedTabsDomainError を投げる', async () => {
@@ -286,7 +294,7 @@ describe('DeleteSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({ tabGroups: [group] })
     const useCase = createDeleteSavedUrlUseCase(repos)

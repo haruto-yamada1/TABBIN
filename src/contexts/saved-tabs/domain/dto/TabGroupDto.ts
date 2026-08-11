@@ -1,3 +1,4 @@
+import type { CollectionProjectionDto } from './CollectionProjectionDto'
 import type { ResolvedTabGroupUrlDto } from './ResolvedTabGroupUrlDto'
 
 /**
@@ -5,11 +6,8 @@ import type { ResolvedTabGroupUrlDto } from './ResolvedTabGroupUrlDto'
  * `TabGroupUrlReorderer` / `TabGroupUrlResolver` が受け取る
  * `TabGroup` の domain 入力 DTO (issue #511)。
  *
- * `@/types/storage.TabGroup` から chrome.storage 専用の
- * 補助フィールド (`subCategories` / `categoryKeywords` /
- * `subCategoryOrder` / `subCategoryOrderWithUncategorized`) を
- * 除いた構造互換 DTO。`urlSubCategories` は `TabGroupUrlResolver`
- * が subCategory 引き継ぎに使うため DTO に残す。
+ * persistence DTO から補助フィールドを除き、URL の所属関係を
+ * `memberships` として表現する current domain DTO。
  *
  * branded な `TabGroup` entity (値オブジェクト) ではなく
  * plain string ベースとしている理由:
@@ -19,18 +17,8 @@ import type { ResolvedTabGroupUrlDto } from './ResolvedTabGroupUrlDto'
  *   組み直すため、entity factory を通すと service 内の値変換が増えて
  *   しまう
  *
- * 配列 / オブジェクトフィールドは `@/types/storage.TabGroup` との
- * structural 互換のため readonly 修飾を敢えて付けず、mutable
- * として公開する (presentation 側 context が `TabGroup` 形の
- * `urlIds?: string[]` を props として受け取る既存コンポーネント
- * との代入互換を取る)。
+ * mapper / service が結果を再構成できるよう配列フィールドは mutable とする。
  */
-export type TabGroupDto = {
-  id: string
-  domain: string
-  parentCategoryId?: string
-  urlIds?: string[]
-  urls?: ResolvedTabGroupUrlDto[]
-  urlSubCategories?: Record<string, string>
-  savedAt?: number
+export type TabGroupDto = CollectionProjectionDto & {
+  readonly resolvedUrls?: readonly ResolvedTabGroupUrlDto[]
 }

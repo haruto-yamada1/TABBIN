@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { searchSavedTabs } from './SavedTabsSearchService'
 
 const docs = createParentCategory({
   id: 'docs',
   name: 'Docs',
-  domains: [],
-  domainNames: ['example.com'],
+  collections: [{ id: 'docs-reference', domain: 'example.com' }],
 })
 
 const buildContext = (
@@ -21,7 +20,7 @@ const buildContext = (
   const group = createTabGroup({
     id: groupId,
     domain,
-    urlIds: urls.map((url) => url.id),
+    memberships: urls.map((url) => url.id).map((urlId) => ({ urlId })),
   })
   return {
     group,

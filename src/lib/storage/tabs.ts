@@ -1,6 +1,10 @@
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import type {
+  SubCategoryKeyword,
+  TabGroup,
+  UrlRecord,
+} from '@/contexts/saved-tabs/public-api'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { SubCategoryKeyword, TabGroup, UrlRecord } from '@/types/storage'
 import { domainMatches } from '@/utils/domain-normalize'
 
 import {
@@ -46,8 +50,7 @@ const saveTabGroups = async (tabGroups: TabGroup[]): Promise<void> => {
  * 指定タブグループ内の子カテゴリ名をリネームし、関連する
  * `categoryKeywords`, `urls[].subCategory`, `subCategoryOrder`,
  * `subCategoryOrderWithUncategorized` も一括更新する。
- * `SubCategoryKeywordManager` のリネーム操作を
- * `chrome.storage.local` 直叩きから置換するために追加。
+ * legacy storage migration/import boundaryで子カテゴリ名を一括更新する。
  */
 const renameSubCategoryInTabGroup = async (
   groupId: string,

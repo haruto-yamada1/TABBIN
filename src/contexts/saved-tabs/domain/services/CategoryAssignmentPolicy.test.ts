@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
   buildCategoryLookup,
@@ -15,15 +15,19 @@ import {
 const docs = createParentCategory({
   id: 'docs',
   name: 'Docs',
-  domains: ['group-docs'],
-  domainNames: ['example.com'],
+  collections: ['group-docs'].map((id, index) => ({
+    id,
+    domain: ['example.com'][index] ?? id,
+  })),
 })
 
 const news = createParentCategory({
   id: 'news',
   name: 'News',
-  domains: ['group-news'],
-  domainNames: ['news.example.com'],
+  collections: ['group-news'].map((id, index) => ({
+    id,
+    domain: ['news.example.com'][index] ?? id,
+  })),
 })
 
 describe('CategoryAssignmentPolicy.buildCategoryLookup', () => {
@@ -42,8 +46,10 @@ describe('CategoryAssignmentPolicy.buildCategoryLookup', () => {
     const conflicting = createParentCategory({
       id: 'docs-conflict',
       name: 'Docs Conflict',
-      domains: ['group-docs'],
-      domainNames: ['example.com'],
+      collections: ['group-docs'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
     })
     const lookup = buildCategoryLookup([docs, conflicting])
     expect(lookup.byTabGroupId.get(createTabGroupId('group-docs'))?.id).toBe(
@@ -62,7 +68,7 @@ describe('CategoryAssignmentPolicy.resolveCategoryForTabGroup', () => {
     const group = createTabGroup({
       id: 'group-news',
       domain: 'news.example.com',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
       parentCategoryId: 'docs',
     })
     expect(resolveCategoryForTabGroup(group, lookup)?.id).toBe('docs')
@@ -72,7 +78,7 @@ describe('CategoryAssignmentPolicy.resolveCategoryForTabGroup', () => {
     const group = createTabGroup({
       id: 'group-docs',
       domain: 'other.example.com',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     expect(resolveCategoryForTabGroup(group, lookup)?.id).toBe('docs')
   })
@@ -81,7 +87,7 @@ describe('CategoryAssignmentPolicy.resolveCategoryForTabGroup', () => {
     const group = createTabGroup({
       id: 'group-other',
       domain: 'example.com',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     expect(resolveCategoryForTabGroup(group, lookup)?.id).toBe('docs')
   })
@@ -90,7 +96,7 @@ describe('CategoryAssignmentPolicy.resolveCategoryForTabGroup', () => {
     const group = createTabGroup({
       id: 'group-other',
       domain: 'unknown.example.com',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     expect(resolveCategoryForTabGroup(group, lookup)).toBeUndefined()
     expect(isUncategorizedTabGroup(group, lookup)).toBe(true)

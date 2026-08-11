@@ -40,15 +40,19 @@ describe('parent category management use-cases', () => {
     expect(result).toStrictEqual({
       all: [
         {
-          domainNames: [],
-          domains: [],
+          collections: [].map((id, index) => ({
+            id,
+            domain: [][index] ?? id,
+          })),
           id: 'category-1',
           name: 'Docs',
         },
       ],
       category: {
-        domainNames: [],
-        domains: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
         id: 'category-1',
         name: 'Docs',
       },
@@ -76,8 +80,10 @@ describe('parent category management use-cases', () => {
 
   it('ドメインを別カテゴリへ移動してraw domain mappingも更新する', async () => {
     const source = toMockParentCategory({
-      domainNames: ['https://example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'source',
       name: 'Source',
     })
@@ -86,12 +92,10 @@ describe('parent category management use-cases', () => {
       parentCategories: [source, target],
     })
     const tabGroupRepository = createMockTabGroupRepository({
-      savedTabs: [
-        toMockTabGroup({ domain: 'https://example.com', id: 'group-1' }),
-      ],
+      savedTabs: [toMockTabGroup({ domain: 'example.com', id: 'group-1' })],
     })
     const domainCategoryMappingRepository = createMappingRepository([
-      { categoryId: 'source', domain: 'https://example.com' },
+      { categoryId: 'source', domain: 'example.com' },
     ])
     const assign = createAssignDomainToCategoryUseCase({
       domainCategoryMappingRepository,
@@ -102,16 +106,25 @@ describe('parent category management use-cases', () => {
     const result = await assign({ categoryId: 'target', domainId: 'group-1' })
 
     expect(result.all).toStrictEqual([
-      { domainNames: [], domains: [], id: 'source', name: 'Source' },
       {
-        domainNames: ['https://example.com'],
-        domains: ['group-1'],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
+        id: 'source',
+        name: 'Source',
+      },
+      {
+        collections: ['group-1'].map((id, index) => ({
+          id,
+          domain: ['example.com'][index] ?? id,
+        })),
         id: 'target',
         name: 'Target',
       },
     ])
     expect(result.mappings).toStrictEqual([
-      { categoryId: 'target', domain: 'https://example.com' },
+      { categoryId: 'target', domain: 'example.com' },
     ])
     expect(parentCategoryRepository.saveAll).toHaveBeenCalledOnce()
     expect(domainCategoryMappingRepository.saveAll).toHaveBeenCalledOnce()
@@ -119,8 +132,10 @@ describe('parent category management use-cases', () => {
 
   it('既に分類済みならrepository書込みを行わない', async () => {
     const category = toMockParentCategory({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'target',
       name: 'Target',
     })
@@ -149,8 +164,10 @@ describe('parent category management use-cases', () => {
     const parentCategoryRepository = createMockParentCategoryRepository({
       parentCategories: [
         toMockParentCategory({
-          domainNames: ['example.com'],
-          domains: ['group-1'],
+          collections: ['group-1'].map((id, index) => ({
+            id,
+            domain: ['example.com'][index] ?? id,
+          })),
           id: 'source',
           name: 'Source',
         }),
@@ -170,7 +187,12 @@ describe('parent category management use-cases', () => {
 
     const result = await assign({ categoryId: 'none', domainId: 'group-1' })
 
-    expect(result.all[0]).toMatchObject({ domainNames: [], domains: [] })
+    expect(result.all[0]).toMatchObject({
+      collections: [].map((id, index) => ({
+        id,
+        domain: [][index] ?? id,
+      })),
+    })
     expect(result.mappings).toStrictEqual([])
   })
 
@@ -178,7 +200,10 @@ describe('parent category management use-cases', () => {
     const parentCategoryRepository = createMockParentCategoryRepository({
       parentCategories: [
         toMockParentCategory({
-          domains: ['missing'],
+          collections: ['missing'].map((id, index) => ({
+            id,
+            domain: ['missing'][index] ?? id,
+          })),
           id: 'target',
           name: 'Target',
         }),
@@ -193,7 +218,9 @@ describe('parent category management use-cases', () => {
     })
 
     const result = await assign({ categoryId: 'target', domainId: 'missing' })
-    expect(result.all[0]?.domains).toStrictEqual(['missing'])
+    expect(result.all[0]?.collections.map(({ id }) => id)).toStrictEqual([
+      'missing',
+    ])
     expect(parentCategoryRepository.saveAll).not.toHaveBeenCalled()
 
     await expect(

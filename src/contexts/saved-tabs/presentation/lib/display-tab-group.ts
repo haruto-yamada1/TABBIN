@@ -17,10 +17,10 @@
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 export const getDisplayUrlCount = (group: TabGroup): number =>
-  (group.urls ?? group.urlIds ?? []).length
+  (group.urls ?? group.memberships ?? []).length
 
 /**
  * ヘッダー / 空状態判定用に、CustomProject を `TabGroup` 形に投影する。
@@ -41,6 +41,12 @@ export const getDisplayUrlCount = (group: TabGroup): number =>
 export const buildDisplayTabGroup = (project: CustomProject): TabGroup => ({
   id: project.id,
   domain: project.name,
+  ...(project.memberships
+    ? {
+        memberships: project.memberships.map((membership) => ({
+          ...membership,
+        })),
+      }
+    : {}),
   urls: project.urls ?? [],
-  urlIds: project.urlIds ?? [],
 })

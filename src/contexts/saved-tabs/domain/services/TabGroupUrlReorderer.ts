@@ -1,5 +1,8 @@
-import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+
+type MembershipOrderProjection = {
+  readonly memberships: readonly { readonly urlId: string }[]
+}
 
 /**
  * 単一 `TabGroupDto` の `urlIds` 並び替えに関する pure ドメインサービス。
@@ -36,15 +39,16 @@ export const reorderTabGroupUrlIds = ({
   newUrlOrder,
   urlRecords,
 }: {
-  group: TabGroupDto
+  group: MembershipOrderProjection
   newUrlOrder: readonly string[]
   urlRecords: readonly UrlRecord[]
 }): readonly string[] => {
-  if (!group.urlIds || group.urlIds.length === 0) {
-    return group.urlIds ?? []
+  const membershipUrlIds = group.memberships.map(({ urlId }) => urlId)
+  if (membershipUrlIds.length === 0) {
+    return []
   }
   if (newUrlOrder.length === 0) {
-    return group.urlIds
+    return membershipUrlIds
   }
   const urlRecordsByUrl = new Map<string, UrlRecord>()
   for (const record of urlRecords) {
@@ -52,7 +56,7 @@ export const reorderTabGroupUrlIds = ({
     // 文字列比較で十分なため raw string へ寄せる。
     urlRecordsByUrl.set(record.url, record)
   }
-  const groupUrlIds = new Set(group.urlIds)
+  const groupUrlIds = new Set(membershipUrlIds)
   const reorderedUrlIds: string[] = []
   for (const url of newUrlOrder) {
     const urlRecord = urlRecordsByUrl.get(url)
@@ -62,7 +66,7 @@ export const reorderTabGroupUrlIds = ({
   }
   // newUrlOrder に含まれなかった残りの urlIds を末尾に追加
   const reorderedSet = new Set(reorderedUrlIds)
-  for (const urlId of group.urlIds ?? []) {
+  for (const urlId of membershipUrlIds) {
     if (!reorderedSet.has(urlId)) {
       reorderedUrlIds.push(urlId)
     }

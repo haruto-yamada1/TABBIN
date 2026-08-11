@@ -6,7 +6,7 @@ import type {
   DomainParentCategoryMapping,
   ParentCategory,
   SubCategoryKeyword,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
 import { domainMatches, hasNormalizedDomain } from '@/utils/domain-normalize'
 
 // 親カテゴリを取得する関数

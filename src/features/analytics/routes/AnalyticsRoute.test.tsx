@@ -64,11 +64,20 @@ const analyticsRouteMocks = vi.hoisted(() => ({
   loadRecordsMock: vi.fn<() => Promise<AiSavedUrlRecord[]>>(),
   loadSettingsMock: vi.fn(),
   loadViewsMock: vi.fn<() => Promise<SavedAnalyticsView[]>>(),
+  readUndoSnapshotMock: vi.fn(),
+  restoreUndoSnapshotMock: vi.fn(),
   saveViewsMock: vi.fn(),
   sendMessageMock: vi.fn(),
   storageGetMock: vi.fn(),
   storageSetMock: vi.fn(),
   updateMessagesMock: vi.fn(),
+}))
+
+vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
+  getBackgroundSavedTabsDataPlane: () => ({
+    readUndoSnapshot: analyticsRouteMocks.readUndoSnapshotMock,
+    restoreUndoSnapshot: analyticsRouteMocks.restoreUndoSnapshotMock,
+  }),
 }))
 
 vi.mock('sonner', () => ({
@@ -713,6 +722,8 @@ describe('AnalyticsRoute', () => {
     analyticsRouteMocks.loadRecordsMock.mockReset()
     analyticsRouteMocks.loadSettingsMock.mockReset()
     analyticsRouteMocks.loadViewsMock.mockReset()
+    analyticsRouteMocks.readUndoSnapshotMock.mockReset()
+    analyticsRouteMocks.restoreUndoSnapshotMock.mockReset()
     analyticsRouteMocks.saveViewsMock.mockReset()
     analyticsRouteMocks.sendMessageMock.mockReset()
     analyticsRouteMocks.storageGetMock.mockReset()
@@ -721,6 +732,17 @@ describe('AnalyticsRoute', () => {
     analyticsRouteMocks.loadRecordsMock.mockResolvedValue(records)
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue(defaultSettings)
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([])
+    analyticsRouteMocks.readUndoSnapshotMock.mockResolvedValue({
+      revision: 1,
+      savedTabs: {
+        categories: [],
+        collections: [],
+        groups: [],
+        memberships: [],
+        urls: [],
+      },
+    })
+    analyticsRouteMocks.restoreUndoSnapshotMock.mockResolvedValue(undefined)
     analyticsRouteMocks.storageGetMock.mockResolvedValue({
       customProjectOrder: ['project-1'],
       customProjects: [
@@ -1169,22 +1191,17 @@ describe('AnalyticsRoute', () => {
       normalizeAnalyticsRouteQuery(createAnalyticsQuery({ mode: 'custom' })),
     ).toEqual(expect.objectContaining({ mode: 'both' }))
 
-    expect(createAnalyticsDeleteUndoPayload({})).toEqual({})
-    expect(
-      createAnalyticsDeleteUndoPayload({
-        customProjectOrder: ['project-1'],
-        customProjects: [],
-        parentCategories: [],
-        savedTabs: [],
+    const undoSnapshot = {
+      revision: 4,
+      savedTabs: {
+        categories: [],
+        collections: [],
+        groups: [],
+        memberships: [],
         urls: [],
-      }),
-    ).toEqual({
-      customProjectOrder: ['project-1'],
-      customProjects: [],
-      parentCategories: [],
-      savedTabs: [],
-      urls: [],
-    })
+      },
+    }
+    expect(createAnalyticsDeleteUndoPayload(undoSnapshot)).toBe(undoSnapshot)
 
     analyticsRouteMocks.sendMessageMock.mockImplementationOnce(
       (
@@ -2261,8 +2278,8 @@ describe('AnalyticsRoute', () => {
       | undefined
     await undoOptions?.action?.onClick?.()
 
-    expect(analyticsRouteMocks.storageSetMock).toHaveBeenCalledWith(
-      await analyticsRouteMocks.storageGetMock.mock.results[0]?.value,
+    expect(analyticsRouteMocks.restoreUndoSnapshotMock).toHaveBeenCalledWith(
+      await analyticsRouteMocks.readUndoSnapshotMock.mock.results[0]?.value,
     )
   })
 
@@ -2271,7 +2288,7 @@ describe('AnalyticsRoute', () => {
     analyticsRouteMocks.loadRecordsMock
       .mockResolvedValueOnce(records)
       .mockResolvedValueOnce([records[1]])
-    analyticsRouteMocks.storageSetMock.mockRejectedValueOnce(
+    analyticsRouteMocks.restoreUndoSnapshotMock.mockRejectedValueOnce(
       new Error('restore failed'),
     )
 
@@ -2438,15 +2455,19 @@ describe('AnalyticsRoute', () => {
     })
   })
 
-  it('削除 Undo snapshot が非配列なら空 payload を復元する', async () => {
+  it('削除 Undo はversioned v2 snapshotをそのまま復元する', async () => {
     const user = userEvent.setup()
-    analyticsRouteMocks.storageGetMock.mockResolvedValue({
-      customProjectOrder: { invalid: true },
-      customProjects: { invalid: true },
-      parentCategories: { invalid: true },
-      savedTabs: { invalid: true },
-      urls: { invalid: true },
-    })
+    const undoSnapshot = {
+      revision: 9,
+      savedTabs: {
+        categories: [],
+        collections: [],
+        groups: [],
+        memberships: [],
+        urls: [],
+      },
+    }
+    analyticsRouteMocks.readUndoSnapshotMock.mockResolvedValue(undoSnapshot)
     analyticsRouteMocks.loadRecordsMock
       .mockResolvedValueOnce(records)
       .mockResolvedValueOnce([records[1]])
@@ -2470,7 +2491,9 @@ describe('AnalyticsRoute', () => {
       | undefined
     await undoOptions?.action?.onClick?.()
 
-    expect(analyticsRouteMocks.storageSetMock).toHaveBeenCalledWith({})
+    expect(analyticsRouteMocks.restoreUndoSnapshotMock).toHaveBeenCalledWith(
+      undoSnapshot,
+    )
   })
 
   it('confirmDeleteEach=true のとき確認ダイアログ経由で削除する', async () => {

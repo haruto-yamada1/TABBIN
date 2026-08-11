@@ -1,6 +1,6 @@
 /* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises, playwright/no-skipped-test -- Firefox startup smoke is gated by FIREFOX_EXTENSION_SMOKE=1 */
 import { existsSync } from 'node:fs'
-import { cp, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -8,6 +8,7 @@ import { expect, test as base, firefox } from '@playwright/test'
 import type { BrowserContext, Page } from '@playwright/test'
 
 const firefoxArtifactDir = path.join(process.cwd(), '.output', 'firefox-mv2')
+const FIREFOX_SMOKE_EXTENSION_ID = 'tabbin@local'
 
 const SMOKE_FLAG = 'FIREFOX_EXTENSION_SMOKE'
 const SMOKE_SKIP_REASON =
@@ -32,10 +33,59 @@ const FIREFOX_SMOKE_PREFS = {
   'extensions.update.autoUpdateDefault': false,
 }
 
+const launchFirefoxExtensionSession = async (
+  profileDir: string,
+): Promise<BrowserContext> => {
+  return firefox.launchPersistentContext(profileDir, {
+    bypassCSP: true,
+    ...(process.env.FIREFOX_EXECUTABLE_PATH
+      ? { executablePath: process.env.FIREFOX_EXECUTABLE_PATH }
+      : {}),
+    firefoxUserPrefs: FIREFOX_SMOKE_PREFS,
+    handleSIGINT: true,
+    handleSIGTERM: true,
+  })
+}
+
 const wait = async (ms: number): Promise<void> =>
   new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+
+const prepareUnpackedFirefoxExtension = async (
+  profileDir: string,
+): Promise<void> => {
+  const unpackedDir = path.join(
+    profileDir,
+    'extensions',
+    FIREFOX_SMOKE_EXTENSION_ID,
+  )
+  await mkdir(path.dirname(unpackedDir), { recursive: true })
+  await cp(firefoxArtifactDir, unpackedDir, { recursive: true })
+
+  const manifestPath = path.join(unpackedDir, 'manifest.json')
+  const parsedManifest: unknown = JSON.parse(
+    await readFile(manifestPath, 'utf8'),
+  )
+  if (!isRecord(parsedManifest)) {
+    throw new Error('Firefox artifact manifest must be an object.')
+  }
+  const manifest = parsedManifest
+  const browserSpecificSettings = isRecord(manifest.browser_specific_settings)
+    ? manifest.browser_specific_settings
+    : {}
+  const gecko = isRecord(browserSpecificSettings.gecko)
+    ? browserSpecificSettings.gecko
+    : {}
+  manifest.browser_specific_settings = {
+    ...browserSpecificSettings,
+    gecko: {
+      ...gecko,
+      id: FIREFOX_SMOKE_EXTENSION_ID,
+    },
+  }
+  await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`, 'utf8')
+}
 
 // Synchronously walk the parsed addon entries once from memory instead of
 // nesting null/type checks each iteration.
@@ -105,6 +155,18 @@ const pollExtensionsJsonUuid = async (
   return undefined
 }
 
+const resolveFirefoxExtensionUuid = async (
+  profileDir: string,
+): Promise<string> => {
+  const uuid = await pollExtensionsJsonUuid(profileDir)
+  if (uuid === undefined) {
+    throw new Error(
+      'Firefox smoke did not find TABBIN with an internalUUID in extensions.json before timeout. The executable launched but does not support the unsigned unpacked extension; use a Playwright, Developer Edition, or Unbranded Firefox build, or provide a signed artifact.',
+    )
+  }
+  return uuid
+}
+
 // Skip decision is made here at the fixture level because the Polyfill guard
 // document for `test.skip` inside fixture setup already covers our pattern
 // (microsoft/playwright#15071 is about conditional skip inside custom
@@ -129,10 +191,8 @@ export const test = base.extend<FirefoxExtensionSmokeFixtures>({
     const profileDir = await mkdtemp(
       path.join(os.tmpdir(), 'tabbin-firefox-smoke-'),
     )
-    const unpackedDir = path.join(profileDir, 'extensions', 'tabbin@local')
     try {
-      await mkdir(path.dirname(unpackedDir), { recursive: true })
-      await cp(firefoxArtifactDir, unpackedDir, { recursive: true })
+      await prepareUnpackedFirefoxExtension(profileDir)
       await runFixture(profileDir)
     } finally {
       await rm(profileDir, { force: true, recursive: true })
@@ -140,14 +200,7 @@ export const test = base.extend<FirefoxExtensionSmokeFixtures>({
   },
   firefoxExtensionContext: async ({ firefoxExtensionProfile }, runFixture) => {
     ensureSmokeEnabled()
-    const context = await firefox.launchPersistentContext(
-      firefoxExtensionProfile,
-      {
-        firefoxUserPrefs: FIREFOX_SMOKE_PREFS,
-        handleSIGINT: true,
-        handleSIGTERM: true,
-      },
-    )
+    const context = await launchFirefoxExtensionSession(firefoxExtensionProfile)
     try {
       await runFixture(context)
     } finally {
@@ -162,12 +215,7 @@ export const test = base.extend<FirefoxExtensionSmokeFixtures>({
   },
   firefoxExtensionUuid: async ({ firefoxExtensionProfile }, runFixture) => {
     ensureSmokeEnabled()
-    const uuid = await pollExtensionsJsonUuid(firefoxExtensionProfile)
-    if (uuid === undefined) {
-      throw new Error(
-        'Firefox smoke did not find TABBIN with an internalUUID in extensions.json before timeout. Likely causes: Firefox release build rejects unsigned unpacked extensions (use a dev/Unbranded build or set up AMO signing); wxt.config.ts does not declare browser_specific_settings.gecko.id so Firefox assigns an unstable ID; or the extension failed to install during profile launch.',
-      )
-    }
+    const uuid = await resolveFirefoxExtensionUuid(firefoxExtensionProfile)
     await runFixture(uuid)
   },
 })

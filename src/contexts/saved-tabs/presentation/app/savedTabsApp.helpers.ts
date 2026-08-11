@@ -60,7 +60,7 @@ export {
   toStorageCustomProject,
   toStorageParentCategory,
   toStorageTabGroup,
-} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 
 export {
   buildPresentationCategoryLookup,

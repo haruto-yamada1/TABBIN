@@ -4,14 +4,18 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-  SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type {
   StorageChangePort,
   TypedSavedTabsStorageChange,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import {
+  toSavedTabsTabGroupViewModel,
+  toTabGroupFromViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import {
   renameCategoryInTab,
@@ -68,8 +72,10 @@ const createGroup = (overrides: Partial<TabGroup> = {}): TabGroup => ({
 
 const createParentCategories = (): ParentCategory[] => [
   {
-    domainNames: ['example.com'],
-    domains: ['group-1'],
+    collections: ['group-1'].map((id, index) => ({
+      id,
+      domain: ['example.com'][index] ?? id,
+    })),
     id: 'parent-1',
     name: 'Parent category',
   },
@@ -113,15 +119,17 @@ const setupChromeStorage = (state: StorageState = {}) => {
     const tabGroups = state.savedTabs ?? []
     const parentCategories = state.parentCategories ?? []
     return {
-      tabGroups,
+      tabGroups: tabGroups.map(toTabGroupFromViewModel),
       parentCategories,
       userSettings: {} as UserSettingsDto,
     }
   })
   const categoryAssignmentPort = {
     saveParentCategories: vi.fn(async () => {}),
-    saveTabGroups: vi.fn(async (next: readonly TabGroup[]) => {
-      await local.set({ savedTabs: [...next] })
+    saveTabGroups: vi.fn(async (next) => {
+      await local.set({
+        savedTabs: next.map(toSavedTabsTabGroupViewModel),
+      })
     }),
   }
 
@@ -333,8 +341,12 @@ describe('useCategoryKeywordModal', () => {
       resolveSelectedParentCategoryId(
         [
           {
-            domainNames: ['matched.example.com'],
-            domains: [],
+            collections: [
+              {
+                id: 'matched-group',
+                domain: 'matched.example.com',
+              },
+            ],
             id: 'matched-parent',
             name: 'Matched',
           },
@@ -407,8 +419,12 @@ describe('useCategoryKeywordModal', () => {
 
     storage.state.parentCategories = [
       {
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [
+          {
+            id: 'group-1',
+            domain: 'example.com',
+          },
+        ],
         id: 'parent-2',
         name: 'Updated parent',
       },
@@ -619,12 +635,12 @@ describe('useCategoryKeywordModal', () => {
         expect.objectContaining({
           categoryKeywords: [
             {
-              categoryName: 'Other subcategory',
-              keywords: ['Other'],
-            },
-            {
               categoryName: 'Existing subcategory',
               keywords: ['Beta'],
+            },
+            {
+              categoryName: 'Other subcategory',
+              keywords: ['Other'],
             },
           ],
           urls: [
@@ -718,7 +734,9 @@ describe('useCategoryKeywordModal', () => {
     expect(storage.local.set).toHaveBeenCalledWith({
       savedTabs: [
         expect.objectContaining({
-          categoryKeywords: [],
+          categoryKeywords: [
+            { categoryName: 'Existing subcategory', keywords: [] },
+          ],
           urls: [],
         }),
       ],
@@ -946,7 +964,6 @@ describe('useCategoryKeywordModal', () => {
       throw new Error('delete failed')
     })
     const { result: failingDeleteResult } = renderModalHook({
-      // eslint-disable-next-line typescript/no-misused-promises
       onDeleteCategory: failingDelete,
     })
 
@@ -1104,7 +1121,7 @@ describe('useCategoryKeywordModal', () => {
           ],
           subCategories: ['Renamed subcategory'],
           subCategoryOrder: ['Renamed subcategory'],
-          subCategoryOrderWithUncategorized: ['Renamed subcategory', ''],
+          subCategoryOrderWithUncategorized: ['Renamed subcategory'],
           urls: [
             {
               subCategory: 'Renamed subcategory',

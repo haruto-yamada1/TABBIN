@@ -2,12 +2,12 @@ import { useCallback } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { toStorageCustomProject } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import { toStorageCustomProject } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
-import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import {
   showCustomProjectDeleteUndoToast,

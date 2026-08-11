@@ -6,8 +6,8 @@ Issue #722 で Chrome / Firefox の runtime 差分を早期検出するための
 
 ## Phase 分け
 
-発行時点では Phase 1 / Phase 2 を実装済み。Phase 3 / migration smoke は別 issue で
-追加する。
+Phase 1〜3に加え、Issue #729-B でtesting-only complete policyを使うPersistence v2
+migration smokeを追加した。productionのcutover policyはこのsmokeから変更しない。
 
 ### Phase 1 — Firefox build + manifest validation
 
@@ -80,6 +80,24 @@ Phase 2 helper が取り出した UUID を使い、TABBIN の「options 画面�
 - storage contract は extension page 上で `chrome.storage.local` を経由して `set / get / clear` の round-trip を `page.evaluate` で呼び出し、`{ kind: 'ok', value: 'written' }` を assert する。`chrome.storage.local` は TABBIN が production で使う polyfill alias と同一の code path。
 - 既知の runtime smoke は Phase 2 と同様に dev / Unbranded build または AMO 署名済み XPI が必要(Phase 2 注意欄と同条件)。CI では `FIREFOX_EXTENSION_SMOKE=1` gate で skip 設計。
 
+### Phase 4 — Persistence v2 migration / restart smoke
+
+`tools/scripts/firefox-persistence-migration-smoke.ts`は専用profileへlegacy fixtureをseedし、
+testing-onlyの`createCompletePersistenceBootstrapServiceForTesting`でpreflight / migration /
+verification / cutoverを実行する。次に同じprofileでFirefoxを再起動し、IndexedDBからSaved
+Tabs projectionを再読込する。
+
+再起動後はtesting-onlyのroute-aware compositionへproduction
+`createIndexedDbSavedTabsUseCases`を注入し、Saved Tabs readとURL追加を実行する。migration
+source keyのChrome Storage snapshotが不変であること、強制IndexedDB failureでもlegacy
+callbackが0回であること、Backup V2 schema / notes / URLが保持されることをassertする。
+
+`tools/scripts/firefox-persistence-migration-smoke.ts`はgeckodriverで一時XPIをinstallし、同じ
+profileを閉じて再起動する。起動可能なFirefox / geckodriverがない場合は
+`FIREFOX_MIGRATION_SMOKE_UNSUPPORTED_EXECUTABLE`を持つ明示的errorで失敗する。必要なら
+`FIREFOX_EXECUTABLE_PATH`へDeveloper Edition / Unbranded Firefox、`GECKODRIVER_PATH`へ
+geckodriverを指定する。
+
 ## Acceptance criteria の対応
 
 Issue #722 の受け入れ条件に対する Phase 1 + 2 + 3 の対応と残課題。
@@ -91,6 +109,7 @@ Issue #722 の受け入れ条件に対する Phase 1 + 2 + 3 の対応と残課�
 - [x] storage read / write の最低限の contract を検証する — Phase 3b の `chrome.storage.local` round-trip smoke
 - [x] options または saved tabs の主要画面を開けることを検証する — Phase 3b の title render assertion
 - [x] Chrome 専用 API 利用が混入した場合の検出方法がある — Phase 3a verifier が `chrome-extension://` literal と chrome-only API を CI 常時 enforce
+- [x] legacy → IndexedDB migration後のrestart / read / write / Backup V2を検証する — Phase 4のnon-skippable migration smoke
 - [~] CI / nightly / release gate の実行タイミングが決定されている — Phase 1 / 3a は CI / release:check で常時、Phase 2 / 3b は workflow_dispatch で manual gate。nightly cron 自動実行は follow-up issue で整備
 
 ## follow-up 候補
@@ -105,11 +124,6 @@ Issue #722 の受け入れ条件に対する Phase 1 + 2 + 3 の対応と残課�
   - `userSettingsDefaultsMerge.ts` の default exclude patterns に `moz-extension://` を追加する
   - i18n placeholder の説明文を browser-agnostic にする
   - `urlIdentityCorpus.ts` の corpus に対して Chrome / Firefox 両 scheme の入力を与える
-- Persistence Model v2 migration smoke (Issue #722 の owner comment)
-  - legacy `chrome.storage` fixture → Firefox startup → PersistenceBootstrap
-    → preflight / migration → IndexedDB cutover → restart → saved tabs read
-    → Backup V2 export
-  - 関連 issue: #724, #726, #727, #728, #730, #735, #736
 
 ## 実行手順
 
@@ -137,14 +151,26 @@ FIREFOX_EXTENSION_SMOKE=1 bun run test:firefox:smoke
 CI で manual 実行する場合は `Actions` タブから `CI` workflow を
 `Run workflow` で dispatch する。`firefox-extension-smoke` job が走る。
 
+### Phase 4 Firefox Persistence v2 migration smoke (manual gate)
+
+```bash
+export GECKODRIVER_PATH=/path/to/geckodriver
+export FIREFOX_EXECUTABLE_PATH=/path/to/firefox
+bun run test:firefox:migration-smoke
+```
+
+このcommandはFirefox artifactとtesting-only browser harnessをbuildしてから、WebDriverで
+legacy fixture / preflight / migration / restart / read / write / Backup V2を実行する。skipや
+`|| true`でunsupported環境を成功扱いにしない。
+
 ## 注意点
 
 - Chrome E2E をそのまま Firefox へ全複製しない。browser 差分の risk が高い flow
   (startup, storage API, persistence migration) を優先して smoke 化する。
 - Firefox startup / UI smoke は Playwright firefox と profile に unpacked extension
-  を copy して動かす設計。Firefox dev / Unbranded build または AMO 署名済み XPI
-  が必要。release build では install されず、`firefoxExtensionUuid` fixture が
-  throw する。CI 常時実行は workflow_dispatch gate に置く。
+  を copy して動かす。Persistence v2 migration smokeは署名不要のtemporary XPIを
+  geckodriverでinstallし、同じprofileを実際にrestartする。CI実行はworkflow_dispatch
+  gateに置く。
 - Phase 1 verifier は build された manifest.json と artifact file が前提。build
   なしで実行すると manifest が無い旨の error で fail する。
 - Phase 3a verifier は build 不要で production source のみを見るが、既存の技術的

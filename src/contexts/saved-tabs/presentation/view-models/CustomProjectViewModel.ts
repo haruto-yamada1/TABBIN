@@ -8,7 +8,6 @@
 export type CustomProjectViewModel = {
   readonly id: string
   readonly name: string
-  readonly urlIds: readonly string[]
   readonly urls: readonly {
     readonly id?: string
     readonly url: string
@@ -27,14 +26,14 @@ export type CustomProjectViewModel = {
  * domain `CustomProject` を view-model へ変換する純関数。
  *
  * branded な `CustomProjectId` / `UrlRecordId` などを含む entity を受け取れる
- * よう、`urlIds` は readonly 許容にしている。`toCustomProjectViewModel` の
+ * よう、`memberships` は readonly 許容にしている。`toCustomProjectViewModel` の
  * 利用側 (`createDomainModeViewModel` / `createCustomModeViewModel`) は
  * presentation 層で branded 型を意識せず `readonly` として扱える。
  */
 export const toCustomProjectViewModel = (project: {
   id: string
   name: string
-  urlIds?: readonly string[]
+  memberships?: readonly { urlId: string }[]
   urls?: readonly {
     id?: string
     url: string
@@ -46,9 +45,9 @@ export const toCustomProjectViewModel = (project: {
   createdAt: number
   updatedAt: number
 }): CustomProjectViewModel => {
-  const urlIds = project.urlIds ?? []
   const urls = project.urls ?? []
-  const displayUrlCount = urls.length > 0 ? urls.length : urlIds.length
+  const displayUrlCount =
+    urls.length > 0 ? urls.length : (project.memberships?.length ?? 0)
   return {
     categories: [...project.categories],
     categoryOrder: [...(project.categoryOrder ?? project.categories)],
@@ -58,7 +57,6 @@ export const toCustomProjectViewModel = (project: {
     id: project.id,
     name: project.name,
     updatedAt: project.updatedAt,
-    urlIds: [...urlIds],
     urls: [...urls],
   }
 }

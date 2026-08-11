@@ -95,8 +95,18 @@ describe('ChromeTabGroupRepository', () => {
       const result = await repo.findAll()
       expect(result).toHaveLength(2)
       expect(result[0]?.id).toBe('group-1')
-      expect(result[1]?.urlIds).toStrictEqual(['url-2', 'url-3'])
-      expect(result[1]?.parentCategoryId).toBe('cat-1')
+      expect(result[1]?.memberships).toStrictEqual([
+        expect.objectContaining({
+          categoryId: 'group-2:category:0',
+          collectionId: 'group-2',
+          urlId: 'url-2',
+        }),
+        expect.objectContaining({
+          collectionId: 'group-2',
+          urlId: 'url-3',
+        }),
+      ])
+      expect(result[1]?.collection.groupId).toBe('cat-1')
     })
 
     it('不正な要素をスキップして有効要素だけ返す', async () => {
@@ -142,7 +152,7 @@ describe('ChromeTabGroupRepository', () => {
       ).resolves.toBeNull()
     })
 
-    it('findRawTabGroupById はrich summaryを返し、未知IDはnullを返す', async () => {
+    it('findRawTabGroupById は normalized projection を返し、未知IDはnullを返す', async () => {
       const repo = createChromeTabGroupRepository(
         createPort({
           [SAVED_TABS_KEY]: [
@@ -159,15 +169,22 @@ describe('ChromeTabGroupRepository', () => {
         }),
       )
 
-      await expect(
-        repo.findRawTabGroupById(createTabGroupId('group-1')),
-      ).resolves.toStrictEqual({
-        categoryKeywords: [{ categoryName: 'Docs', keywords: ['reference'] }],
-        domain: 'example.com',
+      const result = await repo.findRawTabGroupById(createTabGroupId('group-1'))
+      expect(result?.collection).toStrictEqual({
+        createdAt: 0,
+        definition: { domain: 'example.com', type: 'domain' },
+        groupId: 'category-1',
         id: 'group-1',
-        parentCategoryId: 'category-1',
-        subCategories: ['Docs'],
+        name: 'example.com',
+        sortOrder: 0,
+        updatedAt: 0,
       })
+      expect(result?.collectionCategories).toStrictEqual([
+        expect.objectContaining({
+          keywords: ['reference'],
+          name: 'Docs',
+        }),
+      ])
       await expect(
         repo.findRawTabGroupById(createTabGroupId('missing')),
       ).resolves.toBeNull()
@@ -175,7 +192,7 @@ describe('ChromeTabGroupRepository', () => {
   })
 
   describe('SavedTabsTabGroupReadPort', () => {
-    it('raw rich fieldをdeep copyして返す', async () => {
+    it('legacy raw を normalized projection と resolved URL に変換する', async () => {
       const raw = {
         categoryKeywords: [{ categoryName: 'Docs', keywords: ['reference'] }],
         domain: 'example.com',
@@ -193,10 +210,31 @@ describe('ChromeTabGroupRepository', () => {
 
       const [result] = await adapter.findAll()
 
-      expect(result).toStrictEqual(raw)
-      expect(result?.urlIds).not.toBe(raw.urlIds)
-      expect(result?.urls).not.toBe(raw.urls)
-      expect(result?.categoryKeywords).not.toBe(raw.categoryKeywords)
+      expect(result?.collection.definition).toStrictEqual({
+        domain: 'example.com',
+        type: 'domain',
+      })
+      expect(result?.collectionCategories).toStrictEqual([
+        expect.objectContaining({
+          keywords: ['reference'],
+          name: 'Docs',
+        }),
+      ])
+      expect(result?.memberships).toStrictEqual([
+        expect.objectContaining({
+          categoryId: 'group-1:category:0',
+          urlId: 'url-1',
+        }),
+      ])
+      expect(result?.resolvedUrls).toStrictEqual([
+        {
+          id: 'url-1',
+          subCategory: 'Docs',
+          title: 'Example',
+          url: 'https://example.com',
+        },
+      ])
+      expect(result?.resolvedUrls).not.toBe(raw.urls)
     })
 
     it('optional rich fieldが無いrawも返し、null portを拒否する', async () => {
@@ -206,9 +244,13 @@ describe('ChromeTabGroupRepository', () => {
         }),
       )
 
-      await expect(adapter.findAll()).resolves.toStrictEqual([
-        { domain: 'example.com', id: 'group-1' },
-      ])
+      const [result] = await adapter.findAll()
+      expect(result?.collection.definition).toStrictEqual({
+        domain: 'example.com',
+        type: 'domain',
+      })
+      expect(result?.collectionCategories).toStrictEqual([])
+      expect(result?.memberships).toStrictEqual([])
       expect(() => createChromeSavedTabsTabGroupReadAdapter(null)).toThrow(
         SavedTabsRepositoryUnavailableError,
       )
@@ -244,7 +286,10 @@ describe('ChromeTabGroupRepository', () => {
       }
       const repo = createChromeTabGroupRepository(createPort(state))
       const result = await repo.findById(createTabGroupId('group-2'))
-      expect(result?.domain).toBe('b.example.com')
+      expect(result?.collection.definition).toStrictEqual({
+        domain: 'b.example.com',
+        type: 'domain',
+      })
     })
 
     it('存在しない ID は null を返す', async () => {
@@ -325,7 +370,9 @@ describe('ChromeTabGroupRepository', () => {
       // url-remove だけ取り除く形で saveAll を呼ぶ
       const remaining = entities.map((entity) => ({
         ...entity,
-        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+        memberships: entity.memberships.filter(
+          ({ urlId }) => urlId !== 'url-remove',
+        ),
       }))
       await repo.saveAll(remaining)
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
@@ -389,7 +436,9 @@ describe('ChromeTabGroupRepository', () => {
       const entities = await repo.findAll()
       const remaining = entities.map((entity) => ({
         ...entity,
-        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+        memberships: entity.memberships.filter(
+          ({ urlId }) => urlId !== 'url-remove',
+        ),
       }))
       await repo.saveAll(remaining)
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(

@@ -115,6 +115,7 @@ export class IndexedDbSavedTabsQueryAdapter implements PersistenceV2QueryPort {
     const index = indexSnapshot(snapshot)
 
     return {
+      categories: snapshot.categories.toSorted(byOrderThenId),
       collections: snapshot.collections
         .toSorted(byOrderThenId)
         .map((collection) => projectCollection(index, collection)),

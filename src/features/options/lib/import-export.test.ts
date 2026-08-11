@@ -3,6 +3,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+// oxlint-disable-next-line eslint/no-restricted-imports -- test-only coverage for retired legacy import shapes
+import type { CustomProject } from '@/contexts/saved-tabs/public-api'
 import type {
   AiChatConversation,
   AiChatConversationMessage,
@@ -10,7 +12,7 @@ import type {
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
-import type { CustomProject, UserSettings } from '@/types/storage'
+import type { UserSettings } from '@/types/storage'
 
 vi.mock('@/lib/storage/categories', () => ({
   getParentCategories: vi.fn(async () => {
@@ -163,14 +165,14 @@ import {
   createOrUpdateUrlRecordsBatch,
 } from '@/lib/storage/urls'
 
+import { downloadAsJson, getImportPreview } from './import-export'
+import { LEGACY_BACKUP_ADVISORY } from './import-export/compatibility/legacyBackupPolicy'
 import {
   alignCustomProjectsWithSavedTabs,
   convertCustomProjectToExportUrls,
   convertImportedCustomProjectUrlsToStorage,
-  downloadAsJson,
   ensurePlaceholderUrlRecords,
   exportSettings,
-  getImportPreview,
   importSettings,
   mergeImportedCustomProjects,
   normalizeImportedCustomProject,
@@ -181,8 +183,7 @@ import {
   resolveOverwriteAiChatHistory,
   resolveCurrentLanguage,
   restoreImportedCustomProjectUrlsFromIds,
-} from './import-export'
-import { LEGACY_BACKUP_ADVISORY } from './import-export/compatibility/legacyBackupPolicy'
+} from './import-export/index.fixture'
 import {
   buildCustomProject,
   buildFullUserSettings,

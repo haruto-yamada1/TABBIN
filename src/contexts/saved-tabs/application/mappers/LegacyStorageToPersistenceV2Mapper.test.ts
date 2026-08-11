@@ -546,8 +546,8 @@ describe('analyzeLegacyMigrationPreflight', () => {
     let source = createEmptySnapshot()
     source = withSource(source, 'parentCategories', [
       {
-        domainNames: ['https://example.com'],
         domains: ['group-1'],
+        domainNames: ['https://example.com'],
         id: 'parent-a',
         name: 'Parent A',
       },

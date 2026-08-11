@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Toaster } from '@/components/ui/sonner'
@@ -55,7 +55,6 @@ import {
 } from '@/features/analytics/routes/analyticsRoute.helpers'
 import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 import {
   createSavedAnalyticsView,
   deleteSavedAnalyticsView,
@@ -404,13 +403,7 @@ const useAnalyticsRouteView = () => {
             // eslint-disable-next-line typescript/no-misused-promises
             onClick: async () => {
               try {
-                const storageLocal = getPersistenceStorageLocal()
-                if (!storageLocal) {
-                  warnMissingChromeStorage('分析削除アンドゥ復元')
-                  toast.error(t('savedTabs.undo.restoreError'))
-                  return
-                }
-                await storageLocal.set(
+                await getBackgroundSavedTabsDataPlane().restoreUndoSnapshot(
                   createAnalyticsDeleteUndoPayload(snapshot),
                 )
                 const nextRecords = await refreshRecords()

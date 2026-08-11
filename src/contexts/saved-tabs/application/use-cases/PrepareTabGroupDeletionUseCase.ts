@@ -1,6 +1,11 @@
 import type { PrepareTabGroupDeletionCommand } from '@/contexts/saved-tabs/application/commands/PrepareTabGroupDeletionCommand'
 import type { CategoriesCommandService } from '@/contexts/saved-tabs/application/ports/CategoriesCommandService'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import {
+  tabGroupCollectionGroupId,
+  tabGroupDomainName,
+} from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
@@ -31,56 +36,58 @@ export type PrepareTabGroupDeletionUseCase = (
 ) => Promise<void>
 
 const ensureDomainNameInParentCategory = async (
-  group: {
-    readonly domain: string
-    readonly parentCategoryId: string | undefined
-  },
+  group: TabGroup,
   parentCategoryRepository: ParentCategoryRepository,
 ): Promise<void> => {
-  if (!group.parentCategoryId) {
+  const parentCategoryId = tabGroupCollectionGroupId(group)
+  if (!parentCategoryId) {
     return
   }
   const fromRepo = await parentCategoryRepository.findAll()
-  const parentCategory = fromRepo.find(
-    (cat) => cat.id === group.parentCategoryId,
-  )
+  const parentCategory = fromRepo.find((cat) => cat.id === parentCategoryId)
   if (!parentCategory) {
     return
   }
-  const domainName = createDomainName(group.domain)
-  const hasDomainName = parentCategory.domainNames.includes(domainName)
-  if (hasDomainName) {
+  const domainName = createDomainName(tabGroupDomainName(group))
+  const hasCollection = parentCategory.collections.some(
+    ({ domain, id }) => domain === domainName || id === group.collection.id,
+  )
+  if (hasCollection) {
     return
   }
   const updatedCategory: ParentCategory = {
     ...parentCategory,
-    domainNames: [...parentCategory.domainNames, domainName],
+    collections: [
+      ...parentCategory.collections,
+      { domain: domainName, id: createTabGroupId(group.collection.id) },
+    ],
   }
   await parentCategoryRepository.saveAll(
     fromRepo.map((cat) =>
-      cat.id === group.parentCategoryId ? updatedCategory : cat,
+      cat.id === parentCategoryId ? updatedCategory : cat,
     ),
   )
   console.log('ドメインを親カテゴリのdomainNamesに追加しました')
 }
 
 const updateDomainCategoryMappingIfNeeded = async (
-  group: {
-    readonly domain: string
-    readonly parentCategoryId: string | undefined
-  },
+  group: TabGroup,
   domainCategoryMappingRepository: DomainCategoryMappingRepository,
 ): Promise<void> => {
-  if (!group.parentCategoryId) {
+  const parentCategoryId = tabGroupCollectionGroupId(group)
+  if (!parentCategoryId) {
     return
   }
   const currentMappings = await domainCategoryMappingRepository.findAll()
-  const filtered = currentMappings.filter((m) => m.domain !== group.domain)
+  const domain = tabGroupDomainName(group)
+  const filtered = currentMappings.filter(
+    (mapping) => mapping.domain !== domain,
+  )
   await domainCategoryMappingRepository.saveAll([
     ...filtered,
     {
-      categoryId: group.parentCategoryId,
-      domain: group.domain,
+      categoryId: parentCategoryId,
+      domain,
     },
   ])
   console.log('ドメインのマッピングを更新しました')
@@ -115,18 +122,14 @@ export const createPrepareTabGroupDeletionUseCase = (
       const tabGroupId = createTabGroupId(command.tabGroupId)
       const groupToRemove =
         await deps.tabGroupRepository.findRawTabGroupById(tabGroupId)
-      if (!groupToRemove?.domain) {
+      if (!groupToRemove) {
         return
       }
       console.log('グループ削除前の処理を開始します')
       await Promise.all([
-        deps.categoriesCommandService.updateDomainCategorySettings(
-          groupToRemove.domain,
-          [...groupToRemove.subCategories],
-          groupToRemove.categoryKeywords.map((keyword) => ({
-            categoryName: keyword.categoryName,
-            keywords: [...keyword.keywords],
-          })),
+        deps.categoriesCommandService.updateCollectionCategories(
+          groupToRemove.collection,
+          groupToRemove.collectionCategories,
         ),
         ensureDomainNameInParentCategory(
           groupToRemove,

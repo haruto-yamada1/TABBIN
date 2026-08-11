@@ -18,6 +18,27 @@ const settings = {
   domain: 'example.com',
   subCategories: ['Docs'],
 }
+const currentSettings = {
+  collection: {
+    createdAt: 0,
+    definition: { domain: 'example.com', type: 'domain' as const },
+    id: 'legacy-domain:example.com',
+    name: 'example.com',
+    sortOrder: 0,
+    updatedAt: 0,
+  },
+  collectionCategories: [
+    {
+      collectionId: 'legacy-domain:example.com',
+      createdAt: 0,
+      id: 'legacy-domain:example.com:category:0',
+      keywords: ['guide', 'reference'],
+      name: 'Docs',
+      sortOrder: 0,
+      updatedAt: 0,
+    },
+  ],
+}
 
 describe('ChromeDomainCategorySettingsRepository', () => {
   afterEach(() => {
@@ -32,13 +53,8 @@ describe('ChromeDomainCategorySettingsRepository', () => {
 
     const result = await repository.findAll()
 
-    expect(result).toStrictEqual([settings])
-    expect(result[0]).not.toBe(settings)
-    expect(result[0]?.subCategories).not.toBe(settings.subCategories)
-    expect(result[0]?.categoryKeywords[0]).not.toBe(
-      settings.categoryKeywords[0],
-    )
-    expect(result[0]?.categoryKeywords[0]?.keywords).not.toBe(
+    expect(result).toStrictEqual([currentSettings])
+    expect(result[0]?.collectionCategories[0]?.keywords).not.toBe(
       settings.categoryKeywords[0]?.keywords,
     )
     expect(port.get).toHaveBeenCalledWith(DOMAIN_CATEGORY_SETTINGS_KEY)
@@ -56,7 +72,7 @@ describe('ChromeDomainCategorySettingsRepository', () => {
     const port = createPort([])
     const repository = createChromeDomainCategorySettingsRepository(port)
 
-    await repository.saveAll([settings])
+    await repository.saveAll([currentSettings])
 
     expect(port.set).toHaveBeenCalledWith({
       [DOMAIN_CATEGORY_SETTINGS_KEY]: [settings],

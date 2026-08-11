@@ -6,7 +6,7 @@ import type {
   DomainParentCategoryMapping,
   ParentCategory,
   TabGroup,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
 
 const mocks = vi.hoisted(() => {
   let uuidIndex = 0

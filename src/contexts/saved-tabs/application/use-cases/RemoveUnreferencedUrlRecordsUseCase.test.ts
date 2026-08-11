@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { RemoveUnreferencedUrlRecordsUseCaseDeps } from './RemoveUnreferencedUrlRecordsUseCase'
 import { createRemoveUnreferencedUrlRecordsUseCase } from './RemoveUnreferencedUrlRecordsUseCase'
@@ -94,7 +96,7 @@ describe('RemoveUnreferencedUrlRecordsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [group],
@@ -118,7 +120,7 @@ describe('RemoveUnreferencedUrlRecordsUseCase', () => {
       id: 'project-1',
       name: 'Project',
       updatedAt: 1,
-      urlIds: ['url-orphan'],
+      memberships: ['url-orphan'].map((urlId) => ({ urlId })),
     })
     const unreferenced = createUrlRecord({
       id: 'url-orphan',
@@ -148,7 +150,7 @@ describe('RemoveUnreferencedUrlRecordsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [group],

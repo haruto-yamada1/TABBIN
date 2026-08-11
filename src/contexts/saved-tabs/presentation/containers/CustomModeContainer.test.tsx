@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-l
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({

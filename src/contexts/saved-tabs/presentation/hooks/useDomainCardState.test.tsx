@@ -2,9 +2,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import {
   arraysEqual,
@@ -80,7 +81,14 @@ const createUseDomainCardStateParams = (
     async () =>
       Promise.resolve({
         all: [],
-        category: { id: '', name: '', domains: [], domainNames: [] } as never,
+        category: {
+          id: '',
+          name: '',
+          collections: [].map((id, index) => ({
+            id,
+            domain: [][index] ?? id,
+          })),
+        } as never,
       }) as unknown as ReturnType<CreateParentCategoryUseCase>,
   ) as unknown as CreateParentCategoryUseCase
 
@@ -370,7 +378,7 @@ describe('useDomainCardState', () => {
     const { params, categoryAssignmentPort, getSavedTabsPageDataQuery } =
       createUseDomainCardStateParams({ group })
     getSavedTabsPageDataQuery.mockResolvedValue({
-      tabGroups: [group, otherGroup],
+      tabGroups: [group, otherGroup].map(toTabGroupFromViewModel),
       parentCategories: [],
       userSettings: {},
     })
@@ -398,19 +406,16 @@ describe('useDomainCardState', () => {
     await act(async () => {
       await result.current.categoryReorder.handleConfirmCategoryReorder()
     })
-    expect(categoryAssignmentPort.saveTabGroups).toHaveBeenCalledWith([
-      expect.objectContaining({
-        id: 'group-1',
-        subCategoryOrder: ['news', 'tech'],
-        subCategoryOrderWithUncategorized: ['news', 'tech'],
-      }),
-      expect.objectContaining({
-        domain: otherGroup.domain,
-        id: otherGroup.id,
-        subCategories: otherGroup.subCategories,
-        urls: otherGroup.urls,
-      }),
-    ])
+    expect(categoryAssignmentPort.saveTabGroups).toHaveBeenCalledWith(
+      [
+        {
+          ...group,
+          subCategoryOrder: ['news', 'tech'],
+          subCategoryOrderWithUncategorized: ['news', 'tech'],
+        },
+        otherGroup,
+      ].map(toTabGroupFromViewModel),
+    )
     expect(toast.success).toHaveBeenCalled()
 
     act(() => {
@@ -734,15 +739,19 @@ describe('useDomainCardState', () => {
     vi.mocked(createParentCategoryUseCase).mockResolvedValue({
       all: [
         {
-          domains: [],
-          domainNames: [],
+          collections: [].map((id, index) => ({
+            id,
+            domain: [][index] ?? id,
+          })),
           id: 'parent-1' as never,
           name: 'Parent' as never,
         },
       ],
       category: {
-        domains: [],
-        domainNames: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
         id: 'parent-1' as never,
         name: 'Parent' as never,
       },
@@ -750,8 +759,10 @@ describe('useDomainCardState', () => {
     vi.mocked(assignDomainToCategoryUseCase).mockResolvedValue({
       all: [
         {
-          domains: [],
-          domainNames: [],
+          collections: [].map((id, index) => ({
+            id,
+            domain: [][index] ?? id,
+          })),
           id: 'parent-1' as never,
           name: 'Parent' as never,
         },
@@ -815,8 +826,10 @@ describe('useDomainCardState', () => {
     act(() => {
       result.current.parentCategories.handleUpdateParentCategories([
         {
-          domains: [],
-          domainNames: [],
+          collections: [].map((id, index) => ({
+            id,
+            domain: [][index] ?? id,
+          })),
           id: 'parent-2',
           name: 'Manual',
         },

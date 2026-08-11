@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
+  runPersistenceMigration: vi.fn(),
   setupExpiredTabsCheckAlarm: vi.fn(),
   createContextMenus: vi.fn(),
   handleExtensionActionClick: vi.fn(),
@@ -21,6 +22,11 @@ vi.mock('wxt/utils/define-background', () => ({
     setup()
     return {}
   },
+}))
+vi.mock('@/app/composition/createMigrationPreflightController', () => ({
+  getMigrationPreflightController: () => ({
+    run: mocked.runPersistenceMigration,
+  }),
 }))
 vi.mock('@/lib/background/alarm-notification', () => ({
   setupExpiredTabsCheckAlarm: mocked.setupExpiredTabsCheckAlarm,
@@ -183,9 +189,11 @@ const loadBackground = async (
     vi.stubEnv('DEV', options.dev)
   }
   mocked.openSavedTabsPage.mockResolvedValue(123)
+  mocked.runPersistenceMigration.mockResolvedValue(undefined)
   mocked.getParentCategories.mockResolvedValue([])
   mocked.migrateParentCategoriesToDomainNames.mockResolvedValue(undefined)
   mocked.createContextMenus.mockImplementation(() => {})
+  mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {})
   mocked.setupMessageListener.mockImplementation(() => {})
   options.setupMocks?.()
   const harness = createChromeHarness(options.initialStorage ?? {})
@@ -237,6 +245,9 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       mocked.handleTabCreated,
     )
     expect(mocked.setupMessageListener).toHaveBeenCalledTimes(1)
+    expect(mocked.runPersistenceMigration).toHaveBeenCalledOnce()
+    expect(mocked.getParentCategories).not.toHaveBeenCalled()
+    expect(mocked.migrateParentCategoriesToDomainNames).not.toHaveBeenCalled()
     await triggerInstalled(harness, 'install')
     expect(mocked.openSavedTabsPage).toHaveBeenCalledTimes(1)
     expect(harness.tabsCreate).not.toHaveBeenCalled()
@@ -329,7 +340,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     )
   })
   it('バックグラウンド初期化 IIFE 内のマイグレーションエラーを捕捉する', async () => {
-    mocked.migrateParentCategoriesToDomainNames.mockRejectedValueOnce(
+    mocked.runPersistenceMigration.mockRejectedValueOnce(
       new Error('migration failed'),
     )
     await loadBackground({
@@ -358,16 +369,16 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     await loadBackground({
       clearAfterImport: false,
       setupMocks: () => {
-        mocked.getParentCategories.mockRejectedValue(
-          new Error('categories failed'),
-        )
+        mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {
+          throw new Error('alarm failed')
+        })
       },
     })
     expect(mocked.logger.error).toHaveBeenCalledWith(
       'background_initialization_failed',
       expect.any(Error),
     )
-    expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
+    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
   })
   it('本番モードでも console globals を上書きしない', async () => {
     const originalLog = console.log

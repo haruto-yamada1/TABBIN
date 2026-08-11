@@ -44,22 +44,6 @@ const findAllRawCustomProjects = async (
 }
 
 /**
- * `findAllRawCustomProjects` の結果を `CustomProjectRawSnapshot` 形に
- * widen する。raw 段階では optional な `categories` / `createdAt` /
- * `updatedAt` を default で補完し、domain interface の snapshot 形
- * （必須フィールド）と整合させる（issue #530 review P1）。
- */
-const toRawSnapshots = (
-  raws: readonly CustomProjectRaw[],
-): CustomProjectRawSnapshot[] =>
-  raws.map((raw) => ({
-    ...raw,
-    categories: raw.categories ?? [],
-    createdAt: raw.createdAt ?? 0,
-    updatedAt: raw.updatedAt ?? 0,
-  }))
-
-/**
  * `CUSTOM_PROJECT_ORDER_KEY` の生値を `CustomProjectId[]` へ詰め替える。
  *
  * - 非配列 / 配列でも要素が文字列以外 / 空文字・空白のみはスキップする。
@@ -153,18 +137,13 @@ const createChromeCustomProjectRepositoryImpl = (
   }
 
   const findAllRaw = async (): Promise<readonly CustomProjectRawSnapshot[]> => {
-    const raws = await findAllRawCustomProjects(port)
-    return toRawSnapshots(raws)
+    return findAll()
   }
 
   const restoreAllRaw = async (
     raws: readonly CustomProjectRawSnapshot[],
   ): Promise<void> => {
-    // undo 用途：merge を介さず snapshot をそのまま chrome.storage に
-    // 反映する。`saveAll` の merge 経路は entity に載らない `urls` /
-    // `urlMetadata` を脱落させるため、削除→undo のような復元ではこちら
-    // を使う。
-    await port.set({ [CUSTOM_PROJECTS_KEY]: [...raws] })
+    await saveAll(raws)
   }
 
   return {

@@ -2,6 +2,11 @@ import type {
   SavedTabsParentCategoryDto as ParentCategoryDto,
   SavedTabsDisplayTabGroupDto as TabGroupDto,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import {
+  assignTabGroupToCollectionGroup,
+  tabGroupCollectionGroupId,
+  tabGroupDomainName,
+} from '@/contexts/saved-tabs/domain/entities/TabGroup'
 
 /**
  * 親カテゴリの高速検索用マップ (domain DTO ベース)。
@@ -47,14 +52,12 @@ export const buildPresentationCategoryLookup = (
   const byDomainName = new Map<string, ParentCategoryDto>()
   for (const category of categories) {
     byId.set(category.id, category)
-    for (const tabGroupId of category.domains) {
-      if (!byGroupId.has(tabGroupId)) {
-        byGroupId.set(tabGroupId, category)
+    for (const collection of category.collections) {
+      if (!byGroupId.has(collection.id)) {
+        byGroupId.set(collection.id, category)
       }
-    }
-    for (const domainName of category.domainNames) {
-      if (!byDomainName.has(domainName)) {
-        byDomainName.set(domainName, category)
+      if (!byDomainName.has(collection.domain)) {
+        byDomainName.set(collection.domain, category)
       }
     }
   }
@@ -62,21 +65,16 @@ export const buildPresentationCategoryLookup = (
 }
 
 const hasDisplayableUrls = (group: TabGroupDto): boolean => {
-  const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
-  const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
-  return hasNewUrls || hasOldUrls
+  return Boolean(group.resolvedUrls && group.resolvedUrls.length > 0)
 }
 
 const assignParentCategory = (
   group: TabGroupDto,
   categoryId: string,
 ): TabGroupDto =>
-  group.parentCategoryId === categoryId
+  tabGroupCollectionGroupId(group) === categoryId
     ? group
-    : {
-        ...group,
-        parentCategoryId: categoryId,
-      }
+    : assignTabGroupToCollectionGroup(group, categoryId)
 
 const resolveCategoryIdByGroupId = (
   group: TabGroupDto,
@@ -90,7 +88,7 @@ const resolveCategoryIdByDomainName = (
   group: TabGroupDto,
   categoryLookup: PresentationCategoryLookup,
 ): string | undefined => {
-  const category = categoryLookup.byDomainName.get(group.domain)
+  const category = categoryLookup.byDomainName.get(tabGroupDomainName(group))
   return category?.id
 }
 
@@ -99,8 +97,9 @@ const matchesParentCategoryQuery = (
   categoryLookup: PresentationCategoryLookup,
   normalizedQuery: string,
 ): boolean => {
-  if (group.parentCategoryId) {
-    const parentCategory = categoryLookup.byId.get(group.parentCategoryId)
+  const groupId = tabGroupCollectionGroupId(group)
+  if (groupId) {
+    const parentCategory = categoryLookup.byId.get(groupId)
     if (parentCategory) {
       return parentCategory.name.toLowerCase().includes(normalizedQuery)
     }
@@ -109,7 +108,7 @@ const matchesParentCategoryQuery = (
     // `||` needed: Map.get() could return empty string
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     categoryLookup.byGroupId.get(group.id) ||
-    categoryLookup.byDomainName.get(group.domain)
+    categoryLookup.byDomainName.get(tabGroupDomainName(group))
   if (fallbackCategory) {
     return fallbackCategory.name.toLowerCase().includes(normalizedQuery)
   }
@@ -121,7 +120,7 @@ const filterGroupByQuery = (
   normalizedQuery: string,
   categoryLookup: PresentationCategoryLookup,
 ): TabGroupDto => {
-  const currentUrls = group.urls ?? []
+  const currentUrls = group.resolvedUrls ?? []
   if (currentUrls.length === 0) {
     return group
   }
@@ -134,7 +133,7 @@ const filterGroupByQuery = (
     const matchesBasicFields =
       item.title.toLowerCase().includes(normalizedQuery) ||
       item.url.toLowerCase().includes(normalizedQuery) ||
-      group.domain.toLowerCase().includes(normalizedQuery)
+      tabGroupDomainName(group).toLowerCase().includes(normalizedQuery)
     const matchesSubCategory = item.subCategory
       ?.toLowerCase()
       .includes(normalizedQuery)
@@ -146,7 +145,7 @@ const filterGroupByQuery = (
   }
   return {
     ...group,
-    urls: filteredUrls,
+    resolvedUrls: filteredUrls,
   }
 }
 
@@ -175,11 +174,11 @@ const sortCategorizedGroups = (
   Object.fromEntries(
     Object.entries(categorizedGroups).map(([categoryId, groups]) => {
       const category = categoryLookup.byId.get(categoryId)
-      const domains = category?.domains
-      if (!(domains && domains.length > 0)) {
+      const collectionIds = category?.collections.map(({ id }) => id)
+      if (!(collectionIds && collectionIds.length > 0)) {
         return [categoryId, [...groups]]
       }
-      return [categoryId, sortGroupsByDomainOrder(groups, domains)]
+      return [categoryId, sortGroupsByDomainOrder(groups, collectionIds)]
     }),
   )
 

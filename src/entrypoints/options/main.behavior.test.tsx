@@ -10,7 +10,6 @@ import type { UserSettings } from '@/types/storage'
 const mocked = vi.hoisted(() => ({
   addExcludePattern: vi.fn(),
   confirmationConfirm: vi.fn(),
-  handleCategoryKeyDown: vi.fn(),
   handleColorChange: vi.fn(),
   handleExcludePatternInputChange: vi.fn(),
   handleResetColors: vi.fn(),
@@ -200,12 +199,6 @@ vi.mock('@/features/options/hooks/useColorSettings', () => ({
   useColorSettings: () => ({
     handleColorChange: mocked.handleColorChange,
     handleResetColors: mocked.handleResetColors,
-  }),
-}))
-
-vi.mock('@/features/options/hooks/useCategories', () => ({
-  useCategories: () => ({
-    handleCategoryKeyDown: mocked.handleCategoryKeyDown,
   }),
 }))
 

@@ -2,59 +2,41 @@
  * URL・ストレージ操作モジュール
  */
 
-import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { getUserSettings } from '@/lib/storage/settings'
-import { invalidateUrlCache, withUrlRecordMutation } from '@/lib/storage/urls'
 import type { DraggedUrlInfo } from '@/types/background'
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UrlRecord,
-} from '@/types/storage'
 
-// ドラッグされたURL情報を一時保存するためのストア
 let draggedUrlInfo: DraggedUrlInfo | null = null
 let savedTabsStorageMutationQueue: Promise<void> = Promise.resolve()
+const DRAG_INFO_TIMEOUT_MS = 10_000
 
-const enqueueStorageMutation = async <T>(
-  mutation: () => Promise<T>,
-): Promise<T> => {
+const enqueueStorageMutation = async <Result>(
+  mutation: () => Promise<Result>,
+): Promise<Result> => {
   const nextTask = savedTabsStorageMutationQueue.then(mutation, mutation)
-
   savedTabsStorageMutationQueue = nextTask.then(
     () => undefined,
     () => undefined,
   )
-
   return nextTask
 }
 
-/**
- * ドラッグ情報を設定
- */
 const setDraggedUrlInfo = (info: DraggedUrlInfo): void => {
   draggedUrlInfo = info
 }
-/**
- * ドラッグ情報を取得
- */
+
 const getDraggedUrlInfo = (): DraggedUrlInfo | null => draggedUrlInfo
-/**
- * ドラッグ情報をクリア
- */
+
 const clearDraggedUrlInfo = (): void => {
   draggedUrlInfo = null
 }
+
 type ComparableUrlKeyOptions = {
   readonly ignoreHash?: boolean
   readonly ignoreSearch?: boolean
 }
 
-/**
- * URL比較用の安全な key を作成する。
- */
 const createComparableUrlKey = (
   rawUrl: string,
   options: ComparableUrlKeyOptions = {},
@@ -62,487 +44,18 @@ const createComparableUrlKey = (
   try {
     const url = new URL(rawUrl.trim())
     url.hostname = url.hostname.toLowerCase()
-
     if (options.ignoreHash) {
       url.hash = ''
     }
     if (options.ignoreSearch) {
       url.search = ''
     }
-
     return url.toString()
   } catch {
     return null
   }
 }
 
-const removeUrlIdFromGroup = (
-  group: TabGroup,
-  matchedUrlId: string,
-  removedGroupIds: string[],
-): TabGroup[] => {
-  if (!(Array.isArray(group.urlIds) && group.urlIds.includes(matchedUrlId))) {
-    return [group]
-  }
-  const updatedUrlIds = group.urlIds.filter((id) => id !== matchedUrlId)
-  const updatedUrlSubCategories = group.urlSubCategories
-    ? Object.fromEntries(
-        Object.entries(group.urlSubCategories).filter(
-          ([urlId]) => urlId !== matchedUrlId,
-        ),
-      )
-    : undefined
-  if (updatedUrlIds.length === 0) {
-    removedGroupIds.push(group.id)
-    return []
-  }
-  return [
-    {
-      ...group,
-      urlIds: updatedUrlIds,
-      urlSubCategories:
-        updatedUrlSubCategories &&
-        Object.keys(updatedUrlSubCategories).length > 0
-          ? updatedUrlSubCategories
-          : undefined,
-    },
-  ]
-}
-const removeLegacyUrlFromGroup = (
-  group: TabGroup,
-  targetUrlKey: string,
-  removedGroupIds: string[],
-): TabGroup[] => {
-  if (!Array.isArray(group.urls)) {
-    return [group]
-  }
-  const updatedUrls = group.urls.filter(
-    (item) => createComparableUrlKey(item.url) !== targetUrlKey,
-  )
-  if (updatedUrls.length === group.urls.length) {
-    return [group]
-  }
-  if (updatedUrls.length === 0) {
-    removedGroupIds.push(group.id)
-    return []
-  }
-  return [
-    {
-      ...group,
-      urls: updatedUrls,
-    },
-  ]
-}
-
-const removeLegacyUrlIdsFromGroup = (
-  group: TabGroup,
-  targetUrlIds: Set<string>,
-  targetUrlKeys: Set<string>,
-  removedGroupIds: string[],
-): TabGroup[] => {
-  if (!Array.isArray(group.urls)) {
-    return [group]
-  }
-
-  const updatedUrls = group.urls.filter((item) => {
-    if (item.id && targetUrlIds.has(item.id)) {
-      return false
-    }
-
-    const itemUrlKey = createComparableUrlKey(item.url)
-    return !(itemUrlKey && targetUrlKeys.has(itemUrlKey))
-  })
-  if (updatedUrls.length === group.urls.length) {
-    return [group]
-  }
-  if (updatedUrls.length === 0) {
-    removedGroupIds.push(group.id)
-    return []
-  }
-  return [
-    {
-      ...group,
-      urls: updatedUrls,
-    },
-  ]
-}
-
-const updateGroupAfterUrlRemoval = (
-  group: TabGroup,
-  targetUrlKey: string,
-  matchedUrlId: string | undefined,
-  removedGroupIds: string[],
-): TabGroup[] => {
-  if (Array.isArray(group.urlIds)) {
-    if (!matchedUrlId) {
-      return [group]
-    }
-    return removeUrlIdFromGroup(group, matchedUrlId, removedGroupIds)
-  }
-  return removeLegacyUrlFromGroup(group, targetUrlKey, removedGroupIds)
-}
-
-type BulkUrlRemovalStorage = {
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-  urls?: UrlRecord[]
-}
-
-type BulkSavedTabsRemovalResult = {
-  hasChanges: boolean
-  removedGroupIds: string[]
-  savedTabs: TabGroup[]
-}
-
-type BulkCustomProjectsRemovalResult = {
-  customProjects: CustomProject[]
-  hasChanges: boolean
-}
-
-type BulkParentCategoriesRemovalResult = {
-  hasChanges: boolean
-  parentCategories: ParentCategory[]
-}
-
-const createUrlIdSet = (urlIds: string[]): Set<string> =>
-  new Set(urlIds.filter((id) => typeof id === 'string' && id.length > 0))
-
-const createComparableUrlKeySet = (
-  urls: UrlRecord[],
-  urlIds: Set<string>,
-): Set<string> =>
-  new Set(
-    urls.flatMap((record) => {
-      if (!urlIds.has(record.id)) {
-        return []
-      }
-
-      const urlKey = createComparableUrlKey(record.url)
-      return urlKey ? [urlKey] : []
-    }),
-  )
-
-const haveTabGroupsChanged = (
-  currentGroups: TabGroup[],
-  nextGroups: TabGroup[],
-): boolean =>
-  currentGroups.length !== nextGroups.length ||
-  nextGroups.some((group, index) => group !== currentGroups[index])
-
-const removeUrlIdsFromRecord = <T>(
-  record: Record<string, T> | undefined,
-  urlIds: Set<string>,
-): {
-  hasChanges: boolean
-  record?: Record<string, T>
-} => {
-  if (!record) {
-    return { hasChanges: false }
-  }
-
-  const entries = Object.entries(record).filter(([urlId]) => !urlIds.has(urlId))
-  const hasChanges = entries.length !== Object.keys(record).length
-  if (entries.length === 0) {
-    return { hasChanges, record: undefined }
-  }
-
-  return {
-    hasChanges,
-    record: Object.fromEntries(entries),
-  }
-}
-
-const removeUrlIdsFromSavedTabs = (
-  savedTabs: TabGroup[],
-  urlIds: Set<string>,
-  targetUrlKeys = new Set<string>(),
-): BulkSavedTabsRemovalResult => {
-  let hasChanges = false
-  const removedGroupIds: string[] = []
-  const updatedTabs: TabGroup[] = []
-
-  for (const group of savedTabs) {
-    if (!Array.isArray(group.urlIds)) {
-      const nextGroups = removeLegacyUrlIdsFromGroup(
-        group,
-        urlIds,
-        targetUrlKeys,
-        removedGroupIds,
-      )
-      if (nextGroups[0] !== group || nextGroups.length === 0) {
-        hasChanges = true
-      }
-      updatedTabs.push(...nextGroups)
-      continue
-    }
-
-    const updatedUrlIds = group.urlIds.filter((id) => !urlIds.has(id))
-    if (updatedUrlIds.length === group.urlIds.length) {
-      updatedTabs.push(group)
-      continue
-    }
-
-    hasChanges = true
-    if (updatedUrlIds.length === 0) {
-      removedGroupIds.push(group.id)
-      continue
-    }
-
-    const {
-      hasChanges: hasSubCategoryChanges,
-      record: updatedUrlSubCategories,
-    } = removeUrlIdsFromRecord(group.urlSubCategories, urlIds)
-    const { urlSubCategories: _urlSubCategories, ...groupWithoutMetadata } =
-      group
-
-    updatedTabs.push({
-      ...groupWithoutMetadata,
-      urlIds: updatedUrlIds,
-      ...(hasSubCategoryChanges && updatedUrlSubCategories
-        ? { urlSubCategories: updatedUrlSubCategories }
-        : {}),
-      ...(!hasSubCategoryChanges && group.urlSubCategories
-        ? { urlSubCategories: group.urlSubCategories }
-        : {}),
-    })
-  }
-
-  return {
-    hasChanges,
-    removedGroupIds,
-    savedTabs: updatedTabs,
-  }
-}
-
-const removeUrlIdsFromCustomProjects = (
-  customProjects: CustomProject[],
-  urlIds: Set<string>,
-): BulkCustomProjectsRemovalResult => {
-  const now = Date.now()
-  let hasChanges = false
-
-  const updatedProjects = customProjects.map((project) => {
-    const currentUrlIds = Array.isArray(project.urlIds) ? project.urlIds : []
-    const updatedUrlIds = currentUrlIds.filter((id) => !urlIds.has(id))
-    const { hasChanges: hasMetadataChanges, record: updatedUrlMetadata } =
-      removeUrlIdsFromRecord(project.urlMetadata, urlIds)
-    const hasUrlIdChanges = updatedUrlIds.length !== currentUrlIds.length
-
-    if (!(hasUrlIdChanges || hasMetadataChanges)) {
-      return project
-    }
-
-    hasChanges = true
-    const { urlMetadata: _urlMetadata, ...projectWithoutMetadata } = project
-    return {
-      ...projectWithoutMetadata,
-      updatedAt: now,
-      urlIds: updatedUrlIds,
-      ...(updatedUrlMetadata ? { urlMetadata: updatedUrlMetadata } : {}),
-    }
-  })
-
-  return {
-    customProjects: updatedProjects,
-    hasChanges,
-  }
-}
-
-const removeGroupsFromParentCategories = (
-  parentCategories: ParentCategory[],
-  groupIds: string[],
-): BulkParentCategoriesRemovalResult => {
-  if (groupIds.length === 0) {
-    return {
-      hasChanges: false,
-      parentCategories,
-    }
-  }
-
-  const groupIdsToRemove = new Set(groupIds)
-  let hasChanges = false
-  const updatedCategories = parentCategories.map((category) => {
-    if (!Array.isArray(category.domains)) {
-      return category
-    }
-
-    const updatedDomains = category.domains.filter(
-      (id) => !groupIdsToRemove.has(id),
-    )
-    if (updatedDomains.length === category.domains.length) {
-      return category
-    }
-
-    hasChanges = true
-    return {
-      ...category,
-      domains: updatedDomains,
-    }
-  })
-
-  return {
-    hasChanges,
-    parentCategories: updatedCategories,
-  }
-}
-
-const removeUrlRecordsById = (
-  urls: UrlRecord[],
-  urlIds: Set<string>,
-): {
-  hasChanges: boolean
-  removedCount: number
-  urls: UrlRecord[]
-} => {
-  const updatedUrls = urls.filter((record) => !urlIds.has(record.id))
-
-  return {
-    hasChanges: updatedUrls.length !== urls.length,
-    removedCount: urls.length - updatedUrls.length,
-    urls: updatedUrls,
-  }
-}
-
-const getBulkUrlRemovalStorage = async (): Promise<{
-  customProjects: CustomProject[]
-  parentCategories: ParentCategory[]
-  savedTabs: TabGroup[]
-  urls: UrlRecord[]
-}> => {
-  const storageResult =
-    await getRequiredPersistenceStorageLocal().get<BulkUrlRemovalStorage>([
-      'savedTabs',
-      'urls',
-      'customProjects',
-      'parentCategories',
-    ])
-
-  return {
-    customProjects: Array.isArray(storageResult.customProjects)
-      ? storageResult.customProjects
-      : [],
-    parentCategories: Array.isArray(storageResult.parentCategories)
-      ? storageResult.parentCategories
-      : [],
-    savedTabs: Array.isArray(storageResult.savedTabs)
-      ? storageResult.savedTabs
-      : [],
-    urls: Array.isArray(storageResult.urls) ? storageResult.urls : [],
-  }
-}
-
-const writeBulkUrlRemovalPayload = async (
-  payload: BulkUrlRemovalStorage,
-  hasUrlChanges: boolean,
-): Promise<void> => {
-  if (Object.keys(payload).length === 0) {
-    return
-  }
-
-  await getRequiredPersistenceStorageLocal().set(payload)
-  if (hasUrlChanges) {
-    invalidateUrlCache()
-  }
-}
-
-const removeUrlFromStorageUnsafe = async (
-  targetUrlKey: string,
-): Promise<void> => {
-  const { customProjects, parentCategories, savedTabs, urls } =
-    await getBulkUrlRemovalStorage()
-  const matchedUrlRecord = urls.find(
-    (record) => createComparableUrlKey(record.url) === targetUrlKey,
-  )
-  const matchedUrlId = matchedUrlRecord?.id
-  const removedGroupIds: string[] = []
-
-  // URLを含むグループのみを更新（新形式 urlIds / 旧形式 urls の両方に対応）
-  const updatedGroups: TabGroup[] = savedTabs.flatMap((group: TabGroup) =>
-    updateGroupAfterUrlRemoval(
-      group,
-      targetUrlKey,
-      matchedUrlId,
-      removedGroupIds,
-    ),
-  )
-  const removedGroupIdsWithDomain = removedGroupIds.filter((groupId) => {
-    const group = savedTabs.find((item) => item.id === groupId)
-    return Boolean(group?.domain)
-  })
-  const parentCategoriesResult = removeGroupsFromParentCategories(
-    parentCategories,
-    removedGroupIdsWithDomain,
-  )
-  const targetUrlIds = matchedUrlId
-    ? createUrlIdSet([matchedUrlId])
-    : new Set<string>()
-  const customProjectsResult = removeUrlIdsFromCustomProjects(
-    customProjects,
-    targetUrlIds,
-  )
-  const urlsResult = removeUrlRecordsById(urls, targetUrlIds)
-  const payload: BulkUrlRemovalStorage = {}
-
-  if (haveTabGroupsChanged(savedTabs, updatedGroups)) {
-    payload.savedTabs = updatedGroups
-  }
-  if (parentCategoriesResult.hasChanges) {
-    payload.parentCategories = parentCategoriesResult.parentCategories
-  }
-  if (customProjectsResult.hasChanges) {
-    payload.customProjects = customProjectsResult.customProjects
-  }
-  if (urlsResult.hasChanges) {
-    payload.urls = urlsResult.urls
-  }
-
-  await writeBulkUrlRemovalPayload(payload, urlsResult.hasChanges)
-}
-
-const removeUrlRecordsFromStorageUnsafe = async (
-  targetUrlIds: Set<string>,
-): Promise<number> => {
-  const { customProjects, parentCategories, savedTabs, urls } =
-    await getBulkUrlRemovalStorage()
-  const targetUrlKeys = createComparableUrlKeySet(urls, targetUrlIds)
-  const savedTabsResult = removeUrlIdsFromSavedTabs(
-    savedTabs,
-    targetUrlIds,
-    targetUrlKeys,
-  )
-  const customProjectsResult = removeUrlIdsFromCustomProjects(
-    customProjects,
-    targetUrlIds,
-  )
-  const parentCategoriesResult = removeGroupsFromParentCategories(
-    parentCategories,
-    savedTabsResult.removedGroupIds,
-  )
-  const urlsResult = removeUrlRecordsById(urls, targetUrlIds)
-  const payload: BulkUrlRemovalStorage = {}
-
-  if (savedTabsResult.hasChanges) {
-    payload.savedTabs = savedTabsResult.savedTabs
-  }
-  if (customProjectsResult.hasChanges) {
-    payload.customProjects = customProjectsResult.customProjects
-  }
-  if (parentCategoriesResult.hasChanges) {
-    payload.parentCategories = parentCategoriesResult.parentCategories
-  }
-  if (urlsResult.hasChanges) {
-    payload.urls = urlsResult.urls
-  }
-
-  await writeBulkUrlRemovalPayload(payload, urlsResult.hasChanges)
-  console.log(`${urlsResult.removedCount}件のURLレコードを一括削除しました`)
-  return urlsResult.removedCount
-}
-
-/**
- * URLをストレージから削除する関数（カテゴリ設定とマッピングを保持）
- */
 const removeUrlFromStorage = async (url: string): Promise<void> => {
   const targetUrlKey = createComparableUrlKey(url)
   if (!targetUrlKey) {
@@ -552,14 +65,10 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
     )
     return
   }
-
   try {
-    await enqueueStorageMutation(async () => {
-      await withUrlRecordMutation(async () =>
-        removeUrlFromStorageUnsafe(targetUrlKey),
-      )
-    })
-
+    await enqueueStorageMutation(async () =>
+      getBackgroundSavedTabsDataPlane().removeUrl(targetUrlKey),
+    )
     console.log(`ストレージからURL ${redactUrlForLog(url)} を削除しました`)
   } catch (error) {
     console.error('URLの削除中にエラーが発生しました:', error)
@@ -567,64 +76,45 @@ const removeUrlFromStorage = async (url: string): Promise<void> => {
   }
 }
 
-// eslint-disable-next-line eslint/complexity
 const removeUrlRecordsFromStorage = async (
   urlIds: string[],
 ): Promise<number> => {
-  const targetUrlIds = createUrlIdSet(urlIds)
-  if (targetUrlIds.size === 0) {
+  const uniqueIds = [...new Set(urlIds.filter((id) => id.length > 0))]
+  if (uniqueIds.length === 0) {
     return 0
   }
-
   try {
-    const removedCount = await enqueueStorageMutation(async () =>
-      withUrlRecordMutation(async () =>
-        removeUrlRecordsFromStorageUnsafe(targetUrlIds),
-      ),
+    return await enqueueStorageMutation(async () =>
+      getBackgroundSavedTabsDataPlane().removeUrlIds(uniqueIds),
     )
-    return removedCount
   } catch (error) {
     console.error('URLレコードの一括削除中にエラーが発生しました:', error)
     throw error
   }
 }
-/**
- * ドラッグ開始処理
- */
+
 const handleUrlDragStarted = (url: string): void => {
   console.log('ドラッグ開始を検知:', redactUrlForLog(url))
-
-  // ドラッグ情報を一時保存
   const dragInfo: DraggedUrlInfo = {
     processed: false,
     timestamp: Date.now(),
     url,
   }
   draggedUrlInfo = dragInfo
-
-  const DRAG_TIMEOUT_MS = 10_000
-
-  // ドラッグ情報の自動タイムアウト（10秒）
   const dragTimeout = setTimeout(() => {
     if (draggedUrlInfo === dragInfo && !dragInfo.processed) {
       console.log('ドラッグ情報のタイムアウト:', redactUrlForLog(dragInfo.url))
       draggedUrlInfo = null
     }
-  }, DRAG_TIMEOUT_MS)
-
-  // タイムアウトIDを保存しておくことで、必要に応じてキャンセル可能
+  }, DRAG_INFO_TIMEOUT_MS)
   dragInfo.timeoutId = dragTimeout
 }
-/**
- * ドラッグドロップ処理
- */
+
 const handleUrlDropped = async (
   url: string,
   fromExternal?: boolean,
 ): Promise<string> => {
   console.log('URLドロップを検知:', redactUrlForLog(url))
-
-  // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (fromExternal === true) {
     try {
       const settings = await getUserSettings()
@@ -643,20 +133,15 @@ const handleUrlDropped = async (
   console.log('内部操作のため削除をスキップ')
   return 'internal_operation'
 }
-/**
- * 新しいタブ作成時の処理
- */
+
 const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
   console.log('新しいタブが作成されました:', redactUrlForLog(tab.url))
-
-  // ドラッグされた情報が存在するか確認
   if (draggedUrlInfo && !draggedUrlInfo.processed) {
     console.log(
       'ドラッグ情報が存在します:',
       redactUrlForLog(draggedUrlInfo.url),
     )
     console.log('新しいタブのURL:', redactUrlForLog(tab.url))
-
     const draggedUrlKey = createComparableUrlKey(draggedUrlInfo.url, {
       ignoreHash: true,
     })
@@ -665,15 +150,12 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
     })
     console.log('比較用ドラッグURL:', redactUrlForLog(draggedUrlInfo.url))
     console.log('比較用新タブURL:', redactUrlForLog(tab.url))
-
-    // URLが一致しない場合は何もしない
     if (!tabUrlKey || !draggedUrlKey || tabUrlKey !== draggedUrlKey) {
       console.log('URLが一致しません。削除をスキップします')
       return
     }
     console.log('URLが一致しています')
     try {
-      // 処理済みとマーク
       draggedUrlInfo.processed = true
       const settings = await getUserSettings()
       if (!settings.removeTabAfterOpen) {
@@ -688,7 +170,6 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
     } catch (error) {
       console.error('タブ作成後の処理でエラー:', error)
     } finally {
-      // 処理完了後、ドラッグ情報をクリア
       draggedUrlInfo = null
     }
   }

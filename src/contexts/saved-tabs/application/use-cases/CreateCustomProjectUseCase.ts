@@ -59,12 +59,23 @@ export const createCreateCustomProjectUseCase = (
     const id = deps.idGenerator.generate()
     const now = deps.clock.now()
     const newProject = createCustomProject({
-      categories: [],
-      createdAt: now,
-      id,
-      name,
-      updatedAt: now,
-      urlIds: [],
+      collection: {
+        createdAt: now,
+        definition: {
+          projectKeywords: {
+            domainKeywords: [],
+            titleKeywords: [],
+            urlKeywords: [],
+          },
+          type: 'custom',
+        },
+        id,
+        name,
+        sortOrder: all.length,
+        updatedAt: now,
+      },
+      collectionCategories: [],
+      memberships: [],
     })
     const updatedAll: readonly CustomProject[] = [...all, newProject]
     await deps.customProjectRepository.saveAll(updatedAll)

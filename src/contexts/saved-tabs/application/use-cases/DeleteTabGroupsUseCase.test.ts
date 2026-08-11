@@ -1,13 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { DeleteTabGroupsUseCaseDeps } from './DeleteTabGroupsUseCase'
 import { createDeleteTabGroupsUseCase } from './DeleteTabGroupsUseCase'
@@ -95,17 +97,17 @@ describe('DeleteTabGroupsUseCase', () => {
     const group1 = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const group2 = createTabGroup({
       domain: 'foo.com',
       id: 'group-2',
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
     })
     const other = createTabGroup({
       domain: 'other.com',
       id: 'group-3',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -145,7 +147,7 @@ describe('DeleteTabGroupsUseCase', () => {
     const target = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [target],
@@ -174,7 +176,7 @@ describe('DeleteTabGroupsUseCase', () => {
     const target = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: [],
@@ -182,7 +184,7 @@ describe('DeleteTabGroupsUseCase', () => {
       id: 'project-1',
       name: 'P',
       updatedAt: 1,
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',

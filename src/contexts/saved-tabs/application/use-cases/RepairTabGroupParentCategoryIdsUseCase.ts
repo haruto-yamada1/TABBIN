@@ -5,11 +5,14 @@ import type {
 import { toSavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import {
+  assignTabGroupToCollectionGroup,
+  tabGroupCollectionGroupId,
+  tabGroupDomainName,
+} from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import { normalizeDomainString } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 
 /**
  * `RepairTabGroupParentCategoryIdsUseCase` の入力。
@@ -61,11 +64,9 @@ const buildCategoryLookups = (
   const byDomainId = new Map<string, ParentCategory>()
   const byDomainName = new Map<string, ParentCategory>()
   for (const category of parentCategories) {
-    for (const domainId of category.domains) {
-      byDomainId.set(domainId, category)
-    }
-    for (const domainName of category.domainNames) {
-      byDomainName.set(domainName, category)
+    for (const collection of category.collections) {
+      byDomainId.set(collection.id, category)
+      byDomainName.set(collection.domain, category)
     }
   }
   return { byDomainId, byDomainName }
@@ -99,15 +100,7 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
   return async (command = {}) => {
     const [tabGroups, parentCategories] = await Promise.all([
       command.tabGroups !== undefined
-        ? Promise.resolve(
-            command.tabGroups.map((group) =>
-              createTabGroup({
-                ...group,
-                domain: normalizeDomainString(group.domain),
-                urlIds: group.urlIds ?? [],
-              }),
-            ),
-          )
+        ? Promise.resolve(command.tabGroups.map(toSavedTabsDisplayTabGroupDto))
         : deps.tabGroupRepository.findAll(),
       command.parentCategories !== undefined
         ? Promise.resolve(command.parentCategories.map(createParentCategory))
@@ -116,7 +109,7 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
 
     const { byDomainId, byDomainName } = buildCategoryLookups(parentCategories)
     const updatedTabGroups = tabGroups.map((group: TabGroup): TabGroup => {
-      if (group.parentCategoryId) {
+      if (tabGroupCollectionGroupId(group)) {
         return group
       }
       const categoryById = byDomainId.get(group.id)
@@ -124,20 +117,14 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
         console.log(
           `TabGroupのparentCategoryIdを ${categoryById.id} に修復しました (IDベース)`,
         )
-        return {
-          ...group,
-          parentCategoryId: categoryById.id,
-        }
+        return assignTabGroupToCollectionGroup(group, categoryById.id)
       }
-      const categoryByName = byDomainName.get(group.domain)
+      const categoryByName = byDomainName.get(tabGroupDomainName(group))
       if (categoryByName) {
         console.log(
           `TabGroupのparentCategoryIdを ${categoryByName.id} に修復しました (ドメイン名ベース)`,
         )
-        return {
-          ...group,
-          parentCategoryId: categoryByName.id,
-        }
+        return assignTabGroupToCollectionGroup(group, categoryByName.id)
       }
       return group
     })
@@ -157,9 +144,9 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
             return toSavedTabsDisplayTabGroupDto(group)
           }
           return {
-            ...original,
-            ...(group.parentCategoryId
-              ? { parentCategoryId: group.parentCategoryId }
+            ...group,
+            ...(original.resolvedUrls
+              ? { resolvedUrls: [...original.resolvedUrls] }
               : {}),
           }
         })

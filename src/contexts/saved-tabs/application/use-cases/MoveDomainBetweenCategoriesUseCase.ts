@@ -1,6 +1,7 @@
 import type { MoveDomainBetweenCategoriesCommand } from '@/contexts/saved-tabs/application/commands/MoveDomainBetweenCategoriesCommand'
 import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import { tabGroupDomainName } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { moveDomainBetweenCategories } from '@/contexts/saved-tabs/domain/services/CategoryDomainMoveService'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
@@ -60,7 +61,7 @@ export const createMoveDomainBetweenCategoriesUseCase = (
     const { updatedCategories } = moveDomainBetweenCategories({
       categories: allCategories,
       domainId: createTabGroupId(command.domainId),
-      domainName: createDomainName(domainGroup.domain),
+      domainName: createDomainName(tabGroupDomainName(domainGroup)),
       fromCategoryId: command.fromCategoryId,
       toCategoryId: command.toCategoryId,
     })

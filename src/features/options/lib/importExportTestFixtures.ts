@@ -1,6 +1,7 @@
 import { vi } from 'vitest'
 
-import type { CustomProject, UserSettings } from '@/types/storage'
+import type { CustomProject } from '@/contexts/saved-tabs/public-api'
+import type { UserSettings } from '@/types/storage'
 
 type StorageStore = Record<string, unknown>
 

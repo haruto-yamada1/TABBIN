@@ -1,6 +1,9 @@
 import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
 
+import { createSavedTabsCustomProjectDto as createCurrentCustomProject } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
+import { createSavedTabsCustomProjectDto as createCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/testing/SavedTabsCompatibilityFixtures'
+
 import * as defaults from './projectManagementDefaults'
 
 vi.mock('sonner', () => ({
@@ -65,22 +68,21 @@ describe('projectManagementDefaults', () => {
       snapshot: {
         customProjectOrder: ['project-1'],
         customProjects: [
-          {
+          createCurrentCustomProject({
             categories: ['Docs'],
             createdAt: 1,
             id: 'project-1',
+            memberships: [{ urlId: 'url-1' }],
             name: 'With URLs',
             updatedAt: 2,
-            urlIds: ['url-1'],
-          },
-          {
+          }),
+          createCurrentCustomProject({
             categories: [],
             createdAt: 3,
             id: 'project-2',
             name: 'Without URLs',
             updatedAt: 4,
-            urlIds: [],
-          },
+          }),
         ],
       },
       t: (key) => key,
@@ -94,38 +96,39 @@ describe('projectManagementDefaults', () => {
       },
     })
     expect(setCustomProjects).toHaveBeenCalledWith([
-      {
+      createCustomProjectViewModel({
         categories: ['Docs'],
         createdAt: 1,
         id: 'project-1',
+        memberships: [{ urlId: 'url-1' }],
         name: 'With URLs',
         updatedAt: 2,
-        urlIds: ['url-1'],
-      },
-      {
+      }),
+      createCustomProjectViewModel({
         categories: [],
         createdAt: 3,
         id: 'project-2',
         name: 'Without URLs',
         updatedAt: 4,
-      },
+      }),
     ])
     expect(toast.success).toHaveBeenCalledWith('savedTabs.undo.restored')
   })
 
   it('raw snapshotをpresentation projectへ変換する', () => {
     expect(
-      defaults.toRawStorageCustomProject({
-        categories: ['Docs'],
-        createdAt: 1,
-        id: 'project-1',
-        name: 'Project',
-        updatedAt: 2,
-        urls: [{ title: 'Example', url: 'https://example.com' }],
-      }),
+      defaults.toRawStorageCustomProject(
+        createCurrentCustomProject({
+          categories: ['Docs'],
+          createdAt: 1,
+          id: 'project-1',
+          name: 'Project',
+          updatedAt: 2,
+        }),
+      ),
     ).toMatchObject({
       id: 'project-1',
-      urls: [{ title: 'Example', url: 'https://example.com' }],
+      categories: ['Docs'],
     })
   })
 })

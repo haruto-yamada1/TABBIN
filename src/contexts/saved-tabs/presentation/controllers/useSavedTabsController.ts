@@ -1,11 +1,16 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
+import {
+  toSavedTabsCustomProjectViewModel,
+  toSavedTabsTabGroupViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
 import { toCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
 import type { SavedTabsViewModel } from '@/contexts/saved-tabs/presentation/view-models/SavedTabsViewModel'
@@ -83,22 +88,7 @@ export type DeleteTabGroupControllerResult = {
 }
 
 export type RestoreSnapshotControllerInput = {
-  readonly snapshot: {
-    readonly savedTabs?: readonly TabGroup[]
-    readonly urlRecords?: readonly {
-      readonly id: string
-      readonly url: string
-      readonly title: string
-      readonly savedAt: number
-    }[]
-    readonly customProjects?: readonly CustomProject[]
-    readonly parentCategories?: readonly {
-      readonly id: string
-      readonly name: string
-      readonly domains: readonly string[]
-      readonly domainNames: readonly string[]
-    }[]
-  }
+  readonly snapshot: OpenedUrlsRestoreSnapshot
 }
 
 export type RestoreSnapshotControllerResult = {
@@ -126,25 +116,42 @@ type ControllerState = {
   customProjects: readonly CustomProjectViewModel[]
 }
 
-const toCustomProjectViewModelFromEntity = (
-  project: CustomProject,
-): CustomProjectViewModel =>
-  toCustomProjectViewModel({
-    categories: [...project.categories],
-    createdAt: project.createdAt,
-    id: project.id,
-    name: project.name,
-    updatedAt: project.updatedAt,
-    urlIds: [...(project.urlIds ?? [])],
-  })
+type CurrentCustomProject = Awaited<
+  ReturnType<SavedTabsUseCases['getCustomProjects']>
+>[number]
+type CurrentTabGroup = Awaited<
+  ReturnType<SavedTabsUseCases['getSavedTabs']>
+>[number]
 
-const toTabGroupViewModelFromEntity = (group: TabGroup): TabGroupViewModel =>
-  toTabGroupViewModel({
-    domain: group.domain,
-    id: group.id,
-    parentCategoryId: group.parentCategoryId,
-    urlIds: [...(group.urlIds ?? [])],
+const toCustomProjectViewModelFromEntity = (
+  project: CustomProject | CurrentCustomProject,
+): CustomProjectViewModel => {
+  const view =
+    'collection' in project
+      ? toSavedTabsCustomProjectViewModel(project)
+      : project
+  return toCustomProjectViewModel({
+    categories: [...view.categories],
+    createdAt: view.createdAt,
+    id: view.id,
+    name: view.name,
+    updatedAt: view.updatedAt,
+    urls: [],
   })
+}
+
+const toTabGroupViewModelFromEntity = (
+  group: TabGroup | CurrentTabGroup,
+): TabGroupViewModel => {
+  const view =
+    'collection' in group ? toSavedTabsTabGroupViewModel(group) : group
+  return toTabGroupViewModel({
+    domain: view.domain,
+    id: view.id,
+    parentCategoryId: view.parentCategoryId,
+    urls: [],
+  })
+}
 
 /**
  * presentation 層の中心 controller hook。
@@ -224,8 +231,9 @@ export const useSavedTabsController = (
               : undefined,
             parentCategories: dto.snapshot.parentCategories
               ? dto.snapshot.parentCategories.map((category) => ({
-                  domainNames: [...category.domainNames],
-                  domains: [...category.domains],
+                  collections: category.collections.map((collection) => ({
+                    ...collection,
+                  })),
                   id: category.id,
                   name: category.name,
                 }))
@@ -268,8 +276,9 @@ export const useSavedTabsController = (
             : undefined,
           parentCategories: dto.snapshot.parentCategories
             ? dto.snapshot.parentCategories.map((category) => ({
-                domainNames: [...category.domainNames],
-                domains: [...category.domains],
+                collections: category.collections.map((collection) => ({
+                  ...collection,
+                })),
                 id: category.id,
                 name: category.name,
               }))

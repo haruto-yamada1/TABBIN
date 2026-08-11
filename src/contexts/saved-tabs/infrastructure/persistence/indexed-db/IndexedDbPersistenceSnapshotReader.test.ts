@@ -304,6 +304,7 @@ describe('IndexedDbSavedTabsQueryAdapter', () => {
       items: [{ category, membership: categorizedMembership, url }],
     })
     await expect(query.readInitialLoad()).resolves.toMatchObject({
+      categories: [category],
       collections: [
         { collection: groupedCollection },
         { collection: secondCollection },

@@ -1,119 +1,96 @@
-import { beforeEach, describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it, vi } from 'vitest'
 
-import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
-import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createLoadTabGroupsWithUrlsUseCase } from './LoadTabGroupsWithUrlsUseCase'
-import type { LoadTabGroupsWithUrlsUseCaseDeps } from './LoadTabGroupsWithUrlsUseCase'
 
-const createUrlRecord = (overrides: Partial<UrlRecord>): UrlRecord => ({
-  favIconUrl: undefined,
-  id: 'url-1' as never,
-  savedAt: 1 as never,
-  title: 'Title',
-  url: 'https://example.com' as never,
-  ...overrides,
-})
-
-const createTabGroup = (overrides: Partial<TabGroupDto>): TabGroupDto => ({
-  domain: 'example.com',
-  id: 'group-1',
-  urlIds: [],
-  ...overrides,
-})
-
-const createInMemoryUrlRecordRepository = (
-  records: readonly UrlRecord[],
-): UrlRecordRepository => ({
-  findAll: async () => records,
-
-  findById: async (id) => records.find((record) => record.id === id) ?? null,
-
-  saveAll: async () => undefined,
-
-  removeByIds: async () => undefined,
-})
+const createRepository = (): UrlRecordRepository => {
+  const records = [
+    createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'One',
+      url: 'https://example.com/1',
+    }),
+    createUrlRecord({
+      id: 'url-2',
+      savedAt: 2,
+      title: 'Two',
+      url: 'https://example.com/2',
+    }),
+  ]
+  return {
+    findAll: vi.fn(async () => records),
+    findById: vi.fn(
+      async (id) => records.find((record) => record.id === id) ?? null,
+    ),
+    removeByIds: vi.fn(async () => {}),
+    saveAll: vi.fn(async () => {}),
+  }
+}
 
 describe('LoadTabGroupsWithUrlsUseCase', () => {
-  let deps: LoadTabGroupsWithUrlsUseCaseDeps
-
-  beforeEach(() => {
-    deps = {
-      urlRecordRepository: createInMemoryUrlRecordRepository([
-        createUrlRecord({
-          id: 'url-1' as never,
-          url: 'https://example.com/1' as never,
-        }),
-        createUrlRecord({
-          id: 'url-2' as never,
-          url: 'https://example.com/2' as never,
-        }),
-      ]),
-    }
-  })
-
-  it('空の tabGroups に対しては storage に触れず空配列を返す', async () => {
-    const useCase = createLoadTabGroupsWithUrlsUseCase(deps)
-    const result = await useCase({ tabGroups: [] })
-    expect(result.tabGroups).toStrictEqual([])
-  })
-
-  it('urlIds から urlRecord を引き当てて urls を組み立てる', async () => {
-    const useCase = createLoadTabGroupsWithUrlsUseCase(deps)
-    const result = await useCase({
-      tabGroups: [
-        createTabGroup({
-          id: 'group-1',
-          urlIds: ['url-1', 'url-2'],
-        }),
-      ],
+  it('空のtabGroupsならrepositoryに触れず空配列を返す', async () => {
+    const repository = createRepository()
+    const useCase = createLoadTabGroupsWithUrlsUseCase({
+      urlRecordRepository: repository,
     })
-    expect(result.tabGroups[0]?.urls).toStrictEqual([
-      expect.objectContaining({
-        id: 'url-1',
-        url: 'https://example.com/1',
-      }),
-      expect.objectContaining({
-        id: 'url-2',
-        url: 'https://example.com/2',
-      }),
+
+    await expect(useCase({ tabGroups: [] })).resolves.toStrictEqual({
+      tabGroups: [],
+    })
+    expect(repository.findAll).not.toHaveBeenCalled()
+  })
+
+  it('membershipsをURL recordへ解決してresolvedUrlsを組み立てる', async () => {
+    const useCase = createLoadTabGroupsWithUrlsUseCase({
+      urlRecordRepository: createRepository(),
+    })
+    const group = createTabGroup({
+      id: 'group-1',
+      memberships: [{ urlId: 'url-1' }, { urlId: 'url-2' }],
+    })
+
+    const result = await useCase({ tabGroups: [group] })
+
+    expect(result.tabGroups[0]?.resolvedUrls).toStrictEqual([
+      expect.objectContaining({ id: 'url-1', url: 'https://example.com/1' }),
+      expect.objectContaining({ id: 'url-2', url: 'https://example.com/2' }),
     ])
   })
 
-  it('urlSubCategories があれば subCategory が引き継がれる', async () => {
-    const useCase = createLoadTabGroupsWithUrlsUseCase(deps)
-    const result = await useCase({
-      tabGroups: [
-        createTabGroup({
-          id: 'group-1',
-          urlIds: ['url-1'],
-          urlSubCategories: { 'url-1': 'Docs' },
-        }),
-      ],
+  it('membership categoryをresolved URLのsubCategoryへ投影する', async () => {
+    const useCase = createLoadTabGroupsWithUrlsUseCase({
+      urlRecordRepository: createRepository(),
     })
-    expect(result.tabGroups[0]?.urls?.[0]?.subCategory).toBe('Docs')
+    const group = createTabGroup({
+      id: 'group-1',
+      memberships: [{ category: 'Docs', urlId: 'url-1' }],
+      subCategories: ['Docs'],
+    })
+
+    const result = await useCase({ tabGroups: [group] })
+
+    expect(result.tabGroups[0]?.resolvedUrls?.[0]?.subCategory).toBe('Docs')
   })
 
-  it('urlIds が空のグループは urls: [] として返す', async () => {
-    const useCase = createLoadTabGroupsWithUrlsUseCase(deps)
-    const result = await useCase({
-      tabGroups: [createTabGroup({ id: 'group-empty' })],
+  it('空membershipと未解決membershipはresolvedUrlsへ追加しない', async () => {
+    const useCase = createLoadTabGroupsWithUrlsUseCase({
+      urlRecordRepository: createRepository(),
     })
-    expect(result.tabGroups[0]?.urls).toStrictEqual([])
-  })
+    const empty = createTabGroup({ id: 'group-empty' })
+    const partial = createTabGroup({
+      id: 'group-partial',
+      memberships: [{ urlId: 'url-1' }, { urlId: 'missing' }],
+    })
 
-  it('urlRecord が見つからない urlId はスキップする', async () => {
-    const useCase = createLoadTabGroupsWithUrlsUseCase(deps)
-    const result = await useCase({
-      tabGroups: [
-        createTabGroup({
-          id: 'group-1',
-          urlIds: ['url-1', 'missing'],
-        }),
-      ],
-    })
-    expect(result.tabGroups[0]?.urls).toHaveLength(1)
-    expect(result.tabGroups[0]?.urls?.[0]?.id).toBe('url-1')
+    const result = await useCase({ tabGroups: [empty, partial] })
+
+    expect(result.tabGroups[0]?.resolvedUrls).toStrictEqual([])
+    expect(
+      result.tabGroups[1]?.resolvedUrls?.map(({ id }) => id),
+    ).toStrictEqual(['url-1'])
   })
 })

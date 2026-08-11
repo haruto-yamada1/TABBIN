@@ -25,11 +25,14 @@ describe('ChromeSavedTabsStorageMapper', () => {
       })
       expect(entity).not.toBeNull()
       expect(entity?.id).toBe('group-1')
-      expect(entity?.domain).toBe('example.com')
-      expect(entity?.urlIds).toStrictEqual([])
+      expect(entity?.collection.definition).toStrictEqual({
+        domain: 'example.com',
+        type: 'domain',
+      })
+      expect(entity?.memberships).toStrictEqual([])
     })
 
-    it('rich な補助フィールドは読み捨てるが urlIds は保持する', () => {
+    it('legacy URL relation を membership projection に変換する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
         domain: 'https://example.com',
         id: 'group-1',
@@ -39,8 +42,24 @@ describe('ChromeSavedTabsStorageMapper', () => {
         urlSubCategories: { 'url-1': 'docs' },
       })
       expect(entity).not.toBeNull()
-      expect(entity?.urlIds).toStrictEqual(['url-1', 'url-2'])
-      expect(entity?.parentCategoryId).toBe('cat-1')
+      expect(entity?.memberships).toStrictEqual([
+        {
+          addedAt: 1_700_000_000_000,
+          categoryId: 'group-1:category:0',
+          collectionId: 'group-1',
+          sortOrder: 0,
+          updatedAt: 1_700_000_000_000,
+          urlId: 'url-1',
+        },
+        {
+          addedAt: 1_700_000_000_000,
+          collectionId: 'group-1',
+          sortOrder: 1024,
+          updatedAt: 1_700_000_000_000,
+          urlId: 'url-2',
+        },
+      ])
+      expect(entity?.collection.groupId).toBe('cat-1')
       expect(entity?.savedAt).toBe(1_700_000_000_000)
     })
 
@@ -116,8 +135,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
     it('domain entity の不変条件を満たさない name は null を返す', () => {
       expect(
         ChromeSavedTabsStorageMapper.parseParentCategory({
-          domainNames: [],
           domains: [],
+          domainNames: [],
           id: 'cat-1',
           name: '',
         }),
@@ -125,22 +144,23 @@ describe('ChromeSavedTabsStorageMapper', () => {
     })
     it('必須フィールドを持つ生データを entity 化する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
-        domainNames: ['example.com'],
         domains: ['group-1'],
+        domainNames: ['example.com'],
         id: 'cat-1',
         name: 'Docs',
       })
       expect(entity).not.toBeNull()
       expect(entity?.id).toBe('cat-1')
       expect(entity?.name).toBe('Docs')
-      expect(entity?.domains).toStrictEqual(['group-1'])
-      expect(entity?.domainNames).toStrictEqual(['example.com'])
+      expect(entity?.collections).toStrictEqual([
+        { domain: 'example.com', id: 'group-1' },
+      ])
     })
 
     it('空配列を許容する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
-        domainNames: [],
         domains: [],
+        domainNames: [],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -178,12 +198,14 @@ describe('ChromeSavedTabsStorageMapper', () => {
       expect(entity).not.toBeNull()
       expect(entity?.id).toBe('project-1')
       expect(entity?.name).toBe('Q4')
-      expect(entity?.categories).toStrictEqual(['research'])
+      expect(
+        entity?.collectionCategories.map(({ name }) => name),
+      ).toStrictEqual(['research'])
       expect(entity?.createdAt).toBe(1)
       expect(entity?.updatedAt).toBe(2)
     })
 
-    it('urlIds を持つ project を entity 化する', () => {
+    it('legacy URL relation と metadata を membership projection に変換する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: [],
         createdAt: 1,
@@ -191,9 +213,29 @@ describe('ChromeSavedTabsStorageMapper', () => {
         name: 'Q4',
         updatedAt: 1,
         urlIds: ['url-1', 'url-2'],
+        urlMetadata: {
+          'url-1': { category: 'research', notes: 'note' },
+        },
       })
       expect(entity).not.toBeNull()
-      expect(entity?.urlIds).toStrictEqual(['url-1', 'url-2'])
+      expect(entity?.memberships).toStrictEqual([
+        {
+          addedAt: 1,
+          categoryId: 'project-1:category:0',
+          collectionId: 'project-1',
+          notes: 'note',
+          sortOrder: 0,
+          updatedAt: 1,
+          urlId: 'url-1',
+        },
+        {
+          addedAt: 1,
+          collectionId: 'project-1',
+          sortOrder: 1024,
+          updatedAt: 1,
+          urlId: 'url-2',
+        },
+      ])
     })
 
     it('categories 欠けは legacy データとして default で entity 化する (issue #530 review P1)', () => {
@@ -204,7 +246,7 @@ describe('ChromeSavedTabsStorageMapper', () => {
         updatedAt: 1,
       })
       expect(entity).not.toBeNull()
-      expect(entity?.categories).toStrictEqual([])
+      expect(entity?.collectionCategories).toStrictEqual([])
     })
 
     it('createdAt / updatedAt 欠けは legacy データとして default で entity 化する', () => {
@@ -303,6 +345,7 @@ describe('ChromeSavedTabsStorageMapper', () => {
 
     it('toSavedTabRaw は urlIds 配列をコピーして保持する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
+        categoryKeywords: [{ categoryName: 'docs', keywords: ['doc', 'spec'] }],
         domain: 'example.com',
         id: 'group-1',
         urlIds: ['url-1', 'url-2'],
@@ -318,9 +361,11 @@ describe('ChromeSavedTabsStorageMapper', () => {
 
     it('toSavedTabRaw は original を渡すとリッチ補助フィールドを urlIds に揃えて持ち越す', () => {
       const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
+        categoryKeywords: [{ categoryName: 'docs', keywords: ['doc', 'spec'] }],
         domain: 'example.com',
         id: 'group-1',
         urlIds: ['url-keep'],
+        urlSubCategories: { 'url-keep': 'docs' },
       })
       expect(entity).not.toBeNull()
       if (!entity) {
@@ -471,8 +516,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
 
     it('toParentCategoryRaw は domains / domainNames をコピーして保持する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
-        domainNames: ['example.com'],
         domains: ['group-1'],
+        domainNames: ['example.com'],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -492,8 +537,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
       // hostname 形式へ正規化されるが、書き戻し時に original 側の
       // schemeful 形式を持ち越す。
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
-        domainNames: ['https://example.com'],
         domains: ['group-1'],
+        domainNames: ['https://example.com'],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -502,8 +547,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
         return
       }
       const raw = ChromeSavedTabsStorageMapper.toParentCategoryRaw(entity, {
-        domainNames: ['https://example.com'],
         domains: ['group-1'],
+        domainNames: ['https://example.com'],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -517,8 +562,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
       // 保存されない。既存エントリは schemeful 形式を維持しつつ、新規は
       // entity 側の hostname 形式をそのまま採用する。
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
-        domainNames: ['example.com', 'newsite.com'],
         domains: ['group-1', 'group-2'],
+        domainNames: ['example.com', 'newsite.com'],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -527,8 +572,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
         return
       }
       const raw = ChromeSavedTabsStorageMapper.toParentCategoryRaw(entity, {
-        domainNames: ['https://example.com'],
         domains: ['group-1'],
+        domainNames: ['https://example.com'],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -542,8 +587,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
       // RemoveDomainFromParentCategoryUseCase で entity.domainNames から
       // 削除した場合、original に残っていても最終 raw には含めない。
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
-        domainNames: ['keep.com'],
         domains: ['group-keep'],
+        domainNames: ['keep.com'],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -552,8 +597,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
         return
       }
       const raw = ChromeSavedTabsStorageMapper.toParentCategoryRaw(entity, {
-        domainNames: ['https://keep.com', 'https://remove.com'],
         domains: ['group-keep', 'group-remove'],
+        domainNames: ['https://keep.com', 'https://remove.com'],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -583,11 +628,20 @@ describe('ChromeSavedTabsStorageMapper', () => {
     it('toCustomProjectRaw は original を渡すと projectKeywords / urlMetadata / categoryOrder / urls を持ち越す', () => {
       const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: ['research'],
+        categoryOrder: ['research', 'news'],
         createdAt: 1,
         id: 'project-1',
         name: 'Q4',
+        projectKeywords: {
+          domainKeywords: ['example.com'],
+          titleKeywords: ['quarterly'],
+          urlKeywords: ['report'],
+        },
         updatedAt: 2,
         urlIds: ['url-keep'],
+        urlMetadata: {
+          'url-keep': { category: 'research', notes: 'kept' },
+        },
       })
       expect(entity).not.toBeNull()
       if (!entity) {
@@ -663,8 +717,8 @@ describe('ChromeSavedTabsStorageMapper', () => {
   })
 
   describe('toStorageCustomProject', () => {
-    it('raw snapshot を presentation 層 storage 形に投影し rich フィールドを保持する (issue #535 P1)', () => {
-      const raw = {
+    it('normalized project を defensive copy し Collection projection を保持する', () => {
+      const project = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: ['research'],
         categoryOrder: ['research', 'news'],
         createdAt: 1,
@@ -680,31 +734,23 @@ describe('ChromeSavedTabsStorageMapper', () => {
         urlMetadata: {
           'url-1': { category: 'research', notes: 'note-1' },
         },
-        urls: [{ title: 'A', url: 'https://example.com/a' }],
-      }
-      const result = ChromeSavedTabsStorageMapper.toStorageCustomProject(raw)
-      expect(result).toStrictEqual({
-        categories: ['research'],
-        categoryOrder: ['research', 'news'],
-        createdAt: 1,
-        id: 'project-1',
-        name: 'Q4',
-        projectKeywords: {
-          domainKeywords: ['example.com'],
-          titleKeywords: ['design'],
-          urlKeywords: ['plan'],
-        },
-        updatedAt: 2,
-        urlIds: ['url-1', 'url-2'],
-        urlMetadata: {
-          'url-1': { category: 'research', notes: 'note-1' },
-        },
-        urls: [{ title: 'A', url: 'https://example.com/a' }],
       })
+      expect(project).not.toBeNull()
+      if (!project) {
+        return
+      }
+      const result =
+        ChromeSavedTabsStorageMapper.toStorageCustomProject(project)
+      expect(result).not.toBe(project)
+      expect(result.collection).toStrictEqual(project.collection)
+      expect(result.collectionCategories).toStrictEqual(
+        project.collectionCategories,
+      )
+      expect(result.memberships).toStrictEqual(project.memberships)
     })
 
-    it('rich フィールドが undefined なら storage 形でも省略する', () => {
-      const result = ChromeSavedTabsStorageMapper.toStorageCustomProject({
+    it('legacy-only rich フィールドを current projection に混入させない', () => {
+      const project = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: [],
         createdAt: 1,
         id: 'project-1',
@@ -712,34 +758,34 @@ describe('ChromeSavedTabsStorageMapper', () => {
         updatedAt: 2,
         urlIds: ['url-1'],
       })
-      expect(result).toStrictEqual({
-        categories: [],
-        createdAt: 1,
-        id: 'project-1',
-        name: 'Q4',
-        updatedAt: 2,
-        urlIds: ['url-1'],
-      })
+      expect(project).not.toBeNull()
+      if (!project) {
+        return
+      }
+      const result =
+        ChromeSavedTabsStorageMapper.toStorageCustomProject(project)
       expect(result).not.toHaveProperty('urlMetadata')
       expect(result).not.toHaveProperty('projectKeywords')
       expect(result).not.toHaveProperty('categoryOrder')
       expect(result).not.toHaveProperty('urls')
     })
 
-    it('空配列の rich フィールドは storage 形で省略する (toStrictEqual 安定化)', () => {
-      const result = ChromeSavedTabsStorageMapper.toStorageCustomProject({
+    it('空 collection projection を defensive copy する', () => {
+      const project = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: [],
         createdAt: 1,
         id: 'project-1',
         name: 'Q4',
         updatedAt: 2,
-        urlIds: [],
-        urlMetadata: {},
-        urls: [],
       })
-      expect(result).not.toHaveProperty('urlIds')
-      expect(result).not.toHaveProperty('urlMetadata')
-      expect(result).not.toHaveProperty('urls')
+      expect(project).not.toBeNull()
+      if (!project) {
+        return
+      }
+      const result =
+        ChromeSavedTabsStorageMapper.toStorageCustomProject(project)
+      expect(result.collectionCategories).toStrictEqual([])
+      expect(result.memberships).toStrictEqual([])
     })
   })
 

@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroup, UrlRecord } from '@/types/storage'
+import type { TabGroup, UrlRecord } from '@/contexts/saved-tabs/public-api'
 
 const mocks = vi.hoisted(() => ({
   createOrUpdateUrlRecordMock:

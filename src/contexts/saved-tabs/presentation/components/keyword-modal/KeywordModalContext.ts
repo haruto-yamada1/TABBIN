@@ -1,5 +1,5 @@
-import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { useCategoryKeywordModal } from '@/contexts/saved-tabs/presentation/hooks/useCategoryKeywordModal'
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** KeywordModal のコンテキスト型 */

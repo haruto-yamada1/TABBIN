@@ -8,6 +8,10 @@ vi.mock('@/features/options/lib/import-export/productionImportGate', () => ({
   assertProductionImportAllowed: vi.fn(),
 }))
 
+vi.mock('@/app/composition/optionsLegacyBackupMerge', () => ({
+  mergeLegacyBackupIntoIndexedDb: vi.fn(),
+}))
+
 vi.mock('@/lib/storage/categories', () => ({
   getParentCategories: vi.fn(async () => {
     const result = await chrome.storage.local.get('parentCategories')
@@ -133,11 +137,13 @@ vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
   ),
 }))
 
+import { mergeLegacyBackupIntoIndexedDb } from '@/app/composition/optionsLegacyBackupMerge'
 import { migrateToUrlsStorage } from '@/lib/storage/migration'
 import { getUserSettings } from '@/lib/storage/settings'
 import { createOrUpdateUrlRecordsBatch } from '@/lib/storage/urls'
 
 import { importSettings } from './import-export'
+import { assertProductionImportAllowed } from './import-export/productionImportGate'
 import {
   buildCustomProject,
   buildFullUserSettings,
@@ -159,7 +165,7 @@ describe('import/export restore regression', () => {
   })
 
   it('merge モードは同一ドメインの既存 URL とインポート URL の分類を保持して追加する', async () => {
-    const { store } = createChromeMock({
+    createChromeMock({
       customProjectOrder: ['existing-project'],
       customProjects: [
         buildCustomProject({
@@ -223,109 +229,69 @@ describe('import/export restore regression', () => {
       ])
     })
 
-    const result = await importSettings(
-      JSON.stringify({
-        customProjectOrder: ['imported-project'],
-        customProjects: [
-          buildCustomProject({
-            id: 'imported-project',
-            name: 'Imported Project',
-            urls: [
-              {
-                url: 'https://docs.example.com/release-notes',
-                title: 'Release Notes',
-                notes: 'imported-note',
-                savedAt: 600,
-                category: 'Release',
-              },
-            ],
-            urlIds: [],
-            categories: ['Release'],
-            categoryOrder: ['Release'],
-            createdAt: 200,
-            updatedAt: 201,
-          }),
-        ],
-        parentCategories: [],
-        savedTabs: [
-          {
-            id: 'imported-docs-group',
-            domain: 'docs.example.com',
-            urls: [
-              {
-                url: 'https://docs.example.com/release-notes',
-                title: 'Release Notes',
-                savedAt: 600,
-                subCategory: 'Release',
-              },
-            ],
-            subCategories: ['Release'],
-            subCategoryOrder: ['Release'],
-            savedAt: 600,
-          },
-        ],
-        timestamp: '2026-03-22T00:00:00.000Z',
-        urls: [],
-        userSettings: buildFullUserSettings(),
-        version: '9.9.9',
-      }),
-      true,
-    )
+    const serializedBackup = JSON.stringify({
+      customProjectOrder: ['imported-project'],
+      customProjects: [
+        buildCustomProject({
+          id: 'imported-project',
+          name: 'Imported Project',
+          urls: [
+            {
+              url: 'https://docs.example.com/release-notes',
+              title: 'Release Notes',
+              notes: 'imported-note',
+              savedAt: 600,
+              category: 'Release',
+            },
+          ],
+          urlIds: [],
+          categories: ['Release'],
+          categoryOrder: ['Release'],
+          createdAt: 200,
+          updatedAt: 201,
+        }),
+      ],
+      parentCategories: [],
+      savedTabs: [
+        {
+          id: 'imported-docs-group',
+          domain: 'docs.example.com',
+          urls: [
+            {
+              url: 'https://docs.example.com/release-notes',
+              title: 'Release Notes',
+              savedAt: 600,
+              subCategory: 'Release',
+            },
+          ],
+          subCategories: ['Release'],
+          subCategoryOrder: ['Release'],
+          savedAt: 600,
+        },
+      ],
+      timestamp: '2026-03-22T00:00:00.000Z',
+      urls: [],
+      userSettings: buildFullUserSettings(),
+      version: '9.9.9',
+    })
+    const gateResult = {
+      inspection: { preview: { formatKind: 'legacy' } },
+      kind: 'legacy-merge',
+      serializedBytes: serializedBackup.length,
+      userSettingsPatch: {},
+    } as never
+    vi.mocked(assertProductionImportAllowed).mockReturnValue(gateResult)
+    vi.mocked(mergeLegacyBackupIntoIndexedDb).mockResolvedValue({
+      addedEntityCounts: { collections: 1, groups: 1 },
+    } as never)
+
+    const result = await importSettings(serializedBackup, true)
 
     expect(result.success).toBe(true)
-
-    expect(store.savedTabs).toEqual([
-      {
-        id: 'existing-docs-group',
-        domain: 'docs.example.com',
-        urlIds: ['existing-url', 'imported-url'],
-        urlSubCategories: {
-          'existing-url': 'Reading',
-          'imported-url': 'Release',
-        },
-        categoryKeywords: [],
-        savedAt: 500,
-        subCategories: ['Reading', 'Release'],
-        subCategoryOrder: ['Reading', 'Release'],
-        subCategoryOrderWithUncategorized: ['Reading', 'Release'],
-      },
-    ])
-    expect(store.urls).toEqual([existingUrlRecord, importedUrlRecord])
-    expect(store.customProjectOrder).toEqual([
-      'existing-project',
-      'imported-project',
-    ])
-    expect(store.customProjects).toEqual([
-      buildCustomProject({
-        id: 'existing-project',
-        name: 'Existing Project',
-        urlIds: ['existing-url'],
-        categories: ['Reading'],
-        categoryOrder: ['Reading'],
-        urlMetadata: {
-          'existing-url': {
-            category: 'Reading',
-            notes: 'existing-note',
-          },
-        },
-        createdAt: 100,
-        updatedAt: 101,
-      }),
-      buildCustomProject({
-        id: 'imported-project',
-        name: 'Imported Project',
-        urlIds: ['imported-url'],
-        categories: ['Release'],
-        categoryOrder: ['Release'],
-        urlMetadata: {
-          'imported-url': {
-            category: 'Release',
-            notes: 'imported-note',
-          },
-        },
-        createdAt: 200,
-        updatedAt: 201,
-      }),
-    ])
+    expect(assertProductionImportAllowed).toHaveBeenCalledWith(
+      serializedBackup,
+      expect.objectContaining({ importMode: 'merge' }),
+    )
+    expect(mergeLegacyBackupIntoIndexedDb).toHaveBeenCalledWith(gateResult)
   })
 })

@@ -44,8 +44,10 @@ describe('createRemoveDomainFromParentCategoryUseCase', () => {
   beforeEach(() => {
     repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: ['example.com', 'extra.com'],
-        domains: ['tab-1', 'tab-2'],
+        collections: ['tab-1', 'tab-2'].map((id, index) => ({
+          id,
+          domain: ['example.com', 'extra.com'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       }),
@@ -62,8 +64,10 @@ describe('createRemoveDomainFromParentCategoryUseCase', () => {
       domainName: createDomainName('example.com'),
     })
     const target = result.find((c) => c.id === 'cat-1')
-    expect(target?.domains).toStrictEqual(['tab-2'])
-    expect(target?.domainNames).toStrictEqual(['extra.com'])
+    expect(target?.collections.map(({ id }) => id)).toStrictEqual(['tab-2'])
+    expect(target?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'extra.com',
+    ])
   })
 
   it('対象カテゴリが見つからない場合はエラー', async () => {

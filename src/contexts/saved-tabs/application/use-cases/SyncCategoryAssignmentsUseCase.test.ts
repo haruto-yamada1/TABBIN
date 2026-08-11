@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { SyncCategoryAssignmentsUseCaseDeps } from './SyncCategoryAssignmentsUseCase'
 import { createSyncCategoryAssignmentsUseCase } from './SyncCategoryAssignmentsUseCase'
@@ -75,15 +75,14 @@ describe('SyncCategoryAssignmentsUseCase', () => {
   describe('command 未指定（バルク同期）', () => {
     it('domainNames に合致する TabGroup を該当 ParentCategory に割り当てる', async () => {
       const category = createParentCategory({
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'group-1', domain: 'example.com' }],
         id: 'cat-1',
         name: 'Docs',
       })
       const group = createTabGroup({
         domain: 'example.com',
         id: 'group-1',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [category],
@@ -94,13 +93,12 @@ describe('SyncCategoryAssignmentsUseCase', () => {
       const result = await useCase({})
 
       expect(result.assignedTabGroupIds).toStrictEqual([group.id])
-      expect(repos.tabGroups[0]?.parentCategoryId).toBe(category.id)
+      expect(repos.tabGroups[0]?.collection.groupId).toBe(category.id)
     })
 
     it('既に同じカテゴリが割り当て済みの場合は assignedTabGroupIds に含めない', async () => {
       const category = createParentCategory({
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'group-1', domain: 'example.com' }],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -108,7 +106,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-1',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [category],
@@ -123,8 +121,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
 
     it('未分類の TabGroup は parentCategoryId を外す', async () => {
       const category = createParentCategory({
-        domainNames: ['other.com'],
-        domains: [],
+        collections: [{ id: 'other-reference', domain: 'other.com' }],
         id: 'cat-1',
         name: 'Other',
       })
@@ -132,7 +129,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-stale',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [category],
@@ -143,22 +140,21 @@ describe('SyncCategoryAssignmentsUseCase', () => {
       const result = await useCase({})
 
       expect(result.unassignedTabGroupIds).toStrictEqual([group.id])
-      expect(repos.tabGroups[0]?.parentCategoryId).toBeUndefined()
+      expect(repos.tabGroups[0]?.collection.groupId).toBeUndefined()
     })
   })
 
   describe('command 指定（単一ドメイン同期）', () => {
     it('指定ドメインの TabGroup を該当 ParentCategory に移動し、domainNames を追加する', async () => {
       const category = createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [],
         id: 'cat-1',
         name: 'Docs',
       })
       const group = createTabGroup({
         domain: 'example.com',
         id: 'group-1',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [category],
@@ -175,20 +171,20 @@ describe('SyncCategoryAssignmentsUseCase', () => {
 
       expect(result.assignedTabGroupIds).toStrictEqual([group.id])
       expect(result.updatedCategoryIds).toContain(category.id)
-      expect(repos.tabGroups[0]?.parentCategoryId).toBe(category.id)
-      expect(repos.parentCategories[0]?.domainNames).toContain('example.com')
+      expect(repos.tabGroups[0]?.collection.groupId).toBe(category.id)
+      expect(
+        repos.parentCategories[0]?.collections.map(({ domain }) => domain),
+      ).toContain('example.com')
     })
 
     it('他のカテゴリから同じ domainName を取り除く', async () => {
       const oldCategory = createParentCategory({
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'group-1', domain: 'example.com' }],
         id: 'cat-old',
         name: 'Old',
       })
       const newCategory = createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [],
         id: 'cat-new',
         name: 'New',
       })
@@ -196,7 +192,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-old',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [oldCategory, newCategory],
@@ -219,14 +215,17 @@ describe('SyncCategoryAssignmentsUseCase', () => {
       const newAfter = repos.parentCategories.find(
         (category) => category.id === newCategory.id,
       )
-      expect(oldAfter?.domainNames).not.toContain('example.com')
-      expect(newAfter?.domainNames).toContain('example.com')
+      expect(oldAfter?.collections.map(({ domain }) => domain)).not.toContain(
+        'example.com',
+      )
+      expect(newAfter?.collections.map(({ domain }) => domain)).toContain(
+        'example.com',
+      )
     })
 
     it('バルク同期でカテゴリの domainNames / domains が空のときは同期で自動追加する', async () => {
       const category = createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -234,7 +233,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-1',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [category],
@@ -251,8 +250,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
 
     it('バルク同期で group.parentCategoryId が別カテゴリを指していれば付け替える', async () => {
       const category = createParentCategory({
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'group-1', domain: 'example.com' }],
         id: 'cat-1',
         name: 'Docs',
       })
@@ -260,7 +258,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-stale',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [category],
@@ -280,7 +278,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
       const group = createTabGroup({
         domain: 'example.com',
         id: 'group-1',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({ tabGroups: [group] })
       const saveSpy = vi.spyOn(repos.tabGroupRepository, 'saveAll')
@@ -294,8 +292,10 @@ describe('SyncCategoryAssignmentsUseCase', () => {
 
     it('バルク同期で category に domains / domainNames の更新が無い場合は save を呼ばない', async () => {
       const category = createParentCategory({
-        domainNames: ['example.com'],
-        domains: ['group-1'],
+        collections: ['group-1'].map((id, index) => ({
+          id,
+          domain: ['example.com'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       })
@@ -303,7 +303,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-1',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [category],
@@ -321,26 +321,27 @@ describe('SyncCategoryAssignmentsUseCase', () => {
 
     it('command 指定時、対象以外のドメインの TabGroup は変更しない', async () => {
       const targetCategory = createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [],
         id: 'cat-target',
         name: 'Target',
       })
       const otherCategory = createParentCategory({
-        domainNames: ['other.example.com'],
-        domains: ['group-other'],
+        collections: ['group-other'].map((id, index) => ({
+          id,
+          domain: ['other.example.com'][index] ?? id,
+        })),
         id: 'cat-other',
         name: 'Other',
       })
       const targetGroup = createTabGroup({
         domain: 'target.example.com',
         id: 'group-target',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const otherGroup = createTabGroup({
         domain: 'other.example.com',
         id: 'group-other',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [targetCategory, otherCategory],
@@ -361,8 +362,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
 
     it('command 指定時、既に同カテゴリの TabGroup は変更しない', async () => {
       const targetCategory = createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [],
         id: 'cat-target',
         name: 'Target',
       })
@@ -370,7 +370,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-target',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [targetCategory],
@@ -391,20 +391,17 @@ describe('SyncCategoryAssignmentsUseCase', () => {
 
     it('command 指定時、対象ドメインを持たない他カテゴリはそのまま残す', async () => {
       const targetCategory = createParentCategory({
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'group-1', domain: 'example.com' }],
         id: 'cat-target',
         name: 'Target',
       })
       const oldCategory = createParentCategory({
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'group-1', domain: 'example.com' }],
         id: 'cat-old',
         name: 'Old',
       })
       const unrelatedCategory = createParentCategory({
-        domainNames: ['other.com'],
-        domains: [],
+        collections: [{ id: 'other-reference', domain: 'other.com' }],
         id: 'cat-unrelated',
         name: 'Unrelated',
       })
@@ -412,7 +409,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-old',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [oldCategory, targetCategory, unrelatedCategory],
@@ -431,13 +428,14 @@ describe('SyncCategoryAssignmentsUseCase', () => {
       const unrelated = repos.parentCategories.find(
         (category) => category.id === unrelatedCategory.id,
       )
-      expect(unrelated?.domainNames).toStrictEqual(['other.com'])
+      expect(unrelated?.collections.map(({ domain }) => domain)).toStrictEqual([
+        'other.com',
+      ])
     })
 
     it('command 指定時、対象カテゴリに既に domainName があり他カテゴリにも無いなら categories を保存しない', async () => {
       const targetCategory = createParentCategory({
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'group-1', domain: 'example.com' }],
         id: 'cat-target',
         name: 'Target',
       })
@@ -445,7 +443,7 @@ describe('SyncCategoryAssignmentsUseCase', () => {
         domain: 'example.com',
         id: 'group-1',
         parentCategoryId: 'cat-other',
-        urlIds: [],
+        memberships: [].map((urlId) => ({ urlId })),
       })
       const repos = createInMemoryRepositories({
         parentCategories: [targetCategory],

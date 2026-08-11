@@ -1,18 +1,18 @@
-import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { createOrUpdateUrlRecord } from '@/lib/storage/urls'
 import type {
   CustomProject,
   ProjectKeywordSettings,
   SubCategoryKeyword,
   TabGroup,
   UrlRecord,
-  UserSettings,
-} from '@/types/storage'
-
+} from '@/contexts/saved-tabs/public-api'
 import type {
   ImportedCustomProjectData,
   ImportedCustomProjectUrlData,
-} from './schemas'
+} from '@/features/options/lib/import-export/schemas'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
+import { createOrUpdateUrlRecord } from '@/lib/storage/urls'
+import type { UserSettings } from '@/types/storage'
+
 import {
   CUSTOM_UNCATEGORIZED_PROJECT_ID,
   getUncategorizedProjectName,

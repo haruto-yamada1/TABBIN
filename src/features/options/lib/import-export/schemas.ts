@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import type { ParentCategory } from '@/contexts/saved-tabs/public-api'
 import type { AiChatConversation } from '@/features/ai-chat/types'
 import { LEGACY_BACKUP_ADVISORY } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
 import type { LegacyBackupAdvisory } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
@@ -7,7 +8,7 @@ import { LegacyBackupV0Schema } from '@/features/options/lib/import-export/legac
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { storedUserSettingsSchema } from '@/lib/storage/zod-storage'
 import { isValidUrl } from '@/lib/url-filter'
-import type { ParentCategory, UserSettings } from '@/types/storage'
+import type { UserSettings } from '@/types/storage'
 
 type ImportedUrlData = {
   url: string

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
+import { toCustomProjectFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 /**
  * `customProjects` / `searchQuery` 変更時に `savedTabsUseCases.getProjectUrls` を
@@ -24,7 +25,8 @@ export const useFilteredCustomProjects = (
   >([])
 
   const loadProjectUrls = useCallback(
-    async (project: CustomProject) => savedTabsUseCases.getProjectUrls(project),
+    async (project: CustomProject) =>
+      savedTabsUseCases.getProjectUrls(toCustomProjectFromViewModel(project)),
     [savedTabsUseCases],
   )
 

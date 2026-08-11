@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import { createCustomProject } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createCreateCustomProjectUseCase } from './CreateCustomProjectUseCase'
 import { createSaveCustomProjectOrderUseCase } from './SaveCustomProjectOrderUseCase'
@@ -33,7 +33,7 @@ const existingProject = () =>
     id: 'project-1',
     name: 'Existing',
     updatedAt: 2,
-    urlIds: ['url-1'],
+    memberships: ['url-1'].map((urlId) => ({ urlId })),
   })
 
 describe('custom project management use-cases', () => {
@@ -47,13 +47,18 @@ describe('custom project management use-cases', () => {
 
     const result = await createProject({ name: '  Reading  ' })
 
-    expect(result.project).toStrictEqual({
-      categories: [],
+    expect(result.project).toMatchObject({
+      collection: {
+        definition: { type: 'custom' },
+        id: 'project-2',
+        name: 'Reading',
+      },
+      collectionCategories: [],
       createdAt: 10,
       id: 'project-2',
+      memberships: [],
       name: 'Reading',
       updatedAt: 10,
-      urlIds: [],
     })
     expect(result.all).toHaveLength(2)
     expect(customProjectRepository.saveAll).toHaveBeenCalledOnce()
@@ -95,7 +100,7 @@ describe('custom project management use-cases', () => {
       id: 'project-2',
       name: 'Other',
       updatedAt: 1,
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const customProjectRepository = createRepository([existingProject(), other])
     const updateName = createUpdateCustomProjectNameUseCase({
@@ -127,7 +132,7 @@ describe('custom project management use-cases', () => {
       id: 'project-2',
       name: 'Other',
       updatedAt: 1,
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const customProjectRepository = createRepository([existingProject(), other])
     const updateName = createUpdateCustomProjectNameUseCase({
@@ -146,14 +151,14 @@ describe('custom project management use-cases', () => {
 
     await saveProjects({
       projects: [
-        {
+        createCustomProject({
           categories: ['Docs'],
           createdAt: 1,
           id: 'project-1',
           name: 'Saved',
           updatedAt: 2,
-          urlIds: ['url-1'],
-        },
+          memberships: ['url-1'].map((urlId) => ({ urlId })),
+        }),
       ],
     })
 

@@ -1,17 +1,14 @@
 import Fuse from 'fuse.js'
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type {
-  GetProjectUrlsUseCase,
-  ProjectUrlEntry,
-} from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+import type { ProjectUrlEntry } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 type ProjectUrlItem = ProjectUrlEntry
 
 type FilterCustomProjectsByQueryParams = {
   customProjects: CustomProject[]
   searchQuery: string
-  loadProjectUrls: GetProjectUrlsUseCase
+  loadProjectUrls: (project: CustomProject) => Promise<ProjectUrlEntry[]>
 }
 
 const projectFuseOptions = {
@@ -28,19 +25,15 @@ const mapMatchedUrlsToProject = (
   project: CustomProject,
   matchedUrls: ProjectUrlEntry[],
 ): CustomProject => {
-  const matchedUrlIds = matchedUrls.map((url) => url.id)
+  const matchedUrlIds = new Set(matchedUrls.map((url) => url.id))
 
   return {
     ...project,
-    urlIds: matchedUrlIds,
-    urlMetadata: project.urlMetadata
-      ? Object.fromEntries(
-          Object.entries(project.urlMetadata).filter(([id]) =>
-            matchedUrlIds.includes(id),
-          ),
-        )
-      : project.urlMetadata,
+    memberships: project.memberships?.filter(({ urlId }) =>
+      matchedUrlIds.has(urlId),
+    ),
     urls: matchedUrls.map((url) => ({
+      id: url.id,
       url: url.url,
       title: url.title,
       notes: url.notes,

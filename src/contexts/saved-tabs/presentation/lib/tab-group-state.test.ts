@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsParentCategoryDto as ParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { buildPresentationCategoryLookup } from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
+import type { SavedTabsParentCategoryDto as ParentCategoryDto } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import {
   buildUpdatedGroupAfterUrlIdRemoval,
@@ -20,7 +20,7 @@ describe('tab-group-state.countTabGroupUrls', () => {
       countTabGroupUrls({
         domain: 'a.example.com',
         id: 'g1',
-        urlIds: ['url-1', 'url-2'],
+        memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
       }),
     ).toBe(2)
   })
@@ -45,8 +45,16 @@ describe('tab-group-state.filterGroupsByExcludedIds', () => {
     expect(
       filterGroupsByExcludedIds(
         [
-          { domain: 'a.example.com', id: 'g1', urlIds: [] },
-          { domain: 'b.example.com', id: 'g2', urlIds: [] },
+          {
+            domain: 'a.example.com',
+            id: 'g1',
+            memberships: [].map((urlId) => ({ urlId })),
+          },
+          {
+            domain: 'b.example.com',
+            id: 'g2',
+            memberships: [].map((urlId) => ({ urlId })),
+          },
         ],
         new Set(['g1']),
       ).map((group) => group.id),
@@ -59,8 +67,16 @@ describe('tab-group-state.createFilterGroupsByExcludedIdsUpdater', () => {
     const updater = createFilterGroupsByExcludedIdsUpdater(new Set(['g1']))
     expect(
       updater([
-        { domain: 'a.example.com', id: 'g1', urlIds: [] },
-        { domain: 'b.example.com', id: 'g2', urlIds: [] },
+        {
+          domain: 'a.example.com',
+          id: 'g1',
+          memberships: [].map((urlId) => ({ urlId })),
+        },
+        {
+          domain: 'b.example.com',
+          id: 'g2',
+          memberships: [].map((urlId) => ({ urlId })),
+        },
       ]).map((group) => group.id),
     ).toStrictEqual(['g2'])
   })
@@ -90,8 +106,16 @@ describe('tab-group-state.removeUrlIdsFromSavedTabs', () => {
   it('指定 id を取り除き、空グループは結果から除く', () => {
     const result = removeUrlIdsFromSavedTabs(
       [
-        { domain: 'a.example.com', id: 'g1', urlIds: ['u1', 'u2'] },
-        { domain: 'b.example.com', id: 'g2', urlIds: ['u2'] },
+        {
+          domain: 'a.example.com',
+          id: 'g1',
+          memberships: ['u1', 'u2'].map((urlId) => ({ urlId })),
+        },
+        {
+          domain: 'b.example.com',
+          id: 'g2',
+          memberships: ['u2'].map((urlId) => ({ urlId })),
+        },
       ],
       new Set(['u2']),
     )
@@ -103,7 +127,13 @@ describe('tab-group-state.removeUrlIdsFromSavedTabs', () => {
 
   it('変更がない場合は hasChanges=false', () => {
     const result = removeUrlIdsFromSavedTabs(
-      [{ domain: 'a.example.com', id: 'g1', urlIds: ['u1'] }],
+      [
+        {
+          domain: 'a.example.com',
+          id: 'g1',
+          memberships: ['u1'].map((urlId) => ({ urlId })),
+        },
+      ],
       new Set(['u2']),
     )
     expect(result.hasChanges).toBe(false)
@@ -128,17 +158,19 @@ describe('tab-group-state.buildUpdatedGroupAfterUrlIdRemoval', () => {
         {
           domain: 'example.com',
           id: 'g1',
-          urlIds: ['u1'],
-          urlSubCategories: { u1: 'news' },
+          memberships: ['u1'].map((urlId) => ({
+            urlId,
+            ...({ u1: 'news' }?.[urlId]
+              ? { category: { u1: 'news' }[urlId] }
+              : {}),
+          })),
         },
         [],
-        new Set(['u1']),
       ),
     ).toStrictEqual({
       domain: 'example.com',
       id: 'g1',
-      urlIds: [],
-      urlSubCategories: undefined,
+      memberships: [],
     })
   })
 
@@ -148,17 +180,30 @@ describe('tab-group-state.buildUpdatedGroupAfterUrlIdRemoval', () => {
         {
           domain: 'example.com',
           id: 'g1',
-          urlIds: ['u1', 'u2'],
-          urlSubCategories: { u1: 'news', u2: 'docs' },
+          memberships: ['u1', 'u2'].map((urlId) => ({
+            urlId,
+            ...({
+              u1: 'news',
+              u2: 'docs',
+            }?.[urlId]
+              ? {
+                  category: {
+                    u1: 'news',
+                    u2: 'docs',
+                  }[urlId],
+                }
+              : {}),
+          })),
         },
-        ['u2'],
-        new Set(['u1']),
+        [{ category: 'docs', urlId: 'u2' }],
       ),
     ).toStrictEqual({
       domain: 'example.com',
       id: 'g1',
-      urlIds: ['u2'],
-      urlSubCategories: { u2: 'docs' },
+      memberships: ['u2'].map((urlId) => ({
+        urlId,
+        ...({ u2: 'docs' }?.[urlId] ? { category: { u2: 'docs' }[urlId] } : {}),
+      })),
     })
   })
 
@@ -168,15 +213,14 @@ describe('tab-group-state.buildUpdatedGroupAfterUrlIdRemoval', () => {
         {
           domain: 'example.com',
           id: 'g1',
-          urlIds: ['u1', 'u2'],
+          memberships: ['u1', 'u2'].map((urlId) => ({ urlId })),
         },
-        ['u2'],
-        new Set(['u1']),
+        [{ urlId: 'u2' }],
       ),
     ).toStrictEqual({
       domain: 'example.com',
       id: 'g1',
-      urlIds: ['u2'],
+      memberships: ['u2'].map((urlId) => ({ urlId })),
     })
   })
 })
@@ -203,8 +247,7 @@ describe('tab-group-state.syncGroupCategoryAssignment', () => {
   it('ID 一致カテゴリと domain 一致カテゴリの両方が反映される', () => {
     const updatedCategories: ParentCategoryDto[] = [
       {
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [{ id: 'domain-reference', domain: 'example.com' }],
         id: 'cat-1',
         name: 'Reading',
       },
@@ -224,8 +267,10 @@ describe('tab-group-state.syncGroupCategoryAssignment', () => {
     expect(result.categoriesChanged).toBe(true)
     expect(result.updatedSavedTabs[0]?.parentCategoryId).toBe('cat-1')
     expect(
-      result.updatedCategories.find((c) => c.id === 'cat-1')?.domains,
-    ).toStrictEqual(['g1'])
+      result.updatedCategories
+        .find((c) => c.id === 'cat-1')
+        ?.collections.map(({ id }) => id),
+    ).toStrictEqual(['domain-reference', 'g1'])
   })
 
   it('domain 一致カテゴリが見つからない場合は state を変更しない', () => {

@@ -20,6 +20,17 @@ export type {
   RawLegacyStorageSnapshot,
   RawLegacyStorageValue,
 } from './application/ports/RawLegacyStorageReaderPort'
+export type {
+  CustomProject,
+  DomainCategorySettings,
+  DomainParentCategoryMapping,
+  LegacyChromeStorageDto,
+  ParentCategory,
+  ProjectKeywordSettings,
+  SubCategoryKeyword,
+  TabGroup,
+  UrlRecord,
+} from './application/dto/LegacyChromeStorageDto'
 export type { ClockPort } from './application/ports/ClockPort'
 export type { IdGeneratorPort } from './application/ports/IdGeneratorPort'
 export type {
@@ -39,7 +50,10 @@ export type {
   PersistenceNotificationFailureDiagnostic,
   PersistenceNotificationFailureStage,
 } from './application/services/PersistenceMutationCoordinatorService'
-export type { PersistenceLogicalSnapshot } from './application/ports/PersistenceV2SnapshotReaderPort'
+export type {
+  PersistenceLogicalSnapshot,
+  PersistenceVersionedSavedTabsSnapshot,
+} from './application/ports/PersistenceV2SnapshotReaderPort'
 export type {
   PersistenceV2ReplacementErrorCode,
   PersistenceV2ReplacementPort,

@@ -58,13 +58,11 @@ export const createAddDomainToParentCategoryUseCase = (
         'PARENT_CATEGORY_NOT_FOUND',
       )
     }
-    if (targetCategory.domains.includes(domainId)) {
-      throw new SavedTabsDomainError(
-        'このドメインは既にカテゴリに追加されています',
-        'INVALID_PARENT_CATEGORY',
+    if (
+      targetCategory.collections.some(
+        ({ domain, id }) => id === domainId || domain === domainName,
       )
-    }
-    if (targetCategory.domainNames.includes(domainName)) {
+    ) {
       throw new SavedTabsDomainError(
         'このドメインは既にカテゴリに追加されています',
         'INVALID_PARENT_CATEGORY',
@@ -74,8 +72,10 @@ export const createAddDomainToParentCategoryUseCase = (
       category.id === targetCategoryId
         ? {
             ...category,
-            domainNames: [...category.domainNames, domainName],
-            domains: [...category.domains, domainId],
+            collections: [
+              ...category.collections,
+              { domain: domainName, id: domainId },
+            ],
           }
         : category,
     )

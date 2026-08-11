@@ -19,10 +19,8 @@
  * あくまで互換層として lib/storage をラップする。`lib/storage` の
  * 全面 DDD 化は別 issue で段階的に行う。
  */
-import type {
-  SavedTabsCustomProjectDto as CustomProject,
-  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { ResolvedCustomProjectUrlDto } from '@/contexts/saved-tabs/application/dto/ResolvedCustomProjectUrlDto'
+import type { SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 
 export type CustomProjectsCommandService = {
   /**
@@ -63,7 +61,7 @@ export type CustomProjectsCommandService = {
    */
   reorderProjectUrls: (
     projectId: string,
-    urls: CustomProject['urls'],
+    urls: readonly ResolvedCustomProjectUrlDto[],
   ) => Promise<void>
 
   /**

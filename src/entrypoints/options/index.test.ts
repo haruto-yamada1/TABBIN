@@ -38,12 +38,6 @@ vi.mock('@/features/options/hooks/useColorSettings', () => ({
   }),
 }))
 
-vi.mock('@/features/options/hooks/useCategories', () => ({
-  useCategories: () => ({
-    handleCategoryKeyDown: vi.fn(),
-  }),
-}))
-
 vi.mock('@/features/options/hooks/useAutoDeletePeriod', () => ({
   useAutoDeletePeriod: () => ({
     pendingAutoDeletePeriod: null,

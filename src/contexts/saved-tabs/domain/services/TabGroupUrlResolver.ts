@@ -53,7 +53,7 @@ export const resolveTabGroupsWithUrls = ({
   }
   return tabGroups.map((group) => ({
     ...group,
-    urls: resolveGroupUrls({
+    resolvedUrls: resolveGroupUrls({
       group,
       urlRecordMap,
     }),
@@ -76,24 +76,35 @@ export const resolveGroupUrls = ({
   group: TabGroupDto
   urlRecordMap: ReadonlyMap<string, UrlRecord>
 }): ResolvedTabGroupUrlDto[] => {
-  if (!(group.urlIds && group.urlIds.length > 0)) {
+  const urlIds = group.memberships.map(({ urlId }) => urlId)
+  if (urlIds.length === 0) {
     return []
   }
-  return group.urlIds.flatMap((urlId) => {
+  const categoryByUrlId = new Map(
+    group.memberships.flatMap(({ categoryId, urlId }) =>
+      categoryId ? [[urlId, categoryId] as const] : [],
+    ),
+  )
+  const categoryNameById = new Map(
+    group.collectionCategories.map(({ id, name }) => [id, name]),
+  )
+  return urlIds.flatMap((urlId) => {
     const record = urlRecordMap.get(urlId)
     if (!record) {
       return []
     }
     const recordId = urlRecordIdToString(record.id)
+    const categoryId = categoryByUrlId.get(recordId)
+    const subCategory = categoryId
+      ? categoryNameById.get(categoryId)
+      : undefined
     return [
       {
         id: recordId,
         savedAt: record.savedAt,
         title: record.title,
         url: record.url,
-        ...(group.urlSubCategories?.[recordId] !== undefined
-          ? { subCategory: group.urlSubCategories[recordId] }
-          : {}),
+        ...(subCategory ? { subCategory } : {}),
       },
     ]
   })

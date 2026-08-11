@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
+
 import { createLibCategoryAssignmentPort } from './LibCategoryAssignmentPort'
 
 describe('createLibCategoryAssignmentPort', () => {
@@ -24,8 +26,7 @@ describe('createLibCategoryAssignmentPort', () => {
 
     await port.saveParentCategories([
       {
-        domainNames: ['example.com'],
-        domains: ['group-1'],
+        collections: [{ domain: 'example.com', id: 'group-1' }],
         id: 'category-1',
         name: 'Docs',
       },
@@ -36,7 +37,7 @@ describe('createLibCategoryAssignmentPort', () => {
     ])
   })
 
-  it('presentation tab group DTO は urlIds 既定値込みで entity 化する', async () => {
+  it('presentation tab group DTO は membership projection で entity 化する', async () => {
     const saveAll = vi.fn()
     const port = createLibCategoryAssignmentPort({
       parentCategoryRepository: {
@@ -56,21 +57,37 @@ describe('createLibCategoryAssignmentPort', () => {
     })
 
     await port.saveTabGroups([
-      { domain: 'example.com', id: 'group-1', urlIds: undefined },
-      { domain: 'docs.example.com', id: 'group-2', urlIds: ['url-1'] },
+      createTabGroup({ domain: 'example.com', id: 'group-1' }),
+      createTabGroup({
+        domain: 'docs.example.com',
+        id: 'group-2',
+        memberships: [{ category: 'reference', urlId: 'url-1' }],
+        subCategories: ['reference'],
+      }),
     ])
 
     expect(saveAll).toHaveBeenCalledWith([
-      expect.objectContaining({ id: 'group-1', urlIds: [] }),
-      expect.objectContaining({ id: 'group-2', urlIds: ['url-1'] }),
+      expect.objectContaining({ id: 'group-1', memberships: [] }),
+      expect.objectContaining({
+        id: 'group-2',
+        collectionCategories: [
+          expect.objectContaining({
+            id: 'group-2:category:0',
+            name: 'reference',
+          }),
+        ],
+        memberships: [
+          expect.objectContaining({
+            categoryId: 'group-2:category:0',
+            collectionId: 'group-2',
+            urlId: 'url-1',
+          }),
+        ],
+      }),
     ])
   })
 
-  // 回帰: 保存フロー (getTabDomain) が `https://example.com` のように
-  // スキーム付き domain を書き込む既存データが saveTabGroups に流れた場合、
-  // createTabGroup → createDomainName が「ドメイン名にスキームを含めることは
-  // できません」で例外を投げないよう、入口で hostname へ正規化する。
-  it('スキーム付き domain は hostname へ正規化して entity 化する', async () => {
+  it('current projection を defensive copy して repository に渡す', async () => {
     const saveAll = vi.fn()
     const port = createLibCategoryAssignmentPort({
       parentCategoryRepository: {
@@ -89,14 +106,15 @@ describe('createLibCategoryAssignmentPort', () => {
       },
     })
 
-    await port.saveTabGroups([
-      { domain: 'https://example.com', id: 'group-1', urlIds: [] },
-      { domain: 'http://docs.example.com/path', id: 'group-2', urlIds: [] },
-    ])
+    const group = createTabGroup({ domain: 'example.com', id: 'group-1' })
+    await port.saveTabGroups([group])
 
     expect(saveAll).toHaveBeenCalledTimes(1)
-    const saved = saveAll.mock.calls[0]?.[0] as { domain: string }[]
-    expect(saved[0].domain).toBe('example.com')
-    expect(saved[1].domain).toBe('docs.example.com')
+    const saved = saveAll.mock.calls[0]?.[0]
+    expect(saved?.[0]).not.toBe(group)
+    expect(saved?.[0]?.collection.definition).toStrictEqual({
+      domain: 'example.com',
+      type: 'domain',
+    })
   })
 })

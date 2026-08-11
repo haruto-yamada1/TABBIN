@@ -30,10 +30,10 @@ export const CategoryDeleteConfirm = () => {
         {t('savedTabs.categoryModal.deleteConfirmDescription', undefined, {
           name: deletion.categoryToDelete.name,
         })}
-        {deletion.categoryToDelete.domainNames.length > 0 ? (
+        {deletion.categoryToDelete.collections.length > 0 ? (
           <span className='mt-1 block text-xs'>
             {t('savedTabs.categoryModal.deleteConfirmDomains', undefined, {
-              count: String(deletion.categoryToDelete.domainNames.length),
+              count: String(deletion.categoryToDelete.collections.length),
             })}
           </span>
         ) : null}

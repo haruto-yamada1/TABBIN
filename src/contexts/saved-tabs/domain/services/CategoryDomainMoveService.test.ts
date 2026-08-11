@@ -9,15 +9,19 @@ import { moveDomainBetweenCategories } from './CategoryDomainMoveService'
 
 const buildDocs = () =>
   createParentCategory({
-    domainNames: ['example.com', 'docs.com'],
-    domains: ['tab-1', 'tab-2'],
+    collections: ['tab-1', 'tab-2'].map((id, index) => ({
+      id,
+      domain: ['example.com', 'docs.com'][index] ?? id,
+    })),
     id: 'cat-docs',
     name: 'Docs',
   })
 const buildNews = () =>
   createParentCategory({
-    domainNames: ['news.com'],
-    domains: ['tab-3'],
+    collections: ['tab-3'].map((id, index) => ({
+      id,
+      domain: ['news.com'][index] ?? id,
+    })),
     id: 'cat-news',
     name: 'News',
   })
@@ -34,10 +38,18 @@ describe('moveDomainBetweenCategories', () => {
     expect(result.moved).toBe(true)
     const docs = result.updatedCategories.find((c) => c.id === 'cat-docs')
     const news = result.updatedCategories.find((c) => c.id === 'cat-news')
-    expect(docs?.domains).toStrictEqual(['tab-2'])
-    expect(docs?.domainNames).toStrictEqual(['docs.com'])
-    expect(news?.domains).toStrictEqual(['tab-3', 'tab-1'])
-    expect(news?.domainNames).toStrictEqual(['news.com', 'example.com'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual(['tab-2'])
+    expect(docs?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'docs.com',
+    ])
+    expect(news?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-3',
+      'tab-1',
+    ])
+    expect(news?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'news.com',
+      'example.com',
+    ])
   })
 
   it('fromCategoryId が null の場合は追加のみ行う', () => {
@@ -50,8 +62,12 @@ describe('moveDomainBetweenCategories', () => {
     })
     expect(result.moved).toBe(true)
     const docs = result.updatedCategories.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-1', 'tab-2', 'tab-99'])
-    expect(docs?.domainNames).toStrictEqual([
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-1',
+      'tab-2',
+      'tab-99',
+    ])
+    expect(docs?.collections.map(({ domain }) => domain)).toStrictEqual([
       'example.com',
       'docs.com',
       'new.com',
@@ -70,8 +86,14 @@ describe('moveDomainBetweenCategories', () => {
     // 移動先 cat-docs には既に tab-1 / example.com が含まれているので
     // add は no-op (重複追加しない)。
     const docs = result.updatedCategories.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-1', 'tab-2'])
-    expect(docs?.domainNames).toStrictEqual(['example.com', 'docs.com'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-1',
+      'tab-2',
+    ])
+    expect(docs?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'example.com',
+      'docs.com',
+    ])
   })
 
   it('toCategoryId が categories 中に存在しない場合は moved=false', () => {
@@ -86,17 +108,29 @@ describe('moveDomainBetweenCategories', () => {
     // からは remove で tab-1 が消えるので moved=true になる。
     expect(result.moved).toBe(true)
     const docs = result.updatedCategories.find((c) => c.id === 'cat-docs')
-    expect(docs?.domains).toStrictEqual(['tab-2'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual(['tab-2'])
   })
 
   it('fromCategoryId === toCategoryId の場合は重複排除のみ行う', () => {
+    const base = buildDocs()
     const categories = [
-      createParentCategory({
-        domainNames: ['example.com', 'example.com'],
-        domains: ['tab-1', 'tab-1', 'tab-2'],
-        id: 'cat-docs',
-        name: 'Docs',
-      }),
+      {
+        ...base,
+        collections: [
+          {
+            id: createTabGroupId('tab-1'),
+            domain: createDomainName('example.com'),
+          },
+          {
+            id: createTabGroupId('tab-1'),
+            domain: createDomainName('example.com'),
+          },
+          {
+            id: createTabGroupId('tab-2'),
+            domain: createDomainName('docs.com'),
+          },
+        ],
+      },
     ]
     const result = moveDomainBetweenCategories({
       categories,
@@ -109,14 +143,20 @@ describe('moveDomainBetweenCategories', () => {
     // 同一カテゴリ内の remove -> add では、重複 tab-1 の 1 つが
     // filter で消え、続く add は `includes` 判定で「tab-1 を含まない」
     // 状態と判定されて末尾に再追加される (旧実装と一致)。
-    expect(docs?.domains).toStrictEqual(['tab-2', 'tab-1'])
-    expect(docs?.domainNames).toStrictEqual(['example.com'])
+    expect(docs?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-2',
+      'tab-1',
+    ])
+    expect(docs?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'docs.com',
+      'example.com',
+    ])
   })
 
   it('入力配列を破壊しない', () => {
     const categories = [buildDocs(), buildNews()]
-    const beforeDocs = categories[0]?.domains.slice()
-    const beforeNews = categories[1]?.domains.slice()
+    const beforeDocs = categories[0]?.collections.map(({ id }) => id).slice()
+    const beforeNews = categories[1]?.collections.map(({ id }) => id).slice()
     moveDomainBetweenCategories({
       categories,
       domainId: createTabGroupId('tab-1'),
@@ -124,8 +164,12 @@ describe('moveDomainBetweenCategories', () => {
       fromCategoryId: 'cat-docs',
       toCategoryId: 'cat-news',
     })
-    expect(categories[0]?.domains).toStrictEqual(beforeDocs)
-    expect(categories[1]?.domains).toStrictEqual(beforeNews)
+    expect(categories[0]?.collections.map(({ id }) => id)).toStrictEqual(
+      beforeDocs,
+    )
+    expect(categories[1]?.collections.map(({ id }) => id)).toStrictEqual(
+      beforeNews,
+    )
   })
 
   it('既存 domain を含まない移動先では末尾に追加される', () => {
@@ -137,7 +181,10 @@ describe('moveDomainBetweenCategories', () => {
       toCategoryId: 'cat-news',
     })
     const news = result.updatedCategories.find((c) => c.id === 'cat-news')
-    expect(news?.domains).toStrictEqual(['tab-3', 'tab-99'])
+    expect(news?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-3',
+      'tab-99',
+    ])
   })
 
   it('createParentCategoryId で生成した ID も category.id と一致して処理できる', () => {
@@ -152,6 +199,9 @@ describe('moveDomainBetweenCategories', () => {
     const moved = result.updatedCategories.find((c) => c.id === docs.id)
     // 同一カテゴリ内の remove -> add で tab-1 が一度消えてから末尾に
     // 再追加される (旧実装と一致する挙動)。
-    expect(moved?.domains).toStrictEqual(['tab-2', 'tab-1'])
+    expect(moved?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-2',
+      'tab-1',
+    ])
   })
 })

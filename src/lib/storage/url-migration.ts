@@ -1,8 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import type {
+  CustomProject,
+  TabGroup,
+  UrlRecord,
+} from '@/contexts/saved-tabs/public-api'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 import { invalidateUrlCache } from './urls'
 

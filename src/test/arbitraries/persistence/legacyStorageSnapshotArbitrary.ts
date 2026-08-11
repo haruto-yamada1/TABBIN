@@ -1,14 +1,14 @@
 import * as fc from 'fast-check'
 
-import type { RawLegacyStorageSnapshot } from '@/contexts/saved-tabs/public-api'
 import type {
   CustomProject,
   DomainCategorySettings,
   DomainParentCategoryMapping,
   ParentCategory,
+  RawLegacyStorageSnapshot,
   TabGroup,
   UrlRecord,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
 
 import {
   displayTextArbitrary,

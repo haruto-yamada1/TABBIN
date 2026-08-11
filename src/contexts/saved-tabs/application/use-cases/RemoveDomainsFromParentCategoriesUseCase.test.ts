@@ -41,21 +41,25 @@ describe('createRemoveDomainsFromParentCategoriesUseCase', () => {
   beforeEach(() => {
     repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: ['a.com', 'b.com', 'c.com'],
-        domains: ['tab-1', 'tab-2', 'tab-3'],
+        collections: ['tab-1', 'tab-2', 'tab-3'].map((id, index) => ({
+          id,
+          domain: ['a.com', 'b.com', 'c.com'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       }),
       createParentCategory({
-        domainNames: ['d.com'],
-        domains: ['tab-2'],
+        collections: ['tab-2'].map((id, index) => ({
+          id,
+          domain: ['d.com'][index] ?? id,
+        })),
         id: 'cat-2',
         name: 'Work',
       }),
     ])
   })
 
-  it('単一 domainId を全カテゴリの domains から取り除く (domainNames は維持)', async () => {
+  it('単一 domainId の collection relation を全カテゴリから取り除く', async () => {
     const useCase = createRemoveDomainsFromParentCategoriesUseCase(
       createDeps(repo),
     )
@@ -64,10 +68,16 @@ describe('createRemoveDomainsFromParentCategoriesUseCase', () => {
     })
     const cat1 = result.find((c) => c.id === 'cat-1')
     const cat2 = result.find((c) => c.id === 'cat-2')
-    expect(cat1?.domains).toStrictEqual(['tab-1', 'tab-3'])
-    expect(cat1?.domainNames).toStrictEqual(['a.com', 'b.com', 'c.com'])
-    expect(cat2?.domains).toStrictEqual([])
-    expect(cat2?.domainNames).toStrictEqual(['d.com'])
+    expect(cat1?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-1',
+      'tab-3',
+    ])
+    expect(cat1?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'a.com',
+      'c.com',
+    ])
+    expect(cat2?.collections.map(({ id }) => id)).toStrictEqual([])
+    expect(cat2?.collections.map(({ domain }) => domain)).toStrictEqual([])
   })
 
   it('複数 domainId を一括で取り除く', async () => {
@@ -79,8 +89,8 @@ describe('createRemoveDomainsFromParentCategoriesUseCase', () => {
     })
     const cat1 = result.find((c) => c.id === 'cat-1')
     const cat2 = result.find((c) => c.id === 'cat-2')
-    expect(cat1?.domains).toStrictEqual(['tab-2'])
-    expect(cat2?.domains).toStrictEqual(['tab-2'])
+    expect(cat1?.collections.map(({ id }) => id)).toStrictEqual(['tab-2'])
+    expect(cat2?.collections.map(({ id }) => id)).toStrictEqual(['tab-2'])
   })
 
   it('存在しない domainId は no-op として現在値を返す', async () => {
@@ -91,7 +101,11 @@ describe('createRemoveDomainsFromParentCategoriesUseCase', () => {
       domainIds: [createTabGroupId('tab-missing')],
     })
     const cat1 = result.find((c) => c.id === 'cat-1')
-    expect(cat1?.domains).toStrictEqual(['tab-1', 'tab-2', 'tab-3'])
+    expect(cat1?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-1',
+      'tab-2',
+      'tab-3',
+    ])
   })
 
   it('domainIds が空の場合は saveAll を呼ばず現在値を返す', async () => {
@@ -101,6 +115,10 @@ describe('createRemoveDomainsFromParentCategoriesUseCase', () => {
     const result = await useCase({ domainIds: [] })
     expect(result).toHaveLength(2)
     const cat1 = result.find((c) => c.id === 'cat-1')
-    expect(cat1?.domains).toStrictEqual(['tab-1', 'tab-2', 'tab-3'])
+    expect(cat1?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-1',
+      'tab-2',
+      'tab-3',
+    ])
   })
 })

@@ -7,13 +7,64 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
+  CustomProject as LegacyCustomProject,
+  ParentCategory as LegacyParentCategory,
+  TabGroup as LegacyTabGroup,
+} from '@/contexts/saved-tabs/application/dto/LegacyChromeStorageDto'
+import { createSavedTabsTabGroupDto as createCurrentTabGroup } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
+import { toSavedTabsTabGroupViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUrlRecordDto as UrlRecord,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
+
+const toLegacyTabGroupFixture = (group: TabGroup): LegacyTabGroup => {
+  const { memberships = [], ...rest } = group
+  const urlSubCategories = Object.fromEntries(
+    memberships.flatMap(({ category, urlId }) =>
+      category ? [[urlId, category]] : [],
+    ),
+  )
+  return {
+    ...rest,
+    ...(memberships.length > 0
+      ? { urlIds: memberships.map(({ urlId }) => urlId) }
+      : {}),
+    ...(Object.keys(urlSubCategories).length > 0 ? { urlSubCategories } : {}),
+  }
+}
+
+const toLegacyParentCategoryFixture = (
+  category: ParentCategory,
+): LegacyParentCategory => ({
+  domainNames: category.collections.map(({ domain }) => domain),
+  domains: category.collections.map(({ id }) => id),
+  id: category.id,
+  name: category.name,
+})
+
+const toLegacyCustomProjectFixture = (
+  project: CustomProject,
+): LegacyCustomProject => {
+  const memberships = project.memberships ?? []
+  return {
+    categories: [...project.categories],
+    createdAt: project.createdAt,
+    id: project.id,
+    name: project.name,
+    updatedAt: project.updatedAt,
+    urlIds: memberships.map(({ urlId }) => urlId),
+    urlMetadata: Object.fromEntries(
+      memberships.flatMap(({ category, notes, urlId }) =>
+        category || notes ? [[urlId, { category, notes }]] : [],
+      ),
+    ),
+  }
+}
 
 const commandServiceMock = vi.hoisted(() => {
   const addCategoryToProject = vi.fn()
@@ -51,7 +102,7 @@ const mocked = vi.hoisted(() => {
     {
       id: 'project-1',
       name: 'Reading List',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
       categories: [],
       createdAt: 1,
       updatedAt: 1,
@@ -59,7 +110,7 @@ const mocked = vi.hoisted(() => {
     {
       id: 'project-2',
       name: 'Work',
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
       categories: [],
       createdAt: 2,
       updatedAt: 2,
@@ -67,7 +118,7 @@ const mocked = vi.hoisted(() => {
     {
       id: 'project-3',
       name: 'Videos',
-      urlIds: ['url-3'],
+      memberships: ['url-3'].map((urlId) => ({ urlId })),
       categories: [],
       createdAt: 3,
       updatedAt: 3,
@@ -607,8 +658,10 @@ describe('SavedTabsApp custom search', () => {
 
     const categoryLookup = buildPresentationCategoryLookup([
       {
-        domainNames: ['extra.example.com'],
-        domains: ['group-ordered'],
+        collections: ['group-ordered'].map((id, index) => ({
+          id,
+          domain: ['extra.example.com'][index] ?? id,
+        })),
         id: 'category-1',
         name: 'Ordered',
       },
@@ -617,12 +670,16 @@ describe('SavedTabsApp custom search', () => {
       categoryLookup,
       enableCategories: true,
       tabGroupsWithUrls: [
-        { domain: 'extra.example.com', id: 'group-extra', urlIds: ['url-b'] },
-        {
+        createCurrentTabGroup({
+          domain: 'extra.example.com',
+          id: 'group-extra',
+          urls: [{ id: 'url-b', title: 'B', url: 'url-b' }],
+        }),
+        createCurrentTabGroup({
           domain: 'ordered.example.com',
           id: 'group-ordered',
-          urlIds: ['url-a'],
-        },
+          urls: [{ id: 'url-a', title: 'A', url: 'url-a' }],
+        }),
       ],
     })
 
@@ -800,10 +857,10 @@ describe('SavedTabsApp custom search', () => {
     // `RestoreOpenedUrlsSnapshotViewUseCase` + `SavedTabsSnapshotMapper`
     // 経由で同等確認済み (issue #512)。presentation helper 側は
     // search / カテゴリ lookup フォールバックの確認に専念する。
-    const groupWithoutUrls: TabGroup = {
+    const groupWithoutUrls = createCurrentTabGroup({
       domain: 'empty.example.com',
       id: 'group-empty',
-    }
+    })
     // searchQuery 指定で URLs 空のグループは表示対象から除外される
     // (issue #496: domain service の organizeTabGroupsWithCategories 経由で確認)。
     const filteredEmpty = organizeTabGroupsWithCategories({
@@ -817,14 +874,18 @@ describe('SavedTabsApp custom search', () => {
 
     const duplicateLookup = buildPresentationCategoryLookup([
       {
-        domainNames: ['duplicate.example.com'],
-        domains: ['duplicate-group'],
+        collections: ['duplicate-group'].map((id, index) => ({
+          id,
+          domain: ['duplicate.example.com'][index] ?? id,
+        })),
         id: 'category-a',
         name: 'Category A',
       },
       {
-        domainNames: ['duplicate.example.com'],
-        domains: ['duplicate-group'],
+        collections: ['duplicate-group'].map((id, index) => ({
+          id,
+          domain: ['duplicate.example.com'][index] ?? id,
+        })),
         id: 'category-b',
         name: 'Category B',
       },
@@ -842,19 +903,23 @@ describe('SavedTabsApp custom search', () => {
       enableCategories: true,
       searchQuery: 'nomatch',
       tabGroupsWithUrls: [
-        {
+        createCurrentTabGroup({
           domain: 'other.example.com',
           id: 'duplicate-group',
           parentCategoryId: 'category-a',
           urls: [{ title: 'Other', url: 'https://other.example.com' }],
-        },
+        }),
       ],
     })
     expect(filteredNoMatch.categorized).toStrictEqual({})
     expect(filteredNoMatch.uncategorized).toStrictEqual([])
 
     expect(
-      countTabGroupUrls({ domain: 'ids.example.com', id: 'ids', urlIds: [] }),
+      countTabGroupUrls({
+        domain: 'ids.example.com',
+        id: 'ids',
+        memberships: [].map((urlId) => ({ urlId })),
+      }),
     ).toBe(0)
     expect(
       countTabGroupUrls({
@@ -874,48 +939,35 @@ describe('SavedTabsApp custom search', () => {
         {
           domain: 'example.com',
           id: 'group-1',
-          urlIds: ['url-b'],
-          urlSubCategories: {
-            'url-a': 'news',
-          },
+          memberships: [{ urlId: 'url-b' }],
         },
-        ['url-b'],
-        new Set(['url-a']),
+        [{ urlId: 'url-b' }],
       ),
     ).toStrictEqual({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-b'],
-      urlSubCategories: undefined,
+      memberships: [{ urlId: 'url-b' }],
     })
     expect(
       buildUpdatedGroupAfterUrlIdRemoval(
         {
           domain: 'example.com',
           id: 'group-2',
-          urlIds: ['url-b'],
-          urlSubCategories: {
-            'url-a': 'news',
-            'url-b': 'docs',
-          },
+          memberships: [{ category: 'docs', urlId: 'url-b' }],
         },
-        ['url-b'],
-        new Set(['url-a']),
+        [{ category: 'docs', urlId: 'url-b' }],
       ),
     ).toStrictEqual({
       domain: 'example.com',
       id: 'group-2',
-      urlIds: ['url-b'],
-      urlSubCategories: {
-        'url-b': 'docs',
-      },
+      memberships: [{ category: 'docs', urlId: 'url-b' }],
     })
 
     expect(
       getDisplayUrlCount({
         domain: 'legacy.example.com',
         id: 'legacy',
-        urlIds: ['url-id'],
+        memberships: ['url-id'].map((urlId) => ({ urlId })),
       }),
     ).toBe(1)
     expect(
@@ -933,7 +985,6 @@ describe('SavedTabsApp custom search', () => {
     ).toStrictEqual({
       domain: 'No URL IDs',
       id: 'project-without-url-ids',
-      urlIds: [],
       urls: [
         {
           savedAt: 1,
@@ -951,8 +1002,20 @@ describe('SavedTabsApp custom search', () => {
     // 状態を作る (issue #496: sortCategorizedGroups は domain へ移設)。
     const categoryLookup = buildPresentationCategoryLookup([
       {
-        domainNames: [],
-        domains: ['group-a', 'group-b', 'group-c'],
+        collections: [
+          {
+            id: 'group-a',
+            domain: 'a.example.com',
+          },
+          {
+            id: 'group-b',
+            domain: 'b.example.com',
+          },
+          {
+            id: 'group-c',
+            domain: 'c.example.com',
+          },
+        ],
         id: 'category-1',
         name: 'Ordered',
       },
@@ -961,9 +1024,21 @@ describe('SavedTabsApp custom search', () => {
       categoryLookup,
       enableCategories: true,
       tabGroupsWithUrls: [
-        { domain: 'c.example.com', id: 'group-c', urlIds: ['c'] },
-        { domain: 'b.example.com', id: 'group-b', urlIds: ['b'] },
-        { domain: 'a.example.com', id: 'group-a', urlIds: ['a'] },
+        createCurrentTabGroup({
+          domain: 'c.example.com',
+          id: 'group-c',
+          urls: [{ id: 'c', title: 'C', url: 'c' }],
+        }),
+        createCurrentTabGroup({
+          domain: 'b.example.com',
+          id: 'group-b',
+          urls: [{ id: 'b', title: 'B', url: 'b' }],
+        }),
+        createCurrentTabGroup({
+          domain: 'a.example.com',
+          id: 'group-a',
+          urls: [{ id: 'a', title: 'A', url: 'a' }],
+        }),
       ],
     })
     const sortedGroups = sortedResult.categorized['category-1'] ?? []
@@ -972,15 +1047,16 @@ describe('SavedTabsApp custom search', () => {
       'group-b',
       'group-c',
     ])
+    const sortedGroupViews = sortedGroups.map(toSavedTabsTabGroupViewModel)
 
     expect(
-      filterGroupsByExcludedIds(sortedGroups, new Set(['group-b'])).map(
+      filterGroupsByExcludedIds(sortedGroupViews, new Set(['group-b'])).map(
         (group) => group.id,
       ),
     ).toStrictEqual(['group-a', 'group-c'])
     expect(
       createFilterGroupsByExcludedIdsUpdater(new Set(['group-a']))(
-        sortedGroups,
+        sortedGroupViews,
       ).map((group) => group.id),
     ).toStrictEqual(['group-b', 'group-c'])
   })
@@ -1110,7 +1186,7 @@ describe('SavedTabsApp custom search', () => {
           title: 'Unrelated title',
         },
       ],
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -1118,8 +1194,12 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'category-1',
         name: 'Reading',
-        domains: ['group-1'],
-        domainNames: [],
+        collections: [
+          {
+            id: 'group-1',
+            domain: 'example.com',
+          },
+        ],
       },
     ]
     mocked.categoryState.categoryOrder = ['category-1']
@@ -1153,14 +1233,13 @@ describe('SavedTabsApp custom search', () => {
           url: 'https://example.com/a',
         },
       ],
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.categoryState.categories = [
       {
-        domainNames: [],
-        domains: [],
+        collections: [],
         id: 'category-1',
         name: 'Reading',
       },
@@ -1203,7 +1282,7 @@ describe('SavedTabsApp custom search', () => {
           url: 'https://unmatched.example.com/a',
         },
       ],
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -1231,7 +1310,7 @@ describe('SavedTabsApp custom search', () => {
       {
         domain: 'example.com',
         id: 'group-1',
-        urlIds: ['url-a'],
+        memberships: ['url-a'].map((urlId) => ({ urlId })),
       },
     ]
     mocked.tabDataState.tabGroupsWithUrls = mocked.tabDataState.tabGroups
@@ -1316,13 +1395,15 @@ describe('SavedTabsApp custom search', () => {
           title: 'A',
         },
       ],
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
     const category = {
       id: 'category-1',
       name: 'Reading',
-      domains: ['group-1'],
-      domainNames: ['example.com'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -1338,10 +1419,12 @@ describe('SavedTabsApp custom search', () => {
         local: {
           get: vi.fn(async (key: string) => {
             if (key === 'parentCategories') {
-              return { parentCategories: [category] }
+              return {
+                parentCategories: [toLegacyParentCategoryFixture(category)],
+              }
             }
             if (key === 'savedTabs') {
-              return { savedTabs: [group] }
+              return { savedTabs: [toLegacyTabGroupFixture(group)] }
             }
             return {}
           }),
@@ -1381,7 +1464,7 @@ describe('SavedTabsApp custom search', () => {
         { id: 'url-a', url: 'https://example.com/a', title: 'A' },
         { id: 'url-b', url: 'https://example.com/b', title: 'B' },
       ],
-      urlIds: ['url-a', 'url-b'],
+      memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -1389,8 +1472,10 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'category-1',
         name: 'Category',
-        domains: ['group-1'],
-        domainNames: ['example.com'],
+        collections: ['group-1'].map((id, index) => ({
+          id,
+          domain: ['example.com'][index] ?? id,
+        })),
       },
     ]
     mocked.tabDataState.tabGroups = [group]
@@ -1399,7 +1484,7 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'project-1',
         name: 'Project A',
-        urlIds: ['url-a', 'url-b'],
+        memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 1,
         updatedAt: 2,
@@ -1413,8 +1498,10 @@ describe('SavedTabsApp custom search', () => {
         local: {
           get: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
-            customProjects: customProjectsSnapshot,
-            savedTabs: [group],
+            customProjects: customProjectsSnapshot.map(
+              toLegacyCustomProjectFixture,
+            ),
+            savedTabs: [toLegacyTabGroupFixture(group)],
           })),
           set: chromeSetMock,
         },
@@ -1491,7 +1578,7 @@ describe('SavedTabsApp custom search', () => {
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
-      customProjectsSnapshot,
+      customProjectsSnapshot.map((project) => expect.objectContaining(project)),
     )
     expect(mocked.categoryState.setCategories).toHaveBeenCalledWith(
       mocked.categoryState.categories,
@@ -1522,7 +1609,7 @@ describe('SavedTabsApp custom search', () => {
         { id: 'url-a', url: 'https://example.com/a', title: 'A' },
         { id: 'url-b', url: 'https://example.com/b', title: 'B' },
       ],
-      urlIds: ['url-a', 'url-b'],
+      memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -1533,7 +1620,7 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'project-1',
         name: 'Project A',
-        urlIds: ['url-a', 'url-b'],
+        memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 1,
         updatedAt: 2,
@@ -1607,7 +1694,7 @@ describe('SavedTabsApp custom search', () => {
           subCategory: 'news',
         },
       ],
-      urlIds: ['url-a', 'url-b'],
+      memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
       subCategories: ['news'],
     }
     mocked.projectState.viewMode = 'domain'
@@ -1744,12 +1831,16 @@ describe('SavedTabsApp custom search', () => {
     const firstGroup: TabGroup = {
       domain: 'first.example.com',
       id: 'first',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-1', title: 'First', url: 'https://first.example.com' }],
     }
     const secondGroup: TabGroup = {
       domain: 'second.example.com',
       id: 'second',
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
+      urls: [
+        { id: 'url-2', title: 'Second', url: 'https://second.example.com' },
+      ],
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -1823,7 +1914,7 @@ describe('SavedTabsApp custom search', () => {
       id: 'group-1',
       domain: 'example.com',
       urls: [{ id: 'url-a', url: 'https://example.com/a', title: 'A' }],
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
     }
     const urlRecord = {
       id: 'url-a',
@@ -1839,7 +1930,7 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'project-1',
         name: 'Project A',
-        urlIds: ['url-a'],
+        memberships: ['url-a'].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 1,
         updatedAt: 2,
@@ -1858,9 +1949,11 @@ describe('SavedTabsApp custom search', () => {
               if (k === 'customProjectOrder') {
                 result.customProjectOrder = ['project-1']
               } else if (k === 'customProjects') {
-                result.customProjects = customProjectsSnapshot
+                result.customProjects = customProjectsSnapshot.map(
+                  toLegacyCustomProjectFixture,
+                )
               } else if (k === 'savedTabs') {
-                result.savedTabs = [group]
+                result.savedTabs = [toLegacyTabGroupFixture(group)]
               } else if (k === 'urls') {
                 result.urls = [urlRecord]
               }
@@ -1927,7 +2020,7 @@ describe('SavedTabsApp custom search', () => {
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
-      customProjectsSnapshot,
+      customProjectsSnapshot.map((project) => expect.objectContaining(project)),
     )
   })
 
@@ -1936,13 +2029,13 @@ describe('SavedTabsApp custom search', () => {
       id: 'group-1',
       domain: 'example.com',
       urls: [{ id: 'url-a', url: 'https://example.com/a', title: 'A' }],
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
     }
     const customProjectsSnapshot: CustomProject[] = [
       {
         id: 'project-1',
         name: 'Project A',
-        urlIds: ['url-a'],
+        memberships: ['url-a'].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 1,
         updatedAt: 2,
@@ -1960,8 +2053,10 @@ describe('SavedTabsApp custom search', () => {
         local: {
           get: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
-            customProjects: customProjectsSnapshot,
-            savedTabs: [group],
+            customProjects: customProjectsSnapshot.map(
+              toLegacyCustomProjectFixture,
+            ),
+            savedTabs: [toLegacyTabGroupFixture(group)],
           })),
           set: chromeSetMock,
         },
@@ -2001,7 +2096,7 @@ describe('SavedTabsApp custom search', () => {
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
-      customProjectsSnapshot,
+      customProjectsSnapshot.map((project) => expect.objectContaining(project)),
     )
     expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
     expect(toast.info).not.toHaveBeenCalled()
@@ -2017,20 +2112,37 @@ describe('SavedTabsApp custom search', () => {
     const group1: TabGroup = {
       id: 'group-1',
       domain: 'example.com',
-      urlIds: ['url-a', 'url-b'],
+      memberships: ['url-a', 'url-b'].map((urlId) => ({
+        urlId,
+        ...({
+          'url-a': 'news',
+          'url-b': 'docs',
+        }?.[urlId]
+          ? {
+              category: {
+                'url-a': 'news',
+                'url-b': 'docs',
+              }[urlId],
+            }
+          : {}),
+      })),
       urls: [
-        { id: 'url-a', url: 'https://example.com/a', title: 'A' },
-        { id: 'url-b', url: 'https://example.com/b', title: 'B' },
+        {
+          id: 'url-a',
+          url: 'https://example.com/a',
+          title: 'A',
+        },
+        {
+          id: 'url-b',
+          url: 'https://example.com/b',
+          title: 'B',
+        },
       ],
-      urlSubCategories: {
-        'url-a': 'news',
-        'url-b': 'docs',
-      },
     }
     const group2: TabGroup = {
       id: 'group-2',
       domain: 'other.com',
-      urlIds: ['url-c'],
+      memberships: ['url-c'].map((urlId) => ({ urlId })),
       urls: [{ id: 'url-c', url: 'https://other.com/c', title: 'C' }],
     }
 
@@ -2040,7 +2152,7 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'project-1',
         name: 'Project A',
-        urlIds: ['url-a', 'url-c'],
+        memberships: ['url-a', 'url-c'].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 1,
         updatedAt: 2,
@@ -2059,9 +2171,11 @@ describe('SavedTabsApp custom search', () => {
               if (k === 'customProjectOrder') {
                 result.customProjectOrder = ['project-1']
               } else if (k === 'customProjects') {
-                result.customProjects = customProjectsSnapshot
+                result.customProjects = customProjectsSnapshot.map(
+                  toLegacyCustomProjectFixture,
+                )
               } else if (k === 'savedTabs') {
-                result.savedTabs = [group1, group2]
+                result.savedTabs = [group1, group2].map(toLegacyTabGroupFixture)
               } else if (k === 'urls') {
                 result.urls = [
                   {
@@ -2125,7 +2239,7 @@ describe('SavedTabsApp custom search', () => {
     // 旧 `chrome.tabs.create` 直叩きではなく storage の更新有無で
     // 削除フローを確認する。
     expect(chromeSetMock).toHaveBeenCalledWith({
-      savedTabs: [group2],
+      savedTabs: [toLegacyTabGroupFixture(group2)],
     })
     expect(toast.info).toHaveBeenCalledWith(
       '開いた2件のタブを保存データから削除しました',
@@ -2154,7 +2268,7 @@ describe('SavedTabsApp custom search', () => {
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
-      customProjectsSnapshot,
+      customProjectsSnapshot.map((project) => expect.objectContaining(project)),
     )
     expect(toast.success).toHaveBeenCalledWith('保存データを復元しました')
     // 一括オープン時の customProject 側 URL ID 同期削除は、
@@ -2179,7 +2293,7 @@ describe('SavedTabsApp custom search', () => {
     const unchangedGroup: TabGroup = {
       id: 'group-unchanged',
       domain: 'unchanged.example.com',
-      urlIds: ['url-keep'],
+      memberships: ['url-keep'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-keep',
@@ -2191,7 +2305,7 @@ describe('SavedTabsApp custom search', () => {
     const partialGroup: TabGroup = {
       id: 'group-partial',
       domain: 'partial.example.com',
-      urlIds: ['url-remove', 'url-stay'],
+      memberships: ['url-remove', 'url-stay'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-remove',
@@ -2227,7 +2341,9 @@ describe('SavedTabsApp custom search', () => {
           get: vi.fn(async (key: string) => {
             if (key === 'savedTabs') {
               return {
-                savedTabs: [groupWithoutIds, unchangedGroup, partialGroup],
+                savedTabs: [groupWithoutIds, unchangedGroup, partialGroup].map(
+                  toLegacyTabGroupFixture,
+                ),
               }
             }
             if (key === 'urls') {
@@ -2279,12 +2395,9 @@ describe('SavedTabsApp custom search', () => {
 
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [
-        groupWithoutIds,
-        unchangedGroup,
-        expect.objectContaining({
-          id: 'group-partial',
-          urlIds: ['url-stay'],
-        }),
+        toLegacyTabGroupFixture(groupWithoutIds),
+        toLegacyTabGroupFixture(unchangedGroup),
+        expect.objectContaining({ id: 'group-partial', urlIds: ['url-stay'] }),
       ],
     })
   })
@@ -2397,12 +2510,12 @@ describe('SavedTabsApp custom search', () => {
     const groupWithIds: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
     }
     const legacyGroup: TabGroup = {
       domain: 'legacy.example.com',
       id: 'group-2',
-      urlIds: ['legacy-url-id'],
+      memberships: ['legacy-url-id'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -2412,7 +2525,7 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'project-1',
         name: 'Project A',
-        urlIds: ['url-a'],
+        memberships: ['url-a'].map((urlId) => ({ urlId })),
         categories: [],
         createdAt: 1,
         updatedAt: 2,
@@ -2438,8 +2551,12 @@ describe('SavedTabsApp custom search', () => {
             }
             return {
               customProjectOrder: ['project-1'],
-              customProjects: customProjectsSnapshot,
-              savedTabs: [groupWithIds, legacyGroup],
+              customProjects: customProjectsSnapshot.map(
+                toLegacyCustomProjectFixture,
+              ),
+              savedTabs: [groupWithIds, legacyGroup].map(
+                toLegacyTabGroupFixture,
+              ),
             }
           }),
           set: chromeSetMock,
@@ -2495,7 +2612,9 @@ describe('SavedTabsApp custom search', () => {
     // `['url-a', 'legacy-url-id']` がまとめられる（旧形式のみ別ルートは廃止）。
     expect(
       commandServiceMock.removeUrlIdsFromAllCustomProjects,
-    ).toHaveBeenCalledWith(['url-a', 'legacy-url-id'], { throwOnError: true })
+    ).toHaveBeenCalledWith(['url-a', 'legacy-url-id'], {
+      throwOnError: true,
+    })
     expect(chromeSetMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
@@ -2551,7 +2670,7 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'legacy.example.com',
       id: 'legacy-group',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -2619,12 +2738,14 @@ describe('SavedTabsApp custom search', () => {
     const group1: TabGroup = {
       domain: 'a.example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-1', title: 'A', url: 'https://a.example.com' }],
     }
     const group2: TabGroup = {
       domain: 'b.example.com',
       id: 'group-2',
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-2', title: 'B', url: 'https://b.example.com' }],
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -2635,7 +2756,9 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          get: vi.fn(async () => ({ savedTabs: [group1, group2] })),
+          get: vi.fn(async () => ({
+            savedTabs: [group1, group2].map(toLegacyTabGroupFixture),
+          })),
           set: chromeSetMock,
         },
         onChanged: {
@@ -2686,7 +2809,7 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleConfirmUncategorizedReorder()
 
     expect(chromeSetMock).toHaveBeenCalledWith({
-      savedTabs: [group2, group1],
+      savedTabs: [group2, group1].map(toLegacyTabGroupFixture),
     })
     await waitFor(() => {
       expect(
@@ -2782,7 +2905,7 @@ describe('SavedTabsApp custom search', () => {
       domain: 'example.com',
       id: 'group-1',
       parentCategoryId: 'missing-category',
-      urlIds: ['url-a', 'url-b'],
+      memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-a',
@@ -2800,8 +2923,7 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.categoryState.categories = [
       {
-        domainNames: [],
-        domains: [],
+        collections: [],
         id: 'category-1',
         name: 'Reading',
       },
@@ -2836,7 +2958,7 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-a',
@@ -2846,8 +2968,12 @@ describe('SavedTabsApp custom search', () => {
       ],
     }
     const category: ParentCategory = {
-      domainNames: ['example.com'],
-      domains: [],
+      collections: [
+        {
+          id: 'legacy-group-1',
+          domain: 'example.com',
+        },
+      ],
       id: 'category-1',
       name: 'Reading',
     }
@@ -2868,9 +2994,11 @@ describe('SavedTabsApp custom search', () => {
             const result: Record<string, unknown> = {}
             for (const k of keys) {
               if (k === 'parentCategories') {
-                result.parentCategories = [category]
+                result.parentCategories = [
+                  toLegacyParentCategoryFixture(category),
+                ]
               } else if (k === 'savedTabs') {
-                result.savedTabs = [group]
+                result.savedTabs = [toLegacyTabGroupFixture(group)]
               }
             }
             return result
@@ -2902,6 +3030,7 @@ describe('SavedTabsApp custom search', () => {
       expect(chromeSetMock).toHaveBeenLastCalledWith({
         parentCategories: [
           expect.objectContaining({
+            domainNames: ['example.com'],
             domains: ['group-1'],
             id: 'category-1',
           }),
@@ -2913,6 +3042,7 @@ describe('SavedTabsApp custom search', () => {
         expect.objectContaining({
           id: 'group-1',
           parentCategoryId: 'category-1',
+          urlIds: ['url-a'],
         }),
       ],
     })
@@ -2935,14 +3065,18 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.categoryState.categories = [
       {
-        domainNames: ['example.com'],
-        domains: [],
+        collections: [
+          {
+            id: 'legacy-group-1',
+            domain: 'example.com',
+          },
+        ],
         id: 'category-1',
         name: 'Reading',
       },
@@ -2989,19 +3123,31 @@ describe('SavedTabsApp custom search', () => {
     const group1: TabGroup = {
       domain: 'first.example.com',
       id: 'group-1',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-a', title: 'First', url: 'https://first.example.com' }],
     }
     const group2: TabGroup = {
       domain: 'second.example.com',
       id: 'group-2',
-      urlIds: ['url-b'],
+      memberships: ['url-b'].map((urlId) => ({ urlId })),
+      urls: [
+        { id: 'url-b', title: 'Second', url: 'https://second.example.com' },
+      ],
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.categoryState.categories = [
       {
-        domainNames: [],
-        domains: ['group-2', 'group-1'],
+        collections: [
+          {
+            id: 'group-2',
+            domain: 'second.example.com',
+          },
+          {
+            id: 'group-1',
+            domain: 'first.example.com',
+          },
+        ],
         id: 'category-1',
         name: 'Ordered',
       },
@@ -3030,19 +3176,32 @@ describe('SavedTabsApp custom search', () => {
     const orderedGroup: TabGroup = {
       domain: 'ordered.example.com',
       id: 'group-ordered',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
+      urls: [
+        { id: 'url-a', title: 'Ordered', url: 'https://ordered.example.com' },
+      ],
     }
     const extraGroup: TabGroup = {
       domain: 'extra.example.com',
       id: 'group-extra',
-      urlIds: ['url-b'],
+      parentCategoryId: 'category-1',
+      memberships: ['url-b'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-b', title: 'Extra', url: 'https://extra.example.com' }],
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.categoryState.categories = [
       {
-        domainNames: ['extra.example.com'],
-        domains: ['group-ordered'],
+        collections: [
+          {
+            id: 'group-ordered',
+            domain: 'ordered.example.com',
+          },
+          {
+            id: 'group-extra',
+            domain: 'extra.example.com',
+          },
+        ],
         id: 'category-1',
         name: 'Ordered',
       },
@@ -3082,7 +3241,7 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-a', 'url-b'],
+      memberships: ['url-a', 'url-b'].map((urlId) => ({ urlId })),
       urls: [
         { id: 'url-a', title: 'A', url: 'https://example.com/a' },
         { id: 'url-b', title: 'B', url: 'https://example.com/b' },
@@ -3099,7 +3258,9 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          get: vi.fn(async () => ({ savedTabs: [group] })),
+          get: vi.fn(async () => ({
+            savedTabs: [toLegacyTabGroupFixture(group)],
+          })),
           set: vi.fn(),
         },
         onChanged: {
@@ -3178,12 +3339,12 @@ describe('SavedTabsApp custom search', () => {
     const target: TabGroup = {
       id: 'group-target',
       domain: 'target.example.com',
-      urlIds: ['url-target-1', 'url-target-2'],
+      memberships: ['url-target-1', 'url-target-2'].map((urlId) => ({ urlId })),
     }
     const other: TabGroup = {
       id: 'group-other',
       domain: 'other.example.com',
-      urlIds: ['url-other'],
+      memberships: ['url-other'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -3191,8 +3352,10 @@ describe('SavedTabsApp custom search', () => {
       {
         id: 'category-1',
         name: 'Reading',
-        domains: ['group-target'],
-        domainNames: ['target.example.com'],
+        collections: ['group-target'].map((id, index) => ({
+          id,
+          domain: ['target.example.com'][index] ?? id,
+        })),
       },
     ]
     mocked.tabDataState.tabGroups = [target, other]
@@ -3206,7 +3369,7 @@ describe('SavedTabsApp custom search', () => {
           get: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
-            savedTabs: [target, other],
+            savedTabs: [target, other].map(toLegacyTabGroupFixture),
           })),
           set: chromeSetMock,
         },
@@ -3241,7 +3404,7 @@ describe('SavedTabsApp custom search', () => {
     // chrome.storage.local.set にそのまま伝搬する。
     expect(chromeSetMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        savedTabs: [other],
+        savedTabs: [toLegacyTabGroupFixture(other)],
       }),
     )
     // 削除前処理は `PrepareTabGroupDeletionUseCase` 経由で走る
@@ -3276,12 +3439,14 @@ describe('SavedTabsApp custom search', () => {
     const target: TabGroup = {
       id: 'group-target',
       domain: 'target.example.com',
-      urlIds: ['url-shared', 'url-only-target'],
+      memberships: ['url-shared', 'url-only-target'].map((urlId) => ({
+        urlId,
+      })),
     }
     const other: TabGroup = {
       id: 'group-other',
       domain: 'other.example.com',
-      urlIds: ['url-shared'],
+      memberships: ['url-shared'].map((urlId) => ({ urlId })),
     }
     const chromeSetMock = vi.fn()
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
@@ -3291,7 +3456,7 @@ describe('SavedTabsApp custom search', () => {
           get: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
-            savedTabs: [target, other],
+            savedTabs: [target, other].map(toLegacyTabGroupFixture),
           })),
           set: chromeSetMock,
         },
@@ -3339,7 +3504,7 @@ describe('SavedTabsApp custom search', () => {
     // 参照は他グループ側 (`group-other`) に維持される。
     expect(chromeSetMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        savedTabs: [other],
+        savedTabs: [toLegacyTabGroupFixture(other)],
       }),
     )
   })
@@ -3348,7 +3513,7 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -3465,43 +3630,27 @@ describe('SavedTabsApp custom search', () => {
     expect(bulkCallArgs).not.toContainEqual({ tabGroupIds: ['missing'] })
   })
 
-  it('同期削除と未分類順序保存のエラーを握りつぶして通知する', async () => {
+  it('未分類順序保存のエラーを握りつぶして通知する', async () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-a', title: 'A', url: 'https://example.com/a' }],
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
-    vi.mocked(
-      commandServiceMock.removeUrlIdsFromAllCustomProjects,
-    ).mockRejectedValueOnce(new Error('custom sync failed'))
-    // chromeSetMock の呼び出し回数 (issue #494 で use-case 経由の set 経路に整理):
-    //   1. DeleteTabGroupUseCase の `tabGroupRepository.removeByIds` 内
-    //      `saveAll` による savedTabs 書き戻し
-    //   2. handleDeleteGroup の catch から呼ばれる `notifyDeleteFailure` 経由
-    //      の Undo 復元 (RestoreOpenedUrlsSnapshotUseCase) 内、
-    //      `tabGroupRepository.saveAll` による savedTabs 書き戻し
-    //   3. 同 Undo 復元内、`customProjectRepository.saveOrder` による
-    //      `customProjectOrder` 書き戻し (空配列でも saveOrder が走る)
-    //   4. handleConfirmUncategorizedReorder の `reorderTabGroups` use-case
-    //      経由 `tabGroupRepository.saveAll` による savedTabs 書き戻し
-    // 元の実装では 1, 2 の 2 回だったが、use-case 化で (2 の事前 get 由来の
-    // set + 3 の customProjectOrder set) が追加され、reorder の reject を
-    // 4 段目にずらした。
-    const chromeSetMock = vi
-      .fn()
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error('order failed'))
+    const chromeSetMock = vi.fn()
     const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
     chromeGlobal.chrome = {
       storage: {
         local: {
-          get: vi.fn(async () => ({ savedTabs: [group] })),
+          get: vi.fn(async () => ({
+            savedTabs: mocked.tabDataState.tabGroups.map(
+              toLegacyTabGroupFixture,
+            ),
+          })),
           set: chromeSetMock,
         },
         onChanged: {
@@ -3549,7 +3698,8 @@ describe('SavedTabsApp custom search', () => {
     const group2: TabGroup = {
       domain: 'other.example.com',
       id: 'group-2',
-      urlIds: ['url-b'],
+      memberships: ['url-b'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-b', title: 'B', url: 'https://other.example.com/b' }],
     }
     mocked.tabDataState.tabGroups = [group, group2]
     mocked.tabDataState.tabGroupsWithUrls = [group, group2]
@@ -3576,6 +3726,7 @@ describe('SavedTabsApp custom search', () => {
       -1,
     )?.[0] as typeof domainProps
 
+    chromeSetMock.mockRejectedValueOnce(new Error('order failed'))
     await domainProps.handleConfirmUncategorizedReorder()
 
     expect(toast.error).toHaveBeenCalledWith('ドメイン順序の更新に失敗しました')
@@ -3638,7 +3789,7 @@ describe('SavedTabsApp custom search', () => {
       {
         domain: 'example.com',
         id: 'group-1',
-        urlIds: ['url-a'],
+        memberships: ['url-a'].map((urlId) => ({ urlId })),
       },
     ]
     mocked.tabDataState.tabGroups = storedGroups
@@ -3698,7 +3849,12 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-remove', 'url-keep'],
+      memberships: ['url-remove', 'url-keep'].map((urlId) => ({
+        urlId,
+        ...({ 'url-remove': 'news' }?.[urlId]
+          ? { category: { 'url-remove': 'news' }[urlId] }
+          : {}),
+      })),
       urls: [
         {
           id: 'url-remove',
@@ -3711,9 +3867,6 @@ describe('SavedTabsApp custom search', () => {
           url: 'https://example.com/keep',
         },
       ],
-      urlSubCategories: {
-        'url-remove': 'news',
-      },
     }
     const urlRecords: UrlRecord[] = [
       {
@@ -3738,7 +3891,7 @@ describe('SavedTabsApp custom search', () => {
           get: createStorageGetMock({
             customProjectOrder: [],
             customProjects: [],
-            savedTabs: [group],
+            savedTabs: [toLegacyTabGroupFixture(group)],
             urls: urlRecords,
           }),
           set: chromeSetMock,
@@ -3788,7 +3941,7 @@ describe('SavedTabsApp custom search', () => {
         arg !== null &&
         typeof arg === 'object' &&
         'savedTabs' in (arg as Record<string, unknown>),
-    ) as [{ savedTabs: TabGroup[] }] | undefined
+    ) as [{ savedTabs: LegacyTabGroup[] }] | undefined
     expect(savedTabsCall?.[0].savedTabs[0]).not.toHaveProperty(
       'urlSubCategories',
     )
@@ -3875,7 +4028,7 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-remove'],
+      memberships: ['url-remove'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-remove',
@@ -3899,7 +4052,7 @@ describe('SavedTabsApp custom search', () => {
         id: 'project-1',
         name: 'Project A',
         updatedAt: 1,
-        urlIds: ['url-remove'],
+        memberships: ['url-remove'].map((urlId) => ({ urlId })),
       },
     ]
     const chromeSetMock = vi.fn()
@@ -3909,8 +4062,10 @@ describe('SavedTabsApp custom search', () => {
         local: {
           get: createStorageGetMock({
             customProjectOrder: [],
-            customProjects: customProjectsSnapshot,
-            savedTabs: [group],
+            customProjects: customProjectsSnapshot.map(
+              toLegacyCustomProjectFixture,
+            ),
+            savedTabs: [toLegacyTabGroupFixture(group)],
             urls: urlRecords,
           }),
           set: chromeSetMock,
@@ -4021,7 +4176,7 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'legacy.example.com',
       id: 'group-1',
-      urlIds: ['legacy-url-id'],
+      memberships: ['legacy-url-id'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -4047,7 +4202,7 @@ describe('SavedTabsApp custom search', () => {
                 ],
               }
             }
-            return { savedTabs: [group] }
+            return { savedTabs: [toLegacyTabGroupFixture(group)] }
           }),
           set: vi.fn(),
         },
@@ -4085,11 +4240,11 @@ describe('SavedTabsApp custom search', () => {
     ).toHaveBeenCalledWith(['legacy-url-id'], { throwOnError: true })
   })
 
-  it('複数ドメイン削除の同期削除エラーでは snapshot を復元して通知する', async () => {
+  it('複数ドメイン削除はlegacy commandへフォールバックしない', async () => {
     const groupWithIds: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-a'],
+      memberships: ['url-a'].map((urlId) => ({ urlId })),
     }
     const legacyGroup: TabGroup = {
       domain: 'legacy.example.com',
@@ -4124,7 +4279,9 @@ describe('SavedTabsApp custom search', () => {
               }
             }
             return {
-              savedTabs: [groupWithIds, legacyGroup],
+              savedTabs: [groupWithIds, legacyGroup].map(
+                toLegacyTabGroupFixture,
+              ),
             }
           }),
           set: chromeSetMock,
@@ -4158,15 +4315,12 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroups(['group-1', 'group-2'])
 
-    // 同期削除エラー時は catch から `notifyDeleteFailure` が呼ばれ、
-    // snapshot が RestoreOpenedUrlsSnapshotUseCase 経由で復元される。
-    // snapshot に customProjectOrder は含まれないため
-    // presentation 層からの chrome.storage.local.set は発生しない。
     expect(chromeSetMock).toHaveBeenCalledWith({
-      savedTabs: [groupWithIds, legacyGroup],
+      savedTabs: [],
     })
-    expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
-    expect(toast.info).not.toHaveBeenCalled()
+    expect(
+      commandServiceMock.removeUrlIdsFromAllCustomProjects,
+    ).toHaveBeenCalledWith(['url-a'], { throwOnError: true })
   })
 
   it('ドメイン props のカテゴリ削除と未開始の並び替え確定は安全に処理する', async () => {
@@ -4199,12 +4353,14 @@ describe('SavedTabsApp custom search', () => {
     const group1: TabGroup = {
       domain: 'a.example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-1', title: 'A', url: 'https://a.example.com' }],
     }
     const group2: TabGroup = {
       domain: 'b.example.com',
       id: 'group-2',
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
+      urls: [{ id: 'url-2', title: 'B', url: 'https://b.example.com' }],
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -4215,7 +4371,9 @@ describe('SavedTabsApp custom search', () => {
     chromeGlobal.chrome = {
       storage: {
         local: {
-          get: vi.fn(async () => ({ savedTabs: [group1, group2] })),
+          get: vi.fn(async () => ({
+            savedTabs: [group1, group2].map(toLegacyTabGroupFixture),
+          })),
           set: vi.fn(),
         },
         onChanged: {
@@ -4292,19 +4450,31 @@ describe('SavedTabsApp custom search', () => {
     const group1: TabGroup = {
       domain: 'a.example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
     const group2: TabGroup = {
       domain: 'b.example.com',
       id: 'group-2',
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
     }
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.categoryState.categories = [
       {
-        domainNames: [],
-        domains: ['group-1', 'group-2', 'keep'],
+        collections: [
+          {
+            id: 'group-1',
+            domain: 'a.example.com',
+          },
+          {
+            id: 'group-2',
+            domain: 'b.example.com',
+          },
+          {
+            id: 'keep',
+            domain: 'keep.example.com',
+          },
+        ],
         id: 'category-1',
         name: 'Category',
       },
@@ -4321,13 +4491,17 @@ describe('SavedTabsApp custom search', () => {
             customProjects: [],
             parentCategories: [
               {
-                domainNames: [],
+                domainNames: [
+                  'a.example.com',
+                  'b.example.com',
+                  'keep.example.com',
+                ],
                 domains: ['group-1', 'group-2', 'keep'],
                 id: 'category-1',
                 name: 'Category',
               },
             ],
-            savedTabs: [group1, group2],
+            savedTabs: [group1, group2].map(toLegacyTabGroupFixture),
           })),
           set: chromeSetMock,
         },
@@ -4374,6 +4548,7 @@ describe('SavedTabsApp custom search', () => {
       )?.[0] as { parentCategories?: unknown } | undefined
     expect(parentCategoriesSetCall?.parentCategories).toStrictEqual([
       expect.objectContaining({
+        domainNames: ['keep.example.com'],
         domains: ['keep'],
         id: 'category-1',
       }),
@@ -4447,7 +4622,7 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-remove', 'url-keep'],
+      memberships: ['url-remove', 'url-keep'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-remove',
@@ -4484,7 +4659,7 @@ describe('SavedTabsApp custom search', () => {
           get: createStorageGetMock({
             customProjectOrder: [],
             customProjects: customProjectsSnapshot,
-            savedTabs: [group],
+            savedTabs: [toLegacyTabGroupFixture(group)],
             urls: urlRecords,
           }),
           set: chromeSetMock,
@@ -4537,7 +4712,7 @@ describe('SavedTabsApp custom search', () => {
     // chrome.storage.local.set が savedTabs / customProjects の元データを書き戻す
     expect(chromeSetMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        savedTabs: [group],
+        savedTabs: [toLegacyTabGroupFixture(group)],
       }),
     )
   })
@@ -4550,7 +4725,7 @@ describe('SavedTabsApp custom search', () => {
     const group1: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-shared'],
+      memberships: ['url-shared'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-shared',
@@ -4563,7 +4738,7 @@ describe('SavedTabsApp custom search', () => {
     const group2: TabGroup = {
       domain: 'other.com',
       id: 'group-2',
-      urlIds: ['url-shared'],
+      memberships: ['url-shared'].map((urlId) => ({ urlId })),
       urls: [
         {
           id: 'url-shared',

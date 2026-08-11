@@ -97,13 +97,13 @@ const computeRemovalPlan = ({
 
   const updatedCustomProjects: CustomProject[] = previousCustomProjects.map(
     (project) => {
-      const remaining = project.urlIds.filter(
-        (urlId) => !effectiveIds.has(urlId),
+      const remaining = project.memberships.filter(
+        ({ urlId }) => !effectiveIds.has(urlId),
       )
-      if (remaining.length === project.urlIds.length) {
+      if (remaining.length === project.memberships.length) {
         return project
       }
-      return { ...project, urlIds: remaining }
+      return { ...project, memberships: remaining }
     },
   )
 

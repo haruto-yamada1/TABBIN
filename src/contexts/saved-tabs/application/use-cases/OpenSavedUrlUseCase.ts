@@ -95,26 +95,26 @@ export const createOpenSavedUrlUseCase = (
     // CustomProject は空になっても削除せず保持する。
     // ユーザーがあとから手動で整理できるようにするため、副作用は最小化する。
     const updatedCustomProjects = previousCustomProjects.map((project) => {
-      const remaining = project.urlIds.filter(
-        (urlId) => !idsToRemove.has(urlId),
+      const remaining = project.memberships.filter(
+        ({ urlId }) => !idsToRemove.has(urlId),
       )
-      if (remaining.length === project.urlIds.length) {
+      if (remaining.length === project.memberships.length) {
         return project
       }
-      return { ...project, urlIds: remaining }
+      return { ...project, memberships: remaining }
     })
 
     const urlRecordIdsToDelete = new Set<typeof urlRecord.id>()
     for (const id of idsToRemove) {
       const origin: UrlReferenceOrigin | undefined = (() => {
         const fromGroup = previousTabGroups.find((group) =>
-          group.urlIds.includes(id),
+          group.memberships.some(({ urlId }) => urlId === id),
         )
         if (fromGroup) {
           return { id: fromGroup.id, kind: 'tabGroup' as const }
         }
         const fromProject = previousCustomProjects.find((project) =>
-          project.urlIds.includes(id),
+          project.memberships.some(({ urlId }) => urlId === id),
         )
         if (fromProject) {
           return { id: fromProject.id, kind: 'customProject' as const }

@@ -58,15 +58,10 @@ export const createRemoveDomainFromParentCategoryUseCase = (
         'PARENT_CATEGORY_NOT_FOUND',
       )
     }
-    const filteredDomains = targetCategory.domains.filter(
-      (currentDomainId) => currentDomainId !== domainId,
+    const filteredCollections = targetCategory.collections.filter(
+      ({ domain, id }) => id !== domainId && domain !== domainName,
     )
-    const filteredDomainNames = targetCategory.domainNames.filter(
-      (name) => name !== domainName,
-    )
-    const hasDomainId = targetCategory.domains.includes(domainId)
-    const hasDomainName = targetCategory.domainNames.includes(domainName)
-    if (!hasDomainId && !hasDomainName) {
+    if (filteredCollections.length === targetCategory.collections.length) {
       throw new SavedTabsDomainError(
         'このドメインは対象カテゴリに登録されていません',
         'INVALID_PARENT_CATEGORY',
@@ -76,8 +71,7 @@ export const createRemoveDomainFromParentCategoryUseCase = (
       category.id === targetCategoryId
         ? {
             ...category,
-            domainNames: filteredDomainNames,
-            domains: filteredDomains,
+            collections: filteredCollections,
           }
         : category,
     )

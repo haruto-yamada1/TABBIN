@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { toSavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createRepairTabGroupParentCategoryIdsUseCase } from './RepairTabGroupParentCategoryIdsUseCase'
 import type { RepairTabGroupParentCategoryIdsUseCaseDeps } from './RepairTabGroupParentCategoryIdsUseCase'
@@ -60,15 +60,14 @@ const createInMemoryRepositories = (
 describe('RepairTabGroupParentCategoryIdsUseCase', () => {
   it('ID 一致で parentCategoryId を補完し、永続化する', async () => {
     const category = createParentCategory({
-      domainNames: [],
-      domains: ['group-by-id'],
+      collections: [{ id: 'group-by-id', domain: 'id.example.com' }],
       id: 'cat-by-id',
       name: 'By ID',
     })
     const tabGroup = createTabGroup({
       domain: 'id.example.com',
       id: 'group-by-id',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       parentCategories: [category],
@@ -82,21 +81,22 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(true)
-    expect(result.tabGroups[0].parentCategoryId).toBe('cat-by-id')
-    expect(repos.tabGroups[0].parentCategoryId).toBe('cat-by-id')
+    expect(result.tabGroups[0].collection.groupId).toBe('cat-by-id')
+    expect(repos.tabGroups[0].collection.groupId).toBe('cat-by-id')
   })
 
   it('domainName 一致で parentCategoryId を補完する', async () => {
     const category = createParentCategory({
-      domainNames: ['name.example.com'],
-      domains: [],
+      collections: [
+        { id: 'name-domain-reference', domain: 'name.example.com' },
+      ],
       id: 'cat-by-name',
       name: 'By Name',
     })
     const tabGroup = createTabGroup({
       domain: 'name.example.com',
       id: 'group-by-name',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       parentCategories: [category],
@@ -110,20 +110,22 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(true)
-    expect(result.tabGroups[0].parentCategoryId).toBe('cat-by-name')
+    expect(result.tabGroups[0].collection.groupId).toBe('cat-by-name')
   })
 
   it('ID 一致が優先され、domainName にはフォールバックしない', async () => {
     const idCategory = createParentCategory({
-      domainNames: ['name.example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['name.example.com'][index] ?? id,
+      })),
       id: 'cat-by-id',
       name: 'By ID',
     })
     const tabGroup = createTabGroup({
       domain: 'name.example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       parentCategories: [idCategory],
@@ -136,13 +138,12 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
       tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
 
-    expect(result.tabGroups[0].parentCategoryId).toBe('cat-by-id')
+    expect(result.tabGroups[0].collection.groupId).toBe('cat-by-id')
   })
 
   it('既に parentCategoryId がある場合は変更せず永続化もしない', async () => {
     const category = createParentCategory({
-      domainNames: ['example.com'],
-      domains: [],
+      collections: [{ id: 'domain-reference', domain: 'example.com' }],
       id: 'cat-1',
       name: 'Docs',
     })
@@ -150,7 +151,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
       domain: 'example.com',
       id: 'group-1',
       parentCategoryId: 'cat-existing',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       parentCategories: [category],
@@ -165,21 +166,20 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(false)
-    expect(result.tabGroups[0].parentCategoryId).toBe('cat-existing')
+    expect(result.tabGroups[0].collection.groupId).toBe('cat-existing')
     expect(saveAllSpy).not.toHaveBeenCalled()
   })
 
   it('どのカテゴリにも該当しない TabGroup はそのまま返す', async () => {
     const category = createParentCategory({
-      domainNames: ['other.example.com'],
-      domains: [],
+      collections: [{ id: 'other-reference', domain: 'other.example.com' }],
       id: 'cat-1',
       name: 'Other',
     })
     const tabGroup = createTabGroup({
       domain: 'unmatched.example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       parentCategories: [category],
@@ -194,21 +194,20 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(false)
-    expect(result.tabGroups[0].parentCategoryId).toBeUndefined()
+    expect(result.tabGroups[0].collection.groupId).toBeUndefined()
     expect(saveAllSpy).not.toHaveBeenCalled()
   })
 
   it('command 未指定なら repository から取得して修復する', async () => {
     const category = createParentCategory({
-      domainNames: [],
-      domains: ['group-1'],
+      collections: [{ id: 'group-1', domain: 'example.com' }],
       id: 'cat-1',
       name: 'By ID',
     })
     const tabGroup = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       parentCategories: [category],
@@ -219,20 +218,19 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     const result = await useCase()
 
     expect(result.updated).toBe(true)
-    expect(result.tabGroups[0].parentCategoryId).toBe('cat-1')
+    expect(result.tabGroups[0].collection.groupId).toBe('cat-1')
   })
 
-  it('スキーム付き domain を含む DTO でも例外を投げずに正規化する', async () => {
+  it('current collection definitionのdomain名で修復する', async () => {
     const category = createParentCategory({
-      domainNames: ['example.com'],
-      domains: [],
+      collections: [{ id: 'domain-reference', domain: 'example.com' }],
       id: 'cat-1',
       name: 'Docs',
     })
     const tabGroup = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       parentCategories: [category],
@@ -240,18 +238,11 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
     const useCase = createRepairTabGroupParentCategoryIdsUseCase(repos)
 
-    // DTO の domain にスキームが含まれていても、use-case 内で
-    // normalizeDomainString が hostname へ正規化するため例外にならない
     const result = await useCase({
       parentCategories: [category],
-      tabGroups: [
-        {
-          ...toSavedTabsDisplayTabGroupDto(tabGroup),
-          domain: 'https://example.com',
-        },
-      ],
+      tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
 
-    expect(result.tabGroups[0].parentCategoryId).toBe('cat-1')
+    expect(result.tabGroups[0].collection.groupId).toBe('cat-1')
   })
 })

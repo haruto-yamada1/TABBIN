@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { RemoveSubCategoryFromTabGroupPort } from '@/contexts/saved-tabs/application/ports/RemoveSubCategoryFromTabGroupPort'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createRemoveSubCategoryFromTabGroupsUseCase } from './RemoveSubCategoryFromTabGroupsUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCaseDeps } from './RemoveSubCategoryFromTabGroupsUseCase'
@@ -34,13 +35,17 @@ const createDeps = (
 
 describe('createRemoveSubCategoryFromTabGroupsUseCase', () => {
   it('port.removeSubCategoryFromTabGroup に groupId と categoryName を渡して呼び出す', async () => {
-    const target: TabGroup = {
+    const target: TabGroup = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
       subCategories: ['news'],
-      urlIds: ['url-1', 'url-2'],
-      urlSubCategories: { 'url-2': 'news' },
-    }
+      memberships: ['url-1', 'url-2'].map((urlId) => ({
+        urlId,
+        ...({ 'url-2': 'news' }?.[urlId]
+          ? { category: { 'url-2': 'news' }[urlId] }
+          : {}),
+      })),
+    })
     const { port, spy } = createPortMock([target])
     const useCase = createRemoveSubCategoryFromTabGroupsUseCase(
       createDeps(port),

@@ -39,12 +39,18 @@
 
 import { z } from 'zod'
 
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsParentCategoryDto,
+  toSavedTabsTabGroupDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { CHROME_STORAGE_CHANGE_ADAPTER_MARKER } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type {
   SavedTabsStorageChangeKey,
   StorageChangePort,
   TypedSavedTabsStorageChange,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import {
   CustomProjectRawSchema,
   ParentCategoryRawSchema,
@@ -53,7 +59,6 @@ import {
 } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/savedTabsStorageSchema'
 import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
-import type { CustomProject } from '@/types/storage'
 
 export type ChromeStorageOnChangedLike = {
   readonly addListener: (callback: ChromeOnChangedListener) => void
@@ -195,19 +200,33 @@ export const createChromeStorageChangeAdapter = (
       }
     }
     if (key === 'savedTabs') {
+      const payload = safeParseArrayPayload(
+        SavedTabRawSchema,
+        newValue,
+      ).flatMap((raw) => {
+        const entity = ChromeSavedTabsStorageMapper.toTabGroupFromRaw(raw)
+        return entity ? [toSavedTabsTabGroupDto(entity)] : []
+      })
       return {
         key,
         kind: 'parsed',
         oldValue,
-        payload: safeParseArrayPayload(SavedTabRawSchema, newValue),
+        payload,
       }
     }
     if (key === 'parentCategories') {
+      const payload = safeParseArrayPayload(
+        ParentCategoryRawSchema,
+        newValue,
+      ).flatMap((raw) => {
+        const entity = ChromeSavedTabsStorageMapper.toParentCategoryFromRaw(raw)
+        return entity ? [toSavedTabsParentCategoryDto(entity)] : []
+      })
       return {
         key,
         kind: 'parsed',
         oldValue,
-        payload: safeParseArrayPayload(ParentCategoryRawSchema, newValue),
+        payload,
       }
     }
     if (key === 'customProjects') {
@@ -217,13 +236,13 @@ export const createChromeStorageChangeAdapter = (
       // port 境界で default を入れてから payload として流す。
       // `categories` 未設定時は `[]`、`createdAt` / `updatedAt` 未設定時
       // は `0`（mapper の entity 化と整合する default）。
-      const raws = safeParseArrayPayload(CustomProjectRawSchema, newValue)
-      const payload: CustomProject[] = raws.map((raw) => ({
-        ...raw,
-        categories: raw.categories ?? [],
-        createdAt: raw.createdAt ?? 0,
-        updatedAt: raw.updatedAt ?? 0,
-      }))
+      const payload = safeParseArrayPayload(
+        CustomProjectRawSchema,
+        newValue,
+      ).flatMap((raw) => {
+        const entity = ChromeSavedTabsStorageMapper.toCustomProjectFromRaw(raw)
+        return entity ? [toSavedTabsCustomProjectDto(entity)] : []
+      })
       return {
         key,
         kind: 'parsed',

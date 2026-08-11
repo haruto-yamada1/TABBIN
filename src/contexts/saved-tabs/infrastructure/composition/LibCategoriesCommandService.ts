@@ -1,6 +1,4 @@
-import { toStorageDomainCategorySettings } from '@/contexts/saved-tabs/application/mappers/SavedTabsDtosMapper'
 import type { CategoriesCommandService } from '@/contexts/saved-tabs/application/ports/CategoriesCommandService'
-import type { SubCategoryKeywordDto } from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
 import { updateDomainCategorySettings } from '@/lib/storage/categories'
 
 /**
@@ -27,23 +25,22 @@ import { updateDomainCategorySettings } from '@/lib/storage/categories'
  */
 export const createLibCategoriesCommandService =
   (): CategoriesCommandService => ({
-    updateDomainCategorySettings: async (
-      domain: string,
-      subCategories: string[],
-      categoryKeywords: SubCategoryKeywordDto[],
-    ) => {
-      const storage = toStorageDomainCategorySettings([
-        {
-          categoryKeywords,
-          domain,
-          subCategories,
-        },
-      ])
-      const first = storage[0]
+    updateCollectionCategories: async (collection, categories) => {
+      if (collection.definition.type !== 'domain') {
+        throw new Error(
+          `Domain category settings require a domain collection: ${collection.id}`,
+        )
+      }
+      const orderedCategories = categories.toSorted(
+        (left, right) => left.sortOrder - right.sortOrder,
+      )
       await updateDomainCategorySettings(
-        first.domain,
-        [...first.subCategories],
-        [...first.categoryKeywords],
+        collection.definition.domain,
+        orderedCategories.map(({ name }) => name),
+        orderedCategories.map(({ keywords, name }) => ({
+          categoryName: name,
+          keywords: [...keywords],
+        })),
       )
     },
   })

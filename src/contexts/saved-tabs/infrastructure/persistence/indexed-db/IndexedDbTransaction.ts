@@ -20,7 +20,7 @@ const isPromiseLike = (value: unknown): value is PromiseLike<unknown> =>
 
 export const waitForIndexedDbTransaction = async (
   transaction: IDBTransaction,
-  queuedError?: unknown,
+  readQueuedError?: () => unknown,
 ): Promise<void> => {
   await new Promise<void>((resolve, reject) => {
     transaction.addEventListener('complete', () => {
@@ -29,7 +29,7 @@ export const waitForIndexedDbTransaction = async (
     transaction.addEventListener('abort', () => {
       reject(
         toIndexedDbError(
-          queuedError ?? transaction.error,
+          readQueuedError?.() ?? transaction.error,
           'IndexedDB transaction aborted.',
         ),
       )
@@ -46,7 +46,10 @@ export type QueueIndexedDbTransactionOptions = {
 
 export const queueIndexedDbTransaction = async (
   options: QueueIndexedDbTransactionOptions,
-  queueRequests: (transaction: IDBTransaction) => unknown,
+  queueRequests: (
+    transaction: IDBTransaction,
+    abortWithError: (error: unknown) => void,
+  ) => unknown,
 ): Promise<void> => {
   const transaction = options.database.transaction(
     options.storeNames,
@@ -54,10 +57,15 @@ export const queueIndexedDbTransaction = async (
     { durability: options.durability ?? 'default' },
   )
   let queuedError: unknown
+  const abortWithError = (error: unknown): void => {
+    queuedError = error
+    transaction.abort()
+  }
 
   try {
     const result: unknown = Reflect.apply(queueRequests, undefined, [
       transaction,
+      abortWithError,
     ])
     if (isPromiseLike(result)) {
       const observedPromise = Promise.resolve(result)
@@ -70,5 +78,5 @@ export const queueIndexedDbTransaction = async (
     transaction.abort()
   }
 
-  await waitForIndexedDbTransaction(transaction, queuedError)
+  await waitForIndexedDbTransaction(transaction, () => queuedError)
 }

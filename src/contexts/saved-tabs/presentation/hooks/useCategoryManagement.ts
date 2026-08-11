@@ -3,6 +3,16 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/application/services/ParentCategoryReorderService'
+import type { MoveDomainBetweenCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveDomainBetweenCategoriesUseCase'
+import type { RemoveSubCategoryFromTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
+import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderDomainsInCategoryUseCase'
+import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
+import {
+  toSavedTabsTabGroupViewModel,
+  toTabGroupFromViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import { toStorageParentCategory } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 /**
  * @file useCategoryManagement.ts
  * @description 親カテゴリの CRUD・並び替えモード・ドメイン移動を担うカスタムフック。
@@ -10,13 +20,7 @@ import { toast } from 'sonner'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
-import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/application/services/ParentCategoryReorderService'
-import type { MoveDomainBetweenCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveDomainBetweenCategoriesUseCase'
-import type { RemoveSubCategoryFromTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
-import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderDomainsInCategoryUseCase'
-import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 
@@ -190,7 +194,9 @@ const useCategoryManagement = (
             categoryName,
             groupId,
           })
-        await refreshTabGroupsWithUrls([...updatedGroups])
+        await refreshTabGroupsWithUrls(
+          updatedGroups.map(toSavedTabsTabGroupViewModel),
+        )
       } catch (error) {
         console.error('カテゴリ削除エラー:', error)
       }
@@ -291,7 +297,7 @@ const useCategoryManagement = (
         }
         const updatedDomainCategories = await reorderDomainsInCategoryUseCase({
           categoryId,
-          updatedDomains,
+          updatedDomains: updatedDomains.map(toTabGroupFromViewModel),
         })
         setCategoriesWithOrder(
           updatedDomainCategories.map(toStorageParentCategory),
@@ -329,7 +335,7 @@ const useCategoryManagement = (
           await moveDomainBetweenCategoriesUseCase({
             domainId,
             fromCategoryId,
-            tabGroups,
+            tabGroups: tabGroups.map(toTabGroupFromViewModel),
             toCategoryId,
           })
         setCategoriesWithOrder(

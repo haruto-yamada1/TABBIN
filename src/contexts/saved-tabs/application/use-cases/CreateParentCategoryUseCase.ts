@@ -77,8 +77,7 @@ export const createCreateParentCategoryUseCase = (
     }
     const newId = createParentCategoryId(deps.idGenerator.generate())
     const newCategory: ParentCategory = {
-      domainNames: [],
-      domains: [],
+      collections: [],
       id: newId,
       name: createCategoryName(name),
     }

@@ -6,9 +6,13 @@ const mocked = vi.hoisted(() => ({
   createOllama: vi.fn(),
   generateText: vi.fn(),
   getUserSettings: vi.fn(),
-  getUrlRecords: vi.fn(),
-  getCustomProjects: vi.fn(),
-  getParentCategories: vi.fn(),
+  readInsightRecords: vi.fn(),
+}))
+
+vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
+  getBackgroundSavedTabsDataPlane: () => ({
+    readInsightRecords: mocked.readInsightRecords,
+  }),
 }))
 
 vi.mock('ai-sdk-ollama', () => ({
@@ -24,18 +28,6 @@ vi.mock('ai', () => ({
 vi.mock('@/lib/storage/settings', () => ({
   defaultSettings: {},
   getUserSettings: mocked.getUserSettings,
-}))
-
-vi.mock('@/lib/storage/urls', () => ({
-  getUrlRecords: mocked.getUrlRecords,
-}))
-
-vi.mock('@/lib/storage/projects', () => ({
-  getCustomProjects: mocked.getCustomProjects,
-}))
-
-vi.mock('@/lib/storage/categories', () => ({
-  getParentCategories: mocked.getParentCategories,
 }))
 
 import {
@@ -381,16 +373,20 @@ describe('runAiChatRequest', () => {
     mocked.getUserSettings.mockResolvedValue({
       ollamaModel: 'llama3.2',
     })
-    mocked.getUrlRecords.mockResolvedValue([
+    mocked.readInsightRecords.mockResolvedValue([
       {
+        domain: 'react.dev',
         id: 'url-1',
+        parentCategories: [],
+        projectCategories: [],
         savedAt: new Date('2026-03-01T00:00:00.000Z').getTime(),
+        savedInProjects: [],
+        savedInTabGroups: ['react.dev'],
+        subCategories: [],
         title: 'React Learn',
         url: 'https://react.dev/learn',
       },
     ])
-    mocked.getCustomProjects.mockResolvedValue([])
-    mocked.getParentCategories.mockResolvedValue([])
     ;(
       globalThis as typeof globalThis & {
         chrome?: typeof chrome
@@ -968,12 +964,18 @@ describe('runAiChatRequest', () => {
       toolCalls: [],
       toolResults: [],
     })
-    mocked.getParentCategories.mockResolvedValue([
+    mocked.readInsightRecords.mockResolvedValue([
       {
-        domains: ['group-1'],
-        domainNames: ['react.dev'],
-        id: 'parent-1',
-        name: 'Frontend',
+        domain: 'react.dev',
+        id: 'url-1',
+        parentCategories: ['Frontend'],
+        projectCategories: [],
+        savedAt: new Date('2026-03-01T00:00:00.000Z').getTime(),
+        savedInProjects: [],
+        savedInTabGroups: ['react.dev'],
+        subCategories: [],
+        title: 'React Learn',
+        url: 'https://react.dev/learn',
       },
     ])
 
@@ -1379,7 +1381,7 @@ describe('runAiChatRequest', () => {
     expect(result.toolTraces).toStrictEqual([])
   })
 
-  it('savedTabs が配列でなくても空配列として扱い、tools execute を利用できる', async () => {
+  it('route-aware insight recordでtools executeを利用できる', async () => {
     ;(
       globalThis as typeof globalThis & {
         chrome?: typeof chrome

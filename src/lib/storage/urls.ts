@@ -1,8 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import type {
+  CustomProject,
+  TabGroup,
+  UrlRecord,
+} from '@/contexts/saved-tabs/public-api'
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
-import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 /** セッション中のインメモリキャッシュ */
 let urlRecordsCache: UrlRecord[] | null = null
