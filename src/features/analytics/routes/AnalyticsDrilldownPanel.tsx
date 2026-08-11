@@ -22,6 +22,11 @@ const deferredDrilldownCardStyle: CSSProperties = {
   contentVisibility: 'auto',
 }
 
+const getRecordEventKey = (record: AiSavedUrlRecord): string =>
+  'eventId' in record && typeof record.eventId === 'string'
+    ? record.eventId
+    : record.id
+
 const DrilldownToolbar = ({
   isDeleteActionDisabled,
   onDeleteAllClick,
@@ -81,6 +86,7 @@ const DrilldownRecordCard = ({
   onDeleteClick: (record: AiSavedUrlRecord) => void
   record: AiSavedUrlRecord
 }) => {
+  const recordKey = getRecordEventKey(record)
   return (
     <Card
       className='rounded-2xl border-border bg-card p-3 shadow-none'
@@ -88,7 +94,7 @@ const DrilldownRecordCard = ({
     >
       <div
         className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'
-        data-testid={`analytics-card-layout-${record.id}`}
+        data-testid={`analytics-card-layout-${recordKey}`}
       >
         <div className='min-w-0 flex-1'>
           <p className='truncate text-sm font-medium'>{record.title}</p>
@@ -99,7 +105,7 @@ const DrilldownRecordCard = ({
             {record.parentCategories.map((category) => (
               <Badge
                 className='rounded-full'
-                key={`${record.id}-${category}`}
+                key={`${recordKey}-${category}`}
                 variant='secondary'
               >
                 {category}
@@ -108,7 +114,7 @@ const DrilldownRecordCard = ({
             {record.savedInProjects.map((project) => (
               <Badge
                 className='rounded-full'
-                key={`${record.id}-${project}`}
+                key={`${recordKey}-${project}`}
                 variant='secondary'
               >
                 {project}
@@ -118,7 +124,7 @@ const DrilldownRecordCard = ({
         </div>
         <div
           className='flex shrink-0 flex-col gap-2 sm:items-end'
-          data-testid={`analytics-action-column-${record.id}`}
+          data-testid={`analytics-action-column-${recordKey}`}
         >
           <time className='text-xs text-muted-foreground'>
             {formatLocaleDateTime(
@@ -196,7 +202,7 @@ export const AnalyticsDrilldownPanel = ({
             <DrilldownRecordCard
               deletingUrl={deletingUrl}
               isDeleteActionDisabled={isDeleteActionDisabled}
-              key={record.id}
+              key={getRecordEventKey(record)}
               language={language}
               onDeleteClick={onDeleteClick}
               record={record}

@@ -1,3 +1,4 @@
+import type { PersistenceTimestampMigrationSummary } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import type { PersistenceSourceEntityCounts } from '@/lib/persistence/capacity'
 
 import type { RawLegacyStorageSnapshot } from './RawLegacyStorageReaderPort'
@@ -42,6 +43,7 @@ export type PersistenceV2MigrationReport = {
   readonly migratedUrlCount: number
   readonly migrationId: string
   readonly sourceEntityCounts: PersistenceSourceEntityCounts
+  readonly timestampMigrationSummary: PersistenceTimestampMigrationSummary
   readonly warningCounts: readonly {
     readonly code: string
     readonly occurrenceCount: number

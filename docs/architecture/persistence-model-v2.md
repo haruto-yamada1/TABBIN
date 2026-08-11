@@ -1,5 +1,8 @@
 # Persistence Model v2
 
+Analytics timestamp and query semantics are defined in
+[analytics-metrics.md](./analytics-metrics.md).
+
 Status: reviewed target contract for Issue #725  
 Parent: Issue #724
 

@@ -110,6 +110,61 @@ const createDataPlane = (state = createState()) => {
 }
 
 describe('backgroundSavedTabsIndexedDbDataPlane', () => {
+  it('projects URL metrics and membership events without collapsing their timestamps', async () => {
+    const state = createState()
+    state.urls[0] = {
+      ...state.urls[0],
+      firstSavedAt: 10,
+      firstSavedAtProvenance: 'exact',
+      lastSavedAt: 30,
+      lastSavedAtProvenance: 'exact',
+    }
+    state.memberships[0] = {
+      ...state.memberships[0],
+      addedAt: 20,
+      addedAtProvenance: 'legacy-fallback',
+    }
+    state.memberships[1] = {
+      ...state.memberships[1],
+      addedAt: 40,
+      addedAtProvenance: 'exact',
+    }
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(dataPlane.readAnalyticsRecords()).resolves.toEqual([
+      expect.objectContaining({
+        eventId: 'url-1:first-saved',
+        id: 'url-1',
+        metric: 'first-saved',
+        savedAt: 10,
+        timestampAccuracy: 'exact',
+      }),
+      expect.objectContaining({
+        collectionType: 'domain',
+        eventId: 'domain-1:url-1',
+        id: 'url-1',
+        metric: 'membership-added',
+        savedAt: 20,
+        timestampAccuracy: 'legacy-fallback',
+      }),
+      expect.objectContaining({
+        eventId: 'url-1:last-saved',
+        id: 'url-1',
+        metric: 'last-saved',
+        savedAt: 30,
+        timestampAccuracy: 'exact',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        eventId: 'project-1:url-1',
+        id: 'url-1',
+        metric: 'membership-added',
+        savedAt: 40,
+        timestampAccuracy: 'exact',
+      }),
+    ])
+  })
+
   it('reads insights directly from Collection/Group/Category/Membership projections', async () => {
     const { dataPlane } = createDataPlane()
 

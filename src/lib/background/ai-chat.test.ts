@@ -6,11 +6,13 @@ const mocked = vi.hoisted(() => ({
   createOllama: vi.fn(),
   generateText: vi.fn(),
   getUserSettings: vi.fn(),
+  readAnalyticsRecords: vi.fn(),
   readInsightRecords: vi.fn(),
 }))
 
 vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
   getBackgroundSavedTabsDataPlane: () => ({
+    readAnalyticsRecords: mocked.readAnalyticsRecords,
     readInsightRecords: mocked.readInsightRecords,
   }),
 }))
@@ -326,6 +328,7 @@ describe('listLocalOllamaModels', () => {
 describe('runAiChatRequest', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocked.readAnalyticsRecords.mockResolvedValue([])
     mocked.createOllama.mockReturnValue((modelId: string) => ({
       modelId,
       provider: 'ollama',

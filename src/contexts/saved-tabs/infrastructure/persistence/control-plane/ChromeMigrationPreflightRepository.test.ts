@@ -15,6 +15,11 @@ const healthyRecord = {
     issueCodes: [],
     preflightVersion: 1,
     sourceFingerprintVersion: 1,
+    timestampMigrationSummary: {
+      membershipAddedAt: { exactCount: 0, legacyFallbackCount: 0 },
+      urlFirstSavedAt: { exactCount: 0, legacyFallbackCount: 2 },
+      urlLastSavedAt: { exactCount: 2, legacyFallbackCount: 0 },
+    },
   },
   sourceFingerprint: 'v1:abc',
   status: 'healthy' as const,
@@ -46,6 +51,34 @@ describe('ChromeMigrationPreflightRepository', () => {
       [MIGRATION_PREFLIGHT_STORAGE_KEY]: healthyRecord,
     })
     await expect(repository.read()).resolves.toEqual(healthyRecord)
+  })
+
+  it('classifies records without a provenance summary as legacy fallback', async () => {
+    const legacyRecord = {
+      ...healthyRecord,
+      diagnostic: {
+        ...healthyRecord.diagnostic,
+        timestampMigrationSummary: undefined,
+      },
+    }
+    const repository = new ChromeMigrationPreflightRepository({
+      get: vi.fn(async () => ({
+        [MIGRATION_PREFLIGHT_STORAGE_KEY]: legacyRecord,
+      })),
+      set: vi.fn(async () => {}),
+    })
+
+    await expect(repository.read()).resolves.toEqual(
+      expect.objectContaining({
+        diagnostic: expect.objectContaining({
+          timestampMigrationSummary: {
+            membershipAddedAt: { exactCount: 0, legacyFallbackCount: 0 },
+            urlFirstSavedAt: { exactCount: 0, legacyFallbackCount: 2 },
+            urlLastSavedAt: { exactCount: 0, legacyFallbackCount: 2 },
+          },
+        }),
+      }),
+    )
   })
 
   it.each([

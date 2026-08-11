@@ -4,10 +4,12 @@ const mocked = vi.hoisted(() => ({
   getUserSettings: vi.fn<() => Promise<{ excludePatterns?: string[] }>>(
     async () => ({ excludePatterns: [] }),
   ),
-  readInsightRecords: vi.fn(async () => [
+  readAnalyticsRecords: vi.fn(async () => [
     {
       domain: 'allowed.example',
+      eventId: 'url-1:first-saved',
       id: 'url-1',
+      metric: 'first-saved' as const,
       parentCategories: [],
       projectCategories: [],
       savedAt: 1,
@@ -15,6 +17,7 @@ const mocked = vi.hoisted(() => ({
       savedInTabGroups: ['allowed.example'],
       subCategories: [],
       title: 'Allowed',
+      timestampAccuracy: 'exact' as const,
       url: 'https://allowed.example/',
     },
   ]),
@@ -22,7 +25,7 @@ const mocked = vi.hoisted(() => ({
 
 vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
   getBackgroundSavedTabsDataPlane: () => ({
-    readInsightRecords: mocked.readInsightRecords,
+    readAnalyticsRecords: mocked.readAnalyticsRecords,
   }),
 }))
 
@@ -41,7 +44,7 @@ describe('loadAnalyticsRecords', () => {
     await expect(loadAnalyticsRecords()).resolves.toEqual([
       expect.objectContaining({ id: 'url-1' }),
     ])
-    expect(mocked.readInsightRecords).toHaveBeenCalledOnce()
+    expect(mocked.readAnalyticsRecords).toHaveBeenCalledOnce()
   })
 
   it('excludePatterns に一致するURLを分析対象から除外する', async () => {

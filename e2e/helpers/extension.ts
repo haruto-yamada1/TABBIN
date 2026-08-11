@@ -128,6 +128,77 @@ export const seedStorage = async (
   }, seed)
 }
 
+type PersistenceV2SavedTabsSeed = {
+  categories: readonly Record<string, unknown>[]
+  collections: readonly Record<string, unknown>[]
+  groups: readonly Record<string, unknown>[]
+  memberships: readonly Record<string, unknown>[]
+  urls: readonly Record<string, unknown>[]
+}
+
+export const seedPersistenceV2SavedTabs = async (
+  serviceWorker: Worker,
+  seed: PersistenceV2SavedTabsSeed,
+) => {
+  await serviceWorker.evaluate(async (value) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      request.addEventListener('success', () => resolve(request.result))
+      request.addEventListener('error', () =>
+        reject(request.error ?? new Error('Failed to open persistence v2.')),
+      )
+    })
+    const storeNames = [
+      'collectionCategories',
+      'collections',
+      'collectionGroups',
+      'collectionMemberships',
+      'metadata',
+      'urls',
+    ]
+    const transaction = database.transaction(storeNames, 'readwrite')
+    const transactionComplete = new Promise<void>((resolve, reject) => {
+      transaction.addEventListener('complete', () => resolve())
+      transaction.addEventListener('abort', () =>
+        reject(
+          transaction.error ?? new Error('Persistence v2 seed was aborted.'),
+        ),
+      )
+      transaction.addEventListener('error', () =>
+        reject(transaction.error ?? new Error('Persistence v2 seed failed.')),
+      )
+    })
+
+    transaction.objectStore('collectionCategories').clear()
+    transaction.objectStore('collections').clear()
+    transaction.objectStore('collectionGroups').clear()
+    transaction.objectStore('collectionMemberships').clear()
+    transaction.objectStore('urls').clear()
+    for (const category of value.categories) {
+      transaction.objectStore('collectionCategories').put(category)
+    }
+    for (const collection of value.collections) {
+      transaction.objectStore('collections').put(collection)
+    }
+    for (const group of value.groups) {
+      transaction.objectStore('collectionGroups').put(group)
+    }
+    for (const membership of value.memberships) {
+      transaction.objectStore('collectionMemberships').put(membership)
+    }
+    for (const url of value.urls) {
+      transaction.objectStore('urls').put(url)
+    }
+    transaction.objectStore('metadata').put({ key: 'revision', value: 1 })
+
+    try {
+      await transactionComplete
+    } finally {
+      database.close()
+    }
+  }, seed)
+}
+
 export const readStorage = async <T>(
   serviceWorker: Worker,
   keys?: string | string[],

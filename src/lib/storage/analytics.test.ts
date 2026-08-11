@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+import { normalizeAnalyticsQuery } from '@/features/analytics/lib/analytics'
 
 import {
   createSavedAnalyticsView,
@@ -11,23 +12,21 @@ import {
 
 const storageMocks = vi.hoisted(() => {
   const state: Record<string, unknown> = {}
+  const dataPlane = {
+    readValues: vi.fn(async () => {
+      const value = state.savedAnalyticsViews
+      return Array.isArray(value) ? value : []
+    }),
+    replaceValues: vi.fn(async (values: readonly unknown[]) => {
+      state.savedAnalyticsViews = [...values]
+    }),
+  }
 
   return {
-    getChromeStorageLocal: vi.fn(() => ({
-      get: vi.fn(async (keys: string | string[]) => {
-        if (Array.isArray(keys)) {
-          return Object.fromEntries(keys.map((key) => [key, state[key]]))
-        }
-
-        return {
-          [keys]: state[keys],
-        }
-      }),
-
-      set: vi.fn(async (value: Record<string, unknown>) => {
-        Object.assign(state, value)
-      }),
-    })),
+    dataPlane,
+    getAnalyticsViewsDataPlane: vi.fn<() => typeof dataPlane | null>(
+      () => dataPlane,
+    ),
     reset: () => {
       for (const key of Object.keys(state)) {
         delete state[key]
@@ -38,8 +37,11 @@ const storageMocks = vi.hoisted(() => {
   }
 })
 
+vi.mock('@/app/composition/analyticsViewsDataPlane', () => ({
+  getAnalyticsViewsDataPlane: storageMocks.getAnalyticsViewsDataPlane,
+}))
+
 vi.mock('@/lib/browser/chrome-storage', () => ({
-  getChromeStorageLocal: storageMocks.getChromeStorageLocal,
   warnMissingChromeStorage: storageMocks.warnMissingChromeStorage,
 }))
 
@@ -80,14 +82,94 @@ describe('analytics storage', () => {
         createdAt: 1,
         id: 'view-1',
         name: 'Top Domains',
-        query: baseQuery,
+        query: normalizeAnalyticsQuery(baseQuery),
         updatedAt: 2,
       },
     ]
 
-    await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual(
-      storageMocks.state.savedAnalyticsViews,
-    )
+    await expect(loadSavedAnalyticsViews()).resolves.toEqual([
+      expect.objectContaining({
+        createdAt: 1,
+        id: 'view-1',
+        name: 'Top Domains',
+        query: expect.objectContaining({
+          metric: 'first-saved',
+          schemaVersion: 2,
+        }),
+        updatedAt: 2,
+      }),
+    ])
+  })
+
+  it('旧modeとcollection groupをv2 membership queryへ移行する', async () => {
+    storageMocks.state.savedAnalyticsViews = [
+      {
+        createdAt: 1,
+        id: 'view-legacy-project',
+        name: 'Legacy Project',
+        query: { ...baseQuery, groupBy: 'project', mode: 'custom' },
+        updatedAt: 2,
+      },
+    ]
+
+    await expect(loadSavedAnalyticsViews()).resolves.toEqual([
+      expect.objectContaining({
+        query: expect.objectContaining({
+          collectionType: 'custom',
+          metric: 'membership-added',
+          schemaVersion: 2,
+        }),
+      }),
+    ])
+  })
+
+  it('不正なqueryをshallow castせず破棄する', async () => {
+    storageMocks.state.savedAnalyticsViews = [
+      {
+        createdAt: 1,
+        id: 'view-invalid',
+        name: 'Invalid',
+        query: { ...baseQuery, groupBy: 'unknown' },
+        updatedAt: 2,
+      },
+    ]
+
+    await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual([])
+  })
+
+  it('custom date rangeを保持し未知のschema versionを破棄する', async () => {
+    storageMocks.state.savedAnalyticsViews = [
+      {
+        createdAt: 1,
+        id: 'view-custom-range',
+        name: 'Custom Range',
+        query: {
+          ...baseQuery,
+          customDateRange: { from: '2026-01-01', to: '2026-01-31' },
+          schemaVersion: 2,
+          timeRange: 'custom',
+        },
+        updatedAt: 2,
+      },
+      {
+        createdAt: 3,
+        id: 'view-future-schema',
+        name: 'Future Schema',
+        query: { ...baseQuery, schemaVersion: 3 },
+        updatedAt: 4,
+      },
+    ]
+
+    await expect(loadSavedAnalyticsViews()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'view-custom-range',
+        query: expect.objectContaining({
+          customDateRange: { from: '2026-01-01', to: '2026-01-31' },
+          schemaVersion: 2,
+          timeRange: 'custom',
+        }),
+      }),
+    ])
   })
 
   it('保存済み分析ビューが配列でなければ空配列を返す', async () => {
@@ -99,10 +181,10 @@ describe('analytics storage', () => {
   })
 
   it('Chrome storage がない場合は読み込みと保存を警告だけで終える', async () => {
-    storageMocks.getChromeStorageLocal.mockReturnValueOnce(null as never)
+    storageMocks.getAnalyticsViewsDataPlane.mockReturnValueOnce(null)
     await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual([])
 
-    storageMocks.getChromeStorageLocal.mockReturnValueOnce(null as never)
+    storageMocks.getAnalyticsViewsDataPlane.mockReturnValueOnce(null)
     await expect(saveSavedAnalyticsViews([])).resolves.toBeUndefined()
 
     expect(storageMocks.warnMissingChromeStorage).toHaveBeenCalledWith(
@@ -126,7 +208,12 @@ describe('analytics storage', () => {
 
     await saveSavedAnalyticsViews(views)
 
-    expect(storageMocks.state.savedAnalyticsViews).toStrictEqual(views)
+    expect(storageMocks.state.savedAnalyticsViews).toStrictEqual([
+      {
+        ...views[0],
+        query: normalizeAnalyticsQuery(baseQuery),
+      },
+    ])
   })
 
   it('新しい分析ビューを作成する', async () => {
@@ -171,7 +258,7 @@ describe('analytics storage', () => {
         createdAt: 3,
         id: 'view-2',
         name: 'Mode Comparison',
-        query: baseQuery,
+        query: normalizeAnalyticsQuery(baseQuery),
         updatedAt: 4,
       },
     ])

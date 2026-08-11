@@ -726,15 +726,18 @@ const runAiChatRequest = async (
   }
   const { ollamaModel } = settings
 
-  const records: AiSavedUrlRecord[] = [
-    ...(await getBackgroundSavedTabsDataPlane().readInsightRecords()),
-  ]
+  const dataPlane = getBackgroundSavedTabsDataPlane()
+  const [insightRecords, analyticsRecords] = await Promise.all([
+    dataPlane.readInsightRecords(),
+    dataPlane.readAnalyticsRecords(),
+  ])
+  const records: AiSavedUrlRecord[] = [...insightRecords]
 
   const ollama = createOllama({
     baseURL: OLLAMA_BASE_URL,
   })
 
-  const tools = createAiChatTools(records, language)
+  const tools = createAiChatTools(records, language, analyticsRecords)
   let streamedToolTraces: AiChatToolTrace[] = []
 
   const result = await (async () => {

@@ -8,7 +8,10 @@ import type {
 import {
   filterAnalyticsRecords,
   generateAnalyticsResult,
+  getCollectionCategoryLabelsForType,
+  getCollectionLabelsForType,
   normalizeAnalyticsQuery,
+  parseAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
@@ -17,23 +20,11 @@ import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
 
-const isAnalyticsQuery = (value: unknown): value is AnalyticsQuery => {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const chartType: unknown = Reflect.get(value, 'chartType')
-  const groupBy: unknown = Reflect.get(value, 'groupBy')
-  const mode: unknown = Reflect.get(value, 'mode')
-  return (
-    typeof chartType === 'string' &&
-    typeof groupBy === 'string' &&
-    typeof mode === 'string'
-  )
-}
-
 const parseGroupBy = (value: string): AnalyticsQuery['groupBy'] => {
   switch (value) {
+    case 'collection':
+    case 'collectionCategory':
+    case 'collectionGroup':
     case 'domain':
     case 'parentCategory':
     case 'project':
@@ -80,8 +71,9 @@ const getLatestAnalyticsQuery = (
       toolTrace.output && typeof toolTrace.output === 'object'
         ? Reflect.get(toolTrace.output, 'query')
         : undefined
-    if (isAnalyticsQuery(query)) {
-      return query
+    const parsedQuery = parseAnalyticsQuery(query)
+    if (parsedQuery) {
+      return parsedQuery
     }
   }
 
@@ -362,6 +354,11 @@ const getAnalyticsChartDatumLabels = (
     return items
   }, []) ?? []
 
+const withUncategorizedLabel = (
+  labels: string[],
+  uncategorizedLabel: string,
+): string[] => (labels.length > 0 ? labels : [uncategorizedLabel])
+
 const getDrilldownLabelsForRecord = (
   record: AiSavedUrlRecord,
   query: AnalyticsQuery,
@@ -384,24 +381,34 @@ const getDrilldownLabelsForRecord = (
       )
     }
     case 'parentCategory': {
-      return record.parentCategories.length > 0
-        ? record.parentCategories
-        : [uncategorizedLabel]
+      return withUncategorizedLabel(record.parentCategories, uncategorizedLabel)
+    }
+    case 'collectionGroup': {
+      return withUncategorizedLabel(record.parentCategories, uncategorizedLabel)
     }
     case 'subCategory': {
-      return record.subCategories.length > 0
-        ? record.subCategories
-        : [uncategorizedLabel]
+      return withUncategorizedLabel(record.subCategories, uncategorizedLabel)
     }
     case 'project': {
-      return record.savedInProjects.length > 0
-        ? record.savedInProjects
-        : [uncategorizedLabel]
+      return withUncategorizedLabel(record.savedInProjects, uncategorizedLabel)
     }
     case 'projectCategory': {
-      return record.projectCategories.length > 0
-        ? record.projectCategories
-        : [uncategorizedLabel]
+      return withUncategorizedLabel(
+        record.projectCategories,
+        uncategorizedLabel,
+      )
+    }
+    case 'collection': {
+      return withUncategorizedLabel(
+        getCollectionLabelsForType(record, query.collectionType),
+        uncategorizedLabel,
+      )
+    }
+    case 'collectionCategory': {
+      return withUncategorizedLabel(
+        getCollectionCategoryLabelsForType(record, query.collectionType),
+        uncategorizedLabel,
+      )
     }
     default: {
       return [record.domain]

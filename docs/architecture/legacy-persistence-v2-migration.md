@@ -1,5 +1,8 @@
 # Legacy Chrome Storage to Persistence v2 migration
 
+The exact versus legacy-fallback timestamp policy used by migration reports and
+Analytics is defined in [analytics-metrics.md](./analytics-metrics.md).
+
 Status: implemented migration capability for Issue #728
 Parent: Issue #724
 

@@ -143,6 +143,11 @@ describe('PersistenceV2MigrationService', () => {
         migratedMembershipCount: 1,
         migratedUrlCount: 1,
         migrationId: 'migration-1',
+        timestampMigrationSummary: {
+          membershipAddedAt: { exactCount: 0, legacyFallbackCount: 1 },
+          urlFirstSavedAt: { exactCount: 0, legacyFallbackCount: 1 },
+          urlLastSavedAt: { exactCount: 1, legacyFallbackCount: 0 },
+        },
       }),
     )
     const serialized = JSON.stringify(report)

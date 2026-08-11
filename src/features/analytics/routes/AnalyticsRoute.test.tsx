@@ -804,6 +804,29 @@ describe('AnalyticsRoute', () => {
     vi.unstubAllGlobals()
   })
 
+  it('legacy fallbackの履歴だけ注意を表示しexact dataでは表示しない', async () => {
+    const notice =
+      'Some historical dates come from legacy fallback data. Counts remain available, but first-save or collection-addition dates may be approximate.'
+
+    const legacyView = render(<AnalyticsRoute />)
+    expect(await screen.findByText(notice)).toBeTruthy()
+    legacyView.unmount()
+
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValueOnce(
+      records.map((record) => ({
+        ...record,
+        metric: 'first-saved' as const,
+        timestampAccuracy: 'exact' as const,
+      })),
+    )
+    render(<AnalyticsRoute />)
+    await screen.findByTestId('analytics-page-layout')
+
+    await waitFor(() => {
+      expect(screen.queryByText(notice)).toBeNull()
+    })
+  })
+
   it('analytics helper が trace と fallback label を正規化する', () => {
     const projectQuery = createAnalyticsQuery({ groupBy: 'project' })
     const projectCategoryQuery = createAnalyticsQuery({
@@ -813,6 +836,7 @@ describe('AnalyticsRoute', () => {
     const invalidTraceQuery = { groupBy: 'domain' }
     const latestQuery = createAnalyticsQuery({
       groupBy: 'subCategory',
+      metric: 'membership-added',
       mode: 'custom',
     })
     const chart = {
@@ -893,7 +917,13 @@ describe('AnalyticsRoute', () => {
           type: 'dynamic-tool',
         },
       ]),
-    ).toBe(latestQuery)
+    ).toEqual(
+      expect.objectContaining({
+        collectionType: 'domain',
+        groupBy: 'collectionCategory',
+        schemaVersion: 2,
+      }),
+    )
     expect(getLatestAnalyticsQuery(undefined)).toBeNull()
     expect(
       getLatestAssistantCharts([
@@ -1373,7 +1403,7 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
 
-    await user.selectOptions(screen.getByLabelText('Group by'), 'project')
+    await user.selectOptions(screen.getByLabelText('Group by'), 'collection')
 
     expect(await screen.findByText('Saved count by project')).toBeTruthy()
   })
@@ -1876,7 +1906,7 @@ describe('AnalyticsRoute', () => {
 
     await user.selectOptions(
       screen.getByLabelText('Group by'),
-      'parentCategory',
+      'collectionGroup',
     )
     await user.click(
       screen.getByRole('button', { name: 'emit-uncategorized-click' }),
@@ -1884,14 +1914,19 @@ describe('AnalyticsRoute', () => {
 
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
-    await user.selectOptions(screen.getByLabelText('Group by'), 'subCategory')
+    await user.selectOptions(
+      screen.getByLabelText('Group by'),
+      'collectionCategory',
+    )
+    await user.selectOptions(screen.getByLabelText('Collection type'), 'domain')
     await user.click(
       screen.getByRole('button', { name: 'emit-uncategorized-click' }),
     )
 
     expect(await screen.findByText('News Entry')).toBeTruthy()
 
-    await user.selectOptions(screen.getByLabelText('Group by'), 'project')
+    await user.selectOptions(screen.getByLabelText('Group by'), 'collection')
+    await user.selectOptions(screen.getByLabelText('Collection type'), 'custom')
     await user.click(screen.getByRole('button', { name: 'emit-inbox-click' }))
 
     expect(await screen.findByText('News Entry')).toBeTruthy()

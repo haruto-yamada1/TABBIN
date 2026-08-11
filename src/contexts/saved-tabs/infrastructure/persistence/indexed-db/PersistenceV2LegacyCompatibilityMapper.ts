@@ -378,6 +378,11 @@ const preserveUrlProvenance = (
 ): PersistenceV2Url => ({
   ...next,
   firstSavedAt: current.firstSavedAt,
+  firstSavedAtProvenance: current.firstSavedAtProvenance ?? 'legacy-fallback',
+  lastSavedAtProvenance:
+    current.lastSavedAt === next.lastSavedAt
+      ? (current.lastSavedAtProvenance ?? 'legacy-fallback')
+      : (next.lastSavedAtProvenance ?? 'legacy-fallback'),
   updatedAt:
     current.url === next.url &&
     current.title === next.title &&
@@ -434,6 +439,7 @@ const preserveMembershipProvenance = (
 ): PersistenceV2CollectionMembership => ({
   ...next,
   addedAt: current.addedAt,
+  addedAtProvenance: current.addedAtProvenance ?? 'legacy-fallback',
   updatedAt:
     current.categoryId === next.categoryId &&
     current.notes === next.notes &&

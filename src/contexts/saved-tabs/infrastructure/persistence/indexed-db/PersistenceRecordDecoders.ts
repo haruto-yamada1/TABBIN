@@ -23,6 +23,11 @@ const isJsonRecord = (value: unknown): value is UnknownRecord =>
 const isOptionalString = (value: unknown): value is string | undefined =>
   value === undefined || typeof value === 'string'
 
+const isOptionalTimestampProvenance = (
+  value: unknown,
+): value is 'exact' | 'legacy-fallback' | undefined =>
+  value === undefined || value === 'exact' || value === 'legacy-fallback'
+
 const isStringArray = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
@@ -48,8 +53,10 @@ export const isPersistenceV2Url = (value: unknown): value is PersistenceV2Url =>
   isJsonRecord(value) &&
   isOptionalString(value.favIconUrl) &&
   typeof value.firstSavedAt === 'number' &&
+  isOptionalTimestampProvenance(value.firstSavedAtProvenance) &&
   typeof value.id === 'string' &&
   typeof value.lastSavedAt === 'number' &&
+  isOptionalTimestampProvenance(value.lastSavedAtProvenance) &&
   typeof value.normalizedUrl === 'string' &&
   typeof value.title === 'string' &&
   typeof value.updatedAt === 'number' &&
@@ -72,6 +79,7 @@ export const isPersistenceV2Membership = (
 ): value is PersistenceV2CollectionMembership =>
   isJsonRecord(value) &&
   typeof value.addedAt === 'number' &&
+  isOptionalTimestampProvenance(value.addedAtProvenance) &&
   isOptionalString(value.categoryId) &&
   typeof value.collectionId === 'string' &&
   isOptionalString(value.notes) &&

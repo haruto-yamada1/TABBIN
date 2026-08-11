@@ -110,9 +110,19 @@ const GroupBySelector = ({
 }) => {
   const handleChange = useCallback(
     (value: string) => {
+      const groupBy = parseGroupBy(value)
       onApplyQuery({
         ...query,
-        groupBy: parseGroupBy(value),
+        groupBy,
+        ...(groupBy === 'collection' ||
+        groupBy === 'collectionCategory' ||
+        groupBy === 'collectionGroup' ||
+        groupBy === 'parentCategory' ||
+        groupBy === 'project' ||
+        groupBy === 'projectCategory' ||
+        groupBy === 'subCategory'
+          ? { metric: 'membership-added' }
+          : {}),
       })
     },
     [onApplyQuery, query],
@@ -137,6 +147,116 @@ const GroupBySelector = ({
               {option.label}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+const MetricSelector = ({
+  onApplyQuery,
+  query,
+  t,
+}: {
+  onApplyQuery: (query: AnalyticsQuery, viewName?: string) => void
+  query: AnalyticsQuery
+  t: (key: string, fallback?: string, values?: Record<string, string>) => string
+}) => {
+  const handleChange = useCallback(
+    (value: string) => {
+      if (
+        value !== 'first-saved' &&
+        value !== 'last-saved' &&
+        value !== 'membership-added'
+      ) {
+        return
+      }
+      onApplyQuery({ ...query, metric: value })
+    },
+    [onApplyQuery, query],
+  )
+
+  return (
+    <div className='grid gap-1.5'>
+      <Label className='text-sm' htmlFor='analytics-metric'>
+        {t('analytics.metricLabel')}
+      </Label>
+      <Select
+        onValueChange={handleChange}
+        value={query.metric ?? 'first-saved'}
+      >
+        <SelectTrigger
+          aria-label={t('analytics.metricLabel')}
+          className='rounded-xl bg-background'
+          id='analytics-metric'
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value='first-saved'>
+            {t('analytics.metric.firstSaved')}
+          </SelectItem>
+          <SelectItem value='last-saved'>
+            {t('analytics.metric.lastSaved')}
+          </SelectItem>
+          <SelectItem value='membership-added'>
+            {t('analytics.metric.membershipAdded')}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+const CollectionTypeSelector = ({
+  onApplyQuery,
+  query,
+  t,
+}: {
+  onApplyQuery: (query: AnalyticsQuery, viewName?: string) => void
+  query: AnalyticsQuery
+  t: (key: string, fallback?: string, values?: Record<string, string>) => string
+}) => {
+  const handleChange = useCallback(
+    (value: string) => {
+      if (value !== 'all' && value !== 'custom' && value !== 'domain') {
+        return
+      }
+      onApplyQuery({ ...query, collectionType: value })
+    },
+    [onApplyQuery, query],
+  )
+
+  if (query.metric !== 'membership-added') {
+    return null
+  }
+
+  return (
+    <div className='grid gap-1.5'>
+      <Label className='text-sm' htmlFor='analytics-collection-type'>
+        {t('analytics.collectionTypeLabel')}
+      </Label>
+      <Select
+        onValueChange={handleChange}
+        value={query.collectionType ?? 'all'}
+      >
+        <SelectTrigger
+          aria-label={t('analytics.collectionTypeLabel')}
+          className='rounded-xl bg-background'
+          id='analytics-collection-type'
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value='all'>
+            {t('analytics.collectionType.all')}
+          </SelectItem>
+          <SelectItem value='domain'>
+            {t('analytics.collectionType.domain')}
+          </SelectItem>
+          <SelectItem value='custom'>
+            {t('analytics.collectionType.custom')}
+          </SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -356,6 +476,12 @@ export const AnalyticsSidebar = ({
               />
               <GroupBySelector
                 analyticsGroupByOptions={analyticsGroupByOptions}
+                onApplyQuery={onApplyQuery}
+                query={query}
+                t={t}
+              />
+              <MetricSelector onApplyQuery={onApplyQuery} query={query} t={t} />
+              <CollectionTypeSelector
                 onApplyQuery={onApplyQuery}
                 query={query}
                 t={t}

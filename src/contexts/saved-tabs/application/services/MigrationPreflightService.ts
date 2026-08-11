@@ -55,6 +55,11 @@ const createEmptyDiagnostic = (
   issueCodes,
   preflightVersion: MIGRATION_PREFLIGHT_VERSION,
   sourceFingerprintVersion: MIGRATION_SOURCE_FINGERPRINT_VERSION,
+  timestampMigrationSummary: {
+    membershipAddedAt: { exactCount: 0, legacyFallbackCount: 0 },
+    urlFirstSavedAt: { exactCount: 0, legacyFallbackCount: 0 },
+    urlLastSavedAt: { exactCount: 0, legacyFallbackCount: 0 },
+  },
 })
 
 export class MigrationPreflightApprovalError extends Error {
@@ -155,7 +160,10 @@ export class MigrationPreflightService implements MigrationPreflightServicePort 
     const issueCodes = [...analysis.issueCodes, ...capacityIssueCodes]
     const blockingIssueCodes: MigrationPreflightIssueCode[] = []
     for (const issue of analysis.issues) {
-      if (issue.code !== 'MIGRATION_SOURCE_MISSING_KEY') {
+      if (
+        issue.code !== 'MIGRATION_SOURCE_MISSING_KEY' &&
+        issue.code !== 'MISSING_TIMESTAMP_PROVENANCE'
+      ) {
         blockingIssueCodes.push(issue.code)
       }
     }
@@ -167,6 +175,7 @@ export class MigrationPreflightService implements MigrationPreflightServicePort 
       issueCodes,
       preflightVersion: MIGRATION_PREFLIGHT_VERSION,
       sourceFingerprintVersion: MIGRATION_SOURCE_FINGERPRINT_VERSION,
+      timestampMigrationSummary: analysis.timestampMigrationSummary,
     }
     const checkedAt = this.options.now()
 

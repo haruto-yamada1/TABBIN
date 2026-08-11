@@ -15,6 +15,7 @@ import {
 import type {
   BackgroundSavedTabInput,
   BackgroundSavedTabsDataPlane,
+  SavedTabsAnalyticsRecord,
   SavedTabsInsightRecord,
 } from './backgroundSavedTabsDataPlaneTypes'
 
@@ -170,6 +171,54 @@ const buildSavedTabsInsightRecords = ({
       }
     })
     .sort((left, right) => right.savedAt - left.savedAt)
+
+const buildSavedTabsAnalyticsRecords = (
+  state: SavedTabsCompatibilityState,
+): SavedTabsAnalyticsRecord[] =>
+  buildSavedTabsInsightRecords(state)
+    .flatMap((record): SavedTabsAnalyticsRecord[] => [
+      {
+        ...record,
+        eventId: `${record.id}:first-saved`,
+        metric: 'first-saved',
+        timestampAccuracy: 'legacy-fallback',
+      },
+      {
+        ...record,
+        eventId: `${record.id}:last-saved`,
+        metric: 'last-saved',
+        timestampAccuracy: 'legacy-fallback',
+      },
+      ...record.savedInTabGroups.map((collectionName, index) => ({
+        ...record,
+        collectionType: 'domain' as const,
+        eventId: `legacy:domain:${collectionName}:${record.id}:${index}`,
+        metric: 'membership-added' as const,
+        parentCategories: record.parentCategories.slice(index, index + 1),
+        projectCategories: [],
+        savedInProjects: [],
+        savedInTabGroups: [collectionName],
+        subCategories: record.subCategories.slice(index, index + 1),
+        timestampAccuracy: 'legacy-fallback' as const,
+      })),
+      ...record.savedInProjects.map((collectionName, index) => ({
+        ...record,
+        collectionType: 'custom' as const,
+        eventId: `legacy:custom:${collectionName}:${record.id}:${index}`,
+        metric: 'membership-added' as const,
+        parentCategories: [],
+        projectCategories: record.projectCategories.slice(index, index + 1),
+        savedInProjects: [collectionName],
+        savedInTabGroups: [],
+        subCategories: [],
+        timestampAccuracy: 'legacy-fallback' as const,
+      })),
+    ])
+    .toSorted(
+      (left, right) =>
+        left.savedAt - right.savedAt ||
+        left.eventId.localeCompare(right.eventId),
+    )
 
 const removeSelectedUrls = async (
   storage: SavedTabsCompatibilityStorage,
@@ -528,6 +577,10 @@ export const createBackgroundSavedTabsDataPlane = ({
     })
 
   return {
+    readAnalyticsRecords: async () =>
+      routeRead(async (storage) =>
+        buildSavedTabsAnalyticsRecords(await readState(storage)),
+      ),
     readInsightRecords: async () =>
       routeRead(async (storage) =>
         buildSavedTabsInsightRecords(await readState(storage)),

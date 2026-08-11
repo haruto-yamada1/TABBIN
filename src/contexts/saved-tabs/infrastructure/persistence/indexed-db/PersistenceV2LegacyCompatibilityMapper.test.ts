@@ -66,6 +66,7 @@ const snapshot: PersistenceV2Snapshot = {
   memberships: [
     {
       addedAt: 10,
+      addedAtProvenance: 'exact',
       categoryId: 'domain-example:category:0',
       collectionId: 'domain-example',
       sortOrder: 0,
@@ -74,6 +75,7 @@ const snapshot: PersistenceV2Snapshot = {
     },
     {
       addedAt: 30,
+      addedAtProvenance: 'exact',
       categoryId: 'project-research:category:0',
       collectionId: 'project-research',
       notes: 'important',
@@ -85,8 +87,10 @@ const snapshot: PersistenceV2Snapshot = {
   urls: [
     {
       firstSavedAt: 10,
+      firstSavedAtProvenance: 'exact',
       id: 'url-1',
       lastSavedAt: 30,
+      lastSavedAtProvenance: 'exact',
       normalizedUrl: 'https://example.com/docs',
       title: 'Docs',
       updatedAt: 40,
@@ -154,8 +158,15 @@ describe('PersistenceV2LegacyCompatibilityMapper', () => {
     expect(next.memberships).toEqual([
       expect.objectContaining({
         addedAt: 30,
+        addedAtProvenance: 'exact',
         collectionId: 'project-research',
         urlId: 'url-1',
+      }),
+    ])
+    expect(next.urls).toEqual([
+      expect.objectContaining({
+        firstSavedAtProvenance: 'exact',
+        lastSavedAtProvenance: 'exact',
       }),
     ])
   })

@@ -12,6 +12,8 @@ import type {
   PersistenceV2InvariantCode,
   PersistenceV2Snapshot,
   PersistenceV2Url,
+  PersistenceTimestampMigrationSummary,
+  PersistenceTimestampProvenance,
 } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 import { createUrlIdentityKey } from '@/contexts/saved-tabs/domain/services/UrlIdentityPolicy'
@@ -52,6 +54,7 @@ export type MigrationPreflightAnalysis = {
   readonly snapshot: PersistenceV2Snapshot
   readonly target: PersistenceV2MigrationTarget
   readonly targetSerializedBytes: number
+  readonly timestampMigrationSummary: PersistenceTimestampMigrationSummary
 }
 
 export type PersistenceV2MigrationTarget = {
@@ -173,6 +176,7 @@ const addUrl = (
     readonly favIconUrl?: string
     readonly id: string
     readonly savedAt?: number
+    readonly source: 'canonical' | 'nested'
     readonly title: string
     readonly url: string
   },
@@ -215,8 +219,13 @@ const addUrl = (
   const url: PersistenceV2Url = {
     ...(input.favIconUrl ? { favIconUrl: input.favIconUrl } : {}),
     firstSavedAt: timestamp,
+    firstSavedAtProvenance: 'legacy-fallback',
     id: input.id,
     lastSavedAt: timestamp,
+    lastSavedAtProvenance:
+      input.source === 'canonical' && input.savedAt !== undefined
+        ? 'exact'
+        : 'legacy-fallback',
     normalizedUrl: identity,
     title: input.title,
     updatedAt: timestamp,
@@ -250,6 +259,7 @@ const parseCanonicalUrls = (
         : {}),
       id: value.id,
       savedAt: value.savedAt,
+      source: 'canonical',
       title: value.title,
       url: value.url,
     })
@@ -433,11 +443,13 @@ const addMembership = (
     readonly index: number
     readonly notes?: string
     readonly timestamp: number
+    readonly timestampProvenance: PersistenceTimestampProvenance
     readonly urlId: string
   },
 ): void => {
   const membership: PersistenceV2CollectionMembership = {
     addedAt: input.timestamp,
+    addedAtProvenance: input.timestampProvenance,
     ...(input.categoryId ? { categoryId: input.categoryId } : {}),
     collectionId: input.collectionId,
     ...(input.notes !== undefined ? { notes: input.notes } : {}),
@@ -519,6 +531,7 @@ const mergeMembershipMetadata = (
     readonly categoryId?: string
     readonly collectionId: string
     readonly notes?: string
+    readonly timestamp?: number
     readonly urlId: string
   },
 ): boolean => {
@@ -542,6 +555,13 @@ const mergeMembershipMetadata = (
   const notes = membership.notes ?? input.notes
   state.memberships.splice(index, 1, {
     ...membership,
+    ...(input.timestamp === undefined
+      ? {}
+      : {
+          addedAt: input.timestamp,
+          addedAtProvenance: 'exact' as const,
+          updatedAt: input.timestamp,
+        }),
     ...(categoryId ? { categoryId } : {}),
     ...(notes !== undefined ? { notes } : {}),
   })
@@ -556,8 +576,7 @@ const matchesCanonicalUrl = (
     (url) =>
       url.id === decoded.id &&
       url.url === decoded.url &&
-      url.title === decoded.title &&
-      (decoded.savedAt === undefined || url.firstSavedAt === decoded.savedAt),
+      url.title === decoded.title,
   )
 
 const checkNestedCanonicalUrl = (
@@ -781,6 +800,7 @@ const appendSavedTabMemberships = (
       collectionId: input.collectionId,
       index,
       timestamp: input.timestamp,
+      timestampProvenance: 'legacy-fallback',
       urlId,
     })
   })
@@ -819,62 +839,108 @@ const resolveNestedSavedTabCategoryId = (
   )
 }
 
+const appendExistingNestedSavedTabUrl = (
+  decoded: DecodedNestedUrl,
+  input: {
+    readonly categoryId?: string
+    readonly collectionId: string
+    readonly idSet: ReadonlySet<string>
+    readonly index: number
+  },
+  state: AnalyzerState,
+): void => {
+  checkNestedCanonicalUrl(decoded, decoded.id, state)
+  if (
+    mergeMembershipMetadata(state, {
+      ...(input.categoryId ? { categoryId: input.categoryId } : {}),
+      collectionId: input.collectionId,
+      ...(decoded.savedAt === undefined ? {} : { timestamp: decoded.savedAt }),
+      urlId: decoded.id,
+    }) ||
+    input.idSet.has(decoded.id)
+  ) {
+    return
+  }
+  const canonical = state.urlsById.get(decoded.id)?.[0]
+  if (!canonical) {
+    return
+  }
+  addMembership(state, {
+    ...(input.categoryId ? { categoryId: input.categoryId } : {}),
+    collectionId: input.collectionId,
+    index: input.index,
+    timestamp: decoded.savedAt ?? canonical.firstSavedAt,
+    timestampProvenance:
+      decoded.savedAt === undefined ? 'legacy-fallback' : 'exact',
+    urlId: decoded.id,
+  })
+}
+
+const appendNestedSavedTabUrl = (
+  item: unknown,
+  index: number,
+  input: {
+    readonly categoryIds: ReadonlyMap<string, string>
+    readonly idSet: ReadonlySet<string>
+    readonly savedTab: DecodedSavedTab
+  },
+  state: AnalyzerState,
+): void => {
+  const decoded = decodeNestedUrl(
+    item,
+    `legacy:domain:${input.savedTab.collectionId}:${index}`,
+    state,
+  )
+  if (!decoded) {
+    return
+  }
+  const categoryId = resolveNestedSavedTabCategoryId(state, {
+    categoryIds: input.categoryIds,
+    decoded,
+    savedTab: input.savedTab,
+  })
+  const membershipIndex = (input.savedTab.urlIds?.length ?? 0) + index
+  if (state.urlsById.has(decoded.id)) {
+    appendExistingNestedSavedTabUrl(
+      decoded,
+      {
+        ...(categoryId ? { categoryId } : {}),
+        collectionId: input.savedTab.collectionId,
+        idSet: input.idSet,
+        index: membershipIndex,
+      },
+      state,
+    )
+    return
+  }
+  const url = addUrl(state, { ...decoded, source: 'nested' })
+  if (!url || input.idSet.has(url.id)) {
+    return
+  }
+  addMembership(state, {
+    ...(categoryId ? { categoryId } : {}),
+    collectionId: input.savedTab.collectionId,
+    index: membershipIndex,
+    timestamp: decoded.savedAt ?? url.firstSavedAt,
+    timestampProvenance:
+      decoded.savedAt === undefined ? 'legacy-fallback' : 'exact',
+    urlId: url.id,
+  })
+}
+
 const appendNestedSavedTabUrls = (
   input: DecodedSavedTab,
   categoryIds: ReadonlyMap<string, string>,
   state: AnalyzerState,
 ): void => {
-  const ids = input.urlIds ?? []
-  const idSet = new Set(ids)
+  const idSet = new Set(input.urlIds)
   ;(input.nestedUrls ?? []).forEach((item, index) => {
-    const decoded = decodeNestedUrl(
+    appendNestedSavedTabUrl(
       item,
-      `legacy:domain:${input.collectionId}:${index}`,
+      index,
+      { categoryIds, idSet, savedTab: input },
       state,
     )
-    if (!decoded) {
-      return
-    }
-    const categoryId = resolveNestedSavedTabCategoryId(state, {
-      categoryIds,
-      decoded,
-      savedTab: input,
-    })
-    if (state.urlsById.has(decoded.id)) {
-      checkNestedCanonicalUrl(decoded, decoded.id, state)
-      if (
-        mergeMembershipMetadata(state, {
-          ...(categoryId ? { categoryId } : {}),
-          collectionId: input.collectionId,
-          urlId: decoded.id,
-        })
-      ) {
-        return
-      }
-      if (!idSet.has(decoded.id)) {
-        const canonical = state.urlsById.get(decoded.id)?.[0]
-        if (canonical) {
-          addMembership(state, {
-            ...(categoryId ? { categoryId } : {}),
-            collectionId: input.collectionId,
-            index: ids.length + index,
-            timestamp: canonical.firstSavedAt,
-            urlId: decoded.id,
-          })
-        }
-      }
-      return
-    }
-    const url = addUrl(state, decoded)
-    if (url && !idSet.has(url.id)) {
-      addMembership(state, {
-        ...(categoryId ? { categoryId } : {}),
-        collectionId: input.collectionId,
-        index: ids.length + index,
-        timestamp: url.firstSavedAt,
-        urlId: url.id,
-      })
-    }
   })
 }
 
@@ -1223,6 +1289,7 @@ const appendCustomProjectMemberships = (
       index,
       ...(typeof metadata.notes === 'string' ? { notes: metadata.notes } : {}),
       timestamp: input.createdAt,
+      timestampProvenance: 'legacy-fallback',
       urlId,
     })
   })
@@ -1306,17 +1373,20 @@ const appendNestedCustomProjectUrl = (
     mergeMembershipMetadata(state, {
       ...metadata,
       collectionId: input.project.collectionId,
+      ...(decoded.savedAt === undefined ? {} : { timestamp: decoded.savedAt }),
       urlId: pairedId,
     })
     return
   }
-  const url = addUrl(state, decoded)
+  const url = addUrl(state, { ...decoded, source: 'nested' })
   if (url && !pairedId) {
     addMembership(state, {
       ...metadata,
       collectionId: input.project.collectionId,
       index: ids.length + input.index,
-      timestamp: url.firstSavedAt,
+      timestamp: decoded.savedAt ?? url.firstSavedAt,
+      timestampProvenance:
+        decoded.savedAt === undefined ? 'legacy-fallback' : 'exact',
       urlId: url.id,
     })
   }
@@ -1665,6 +1735,23 @@ export const mapLegacyStorageToPersistenceV2 = (
     settings: 0,
     urls: snapshot.urls.length,
   }
+  const countProvenance = (
+    values: readonly (PersistenceTimestampProvenance | undefined)[],
+  ) => ({
+    exactCount: values.filter((value) => value === 'exact').length,
+    legacyFallbackCount: values.filter((value) => value !== 'exact').length,
+  })
+  const timestampMigrationSummary: PersistenceTimestampMigrationSummary = {
+    membershipAddedAt: countProvenance(
+      snapshot.memberships.map(({ addedAtProvenance }) => addedAtProvenance),
+    ),
+    urlFirstSavedAt: countProvenance(
+      snapshot.urls.map(({ firstSavedAtProvenance }) => firstSavedAtProvenance),
+    ),
+    urlLastSavedAt: countProvenance(
+      snapshot.urls.map(({ lastSavedAtProvenance }) => lastSavedAtProvenance),
+    ),
+  }
 
   return {
     approximateSourceBytes,
@@ -1676,6 +1763,7 @@ export const mapLegacyStorageToPersistenceV2 = (
     snapshot,
     target,
     targetSerializedBytes,
+    timestampMigrationSummary,
   }
 }
 
