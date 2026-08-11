@@ -108,6 +108,8 @@ type AnalyticsMessages = {
   chartDescriptionAggregated: string
   chartDescriptionCompareMode: string
   chartMonthlySavedTrend: string
+  chartSavedCountByCollection: string
+  chartSavedCountByCollectionCategory: string
   chartSavedCountByDomain: string
   chartSavedCountByParentCategory: string
   chartSavedCountByProject: string
@@ -130,6 +132,8 @@ const DEFAULT_ANALYTICS_MESSAGES: AnalyticsMessages = {
   chartDescriptionAggregated: '{{count}} saved records aggregated',
   chartDescriptionCompareMode: '{{count}} saved records compared by mode',
   chartMonthlySavedTrend: 'Monthly saved trend',
+  chartSavedCountByCollection: 'Saved count by collection',
+  chartSavedCountByCollectionCategory: 'Saved count by collection category',
   chartSavedCountByDomain: 'Saved count by domain',
   chartSavedCountByParentCategory: 'Saved count by parent category',
   chartSavedCountByProject: 'Saved count by project',
@@ -225,6 +229,8 @@ const COLLECTION_SCOPED_GROUPS = new Set<LegacyAnalyticsGroupBy>([
   ...LEGACY_CUSTOM_COLLECTION_GROUPS,
   ...LEGACY_DOMAIN_COLLECTION_GROUPS,
 ])
+const isCollectionScopedGroupBy = (groupBy: LegacyAnalyticsGroupBy): boolean =>
+  COLLECTION_SCOPED_GROUPS.has(groupBy)
 const URL_METRIC_GROUPS = new Set<AnalyticsGroupBy>([
   'domain',
   'timeRecent',
@@ -266,7 +272,7 @@ const normalizeAnalyticsQuery = (
 ): AnalyticsQuery => {
   const collectionType = getNormalizedCollectionType(query)
   const collectionScoped =
-    COLLECTION_SCOPED_GROUPS.has(query.groupBy) ||
+    isCollectionScopedGroupBy(query.groupBy) ||
     query.compareBy === 'mode' ||
     collectionType !== 'all'
   let metric = query.metric
@@ -670,18 +676,33 @@ const getLabelsForGroup = (
     case 'domain': {
       return [record.domain]
     }
-    case 'collection':
-    case 'project': {
+    case 'collection': {
       return withUncategorizedLabel(
         getCollectionLabelsForType(record, collectionType),
         uncategorizedLabel,
       )
     }
-    case 'collectionCategory':
-    case 'projectCategory':
-    case 'subCategory': {
+    case 'project': {
+      return withUncategorizedLabel(
+        getCollectionLabelsForType(record, 'custom'),
+        uncategorizedLabel,
+      )
+    }
+    case 'collectionCategory': {
       return withUncategorizedLabel(
         getCollectionCategoryLabelsForType(record, collectionType),
+        uncategorizedLabel,
+      )
+    }
+    case 'projectCategory': {
+      return withUncategorizedLabel(
+        getCollectionCategoryLabelsForType(record, 'custom'),
+        uncategorizedLabel,
+      )
+    }
+    case 'subCategory': {
+      return withUncategorizedLabel(
+        getCollectionCategoryLabelsForType(record, 'domain'),
         uncategorizedLabel,
       )
     }
@@ -700,6 +721,26 @@ const getLabelsForGroup = (
     }
   }
 }
+
+const getCollectionTitle = (
+  collectionType: AnalyticsCollectionType,
+  messages: AnalyticsMessages,
+): string =>
+  ({
+    all: messages.chartSavedCountByCollection,
+    custom: messages.chartSavedCountByProject,
+    domain: messages.chartSavedCountByDomain,
+  })[collectionType]
+
+const getCollectionCategoryTitle = (
+  collectionType: AnalyticsCollectionType,
+  messages: AnalyticsMessages,
+): string =>
+  ({
+    all: messages.chartSavedCountByCollectionCategory,
+    custom: messages.chartSavedCountByProjectCategory,
+    domain: messages.chartSavedCountBySubCategory,
+  })[collectionType]
 
 const getSingleSeriesTitle = (
   groupBy: AnalyticsGroupBy,
@@ -724,14 +765,10 @@ const getSingleSeriesTitle = (
       return messages.chartSavedCountBySubCategory
     }
     case 'collection': {
-      return collectionType === 'domain'
-        ? messages.chartSavedCountByDomain
-        : messages.chartSavedCountByProject
+      return getCollectionTitle(collectionType, messages)
     }
     case 'collectionCategory': {
-      return collectionType === 'domain'
-        ? messages.chartSavedCountBySubCategory
-        : messages.chartSavedCountByProjectCategory
+      return getCollectionCategoryTitle(collectionType, messages)
     }
     case 'timeRecent':
     case 'timeTop': {
@@ -1241,6 +1278,7 @@ export {
   getLabelsForGroup,
   getNormalizedCount,
   getSingleSeriesTitle,
+  isCollectionScopedGroupBy,
   normalizeAnalyticsQuery,
   parseAnalyticsQuery,
 }

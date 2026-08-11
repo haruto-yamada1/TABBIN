@@ -122,9 +122,12 @@ const createIndexedDbAnalyticsViewsDataPlane = ({
     const currentById = new Map(
       snapshot.analyticsViews.map((record) => [record.id, record]),
     )
-    const deleted = snapshot.analyticsViews
-      .filter(({ id }) => !nextIds.has(id))
-      .map(({ id }) => id)
+    const deleted = snapshot.analyticsViews.reduce<string[]>((ids, { id }) => {
+      if (!nextIds.has(id)) {
+        ids.push(id)
+      }
+      return ids
+    }, [])
     const put = next.filter((record) => {
       const current = currentById.get(record.id)
       return (

@@ -505,6 +505,38 @@ describe('analytics', () => {
     ])
   })
 
+  it('uses collection-wide titles when both collection types are included', () => {
+    const collectionResult = generateAnalyticsResult(
+      records,
+      {
+        ...getDefaultAnalyticsQuery(),
+        collectionType: 'all',
+        groupBy: 'collection',
+        metric: 'membership-added',
+        timeRange: '30d',
+      },
+      { now: NOW },
+    )
+    const categoryResult = generateAnalyticsResult(
+      records,
+      {
+        ...getDefaultAnalyticsQuery(),
+        collectionType: 'all',
+        groupBy: 'collectionCategory',
+        metric: 'membership-added',
+        timeRange: '30d',
+      },
+      { now: NOW },
+    )
+
+    expect(collectionResult.chartSpecs[0]?.title).toBe(
+      'Saved count by collection',
+    )
+    expect(categoryResult.chartSpecs[0]?.title).toBe(
+      'Saved count by collection category',
+    )
+  })
+
   it('custom mode, label/value sorts, and uncategorized category labels are supported', () => {
     const customResult = generateAnalyticsResult(
       records,

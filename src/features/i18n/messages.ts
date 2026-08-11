@@ -180,6 +180,9 @@ const messages = {
     'analytics.chart.descriptionCompareMode':
       '{{count}} saved records compared by mode',
     'analytics.chart.monthlySavedTrend': 'Monthly saved trend',
+    'analytics.chart.savedCountByCollection': 'Saved count by collection',
+    'analytics.chart.savedCountByCollectionCategory':
+      'Saved count by collection category',
     'analytics.chart.savedCountByDomain': 'Saved count by domain',
     'analytics.chart.savedCountByParentCategory':
       'Saved count by parent category',
@@ -234,7 +237,7 @@ const messages = {
     'analytics.savedViewsTitle': 'Saved views',
     'analytics.summary': 'Created {{title}} from {{count}} saved records.',
     'analytics.timestampQualityNotice':
-      'Some historical dates come from legacy fallback data. Counts remain available, but first-save or collection-addition dates may be approximate.',
+      'Some historical dates come from legacy fallback data. Counts remain available, but first-save, last-save activity, or collection-addition dates may be approximate.',
     'analytics.uncategorized': 'Uncategorized',
     'analytics.viewName': 'View name',
     'analytics.viewNameDuplicate': 'A view with this name already exists',
@@ -1089,6 +1092,9 @@ const messages = {
     'analytics.chart.descriptionCompareMode':
       '{{count}} 件の保存データをモード別に比較',
     'analytics.chart.monthlySavedTrend': '月別の保存推移',
+    'analytics.chart.savedCountByCollection': 'コレクションごとの保存数',
+    'analytics.chart.savedCountByCollectionCategory':
+      'コレクションカテゴリごとの保存数',
     'analytics.chart.savedCountByDomain': 'ドメインごとの保存数',
     'analytics.chart.savedCountByParentCategory': '親カテゴリごとの保存数',
     'analytics.chart.savedCountByProject': 'プロジェクトごとの保存数',
@@ -1125,8 +1131,8 @@ const messages = {
     'analytics.groupByLabel': '集計軸',
     'analytics.limitLabel': '上位件数',
     'analytics.collectionType.all': 'すべてのコレクション',
-    'analytics.collectionType.custom': 'Custom コレクション',
-    'analytics.collectionType.domain': 'Domain コレクション',
+    'analytics.collectionType.custom': 'カスタムコレクション',
+    'analytics.collectionType.domain': 'ドメインコレクション',
     'analytics.collectionTypeLabel': 'コレクション種別',
     'analytics.metric.firstSaved': 'URLの初回保存',
     'analytics.metric.lastSaved': '最終保存アクティビティ',
@@ -1143,7 +1149,7 @@ const messages = {
     'analytics.summary':
       '{{count}} 件の保存データから「{{title}}」を作成しました。',
     'analytics.timestampQualityNotice':
-      '一部の履歴日時は旧データからの代替値です。件数は確認できますが、初回保存日やコレクション追加日は概算の場合があります。',
+      '一部の履歴日時は旧データからの代替値です。件数は確認できますが、初回保存日、最終保存日時、コレクション追加日は概算の場合があります。',
     'analytics.uncategorized': '未分類',
     'analytics.viewName': 'ビュー名',
     'analytics.viewNameDuplicate': 'このビュー名は既に存在しています',

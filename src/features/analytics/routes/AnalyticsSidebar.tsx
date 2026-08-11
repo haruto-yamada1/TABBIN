@@ -20,10 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { isCollectionScopedGroupBy } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import {
   parseChartType,
+  parseCollectionType,
   parseGroupBy,
+  parseMetric,
 } from '@/features/analytics/routes/analyticsRoute.helpers'
 import type { ViewNameValidationError } from '@/features/analytics/routes/analyticsRoute.helpers'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -114,13 +117,7 @@ const GroupBySelector = ({
       onApplyQuery({
         ...query,
         groupBy,
-        ...(groupBy === 'collection' ||
-        groupBy === 'collectionCategory' ||
-        groupBy === 'collectionGroup' ||
-        groupBy === 'parentCategory' ||
-        groupBy === 'project' ||
-        groupBy === 'projectCategory' ||
-        groupBy === 'subCategory'
+        ...(isCollectionScopedGroupBy(groupBy)
           ? { metric: 'membership-added' }
           : {}),
       })
@@ -164,14 +161,7 @@ const MetricSelector = ({
 }) => {
   const handleChange = useCallback(
     (value: string) => {
-      if (
-        value !== 'first-saved' &&
-        value !== 'last-saved' &&
-        value !== 'membership-added'
-      ) {
-        return
-      }
-      onApplyQuery({ ...query, metric: value })
+      onApplyQuery({ ...query, metric: parseMetric(value) })
     },
     [onApplyQuery, query],
   )
@@ -219,10 +209,7 @@ const CollectionTypeSelector = ({
 }) => {
   const handleChange = useCallback(
     (value: string) => {
-      if (value !== 'all' && value !== 'custom' && value !== 'domain') {
-        return
-      }
-      onApplyQuery({ ...query, collectionType: value })
+      onApplyQuery({ ...query, collectionType: parseCollectionType(value) })
     },
     [onApplyQuery, query],
   )

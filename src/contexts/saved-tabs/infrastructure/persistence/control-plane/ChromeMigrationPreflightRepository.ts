@@ -105,11 +105,25 @@ const decodeTimestampMigrationSummary = (
   if (!isRecord(value)) {
     throw new MigrationPreflightRecordError()
   }
-  return {
+  const summary = {
     membershipAddedAt: decodeTimestampQualityCount(value.membershipAddedAt),
     urlFirstSavedAt: decodeTimestampQualityCount(value.urlFirstSavedAt),
     urlLastSavedAt: decodeTimestampQualityCount(value.urlLastSavedAt),
   }
+  const hasExpectedTotal = (
+    count: PersistenceTimestampQualityCount,
+    expectedTotal: number,
+  ): boolean =>
+    count.exactCount <= expectedTotal &&
+    count.legacyFallbackCount === expectedTotal - count.exactCount
+  if (
+    !hasExpectedTotal(summary.urlFirstSavedAt, entityCounts.urls ?? 0) ||
+    !hasExpectedTotal(summary.urlLastSavedAt, entityCounts.urls ?? 0) ||
+    !hasExpectedTotal(summary.membershipAddedAt, entityCounts.memberships ?? 0)
+  ) {
+    throw new MigrationPreflightRecordError()
+  }
+  return summary
 }
 
 const decodeDiagnostic = (value: unknown): MigrationPreflightDiagnostic => {

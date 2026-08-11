@@ -8,8 +8,7 @@ import type {
 import {
   filterAnalyticsRecords,
   generateAnalyticsResult,
-  getCollectionCategoryLabelsForType,
-  getCollectionLabelsForType,
+  getLabelsForGroup,
   normalizeAnalyticsQuery,
   parseAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
@@ -51,6 +50,34 @@ const parseChartType = (value: string): AnalyticsQuery['chartType'] => {
     }
     default: {
       return 'bar'
+    }
+  }
+}
+
+const parseMetric = (value: string): NonNullable<AnalyticsQuery['metric']> => {
+  switch (value) {
+    case 'first-saved':
+    case 'last-saved':
+    case 'membership-added': {
+      return value
+    }
+    default: {
+      return 'first-saved'
+    }
+  }
+}
+
+const parseCollectionType = (
+  value: string,
+): NonNullable<AnalyticsQuery['collectionType']> => {
+  switch (value) {
+    case 'all':
+    case 'custom':
+    case 'domain': {
+      return value
+    }
+    default: {
+      return 'all'
     }
   }
 }
@@ -354,66 +381,30 @@ const getAnalyticsChartDatumLabels = (
     return items
   }, []) ?? []
 
-const withUncategorizedLabel = (
-  labels: string[],
-  uncategorizedLabel: string,
-): string[] => (labels.length > 0 ? labels : [uncategorizedLabel])
-
 const getDrilldownLabelsForRecord = (
   record: AiSavedUrlRecord,
   query: AnalyticsQuery,
   uncategorizedLabel: string,
   chartMessages: AnalyticsChartMessages,
 ): string[] => {
-  // eslint-disable-next-line typescript/switch-exhaustiveness-check
-  switch (query.groupBy) {
-    case 'timeRecent':
-    case 'timeTop': {
-      return getAnalyticsChartDatumLabels(
-        generateAnalyticsResult(
-          [record],
-          {
-            ...query,
-            compareBy: 'none',
-          },
-          { messages: chartMessages },
-        ).chartSpecs[0]?.data,
-      )
-    }
-    case 'parentCategory': {
-      return withUncategorizedLabel(record.parentCategories, uncategorizedLabel)
-    }
-    case 'collectionGroup': {
-      return withUncategorizedLabel(record.parentCategories, uncategorizedLabel)
-    }
-    case 'subCategory': {
-      return withUncategorizedLabel(record.subCategories, uncategorizedLabel)
-    }
-    case 'project': {
-      return withUncategorizedLabel(record.savedInProjects, uncategorizedLabel)
-    }
-    case 'projectCategory': {
-      return withUncategorizedLabel(
-        record.projectCategories,
-        uncategorizedLabel,
-      )
-    }
-    case 'collection': {
-      return withUncategorizedLabel(
-        getCollectionLabelsForType(record, query.collectionType),
-        uncategorizedLabel,
-      )
-    }
-    case 'collectionCategory': {
-      return withUncategorizedLabel(
-        getCollectionCategoryLabelsForType(record, query.collectionType),
-        uncategorizedLabel,
-      )
-    }
-    default: {
-      return [record.domain]
-    }
+  if (query.groupBy === 'timeRecent' || query.groupBy === 'timeTop') {
+    return getAnalyticsChartDatumLabels(
+      generateAnalyticsResult(
+        [record],
+        {
+          ...query,
+          compareBy: 'none',
+        },
+        { messages: chartMessages },
+      ).chartSpecs[0]?.data,
+    )
   }
+  return getLabelsForGroup(
+    record,
+    query.groupBy,
+    uncategorizedLabel,
+    query.collectionType,
+  )
 }
 
 const matchesDrilldownMode = ({
@@ -566,7 +557,9 @@ export {
   noop,
   normalizeAnalyticsRouteQuery,
   parseChartType,
+  parseCollectionType,
   parseGroupBy,
+  parseMetric,
   rebuildAnalyticsDrilldownSelection,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,

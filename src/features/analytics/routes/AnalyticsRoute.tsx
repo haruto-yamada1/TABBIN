@@ -18,7 +18,10 @@ import {
   generateAnalyticsResult,
   getDefaultAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
-import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+import type {
+  AnalyticsHistoricalDataQuality,
+  AnalyticsQuery,
+} from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
 import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
@@ -96,7 +99,7 @@ const CanvasPane = ({
   isDeleteActionDisabled: boolean
   isUsingAiCharts: boolean
   language: string
-  historicalDataQuality: 'exact' | 'partial'
+  historicalDataQuality: AnalyticsHistoricalDataQuality
   summary: string
   t: (key: string) => string
 }) => (
@@ -153,6 +156,10 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
       chartDescriptionAggregated: t('analytics.chart.descriptionAggregated'),
       chartDescriptionCompareMode: t('analytics.chart.descriptionCompareMode'),
       chartMonthlySavedTrend: t('analytics.chart.monthlySavedTrend'),
+      chartSavedCountByCollection: t('analytics.chart.savedCountByCollection'),
+      chartSavedCountByCollectionCategory: t(
+        'analytics.chart.savedCountByCollectionCategory',
+      ),
       chartSavedCountByDomain: t('analytics.chart.savedCountByDomain'),
       chartSavedCountByParentCategory: t(
         'analytics.chart.savedCountByParentCategory',

@@ -94,6 +94,36 @@ describe('ChromeMigrationPreflightRepository', () => {
       ...healthyRecord,
       diagnostic: { ...healthyRecord.diagnostic, entityCounts: { urls: -1 } },
     },
+    {
+      ...healthyRecord,
+      diagnostic: {
+        ...healthyRecord.diagnostic,
+        timestampMigrationSummary: {
+          ...healthyRecord.diagnostic.timestampMigrationSummary,
+          urlFirstSavedAt: { exactCount: 0, legacyFallbackCount: 1 },
+        },
+      },
+    },
+    {
+      ...healthyRecord,
+      diagnostic: {
+        ...healthyRecord.diagnostic,
+        timestampMigrationSummary: {
+          ...healthyRecord.diagnostic.timestampMigrationSummary,
+          urlLastSavedAt: { exactCount: 2, legacyFallbackCount: 1 },
+        },
+      },
+    },
+    {
+      ...healthyRecord,
+      diagnostic: {
+        ...healthyRecord.diagnostic,
+        timestampMigrationSummary: {
+          ...healthyRecord.diagnostic.timestampMigrationSummary,
+          membershipAddedAt: { exactCount: 1, legacyFallbackCount: 0 },
+        },
+      },
+    },
   ])('fails closed for malformed stored state %#', async (value) => {
     const repository = new ChromeMigrationPreflightRepository({
       get: vi.fn(async () => ({ [MIGRATION_PREFLIGHT_STORAGE_KEY]: value })),
