@@ -4,6 +4,7 @@ import {
   getExtensionUrl,
   seedStorage,
   test,
+  waitForPersistenceV2Ready,
 } from './helpers/extension'
 
 type RuntimeLike = {
@@ -86,6 +87,7 @@ test.describe('extension ai-chat', () => {
     await seedStorage(serviceWorker, createBaseSeed())
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/ai-chat'))
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(
       page.getByRole('combobox', { name: 'Select a model' }),
@@ -101,6 +103,7 @@ test.describe('extension ai-chat', () => {
     await installOllamaListFailureMock(page)
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/ai-chat'))
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByLabel('Ask AI')).toBeDisabled()
 

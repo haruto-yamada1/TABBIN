@@ -7,6 +7,7 @@ type PreviewData = {
   timestamp: string
   categoriesCount: number
   domainsCount: number
+  formatKind: 'current-v2' | 'legacy'
   projectsCount: number
   hasAiChat: boolean
   hasAnalytics: boolean
@@ -49,7 +50,13 @@ const importDialogReducer = (
       return { ...state, step: 'select', previewData: null }
     }
     case 'SET_PREVIEW': {
-      return { ...state, previewData: action.preview, step: 'preview' }
+      return {
+        ...state,
+        mergeData:
+          action.preview.formatKind === 'current-v2' ? false : state.mergeData,
+        previewData: action.preview,
+        step: 'preview',
+      }
     }
     case 'SET_MERGE': {
       return { ...state, mergeData: action.mergeData }

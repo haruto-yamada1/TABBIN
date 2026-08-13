@@ -1,4 +1,4 @@
-import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getAiConversationHistoryDataPlane } from '@/app/composition/aiConversationHistoryDataPlane'
 import type {
   AiChatConversation,
   AiChatConversationMessage,
@@ -139,18 +139,14 @@ const loadConversationHistory = async (
   defaultTitle = DEFAULT_CONVERSATION_TITLE,
   interruptedMessage = DEFAULT_INTERRUPTED_RESPONSE_MESSAGE,
 ): Promise<ConversationHistoryState> => {
-  const storageLocal = getPersistenceStorageLocal()
-  if (!storageLocal) {
+  const dataPlane = getAiConversationHistoryDataPlane()
+  if (!dataPlane) {
     warnMissingChromeStorage('AIチャット履歴の読み込み')
     return createDefaultConversationHistory(defaultTitle)
   }
 
-  const stored = await storageLocal.get([
-    ACTIVE_AI_CHAT_CONVERSATION_ID_KEY,
-    AI_CHAT_CONVERSATIONS_KEY,
-  ])
-
-  const rawConversations = stored[AI_CHAT_CONVERSATIONS_KEY]
+  const stored = await dataPlane.read()
+  const rawConversations = stored.conversations
   const conversations: AiChatConversation[] = Array.isArray(rawConversations)
     ? rawConversations.filter(
         (item): item is AiChatConversation =>
@@ -168,17 +164,16 @@ const loadConversationHistory = async (
   })
 
   const activeConversationId =
-    typeof stored[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY] === 'string' &&
+    typeof stored.activeConversationId === 'string' &&
     normalizedHistory.conversations.some(
-      (conversation) =>
-        conversation.id === stored[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY],
+      (conversation) => conversation.id === stored.activeConversationId,
     )
-      ? stored[ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]
+      ? stored.activeConversationId
       : normalizedHistory.conversations[0].id
   if (normalizedHistory.hasChanges) {
-    await storageLocal.set({
-      [ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]: activeConversationId,
-      [AI_CHAT_CONVERSATIONS_KEY]: normalizedHistory.conversations,
+    await dataPlane.replace({
+      activeConversationId,
+      conversations: normalizedHistory.conversations,
     })
   }
 
@@ -192,15 +187,15 @@ const saveConversationHistory = async ({
   activeConversationId,
   conversations,
 }: ConversationHistoryState): Promise<void> => {
-  const storageLocal = getPersistenceStorageLocal()
-  if (!storageLocal) {
+  const dataPlane = getAiConversationHistoryDataPlane()
+  if (!dataPlane) {
     warnMissingChromeStorage('AIチャット履歴の保存')
     return
   }
 
-  await storageLocal.set({
-    [ACTIVE_AI_CHAT_CONVERSATION_ID_KEY]: activeConversationId,
-    [AI_CHAT_CONVERSATIONS_KEY]: conversations,
+  await dataPlane.replace({
+    activeConversationId,
+    conversations,
   })
 }
 

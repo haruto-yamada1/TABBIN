@@ -22,30 +22,27 @@ export type MigrationPreflightControllerOptions = {
 export const createMigrationPreflightController = (
   options: MigrationPreflightControllerOptions,
 ): MigrationPreflightController => {
-  let started = false
+  let runPromise: Promise<void> | undefined
+
+  const run = async (): Promise<void> => {
+    let status = await options.service.readStatus()
+    if (status.status !== 'healthy') {
+      status = await options.service.run()
+    }
+    if (status.status !== 'healthy') {
+      return
+    }
+
+    const controlState = await options.bootstrap.readState()
+    if (controlState.status === 'legacy') {
+      await options.bootstrap.migrate(options.migrationId)
+      return
+    }
+    await options.bootstrap.ready()
+  }
 
   return {
-    run: async (): Promise<void> => {
-      if (started) {
-        return
-      }
-      started = true
-
-      let status = await options.service.readStatus()
-      if (status.status !== 'healthy') {
-        status = await options.service.run()
-      }
-      if (status.status !== 'healthy') {
-        return
-      }
-
-      const controlState = await options.bootstrap.readState()
-      if (controlState.status === 'legacy') {
-        await options.bootstrap.migrate(options.migrationId)
-        return
-      }
-      await options.bootstrap.ready()
-    },
+    run: async (): Promise<void> => (runPromise ??= run()),
   }
 }
 

@@ -118,6 +118,47 @@ describe('LegacyBackupV0Schema', () => {
     expect(result.savedAnalyticsViews?.[0]?.query.groupBy).toBe('timeRecent')
   })
 
+  it('accepts versioned analytics query fields inside a schema-less backup', () => {
+    const backup = createLegacyBackup()
+    backup.savedAnalyticsViews = [
+      {
+        createdAt: 1,
+        id: 'view-v2-query',
+        name: 'Collection activity',
+        query: {
+          chartType: 'bar',
+          collectionType: 'domain',
+          compareBy: 'none',
+          filters: {
+            excludedDomains: [],
+            excludedParentCategories: [],
+            excludedProjectCategories: [],
+            excludedProjects: [],
+            excludedSubCategories: [],
+            includedDomains: [],
+            includedParentCategories: [],
+            includedProjectCategories: [],
+            includedProjects: [],
+            includedSubCategories: [],
+          },
+          groupBy: 'collection',
+          limit: 10,
+          metric: 'membership-added',
+          mode: 'both',
+          normalize: false,
+          schemaVersion: 2,
+          sort: 'value-desc',
+          stacked: false,
+          timeBucket: 'day',
+          timeRange: '30d',
+        },
+        updatedAt: 2,
+      },
+    ]
+
+    expect(LegacyBackupV0Schema.safeParse(backup).success).toBe(true)
+  })
+
   it('rejects a mixed array containing an invalid member', () => {
     const backup = createLegacyBackup()
     backup.urls = [

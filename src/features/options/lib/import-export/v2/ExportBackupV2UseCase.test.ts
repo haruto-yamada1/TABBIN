@@ -163,6 +163,31 @@ describe('createExportBackupV2UseCase', () => {
     expect(JSON.stringify(envelope)).not.toContain('recoverySnapshots')
   })
 
+  it('removes the runtime-only active prompt projection from Backup V2 settings', async () => {
+    const context = createDeps()
+    const normalizedSettings = {
+      ...userSettings,
+      activeAiSystemPrompt: {
+        createdAt: 0,
+        id: 'default-system-prompt',
+        name: 'Default',
+        template: 'Prompt',
+        updatedAt: 0,
+      },
+    }
+    context.readUserSettings.mockResolvedValue(normalizedSettings)
+
+    const envelope = await createExportBackupV2UseCase(context.deps)()
+
+    expect(envelope.data.userSettings).not.toHaveProperty(
+      'activeAiSystemPrompt',
+    )
+    expect(envelope.data.userSettings.excludePatterns).toEqual([
+      'a.example',
+      'z.example',
+    ])
+  })
+
   it('is deterministic for equivalent snapshots except for exportedAt', async () => {
     const first = createDeps(createLogicalSnapshot())
     const second = createDeps(createLogicalSnapshot(true))

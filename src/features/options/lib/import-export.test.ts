@@ -184,6 +184,7 @@ import {
   resolveCurrentLanguage,
   restoreImportedCustomProjectUrlsFromIds,
 } from './import-export/index.fixture'
+import { LegacyBackupV0Schema } from './import-export/legacy/LegacyBackupV0Schema'
 import {
   buildCustomProject,
   buildFullUserSettings,
@@ -764,6 +765,7 @@ describe('import-export ユーティリティ', () => {
       customProjectOrder: [],
       urls: [],
     })
+    expect(LegacyBackupV0Schema.safeParse(result).success).toBe(true)
   })
 
   it('exportSettings は AI チャット履歴を含める', async () => {
@@ -2455,26 +2457,27 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('getImportPreview は valid/invalid/malformed JSON を分類する', () => {
-    const valid = getImportPreview(
-      JSON.stringify({
-        aiChatConversations: [buildAiChatConversation()],
-        customProjects: [buildCustomProject()],
-        savedAnalyticsViews: [buildAnalyticsView()],
-        version: '7.0.0',
-        timestamp: '2026-03-15T00:00:00.000Z',
-        userSettings: buildFullUserSettings(),
-        parentCategories: [
-          { id: 'preview-cat', name: 'Preview', domains: [], domainNames: [] },
-        ],
-        savedTabs: [
-          {
-            id: 'preview-group',
-            domain: 'preview.example.com',
-            urls: [],
-          },
-        ],
-      }),
-    )
+    const legacyBackup = {
+      aiChatConversations: [buildAiChatConversation()],
+      customProjectOrder: ['project-1'],
+      customProjects: [buildCustomProject()],
+      savedAnalyticsViews: [buildAnalyticsView()],
+      version: '7.0.0',
+      timestamp: '2026-03-15T00:00:00.000Z',
+      userSettings: buildFullUserSettings(),
+      parentCategories: [
+        { id: 'preview-cat', name: 'Preview', domains: [], domainNames: [] },
+      ],
+      savedTabs: [
+        {
+          id: 'preview-group',
+          domain: 'preview.example.com',
+          urls: [],
+        },
+      ],
+    }
+    expect(LegacyBackupV0Schema.safeParse(legacyBackup).success).toBe(true)
+    const valid = getImportPreview(JSON.stringify(legacyBackup))
 
     expect(valid).toEqual({
       success: true,
@@ -2482,6 +2485,7 @@ describe('import-export ユーティリティ', () => {
       preview: {
         categoriesCount: 1,
         domainsCount: 1,
+        formatKind: 'legacy',
         hasAiChat: true,
         hasAnalytics: true,
         legacyBackupAdvisory: LEGACY_BACKUP_ADVISORY,

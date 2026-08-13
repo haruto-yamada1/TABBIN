@@ -79,8 +79,8 @@ export const ImportExportSettings: React.FC = () => {
 
       downloadAsJson(data, filename)
       toast.success(t('options.importExport.exportSuccess'))
-    } catch {
-      console.error('エクスポートエラー')
+    } catch (error) {
+      console.error('エクスポートエラー', error)
       toast.error(t('options.importExport.exportError'))
     } finally {
       setIsExporting(false)

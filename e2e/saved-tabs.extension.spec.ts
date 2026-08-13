@@ -3,9 +3,10 @@ import {
   defaultUserSettings,
   expect,
   getExtensionUrl,
-  readStorage,
+  readPersistenceV2Store,
   seedStorage,
   test,
+  waitForPersistenceV2Ready,
 } from './helpers/extension'
 
 const now = Date.now()
@@ -42,11 +43,29 @@ const createCustomProjectSeed = () => {
         categories: [],
         createdAt: now,
         updatedAt: now,
+        urls: [
+          {
+            id: 'url-example',
+            savedAt: now,
+            title: 'Example Home',
+            url: 'https://example.com/',
+          },
+        ],
       },
     ],
     customProjectOrder: ['project-1'],
     viewMode: 'custom',
   }
+}
+
+const readSavedTabCounts = async (
+  serviceWorker: Parameters<typeof seedStorage>[0],
+) => {
+  const [memberships, urls] = await Promise.all([
+    readPersistenceV2Store(serviceWorker, 'collectionMemberships'),
+    readPersistenceV2Store(serviceWorker, 'urls'),
+  ])
+  return { memberships: memberships.length, urls: urls.length }
 }
 
 test.describe('extension saved-tabs', () => {
@@ -70,6 +89,7 @@ test.describe('extension saved-tabs', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByText('example.com', { exact: true })).toBeVisible()
     await expect(page.getByText('Example Home')).toBeVisible()
@@ -85,6 +105,7 @@ test.describe('extension saved-tabs', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByText('Example Home')).toBeVisible()
 
@@ -94,13 +115,8 @@ test.describe('extension saved-tabs', () => {
     await expect(page.getByText('Example Home')).toBeHidden()
 
     await expect
-      .poll(async () => {
-        const data = await readStorage<{
-          savedTabs: { urlIds?: string[] }[]
-        }>(serviceWorker, ['savedTabs'])
-        return data.savedTabs.filter((g) => g.urlIds?.length).length
-      })
-      .toBe(0)
+      .poll(async () => readSavedTabCounts(serviceWorker))
+      .toEqual({ memberships: 0, urls: 0 })
   })
 
   test('カスタムモードで保存済みURLを削除できる', async ({
@@ -113,6 +129,7 @@ test.describe('extension saved-tabs', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=custom'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByText('Example Home')).toBeVisible()
 
@@ -123,12 +140,14 @@ test.describe('extension saved-tabs', () => {
 
     await expect
       .poll(async () => {
-        const data = await readStorage<{
-          savedTabs: { urlIds?: string[] }[]
-        }>(serviceWorker, ['savedTabs'])
-        return data.savedTabs.filter((g) => g.urlIds?.length).length
+        const memberships = await readPersistenceV2Store<{
+          collectionId: string
+        }>(serviceWorker, 'collectionMemberships')
+        return memberships.some(
+          ({ collectionId }) => collectionId === 'project-1',
+        )
       })
-      .toBe(0)
+      .toBe(false)
   })
 
   test('removeUrlFromStorage メッセージでバックグラウンド経由でURLを削除できる', async ({
@@ -141,6 +160,7 @@ test.describe('extension saved-tabs', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByText('Example Home')).toBeVisible()
 
@@ -154,13 +174,8 @@ test.describe('extension saved-tabs', () => {
     await expect(page.getByText('Example Home')).toBeHidden()
 
     await expect
-      .poll(async () => {
-        const data = await readStorage<{
-          savedTabs: { urlIds?: string[] }[]
-        }>(serviceWorker, ['savedTabs'])
-        return data.savedTabs.filter((g) => g.urlIds?.length).length
-      })
-      .toBe(0)
+      .poll(async () => readSavedTabCounts(serviceWorker))
+      .toEqual({ memberships: 0, urls: 0 })
   })
 
   test('外部ドロップシミュレーションでURLが削除される', async ({
@@ -173,6 +188,7 @@ test.describe('extension saved-tabs', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByText('Example Home')).toBeVisible()
 
@@ -197,12 +213,7 @@ test.describe('extension saved-tabs', () => {
     await expect(page.getByText('Example Home')).toBeHidden()
 
     await expect
-      .poll(async () => {
-        const data = await readStorage<{
-          savedTabs: { urlIds?: string[] }[]
-        }>(serviceWorker, ['savedTabs'])
-        return data.savedTabs.filter((g) => g.urlIds?.length).length
-      })
-      .toBe(0)
+      .poll(async () => readSavedTabCounts(serviceWorker))
+      .toEqual({ memberships: 0, urls: 0 })
   })
 })
