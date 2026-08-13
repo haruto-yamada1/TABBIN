@@ -136,6 +136,62 @@ describe('assertProductionImportAllowed', () => {
     })
   })
 
+  it('accepts schema-less backups containing versioned analytics queries', () => {
+    const legacy: unknown = JSON.parse(
+      readFixture('legacy-tab-group-url-ids.json'),
+    )
+    if (typeof legacy !== 'object' || legacy === null) {
+      throw new TypeError('Expected legacy backup fixture')
+    }
+    Object.assign(legacy, {
+      savedAnalyticsViews: [
+        {
+          createdAt: 1,
+          id: 'view-v2-query',
+          name: 'Collection activity',
+          query: {
+            chartType: 'bar',
+            collectionType: 'domain',
+            compareBy: 'none',
+            filters: {
+              excludedDomains: [],
+              excludedParentCategories: [],
+              excludedProjectCategories: [],
+              excludedProjects: [],
+              excludedSubCategories: [],
+              includedDomains: [],
+              includedParentCategories: [],
+              includedProjectCategories: [],
+              includedProjects: [],
+              includedSubCategories: [],
+            },
+            groupBy: 'collection',
+            limit: 10,
+            metric: 'membership-added',
+            mode: 'both',
+            normalize: false,
+            schemaVersion: 2,
+            sort: 'value-desc',
+            stacked: false,
+            timeBucket: 'day',
+            timeRange: '30d',
+          },
+          updatedAt: 2,
+        },
+      ],
+    })
+
+    expect(
+      assertProductionImportAllowed(JSON.stringify(legacy), {
+        importDate: '2026-08-31',
+        importMode: 'merge',
+      }),
+    ).toMatchObject({
+      inspection: { preview: { formatKind: 'legacy' } },
+      kind: 'legacy-merge',
+    })
+  })
+
   it('routes a supported legacy overwrite through normalized recovery', () => {
     const allowed = assertProductionImportAllowed(
       readFixture('legacy-tab-group-url-ids.json'),

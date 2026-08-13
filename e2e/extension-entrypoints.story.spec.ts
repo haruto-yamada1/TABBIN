@@ -6,6 +6,7 @@ import {
   seedPersistenceV2SavedTabs,
   seedStorage,
   test,
+  waitForPersistenceV2Ready,
 } from './helpers/extension'
 
 const now = 1_763_600_000_000
@@ -330,6 +331,7 @@ test.describe('extension entrypoint stories', () => {
     await installOllamaListFailureMock(page)
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/ai-chat'))
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByLabel('Ask AI')).toBeDisabled()
     await page.getByRole('combobox', { name: 'Select a model' }).click()

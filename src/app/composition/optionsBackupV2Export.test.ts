@@ -11,6 +11,7 @@ import type {
 import { PersistenceOperationGateService } from '@/contexts/saved-tabs/application/services/PersistenceOperationGateService'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
+import { assertProductionImportAllowed } from '@/features/options/lib/import-export/productionImportGate'
 import type { BackupEnvelopeV2 } from '@/features/options/lib/import-export/v2/BackupV2Schema'
 import { createExportBackupV2UseCase } from '@/features/options/lib/import-export/v2/ExportBackupV2UseCase'
 import { defaultSettings } from '@/lib/storage/settings'
@@ -69,6 +70,11 @@ describe('optionsBackupV2Export composition', () => {
     const createConnectionManager = vi.fn(() => connectionManager)
     const createSnapshotReader = vi.fn(() => snapshotReader)
     const createExportUseCase = vi.fn(() => exportBackupV2)
+    let resolvePreparation: (() => void) | undefined
+    const preparation = new Promise<void>((resolve) => {
+      resolvePreparation = resolve
+    })
+    const preparePersistence = vi.fn(async () => preparation)
     const deps = {
       createConnectionManager,
       createExportUseCase,
@@ -76,6 +82,7 @@ describe('optionsBackupV2Export composition', () => {
       getAppVersion: vi.fn(() => '2.0.8'),
       getOperationGate: vi.fn(() => operationGate),
       now: vi.fn(() => new Date('2026-07-28T00:00:00.000Z')),
+      preparePersistence,
       readUserSettings: vi.fn(),
     }
 
@@ -94,7 +101,13 @@ describe('optionsBackupV2Export composition', () => {
       readUserSettings: deps.readUserSettings,
       snapshotReader,
     })
-    await expect(first.exportBackupV2()).resolves.toBe(envelope)
+    const exportResult = first.exportBackupV2()
+    await Promise.resolve()
+    expect(preparePersistence).toHaveBeenCalledOnce()
+    expect(exportBackupV2).not.toHaveBeenCalled()
+
+    resolvePreparation?.()
+    await expect(exportResult).resolves.toBe(envelope)
     expect(exportBackupV2).toHaveBeenCalledOnce()
 
     resetOptionsBackupV2ExportRuntimeForTesting()
@@ -143,10 +156,12 @@ describe('optionsBackupV2Export composition', () => {
       getAppVersion: () => '2.0.8',
       getOperationGate: () => operationGate,
       now: () => new Date('2026-08-01T00:00:00.000Z'),
+      preparePersistence: vi.fn(async () => undefined),
       readUserSettings: async () => defaultSettings,
     })
 
-    await expect(runtime.exportBackupV2()).resolves.toMatchObject({
+    const backup = await runtime.exportBackupV2()
+    expect(backup).toMatchObject({
       appVersion: '2.0.8',
       data: {
         savedTabs: {
@@ -159,6 +174,15 @@ describe('optionsBackupV2Export composition', () => {
         userSettings: defaultSettings,
       },
       schemaVersion: 2,
+    })
+    expect(
+      assertProductionImportAllowed(JSON.stringify(backup), {
+        importDate: '2026-08-12',
+        importMode: 'overwrite',
+      }),
+    ).toMatchObject({
+      inspection: { preview: { formatKind: 'current-v2' } },
+      kind: 'v2-overwrite',
     })
     expect(recovery.reportUnavailable).not.toHaveBeenCalled()
   })

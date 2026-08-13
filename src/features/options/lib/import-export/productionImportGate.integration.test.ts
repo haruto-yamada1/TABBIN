@@ -155,6 +155,7 @@ describe('importSettings production pre-mutation gate', () => {
       preview: {
         categoriesCount: 0,
         domainsCount: 0,
+        formatKind: 'current-v2',
         hasAiChat: false,
         hasAnalytics: false,
         projectsCount: 0,

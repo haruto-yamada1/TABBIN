@@ -60,7 +60,10 @@ preflight and the actual migration.
   historical time.
 - AI conversations keep their source `createdAt` and `updatedAt`. Because the
   legacy message shape has no timestamp, each message uses its conversation's
-  source `createdAt`. Analytics views require their source timestamps.
+  source `createdAt`; the conversation value records the source array order in
+  `messageIds`. Runtime writes preserve that explicit order and do not
+  resynchronize an existing message timestamp when conversation metadata
+  changes. Analytics views require their source timestamps.
 - URL title conflicts are reported, not resolved by input order. The current
   preflight approval policy blocks every issue except a missing top-level key,
   so a conflicting title cannot reach target writes.

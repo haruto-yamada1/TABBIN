@@ -132,6 +132,37 @@ describe('createMigrationPreflightController', () => {
     expect(service.run).toHaveBeenCalledOnce()
   })
 
+  it('concurrent callers await the same in-flight startup', async () => {
+    let resolveStatus: ((status: MigrationPreflightStatus) => void) | undefined
+    const status = new Promise<MigrationPreflightStatus>((resolve) => {
+      resolveStatus = resolve
+    })
+    const service = createService({ status: 'not-run' })
+    vi.mocked(service.readStatus).mockImplementation(async () => status)
+    const bootstrap = createBootstrap('indexeddb')
+    const controller = createController(service, bootstrap)
+
+    const first = controller.run()
+    const second = controller.run()
+    let secondSettled = false
+    void second.finally(() => {
+      secondSettled = true
+    })
+    await Promise.resolve()
+
+    expect(secondSettled).toBe(false)
+
+    resolveStatus?.({
+      checkedAt: 1,
+      diagnostic: { ...diagnostic, capacityStatus: 'ready', issueCodes: [] },
+      status: 'healthy',
+    })
+    await Promise.all([first, second])
+
+    expect(service.readStatus).toHaveBeenCalledOnce()
+    expect(bootstrap.ready).toHaveBeenCalledOnce()
+  })
+
   it('propagates status loading failure without starting analysis', async () => {
     const service = createService({ status: 'not-run' })
     vi.mocked(service.readStatus).mockRejectedValueOnce(new Error('raw secret'))

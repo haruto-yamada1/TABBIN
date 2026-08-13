@@ -129,7 +129,6 @@ const persistenceBootstrapFiles = [
 ] as const
 
 const legacyPersistencePaths = [
-  'src/features/ai-chat/lib/conversation-history.ts',
   'src/lib/storage/categories.ts',
   'src/lib/storage/migration.ts',
   'src/lib/storage/projects.ts',
@@ -219,6 +218,18 @@ describe('PersistenceBootstrap architecture policy', () => {
     const source = readRepositoryFile('src/lib/storage/analytics.ts')
     const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
     expect(source).toContain("from '@/app/composition/analyticsViewsDataPlane'")
+    expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
+    expect(executableSource).not.toContain('getChromeStorageLocal')
+  })
+
+  it('routes AI conversation history through the route-aware data plane', () => {
+    const source = readRepositoryFile(
+      'src/features/ai-chat/lib/conversation-history.ts',
+    )
+    const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    expect(source).toContain(
+      "from '@/app/composition/aiConversationHistoryDataPlane'",
+    )
     expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
     expect(executableSource).not.toContain('getChromeStorageLocal')
   })

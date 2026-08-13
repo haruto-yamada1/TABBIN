@@ -8,6 +8,7 @@ import type {
 } from '@/contexts/saved-tabs/public-api'
 import type { JsonObject, JsonValue } from '@/lib/persistence/jsonValue'
 import { isJsonValue } from '@/lib/persistence/jsonValue'
+import { UserSettingsSchema } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 import { BackupDataV2Schema } from './BackupV2Schema'
@@ -163,9 +164,10 @@ const canonicalizeUserSettings = (userSettings: UserSettings): UserSettings => {
     throw new TypeError('User settings must be JSON-safe')
   }
 
+  const persistedSettings = UserSettingsSchema.parse(userSettings)
   const canonical = canonicalizeJsonValue({
-    ...userSettings,
-    excludePatterns: userSettings.excludePatterns.toSorted(
+    ...persistedSettings,
+    excludePatterns: persistedSettings.excludePatterns.toSorted(
       compareCodePointStrings,
     ),
   })
@@ -196,12 +198,13 @@ const toBackupData = (
   snapshot: PersistenceLogicalSnapshot,
   userSettings: UserSettings,
 ): BackupDataV2 => {
+  const canonicalUserSettings = canonicalizeUserSettings(userSettings)
   const validated = BackupDataV2Schema.parse({
     analyticsViews: snapshot.analyticsViews,
     conversations: snapshot.conversations,
     messages: snapshot.messages,
     savedTabs: snapshot.savedTabs,
-    userSettings,
+    userSettings: canonicalUserSettings,
   })
   return canonicalizeBackupData(validated)
 }

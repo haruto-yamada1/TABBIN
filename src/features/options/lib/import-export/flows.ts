@@ -7,10 +7,10 @@ import {
 } from '@/lib/persistence/backupSchema'
 import { formatLocaleDateTime } from '@/utils/localDateTime'
 
+import type { LegacyBackupAdvisory } from './compatibility/legacyBackupPolicy'
 import { getCurrentUtcDateOnly } from './currentImportDate'
 import { assertProductionImportAllowed } from './productionImportGate'
 import type { ProductionImportGateOptions } from './productionImportGate'
-import { getLegacyBackupDeadlineAdvisory, parseBackupData } from './schemas'
 import { inspectBackupV2 } from './v2/BackupV2Inspector'
 
 type ImportResult = {
@@ -111,10 +111,11 @@ const getImportPreview = (
     timestamp: string
     categoriesCount: number
     domainsCount: number
+    formatKind: 'current-v2' | 'legacy'
     projectsCount: number
     hasAiChat: boolean
     hasAnalytics: boolean
-    legacyBackupAdvisory?: ReturnType<typeof getLegacyBackupDeadlineAdvisory>
+    legacyBackupAdvisory?: LegacyBackupAdvisory
   }
 } => {
   try {
@@ -136,32 +137,37 @@ const getImportPreview = (
           timestamp: inspection.preview.exportedAt,
           categoriesCount: inspection.preview.entityCounts.categories,
           domainsCount: domainCollections,
+          formatKind: 'current-v2',
           projectsCount: customCollections,
           hasAiChat: inspection.preview.entityCounts.conversations > 0,
           hasAnalytics: inspection.preview.entityCounts.analyticsViews > 0,
         },
       }
     }
-    const importedData = parseBackupData(jsonData)
-    if (!importedData) {
-      return {
-        success: false,
-        message: 'インポートされたデータの形式が正しくありません',
-      }
+    const inspection = inspectBackupV2(parsed, {
+      importDate: getCurrentUtcDateOnly(),
+    })
+    if (inspection.preview.formatKind !== 'legacy') {
+      throw new BackupSchemaError('INVALID_SCHEMA')
     }
-    const legacyBackupAdvisory = getLegacyBackupDeadlineAdvisory(parsed)
+    const domainCollections = inspection.data.savedTabs.collections.filter(
+      (collection) => collection.definition.type === 'domain',
+    ).length
+    const customCollections =
+      inspection.data.savedTabs.collections.length - domainCollections
     return {
       success: true,
       message: 'データの解析に成功しました',
       preview: {
-        version: importedData.version,
-        timestamp: importedData.timestamp,
-        categoriesCount: importedData.parentCategories.length,
-        domainsCount: importedData.savedTabs.length,
-        projectsCount: importedData.customProjects?.length ?? 0,
-        hasAiChat: (importedData.aiChatConversations?.length ?? 0) > 0,
-        hasAnalytics: (importedData.savedAnalyticsViews?.length ?? 0) > 0,
-        legacyBackupAdvisory,
+        version: inspection.preview.appVersion,
+        timestamp: inspection.preview.exportedAt,
+        categoriesCount: inspection.preview.entityCounts.groups,
+        domainsCount: domainCollections,
+        formatKind: 'legacy',
+        projectsCount: customCollections,
+        hasAiChat: inspection.preview.entityCounts.conversations > 0,
+        hasAnalytics: inspection.preview.entityCounts.analyticsViews > 0,
+        legacyBackupAdvisory: inspection.preview.advisory,
       },
     }
   } catch (error) {

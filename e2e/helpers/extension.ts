@@ -228,3 +228,63 @@ export const readStorage = async <T>(
 
     return getItems(value)
   }, keys) as Promise<T>
+
+type PersistenceV2SavedTabsStoreName =
+  | 'collectionCategories'
+  | 'collectionGroups'
+  | 'collectionMemberships'
+  | 'collections'
+  | 'urls'
+
+export const readPersistenceV2Store = async <T>(
+  serviceWorker: Worker,
+  storeName: PersistenceV2SavedTabsStoreName,
+): Promise<T[]> =>
+  serviceWorker.evaluate(async (value) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      request.addEventListener('success', () => resolve(request.result))
+      request.addEventListener('error', () =>
+        reject(request.error ?? new Error('Failed to open persistence v2.')),
+      )
+    })
+    const transaction = database.transaction(value, 'readonly')
+    const request = transaction.objectStore(value).getAll()
+
+    try {
+      return await new Promise<T[]>((resolve, reject) => {
+        request.addEventListener('success', () => resolve(request.result))
+        request.addEventListener('error', () =>
+          reject(
+            request.error ?? new Error(`Failed to read ${value} records.`),
+          ),
+        )
+      })
+    } finally {
+      database.close()
+    }
+  }, storeName)
+
+export const waitForPersistenceV2Ready = async (
+  serviceWorker: Worker,
+): Promise<void> => {
+  await expect
+    .poll(async () => {
+      const state = await readStorage<
+        Record<string, { issueCodes?: string[]; status?: string }>
+      >(serviceWorker, [
+        'tabbin:migrationPreflight:v1',
+        'tabbin:persistenceControlState:v2',
+      ])
+      return {
+        control: state['tabbin:persistenceControlState:v2']?.status,
+        issueCodes: state['tabbin:migrationPreflight:v1']?.issueCodes,
+        preflight: state['tabbin:migrationPreflight:v1']?.status,
+      }
+    })
+    .toEqual({
+      control: 'indexeddb',
+      issueCodes: undefined,
+      preflight: 'healthy',
+    })
+}

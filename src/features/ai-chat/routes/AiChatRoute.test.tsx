@@ -46,6 +46,10 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
             'aiChat.deleteDescription': 'This action cannot be undone.',
             'aiChat.deleteTitle': 'Delete this conversation?',
             'aiChat.historyHint': 'Click to continue',
+            'aiChat.historyLoadError':
+              'Conversation history could not be loaded.',
+            'aiChat.historySaveError':
+              'Conversation changes could not be saved.',
             'aiChat.historyTitle': 'Recent conversations',
             'common.delete': 'Delete',
             'common.cancel': 'Cancel',
@@ -136,6 +140,7 @@ describe('AiChatRoute', () => {
       },
       createConversation: mocked.createConversation,
       deleteConversation: mocked.deleteConversation,
+      historyError: null,
       historyItems: [
         {
           id: 'conversation-1',
@@ -306,6 +311,26 @@ describe('AiChatRoute', () => {
     render(createElement(AiChatRoute))
 
     expect(screen.getByRole('status')).toBeTruthy()
+  })
+
+  it('履歴ロード失敗時はspinnerではなく再試行案内を表示する', () => {
+    mocked.useSharedAiChatHistory.mockReturnValue({
+      activeConversation: null,
+      createConversation: mocked.createConversation,
+      deleteConversation: mocked.deleteConversation,
+      historyError: 'load',
+      historyItems: [],
+      isLoading: false,
+      selectConversation: mocked.selectConversation,
+      updateMessages: mocked.updateMessages,
+    })
+
+    render(createElement(AiChatRoute))
+
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Conversation history could not be loaded.',
+    )
   })
 
   it('履歴削除ボタンから確認モーダルを開き、削除を実行できる', async () => {

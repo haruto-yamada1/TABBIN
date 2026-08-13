@@ -31,6 +31,7 @@ vi.mock('@/features/options/lib/import-export', () => ({
       timestamp: '2026-02-16T00:00:00.000Z',
       categoriesCount: 1,
       domainsCount: 1,
+      formatKind: 'legacy',
       projectsCount: 0,
       hasAiChat: false,
       hasAnalytics: false,
@@ -519,6 +520,54 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
   })
 
+  it('current Backup V2 は自動的に overwrite mode でインポートする', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getImportPreview).mockReturnValueOnce({
+      success: true,
+      message: 'ok',
+      preview: {
+        categoriesCount: 0,
+        domainsCount: 0,
+        formatKind: 'current-v2',
+        hasAiChat: false,
+        hasAnalytics: false,
+        projectsCount: 0,
+        timestamp: '2026-08-12T00:00:00.000Z',
+        version: '2.0.8',
+      },
+    })
+    vi.mocked(importSettings).mockResolvedValue({
+      success: true,
+      message: 'ok',
+    })
+    const { container } = render(<ImportExportSettings />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Import settings and tab data' }),
+    )
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+    await user.click(
+      await screen.findByRole('button', { name: 'Confirm Import' }),
+    )
+
+    await waitFor(() => {
+      expect(importSettings).toHaveBeenCalledWith(
+        readerContent,
+        false,
+        expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+      )
+    })
+  })
+
   it('ファイル未選択時は file change イベントを無視する', async () => {
     const { container } = render(<ImportExportSettings />)
 
@@ -775,6 +824,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       preview: {
         categoriesCount: 1,
         domainsCount: 1,
+        formatKind: 'legacy',
         hasAiChat: true,
         hasAnalytics: true,
         projectsCount: 1,
@@ -809,6 +859,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       preview: {
         categoriesCount: 1,
         domainsCount: 1,
+        formatKind: 'legacy',
         hasAiChat: false,
         hasAnalytics: false,
         legacyBackupAdvisory: {

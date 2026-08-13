@@ -10,6 +10,8 @@ import type {
 } from '@/features/options/lib/import-export/v2/ExportBackupV2UseCase'
 import { readUserSettingsWithoutRepair } from '@/lib/storage/settings'
 
+import { getMigrationPreflightController } from './createMigrationPreflightController'
+
 export type OptionsBackupV2ExportRuntime = {
   readonly exportBackupV2: ExportBackupV2UseCase
 }
@@ -26,6 +28,7 @@ export type OptionsBackupV2ExportRuntimeDeps = {
   readonly getAppVersion: () => string
   readonly getOperationGate: () => PersistenceOperationGatePort
   readonly now: () => Date
+  readonly preparePersistence: () => Promise<void>
   readonly readUserSettings: ExportBackupV2UseCaseDeps['readUserSettings']
 }
 
@@ -41,6 +44,7 @@ const defaultDeps: OptionsBackupV2ExportRuntimeDeps = {
   getAppVersion,
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   now: () => new Date(),
+  preparePersistence: async () => getMigrationPreflightController().run(),
   readUserSettings: readUserSettingsWithoutRepair,
 }
 
@@ -52,12 +56,16 @@ const createRuntime = (
     connectionManager,
     deps.getOperationGate(),
   )
-  const exportBackupV2 = deps.createExportUseCase({
+  const exportBackupV2UseCase = deps.createExportUseCase({
     getAppVersion: deps.getAppVersion,
     now: deps.now,
     readUserSettings: deps.readUserSettings,
     snapshotReader,
   })
+  const exportBackupV2 = async (): ReturnType<ExportBackupV2UseCase> => {
+    await deps.preparePersistence()
+    return exportBackupV2UseCase()
+  }
 
   return {
     close: () => {

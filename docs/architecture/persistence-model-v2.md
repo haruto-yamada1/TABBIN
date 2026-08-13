@@ -289,7 +289,12 @@ Required relations:
 A missing legacy timestamp is not replaced with migration time. It produces
 `MISSING_TIMESTAMP_PROVENANCE`; the #728 mapper uses the explicitly reviewed
 sentinel `0`. Legacy AI messages use their conversation's source `createdAt`
-because the message shape has no historical timestamp.
+because the message shape has no historical timestamp. Message order is not
+encoded into that timestamp. Each conversation value carries an ordered
+`messageIds` list; writers preserve the message array order there and keep an
+existing message record's `createdAt` unchanged when conversation metadata is
+updated. Markerless Persistence v2 records from an older build use the
+deterministic `(createdAt, id)` order only as a compatibility fallback.
 
 ## Current to v2 mapping
 

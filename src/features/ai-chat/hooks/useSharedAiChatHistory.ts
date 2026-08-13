@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   buildConversationTitle,
@@ -18,10 +18,13 @@ type ConversationHistoryState = {
   conversations: AiChatConversation[]
 }
 
+type ConversationHistoryError = 'load' | 'save'
+
 type UseSharedAiChatHistoryResult = {
   activeConversation: AiChatConversation | null
   createConversation: () => void
   deleteConversation: (conversationId: string) => void
+  historyError: ConversationHistoryError | null
   historyItems: AiChatHistoryItem[]
   isLoading: boolean
   selectConversation: (conversationId: string) => void
@@ -104,50 +107,98 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
   const [pendingConversationId, setPendingConversationId] = useState<
     string | null
   >(null)
+  const [historyError, setHistoryError] =
+    useState<ConversationHistoryError | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const historyStateRef = useRef<ConversationHistoryState | null>(null)
+  const isMountedRef = useRef(false)
+  const saveQueueRef = useRef<Promise<void> | null>(null)
 
   useEffect(() => {
-    let isMounted = true
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
-    void loadConversationHistory(
+  useEffect(() => {
+    let isCurrentLoad = true
+
+    const loadHistory = loadConversationHistory(
       newConversationTitle,
       interruptedResponseMessage,
-    ).then((nextState) => {
-      if (!isMounted) {
-        return
-      }
+    )
+    void loadHistory.then(
+      (nextState) => {
+        if (!isCurrentLoad) {
+          return
+        }
 
-      setHistoryState({
-        ...nextState,
-        conversations: sortConversationsByRecent(nextState.conversations),
-      })
-      setActiveConversationId(nextState.activeConversationId)
-    })
+        const loadedState = {
+          ...nextState,
+          conversations: sortConversationsByRecent(nextState.conversations),
+        }
+        historyStateRef.current = loadedState
+        setHistoryState(loadedState)
+        setActiveConversationId(nextState.activeConversationId)
+        setHistoryError(null)
+        setIsLoading(false)
+      },
+      () => {
+        if (!isCurrentLoad) {
+          return
+        }
+        setHistoryError('load')
+        setIsLoading(false)
+      },
+    )
 
     return () => {
-      isMounted = false
+      isCurrentLoad = false
     }
   }, [interruptedResponseMessage, newConversationTitle])
+
+  const enqueueSave = useCallback((state: ConversationHistoryState) => {
+    const previousSave = saveQueueRef.current
+    const queuedSave = (
+      previousSave ? previousSave.catch(() => undefined) : Promise.resolve()
+    ).then(async () => saveConversationHistory(state))
+    saveQueueRef.current = queuedSave
+    setHistoryError((current) => (current === 'save' ? null : current))
+    void queuedSave.then(
+      () => {
+        if (isMountedRef.current && saveQueueRef.current === queuedSave) {
+          setHistoryError((current) => (current === 'save' ? null : current))
+        }
+      },
+      () => {
+        if (isMountedRef.current) {
+          setHistoryError('save')
+        }
+      },
+    )
+  }, [])
 
   const persistHistory = useCallback(
     (
       update: (current: ConversationHistoryState) => ConversationHistoryState,
     ) => {
-      setHistoryState((current) => {
-        if (!current) {
-          return current
-        }
+      const current = historyStateRef.current
+      if (!current) {
+        return
+      }
 
-        const nextState = update(current)
-        const normalizedState = {
-          ...nextState,
-          conversations: sortConversationsByRecent(nextState.conversations),
-        }
-        setActiveConversationId(normalizedState.activeConversationId)
-        void saveConversationHistory(normalizedState)
-        return normalizedState
-      })
+      const nextState = update(current)
+      const normalizedState = {
+        ...nextState,
+        conversations: sortConversationsByRecent(nextState.conversations),
+      }
+      historyStateRef.current = normalizedState
+      setHistoryState(normalizedState)
+      setActiveConversationId(normalizedState.activeConversationId)
+      enqueueSave(normalizedState)
     },
-    [],
+    [enqueueSave],
   )
 
   const createConversation = useCallback(() => {
@@ -160,44 +211,44 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
 
   const deleteConversation = useCallback(
     (conversationId: string) => {
-      setHistoryState((current) => {
-        if (!current) {
-          return current
-        }
+      const current = historyStateRef.current
+      if (!current) {
+        return
+      }
 
-        const nextConversations = sortConversationsByRecent(
-          current.conversations.filter(
-            (conversation) => conversation.id !== conversationId,
-          ),
-        )
+      const nextConversations = sortConversationsByRecent(
+        current.conversations.filter(
+          (conversation) => conversation.id !== conversationId,
+        ),
+      )
 
-        if (nextConversations.length === current.conversations.length) {
-          return current
-        }
+      if (nextConversations.length === current.conversations.length) {
+        return
+      }
 
-        const nextActiveConversationId = resolveNextActiveConversationId({
-          activeConversationId,
-          currentActiveConversationId: current.activeConversationId,
-          deletedConversationId: conversationId,
-          nextConversations,
-          pendingConversationId,
-        })
-
-        if (nextConversations.length === 0) {
-          setPendingConversationId(nextActiveConversationId)
-        }
-
-        const nextState = {
-          activeConversationId: nextActiveConversationId,
-          conversations: nextConversations,
-        }
-
-        setActiveConversationId(nextActiveConversationId)
-        void saveConversationHistory(nextState)
-        return nextState
+      const nextActiveConversationId = resolveNextActiveConversationId({
+        activeConversationId,
+        currentActiveConversationId: current.activeConversationId,
+        deletedConversationId: conversationId,
+        nextConversations,
+        pendingConversationId,
       })
+
+      if (nextConversations.length === 0) {
+        setPendingConversationId(nextActiveConversationId)
+      }
+
+      const nextState = {
+        activeConversationId: nextActiveConversationId,
+        conversations: nextConversations,
+      }
+
+      historyStateRef.current = nextState
+      setHistoryState(nextState)
+      setActiveConversationId(nextActiveConversationId)
+      enqueueSave(nextState)
     },
-    [activeConversationId, pendingConversationId],
+    [activeConversationId, enqueueSave, pendingConversationId],
   )
 
   const selectConversation = useCallback(
@@ -297,8 +348,9 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
       activeConversation: null,
       createConversation,
       deleteConversation,
+      historyError,
       historyItems: EMPTY_HISTORY_ITEMS,
-      isLoading: true,
+      isLoading,
       selectConversation,
       updateMessages,
     }
@@ -330,8 +382,9 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
     activeConversation,
     createConversation,
     deleteConversation,
+    historyError,
     historyItems,
-    isLoading: false,
+    isLoading,
     selectConversation,
     updateMessages,
   }
@@ -342,3 +395,4 @@ export {
   resolveNextActiveConversationId,
   useSharedAiChatHistory,
 }
+export type { ConversationHistoryError }
