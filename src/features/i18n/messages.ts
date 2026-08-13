@@ -29,6 +29,10 @@ const messages = {
     'aiChat.history.resumeHint': 'Resume from a saved conversation',
     'aiChat.history.startPrompt': 'Start a new conversation',
     'aiChat.historyHint': 'Click to continue',
+    'aiChat.historyLoadError':
+      'Conversation history could not be loaded. Reload the page and try again.',
+    'aiChat.historySaveError':
+      'Your latest conversation changes could not be saved. Reload before continuing to avoid losing more changes.',
     'aiChat.historyTitle': 'Recent conversations',
     'aiChat.inputLabel': 'Ask AI',
     'aiChat.inputPlaceholder': 'Ask about your saved tabs',
@@ -947,6 +951,10 @@ const messages = {
     'aiChat.history.resumeHint': '保存済みの会話から再開できます',
     'aiChat.history.startPrompt': '新しい会話を始めてください',
     'aiChat.historyHint': 'クリックして続きを開く',
+    'aiChat.historyLoadError':
+      '会話履歴を読み込めませんでした。ページを再読み込みして、もう一度お試しください。',
+    'aiChat.historySaveError':
+      '最新の会話変更を保存できませんでした。これ以上変更を失わないよう、続ける前にページを再読み込みしてください。',
     'aiChat.historyTitle': '最近の会話',
     'aiChat.inputLabel': 'AIに質問する',
     'aiChat.inputPlaceholder': '保存済みタブについて質問してください',

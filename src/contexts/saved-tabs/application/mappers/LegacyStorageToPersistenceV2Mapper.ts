@@ -1556,14 +1556,7 @@ const mapAiEntities = (
       continue
     }
     conversationIds.add(value.id)
-    conversationRecords.push({
-      id: value.id,
-      updatedAt: value.updatedAt,
-      value: {
-        createdAt: value.createdAt,
-        title: value.title,
-      },
-    })
+    const conversationMessageIds: string[] = []
     attachments += countMessageAttachments(value.messages, state)
     for (const message of value.messages) {
       if (!isLegacyAiMessageRecord(message)) {
@@ -1575,6 +1568,7 @@ const mapAiEntities = (
         continue
       }
       messageIds.add(message.id)
+      conversationMessageIds.push(message.id)
       messageRecords.push({
         conversationId: value.id,
         createdAt: value.createdAt,
@@ -1582,6 +1576,15 @@ const mapAiEntities = (
         value: message,
       })
     }
+    conversationRecords.push({
+      id: value.id,
+      updatedAt: value.updatedAt,
+      value: {
+        createdAt: value.createdAt,
+        messageIds: conversationMessageIds,
+        title: value.title,
+      },
+    })
   }
   return {
     attachments,

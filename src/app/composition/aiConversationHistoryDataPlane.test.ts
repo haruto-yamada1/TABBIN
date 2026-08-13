@@ -50,7 +50,11 @@ const createSnapshot = (): PersistenceLogicalSnapshot => ({
     {
       id: 'conversation-1',
       updatedAt: 20,
-      value: { createdAt: 10, title: 'Existing' },
+      value: {
+        createdAt: 10,
+        messageIds: ['message-1'],
+        title: 'Existing',
+      },
     },
   ],
   messages: [
@@ -116,6 +120,131 @@ describe('aiConversationHistoryDataPlane', () => {
     })
   })
 
+  it('conversationに記録したmessage ID順で履歴を復元する', async () => {
+    const snapshot: PersistenceLogicalSnapshot = {
+      ...createSnapshot(),
+      conversations: [
+        {
+          id: 'conversation-1',
+          updatedAt: 20,
+          value: {
+            createdAt: 10,
+            messageIds: ['message-z', 'message-a'],
+            title: 'Existing',
+          },
+        },
+      ],
+      messages: [
+        {
+          conversationId: 'conversation-1',
+          createdAt: 10,
+          id: 'message-a',
+          value: { content: 'Second', id: 'message-a', role: 'assistant' },
+        },
+        {
+          conversationId: 'conversation-1',
+          createdAt: 10,
+          id: 'message-z',
+          value: { content: 'First', id: 'message-z', role: 'user' },
+        },
+      ],
+    }
+    const dataPlane = createIndexedDbAiConversationHistoryDataPlane({
+      reader: { readConsistentSnapshot: async () => snapshot },
+      selectionStorage: {
+        get: async () => ({ activeAiChatConversationId: 'conversation-1' }),
+        set: async () => {},
+      },
+      unitOfWork: { commit: vi.fn() },
+    })
+
+    const history = await dataPlane.read()
+
+    expect(history.conversations).toEqual([
+      expect.objectContaining({
+        messages: [
+          expect.objectContaining({ id: 'message-z' }),
+          expect.objectContaining({ id: 'message-a' }),
+        ],
+      }),
+    ])
+  })
+
+  it('message order markerとrecord集合が一致しなければfail closedにする', async () => {
+    const snapshot: PersistenceLogicalSnapshot = {
+      ...createSnapshot(),
+      conversations: [
+        {
+          id: 'conversation-1',
+          updatedAt: 20,
+          value: {
+            createdAt: 10,
+            messageIds: ['missing-message'],
+            title: 'Existing',
+          },
+        },
+      ],
+    }
+    const dataPlane = createIndexedDbAiConversationHistoryDataPlane({
+      reader: { readConsistentSnapshot: async () => snapshot },
+      selectionStorage: {
+        get: async () => ({ activeAiChatConversationId: 'conversation-1' }),
+        set: async () => {},
+      },
+      unitOfWork: { commit: vi.fn() },
+    })
+
+    await expect(dataPlane.read()).rejects.toThrow(
+      'AI conversation message order is invalid.',
+    )
+  })
+
+  it('旧Persistence v2のmarkerless recordはtimestampとIDで安定して復元する', async () => {
+    const snapshot: PersistenceLogicalSnapshot = {
+      ...createSnapshot(),
+      conversations: [
+        {
+          id: 'conversation-1',
+          updatedAt: 20,
+          value: { createdAt: 10, title: 'Existing' },
+        },
+      ],
+      messages: [
+        {
+          conversationId: 'conversation-1',
+          createdAt: 10,
+          id: 'message-z',
+          value: { content: 'Second', id: 'message-z', role: 'assistant' },
+        },
+        {
+          conversationId: 'conversation-1',
+          createdAt: 10,
+          id: 'message-a',
+          value: { content: 'First', id: 'message-a', role: 'user' },
+        },
+      ],
+    }
+    const dataPlane = createIndexedDbAiConversationHistoryDataPlane({
+      reader: { readConsistentSnapshot: async () => snapshot },
+      selectionStorage: {
+        get: async () => ({ activeAiChatConversationId: 'conversation-1' }),
+        set: async () => {},
+      },
+      unitOfWork: { commit: vi.fn() },
+    })
+
+    const history = await dataPlane.read()
+
+    expect(history.conversations).toEqual([
+      expect.objectContaining({
+        messages: [
+          expect.objectContaining({ id: 'message-a' }),
+          expect.objectContaining({ id: 'message-z' }),
+        ],
+      }),
+    ])
+  })
+
   it('IndexedDB会話とmessageを一つのrevision guarded commitで置換する', async () => {
     const commit = vi.fn(async () => ({
       changedScopes: ['conversations'] as const,
@@ -155,7 +284,11 @@ describe('aiConversationHistoryDataPlane', () => {
             {
               id: 'conversation-2',
               updatedAt: 40,
-              value: { createdAt: 30, title: 'Next' },
+              value: {
+                createdAt: 30,
+                messageIds: ['message-2', 'message-3'],
+                title: 'Next',
+              },
             },
           ],
         },
@@ -170,7 +303,7 @@ describe('aiConversationHistoryDataPlane', () => {
             },
             {
               conversationId: 'conversation-2',
-              createdAt: 31,
+              createdAt: 30,
               id: 'message-3',
               value: {
                 content: 'Second',
@@ -186,6 +319,85 @@ describe('aiConversationHistoryDataPlane', () => {
     expect(selectionStorage.set).toHaveBeenCalledWith({
       activeAiChatConversationId: 'conversation-2',
     })
+  })
+
+  it('同一snapshotの置換ではselectionだけを保存する', async () => {
+    const commit = vi.fn()
+    const selectionStorage = {
+      get: vi.fn(async () => ({})),
+      set: vi.fn(async () => {}),
+    }
+    const dataPlane = createIndexedDbAiConversationHistoryDataPlane({
+      reader: { readConsistentSnapshot: async () => createSnapshot() },
+      selectionStorage,
+      unitOfWork: { commit },
+    })
+
+    await dataPlane.replace({
+      activeConversationId: 'conversation-1',
+      conversations: [
+        {
+          createdAt: 10,
+          id: 'conversation-1',
+          messages: [{ content: 'Hello', id: 'message-1', role: 'user' }],
+          title: 'Existing',
+          updatedAt: 20,
+        },
+      ],
+    })
+
+    expect(commit).not.toHaveBeenCalled()
+    expect(selectionStorage.set).toHaveBeenCalledWith({
+      activeAiChatConversationId: 'conversation-1',
+    })
+  })
+
+  it('会話の日時変更で既存messageのprovenanceを再同期しない', async () => {
+    const commit = vi.fn(async () => ({
+      changedScopes: ['conversations'] as const,
+      revision: 8,
+    }))
+    const dataPlane = createIndexedDbAiConversationHistoryDataPlane({
+      reader: { readConsistentSnapshot: async () => createSnapshot() },
+      selectionStorage: {
+        get: vi.fn(async () => ({})),
+        set: vi.fn(async () => {}),
+      },
+      unitOfWork: { commit },
+    })
+
+    await dataPlane.replace({
+      activeConversationId: 'conversation-1',
+      conversations: [
+        {
+          createdAt: 30,
+          id: 'conversation-1',
+          messages: [{ content: 'Hello', id: 'message-1', role: 'user' }],
+          title: 'Existing',
+          updatedAt: 40,
+        },
+      ],
+    })
+
+    expect(commit).toHaveBeenCalledWith(
+      {
+        conversations: {
+          put: [
+            {
+              id: 'conversation-1',
+              updatedAt: 40,
+              value: {
+                createdAt: 30,
+                messageIds: ['message-1'],
+                title: 'Existing',
+              },
+            },
+          ],
+        },
+        messages: {},
+      },
+      { expectedRevision: 7 },
+    )
   })
 
   it('Chrome Storageと同様にmessageのoptional undefined fieldを省略する', async () => {

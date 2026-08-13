@@ -76,6 +76,7 @@ test.describe('extension options', () => {
     await seedStorage(serviceWorker, createSeedWithUrls())
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+    await waitForPersistenceV2Ready(serviceWorker)
 
     const downloadPromise = page.waitForEvent('download')
     await page.getByRole('button', { name: /export/i }).click()

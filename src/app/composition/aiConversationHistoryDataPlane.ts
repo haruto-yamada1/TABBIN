@@ -67,6 +67,9 @@ const createRouteAwareAiConversationHistoryDataPlane = ({
 
 const createLegacyAiConversationHistoryDataPlane = (
   getStorage: () => AiConversationHistoryStorage,
+  setStorage: (values: Record<string, unknown>) => Promise<void> = async (
+    values,
+  ) => getStorage().set(values),
 ): AiConversationHistoryDataPlane => ({
   read: async () => {
     const stored = await getStorage().get([
@@ -81,16 +84,42 @@ const createLegacyAiConversationHistoryDataPlane = (
     }
   },
   replace: async ({ activeConversationId, conversations }) => {
-    await getStorage().set({
+    await setStorage({
       [ACTIVE_CONVERSATION_ID_KEY]: activeConversationId,
       [CONVERSATIONS_KEY]: [...conversations],
     })
   },
 })
 
+const readOptionalMessageIds = (
+  value: unknown,
+): readonly string[] | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  if (!Array.isArray(value)) {
+    throw new TypeError('AI conversation record is invalid.')
+  }
+  const messageIds: string[] = []
+  for (const id of value) {
+    if (typeof id !== 'string') {
+      throw new TypeError('AI conversation record is invalid.')
+    }
+    messageIds.push(id)
+  }
+  if (new Set(messageIds).size !== messageIds.length) {
+    throw new TypeError('AI conversation record is invalid.')
+  }
+  return messageIds
+}
+
 const readConversationValue = (
   record: PersistenceJsonRecord,
-): { readonly createdAt: number; readonly title: string } => {
+): {
+  readonly createdAt: number
+  readonly messageIds?: readonly string[]
+  readonly title: string
+} => {
   if (
     !isRecord(record.value) ||
     !isTimestamp(record.value.createdAt) ||
@@ -98,7 +127,12 @@ const readConversationValue = (
   ) {
     throw new TypeError('AI conversation record is invalid.')
   }
-  return { createdAt: record.value.createdAt, title: record.value.title }
+  const messageIds = readOptionalMessageIds(record.value.messageIds)
+  return {
+    createdAt: record.value.createdAt,
+    ...(messageIds ? { messageIds } : {}),
+    title: record.value.title,
+  }
 }
 
 const readMessageValue = (record: PersistenceMessageRecord): RecordLike => {
@@ -125,12 +159,32 @@ const materializeConversations = (
   }
   return conversations.map((record) => {
     const value = readConversationValue(record)
-    const conversationMessages = (messagesByConversation.get(record.id) ?? [])
-      .toSorted(
+    const storedMessages = messagesByConversation.get(record.id) ?? []
+    let orderedMessages: readonly PersistenceMessageRecord[]
+    if (value.messageIds) {
+      const messagesById = new Map(
+        storedMessages.map((message) => [message.id, message]),
+      )
+      if (
+        messagesById.size !== storedMessages.length ||
+        value.messageIds.length !== storedMessages.length
+      ) {
+        throw new TypeError('AI conversation message order is invalid.')
+      }
+      orderedMessages = value.messageIds.map((id) => {
+        const message = messagesById.get(id)
+        if (!message) {
+          throw new TypeError('AI conversation message order is invalid.')
+        }
+        return message
+      })
+    } else {
+      orderedMessages = storedMessages.toSorted(
         (left, right) =>
           left.createdAt - right.createdAt || left.id.localeCompare(right.id),
       )
-      .map(readMessageValue)
+    }
+    const conversationMessages = orderedMessages.map(readMessageValue)
     return {
       createdAt: value.createdAt,
       id: record.id,
@@ -156,69 +210,105 @@ const normalizeJsonValue = (
   throw new TypeError('AI conversation message is not JSON-safe.')
 }
 
-const toPersistenceRecords = (values: readonly unknown[]) => {
+const readConversationInput = (value: unknown) => {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    typeof value.title !== 'string' ||
+    !isTimestamp(value.createdAt) ||
+    !isTimestamp(value.updatedAt) ||
+    !Array.isArray(value.messages)
+  ) {
+    throw new TypeError('AI conversation is not JSON-safe or valid.')
+  }
+  return {
+    createdAt: value.createdAt,
+    id: value.id,
+    messages: value.messages,
+    title: value.title,
+    updatedAt: value.updatedAt,
+  }
+}
+
+const readConversationMessageInput = (message: unknown) => {
+  if (
+    !isRecord(message) ||
+    typeof message.id !== 'string' ||
+    typeof message.content !== 'string' ||
+    (message.role !== 'assistant' && message.role !== 'user')
+  ) {
+    throw new TypeError('AI conversation message is invalid.')
+  }
+  const normalizedMessage = normalizeJsonValue(message)
+  if (
+    !isRecord(normalizedMessage) ||
+    typeof normalizedMessage.id !== 'string' ||
+    typeof normalizedMessage.content !== 'string' ||
+    (normalizedMessage.role !== 'assistant' &&
+      normalizedMessage.role !== 'user')
+  ) {
+    throw new TypeError('AI conversation message is invalid.')
+  }
+  return { id: normalizedMessage.id, value: normalizedMessage }
+}
+
+const toPersistenceRecords = (
+  values: readonly unknown[],
+  currentMessages: ReadonlyMap<string, PersistenceMessageRecord>,
+) => {
   const conversations: PersistenceJsonRecord[] = []
   const messages: PersistenceMessageRecord[] = []
   const conversationIds = new Set<string>()
   const messageIds = new Set<string>()
   for (const value of values) {
-    if (
-      !isRecord(value) ||
-      typeof value.id !== 'string' ||
-      typeof value.title !== 'string' ||
-      !isTimestamp(value.createdAt) ||
-      !isTimestamp(value.updatedAt) ||
-      !Array.isArray(value.messages)
-    ) {
-      throw new TypeError('AI conversation is not JSON-safe or valid.')
-    }
-    if (conversationIds.has(value.id)) {
+    const conversation = readConversationInput(value)
+    if (conversationIds.has(conversation.id)) {
       throw new TypeError('AI conversation IDs must be unique.')
     }
-    const conversationId: string = value.id
-    const conversationCreatedAt: number = value.createdAt
+    const conversationId = conversation.id
+    const conversationCreatedAt = conversation.createdAt
     conversationIds.add(conversationId)
-    conversations.push({
-      id: conversationId,
-      updatedAt: value.updatedAt,
-      value: { createdAt: value.createdAt, title: value.title },
-    })
-    value.messages.forEach((message, index) => {
-      if (
-        !isRecord(message) ||
-        typeof message.id !== 'string' ||
-        typeof message.content !== 'string' ||
-        (message.role !== 'assistant' && message.role !== 'user')
-      ) {
-        throw new TypeError('AI conversation message is invalid.')
-      }
-      const normalizedMessage = normalizeJsonValue(message)
-      if (
-        !isRecord(normalizedMessage) ||
-        typeof normalizedMessage.id !== 'string' ||
-        typeof normalizedMessage.content !== 'string' ||
-        (normalizedMessage.role !== 'assistant' &&
-          normalizedMessage.role !== 'user')
-      ) {
-        throw new TypeError('AI conversation message is invalid.')
-      }
+    const conversationMessageIds: string[] = []
+    for (const message of conversation.messages) {
+      const normalizedMessage = readConversationMessageInput(message)
       if (messageIds.has(normalizedMessage.id)) {
         throw new TypeError('AI conversation message IDs must be unique.')
       }
-      const createdAt = conversationCreatedAt + index
-      if (!Number.isSafeInteger(createdAt)) {
-        throw new TypeError('AI conversation message order is invalid.')
-      }
       messageIds.add(normalizedMessage.id)
+      conversationMessageIds.push(normalizedMessage.id)
       messages.push({
         conversationId,
-        createdAt,
+        createdAt:
+          currentMessages.get(normalizedMessage.id)?.createdAt ??
+          conversationCreatedAt,
         id: normalizedMessage.id,
-        value: normalizedMessage,
+        value: normalizedMessage.value,
       })
+    }
+    conversations.push({
+      id: conversationId,
+      updatedAt: conversation.updatedAt,
+      value: {
+        createdAt: conversation.createdAt,
+        messageIds: conversationMessageIds,
+        title: conversation.title,
+      },
     })
   }
   return { conversations, messages }
+}
+
+const collectMissingRecordIds = (
+  records: readonly { readonly id: string }[],
+  nextIds: ReadonlySet<string>,
+): string[] => {
+  const missingIds: string[] = []
+  for (const { id } of records) {
+    if (!nextIds.has(id)) {
+      missingIds.push(id)
+    }
+  }
+  return missingIds
 }
 
 const recordsEqual = (left: unknown, right: unknown): boolean =>
@@ -251,20 +341,22 @@ const createIndexedDbAiConversationHistoryDataPlane = ({
   },
   replace: async ({ activeConversationId, conversations }) => {
     const snapshot = await reader.readConsistentSnapshot()
-    const next = toPersistenceRecords(conversations)
-    const nextConversationIds = new Set(next.conversations.map(({ id }) => id))
-    const nextMessageIds = new Set(next.messages.map(({ id }) => id))
-    const deleteConversations = snapshot.conversations
-      .filter(({ id }) => !nextConversationIds.has(id))
-      .map(({ id }) => id)
-    const deleteMessages = snapshot.messages
-      .filter(({ id }) => !nextMessageIds.has(id))
-      .map(({ id }) => id)
     const currentConversations = new Map(
       snapshot.conversations.map((record) => [record.id, record]),
     )
     const currentMessages = new Map(
       snapshot.messages.map((record) => [record.id, record]),
+    )
+    const next = toPersistenceRecords(conversations, currentMessages)
+    const nextConversationIds = new Set(next.conversations.map(({ id }) => id))
+    const nextMessageIds = new Set(next.messages.map(({ id }) => id))
+    const deleteConversations = collectMissingRecordIds(
+      snapshot.conversations,
+      nextConversationIds,
+    )
+    const deleteMessages = collectMissingRecordIds(
+      snapshot.messages,
+      nextMessageIds,
     )
     const putConversations = next.conversations.filter(
       (record) => !recordsEqual(currentConversations.get(record.id), record),
@@ -355,7 +447,10 @@ const getAiConversationHistoryDataPlane =
       productionDataPlane = null
       return productionDataPlane
     }
-    const legacy = createLegacyAiConversationHistoryDataPlane(() => storage)
+    const legacy = createLegacyAiConversationHistoryDataPlane(
+      () => storage,
+      async (values) => storage.set(values),
+    )
     productionDataPlane = createRouteAwareAiConversationHistoryDataPlane({
       indexeddb: {
         read: async () => {
@@ -369,15 +464,7 @@ const getAiConversationHistoryDataPlane =
           await productionIndexedDbDataPlane.replace(data)
         },
       },
-      legacy: {
-        read: legacy.read,
-        replace: async ({ activeConversationId, conversations }) => {
-          await storage.set({
-            [ACTIVE_CONVERSATION_ID_KEY]: activeConversationId,
-            [CONVERSATIONS_KEY]: [...conversations],
-          })
-        },
-      },
+      legacy,
       router: getPersistenceBootstrapRuntime().dataPlaneRouter,
     })
     return productionDataPlane

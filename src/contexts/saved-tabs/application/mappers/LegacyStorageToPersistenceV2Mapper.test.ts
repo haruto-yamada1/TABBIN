@@ -658,9 +658,14 @@ describe('analyzeLegacyMigrationPreflight', () => {
         id: 'conversation-1',
         messages: [
           {
-            content: 'private prompt',
-            id: 'message-1',
+            content: 'first private prompt',
+            id: 'message-z',
             role: 'user',
+          },
+          {
+            content: 'second private response',
+            id: 'message-a',
+            role: 'assistant',
           },
         ],
         title: 'Conversation',
@@ -699,6 +704,7 @@ describe('analyzeLegacyMigrationPreflight', () => {
           updatedAt: 20,
           value: {
             createdAt: 10,
+            messageIds: ['message-z', 'message-a'],
             title: 'Conversation',
           },
         },
@@ -707,11 +713,21 @@ describe('analyzeLegacyMigrationPreflight', () => {
         {
           conversationId: 'conversation-1',
           createdAt: 10,
-          id: 'message-1',
+          id: 'message-z',
           value: {
-            content: 'private prompt',
-            id: 'message-1',
+            content: 'first private prompt',
+            id: 'message-z',
             role: 'user',
+          },
+        },
+        {
+          conversationId: 'conversation-1',
+          createdAt: 10,
+          id: 'message-a',
+          value: {
+            content: 'second private response',
+            id: 'message-a',
+            role: 'assistant',
           },
         },
       ],
