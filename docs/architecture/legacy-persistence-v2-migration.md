@@ -68,6 +68,24 @@ preflight and the actual migration.
   preflight approval policy blocks every issue except a missing top-level key,
   so a conflicting title cannot reach target writes.
 
+The temporary schema-less backup importer has a compatibility adapter before
+this raw-storage mapper. It recognizes representations emitted by the former
+public exporters:
+
+- the validated runtime-only `userSettings.activeAiSystemPrompt` projection is
+  removed while `activeAiSystemPromptId` and `aiSystemPrompts` remain;
+- nested saved-tab URLs are paired with same-position `urlIds`, and custom
+  project URL IDs are restored only when URL and title identify exactly one
+  canonical top-level record; and
+- a valid partial domain category order is completed with the remaining
+  declared categories in declaration order.
+
+The 2.x exporter always included its nested URLs in the canonical top-level URL
+list, so ambiguous or unmatched 2.x references remain typed blocking issues.
+The 1.x importer contract still permits mixed canonical and nested-only URL
+representations. Unknown settings and duplicate or unknown category-order
+entries remain blocking for every legacy version.
+
 The mapper runs `PersistenceIntegrityChecker` before any IndexedDB operation.
 Only an approved, error-free target may be written.
 

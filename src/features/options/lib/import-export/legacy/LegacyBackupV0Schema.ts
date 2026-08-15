@@ -16,46 +16,52 @@ const legacyAiSystemPromptPresetSchema = z.strictObject({
   updatedAt: z.number(),
 })
 
-const legacyUserSettingsSchema = z.strictObject({
-  activeAiSystemPromptId: z.string().optional(),
-  aiSystemPrompts: z.array(legacyAiSystemPromptPresetSchema).optional(),
-  autoDeletePeriod: z
-    .enum([
-      'never',
-      '30sec',
-      '1min',
-      '1hour',
-      '1day',
-      '7days',
-      '14days',
-      '30days',
-      '180days',
-      '365days',
-    ])
-    .optional(),
-  clickBehavior: z
-    .enum([
-      'saveCurrentTab',
-      'saveWindowTabs',
-      'saveSameDomainTabs',
-      'saveAllWindowsTabs',
-    ])
-    .optional(),
-  colors: z.record(z.string(), z.string()).optional(),
-  confirmDeleteAll: z.boolean().optional(),
-  confirmDeleteEach: z.boolean().optional(),
-  enableCategories: z.boolean().optional(),
-  excludePatterns: z.array(z.string()).optional(),
-  excludePinnedTabs: z.boolean().optional(),
-  fontSizePercent: z.number().optional(),
-  language: z.enum(['system', 'ja', 'en']).optional(),
-  ollamaModel: z.string().optional(),
-  openAllInNewWindow: z.boolean().optional(),
-  openUrlInBackground: z.boolean().optional(),
-  removeTabAfterExternalDrop: z.boolean().optional(),
-  removeTabAfterOpen: z.boolean().optional(),
-  showSavedTime: z.boolean().optional(),
-})
+const legacyUserSettingsSchema = z
+  .strictObject({
+    activeAiSystemPrompt: legacyAiSystemPromptPresetSchema.optional(),
+    activeAiSystemPromptId: z.string().optional(),
+    aiSystemPrompts: z.array(legacyAiSystemPromptPresetSchema).optional(),
+    autoDeletePeriod: z
+      .enum([
+        'never',
+        '30sec',
+        '1min',
+        '1hour',
+        '1day',
+        '7days',
+        '14days',
+        '30days',
+        '180days',
+        '365days',
+      ])
+      .optional(),
+    clickBehavior: z
+      .enum([
+        'saveCurrentTab',
+        'saveWindowTabs',
+        'saveSameDomainTabs',
+        'saveAllWindowsTabs',
+      ])
+      .optional(),
+    colors: z.record(z.string(), z.string()).optional(),
+    confirmDeleteAll: z.boolean().optional(),
+    confirmDeleteEach: z.boolean().optional(),
+    enableCategories: z.boolean().optional(),
+    excludePatterns: z.array(z.string()).optional(),
+    excludePinnedTabs: z.boolean().optional(),
+    fontSizePercent: z.number().optional(),
+    language: z.enum(['system', 'ja', 'en']).optional(),
+    ollamaModel: z.string().optional(),
+    openAllInNewWindow: z.boolean().optional(),
+    openUrlInBackground: z.boolean().optional(),
+    removeTabAfterExternalDrop: z.boolean().optional(),
+    removeTabAfterOpen: z.boolean().optional(),
+    showSavedTime: z.boolean().optional(),
+  })
+  .transform(
+    ({ activeAiSystemPrompt: _activeAiSystemPrompt, ...persistableSettings }) =>
+      persistableSettings,
+  )
 
 const legacyNestedUrlSchema = z.strictObject({
   favIconUrl: legacyFavIconUrlSchema.optional(),

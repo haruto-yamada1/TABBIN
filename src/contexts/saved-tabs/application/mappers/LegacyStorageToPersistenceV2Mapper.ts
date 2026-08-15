@@ -646,14 +646,18 @@ const readSavedTabCategoryOrder = (
   if (order === null || orderWithUncategorized === null) {
     return null
   }
+  const uncategorizedMarkerCount =
+    orderWithUncategorized?.filter((category) => category === '__uncategorized')
+      .length ?? 0
   const filteredOrder = orderWithUncategorized?.filter(
     (category) => category !== '__uncategorized',
   )
   if (
-    order &&
-    filteredOrder &&
-    (order.length !== filteredOrder.length ||
-      order.some((category, index) => category !== filteredOrder[index]))
+    uncategorizedMarkerCount > 1 ||
+    (order &&
+      filteredOrder &&
+      (order.length !== filteredOrder.length ||
+        order.some((category, index) => category !== filteredOrder[index])))
   ) {
     addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
   }

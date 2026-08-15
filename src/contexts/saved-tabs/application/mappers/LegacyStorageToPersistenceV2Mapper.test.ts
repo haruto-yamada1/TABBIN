@@ -534,6 +534,30 @@ describe('analyzeLegacyMigrationPreflight', () => {
     )
   })
 
+  it('blocks duplicate uncategorized markers in legacy domain category order', () => {
+    const source = withSource(createEmptySnapshot(), 'savedTabs', [
+      {
+        domain: 'example.com',
+        id: 'group-1',
+        savedAt: 1,
+        subCategories: ['docs', 'news'],
+        subCategoryOrderWithUncategorized: [
+          '__uncategorized',
+          '__uncategorized',
+          'news',
+          'docs',
+        ],
+        urlIds: [],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(result.issueCodes).toContain(
+      'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
+    )
+  })
+
   it.each([
     {
       categoryKeywords: [

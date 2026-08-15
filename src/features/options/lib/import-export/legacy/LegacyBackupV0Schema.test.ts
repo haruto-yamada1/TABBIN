@@ -33,6 +33,30 @@ describe('LegacyBackupV0Schema', () => {
     )
   })
 
+  it('accepts and strips the runtime-only active prompt emitted by the legacy exporter', () => {
+    const backup = createLegacyBackup()
+    const activeAiSystemPrompt = {
+      createdAt: 1,
+      id: 'legacy-active-prompt',
+      name: 'Legacy active prompt',
+      template: 'Legacy prompt template',
+      updatedAt: 2,
+    }
+    backup.userSettings = {
+      activeAiSystemPrompt,
+      activeAiSystemPromptId: activeAiSystemPrompt.id,
+      aiSystemPrompts: [activeAiSystemPrompt],
+    }
+
+    const result = LegacyBackupV0Schema.parse(backup)
+
+    expect(result.userSettings).toMatchObject({
+      activeAiSystemPromptId: activeAiSystemPrompt.id,
+      aiSystemPrompts: [activeAiSystemPrompt],
+    })
+    expect(result.userSettings).not.toHaveProperty('activeAiSystemPrompt')
+  })
+
   it('accepts legacy nested timestamp and runtime tabId fields', () => {
     const backup = createLegacyBackup()
     backup.savedTabs = [
