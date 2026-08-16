@@ -136,6 +136,45 @@ describe('assertProductionImportAllowed', () => {
     })
   })
 
+  it('accepts the legacy exporter runtime prompt without forwarding it to settings', () => {
+    const legacy: unknown = JSON.parse(
+      readFixture('legacy-tab-group-url-ids.json'),
+    )
+    if (typeof legacy !== 'object' || legacy === null) {
+      throw new TypeError('Expected legacy backup fixture')
+    }
+    const userSettings = Reflect.get(legacy, 'userSettings')
+    if (typeof userSettings !== 'object' || userSettings === null) {
+      throw new TypeError('Expected legacy user settings fixture')
+    }
+    const activeAiSystemPrompt = {
+      createdAt: 1,
+      id: 'legacy-active-prompt',
+      name: 'Legacy active prompt',
+      template: 'Legacy prompt template',
+      updatedAt: 2,
+    }
+    Object.assign(userSettings, {
+      activeAiSystemPrompt,
+      activeAiSystemPromptId: activeAiSystemPrompt.id,
+      aiSystemPrompts: [activeAiSystemPrompt],
+    })
+
+    const allowed = assertProductionImportAllowed(JSON.stringify(legacy), {
+      importDate: '2026-08-31',
+      importMode: 'merge',
+    })
+    if (allowed?.kind !== 'legacy-merge') {
+      throw new TypeError('Expected legacy merge import')
+    }
+
+    expect(allowed.userSettingsPatch).toMatchObject({
+      activeAiSystemPromptId: activeAiSystemPrompt.id,
+      aiSystemPrompts: [activeAiSystemPrompt],
+    })
+    expect(allowed.userSettingsPatch).not.toHaveProperty('activeAiSystemPrompt')
+  })
+
   it('accepts schema-less backups containing versioned analytics queries', () => {
     const legacy: unknown = JSON.parse(
       readFixture('legacy-tab-group-url-ids.json'),

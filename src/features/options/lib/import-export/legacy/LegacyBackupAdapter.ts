@@ -83,6 +83,43 @@ const toRawLegacyStorageSnapshot = (
 type LegacyNestedUrl = NonNullable<
   LegacyBackupV0['savedTabs'][number]['urls']
 >[number]
+type LegacyCanonicalUrl = NonNullable<LegacyBackupV0['urls']>[number]
+type LegacyCustomProject = NonNullable<LegacyBackupV0['customProjects']>[number]
+type LegacyCustomProjectUrl = NonNullable<LegacyCustomProject['urls']>[number]
+type LegacyUrlMetadata = NonNullable<LegacyCustomProject['urlMetadata']>
+
+const createExporterUrlKey = (url: {
+  readonly title: string
+  readonly url: string
+}): string => JSON.stringify([url.url, url.title])
+
+const createCanonicalUrlIndex = (
+  urls: readonly LegacyCanonicalUrl[],
+): ReadonlyMap<string, readonly LegacyCanonicalUrl[]> => {
+  const index = new Map<string, LegacyCanonicalUrl[]>()
+  for (const url of urls) {
+    const key = createExporterUrlKey(url)
+    const matches = index.get(key) ?? []
+    matches.push(url)
+    index.set(key, matches)
+  }
+  return index
+}
+
+const resolveCanonicalUrlIds = (
+  urls: readonly { readonly title: string; readonly url: string }[],
+  canonicalUrlIndex: ReadonlyMap<string, readonly LegacyCanonicalUrl[]>,
+): readonly string[] | undefined => {
+  const ids: string[] = []
+  for (const url of urls) {
+    const matches = canonicalUrlIndex.get(createExporterUrlKey(url)) ?? []
+    if (matches.length !== 1) {
+      return undefined
+    }
+    ids.push(matches[0].id)
+  }
+  return ids
+}
 
 const normalizeLegacyNestedUrl = (
   url: LegacyNestedUrl,
@@ -98,33 +135,198 @@ const normalizeLegacyNestedUrl = (
   }
 }
 
+const completeLegacyCategoryOrder = (
+  order: readonly string[] | undefined,
+  categories: readonly string[] | undefined,
+  options: { readonly hasUncategorizedMarker: boolean },
+): string[] | undefined => {
+  if (!order || !categories) {
+    return order === undefined ? undefined : [...order]
+  }
+  const categorySet = new Set(categories)
+  if (categorySet.size !== categories.length) {
+    return [...order]
+  }
+  const orderedCategories = options.hasUncategorizedMarker
+    ? order.filter((category) => category !== '__uncategorized')
+    : order
+  const orderedSet = new Set(orderedCategories)
+  if (
+    orderedSet.size !== orderedCategories.length ||
+    orderedCategories.some((category) => !categorySet.has(category))
+  ) {
+    return [...order]
+  }
+  return [
+    ...order,
+    ...categories.filter((category) => !orderedSet.has(category)),
+  ]
+}
+
+const resolveSavedTabUrlIds = (
+  normalizedUrls: readonly LegacyNestedUrl[] | undefined,
+  existingUrlIds: readonly string[] | undefined,
+  canonicalUrlIndex: ReadonlyMap<string, readonly LegacyCanonicalUrl[]>,
+): readonly string[] | undefined => {
+  if (normalizedUrls === undefined) {
+    return undefined
+  }
+  if (existingUrlIds && existingUrlIds.length > 0) {
+    if (existingUrlIds.length !== normalizedUrls.length) {
+      return undefined
+    }
+    return existingUrlIds
+  }
+  return resolveCanonicalUrlIds(normalizedUrls, canonicalUrlIndex)
+}
+
+const normalizeLegacySavedTab = (
+  savedTab: LegacyBackupV0['savedTabs'][number],
+  canonicalUrlIndex: ReadonlyMap<string, readonly LegacyCanonicalUrl[]>,
+  requiresCanonicalUrlReferences: boolean,
+): LegacyBackupV0['savedTabs'][number] => {
+  const normalizedUrls = savedTab.urls?.map(normalizeLegacyNestedUrl)
+  const resolvedUrlIds = resolveSavedTabUrlIds(
+    normalizedUrls,
+    savedTab.urlIds,
+    canonicalUrlIndex,
+  )
+  if (
+    normalizedUrls !== undefined &&
+    (savedTab.urlIds?.length ?? 0) === 0 &&
+    requiresCanonicalUrlReferences &&
+    resolvedUrlIds === undefined
+  ) {
+    throw new LegacyBackupImportError('LEGACY_MIGRATION_BLOCKED', [
+      'LEGACY_URL_REFERENCE_CONFLICT',
+    ])
+  }
+  return {
+    ...savedTab,
+    ...(resolvedUrlIds === undefined ? {} : { urlIds: [...resolvedUrlIds] }),
+    ...(normalizedUrls === undefined
+      ? {}
+      : {
+          urls: normalizedUrls.map((url, index) =>
+            url.id === undefined && resolvedUrlIds?.[index]
+              ? { ...url, id: resolvedUrlIds[index] }
+              : url,
+          ),
+        }),
+    ...(savedTab.subCategoryOrder === undefined
+      ? {}
+      : {
+          subCategoryOrder: completeLegacyCategoryOrder(
+            savedTab.subCategoryOrder,
+            savedTab.subCategories,
+            { hasUncategorizedMarker: false },
+          ),
+        }),
+    ...(savedTab.subCategoryOrderWithUncategorized === undefined
+      ? {}
+      : {
+          subCategoryOrderWithUncategorized: completeLegacyCategoryOrder(
+            savedTab.subCategoryOrderWithUncategorized,
+            savedTab.subCategories,
+            { hasUncategorizedMarker: true },
+          ),
+        }),
+  }
+}
+
+const buildLegacyProjectUrlMetadata = (
+  project: LegacyCustomProject,
+  urls: readonly LegacyCustomProjectUrl[],
+  urlIds: readonly string[],
+): LegacyUrlMetadata | undefined => {
+  const metadata: LegacyUrlMetadata = { ...project.urlMetadata }
+  urls.forEach((url, index) => {
+    const urlId = urlIds[index]
+    if (
+      Object.hasOwn(metadata, urlId) ||
+      (url.category === undefined && url.notes === undefined)
+    ) {
+      return
+    }
+    metadata[urlId] = {
+      ...(url.category === undefined ? {} : { category: url.category }),
+      ...(url.notes === undefined ? {} : { notes: url.notes }),
+    }
+  })
+  return Object.keys(metadata).length > 0 ? metadata : undefined
+}
+
+const normalizeLegacyCustomProject = (
+  project: LegacyCustomProject,
+  canonicalUrlIndex: ReadonlyMap<string, readonly LegacyCanonicalUrl[]>,
+  requiresCanonicalUrlReferences: boolean,
+): LegacyCustomProject => {
+  const normalizedProject = {
+    ...project,
+    ...(project.projectKeywords === undefined
+      ? {}
+      : {
+          projectKeywords: {
+            domainKeywords: project.projectKeywords.domainKeywords ?? [],
+            titleKeywords: project.projectKeywords.titleKeywords ?? [],
+            urlKeywords: project.projectKeywords.urlKeywords ?? [],
+          },
+        }),
+  }
+  if (
+    project.urls === undefined ||
+    (project.urlIds !== undefined && project.urlIds.length > 0)
+  ) {
+    return normalizedProject
+  }
+  const urlIds = resolveCanonicalUrlIds(project.urls, canonicalUrlIndex)
+  if (!urlIds) {
+    if (requiresCanonicalUrlReferences) {
+      throw new LegacyBackupImportError('LEGACY_MIGRATION_BLOCKED', [
+        'LEGACY_URL_REFERENCE_CONFLICT',
+      ])
+    }
+    return normalizedProject
+  }
+  const urlMetadata = buildLegacyProjectUrlMetadata(
+    project,
+    project.urls,
+    urlIds,
+  )
+  return {
+    ...normalizedProject,
+    urlIds: [...urlIds],
+    ...(urlMetadata === undefined ? {} : { urlMetadata }),
+  }
+}
+
 const normalizeLegacyBackupForMapper = (
   backup: LegacyBackupV0,
-): LegacyBackupV0 => ({
-  ...backup,
-  ...(backup.customProjects === undefined
-    ? {}
-    : {
-        customProjects: backup.customProjects.map((project) => ({
-          ...project,
-          ...(project.projectKeywords === undefined
-            ? {}
-            : {
-                projectKeywords: {
-                  domainKeywords: project.projectKeywords.domainKeywords ?? [],
-                  titleKeywords: project.projectKeywords.titleKeywords ?? [],
-                  urlKeywords: project.projectKeywords.urlKeywords ?? [],
-                },
-              }),
-        })),
-      }),
-  savedTabs: backup.savedTabs.map((savedTab) => ({
-    ...savedTab,
-    ...(savedTab.urls === undefined
+): LegacyBackupV0 => {
+  const canonicalUrlIndex = createCanonicalUrlIndex(backup.urls ?? [])
+  const requiresCanonicalUrlReferences = backup.version.startsWith('2.')
+  return {
+    ...backup,
+    ...(backup.customProjects === undefined
       ? {}
-      : { urls: savedTab.urls.map(normalizeLegacyNestedUrl) }),
-  })),
-})
+      : {
+          customProjects: backup.customProjects.map((project) =>
+            normalizeLegacyCustomProject(
+              project,
+              canonicalUrlIndex,
+              requiresCanonicalUrlReferences,
+            ),
+          ),
+        }),
+    savedTabs: backup.savedTabs.map((savedTab) =>
+      normalizeLegacySavedTab(
+        savedTab,
+        canonicalUrlIndex,
+        requiresCanonicalUrlReferences,
+      ),
+    ),
+  }
+}
 
 export const convertLegacyBackup = (
   input: unknown,

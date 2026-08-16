@@ -37,27 +37,82 @@ const createSeedWithUrls = () =>
     userSettings: { ...defaultUserSettings, clickBehavior: 'saveCurrentTab' },
   })
 
-const createLegacyBackup = () => ({
-  parentCategories: [],
-  savedTabs: [
-    {
-      domain: 'legacy.example',
-      id: 'group-legacy',
-      urlIds: ['url-legacy'],
+const createLegacyBackup = () => {
+  const activeAiSystemPrompt = {
+    createdAt: now - 1,
+    id: 'legacy-active-prompt',
+    name: 'Legacy active prompt',
+    template: 'Legacy prompt template',
+    updatedAt: now,
+  }
+  const legacyUrl = {
+    id: 'url-legacy',
+    savedAt: now,
+    title: 'Legacy Home',
+    url: 'https://legacy.example/',
+  }
+
+  return {
+    customProjectOrder: ['project-legacy'],
+    customProjects: [
+      {
+        categories: ['Reference'],
+        categoryOrder: ['Reference'],
+        createdAt: now - 1,
+        id: 'project-legacy',
+        name: 'Legacy Project',
+        projectKeywords: {
+          domainKeywords: [],
+          titleKeywords: [],
+          urlKeywords: [],
+        },
+        updatedAt: now,
+        urls: [
+          {
+            category: 'Reference',
+            notes: 'Legacy memo',
+            savedAt: legacyUrl.savedAt,
+            title: legacyUrl.title,
+            url: legacyUrl.url,
+          },
+        ],
+      },
+    ],
+    parentCategories: [],
+    savedTabs: [
+      {
+        categoryKeywords: [
+          { categoryName: 'news', keywords: [] },
+          { categoryName: 'docs', keywords: [] },
+        ],
+        domain: 'legacy.example',
+        id: 'group-legacy',
+        savedAt: now,
+        subCategories: ['news', 'docs'],
+        subCategoryOrder: ['news'],
+        subCategoryOrderWithUncategorized: ['__uncategorized', 'news'],
+        urlIds: [legacyUrl.id],
+        urls: [
+          {
+            savedAt: legacyUrl.savedAt,
+            subCategory: 'news',
+            title: legacyUrl.title,
+            url: legacyUrl.url,
+          },
+        ],
+        urlSubCategories: { [legacyUrl.id]: 'news' },
+      },
+    ],
+    timestamp: new Date(now).toISOString(),
+    urls: [legacyUrl],
+    userSettings: {
+      activeAiSystemPrompt,
+      activeAiSystemPromptId: activeAiSystemPrompt.id,
+      aiSystemPrompts: [activeAiSystemPrompt],
     },
-  ],
-  timestamp: new Date(now).toISOString(),
-  urls: [
-    {
-      id: 'url-legacy',
-      savedAt: now,
-      title: 'Legacy Home',
-      url: 'https://legacy.example/',
-    },
-  ],
-  userSettings: {},
-  version: '1.0.0',
-})
+    version: '2.0.9',
+  }
+}
 
 const emptyPersistenceV2Seed = {
   categories: [],
