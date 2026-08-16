@@ -160,10 +160,7 @@ export class MigrationPreflightService implements MigrationPreflightServicePort 
     const issueCodes = [...analysis.issueCodes, ...capacityIssueCodes]
     const blockingIssueCodes: MigrationPreflightIssueCode[] = []
     for (const issue of analysis.issues) {
-      if (
-        issue.code !== 'MIGRATION_SOURCE_MISSING_KEY' &&
-        issue.code !== 'MISSING_TIMESTAMP_PROVENANCE'
-      ) {
+      if (issue.severity === 'error') {
         blockingIssueCodes.push(issue.code)
       }
     }

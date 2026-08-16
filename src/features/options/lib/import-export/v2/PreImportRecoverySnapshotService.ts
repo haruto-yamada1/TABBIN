@@ -14,6 +14,7 @@ import type {
 } from '@/contexts/saved-tabs/public-api'
 import {
   checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
   PERSISTENCE_NOTIFICATION_FAILED_AFTER_COMMIT_CODE,
 } from '@/contexts/saved-tabs/public-api'
 import {
@@ -228,7 +229,9 @@ const assertMatchingReadback = (
 ): void => {
   if (
     snapshot.revision !== revision ||
-    !checkPersistenceIntegrity(snapshot.savedTabs).isHealthy
+    hasBlockingPersistenceIntegrityIssues(
+      checkPersistenceIntegrity(snapshot.savedTabs),
+    )
   ) {
     throw new PreImportRecoverySnapshotError('RECOVERY_READBACK_MISMATCH')
   }
@@ -335,7 +338,11 @@ export const createPreImportRecoverySnapshotService = (
     settings,
     snapshot: source,
   }: RestoreState): Promise<RecoverySnapshotCaptureResult> => {
-    if (!checkPersistenceIntegrity(source.savedTabs).isHealthy) {
+    if (
+      hasBlockingPersistenceIntegrityIssues(
+        checkPersistenceIntegrity(source.savedTabs),
+      )
+    ) {
       throw new PreImportRecoverySnapshotError(
         'RECOVERY_SOURCE_INTEGRITY_FAILED',
       )
@@ -461,7 +468,11 @@ export const createPreImportRecoverySnapshotService = (
       throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_NOT_FOUND')
     }
     const data = parseRecoveryData(record)
-    if (!checkPersistenceIntegrity(data.savedTabs).isHealthy) {
+    if (
+      hasBlockingPersistenceIntegrityIssues(
+        checkPersistenceIntegrity(data.savedTabs),
+      )
+    ) {
       throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_INVALID')
     }
 

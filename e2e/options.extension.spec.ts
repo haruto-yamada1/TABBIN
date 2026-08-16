@@ -33,6 +33,12 @@ const createSeedWithUrls = () =>
         title: 'Example Home',
         url: 'https://example.com/',
       },
+      {
+        id: 'url-orphan',
+        savedAt: now - 1,
+        title: 'Orphan URL',
+        url: 'https://orphan.example/',
+      },
     ],
     userSettings: { ...defaultUserSettings, clickBehavior: 'saveCurrentTab' },
   })
@@ -50,6 +56,12 @@ const createLegacyBackup = () => {
     savedAt: now,
     title: 'Legacy Home',
     url: 'https://legacy.example/',
+  }
+  const orphanLegacyUrl = {
+    id: 'url-legacy-orphan',
+    savedAt: now - 1,
+    title: 'Legacy Orphan',
+    url: 'https://orphan.legacy.example/',
   }
 
   return {
@@ -104,7 +116,7 @@ const createLegacyBackup = () => {
       },
     ],
     timestamp: new Date(now).toISOString(),
-    urls: [legacyUrl],
+    urls: [legacyUrl, orphanLegacyUrl],
     userSettings: {
       activeAiSystemPrompt,
       activeAiSystemPromptId: activeAiSystemPrompt.id,
@@ -123,6 +135,48 @@ const emptyPersistenceV2Seed = {
 }
 
 test.describe('extension options', () => {
+  test('warning-onlyの旧storage移行後もタブ表示とreloadが成功する', async ({
+    extensionId,
+    page,
+    serviceWorker,
+  }) => {
+    await seedStorage(
+      serviceWorker,
+      createBaseSeed({
+        savedTabs: [
+          {
+            domain: 'example.com',
+            id: 'group-example',
+            urlIds: ['url-example'],
+          },
+        ],
+        urls: [
+          {
+            id: 'url-example',
+            savedAt: now,
+            title: 'Example Home',
+            url: 'https://example.com/',
+          },
+          {
+            id: 'url-orphan',
+            savedAt: now,
+            title: 'Orphan',
+            url: 'https://orphan.example/',
+          },
+        ],
+      }),
+    )
+
+    await page.goto(
+      getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+    )
+    await waitForPersistenceV2Ready(serviceWorker)
+    await expect(page.getByText('Example Home')).toBeVisible()
+
+    await page.reload()
+    await expect(page.getByText('Example Home')).toBeVisible()
+  })
+
   test('設定をBackup V2でエクスポートできる', async ({
     extensionId,
     page,
@@ -143,7 +197,7 @@ test.describe('extension options', () => {
     const backup = BackupEnvelopeV2Schema.parse(JSON.parse(fileContent))
 
     expect(backup.schemaVersion).toBe(2)
-    expect(backup.data.savedTabs.urls).toHaveLength(1)
+    expect(backup.data.savedTabs.urls).toHaveLength(2)
     expect(backup.data.savedTabs.urls[0]?.url).toBe('https://example.com/')
     expect(backup.data.savedTabs.collections).toHaveLength(1)
     expect(backup.data.savedTabs.collections[0]?.definition).toEqual({
@@ -170,7 +224,7 @@ test.describe('extension options', () => {
 
     const fileContent = await readFile(downloadPath as string, 'utf8')
     const backup = BackupEnvelopeV2Schema.parse(JSON.parse(fileContent))
-    expect(backup.data.savedTabs.urls).toHaveLength(1)
+    expect(backup.data.savedTabs.urls).toHaveLength(2)
     expect(backup.data.savedTabs.collections).toHaveLength(1)
 
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'tabbin-import-v2-'))
@@ -194,6 +248,9 @@ test.describe('extension options', () => {
       await page.goto(
         getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
       )
+      await expect(page.getByText('Example Home')).toBeVisible()
+
+      await page.reload()
       await expect(page.getByText('Example Home')).toBeVisible()
     } finally {
       await rm(tmpDir, { force: true, recursive: true })
@@ -231,6 +288,9 @@ test.describe('extension options', () => {
       await page.goto(
         getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
       )
+      await expect(page.getByText('Legacy Home')).toBeVisible()
+
+      await page.reload()
       await expect(page.getByText('Legacy Home')).toBeVisible()
     } finally {
       await rm(tmpDir, { force: true, recursive: true })

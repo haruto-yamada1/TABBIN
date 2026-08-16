@@ -135,6 +135,11 @@ membership, category, group, conversation, message, and analytics records
 while ignoring storage order and the internal revision. Counts alone cannot
 approve a target.
 
+Verification blocks every `error` finding but retains warning-only records.
+The normal IndexedDB snapshot reader applies that same severity boundary after
+cutover so an accepted warning (such as an unreferenced legacy URL) cannot make
+the verified target unreadable on tab open or reload.
+
 Failures retain the legacy source and produce typed codes. The recovery
 diagnostic records `migrationId`, lifecycle stage, typed error code, issue
 codes, serialized source bytes, and aggregate source entity counts. It never

@@ -24,7 +24,10 @@ import type { PersistenceLogicalSnapshot } from '@/contexts/saved-tabs/applicati
 import type { PersistenceV2WritePlan } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import type { RawLegacyStorageReaderPort } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
-import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
+import {
+  checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
+} from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 
 export type PersistenceV2MigrationServiceOptions = {
   readonly batchSize?: number
@@ -328,7 +331,7 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
     }
     const integrity = checkPersistenceIntegrity(actual.savedTabs)
     if (
-      integrity.issues.some(({ severity }) => severity === 'error') ||
+      hasBlockingPersistenceIntegrityIssues(integrity) ||
       !isSemanticallyEqual(expected, actual)
     ) {
       throw this.createFailure(

@@ -120,6 +120,35 @@ describe('IndexedDbPersistenceSnapshotReader', () => {
     manager.close()
   })
 
+  it('移行で許可されたwarning-only snapshotを通常読込でも受理する', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'snapshot-warning-only',
+      indexedDb: new IDBFactory(),
+    })
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
+    await unitOfWork.commit({ urls: { put: [url] } })
+
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
+    const snapshot = await reader.readVerifiedSavedTabsSnapshot()
+    const logicalSnapshot = await reader.readConsistentSnapshot()
+
+    expect(snapshot.savedTabs.urls).toEqual([url])
+    expect(logicalSnapshot.savedTabs.urls).toEqual([url])
+    expect(checkPersistenceIntegrity(snapshot.savedTabs)).toMatchObject({
+      isHealthy: false,
+      issues: [
+        expect.objectContaining({ code: 'ORPHAN_URL', severity: 'warning' }),
+      ],
+    })
+    manager.close()
+  })
+
   it('concurrent writerがあってもstore間でmixed snapshotを返さない', async () => {
     const indexedDb = new IDBFactory()
     const manager = new IndexedDbConnectionManager({

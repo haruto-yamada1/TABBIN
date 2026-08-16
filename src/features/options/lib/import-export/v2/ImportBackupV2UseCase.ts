@@ -1,4 +1,7 @@
-import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/public-api'
+import {
+  checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
+} from '@/contexts/saved-tabs/public-api'
 import type {
   PersistenceLogicalSnapshot,
   PersistenceV2ReplacementPort,
@@ -129,7 +132,11 @@ const assertPreflight = (
     throw new BackupV2ImportError('BACKUP_RESOURCE_REJECTED')
   }
 
-  if (!checkPersistenceIntegrity(envelope.data.savedTabs).isHealthy) {
+  if (
+    hasBlockingPersistenceIntegrityIssues(
+      checkPersistenceIntegrity(envelope.data.savedTabs),
+    )
+  ) {
     throw new BackupV2ImportError('BACKUP_INTEGRITY_FAILED')
   }
 
@@ -225,7 +232,9 @@ export const createImportBackupV2UseCase = (
 
     if (
       readbackSnapshot.revision !== replacementResult.revision ||
-      !checkPersistenceIntegrity(readbackSnapshot.savedTabs).isHealthy ||
+      hasBlockingPersistenceIntegrityIssues(
+        checkPersistenceIntegrity(readbackSnapshot.savedTabs),
+      ) ||
       JSON.stringify(readbackData) !== JSON.stringify(requestedData)
     ) {
       return restoreAndThrow(recovery, recoveryId, 'READBACK_MISMATCH')

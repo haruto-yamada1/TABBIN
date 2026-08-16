@@ -644,6 +644,12 @@ input, write storage, or repair the snapshot. It returns a deterministic
 `StorageIntegrityReport`; `isHealthy` is true only when the typed `issues` list
 is empty.
 
+Operational reads and migration/import admission use the issue severity rather
+than `isHealthy` as their blocking boundary. An `error` finding rejects the
+snapshot. A warning-only snapshot remains readable and preserves its records
+for explicit review; in particular, an `ORPHAN_URL` warning must not make a
+target that was accepted during migration unreadable after cutover.
+
 Every code in `PERSISTENCE_V2_INVARIANT_CODES` has an exhaustive severity and
 repairability entry in `PERSISTENCE_V2_INVARIANT_POLICY`. The v2 checker emits
 only findings supported by the logical target snapshot. Source-only findings,

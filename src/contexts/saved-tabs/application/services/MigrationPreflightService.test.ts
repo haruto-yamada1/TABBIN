@@ -120,6 +120,36 @@ describe('MigrationPreflightService', () => {
     ])
   })
 
+  it('keeps warning-only orphan URLs eligible for migration', async () => {
+    const source = createEmptySnapshot()
+    const { service } = createService({
+      reader: {
+        readSnapshot: vi.fn(async () => ({
+          ...source,
+          urls: {
+            status: 'present' as const,
+            value: [
+              {
+                id: 'orphan-url',
+                savedAt: 1,
+                title: 'Orphan',
+                url: 'https://orphan.example/',
+              },
+            ],
+          },
+        })),
+      },
+    })
+
+    const result = await service.run()
+
+    expect(result.status).toBe('healthy')
+    if (result.status !== 'healthy') {
+      throw new Error('expected healthy preflight')
+    }
+    expect(result.diagnostic.issueCodes).toContain('ORPHAN_URL')
+  })
+
   it('stores stale instead of healthy when the source changes during analysis', async () => {
     const { repository, service } = createService({
       fingerprints: ['fp-before', 'fp-after'],

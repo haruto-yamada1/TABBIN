@@ -1,6 +1,9 @@
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceV2UnitOfWorkPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
-import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
+import {
+  checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
+} from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
@@ -64,8 +67,10 @@ const createRuntime = (
     )
   const mergeLegacyBackup = createImportLegacyBackupMergeUseCase({
     commit: unitOfWork.commit.bind(unitOfWork),
-    isHealthySavedTabs: (savedTabs) =>
-      checkPersistenceIntegrity(savedTabs).isHealthy,
+    hasBlockingSavedTabsIssues: (savedTabs) =>
+      hasBlockingPersistenceIntegrityIssues(
+        checkPersistenceIntegrity(savedTabs),
+      ),
     readSnapshot: snapshotReader.readConsistentSnapshot.bind(snapshotReader),
     readUserSettings: deps.readUserSettings,
     writeUserSettings,
