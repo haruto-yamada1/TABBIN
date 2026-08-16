@@ -171,6 +171,38 @@ const createInspection = (
   }
 }
 
+const createWarningOnlyInspection = (): BackupV2Inspection => {
+  const inspection = createInspection()
+  return {
+    ...inspection,
+    data: {
+      ...inspection.data,
+      savedTabs: {
+        ...inspection.data.savedTabs,
+        urls: [
+          ...inspection.data.savedTabs.urls,
+          {
+            firstSavedAt: 2,
+            id: 'url-orphan',
+            lastSavedAt: 2,
+            normalizedUrl: 'https://orphan.example.test/',
+            title: 'Orphan URL',
+            updatedAt: 2,
+            url: 'https://orphan.example.test/',
+          },
+        ],
+      },
+    },
+    preview: {
+      ...inspection.preview,
+      entityCounts: {
+        ...inspection.preview.entityCounts,
+        urls: inspection.preview.entityCounts.urls + 1,
+      },
+    },
+  }
+}
+
 type DepsOverrides = Partial<ImportBackupV2UseCaseDeps> & {
   readonly readbackSnapshot?: PersistenceLogicalSnapshot
   readonly readbackSettings?: UserSettings
@@ -260,6 +292,25 @@ describe('createImportBackupV2UseCase', () => {
       expect(deps.recovery?.restore).not.toHaveBeenCalled()
     },
   )
+
+  it('imports a warning-only Backup V2 snapshot and verifies readback', async () => {
+    const events: string[] = []
+    const inspection = createWarningOnlyInspection()
+    const deps = createDeps(events, {
+      readbackSnapshot: BackupMapper.toLogicalSnapshot(inspection.data, 77),
+    })
+
+    await expect(
+      createImportBackupV2UseCase(deps)(inspection),
+    ).resolves.toMatchObject({ revision: 77 })
+    expect(deps.replacement.replaceAll).toHaveBeenCalledOnce()
+    const [replacementTarget] = vi.mocked(deps.replacement.replaceAll).mock
+      .calls[0] ?? [undefined]
+    expect(replacementTarget?.savedTabs.urls).toContainEqual(
+      inspection.data.savedTabs.urls.find(({ id }) => id === 'url-orphan'),
+    )
+    expect(deps.recovery?.restore).not.toHaveBeenCalled()
+  })
 
   it('accepts readback whose unordered records use a different order', async () => {
     const events: string[] = []

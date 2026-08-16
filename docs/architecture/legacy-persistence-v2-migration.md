@@ -64,9 +64,9 @@ preflight and the actual migration.
   `messageIds`. Runtime writes preserve that explicit order and do not
   resynchronize an existing message timestamp when conversation metadata
   changes. Analytics views require their source timestamps.
-- URL title conflicts are reported, not resolved by input order. The current
-  preflight approval policy blocks every issue except a missing top-level key,
-  so a conflicting title cannot reach target writes.
+- URL title conflicts are reported, not resolved by input order.
+  `URL_TITLE_CONFLICT` has warning severity and is retained. Preflight approval
+  blocks every error-severity issue while allowing warning-only records.
 
 The temporary schema-less backup importer has a compatibility adapter before
 this raw-storage mapper. It recognizes representations emitted by the former
@@ -134,6 +134,11 @@ aggregate. Semantic verification compares the full URL, collection,
 membership, category, group, conversation, message, and analytics records
 while ignoring storage order and the internal revision. Counts alone cannot
 approve a target.
+
+Verification blocks every `error` finding but retains warning-only records.
+The normal IndexedDB snapshot reader applies that same severity boundary after
+cutover so an accepted warning (such as an unreferenced legacy URL) cannot make
+the verified target unreadable on tab open or reload.
 
 Failures retain the legacy source and produce typed codes. The recovery
 diagnostic records `migrationId`, lifecycle stage, typed error code, issue

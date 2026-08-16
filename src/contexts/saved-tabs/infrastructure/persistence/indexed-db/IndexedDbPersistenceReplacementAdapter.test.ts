@@ -437,11 +437,57 @@ describe('IndexedDbPersistenceReplacementAdapter', () => {
         ...target,
         savedTabs: {
           ...target.savedTabs,
-          memberships: [],
+          memberships: target.savedTabs.memberships.map((membership) => ({
+            ...membership,
+            urlId: 'missing-url',
+          })),
         },
       }),
     ).rejects.toMatchObject({ code: 'UNHEALTHY_SAVED_TABS' })
     expect(runIndexedDbWrite).not.toHaveBeenCalled()
+    manager.close()
+  })
+
+  it('warning-only saved-tabs graphをreplaceして再読込できる', async () => {
+    const operationGate = createReadyPersistenceOperationGateStub()
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'backup-replacement-warning-only',
+      indexedDb: new IDBFactory(),
+    })
+    const target = createTarget('warning-only')
+    const warningOnlyTarget: PersistenceV2ReplacementTarget = {
+      ...target,
+      savedTabs: {
+        ...target.savedTabs,
+        urls: [
+          ...target.savedTabs.urls,
+          {
+            firstSavedAt: 2,
+            id: 'url-orphan',
+            lastSavedAt: 2,
+            normalizedUrl: 'https://orphan.example.test/',
+            title: 'Orphan URL',
+            updatedAt: 2,
+            url: 'https://orphan.example.test/',
+          },
+        ],
+      },
+    }
+    const adapter = new IndexedDbPersistenceReplacementAdapter(
+      manager,
+      operationGate,
+    )
+
+    const result = await adapter.replaceAll(warningOnlyTarget)
+
+    const snapshot = await new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    ).readConsistentSnapshot()
+    expect(snapshot).toMatchObject({ revision: result.revision })
+    expect(snapshot.savedTabs.urls).toEqual(
+      expect.arrayContaining([...warningOnlyTarget.savedTabs.urls]),
+    )
     manager.close()
   })
 

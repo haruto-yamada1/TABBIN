@@ -35,9 +35,14 @@ export type LegacyBackupMergeResult = {
 export type ImportLegacyBackupMergeDeps = {
   readonly commit: (
     plan: LegacyBackupMergeWritePlan,
-    options: { readonly durability: 'strict' },
+    options: {
+      readonly durability: 'strict'
+      readonly expectedRevision: number
+    },
   ) => Promise<{ readonly revision: number }>
-  readonly isHealthySavedTabs: (savedTabs: BackupDataV2['savedTabs']) => boolean
+  readonly hasBlockingSavedTabsIssues: (
+    savedTabs: BackupDataV2['savedTabs'],
+  ) => boolean
   readonly readSnapshot: () => Promise<PersistenceLogicalSnapshot>
   readonly readUserSettings: () => Promise<UserSettings>
   readonly writeUserSettings: (settings: UserSettings) => Promise<void>
@@ -110,6 +115,41 @@ const countNewIds = (
   return incoming.filter(({ id }) => !existingIds.has(id)).length
 }
 
+const mergeRecordsByKey = <Value>(
+  current: readonly Value[],
+  incoming: readonly Value[],
+  keyOf: (value: Value) => string,
+): readonly Value[] => {
+  const merged = new Map(current.map((value) => [keyOf(value), value]))
+  for (const value of incoming) {
+    merged.set(keyOf(value), value)
+  }
+  return [...merged.values()]
+}
+
+const mergeSavedTabs = (
+  current: BackupDataV2['savedTabs'],
+  incoming: BackupDataV2['savedTabs'],
+): BackupDataV2['savedTabs'] => ({
+  categories: mergeRecordsByKey(
+    current.categories,
+    incoming.categories,
+    ({ id }) => id,
+  ),
+  collections: mergeRecordsByKey(
+    current.collections,
+    incoming.collections,
+    ({ id }) => id,
+  ),
+  groups: mergeRecordsByKey(current.groups, incoming.groups, ({ id }) => id),
+  memberships: mergeRecordsByKey(
+    current.memberships,
+    incoming.memberships,
+    ({ collectionId, urlId }) => JSON.stringify([collectionId, urlId]),
+  ),
+  urls: mergeRecordsByKey(current.urls, incoming.urls, ({ id }) => id),
+})
+
 export const createImportLegacyBackupMergeUseCase = (
   deps: ImportLegacyBackupMergeDeps,
 ) => {
@@ -119,7 +159,7 @@ export const createImportLegacyBackupMergeUseCase = (
     userSettingsPatch,
   }: LegacyBackupMergeInput): Promise<LegacyBackupMergeResult> => {
     collectBackupV2ResourceUsage(inspection.data, serializedBytes)
-    if (!deps.isHealthySavedTabs(inspection.data.savedTabs)) {
+    if (deps.hasBlockingSavedTabsIssues(inspection.data.savedTabs)) {
       throw new LegacyBackupMergeError()
     }
 
@@ -127,8 +167,18 @@ export const createImportLegacyBackupMergeUseCase = (
       deps.readSnapshot(),
       deps.readUserSettings(),
     ])
+    if (
+      deps.hasBlockingSavedTabsIssues(
+        mergeSavedTabs(currentSnapshot.savedTabs, inspection.data.savedTabs),
+      )
+    ) {
+      throw new LegacyBackupMergeError()
+    }
     const commitResult = hasLogicalRecords(inspection.data)
-      ? await deps.commit(toWritePlan(inspection), { durability: 'strict' })
+      ? await deps.commit(toWritePlan(inspection), {
+          durability: 'strict',
+          expectedRevision: currentSnapshot.revision,
+        })
       : null
     await deps.writeUserSettings(
       mergeUserSettings(currentSettings, userSettingsPatch),

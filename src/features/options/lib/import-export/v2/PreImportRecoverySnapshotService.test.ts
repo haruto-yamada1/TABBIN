@@ -35,6 +35,26 @@ const inspection = inspectBackupV2(
 
 const logicalSnapshot = BackupMapper.toLogicalSnapshot(inspection.data, 12)
 
+const createWarningOnlySnapshot = (revision = 12) => ({
+  ...structuredClone(logicalSnapshot),
+  revision,
+  savedTabs: {
+    ...structuredClone(logicalSnapshot.savedTabs),
+    urls: [
+      ...structuredClone(logicalSnapshot.savedTabs.urls),
+      {
+        firstSavedAt: 2,
+        id: 'url-orphan',
+        lastSavedAt: 2,
+        normalizedUrl: 'https://orphan.example.test/',
+        title: 'Orphan URL',
+        updatedAt: 2,
+        url: 'https://orphan.example.test/',
+      },
+    ],
+  },
+})
+
 const createSummary = (
   overrides: Partial<PersistenceRecoverySnapshotSummary> = {},
 ): PersistenceRecoverySnapshotSummary => ({
@@ -261,6 +281,26 @@ describe('createPreImportRecoverySnapshotService', () => {
     expect(deps.repository.saveWithRetention).not.toHaveBeenCalled()
   })
 
+  it('captures a warning-only logical graph for overwrite recovery', async () => {
+    const warningOnlySnapshot = createWarningOnlySnapshot()
+    const { deps, service } = createService({
+      snapshotReader: {
+        readConsistentSnapshot: vi.fn(async () => warningOnlySnapshot),
+      },
+    })
+
+    await expect(service.captureBeforeOverwrite()).resolves.toMatchObject({
+      id: '00000000-0000-4000-8000-000000000740',
+    })
+    expect(deps.repository.saveWithRetention).toHaveBeenCalledOnce()
+    const [savedRecord] = vi.mocked(deps.repository.saveWithRetention).mock
+      .calls[0] ?? [undefined]
+    const savedData = BackupDataV2Schema.parse(savedRecord?.data)
+    expect(savedData.savedTabs.urls).toContainEqual(
+      warningOnlySnapshot.savedTabs.urls.find(({ id }) => id === 'url-orphan'),
+    )
+  })
+
   it('lists only repository-approved, non-expired recovery points', async () => {
     const summary = createSummary()
     const { deps, service } = createService()
@@ -309,6 +349,31 @@ describe('createPreImportRecoverySnapshotService', () => {
         'urls',
       ],
     })
+  })
+
+  it('restores and verifies a warning-only recovery snapshot', async () => {
+    const warningOnlySnapshot = createWarningOnlySnapshot(13)
+    const warningOnlyData = BackupMapper.toBackupData(
+      warningOnlySnapshot,
+      inspection.data.userSettings,
+    )
+    const record = createRecord({ data: warningOnlyData })
+    const { deps, service } = createService({
+      snapshotReader: {
+        readConsistentSnapshot: vi.fn(async () => warningOnlySnapshot),
+      },
+    })
+    vi.mocked(deps.repository.findAvailableById).mockResolvedValue(record)
+
+    await expect(service.restore(record.id)).resolves.toMatchObject({
+      revision: 13,
+    })
+    expect(deps.replacement.replaceAll).toHaveBeenCalledOnce()
+    const [replacementTarget] = vi.mocked(deps.replacement.replaceAll).mock
+      .calls[0] ?? [undefined]
+    expect(replacementTarget?.savedTabs.urls).toContainEqual(
+      warningOnlyData.savedTabs.urls.find(({ id }) => id === 'url-orphan'),
+    )
   })
 
   it('persists the current state before a user-initiated restore starts', async () => {

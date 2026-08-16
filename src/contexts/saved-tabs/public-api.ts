@@ -93,6 +93,7 @@ export type {
 } from './domain/entities/PersistenceModelV2'
 export {
   checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
   PERSISTENCE_V2_INVARIANT_POLICY,
 } from './domain/services/PersistenceIntegrityChecker'
 export type {

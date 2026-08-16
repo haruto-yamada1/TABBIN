@@ -45,6 +45,22 @@ const settingsOnlyLegacyFixture = JSON.stringify({
   version: '2.0.8',
 })
 
+const warningOnlyLegacyFixture = JSON.stringify({
+  parentCategories: [],
+  savedTabs: [],
+  timestamp: '2026-08-15T00:00:00.000Z',
+  urls: [
+    {
+      id: 'orphan-url',
+      savedAt: 1,
+      title: 'Orphan',
+      url: 'https://orphan.example/',
+    },
+  ],
+  userSettings: {},
+  version: '2.0.9',
+})
+
 const indexedDbState = {
   migrationId: 'migration-1',
   persistenceGeneration: 2,
@@ -217,6 +233,36 @@ describe('options legacy Backup merge integration', () => {
       message: 'データをマージしました (0個のカテゴリ、0個のドメインを追加)',
       success: true,
     })
+  })
+
+  it('imports warning-only legacy URL records into IndexedDB without making reload unreadable', async () => {
+    const operationGate = createIndexedDbGate()
+    const connectionManager = new IndexedDbConnectionManager({
+      databaseName: 'options-legacy-warning-only',
+      indexedDb: new IDBFactory(),
+    })
+    getOptionsLegacyBackupMergeRuntime({
+      createConnectionManager: () => connectionManager,
+      createUnitOfWork: (manager, gate) =>
+        new IndexedDbPersistenceUnitOfWork(manager, gate),
+      getOperationGate: () => operationGate,
+      readUserSettings: vi.fn(async () => defaultSettings),
+      writeUserSettings: vi.fn(async () => undefined),
+    })
+
+    await expect(
+      importSettings(warningOnlyLegacyFixture, true, undefined, {
+        importDate: '2026-08-31',
+      }),
+    ).resolves.toMatchObject({ success: true })
+
+    const reloadedSnapshot = await new IndexedDbPersistenceSnapshotReader(
+      connectionManager,
+      operationGate,
+    ).readVerifiedSavedTabsSnapshot()
+    expect(reloadedSnapshot.savedTabs.urls).toEqual([
+      expect.objectContaining({ id: 'orphan-url' }),
+    ])
   })
 
   it('rejects a settings-only legacy import while IndexedDB is read-only', async () => {

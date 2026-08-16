@@ -5,7 +5,10 @@ import type {
   PersistenceV2ReplacementResult,
   PersistenceV2ReplacementTarget,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2ReplacementPort'
-import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
+import {
+  checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
+} from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 
 import type { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
 import { queueIndexedDbTransaction } from './IndexedDbTransaction'
@@ -176,7 +179,11 @@ const validateReplacementTarget = (
     throw new PersistenceV2ReplacementError('INVALID_TARGET_RECORD')
   }
 
-  if (!checkPersistenceIntegrity(target.savedTabs).isHealthy) {
+  if (
+    hasBlockingPersistenceIntegrityIssues(
+      checkPersistenceIntegrity(target.savedTabs),
+    )
+  ) {
     throw new PersistenceV2ReplacementError('UNHEALTHY_SAVED_TABS')
   }
   if (hasDuplicateId(target.analyticsViews)) {
