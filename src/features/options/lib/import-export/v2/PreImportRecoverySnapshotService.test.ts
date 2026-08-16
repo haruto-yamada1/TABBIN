@@ -293,6 +293,12 @@ describe('createPreImportRecoverySnapshotService', () => {
       id: '00000000-0000-4000-8000-000000000740',
     })
     expect(deps.repository.saveWithRetention).toHaveBeenCalledOnce()
+    const [savedRecord] = vi.mocked(deps.repository.saveWithRetention).mock
+      .calls[0] ?? [undefined]
+    const savedData = BackupDataV2Schema.parse(savedRecord?.data)
+    expect(savedData.savedTabs.urls).toContainEqual(
+      warningOnlySnapshot.savedTabs.urls.find(({ id }) => id === 'url-orphan'),
+    )
   })
 
   it('lists only repository-approved, non-expired recovery points', async () => {
@@ -363,6 +369,11 @@ describe('createPreImportRecoverySnapshotService', () => {
       revision: 13,
     })
     expect(deps.replacement.replaceAll).toHaveBeenCalledOnce()
+    const [replacementTarget] = vi.mocked(deps.replacement.replaceAll).mock
+      .calls[0] ?? [undefined]
+    expect(replacementTarget?.savedTabs.urls).toContainEqual(
+      warningOnlyData.savedTabs.urls.find(({ id }) => id === 'url-orphan'),
+    )
   })
 
   it('persists the current state before a user-initiated restore starts', async () => {

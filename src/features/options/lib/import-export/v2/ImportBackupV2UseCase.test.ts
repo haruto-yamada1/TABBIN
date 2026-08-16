@@ -304,6 +304,11 @@ describe('createImportBackupV2UseCase', () => {
       createImportBackupV2UseCase(deps)(inspection),
     ).resolves.toMatchObject({ revision: 77 })
     expect(deps.replacement.replaceAll).toHaveBeenCalledOnce()
+    const [replacementTarget] = vi.mocked(deps.replacement.replaceAll).mock
+      .calls[0] ?? [undefined]
+    expect(replacementTarget?.savedTabs.urls).toContainEqual(
+      inspection.data.savedTabs.urls.find(({ id }) => id === 'url-orphan'),
+    )
     expect(deps.recovery?.restore).not.toHaveBeenCalled()
   })
 

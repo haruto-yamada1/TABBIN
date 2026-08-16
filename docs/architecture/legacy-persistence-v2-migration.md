@@ -64,9 +64,9 @@ preflight and the actual migration.
   `messageIds`. Runtime writes preserve that explicit order and do not
   resynchronize an existing message timestamp when conversation metadata
   changes. Analytics views require their source timestamps.
-- URL title conflicts are reported, not resolved by input order. The current
-  preflight approval policy blocks every issue except a missing top-level key,
-  so a conflicting title cannot reach target writes.
+- URL title conflicts are reported, not resolved by input order.
+  `URL_TITLE_CONFLICT` has warning severity and is retained. Preflight approval
+  blocks every error-severity issue while allowing warning-only records.
 
 The temporary schema-less backup importer has a compatibility adapter before
 this raw-storage mapper. It recognizes representations emitted by the former
