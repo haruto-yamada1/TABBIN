@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 import type { IndexedDbSavedTabsMutableState } from './IndexedDbSavedTabsSessionService'
@@ -51,6 +52,73 @@ const createCustomCollection = (id: string) => ({
 })
 
 describe('createNativeSavedTabsPersistenceAdapters timestamp provenance', () => {
+  it.each([
+    [
+      'single-project single URL removal',
+      async (service: CustomProjectsCommandService) =>
+        service.removeUrlFromCustomProject(
+          'project',
+          'https://selected.example/',
+        ),
+    ],
+    [
+      'single-project multi URL removal',
+      async (service: CustomProjectsCommandService) =>
+        service.removeUrlsFromCustomProject('project', [
+          'https://selected.example/',
+        ]),
+    ],
+    [
+      'all-project URL ID removal',
+      async (service: CustomProjectsCommandService) =>
+        service.removeUrlIdsFromAllCustomProjects(['selected-url']),
+    ],
+  ])(
+    '%s removes only selected URLs and preserves unrelated legacy orphans',
+    async (_name, removeSelectedUrl) => {
+      const state = createState()
+      state.collections = [createCustomCollection('project')]
+      state.urls = [
+        {
+          firstSavedAt: 1,
+          id: 'legacy-orphan',
+          lastSavedAt: 1,
+          normalizedUrl: 'https://orphan.example/',
+          title: 'Legacy orphan',
+          updatedAt: 1,
+          url: 'https://orphan.example/',
+        },
+        {
+          firstSavedAt: 1,
+          id: 'selected-url',
+          lastSavedAt: 1,
+          normalizedUrl: 'https://selected.example/',
+          title: 'Selected URL',
+          updatedAt: 1,
+          url: 'https://selected.example/',
+        },
+      ]
+      state.memberships = [
+        {
+          addedAt: 1,
+          collectionId: 'project',
+          sortOrder: 0,
+          updatedAt: 1,
+          urlId: 'selected-url',
+        },
+      ]
+      const adapters = createNativeSavedTabsPersistenceAdapters(
+        state,
+        createExternalDeps(),
+      )
+
+      await removeSelectedUrl(adapters.customProjectsCommandService)
+
+      expect(state.urls.map(({ id }) => id)).toStrictEqual(['legacy-orphan'])
+      expect(state.memberships).toStrictEqual([])
+    },
+  )
+
   it('preserves exact URL markers and materializes missing legacy markers conservatively', async () => {
     const state = createState()
     state.urls = [

@@ -265,6 +265,64 @@ export const readPersistenceV2Store = async <T>(
     }
   }, storeName)
 
+export const readPersistenceV2SavedTabsSnapshot = async (
+  serviceWorker: Worker,
+) =>
+  serviceWorker.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      request.addEventListener('success', () => resolve(request.result))
+      request.addEventListener('error', () =>
+        reject(request.error ?? new Error('Failed to open persistence v2.')),
+      )
+    })
+    const storeNames = [
+      'collectionCategories',
+      'collections',
+      'collectionGroups',
+      'collectionMemberships',
+      'metadata',
+      'urls',
+    ]
+    const transaction = database.transaction(storeNames, 'readonly')
+    const categories = transaction.objectStore('collectionCategories').getAll()
+    const collections = transaction.objectStore('collections').getAll()
+    const groups = transaction.objectStore('collectionGroups').getAll()
+    const memberships = transaction
+      .objectStore('collectionMemberships')
+      .getAll()
+    const revision = transaction.objectStore('metadata').get('revision')
+    const urls = transaction.objectStore('urls').getAll()
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        transaction.addEventListener('complete', () => resolve())
+        transaction.addEventListener('abort', () =>
+          reject(
+            transaction.error ??
+              new Error('Persistence v2 snapshot read was aborted.'),
+          ),
+        )
+        transaction.addEventListener('error', () =>
+          reject(
+            transaction.error ??
+              new Error('Persistence v2 snapshot read failed.'),
+          ),
+        )
+      })
+      return {
+        categories: categories.result,
+        collections: collections.result,
+        groups: groups.result,
+        memberships: memberships.result,
+        revision: (revision.result as { value?: unknown } | undefined)?.value,
+        urls: urls.result,
+      }
+    } finally {
+      database.close()
+    }
+  })
+
 export const waitForPersistenceV2Ready = async (
   serviceWorker: Worker,
 ): Promise<void> => {

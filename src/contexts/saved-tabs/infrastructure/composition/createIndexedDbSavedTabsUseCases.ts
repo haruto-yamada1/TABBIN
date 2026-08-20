@@ -77,7 +77,10 @@ export const createNativeIndexedDbSavedTabsRuntime = ({
   }
   return {
     deps,
-    session: new IndexedDbSavedTabsSessionService(deps),
+    session: new IndexedDbSavedTabsSessionService({
+      snapshotReaderPort: snapshotReader,
+      unitOfWorkPort,
+    }),
   }
 }
 

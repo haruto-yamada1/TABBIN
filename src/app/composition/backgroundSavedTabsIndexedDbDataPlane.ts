@@ -505,6 +505,7 @@ const removeExpiredUrls = (
   )
   const urls = new Map(state.urls.map((url) => [url.id, url]))
   const expired = new Set<string>()
+  const expiredUrlIds = new Set<string>()
   let sourceCount = 0
   for (const membership of state.memberships) {
     const collection = collections.get(membership.collectionId)
@@ -516,6 +517,7 @@ const removeExpiredUrls = (
       urls.get(membership.urlId)?.lastSavedAt ?? collection.createdAt
     if (savedAt < cutoffTime) {
       expired.add(`${membership.collectionId}\u0000${membership.urlId}`)
+      expiredUrlIds.add(membership.urlId)
     }
   }
   if (expired.size === 0) {
@@ -526,7 +528,9 @@ const removeExpiredUrls = (
   )
   removeEmptyDomainCollections(state)
   const referencedUrlIds = new Set(state.memberships.map(({ urlId }) => urlId))
-  state.urls = state.urls.filter(({ id }) => referencedUrlIds.has(id))
+  state.urls = state.urls.filter(
+    ({ id }) => !expiredUrlIds.has(id) || referencedUrlIds.has(id),
+  )
   return { removedCount: expired.size, sourceCount }
 }
 
