@@ -25,7 +25,7 @@ export const canonicalUserSettings = {
 
 /**
  * Well-formed pre-IndexedDB backup envelope (Backup V0). Scoped to the
- * temporary compatibility window ending 2026-08-31; the property test
+ * temporary compatibility window ending 2026-09-30; the property test
  * using this arbitrary is a #734 cleanup target.
  */
 export const legacyBackupV0Arbitrary = fc

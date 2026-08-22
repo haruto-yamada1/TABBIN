@@ -102,7 +102,7 @@ describe('convertLegacyBackup', () => {
   it('rejects non-legacy input before applying the legacy cutoff', () => {
     const error = (() => {
       try {
-        convertLegacyBackup({ schemaVersion: 2 }, '2026-09-01')
+        convertLegacyBackup({ schemaVersion: 2 }, '2026-10-01')
       } catch (error) {
         return error
       }

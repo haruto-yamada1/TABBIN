@@ -86,7 +86,7 @@ describe('importSettings production pre-mutation gate', () => {
       revision: 2,
     })
     vi.mocked(migrateToUrlsStorage).mockResolvedValue(undefined)
-    vi.mocked(getCurrentUtcDateOnly).mockReturnValue('2026-08-31')
+    vi.mocked(getCurrentUtcDateOnly).mockReturnValue('2026-09-30')
     Object.defineProperty(globalThis, 'chrome', {
       configurable: true,
       value: {
@@ -100,7 +100,7 @@ describe('importSettings production pre-mutation gate', () => {
   it.each([
     ['current V2', currentV2, '2026-07-28'],
     ['future V2', futureV2, '2026-07-28'],
-    ['expired legacy', legacyBackup, '2026-09-01'],
+    ['expired legacy', legacyBackup, '2026-10-01'],
   ])(
     'rejects %s before migration or storage access',
     async (_label, backup, importDate) => {
@@ -119,7 +119,7 @@ describe('importSettings production pre-mutation gate', () => {
   )
 
   it('enforces the provider date for a non-UI legacy caller', async () => {
-    vi.mocked(getCurrentUtcDateOnly).mockReturnValue('2026-09-01')
+    vi.mocked(getCurrentUtcDateOnly).mockReturnValue('2026-10-01')
 
     const result = await importSettings(JSON.stringify(legacyBackup))
 

@@ -53,7 +53,7 @@ describe('Backup schema versioning architecture contract', () => {
   it('keeps legacy compatibility in the temporary owning issues', () => {
     const versioningDocument = readVersioningDocument()
 
-    for (const contract of ['2026-08-31', '#730', '#734']) {
+    for (const contract of ['2026-09-30', '#730', '#734']) {
       expect(versioningDocument).toContain(contract)
     }
   })

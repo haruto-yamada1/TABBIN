@@ -206,21 +206,22 @@ validation.
 
 The target support policy is:
 
-- legacy pre-IndexedDB backup import is available through `2026-08-31`;
+- legacy pre-IndexedDB backup import is available through `2026-09-30`;
 - #734 removes the legacy parser, mapper, detector branch, fixtures, deadline
-  constants, and temporary UI branch from `2026-09-01`;
+  constants, and temporary UI branch from `2026-10-01`;
 - the parent policy still requires at least 30 days after the production notice
-  release, so a late notice release postpones the cutoff consistently across
-  #724, #730, #731, #734, docs, i18n, constants, and tests.
+  release. The notice must reach the Chrome Web Store by `2026-09-01`; a later
+  release postpones the cutoff consistently across #724, #730, #731, #734,
+  docs, i18n, constants, and tests.
 
 The central dates and notice calculation are defined only in
 `compatibility/legacyBackupPolicy.ts`:
 
 | Policy value                  | Date / rule  |
 | ----------------------------- | ------------ |
-| Last supported import date    | `2026-08-31` |
-| Cutoff date                   | `2026-09-01` |
-| Latest on-time notice release | `2026-08-01` |
+| Last supported import date    | `2026-09-30` |
+| Cutoff date                   | `2026-10-01` |
+| Latest on-time notice release | `2026-09-01` |
 | Minimum notice                | 30 days      |
 
 Legacy preview metadata carries a content-free advisory with

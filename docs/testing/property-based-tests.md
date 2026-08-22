@@ -89,7 +89,7 @@ fixture として追加する。
 ## #734 cleanup 対象の識別
 
 `src/features/options/lib/import-export/legacy/LegacyBackupAdapter.property.test.ts`
-は pre-IDB legacy backup importer（2026-08-31 までの temporary compatibility
+は pre-IDB legacy backup importer（2026-09-30 までの temporary compatibility
 scope）を対象にする。#734 の cutoff release で legacy importer とともに削除し、
 archived historical fixture と current Backup V2 test を分離する。ファイル先頭の
 コメントでも同じ旨を明示している。

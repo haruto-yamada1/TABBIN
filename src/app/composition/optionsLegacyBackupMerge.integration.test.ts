@@ -185,7 +185,7 @@ describe('options legacy Backup merge integration', () => {
     })
 
     const result = await importSettings(legacyFixture, true, undefined, {
-      importDate: '2026-08-31',
+      importDate: '2026-09-30',
     })
 
     expect(result.success).toBe(true)
@@ -225,7 +225,7 @@ describe('options legacy Backup merge integration', () => {
       true,
       undefined,
       {
-        importDate: '2026-08-31',
+        importDate: '2026-09-30',
       },
     )
 
@@ -252,7 +252,7 @@ describe('options legacy Backup merge integration', () => {
 
     await expect(
       importSettings(warningOnlyLegacyFixture, true, undefined, {
-        importDate: '2026-08-31',
+        importDate: '2026-09-30',
       }),
     ).resolves.toMatchObject({ success: true })
 
@@ -292,7 +292,7 @@ describe('options legacy Backup merge integration', () => {
       settingsOnlyLegacyFixture,
       true,
       undefined,
-      { importDate: '2026-08-31' },
+      { importDate: '2026-09-30' },
     )
 
     expect(result.success).toBe(false)

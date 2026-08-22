@@ -320,12 +320,12 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(screen.getByText('Backup format')).toBeTruthy()
     expect(
       screen.getByText(
-        'Backups created with older versions can no longer be imported on or after September 1, 2026.',
+        'Backups created with older versions can no longer be imported on or after October 1, 2026.',
       ),
     ).toBeTruthy()
     expect(
       screen.getByText(
-        'Import any required backups by August 31, 2026, then export them again in the new format.',
+        'Import any required backups by September 30, 2026, then export them again in the new format.',
       ),
     ).toBeTruthy()
   })
@@ -863,8 +863,8 @@ describe('ImportExportSettingsコンポーネント', () => {
         hasAiChat: false,
         hasAnalytics: false,
         legacyBackupAdvisory: {
-          cutoffDate: '2026-09-01',
-          lastSupportedDate: '2026-08-31',
+          cutoffDate: '2026-10-01',
+          lastSupportedDate: '2026-09-30',
           requiresReExport: true,
         },
         projectsCount: 0,
@@ -885,7 +885,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(await screen.findByText('Legacy backup')).toBeTruthy()
     expect(
       screen.getByText(
-        'This legacy backup can no longer be imported on or after September 1, 2026.',
+        'This legacy backup can no longer be imported on or after October 1, 2026.',
       ),
     ).toBeTruthy()
     expect(
