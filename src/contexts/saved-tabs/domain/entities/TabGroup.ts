@@ -82,9 +82,11 @@ export const createTabGroup = (input: CreateTabGroupInput): TabGroup => {
   const domain = createDomainName(input.collection.definition.domain)
   const createdAt = createSavedAt(input.collection.createdAt)
   const updatedAt = createSavedAt(input.collection.updatedAt)
-  const groupId = input.collection.groupId
-    ? createParentCategoryId(input.collection.groupId)
-    : undefined
+  const { groupId: inputGroupId, ...inputCollection } = input.collection
+  const groupId =
+    inputGroupId === undefined
+      ? undefined
+      : createParentCategoryId(inputGroupId)
   const seen = new Set<string>()
   const inputMemberships: readonly PersistenceV2CollectionMembership[] =
     input.memberships
@@ -104,15 +106,24 @@ export const createTabGroup = (input: CreateTabGroupInput): TabGroup => {
         )
       }
       seen.add(urlId)
-      return { ...membership, collectionId: id, urlId }
+      const { addedAtProvenance, categoryId, notes, ...requiredMembership } =
+        membership
+      return {
+        ...requiredMembership,
+        ...(addedAtProvenance === undefined ? {} : { addedAtProvenance }),
+        ...(categoryId === undefined ? {} : { categoryId }),
+        collectionId: id,
+        ...(notes === undefined ? {} : { notes }),
+        urlId,
+      }
     },
   )
   return {
     collection: {
-      ...input.collection,
+      ...inputCollection,
       createdAt,
       definition: { domain, type: 'domain' },
-      ...(groupId ? { groupId } : { groupId: undefined }),
+      ...(groupId === undefined ? {} : { groupId }),
       id,
       name: createCategoryName(input.collection.name),
       updatedAt,
@@ -144,14 +155,17 @@ export const tabGroupCollectionGroupId = (
 
 export const assignTabGroupToCollectionGroup = (
   group: TabGroup,
-  groupId: string | undefined,
-): TabGroup => ({
-  ...group,
-  collection: {
-    ...group.collection,
-    ...(groupId === undefined ? { groupId: undefined } : { groupId }),
-  },
-})
+  nextGroupId: string | undefined,
+): TabGroup => {
+  const { groupId: _groupId, ...collection } = group.collection
+  return {
+    ...group,
+    collection: {
+      ...collection,
+      ...(nextGroupId === undefined ? {} : { groupId: nextGroupId }),
+    },
+  }
+}
 
 /**
  * `TabGroup` が保持する URL レコード数を返す。

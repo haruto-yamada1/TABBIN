@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
+import type { PersistenceV2CollectionMembership } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
+  assignTabGroupToCollectionGroup,
+  createTabGroup as createNormalizedTabGroup,
   isSameTabGroup,
   tabGroupContainsUrlRecord,
   tabGroupUrlCount,
@@ -37,6 +40,78 @@ describe('TabGroup entity', () => {
     })
     expect(group.collection.groupId).toBe('docs')
     expect(group.savedAt).toBe(1_700_000_000_000)
+  })
+
+  it('normalized collection の undefined groupId を省略する', () => {
+    const seed = createTabGroup(baseInput)
+    const collection = { ...seed.collection }
+    Reflect.set(collection, 'groupId', undefined)
+
+    const group = createNormalizedTabGroup({
+      collection,
+      collectionCategories: seed.collectionCategories,
+      memberships: seed.memberships,
+    })
+
+    expect(Object.hasOwn(group.collection, 'groupId')).toBe(false)
+  })
+
+  it('normalized membership の undefined optional property を省略する', () => {
+    const seed = createTabGroup({
+      ...baseInput,
+      memberships: [{ urlId: 'url-1' }],
+    })
+    const membership = { ...seed.memberships[0] }
+    Reflect.set(membership, 'addedAtProvenance', undefined)
+    Reflect.set(membership, 'categoryId', undefined)
+    Reflect.set(membership, 'notes', undefined)
+
+    const group = createNormalizedTabGroup({
+      collection: seed.collection,
+      collectionCategories: seed.collectionCategories,
+      memberships: [membership],
+    })
+
+    expect(
+      ['addedAtProvenance', 'categoryId', 'notes'].map((property) =>
+        Object.hasOwn(group.memberships[0], property),
+      ),
+    ).toStrictEqual([false, false, false])
+  })
+
+  it('normalized membership の定義済み optional property と必須項目を保持する', () => {
+    const seed = createTabGroup({
+      ...baseInput,
+      memberships: [{ urlId: 'url-1' }],
+      subCategories: ['Research'],
+    })
+    const category = seed.collectionCategories[0]
+    const seedMembership = seed.memberships[0]
+    if (!category || !seedMembership) {
+      throw new Error('expected normalized membership fixtures')
+    }
+    const membership: PersistenceV2CollectionMembership = {
+      ...seedMembership,
+      addedAtProvenance: 'exact',
+      categoryId: category.id,
+      notes: '',
+    }
+
+    const group = createNormalizedTabGroup({
+      collection: seed.collection,
+      collectionCategories: seed.collectionCategories,
+      memberships: [membership],
+    })
+
+    expect(group.memberships[0]).toStrictEqual(membership)
+  })
+
+  it('親カテゴリの割り当て解除では groupId property を省略する', () => {
+    const group = createTabGroup({ ...baseInput, parentCategoryId: 'docs' })
+
+    const unassigned = assignTabGroupToCollectionGroup(group, undefined)
+
+    expect(Object.hasOwn(unassigned.collection, 'groupId')).toBe(false)
   })
 
   it('membership の URL ID に重複があると INVALID_TAB_GROUP を投げる', () => {

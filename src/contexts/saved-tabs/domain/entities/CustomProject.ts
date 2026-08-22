@@ -85,6 +85,7 @@ export const createCustomProject = (
   const name = createCategoryName(input.collection.name)
   const createdAt = createSavedAt(input.collection.createdAt)
   const updatedAt = createSavedAt(input.collection.updatedAt)
+  const { groupId, ...inputCollection } = input.collection
   const seenUrlIds = new Set<string>()
   const memberships: CustomProjectMembership[] = []
   const inputMemberships: readonly PersistenceV2CollectionMembership[] =
@@ -104,7 +105,16 @@ export const createCustomProject = (
       )
     }
     seenUrlIds.add(urlId)
-    memberships.push({ ...membership, collectionId: id, urlId })
+    const { addedAtProvenance, categoryId, notes, ...requiredMembership } =
+      membership
+    memberships.push({
+      ...requiredMembership,
+      ...(addedAtProvenance === undefined ? {} : { addedAtProvenance }),
+      ...(categoryId === undefined ? {} : { categoryId }),
+      collectionId: id,
+      ...(notes === undefined ? {} : { notes }),
+      urlId,
+    })
   }
   const seenCategoryIds = new Set<string>()
   const collectionCategories = input.collectionCategories.map((category) => {
@@ -130,7 +140,7 @@ export const createCustomProject = (
   })
   return {
     collection: {
-      ...input.collection,
+      ...inputCollection,
       createdAt,
       definition: {
         ...input.collection.definition,
@@ -146,6 +156,7 @@ export const createCustomProject = (
           ],
         },
       },
+      ...(groupId === undefined ? {} : { groupId }),
       id,
       name,
       updatedAt,
