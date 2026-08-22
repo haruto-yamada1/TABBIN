@@ -242,11 +242,13 @@ const createParentCategoryRepository = (
         return collection
       }
       const groupId = groupIdByCollection.get(collection.id)
-      const next = { ...collection, groupId, updatedAt: now }
-      if (groupId === undefined) {
-        Reflect.deleteProperty(next, 'groupId')
+      const { groupId: _currentGroupId, ...collectionWithoutGroupId } =
+        collection
+      return {
+        ...collectionWithoutGroupId,
+        ...(groupId !== undefined ? { groupId } : {}),
+        updatedAt: now,
       }
-      return next
     })
   }
   return {
@@ -269,7 +271,7 @@ const createUrlRecordRepository = (
   const findAll = async () =>
     state.urls.map((url) =>
       createUrlRecord({
-        favIconUrl: url.favIconUrl,
+        ...(url.favIconUrl !== undefined ? { favIconUrl: url.favIconUrl } : {}),
         id: url.id,
         savedAt: url.lastSavedAt,
         title: url.title,
@@ -678,11 +680,13 @@ export const createNativeSavedTabsPersistenceAdapters = (
             return collection
           }
           const groupId = groupIdByDomain.get(collection.definition.domain)
-          const next = { ...collection, groupId, updatedAt: now() }
-          if (!groupId) {
-            Reflect.deleteProperty(next, 'groupId')
+          const { groupId: _currentGroupId, ...collectionWithoutGroupId } =
+            collection
+          return {
+            ...collectionWithoutGroupId,
+            ...(groupId !== undefined ? { groupId } : {}),
+            updatedAt: now(),
           }
-          return next
         })
       },
     },

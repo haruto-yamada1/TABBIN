@@ -97,8 +97,12 @@ const useSavedTabsPage = (input: SavedTabsPageProps): SavedTabsPageState => {
   )
   const controller = useSavedTabsController({
     deps: contextValue.deps,
-    initialCustomProjects: input.initialCustomProjects,
-    initialTabGroups: input.initialTabGroups,
+    ...(input.initialCustomProjects !== undefined
+      ? { initialCustomProjects: input.initialCustomProjects }
+      : {}),
+    ...(input.initialTabGroups !== undefined
+      ? { initialTabGroups: input.initialTabGroups }
+      : {}),
     useCases: contextValue.useCases,
   })
   const refreshRef = useRef(controller.refresh)
@@ -185,7 +189,9 @@ export const SavedTabsPage = (props: SavedTabsPageProps) => {
           isCompactLeftPaneLayout={isCompactLeftPaneLayout}
           leftPaneRef={leftPaneRef}
           onAiSidebarOpenChange={setIsAiSidebarOpen}
-          onViewModeNavigate={props.onViewModeNavigate}
+          {...(props.onViewModeNavigate !== undefined
+            ? { onViewModeNavigate: props.onViewModeNavigate }
+            : {})}
           resolveActiveRef={resolveActiveRef}
           useCases={useCases}
         />

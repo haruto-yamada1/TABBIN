@@ -104,9 +104,9 @@ const parseArgs = (argv: readonly string[]): CLIOptions | null => {
 
   return {
     resultsPath,
-    transcriptDir,
     intent,
-    outputPath,
+    ...(transcriptDir !== undefined ? { transcriptDir } : {}),
+    ...(outputPath !== undefined ? { outputPath } : {}),
   }
 }
 
@@ -134,8 +134,10 @@ const main = (): void => {
   try {
     adapterResult = adaptWazaToTraces({
       resultsPath: options.resultsPath,
-      transcriptDir: options.transcriptDir,
       requestIntent: options.intent,
+      ...(options.transcriptDir !== undefined
+        ? { transcriptDir: options.transcriptDir }
+        : {}),
     })
   } catch (error) {
     console.error(

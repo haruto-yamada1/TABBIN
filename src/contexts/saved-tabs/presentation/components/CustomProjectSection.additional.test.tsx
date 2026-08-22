@@ -44,7 +44,11 @@ vi.mock('@dnd-kit/core', () => ({
     onDragOver?: (event: unknown) => void
     onDragEnd?: (event: unknown) => void
   }) => {
-    dndContextPropsRef.current = { onDragStart, onDragOver, onDragEnd }
+    dndContextPropsRef.current = {
+      ...(onDragStart !== undefined ? { onDragStart } : {}),
+      ...(onDragOver !== undefined ? { onDragOver } : {}),
+      ...(onDragEnd !== undefined ? { onDragEnd } : {}),
+    }
     return <div>{children}</div>
   },
   DragOverlay: ({ children }: { children: React.ReactNode }) => (

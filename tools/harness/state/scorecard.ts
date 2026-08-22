@@ -237,10 +237,11 @@ const parseSkillFrontmatter = (content: string): ParsedSkillFrontmatter => {
       fields.set(kv[1], kv[2].trim())
     }
   }
+  const name = fields.get('name')
   return {
     disableModelInvocation: fields.get('disable-model-invocation') === 'true',
     frontmatterValid: true,
-    name: fields.get('name'),
+    ...(name !== undefined ? { name } : {}),
   }
 }
 

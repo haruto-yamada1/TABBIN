@@ -210,7 +210,7 @@ const SelectorGallery = () => {
           defaultOpen
           onValueChange={setVoiceValue}
           open
-          value={voiceValue}
+          {...(voiceValue !== undefined ? { value: voiceValue } : {})}
         >
           <VoiceSelectorTrigger asChild>
             <Button variant='outline'>Voice preview</Button>

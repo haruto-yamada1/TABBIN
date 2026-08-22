@@ -57,8 +57,10 @@ export const DomainCardRoot = ({
 
   const state = useDomainCardState({
     group,
-    handleDeleteCategory,
-    handleDeleteUrls: handlers.handleDeleteUrls,
+    ...(handleDeleteCategory !== undefined ? { handleDeleteCategory } : {}),
+    ...(handlers.handleDeleteUrls !== undefined
+      ? { handleDeleteUrls: handlers.handleDeleteUrls }
+      : {}),
     isReorderMode,
   })
 
@@ -87,7 +89,7 @@ export const DomainCardRoot = ({
 
   const contextValue: DomainCardContextType = useMemo(
     () => ({
-      categoryId,
+      ...(categoryId !== undefined ? { categoryId } : {}),
       group,
       handlers,
       isReorderMode,

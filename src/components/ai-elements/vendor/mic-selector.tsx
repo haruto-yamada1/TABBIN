@@ -45,10 +45,7 @@ type MicSelectorContextType = {
 
 const MicSelectorContext = createContext<MicSelectorContextType>({
   data: [],
-  onOpenChange: undefined,
-  onValueChange: undefined,
   open: false,
-  setWidth: undefined,
   value: undefined,
   width: 200,
 })
@@ -72,13 +69,17 @@ export const MicSelector = ({
 }: MicSelectorProps) => {
   const [value, onValueChange] = useControllableState<string | undefined>({
     defaultProp: defaultValue,
-    onChange: controlledOnValueChange,
-    prop: controlledValue,
+    ...(controlledOnValueChange !== undefined
+      ? { onChange: controlledOnValueChange }
+      : {}),
+    ...(controlledValue !== undefined ? { prop: controlledValue } : {}),
   })
   const [open, onOpenChange] = useControllableState({
     defaultProp: defaultOpen,
-    onChange: controlledOnOpenChange,
-    prop: controlledOpen,
+    ...(controlledOnOpenChange !== undefined
+      ? { onChange: controlledOnOpenChange }
+      : {}),
+    ...(controlledOpen !== undefined ? { prop: controlledOpen } : {}),
   })
   const [width, setWidth] = useState(DEFAULT_MIC_SELECTOR_WIDTH)
   const { devices, loading, hasPermission, loadDevices } = useAudioDevices()
@@ -184,7 +185,11 @@ export const MicSelectorContent = ({
       style={{ width }}
       {...popoverOptions}
     >
-      <Command onValueChange={onValueChange} value={value} {...props} />
+      <Command
+        {...(onValueChange !== undefined ? { onValueChange } : {})}
+        {...(value !== undefined ? { value } : {})}
+        {...props}
+      />
     </PopoverContent>
   )
 }

@@ -711,6 +711,7 @@ describe('analytics', () => {
     )
 
     expect(result.chartSpecs[0]?.xKey).toBeUndefined()
+    expect(Object.hasOwn(result.chartSpecs[0] ?? {}, 'xKey')).toBe(false)
   })
 
   it('空データの normalize は0件として扱い日次タイトルを返す', () => {

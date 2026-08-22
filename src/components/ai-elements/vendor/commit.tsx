@@ -224,7 +224,11 @@ export const CommitCopyButton = ({
   className,
   ...props
 }: CommitCopyButtonProps) => {
-  const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const { copyText, isCopied } = useCopyState({
+    ...(onCopy !== undefined ? { onCopy } : {}),
+    ...(onError !== undefined ? { onError } : {}),
+    timeout,
+  })
   const handleCopy = useCallback(() => {
     void copyText(hash, { skipIfCopied: true })
   }, [copyText, hash])

@@ -51,6 +51,17 @@ type SavedTabsChatComposerProps = {
   }
 }
 
+const getOllamaSelectorOptionalProps = ({
+  modelName,
+  setupOllamaError,
+}: {
+  modelName: SavedTabsChatComposerProps['modelName']
+  setupOllamaError: SavedTabsChatComposerProps['setupOllamaError']
+}) => ({
+  ...(setupOllamaError !== undefined ? { ollamaError: setupOllamaError } : {}),
+  ...(modelName !== undefined ? { selectedModel: modelName } : {}),
+})
+
 const SavedTabsChatComposer = ({
   input,
   presentation,
@@ -168,10 +179,12 @@ const SavedTabsChatComposer = ({
             models={modelOptions}
             onFetchModels={onFetchModels}
             onSelectModel={onSelectModel}
-            ollamaError={setupOllamaError}
             platform={platform}
-            selectedModel={modelName}
             status={selectorStatus}
+            {...getOllamaSelectorOptionalProps({
+              modelName,
+              setupOllamaError,
+            })}
           />
         </div>
         <PromptInputSubmit

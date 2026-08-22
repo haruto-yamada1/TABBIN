@@ -149,14 +149,16 @@ const applyMovedCategoryToUrls = (
   actualUrl: string,
   overCategory: string | undefined,
 ): ProjectUrlItem[] =>
-  urls.map((url) =>
-    url.url === actualUrl
-      ? {
-          ...url,
-          category: overCategory,
-        }
-      : url,
-  )
+  urls.map((url) => {
+    if (url.url !== actualUrl) {
+      return url
+    }
+    const { category: _category, ...urlWithoutCategory } = url
+    return {
+      ...urlWithoutCategory,
+      ...(overCategory !== undefined ? { category: overCategory } : {}),
+    }
+  })
 const handleProcessedUrlDrop = (params: {
   projectId: string
   actualUrl: string

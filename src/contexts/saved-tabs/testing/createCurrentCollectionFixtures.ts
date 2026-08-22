@@ -61,24 +61,30 @@ export const createTabGroup = (input: TabGroupFixtureInput): TabGroup => {
     collection: {
       createdAt: timestamp,
       definition: { domain, type: 'domain' },
-      ...(input.parentCategoryId ? { groupId: input.parentCategoryId } : {}),
+      ...(input.parentCategoryId !== undefined
+        ? { groupId: input.parentCategoryId }
+        : {}),
       id: input.id,
       name: domain,
       sortOrder: 0,
       updatedAt: timestamp,
     },
     collectionCategories: categories,
-    memberships: (input.memberships ?? []).map((membership, index) => ({
-      addedAt: timestamp,
-      ...(membership.category
-        ? { categoryId: categoryIdByName.get(membership.category) }
-        : {}),
-      collectionId: input.id,
-      ...(membership.notes ? { notes: membership.notes } : {}),
-      sortOrder: index,
-      updatedAt: timestamp,
-      urlId: membership.urlId,
-    })),
+    memberships: (input.memberships ?? []).map((membership, index) => {
+      const categoryId =
+        membership.category !== undefined
+          ? categoryIdByName.get(membership.category)
+          : undefined
+      return {
+        addedAt: timestamp,
+        ...(categoryId !== undefined ? { categoryId } : {}),
+        collectionId: input.id,
+        ...(membership.notes !== undefined ? { notes: membership.notes } : {}),
+        sortOrder: index,
+        updatedAt: timestamp,
+        urlId: membership.urlId,
+      }
+    }),
   })
 }
 
@@ -116,16 +122,20 @@ export const createCustomProject = (
       updatedAt,
     },
     collectionCategories: categories,
-    memberships: (input.memberships ?? []).map((membership, index) => ({
-      addedAt: createdAt,
-      ...(membership.category
-        ? { categoryId: categoryIdByName.get(membership.category) }
-        : {}),
-      collectionId: input.id,
-      ...(membership.notes ? { notes: membership.notes } : {}),
-      sortOrder: index,
-      updatedAt,
-      urlId: membership.urlId,
-    })),
+    memberships: (input.memberships ?? []).map((membership, index) => {
+      const categoryId =
+        membership.category !== undefined
+          ? categoryIdByName.get(membership.category)
+          : undefined
+      return {
+        addedAt: createdAt,
+        ...(categoryId !== undefined ? { categoryId } : {}),
+        collectionId: input.id,
+        ...(membership.notes !== undefined ? { notes: membership.notes } : {}),
+        sortOrder: index,
+        updatedAt,
+        urlId: membership.urlId,
+      }
+    }),
   })
 }

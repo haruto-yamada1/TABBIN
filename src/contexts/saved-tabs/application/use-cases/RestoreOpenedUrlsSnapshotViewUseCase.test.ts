@@ -96,8 +96,6 @@ describe('RestoreOpenedUrlsSnapshotViewUseCase', () => {
     })
 
     expect(result).toStrictEqual({
-      customProjects: undefined,
-      parentCategories: undefined,
       savedTabs: [],
     })
   })

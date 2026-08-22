@@ -12,6 +12,7 @@ import {
   detectBackupFormat,
 } from '@/lib/persistence/backupSchema'
 import { defaultSettings } from '@/lib/storage/settings'
+import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
 
 import { LegacyBackupV0Schema } from './LegacyBackupV0Schema'
 import type { LegacyBackupV0 } from './LegacyBackupV0Schema'
@@ -359,7 +360,7 @@ export const convertLegacyBackup = (
 
   const userSettings = {
     ...structuredClone(defaultSettings),
-    ...structuredClone(legacyBackup.userSettings),
+    ...parseStoredUserSettings(legacyBackup.userSettings),
   }
   const data = BackupMapper.toBackupData(
     {

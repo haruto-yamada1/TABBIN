@@ -123,7 +123,12 @@ export const Terminal = ({
   ...props
 }: TerminalProps) => {
   const contextValue = useMemo(
-    () => ({ autoScroll, isStreaming, onClear, output }),
+    () => ({
+      autoScroll,
+      isStreaming,
+      ...(onClear !== undefined ? { onClear } : {}),
+      output,
+    }),
     [autoScroll, isStreaming, onClear, output],
   )
 
@@ -240,7 +245,11 @@ export const TerminalCopyButton = ({
   ...props
 }: TerminalCopyButtonProps) => {
   const { output } = use(TerminalContext)
-  const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const { copyText, isCopied } = useCopyState({
+    ...(onCopy !== undefined ? { onCopy } : {}),
+    ...(onError !== undefined ? { onError } : {}),
+    timeout,
+  })
   const handleCopy = useCallback(() => {
     void copyText(output)
   }, [copyText, output])

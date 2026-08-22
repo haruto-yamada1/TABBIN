@@ -276,9 +276,15 @@ export const Header = ({
         <CategoryModal
           onClose={handleCloseModal}
           tabGroups={tabGroups}
-          assignDomainToCategoryUseCase={assignDomainToCategoryUseCase}
-          createParentCategoryUseCase={createParentCategoryUseCase}
-          deleteParentCategoryUseCase={deleteParentCategoryUseCase}
+          {...(assignDomainToCategoryUseCase !== undefined
+            ? { assignDomainToCategoryUseCase }
+            : {})}
+          {...(createParentCategoryUseCase !== undefined
+            ? { createParentCategoryUseCase }
+            : {})}
+          {...(deleteParentCategoryUseCase !== undefined
+            ? { deleteParentCategoryUseCase }
+            : {})}
           getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
         />
       )}

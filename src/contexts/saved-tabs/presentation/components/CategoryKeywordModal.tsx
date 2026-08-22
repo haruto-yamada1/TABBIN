@@ -44,9 +44,11 @@ export const CategoryKeywordModal = ({
     onSave={onSave}
     onDeleteCategory={onDeleteCategory}
     initialParentCategories={initialParentCategories}
-    onUpdateParentCategories={onUpdateParentCategories}
+    {...(onUpdateParentCategories !== undefined
+      ? { onUpdateParentCategories }
+      : {})}
     deps={deps}
-    storageChangePort={storageChangePort}
+    {...(storageChangePort !== undefined ? { storageChangePort } : {})}
   >
     <SubCategoryAddSection />
     <SubCategorySelector />

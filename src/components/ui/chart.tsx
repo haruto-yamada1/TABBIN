@@ -379,16 +379,16 @@ const ChartTooltipContent = ({
           }
           items.push(
             renderTooltipRow({
-              color,
               config,
               formatter,
               hideIndicator,
               index: items.length,
               indicator,
               item,
-              nameKey,
               nestLabel,
               tooltipLabel,
+              ...(color !== undefined ? { color } : {}),
+              ...(nameKey !== undefined ? { nameKey } : {}),
             }),
           )
           return items

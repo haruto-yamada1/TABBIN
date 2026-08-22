@@ -61,6 +61,61 @@ const getOllamaErrorDetails = (
   return isOllamaErrorDetails(maybeOllamaError) ? maybeOllamaError : undefined
 }
 
+const stringifyThrownValue = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint' ||
+    typeof value === 'symbol'
+  ) {
+    return String(value)
+  }
+
+  try {
+    const toStringMethod: unknown = Reflect.get(value, 'toString')
+    if (typeof toStringMethod !== 'function') {
+      return undefined
+    }
+    const result: unknown = Reflect.apply(toStringMethod, value, [])
+    return typeof result === 'string' ? result : undefined
+  } catch {
+    // Untrusted thrown values may be Proxies or reject primitive coercion.
+    return undefined
+  }
+}
+
+type AiChatRequestInput = {
+  attachments?: AiChatAttachment[] | undefined
+  prompt: string
+  history: {
+    role: 'user' | 'assistant'
+    content: string
+    attachments?: AiChatAttachment[] | undefined
+  }[]
+}
+
+const normalizeAiChatRequest = (
+  message: AiChatRequestInput,
+): Parameters<typeof runAiChatRequest>[0] => ({
+  prompt: message.prompt,
+  history: message.history.map((historyItem) => ({
+    role: historyItem.role,
+    content: historyItem.content,
+    ...(historyItem.attachments !== undefined
+      ? { attachments: historyItem.attachments }
+      : {}),
+  })),
+  ...(message.attachments !== undefined
+    ? { attachments: message.attachments }
+    : {}),
+})
+
 type RuntimeOnConnect = {
   addListener: (listener: (port: chrome.runtime.Port) => void) => void
 }
@@ -147,7 +202,15 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'urlDropped': {
-        handleUrlDroppedMessage(typedMessage, sendResponse)
+        handleUrlDroppedMessage(
+          {
+            url: typedMessage.url,
+            ...(typedMessage.fromExternal !== undefined
+              ? { fromExternal: typedMessage.fromExternal }
+              : {}),
+          },
+          sendResponse,
+        )
         return true
       }
       case 'removeUrlFromStorage': {
@@ -163,11 +226,26 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'checkExpiredTabs': {
-        handleCheckExpiredTabsMessage(typedMessage, sendResponse)
+        handleCheckExpiredTabsMessage(
+          {
+            ...(typedMessage.updateTimestamps !== undefined
+              ? { updateTimestamps: typedMessage.updateTimestamps }
+              : {}),
+            ...(typedMessage.period !== undefined
+              ? { period: typedMessage.period }
+              : {}),
+          },
+          sendResponse,
+        )
         return true
       }
       case 'updateTabTimestamps': {
-        handleUpdateTabTimestampsMessage(typedMessage, sendResponse)
+        handleUpdateTabTimestampsMessage(
+          typedMessage.period !== undefined
+            ? { period: typedMessage.period }
+            : {},
+          sendResponse,
+        )
         return true
       }
       case 'getAlarmStatus': {
@@ -179,7 +257,10 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'runAiChat': {
-        handleRunAiChatMessage(typedMessage, sendResponse)
+        handleRunAiChatMessage(
+          normalizeAiChatRequest(typedMessage),
+          sendResponse,
+        )
         return true
       }
       default: {
@@ -330,9 +411,10 @@ const handleCalculateTimeRemainingMessage = (
     })
   } catch (error) {
     logger.error('background_time_remaining_calculation_failed', error)
+    const errorMessage = stringifyThrownValue(error)
     sendResponse({
-      error: error?.toString(),
       timeRemaining: null,
+      ...(errorMessage !== undefined ? { error: errorMessage } : {}),
     })
   }
 }
@@ -458,31 +540,20 @@ const handleListOllamaModelsMessage = (
       })
     })
     .catch((error: unknown) => {
+      const ollamaError = getOllamaErrorDetails(error)
       sendResponse({
         error: error instanceof Error ? error.message : String(error),
-        ollamaError: getOllamaErrorDetails(error),
         status: 'error',
+        ...(ollamaError !== undefined ? { ollamaError } : {}),
       })
     })
 }
 
 const handleRunAiChatMessage = (
-  message: {
-    attachments?: AiChatAttachment[]
-    prompt: string
-    history: {
-      role: 'user' | 'assistant'
-      content: string
-      attachments?: AiChatAttachment[]
-    }[]
-  },
+  message: Parameters<typeof runAiChatRequest>[0],
   sendResponse: (response: AiChatResponse) => void,
 ): void => {
-  runAiChatRequest({
-    attachments: message.attachments,
-    history: message.history,
-    prompt: message.prompt,
-  })
+  runAiChatRequest(message)
     .then((result) => {
       sendResponse({
         answer: result.answer,
@@ -494,10 +565,11 @@ const handleRunAiChatMessage = (
       })
     })
     .catch((error: unknown) => {
+      const ollamaError = getOllamaErrorDetails(error)
       sendResponse({
         error: error instanceof Error ? error.message : String(error),
-        ollamaError: getOllamaErrorDetails(error),
         status: 'error',
+        ...(ollamaError !== undefined ? { ollamaError } : {}),
       })
     })
 }
@@ -517,27 +589,20 @@ const handleAiChatStreamPortMessage = (
     controller.abort()
   })
 
-  runAiChatRequest(
-    {
-      attachments: runMessage.attachments,
-      history: runMessage.history,
-      prompt: runMessage.prompt,
-    },
-    {
-      onStepUpdate: (stepUpdate) => {
-        if (controller.signal.aborted) {
-          return
-        }
+  runAiChatRequest(normalizeAiChatRequest(runMessage), {
+    onStepUpdate: (stepUpdate) => {
+      if (controller.signal.aborted) {
+        return
+      }
 
-        port.postMessage({
-          reasoning: stepUpdate.reasoning,
-          toolTraces: stepUpdate.toolTraces,
-          type: 'step',
-        })
-      },
-      signal: controller.signal,
+      port.postMessage({
+        reasoning: stepUpdate.reasoning,
+        toolTraces: stepUpdate.toolTraces,
+        type: 'step',
+      })
     },
-  )
+    signal: controller.signal,
+  })
     .then((result) => {
       if (controller.signal.aborted) {
         return
@@ -557,10 +622,11 @@ const handleAiChatStreamPortMessage = (
         return
       }
 
+      const ollamaError = getOllamaErrorDetails(error)
       const errorMessage: AiChatStreamErrorMessage = {
         error: error instanceof Error ? error.message : String(error),
-        ollamaError: getOllamaErrorDetails(error),
         type: 'error',
+        ...(ollamaError !== undefined ? { ollamaError } : {}),
       }
 
       port.postMessage(errorMessage)

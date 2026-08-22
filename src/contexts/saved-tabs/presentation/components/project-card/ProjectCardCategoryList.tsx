@@ -54,7 +54,12 @@ export const ProjectCardCategoryList = () => {
             // eslint-disable-next-line react/jsx-handler-names
             handleDeleteUrl={handlers.handleDeleteUrl}
             // eslint-disable-next-line react/jsx-handler-names
-            handleDeleteUrlsFromProject={handlers.handleDeleteUrlsFromProject}
+            {...(handlers.handleDeleteUrlsFromProject !== undefined
+              ? {
+                  handleDeleteUrlsFromProject:
+                    handlers.handleDeleteUrlsFromProject,
+                }
+              : {})}
             // eslint-disable-next-line react/jsx-handler-names
             handleDeleteCategory={handlers.handleDeleteCategory}
             // eslint-disable-next-line react/jsx-handler-names
@@ -62,10 +67,14 @@ export const ProjectCardCategoryList = () => {
             // eslint-disable-next-line react/jsx-handler-names
             handleAddCategory={handlers.handleAddCategory}
             // eslint-disable-next-line react/jsx-handler-names
-            handleRenameCategory={handlers.handleRenameCategory}
+            {...(handlers.handleRenameCategory !== undefined
+              ? { handleRenameCategory: handlers.handleRenameCategory }
+              : {})}
             settings={settings}
             // eslint-disable-next-line react/jsx-handler-names
-            handleOpenAllUrls={handlers.handleOpenAllUrls}
+            {...(handlers.handleOpenAllUrls !== undefined
+              ? { handleOpenAllUrls: handlers.handleOpenAllUrls }
+              : {})}
             dragData={CATEGORY_DRAG_DATA}
             isHighlighted={dnd.draggedOverCategory === categoryName}
             isDraggingCategory={dnd.isDraggingCategory}

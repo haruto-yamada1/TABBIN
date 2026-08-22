@@ -215,11 +215,9 @@ export const createOpenAllSavedUrlsUseCase = (
     await deps.urlRecordRepository.removeByIds(plan.urlRecordIdsToDelete)
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
-      customProjectOrder: undefined,
       customProjects: plan.previousCustomProjects.map(
         toSavedTabsCustomProjectDto,
       ),
-      parentCategories: undefined,
       savedTabs: plan.previousTabGroups.map(toSavedTabsTabGroupDto),
       urlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }

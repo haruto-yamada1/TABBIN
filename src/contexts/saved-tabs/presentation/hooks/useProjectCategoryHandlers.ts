@@ -16,6 +16,57 @@ type ProjectCategoryHandlerDeps = {
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
 }
 
+type CustomProjectUrl = NonNullable<CustomProject['urls']>[number]
+
+const renameUrlCategory = (
+  item: CustomProjectUrl,
+  oldCategoryName: string,
+  newCategoryName: string,
+): CustomProjectUrl => {
+  const nextCategory =
+    item.category === oldCategoryName ? newCategoryName : item.category
+  const { category: _category, ...itemWithoutCategory } = item
+  return {
+    ...itemWithoutCategory,
+    ...(nextCategory !== undefined ? { category: nextCategory } : {}),
+  }
+}
+
+const renameProjectCategory = (
+  project: CustomProject,
+  projectId: string,
+  oldCategoryName: string,
+  newCategoryName: string,
+): CustomProject => {
+  if (project.id !== projectId) {
+    return project
+  }
+  const categoryOrder = project.categoryOrder?.map((category) =>
+    category === oldCategoryName ? newCategoryName : category,
+  )
+  const urls = project.urls?.map((item) =>
+    renameUrlCategory(item, oldCategoryName, newCategoryName),
+  )
+  return {
+    ...project,
+    categories: project.categories.map((category) =>
+      category === oldCategoryName ? newCategoryName : category,
+    ),
+    ...(categoryOrder !== undefined ? { categoryOrder } : {}),
+    ...(urls !== undefined ? { urls } : {}),
+  }
+}
+
+const renameProjectCategoryState = (
+  projects: CustomProject[],
+  projectId: string,
+  oldCategoryName: string,
+  newCategoryName: string,
+): CustomProject[] =>
+  projects.map((project) =>
+    renameProjectCategory(project, projectId, oldCategoryName, newCategoryName),
+  )
+
 const useProjectCategoryHandlers = ({
   refs,
   setCustomProjects,
@@ -99,7 +150,7 @@ const useProjectCategoryHandlers = ({
     ): Promise<void> => {
       try {
         await refs.setCustomProjectUrlCategoryUseCaseRef.current({
-          category,
+          ...(category !== undefined ? { category } : {}),
           projectId,
           url,
         })
@@ -164,15 +215,17 @@ const useProjectCategoryHandlers = ({
           urls: resolvedUrls,
         })
         setCustomProjects((prev) =>
-          prev.map((p) =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  updatedAt: Date.now(),
-                  urls,
-                }
-              : p,
-          ),
+          prev.map((project) => {
+            if (project.id !== projectId) {
+              return project
+            }
+            const { urls: _currentUrls, ...projectWithoutUrls } = project
+            return {
+              ...projectWithoutUrls,
+              updatedAt: Date.now(),
+              ...(urls !== undefined ? { urls } : {}),
+            }
+          }),
         )
       } catch (error) {
         console.error('URL順序更新エラー:', error)
@@ -221,31 +274,12 @@ const useProjectCategoryHandlers = ({
           oldCategoryName,
           projectId,
         })
-        setCustomProjects((prev) =>
-          prev.map((project) =>
-            project.id === projectId
-              ? {
-                  ...project,
-                  // eslint-disable-next-line eslint/max-nested-callbacks
-                  categories: project.categories.map((cat) =>
-                    cat === oldCategoryName ? newCategoryName : cat,
-                  ),
-                  categoryOrder: project.categoryOrder
-                    ? // eslint-disable-next-line eslint/max-nested-callbacks
-                      project.categoryOrder.map((cat) =>
-                        cat === oldCategoryName ? newCategoryName : cat,
-                      )
-                    : project.categoryOrder,
-                  // eslint-disable-next-line eslint/max-nested-callbacks
-                  urls: project.urls?.map((item) => ({
-                    ...item,
-                    category:
-                      item.category === oldCategoryName
-                        ? newCategoryName
-                        : item.category,
-                  })),
-                }
-              : project,
+        setCustomProjects((projects) =>
+          renameProjectCategoryState(
+            projects,
+            projectId,
+            oldCategoryName,
+            newCategoryName,
           ),
         )
         toast.success(t('savedTabs.projectCategory.renamed'))

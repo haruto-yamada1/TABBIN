@@ -142,7 +142,9 @@ export class IndexedDbPersistenceUnitOfWork implements PersistenceV2UnitOfWorkPo
       await queueIndexedDbTransaction(
         {
           database,
-          durability: options.durability,
+          ...(options.durability !== undefined
+            ? { durability: options.durability }
+            : {}),
           mode: 'readwrite',
           storeNames: [...storeNames, PERSISTENCE_STORE_NAMES.metadata],
         },

@@ -134,10 +134,9 @@ const mergeUrlData = (
   }
   return {
     urlIds: [...urlIdSet],
-    urlSubCategories:
-      Object.keys(mergedUrlSubCategories).length > 0
-        ? mergedUrlSubCategories
-        : undefined,
+    ...(Object.keys(mergedUrlSubCategories).length > 0
+      ? { urlSubCategories: mergedUrlSubCategories }
+      : {}),
   }
 }
 
@@ -246,14 +245,21 @@ const buildMergedExistingDomainTab = async (
       importedOrder: importedTab.subCategoryOrderWithUncategorized,
       validCategories: mergedSubCategories,
     })
+  const mergedSavedAt = resolveMergedSavedAt(
+    existingTab.savedAt,
+    importedTab.savedAt,
+  )
+  const parentCategoryId =
+    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty string should fall through
+    importedTab.parentCategoryId || existingTab.parentCategoryId
   return {
     id: existingTab.id,
     domain: normalizeDomainString(existingTab.domain),
     urlIds: mergedUrlData.urlIds,
-    urlSubCategories: mergedUrlData.urlSubCategories,
-    parentCategoryId:
-      // eslint-disable-next-line typescript/prefer-nullish-coalescing -- empty string should fall through
-      importedTab.parentCategoryId || existingTab.parentCategoryId,
+    ...(mergedUrlData.urlSubCategories !== undefined
+      ? { urlSubCategories: mergedUrlData.urlSubCategories }
+      : {}),
+    ...(parentCategoryId !== undefined ? { parentCategoryId } : {}),
     categoryKeywords: mergedKeywords,
     subCategories: mergedSubCategories,
     ...(mergedSubCategoryOrder
@@ -265,7 +271,7 @@ const buildMergedExistingDomainTab = async (
             mergedSubCategoryOrderWithUncategorized,
         }
       : {}),
-    savedAt: resolveMergedSavedAt(existingTab.savedAt, importedTab.savedAt),
+    ...(mergedSavedAt !== undefined ? { savedAt: mergedSavedAt } : {}),
   }
 }
 
@@ -296,8 +302,12 @@ const buildMergedNewDomainTab = async (
     id: importedTab.id,
     domain: normalizeDomainString(importedTab.domain),
     urlIds: resolvedUrlData.urlIds,
-    urlSubCategories: resolvedUrlData.urlSubCategories,
-    parentCategoryId: importedTab.parentCategoryId,
+    ...(resolvedUrlData.urlSubCategories !== undefined
+      ? { urlSubCategories: resolvedUrlData.urlSubCategories }
+      : {}),
+    ...(importedTab.parentCategoryId !== undefined
+      ? { parentCategoryId: importedTab.parentCategoryId }
+      : {}),
     categoryKeywords: normalizedKeywords,
     subCategories: normalizedSubCategories,
     ...(normalizedSubCategoryOrder
@@ -309,7 +319,9 @@ const buildMergedNewDomainTab = async (
             normalizedSubCategoryOrderWithUncategorized,
         }
       : {}),
-    savedAt: importedTab.savedAt,
+    ...(importedTab.savedAt !== undefined
+      ? { savedAt: importedTab.savedAt }
+      : {}),
   }
 }
 
@@ -528,7 +540,12 @@ const resolveMergedAiChatHistory = ({
     activeConversationId: resolveAiChatActiveConversationId({
       conversations,
       fallbackId: currentActiveConversationId,
-      importedActiveConversationId: importedData.activeAiChatConversationId,
+      ...(importedData.activeAiChatConversationId !== undefined
+        ? {
+            importedActiveConversationId:
+              importedData.activeAiChatConversationId,
+          }
+        : {}),
     }),
     conversations,
   }
@@ -551,7 +568,12 @@ const resolveOverwriteAiChatHistory = (
   return {
     activeConversationId: resolveAiChatActiveConversationId({
       conversations,
-      importedActiveConversationId: importedData.activeAiChatConversationId,
+      ...(importedData.activeAiChatConversationId !== undefined
+        ? {
+            importedActiveConversationId:
+              importedData.activeAiChatConversationId,
+          }
+        : {}),
     }),
     conversations,
   }

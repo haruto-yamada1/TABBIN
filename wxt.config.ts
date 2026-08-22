@@ -15,6 +15,11 @@ import {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
+type ProductionViteConfig = {
+  build: { minify: 'esbuild' }
+  esbuild: { drop: ('console' | 'debugger')[] }
+}
+
 const readPackageVersion = (): string => {
   const packageJsonPath = path.resolve(import.meta.dirname, 'package.json')
   const parsed: unknown = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
@@ -73,13 +78,16 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react', '@wxt-dev/i18n/module'],
   vite: (env) => {
     const isProduction = env.mode === 'production'
+    const productionConfig: ProductionViteConfig = {
+      build: { minify: 'esbuild' },
+      esbuild: { drop: ['console', 'debugger'] },
+    }
 
     return {
-      build: isProduction ? { minify: 'esbuild' } : undefined,
+      ...(isProduction ? productionConfig : {}),
       define: {
         __APP_VERSION__: JSON.stringify(APP_VERSION),
       },
-      esbuild: isProduction ? { drop: ['console', 'debugger'] } : undefined,
       plugins: vitePlugins,
     }
   },

@@ -186,7 +186,9 @@ export const useDomainModeController = (
         tabGroups: tabGroupsForView.map((vm) => ({
           domain: vm.domain,
           id: vm.id,
-          parentCategoryId: vm.parentCategoryId,
+          ...(vm.parentCategoryId !== undefined
+            ? { parentCategoryId: vm.parentCategoryId }
+            : {}),
           urls: [...vm.urls],
         })),
       }),

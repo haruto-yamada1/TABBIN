@@ -137,10 +137,10 @@ const parseActiveDragData = (value: unknown): ActiveDragData | null => {
 
   return hasRecognizedData
     ? {
-        projectId: typeof projectId === 'string' ? projectId : undefined,
-        title: typeof title === 'string' ? title : undefined,
-        type: typeof type === 'string' ? type : undefined,
-        url: typeof url === 'string' ? url : undefined,
+        ...(typeof projectId === 'string' ? { projectId } : {}),
+        ...(typeof title === 'string' ? { title } : {}),
+        ...(typeof type === 'string' ? { type } : {}),
+        ...(typeof url === 'string' ? { url } : {}),
       }
     : null
 }
@@ -575,15 +575,15 @@ const useCustomProjectSectionView = ({
 
       activeDragDataRef.current = {
         projectId,
-        title,
-        type,
-        url,
+        ...(title !== undefined ? { title } : {}),
+        ...(type !== undefined ? { type } : {}),
+        ...(url !== undefined ? { url } : {}),
       }
       lastKnownActiveDragData = {
         projectId,
-        title,
-        type,
-        url,
+        ...(title !== undefined ? { title } : {}),
+        ...(type !== undefined ? { type } : {}),
+        ...(url !== undefined ? { url } : {}),
       }
 
       if (type === 'url') {
@@ -595,8 +595,8 @@ const useCustomProjectSectionView = ({
           setDraggedProject,
           setIsCrossProjectUrlDragActive,
           setIsProjectReorderMode,
-          title,
-          url,
+          ...(title !== undefined ? { title } : {}),
+          ...(url !== undefined ? { url } : {}),
         })
       } else if (type === 'project') {
         applyProjectDragStartState({
@@ -734,7 +734,9 @@ const useCustomProjectSectionView = ({
         activeData,
         activeId: String(active.id),
         event,
-        handleReorderProjects,
+        ...(handleReorderProjects !== undefined
+          ? { handleReorderProjects }
+          : {}),
         handleUrlDragSequence,
         over,
         projectDragHandlersRef,
@@ -779,22 +781,29 @@ const useCustomProjectSectionView = ({
               <div>
                 {projects.map((project) => (
                   <CustomProjectCard
-                    key={project.id}
                     project={project}
                     handleOpenUrl={handleOpenUrl}
                     handleDeleteUrl={handleDeleteUrl}
-                    handleDeleteUrlsFromProject={handleDeleteUrlsFromProject}
+                    {...(handleDeleteUrlsFromProject !== undefined
+                      ? { handleDeleteUrlsFromProject }
+                      : {})}
                     handleAddUrl={handleAddUrl}
                     handleDeleteProject={handleDeleteProject}
                     handleRenameProject={handleRenameProject}
-                    handleUpdateProjectKeywords={handleUpdateProjectKeywords}
+                    {...(handleUpdateProjectKeywords !== undefined
+                      ? { handleUpdateProjectKeywords }
+                      : {})}
                     handleAddCategory={handleAddCategory}
                     handleDeleteCategory={handleDeleteCategory}
-                    handleRenameCategory={handleRenameCategory} // 追加: カテゴリ名変更ハンドラ
+                    {...(handleRenameCategory !== undefined
+                      ? { handleRenameCategory }
+                      : {})}
                     handleSetUrlCategory={handleSetUrlCategory}
                     handleUpdateCategoryOrder={handleUpdateCategoryOrder}
                     handleReorderUrls={handleReorderUrls}
-                    handleOpenAllUrls={handleOpenAllUrls}
+                    {...(handleOpenAllUrls !== undefined
+                      ? { handleOpenAllUrls }
+                      : {})}
                     settings={settings}
                     // ドラッグ中のアイテム情報を渡す
                     draggedItem={draggedItem}
@@ -802,11 +811,16 @@ const useCustomProjectSectionView = ({
                     isDropTarget={draggedOverProjectId === project.id}
                     isProjectReorderMode={isProjectReorderMode}
                     isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
-                    getProjectUrlsUseCase={getProjectUrlsUseCase}
-                    handleMoveUrlsBetweenCategories={
-                      handleMoveUrlsBetweenCategories
-                    }
-                    handleMoveUrlBetweenProjects={handleMoveUrlBetweenProjects} // 追加: プロジェクト間URL移動を渡す
+                    {...(getProjectUrlsUseCase !== undefined
+                      ? { getProjectUrlsUseCase }
+                      : {})}
+                    {...(handleMoveUrlsBetweenCategories !== undefined
+                      ? { handleMoveUrlsBetweenCategories }
+                      : {})}
+                    {...(handleMoveUrlBetweenProjects !== undefined
+                      ? { handleMoveUrlBetweenProjects }
+                      : {})}
+                    key={project.id}
                   />
                 ))}
               </div>

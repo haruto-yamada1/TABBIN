@@ -132,7 +132,10 @@ const getErrorContext = (error: unknown): LogContext => {
     errorCode = code
   }
 
-  return sanitizeContext({ errorCode, errorName })
+  return sanitizeContext({
+    errorName,
+    ...(errorCode !== undefined ? { errorCode } : {}),
+  })
 }
 
 const createRecord = (event: LogEvent, context?: LogContext): LogRecord => {

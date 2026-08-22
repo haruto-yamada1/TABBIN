@@ -95,19 +95,16 @@ describe('CategoryKeywordModal', () => {
   })
 
   it('parentCategories 未指定時に空配列を KeywordModalRoot に渡す', () => {
-    render(
-      <CategoryKeywordModal
-        {...createProps({
-          parentCategories: undefined as unknown as ParentCategory[],
-        })}
-      />,
-    )
+    const { parentCategories: _parentCategories, ...props } = createProps()
+    render(<CategoryKeywordModal {...props} />)
 
     expect(keywordModalRootSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         initialParentCategories: [],
-        onUpdateParentCategories: undefined,
       }),
+    )
+    expect(keywordModalRootSpy.mock.calls[0]?.[0]).not.toHaveProperty(
+      'onUpdateParentCategories',
     )
     expect(screen.getByTestId('keyword-modal-root')).toBeTruthy()
     expect(screen.getByTestId('sub-category-add-section')).toBeTruthy()

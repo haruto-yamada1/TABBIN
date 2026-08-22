@@ -35,19 +35,31 @@ import type {
  * 値をそのまま詰め替える。
  */
 export const toUserSettingsDto = (storage: UserSettings): UserSettingsDto => ({
-  activeAiSystemPromptId: storage.activeAiSystemPromptId,
-  aiSystemPrompts: storage.aiSystemPrompts?.map(toAiSystemPromptPresetDto),
-  autoDeletePeriod: storage.autoDeletePeriod,
+  ...(storage.activeAiSystemPromptId !== undefined
+    ? { activeAiSystemPromptId: storage.activeAiSystemPromptId }
+    : {}),
+  ...(storage.aiSystemPrompts !== undefined
+    ? {
+        aiSystemPrompts: storage.aiSystemPrompts.map(toAiSystemPromptPresetDto),
+      }
+    : {}),
+  ...(storage.autoDeletePeriod !== undefined
+    ? { autoDeletePeriod: storage.autoDeletePeriod }
+    : {}),
   clickBehavior: storage.clickBehavior,
-  colors: storage.colors,
+  ...(storage.colors !== undefined ? { colors: storage.colors } : {}),
   confirmDeleteAll: storage.confirmDeleteAll,
   confirmDeleteEach: storage.confirmDeleteEach,
   enableCategories: storage.enableCategories,
   excludePatterns: [...storage.excludePatterns],
   excludePinnedTabs: storage.excludePinnedTabs,
-  fontSizePercent: storage.fontSizePercent,
-  language: storage.language,
-  ollamaModel: storage.ollamaModel,
+  ...(storage.fontSizePercent !== undefined
+    ? { fontSizePercent: storage.fontSizePercent }
+    : {}),
+  ...(storage.language !== undefined ? { language: storage.language } : {}),
+  ...(storage.ollamaModel !== undefined
+    ? { ollamaModel: storage.ollamaModel }
+    : {}),
   openAllInNewWindow: storage.openAllInNewWindow,
   openUrlInBackground: storage.openUrlInBackground,
   removeTabAfterExternalDrop: storage.removeTabAfterExternalDrop,

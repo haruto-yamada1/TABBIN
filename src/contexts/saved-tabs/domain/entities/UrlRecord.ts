@@ -65,7 +65,7 @@ export const createUrlRecord = (input: CreateUrlRecordInput): UrlRecord => {
     url: createUrl(input.url),
     title: input.title,
     savedAt: createSavedAt(input.savedAt),
-    favIconUrl: input.favIconUrl,
+    ...(input.favIconUrl === undefined ? {} : { favIconUrl: input.favIconUrl }),
   }
 }
 

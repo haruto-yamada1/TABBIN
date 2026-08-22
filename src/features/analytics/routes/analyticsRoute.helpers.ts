@@ -395,7 +395,7 @@ const getDrilldownLabelsForRecord = (
           ...query,
           compareBy: 'none',
         },
-        { messages: chartMessages },
+        chartMessages !== undefined ? { messages: chartMessages } : {},
       ).chartSpecs[0]?.data,
     )
   }
@@ -451,7 +451,13 @@ const matchesDrilldownLabel = ({
     return false
   }
 
-  if (!matchesDrilldownMode({ query, record, seriesKey })) {
+  if (
+    !matchesDrilldownMode({
+      query,
+      record,
+      ...(seriesKey !== undefined ? { seriesKey } : {}),
+    })
+  ) {
     return false
   }
 
@@ -482,15 +488,19 @@ const rebuildAnalyticsDrilldownSelection = ({
 
   return {
     ...currentSelection,
-    matchingRecords: filterAnalyticsRecords(nextRecords, query, {
-      messages: chartMessages,
-    }).filter((record) =>
+    matchingRecords: filterAnalyticsRecords(
+      nextRecords,
+      query,
+      chartMessages !== undefined ? { messages: chartMessages } : {},
+    ).filter((record) =>
       matchesDrilldownLabel({
         chartMessages,
         label: currentSelection.label,
         query,
         record,
-        seriesKey: currentSelection.seriesKey,
+        ...(currentSelection.seriesKey !== undefined
+          ? { seriesKey: currentSelection.seriesKey }
+          : {}),
         uncategorizedLabel,
       }),
     ),

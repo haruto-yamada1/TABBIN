@@ -569,7 +569,11 @@ export const CodeBlockCopyButton = ({
   ...props
 }: CodeBlockCopyButtonProps) => {
   const { code } = use(CodeBlockContext)
-  const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const { copyText, isCopied } = useCopyState({
+    ...(onCopy !== undefined ? { onCopy } : {}),
+    ...(onError !== undefined ? { onError } : {}),
+    timeout,
+  })
 
   const handleCopy = useCallback(() => {
     void copyText(code, { skipIfCopied: true })

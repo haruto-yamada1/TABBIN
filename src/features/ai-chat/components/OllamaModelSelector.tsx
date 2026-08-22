@@ -264,10 +264,12 @@ const OllamaModelSelector = ({
         />
 
         <PromptInputSelect
-          defaultValue={selectedModel}
           open={isOpen}
           onOpenChange={handleOpenChange}
           onValueChange={handleValueChange}
+          {...(selectedModel !== undefined
+            ? { defaultValue: selectedModel }
+            : {})}
           key={selectedModel || 'no-model-selected'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
         >
           <PromptInputSelectTrigger
@@ -293,10 +295,10 @@ const OllamaModelSelector = ({
       </div>
 
       <SelectorMessage
-        errorMessage={errorMessage}
-        helperText={helperText}
-        ollamaError={ollamaError}
         platform={platform}
+        {...(errorMessage !== undefined ? { errorMessage } : {})}
+        {...(helperText !== undefined ? { helperText } : {})}
+        {...(ollamaError !== undefined ? { ollamaError } : {})}
       />
     </div>
   )

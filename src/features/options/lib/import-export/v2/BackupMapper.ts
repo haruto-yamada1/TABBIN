@@ -165,12 +165,16 @@ const canonicalizeUserSettings = (userSettings: UserSettings): UserSettings => {
   }
 
   const persistedSettings = UserSettingsSchema.parse(userSettings)
-  const canonical = canonicalizeJsonValue({
+  const sortedSettings = {
     ...persistedSettings,
     excludePatterns: persistedSettings.excludePatterns.toSorted(
       compareCodePointStrings,
     ),
-  })
+  }
+  if (!isJsonValue(sortedSettings)) {
+    throw new TypeError('User settings must be JSON-safe')
+  }
+  const canonical = canonicalizeJsonValue(sortedSettings)
   return BackupDataV2Schema.shape.userSettings.parse(canonical)
 }
 

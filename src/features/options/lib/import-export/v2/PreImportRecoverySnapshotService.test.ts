@@ -12,10 +12,12 @@ import {
   BACKUP_RECOVERY_RETENTION_POLICY,
   BACKUP_RESOURCE_LIMITS,
 } from '@/lib/persistence/backupResourcePolicy'
+import { isJsonValue } from '@/lib/persistence/jsonValue'
 
 import { BackupMapper } from './BackupMapper'
 import { inspectBackupV2 } from './BackupV2Inspector'
 import { BackupDataV2Schema } from './BackupV2Schema'
+import type { BackupDataV2 } from './BackupV2Schema'
 import {
   PreImportRecoverySnapshotError,
   createPreImportRecoverySnapshotService,
@@ -66,14 +68,28 @@ const createSummary = (
   ...overrides,
 })
 
+type RecoverySnapshotRecordOverrides = Omit<
+  Partial<PersistenceRecoverySnapshotRecord>,
+  'data'
+> & {
+  readonly data?: BackupDataV2
+}
+
 const createRecord = (
-  overrides: Partial<PersistenceRecoverySnapshotRecord> = {},
-): PersistenceRecoverySnapshotRecord => ({
-  ...createSummary(),
-  backupSchemaVersion: 2,
-  data: structuredClone(inspection.data),
-  ...overrides,
-})
+  overrides: RecoverySnapshotRecordOverrides = {},
+): PersistenceRecoverySnapshotRecord => {
+  const data = overrides.data ?? inspection.data
+  if (!isJsonValue(data)) {
+    throw new TypeError('Test recovery data must be JSON-safe')
+  }
+  const { data: _data, ...recordOverrides } = overrides
+  return {
+    ...createSummary(),
+    backupSchemaVersion: 2,
+    data: structuredClone(data),
+    ...recordOverrides,
+  }
+}
 
 type Deps = PreImportRecoverySnapshotServiceDeps & {
   readonly publishedEvents: PersistenceChangeEvent[]

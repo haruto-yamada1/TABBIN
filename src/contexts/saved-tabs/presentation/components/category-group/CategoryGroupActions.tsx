@@ -84,6 +84,10 @@ export const CategoryGroupActions = () => {
     }
   }
 
+  const handleDeleteAll = () => {
+    void executeDeleteAll()
+  }
+
   const handleManage = useCallback(() => {
     modal.setIsModalOpen(true)
   }, [modal])
@@ -102,7 +106,7 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.manageParentCategories'),
       )}
-      onOpenAll={urlsToOpen.length > 0 ? handleOpenAll : undefined}
+      {...(urlsToOpen.length > 0 ? { onOpenAll: handleOpenAll } : {})}
       openAllAriaLabel={getScopedNounActionLabel(
         t,
         targetName,
@@ -113,8 +117,7 @@ export const CategoryGroupActions = () => {
         targetName,
         t('savedTabs.openAllTabs'),
       )}
-      // eslint-disable-next-line typescript/no-misused-promises
-      onDeleteAll={domainsToUse.length > 0 ? executeDeleteAll : undefined}
+      {...(domainsToUse.length > 0 ? { onDeleteAll: handleDeleteAll } : {})}
       deleteAllAriaLabel={getScopedNounActionLabel(
         t,
         targetName,

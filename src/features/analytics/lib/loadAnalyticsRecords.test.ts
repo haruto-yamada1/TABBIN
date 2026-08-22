@@ -58,6 +58,8 @@ describe('loadAnalyticsRecords', () => {
   it('excludePatterns が未定義でも空配列に正規化する', async () => {
     mocked.getUserSettings.mockResolvedValueOnce({
       excludePatterns: undefined,
+    } as unknown as {
+      excludePatterns?: string[]
     })
 
     await expect(loadAnalyticsRecords()).resolves.toHaveLength(1)

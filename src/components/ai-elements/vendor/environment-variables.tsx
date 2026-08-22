@@ -261,7 +261,11 @@ export const EnvironmentVariableCopyButton = ({
   ...props
 }: EnvironmentVariableCopyButtonProps) => {
   const { name, value } = use(EnvironmentVariableContext)
-  const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const { copyText, isCopied } = useCopyState({
+    ...(onCopy !== undefined ? { onCopy } : {}),
+    ...(onError !== undefined ? { onError } : {}),
+    timeout,
+  })
 
   const getTextToCopy = useCallback((): string => {
     const formatMap = {

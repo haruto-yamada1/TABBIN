@@ -64,10 +64,14 @@ export const createPersistenceV2MigrationLifecycle = (
   })
   const target = new IndexedDbPersistenceMigrationTarget(
     options.connectionManager ??
-      new IndexedDbConnectionManager({ indexedDb: options.indexedDb }),
+      new IndexedDbConnectionManager(
+        options.indexedDb !== undefined ? { indexedDb: options.indexedDb } : {},
+      ),
   )
   return new PersistenceV2MigrationService({
-    batchSize: options.batchSize,
+    ...(options.batchSize !== undefined
+      ? { batchSize: options.batchSize }
+      : {}),
     fingerprint: new Sha256MigrationSourceFingerprint(),
     preflightRepository,
     rawReader,
@@ -222,7 +226,7 @@ export const createPersistenceBootstrapRuntime = (
     controlStateRepository,
     coordination,
     cutoverPolicy: 'complete',
-    migrationLifecycle,
+    ...(migrationLifecycle !== undefined ? { migrationLifecycle } : {}),
   })
   const migrationRecovery = isMigrationRecoveryLifecycle(migrationLifecycle)
     ? migrationLifecycle
@@ -249,12 +253,12 @@ export const createPersistenceBootstrapRuntime = (
   })
   return {
     bootstrap,
-    ...(connectionManager ? { connectionManager } : {}),
+    ...(connectionManager !== undefined ? { connectionManager } : {}),
     coordination,
     controlStateRepository,
     dataPlaneRouter,
-    migrationLifecycle,
-    migrationRecovery,
+    ...(migrationLifecycle !== undefined ? { migrationLifecycle } : {}),
+    ...(migrationRecovery !== undefined ? { migrationRecovery } : {}),
     operationGate,
     recovery,
   }

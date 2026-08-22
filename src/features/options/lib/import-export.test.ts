@@ -334,7 +334,7 @@ describe('import-export ユーティリティ', () => {
         id: 'project-legacy',
         name: 'Project Legacy',
         urlIds: 'invalid' as unknown as string[],
-        urlMetadata: [] as unknown as CustomProject['urlMetadata'],
+        urlMetadata: [] as unknown as NonNullable<CustomProject['urlMetadata']>,
         urls: [
           {
             notes: 'memo',
@@ -370,7 +370,6 @@ describe('import-export ユーティリティ', () => {
         {
           id: 'imported-url-id',
           savedAt: 1,
-          title: undefined,
           url: 'https://imported.example.com/a',
         },
       ],
@@ -402,8 +401,6 @@ describe('import-export ユーティリティ', () => {
       ),
     ).toEqual([
       {
-        category: undefined,
-        notes: undefined,
         savedAt: 1,
         title: '',
         url: 'https://imported.example.com/a',
@@ -582,7 +579,7 @@ describe('import-export ユーティリティ', () => {
       id: 'project-with-missing-url-record',
       urlIds: ['missing-export-url', 'titleless-export-url'],
       updatedAt: undefined,
-    } as Partial<CustomProject>)
+    } as unknown as Partial<CustomProject>)
 
     const exportedUrls = convertCustomProjectToExportUrls(
       exportSourceProject,
@@ -962,7 +959,7 @@ describe('import-export ユーティリティ', () => {
             },
           },
           updatedAt: undefined,
-        }),
+        } as unknown as Partial<CustomProject>),
       ],
       parentCategories: [],
       savedTabs: [
@@ -1092,7 +1089,7 @@ describe('import-export ユーティリティ', () => {
             null,
           ] as CustomProject['urls'],
           urlIds: [],
-        }),
+        } as unknown as Partial<CustomProject>),
         buildCustomProject({
           id: 'empty-project',
           name: 'Empty Project',
@@ -3109,11 +3106,11 @@ describe('import-export ユーティリティ', () => {
         id: 'empty-group',
         domain: 'empty.example.com',
         urlIds: [],
-        urlSubCategories: undefined,
         subCategories: [],
         categoryKeywords: [],
       }),
     )
+    expect(Object.hasOwn(savedTabsArg[0] ?? {}, 'urlSubCategories')).toBe(false)
   })
 
   it('overwrite モードでは現在の urls ストレージが配列でなくてもプレースホルダーを生成する', async () => {
@@ -3296,11 +3293,11 @@ describe('import-export ユーティリティ', () => {
         parentCategoryId: 'parent-old',
         savedAt: 777,
         urlIds: ['new-id'],
-        urlSubCategories: undefined,
         categoryKeywords: [],
         subCategories: [],
       }),
     )
+    expect(Object.hasOwn(savedTabsArg[0] ?? {}, 'urlSubCategories')).toBe(false)
   })
 
   it('merge モードでは重複 URL ID を避けつつ混在した subcategory/keyword payload を正規化する', async () => {
@@ -4428,7 +4425,6 @@ describe('import-export ユーティリティ', () => {
             'current-project-url',
             'missing-url',
           ],
-          urls: undefined,
           urlMetadata: {
             'imported-project-url': {
               notes: 'imported memo',

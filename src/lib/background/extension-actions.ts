@@ -62,10 +62,7 @@ const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
 }
 
 const toResultItems = (
-  tabs: {
-    url?: string
-    title?: string
-  }[],
+  tabs: Pick<chrome.tabs.Tab, 'title' | 'url'>[],
 ): {
   url: string
   title: string
@@ -85,7 +82,13 @@ const saveTabsInBothModes = async (tabs: chrome.tabs.Tab[]): Promise<void> => {
   if (tabs.length === 0) {
     return
   }
-  await getBackgroundSavedTabsDataPlane().saveTabs(tabs)
+  await getBackgroundSavedTabsDataPlane().saveTabs(
+    tabs.map(({ title, url, ...tabMetadata }) => ({
+      ...tabMetadata,
+      ...(url !== undefined ? { url } : {}),
+      ...(title !== undefined ? { title } : {}),
+    })),
+  )
 }
 
 const notifyAndCloseTabs = async (

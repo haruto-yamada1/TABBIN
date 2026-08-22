@@ -167,10 +167,18 @@ const createProps = (overrides?: Partial<CustomProjectCardProps>) => {
       handleUpdateCategoryOrder: vi.fn(),
       handleReorderUrls: vi.fn(),
     },
-    draggedItem: overrides?.draggedItem,
-    isDropTarget: overrides?.isDropTarget,
-    isProjectReorderMode: overrides?.isProjectReorderMode,
-    isCrossProjectUrlDragActive: overrides?.isCrossProjectUrlDragActive,
+    ...(overrides?.draggedItem !== undefined
+      ? { draggedItem: overrides.draggedItem }
+      : {}),
+    ...(overrides?.isDropTarget !== undefined
+      ? { isDropTarget: overrides.isDropTarget }
+      : {}),
+    ...(overrides?.isProjectReorderMode !== undefined
+      ? { isProjectReorderMode: overrides.isProjectReorderMode }
+      : {}),
+    ...(overrides?.isCrossProjectUrlDragActive !== undefined
+      ? { isCrossProjectUrlDragActive: overrides.isCrossProjectUrlDragActive }
+      : {}),
   }
 }
 

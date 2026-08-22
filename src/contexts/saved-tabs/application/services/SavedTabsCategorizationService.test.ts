@@ -37,7 +37,11 @@ const makeGroup = ({
   readonly id?: string
   readonly resolvedUrls?: readonly ResolvedTabGroupUrlDto[]
 } = {}): TabGroupDto => ({
-  ...createTabGroup({ domain, id, parentCategoryId: groupId }),
+  ...createTabGroup({
+    domain,
+    id,
+    ...(groupId !== undefined ? { parentCategoryId: groupId } : {}),
+  }),
   resolvedUrls,
 })
 

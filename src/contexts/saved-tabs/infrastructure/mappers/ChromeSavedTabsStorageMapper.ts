@@ -136,23 +136,28 @@ const toTabGroupFromRaw = (raw: SavedTabRaw): TabGroup | null => {
       collection: {
         createdAt: timestamp,
         definition: { domain, type: 'domain' },
-        ...(raw.parentCategoryId ? { groupId: raw.parentCategoryId } : {}),
+        ...(raw.parentCategoryId !== undefined
+          ? { groupId: raw.parentCategoryId }
+          : {}),
         id: raw.id,
         name: domain,
         sortOrder: 0,
         updatedAt: timestamp,
       },
       collectionCategories,
-      memberships: urlIds.map((urlId, index) => ({
-        addedAt: timestamp,
-        ...(raw.urlSubCategories?.[urlId]
-          ? { categoryId: idsByName.get(raw.urlSubCategories[urlId]) }
-          : {}),
-        collectionId: raw.id,
-        sortOrder: index * ORDER_GAP,
-        updatedAt: timestamp,
-        urlId,
-      })),
+      memberships: urlIds.map((urlId, index) => {
+        const categoryName = raw.urlSubCategories?.[urlId]
+        const categoryId =
+          categoryName !== undefined ? idsByName.get(categoryName) : undefined
+        return {
+          addedAt: timestamp,
+          ...(categoryId !== undefined ? { categoryId } : {}),
+          collectionId: raw.id,
+          sortOrder: index * ORDER_GAP,
+          updatedAt: timestamp,
+          urlId,
+        }
+      }),
     })
   } catch (error) {
     if (isSavedTabsDomainError(error)) {
@@ -165,7 +170,7 @@ const toTabGroupFromRaw = (raw: SavedTabRaw): TabGroup | null => {
 const toUrlRecordFromRaw = (raw: UrlRecordRaw): UrlRecord | null => {
   try {
     return createUrlRecord({
-      favIconUrl: raw.favIconUrl,
+      ...(raw.favIconUrl !== undefined ? { favIconUrl: raw.favIconUrl } : {}),
       id: raw.id,
       savedAt: raw.savedAt,
       title: raw.title,
@@ -241,19 +246,22 @@ const toCustomProjectFromRaw = (
         updatedAt,
       },
       collectionCategories,
-      memberships: (raw.urlIds ?? []).map((urlId, index) => ({
-        addedAt: createdAt,
-        ...(raw.urlMetadata?.[urlId]?.category
-          ? { categoryId: idsByName.get(raw.urlMetadata[urlId].category) }
-          : {}),
-        collectionId: raw.id,
-        ...(raw.urlMetadata?.[urlId]?.notes
-          ? { notes: raw.urlMetadata[urlId].notes }
-          : {}),
-        sortOrder: index * ORDER_GAP,
-        updatedAt,
-        urlId,
-      })),
+      memberships: (raw.urlIds ?? []).map((urlId, index) => {
+        const metadata = raw.urlMetadata?.[urlId]
+        const categoryId =
+          metadata?.category !== undefined
+            ? idsByName.get(metadata.category)
+            : undefined
+        return {
+          addedAt: createdAt,
+          ...(categoryId !== undefined ? { categoryId } : {}),
+          collectionId: raw.id,
+          ...(metadata?.notes !== undefined ? { notes: metadata.notes } : {}),
+          sortOrder: index * ORDER_GAP,
+          updatedAt,
+          urlId,
+        }
+      }),
     })
   } catch (error) {
     if (isSavedTabsDomainError(error)) {

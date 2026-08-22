@@ -59,9 +59,6 @@ export const createDeleteTabGroupsUseCase = (
         removedTabGroupIds: [],
         removedUrlRecordIds: [],
         snapshot: {
-          customProjectOrder: undefined,
-          customProjects: undefined,
-          parentCategories: undefined,
           savedTabs: [],
           urlRecords: [],
         },
@@ -118,9 +115,6 @@ export const createDeleteTabGroupsUseCase = (
     const snapshot: OpenedUrlsRestoreSnapshot & {
       readonly savedTabs: readonly SavedTabsTabGroupDto[]
     } = {
-      customProjectOrder: undefined,
-      customProjects: undefined,
-      parentCategories: undefined,
       savedTabs: targetGroups.map(toSavedTabsTabGroupDto),
       urlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }

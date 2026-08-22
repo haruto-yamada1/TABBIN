@@ -238,6 +238,31 @@ describe('Backup V2 schemas', () => {
 
   it.each([
     {
+      field: 'favIconUrl',
+      record: createSavedTabs().urls[0],
+      schema: PersistenceV2UrlSchema,
+    },
+    {
+      field: 'groupId',
+      record: createSavedTabs().collections[0],
+      schema: PersistenceV2CollectionSchema,
+    },
+    {
+      field: 'notes',
+      record: createSavedTabs().memberships[0],
+      schema: PersistenceV2CollectionMembershipSchema,
+    },
+  ])(
+    'rejects explicit undefined for optional $field',
+    ({ field, record, schema }) => {
+      expect(schema.safeParse({ ...record, [field]: undefined }).success).toBe(
+        false,
+      )
+    },
+  )
+
+  it.each([
+    {
       fields: ['firstSavedAt', 'lastSavedAt', 'updatedAt'],
       name: 'saved URL',
       record: createSavedTabs().urls[0],

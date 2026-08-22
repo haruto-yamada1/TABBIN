@@ -39,12 +39,7 @@ describe('createRemoveSubCategoryFromTabGroupsUseCase', () => {
       domain: 'example.com',
       id: 'group-1',
       subCategories: ['news'],
-      memberships: ['url-1', 'url-2'].map((urlId) => ({
-        urlId,
-        ...({ 'url-2': 'news' }?.[urlId]
-          ? { category: { 'url-2': 'news' }[urlId] }
-          : {}),
-      })),
+      memberships: [{ urlId: 'url-1' }, { category: 'news', urlId: 'url-2' }],
     })
     const { port, spy } = createPortMock([target])
     const useCase = createRemoveSubCategoryFromTabGroupsUseCase(

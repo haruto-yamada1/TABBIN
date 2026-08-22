@@ -91,7 +91,6 @@ describe('CustomProjectCard', () => {
       expect.objectContaining({
         project: props.project,
         settings: props.settings,
-        draggedItem: undefined,
         isDropTarget: false,
         handlers: expect.objectContaining({
           handleOpenUrl: props.handleOpenUrl,
@@ -109,6 +108,9 @@ describe('CustomProjectCard', () => {
           handleReorderUrls: props.handleReorderUrls,
         }),
       }),
+    )
+    expect(projectCardRootSpy.mock.calls[0]?.[0]).not.toHaveProperty(
+      'draggedItem',
     )
 
     expect(screen.getByTestId('project-card-root')).toBeTruthy()

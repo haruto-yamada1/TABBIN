@@ -29,16 +29,20 @@ const mapMatchedUrlsToProject = (
 
   return {
     ...project,
-    memberships: project.memberships?.filter(({ urlId }) =>
-      matchedUrlIds.has(urlId),
-    ),
+    ...(project.memberships !== undefined
+      ? {
+          memberships: project.memberships.filter(({ urlId }) =>
+            matchedUrlIds.has(urlId),
+          ),
+        }
+      : {}),
     urls: matchedUrls.map((url) => ({
+      ...(url.category !== undefined ? { category: url.category } : {}),
       id: url.id,
-      url: url.url,
-      title: url.title,
-      notes: url.notes,
+      ...(url.notes !== undefined ? { notes: url.notes } : {}),
       savedAt: url.savedAt,
-      category: url.category,
+      title: url.title,
+      url: url.url,
     })),
   }
 }

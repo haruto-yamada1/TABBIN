@@ -613,6 +613,77 @@ describe('setupMessageListener', () => {
       error: 'Error: boom',
       timeRemaining: null,
     })
+
+    const nonErrorCases: [thrown: unknown, expectedError: string][] = [
+      [42, '42'],
+      [{ reason: 'boom' }, '[object Object]'],
+      [Symbol('boom'), 'Symbol(boom)'],
+    ]
+    for (const [thrown, expectedError] of nonErrorCases) {
+      mocked.getExpirationPeriodMs.mockImplementation(() => {
+        // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- JavaScript permits arbitrary thrown values; this verifies the runtime boundary.
+        throw thrown
+      })
+      const nonErrorResponse = vi.fn()
+      listener(
+        {
+          action: 'calculateTimeRemaining',
+          autoDeletePeriod: '1day',
+          savedAt: 10,
+        },
+        {} as chrome.runtime.MessageSender,
+        nonErrorResponse,
+      )
+      expect(nonErrorResponse).toHaveBeenCalledWith({
+        error: expectedError,
+        timeRemaining: null,
+      })
+    }
+
+    for (const thrown of [null, undefined]) {
+      mocked.getExpirationPeriodMs.mockImplementation(() => {
+        // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- JavaScript permits nullish thrown values; this verifies omission semantics.
+        throw thrown
+      })
+      const nullishResponse = vi.fn()
+      listener(
+        {
+          action: 'calculateTimeRemaining',
+          autoDeletePeriod: '1day',
+          savedAt: 10,
+        },
+        {} as chrome.runtime.MessageSender,
+        nullishResponse,
+      )
+      expect(nullishResponse).toHaveBeenCalledWith({
+        timeRemaining: null,
+      })
+      expect(nullishResponse.mock.calls[0]?.[0]).not.toHaveProperty('error')
+    }
+
+    const hostileThrownValue = Object.defineProperty({}, 'toString', {
+      get: () => {
+        throw new Error('hostile toString getter')
+      },
+    })
+    mocked.getExpirationPeriodMs.mockImplementation(() => {
+      // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- Exercises an untrusted runtime value whose coercion accessor throws.
+      throw hostileThrownValue
+    })
+    const hostileResponse = vi.fn()
+    listener(
+      {
+        action: 'calculateTimeRemaining',
+        autoDeletePeriod: '1day',
+        savedAt: 10,
+      },
+      {} as chrome.runtime.MessageSender,
+      hostileResponse,
+    )
+    expect(hostileResponse).toHaveBeenCalledWith({
+      timeRemaining: null,
+    })
+    expect(hostileResponse.mock.calls[0]?.[0]).not.toHaveProperty('error')
   })
 
   it('期限切れチェックと時刻更新の success/error を返す', async () => {

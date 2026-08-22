@@ -143,11 +143,11 @@ describe('SavedTabs プロファイラのベースライン', () => {
         savedTabsProfiler?: { commits: number }
       }
     ).enableSavedTabsProfiler = true
-    ;(
+    delete (
       globalThis as typeof globalThis & {
         savedTabsProfiler?: { commits: number }
       }
-    ).savedTabsProfiler = undefined
+    ).savedTabsProfiler
     ;(globalThis as unknown as { open: typeof window.open }).open = vi.fn()
     Object.defineProperty(window, 'matchMedia', {
       writable: true,

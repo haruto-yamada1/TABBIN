@@ -45,13 +45,21 @@ describe('sendRuntimeMessage', () => {
     polyfillSendMessageMock.mockRejectedValue(
       new Error('polyfill runtime unavailable'),
     )
-    globalWithApis.browser = undefined
-    globalWithApis.chrome = undefined
+    delete globalWithApis.browser
+    delete globalWithApis.chrome
   })
 
   afterEach(() => {
-    globalWithApis.browser = originalBrowser
-    globalWithApis.chrome = originalChrome
+    if (originalBrowser === undefined) {
+      delete globalWithApis.browser
+    } else {
+      globalWithApis.browser = originalBrowser
+    }
+    if (originalChrome === undefined) {
+      delete globalWithApis.chrome
+    } else {
+      globalWithApis.chrome = originalChrome
+    }
   })
 
   it('browser.runtime.sendMessage がある場合は Promise API を使う', async () => {

@@ -229,14 +229,35 @@ const createAiChatTools = (
       title: z.string().trim().optional(),
     }),
 
-    execute: async (input) =>
-      generateAnalyticsResult(
+    execute: async (input) => {
+      const { collectionType, customDateRange, metric, title, ...required } =
+        input
+      const normalizedInput: Parameters<typeof normalizeAnalyticsQuery>[0] = {
+        ...required,
+        ...(collectionType !== undefined ? { collectionType } : {}),
+        ...(customDateRange !== undefined
+          ? {
+              customDateRange: {
+                ...(customDateRange.from !== undefined
+                  ? { from: customDateRange.from }
+                  : {}),
+                ...(customDateRange.to !== undefined
+                  ? { to: customDateRange.to }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(metric !== undefined ? { metric } : {}),
+        ...(title !== undefined ? { title } : {}),
+      }
+      return generateAnalyticsResult(
         analyticsRecords.length > 0 ? [...analyticsRecords] : records,
-        normalizeAnalyticsQuery(input),
+        normalizeAnalyticsQuery(normalizedInput),
         {
           messages: createAnalyticsMessages(language),
         },
-      ),
+      )
+    },
   }),
   getCurrentDateTime: tool({
     description: getAiChatToolDescription(language, 'getCurrentDateTime'),

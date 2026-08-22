@@ -105,7 +105,7 @@ export const LazySavedTabsChatWidget = ({
         <SavedTabsChatWidgetWithHistory
           defaultOpen={openOnLoad}
           mode={mode}
-          onOpenChange={onOpenChange}
+          {...(onOpenChange !== undefined ? { onOpenChange } : {})}
           {...props}
         />
       </Suspense>

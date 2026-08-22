@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 
-import type { ChatMessage } from '@/features/ai-chat/components/savedTabsChat/messages'
+import { mergeChatMessage } from '@/features/ai-chat/components/savedTabsChat/messages'
+import type {
+  ChatMessage,
+  ChatMessageUpdate,
+} from '@/features/ai-chat/components/savedTabsChat/messages'
 import {
   areMessagesEquivalent,
   EMPTY_CHAT_MESSAGES,
@@ -125,7 +129,6 @@ const useSavedTabsChatController = ({
 
     invalidateConversation()
     syncExternalConversationState({
-      conversationId,
       initialMessages,
       messagesRef,
       setChatOllamaError,
@@ -134,6 +137,7 @@ const useSavedTabsChatController = ({
       setIsSubmitting,
       setMessages,
       syncedConversationIdRef,
+      ...(conversationId !== undefined ? { conversationId } : {}),
     })
   }, [conversationId, initialMessages, invalidateConversation, mode])
 
@@ -207,13 +211,15 @@ const useSavedTabsChatController = ({
 
   const replaceMessage = (
     messageId: string,
-    nextMessage: Partial<ChatMessage>,
+    nextMessage: ChatMessageUpdate,
     options?: { commit?: boolean },
   ) =>
     updateMessageList(
       (currentMessages) =>
         currentMessages.map((message) =>
-          message.id === messageId ? { ...message, ...nextMessage } : message,
+          message.id === messageId
+            ? mergeChatMessage(message, nextMessage)
+            : message,
         ),
       options,
     )
@@ -370,12 +376,12 @@ const useSavedTabsChatController = ({
       handleOpen: open,
     },
     layout: {
-      cardStyle,
       isCompactLayout,
       isOpen,
       isResizing,
       mode,
       showCloseButton: mode === 'floating',
+      ...(cardStyle !== undefined ? { cardStyle } : {}),
     },
     messages: {
       input,

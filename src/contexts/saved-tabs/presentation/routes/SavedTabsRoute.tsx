@@ -59,9 +59,9 @@ export const SavedTabsRoute = ({
     <SavedTabsPage
       deps={composition.deps}
       initialViewMode={initialViewMode}
-      onViewModeNavigate={onViewModeNavigate}
+      {...(onViewModeNavigate !== undefined ? { onViewModeNavigate } : {})}
       resolveActiveRef={resolveActiveRef}
-      search={search}
+      {...(search !== undefined ? { search } : {})}
       useCases={composition.useCases}
     />
   )

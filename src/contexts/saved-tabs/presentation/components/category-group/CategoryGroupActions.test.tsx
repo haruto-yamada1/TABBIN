@@ -347,8 +347,10 @@ describe('CategoryGroupActions', () => {
 
     expect(cardGroupActionsSpy.mock.calls.at(-1)?.[0]).toMatchObject({
       onDeleteAll: expect.any(Function),
-      onOpenAll: undefined,
     })
+    expect(cardGroupActionsSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'onOpenAll',
+    )
     await user.click(screen.getByRole('button', { name: 'すべて削除' }))
     await waitFor(() => expect(handleDeleteUrls).not.toHaveBeenCalled())
   })

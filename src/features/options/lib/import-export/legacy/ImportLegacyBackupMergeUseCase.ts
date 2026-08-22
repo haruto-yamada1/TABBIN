@@ -5,6 +5,7 @@ import type {
 } from '@/features/options/lib/import-export/v2/BackupV2Inspector'
 import { collectBackupV2ResourceUsage } from '@/features/options/lib/import-export/v2/BackupV2ResourceUsage'
 import type { BackupDataV2 } from '@/features/options/lib/import-export/v2/BackupV2Schema'
+import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 import type { LegacyBackupV0 } from './LegacyBackupV0Schema'
@@ -181,7 +182,10 @@ export const createImportLegacyBackupMergeUseCase = (
         })
       : null
     await deps.writeUserSettings(
-      mergeUserSettings(currentSettings, userSettingsPatch),
+      mergeUserSettings(
+        currentSettings,
+        parseStoredUserSettings(userSettingsPatch),
+      ),
     )
 
     return {

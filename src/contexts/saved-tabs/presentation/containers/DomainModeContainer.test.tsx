@@ -295,12 +295,12 @@ describe('DomainModeContainer', () => {
   it('未分類ヘッダーのすべて削除は一括削除ハンドラがなければ単体削除にフォールバックする', async () => {
     const user = userEvent.setup()
     const handleDeleteGroup = vi.fn()
+    const { handleDeleteGroups: _handleDeleteGroups, ...props } = createProps()
 
     render(
       <DomainModeContainer
-        {...createProps()}
+        {...props}
         handleDeleteGroup={handleDeleteGroup}
-        handleDeleteGroups={undefined}
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,

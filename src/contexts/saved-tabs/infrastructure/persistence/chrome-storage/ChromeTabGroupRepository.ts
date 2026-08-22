@@ -153,16 +153,23 @@ export const createChromeSavedTabsTabGroupReadAdapter = (
         return [
           {
             ...group,
-            ...(raw.urls
+            ...(raw.urls !== undefined
               ? {
                   resolvedUrls: raw.urls.map((url, index) => {
                     const id = raw.urlIds?.[index]
+                    const resolvedId = id ?? url.id
+                    const subCategory =
+                      id !== undefined
+                        ? (raw.urlSubCategories?.[id] ?? url.subCategory)
+                        : url.subCategory
                     return {
-                      ...url,
-                      ...(id ? { id } : {}),
-                      ...(id && raw.urlSubCategories?.[id]
-                        ? { subCategory: raw.urlSubCategories[id] }
+                      ...(resolvedId !== undefined ? { id: resolvedId } : {}),
+                      ...(url.savedAt !== undefined
+                        ? { savedAt: url.savedAt }
                         : {}),
+                      ...(subCategory !== undefined ? { subCategory } : {}),
+                      title: url.title,
+                      url: url.url,
                     }
                   }),
                 }

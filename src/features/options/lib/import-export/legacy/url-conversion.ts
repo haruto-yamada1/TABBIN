@@ -84,8 +84,7 @@ const buildConvertedUrlData = (
   }
   return {
     urlIds,
-    urlSubCategories:
-      Object.keys(urlSubCategories).length > 0 ? urlSubCategories : undefined,
+    ...(Object.keys(urlSubCategories).length > 0 ? { urlSubCategories } : {}),
   }
 }
 
@@ -162,9 +161,15 @@ const restoreImportedUrlsFromIds = (
       continue
     }
     restoredUrls.push({
-      favIconUrl: urlRecord.favIconUrl,
-      savedAt: urlRecord.savedAt,
-      subCategory: tab.urlSubCategories?.[urlId],
+      ...(urlRecord.favIconUrl !== undefined
+        ? { favIconUrl: urlRecord.favIconUrl }
+        : {}),
+      ...(urlRecord.savedAt !== undefined
+        ? { savedAt: urlRecord.savedAt }
+        : {}),
+      ...(tab.urlSubCategories?.[urlId] !== undefined
+        ? { subCategory: tab.urlSubCategories[urlId] }
+        : {}),
       title: urlRecord.title ?? '',
       url: urlRecord.url,
     })
@@ -214,7 +219,7 @@ const normalizeImportedTabsForImport = (
     ) {
       unresolvedTabs.push({
         domain: normalizedDomain,
-        savedAt: tab.savedAt,
+        ...(tab.savedAt !== undefined ? { savedAt: tab.savedAt } : {}),
         urlIds: Array.from(new Set(tab.urlIds)),
       })
     }
@@ -265,10 +270,9 @@ const resolveUrlDataForStorage = (
     : undefined
   return {
     urlIds: rawUrlIds,
-    urlSubCategories:
-      rawSubCategories && Object.keys(rawSubCategories).length > 0
-        ? rawSubCategories
-        : undefined,
+    ...(rawSubCategories && Object.keys(rawSubCategories).length > 0
+      ? { urlSubCategories: rawSubCategories }
+      : {}),
   }
 }
 
@@ -357,7 +361,9 @@ const convertTabGroupToExportUrls = (
     offset += 1
     exportedUrls.push({
       savedAt: resolvedUrlRecord.savedAt,
-      subCategory: tab.urlSubCategories?.[urlId],
+      ...(tab.urlSubCategories?.[urlId] !== undefined
+        ? { subCategory: tab.urlSubCategories[urlId] }
+        : {}),
       title: getUrlRecordTitle(resolvedUrlRecord),
       url: resolvedUrlRecord.url,
     })

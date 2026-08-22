@@ -14,7 +14,7 @@ import type {
 } from '@/types/background'
 import { AI_CHAT_STREAM_PORT_NAME } from '@/types/background'
 
-import type { ChatMessage, TranslateFn } from './messages'
+import type { ChatMessage, ChatMessageUpdate, TranslateFn } from './messages'
 import { createChatMessage, createMessageId } from './messages'
 import {
   createInitialStreamingReasoning,
@@ -35,7 +35,7 @@ type UseChatStreamHandlersParams = {
   disconnectActivePort: () => void
   replaceMessage: (
     messageId: string,
-    nextMessage: Partial<ChatMessage>,
+    nextMessage: ChatMessageUpdate,
     options?: { commit?: boolean },
   ) => ChatMessage[]
   removeMessage: (
@@ -94,7 +94,7 @@ const useChatStreamHandlers = ({
         {
           content: nextError,
           isStreaming: false,
-          ollamaError,
+          ...(ollamaError !== undefined ? { ollamaError } : {}),
         },
         { commit: true },
       )

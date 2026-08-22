@@ -73,16 +73,16 @@ export const VoiceSelector = ({
   children,
   ...props
 }: VoiceSelectorProps) => {
-  const [value, setValue] = useControllableState({
+  const [value, setValue] = useControllableState<string | undefined>({
     defaultProp: defaultValue,
-    onChange: onValueChange,
-    prop: valueProp,
+    ...(onValueChange !== undefined ? { onChange: onValueChange } : {}),
+    ...(valueProp !== undefined ? { prop: valueProp } : {}),
   })
 
   const [open, setOpen] = useControllableState({
     defaultProp: defaultOpen,
-    onChange: onOpenChange,
-    prop: openProp,
+    ...(onOpenChange !== undefined ? { onChange: onOpenChange } : {}),
+    ...(openProp !== undefined ? { prop: openProp } : {}),
   })
 
   const voiceSelectorContext = useMemo(
@@ -483,6 +483,7 @@ export const VoiceSelectorPreview = ({
   loading,
   onPlay,
   onClick,
+  ref,
   ...props
 }: VoiceSelectorPreviewProps) => {
   const t = useI18nText()
@@ -513,6 +514,7 @@ export const VoiceSelectorPreview = ({
       type='button'
       variant='outline'
       {...props}
+      {...(ref !== undefined ? { ref } : {})}
     >
       {icon}
     </Button>
