@@ -97,7 +97,7 @@ describe('assertProductionImportAllowed', () => {
           userSettings: {},
           version: '1.0.0',
         }),
-        { importDate: '2026-08-31', importMode: 'merge' },
+        { importDate: '2026-09-30', importMode: 'merge' },
       ),
     )
 
@@ -112,7 +112,7 @@ describe('assertProductionImportAllowed', () => {
     const legacy = readFixture('legacy-tab-group-url-ids.json')
 
     const allowed = assertProductionImportAllowed(legacy, {
-      importDate: '2026-08-31',
+      importDate: '2026-09-30',
       importMode: 'merge',
     })
     expect(allowed).toMatchObject({
@@ -126,7 +126,7 @@ describe('assertProductionImportAllowed', () => {
 
     const error = captureError(() =>
       assertProductionImportAllowed(legacy, {
-        importDate: '2026-09-01',
+        importDate: '2026-10-01',
         importMode: 'merge',
       }),
     )
@@ -161,7 +161,7 @@ describe('assertProductionImportAllowed', () => {
     })
 
     const allowed = assertProductionImportAllowed(JSON.stringify(legacy), {
-      importDate: '2026-08-31',
+      importDate: '2026-09-30',
       importMode: 'merge',
     })
     if (allowed?.kind !== 'legacy-merge') {
@@ -222,7 +222,7 @@ describe('assertProductionImportAllowed', () => {
 
     expect(
       assertProductionImportAllowed(JSON.stringify(legacy), {
-        importDate: '2026-08-31',
+        importDate: '2026-09-30',
         importMode: 'merge',
       }),
     ).toMatchObject({
@@ -235,7 +235,7 @@ describe('assertProductionImportAllowed', () => {
     const allowed = assertProductionImportAllowed(
       readFixture('legacy-tab-group-url-ids.json'),
       {
-        importDate: '2026-08-31',
+        importDate: '2026-09-30',
         importMode: 'overwrite',
       },
     )

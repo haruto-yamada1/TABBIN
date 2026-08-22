@@ -29,7 +29,7 @@ vi.mock('@/lib/storage/migration', () => ({
 }))
 
 vi.mock('@/features/options/lib/import-export/currentImportDate', () => ({
-  getCurrentUtcDateOnly: vi.fn(() => '2026-08-31'),
+  getCurrentUtcDateOnly: vi.fn(() => '2026-09-30'),
 }))
 
 // The production boundary has dedicated integration coverage. This suite keeps

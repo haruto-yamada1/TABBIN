@@ -27,7 +27,7 @@ const createInput = (
   serializedBytes = new TextEncoder().encode(legacyFixture).byteLength,
 ): LegacyBackupMergeInput => {
   const inspection = inspectBackupV2(legacyFixture, {
-    importDate: '2026-08-31',
+    importDate: '2026-09-30',
   })
   if (inspection.preview.formatKind !== 'legacy') {
     throw new TypeError('Expected a legacy backup fixture')

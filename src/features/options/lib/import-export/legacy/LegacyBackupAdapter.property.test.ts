@@ -9,7 +9,7 @@ import { fastCheckParameters } from '@/test/arbitraries/persistence/fastCheckPar
 import { convertLegacyBackup } from './LegacyBackupAdapter'
 
 // #734 cleanup target: this file covers the pre-IndexedDB legacy backup
-// importer, whose temporary compatibility scope ends 2026-08-31. Delete
+// importer, whose temporary compatibility scope ends 2026-09-30. Delete
 // together with the legacy importer in the #734 cutoff release.
 describe('convertLegacyBackup properties (temporary compatibility scope)', () => {
   it('is deterministic for a fixed import date', () => {

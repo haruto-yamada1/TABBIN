@@ -16,9 +16,9 @@ import type {
 describe('LEGACY_BACKUP_POLICY', () => {
   it('defines the fixed cutoff and notice policy', () => {
     expect(LEGACY_BACKUP_POLICY).toEqual({
-      lastSupportedDate: '2026-08-31',
-      cutoffDate: '2026-09-01',
-      latestNoticeReleaseDate: '2026-08-01',
+      lastSupportedDate: '2026-09-30',
+      cutoffDate: '2026-10-01',
+      latestNoticeReleaseDate: '2026-09-01',
       minimumNoticeDays: 30,
     })
   })
@@ -41,26 +41,26 @@ describe('LEGACY_BACKUP_POLICY', () => {
       },
     }).toEqual({
       en: {
-        cutoffDate: 'September 1, 2026',
-        lastSupportedDate: 'August 31, 2026',
+        cutoffDate: 'October 1, 2026',
+        lastSupportedDate: 'September 30, 2026',
       },
       ja: {
-        cutoffDate: '2026年9月1日',
-        lastSupportedDate: '2026年8月31日',
+        cutoffDate: '2026年10月1日',
+        lastSupportedDate: '2026年9月30日',
       },
     })
   })
 })
 
 describe('decideLegacyBackupCutoff', () => {
-  it.each(['0000-01-01', '0099-12-31', '2026-07-01', '2026-08-01'])(
+  it.each(['0000-01-01', '0099-12-31', '2026-08-22', '2026-09-01'])(
     'keeps the cutoff for a valid notice release on %s',
     (releaseDate) => {
       expect(decideLegacyBackupCutoff(releaseDate)).toBe('keep-cutoff')
     },
   )
 
-  it.each(['2026-08-02', '2026-09-01', '2027-01-01'])(
+  it.each(['2026-09-02', '2026-10-01', '2027-01-01'])(
     'requires postponement for a release after the latest notice date on %s',
     (releaseDate) => {
       expect(decideLegacyBackupCutoff(releaseDate)).toBe('postpone-required')
@@ -68,12 +68,12 @@ describe('decideLegacyBackupCutoff', () => {
   )
 
   it.each([
-    '2026-8-01',
-    '2026-08-1',
+    '2026-9-01',
+    '2026-09-1',
     '2026-02-29',
     '2026-13-01',
     'not-a-date',
-    '2026-08-01T00:00:00Z',
+    '2026-09-01T00:00:00Z',
   ])('rejects invalid date-only ISO input %s', (releaseDate) => {
     expect(() => decideLegacyBackupCutoff(releaseDate)).toThrow(RangeError)
   })
@@ -84,14 +84,14 @@ describe('decideLegacyBackupCutoff', () => {
     try {
       vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'))
       const decisionsBeforeCutoff = [
-        decideLegacyBackupCutoff('2026-08-01'),
-        decideLegacyBackupCutoff('2026-08-02'),
+        decideLegacyBackupCutoff('2026-09-01'),
+        decideLegacyBackupCutoff('2026-09-02'),
       ]
 
       vi.setSystemTime(new Date('2027-01-01T00:00:00.000Z'))
       const decisionsAfterCutoff = [
-        decideLegacyBackupCutoff('2026-08-01'),
-        decideLegacyBackupCutoff('2026-08-02'),
+        decideLegacyBackupCutoff('2026-09-01'),
+        decideLegacyBackupCutoff('2026-09-02'),
       ]
 
       expect(decisionsBeforeCutoff).toEqual([
@@ -108,8 +108,8 @@ describe('decideLegacyBackupCutoff', () => {
 describe('LEGACY_BACKUP_ADVISORY', () => {
   it('provides future preview data for legacy backups', () => {
     expect(LEGACY_BACKUP_ADVISORY).toEqual({
-      cutoffDate: '2026-09-01',
-      lastSupportedDate: '2026-08-31',
+      cutoffDate: '2026-10-01',
+      lastSupportedDate: '2026-09-30',
       requiresReExport: true,
     })
   })
@@ -124,21 +124,31 @@ describe('LEGACY_BACKUP_ADVISORY', () => {
 })
 
 describe('isLegacyBackupImportSupported', () => {
-  it.each(['0000-01-01', '2026-08-30', '2026-08-31'])(
+  it.each([
+    ['29 days after the 2026-08-22 notice release', '2026-09-20'],
+    [
+      '30 days after the 2026-08-22 notice release and before cutoff',
+      '2026-09-21',
+    ],
+  ])('supports a legacy import %s', (_description, importDate) => {
+    expect(isLegacyBackupImportSupported(importDate)).toBe(true)
+  })
+
+  it.each(['0000-01-01', '2026-09-29', '2026-09-30'])(
     'supports a legacy import on %s',
     (importDate) => {
       expect(isLegacyBackupImportSupported(importDate)).toBe(true)
     },
   )
 
-  it.each(['2026-09-01', '2027-01-01'])(
+  it.each(['2026-10-01', '2027-01-01'])(
     'rejects a legacy import on %s',
     (importDate) => {
       expect(isLegacyBackupImportSupported(importDate)).toBe(false)
     },
   )
 
-  it.each(['2026-8-31', '2026-02-29', 'invalid'])(
+  it.each(['2026-9-30', '2026-02-29', 'invalid'])(
     'rejects an invalid date-only import date %s',
     (importDate) => {
       expect(() => isLegacyBackupImportSupported(importDate)).toThrow(

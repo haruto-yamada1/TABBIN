@@ -16,7 +16,7 @@ const parseFixture = (name: string): unknown => {
   return parsed
 }
 
-const inspectFixture = (name: string, importDate = '2026-08-31') =>
+const inspectFixture = (name: string, importDate = '2026-09-30') =>
   inspectBackupV2(readFixture(name), { importDate })
 
 const captureError = (action: () => unknown): Error => {
@@ -90,7 +90,7 @@ describe('inspectBackupV2 legacy conversion', () => {
     Object.assign(nestedUrl, { tabId: 99, timestamp: 321 })
 
     const result = inspectBackupV2(input, {
-      importDate: '2026-08-31',
+      importDate: '2026-09-30',
     })
 
     expect(result.data.savedTabs.urls[0]?.firstSavedAt).toBe(321)
@@ -124,7 +124,7 @@ describe('inspectBackupV2 legacy conversion', () => {
     Object.assign(nestedUrl, { savedAt: 654, timestamp: 321 })
 
     const result = inspectBackupV2(input, {
-      importDate: '2026-08-31',
+      importDate: '2026-09-30',
     })
 
     expect(result.data.savedTabs.urls[0]?.firstSavedAt).toBe(654)
@@ -186,7 +186,7 @@ describe('inspectBackupV2 legacy conversion', () => {
     })
 
     const result = inspectBackupV2(input, {
-      importDate: '2026-08-31',
+      importDate: '2026-09-30',
     })
 
     expect(result.data.savedTabs.collections[0]?.definition).toEqual({
@@ -285,7 +285,7 @@ describe('inspectBackupV2 legacy conversion', () => {
     })
 
     const result = inspectBackupV2(input, {
-      importDate: '2026-08-31',
+      importDate: '2026-09-30',
     })
 
     expect(result.data.analyticsViews[0]?.value).toMatchObject({
@@ -308,8 +308,8 @@ describe('inspectBackupV2 legacy conversion', () => {
 
     expect(result.preview).toMatchObject({
       advisory: {
-        cutoffDate: '2026-09-01',
-        lastSupportedDate: '2026-08-31',
+        cutoffDate: '2026-10-01',
+        lastSupportedDate: '2026-09-30',
         requiresReExport: true,
       },
       formatKind: 'legacy',
@@ -343,7 +343,7 @@ describe('inspectBackupV2 legacy conversion', () => {
     savedTab.urlIds = ['private-dangling-url-id']
 
     const error = captureError(() =>
-      inspectBackupV2(input, { importDate: '2026-08-31' }),
+      inspectBackupV2(input, { importDate: '2026-09-30' }),
     )
 
     expect(error).toMatchObject<Partial<LegacyBackupImportError>>({
@@ -359,11 +359,11 @@ describe('inspectBackupV2 legacy conversion', () => {
 
   it('supports the last legacy import date and rejects the cutoff date', () => {
     expect(() =>
-      inspectFixture('legacy-tab-group-url-ids.json', '2026-08-31'),
+      inspectFixture('legacy-tab-group-url-ids.json', '2026-09-30'),
     ).not.toThrow()
 
     const error = captureError(() =>
-      inspectFixture('legacy-tab-group-url-ids.json', '2026-09-01'),
+      inspectFixture('legacy-tab-group-url-ids.json', '2026-10-01'),
     )
     expect(error).toMatchObject<Partial<LegacyBackupImportError>>({
       code: 'LEGACY_IMPORT_CUTOFF_REACHED',
@@ -418,7 +418,7 @@ describe('inspectBackupV2 versioned backups', () => {
   it('rejects invalid JSON without leaking parser details', () => {
     const error = captureError(() =>
       inspectBackupV2('{"schemaVersion":', {
-        importDate: '2026-08-31',
+        importDate: '2026-09-30',
       }),
     )
 

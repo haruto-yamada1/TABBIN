@@ -11,16 +11,16 @@ const MILLISECONDS_PER_DAY =
 const ISO_DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 
 export type LegacyBackupPolicy = {
-  readonly lastSupportedDate: '2026-08-31'
-  readonly cutoffDate: '2026-09-01'
-  readonly latestNoticeReleaseDate: '2026-08-01'
+  readonly lastSupportedDate: '2026-09-30'
+  readonly cutoffDate: '2026-10-01'
+  readonly latestNoticeReleaseDate: '2026-09-01'
   readonly minimumNoticeDays: typeof MINIMUM_NOTICE_DAYS
 }
 
 export const LEGACY_BACKUP_POLICY = {
-  lastSupportedDate: '2026-08-31',
-  cutoffDate: '2026-09-01',
-  latestNoticeReleaseDate: '2026-08-01',
+  lastSupportedDate: '2026-09-30',
+  cutoffDate: '2026-10-01',
+  latestNoticeReleaseDate: '2026-09-01',
   minimumNoticeDays: MINIMUM_NOTICE_DAYS,
 } as const satisfies LegacyBackupPolicy
 
