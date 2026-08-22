@@ -228,18 +228,15 @@ const normalizeImportedCustomProject = (
           url: item.url,
           title:
             'title' in item && typeof item.title === 'string' ? item.title : '',
-          notes:
-            'notes' in item && typeof item.notes === 'string'
-              ? item.notes
-              : undefined,
-          savedAt:
-            'savedAt' in item && typeof item.savedAt === 'number'
-              ? item.savedAt
-              : undefined,
-          category:
-            'category' in item && typeof item.category === 'string'
-              ? item.category
-              : undefined,
+          ...('notes' in item && typeof item.notes === 'string'
+            ? { notes: item.notes }
+            : {}),
+          ...('savedAt' in item && typeof item.savedAt === 'number'
+            ? { savedAt: item.savedAt }
+            : {}),
+          ...('category' in item && typeof item.category === 'string'
+            ? { category: item.category }
+            : {}),
         })
       }
       return items
@@ -457,9 +454,13 @@ const convertCustomProjectToExportUrls = (
     exportedUrls.push({
       url: resolvedUrlRecord.url,
       title: getUrlRecordTitle(resolvedUrlRecord),
-      notes: project.urlMetadata?.[urlId]?.notes,
+      ...(project.urlMetadata?.[urlId]?.notes !== undefined
+        ? { notes: project.urlMetadata[urlId].notes }
+        : {}),
       savedAt: resolvedUrlRecord.savedAt,
-      category: project.urlMetadata?.[urlId]?.category,
+      ...(project.urlMetadata?.[urlId]?.category !== undefined
+        ? { category: project.urlMetadata[urlId].category }
+        : {}),
     })
   }
 
@@ -592,9 +593,15 @@ const restoreImportedCustomProjectUrlsFromIds = (
     restoredUrls.push({
       url: urlRecord.url,
       title: urlRecord.title ?? '',
-      savedAt: urlRecord.savedAt,
-      notes: project.urlMetadata?.[urlId]?.notes,
-      category: project.urlMetadata?.[urlId]?.category,
+      ...(urlRecord.savedAt !== undefined
+        ? { savedAt: urlRecord.savedAt }
+        : {}),
+      ...(project.urlMetadata?.[urlId]?.notes !== undefined
+        ? { notes: project.urlMetadata[urlId].notes }
+        : {}),
+      ...(project.urlMetadata?.[urlId]?.category !== undefined
+        ? { category: project.urlMetadata[urlId].category }
+        : {}),
     })
   }
   return restoredUrls

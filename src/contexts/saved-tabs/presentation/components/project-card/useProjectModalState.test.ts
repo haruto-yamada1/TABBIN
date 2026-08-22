@@ -46,9 +46,15 @@ const setup = (
       project,
       {
         onClose: callbacks.onClose ?? vi.fn(),
-        onDeleteProject: callbacks.onDeleteProject,
-        onRenameProject: callbacks.onRenameProject,
-        onUpdateProjectKeywords: callbacks.onUpdateProjectKeywords,
+        ...(callbacks.onDeleteProject !== undefined
+          ? { onDeleteProject: callbacks.onDeleteProject }
+          : {}),
+        ...(callbacks.onRenameProject !== undefined
+          ? { onRenameProject: callbacks.onRenameProject }
+          : {}),
+        ...(callbacks.onUpdateProjectKeywords !== undefined
+          ? { onUpdateProjectKeywords: callbacks.onUpdateProjectKeywords }
+          : {}),
       },
       createProjectNameSchema(),
     ),

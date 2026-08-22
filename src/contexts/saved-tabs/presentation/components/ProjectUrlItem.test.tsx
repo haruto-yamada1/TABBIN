@@ -79,7 +79,6 @@ const createProps = (
   item: {
     url: 'https://example.com/path',
     title: 'Example',
-    category: undefined,
   },
   projectId: 'project-1',
   handleOpenUrl: vi.fn(),
@@ -87,7 +86,6 @@ const createProps = (
   handleSetCategory: vi.fn(),
   availableCategories: ['A', 'B'],
   isInUncategorizedArea: false,
-  parentType: undefined,
   settings: defaultSettings,
   ...overrides,
 })
@@ -227,7 +225,6 @@ describe('ProjectUrlItem', () => {
           projectId: 'project-1',
           title: item.url.substring(0, 30),
           isUncategorized: true,
-          category: undefined,
           notes: item.notes,
           isCategory: false,
           canMoveToUncategorized: true,
@@ -313,7 +310,6 @@ describe('ProjectUrlItem', () => {
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
-      category: undefined,
     }
 
     renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
@@ -351,7 +347,6 @@ describe('ProjectUrlItem', () => {
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
-      category: undefined,
     }
 
     renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
@@ -384,7 +379,6 @@ describe('ProjectUrlItem', () => {
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
-      category: undefined,
     }
 
     renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
@@ -416,7 +410,6 @@ describe('ProjectUrlItem', () => {
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
-      category: undefined,
     }
 
     renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {
@@ -446,7 +439,6 @@ describe('ProjectUrlItem', () => {
     const item = {
       url: 'https://example.com/doc',
       title: 'Doc',
-      category: undefined,
     }
 
     renderWithMessagingPort(<ProjectUrlItem {...createProps({ item })} />, {

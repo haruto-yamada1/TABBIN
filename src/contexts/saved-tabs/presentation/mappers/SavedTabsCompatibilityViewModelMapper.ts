@@ -35,13 +35,17 @@ export const toSavedTabsCustomProjectViewModel = (
     categoryOrder: categories.map(({ name }) => name),
     createdAt: project.collection.createdAt,
     id: project.collection.id,
-    memberships: project.memberships.map((membership) => ({
-      ...(membership.categoryId
-        ? { category: categoryNameById.get(membership.categoryId) }
-        : {}),
-      ...(membership.notes ? { notes: membership.notes } : {}),
-      urlId: membership.urlId,
-    })),
+    memberships: project.memberships.map((membership) => {
+      const category =
+        membership.categoryId !== undefined
+          ? categoryNameById.get(membership.categoryId)
+          : undefined
+      return {
+        ...(category !== undefined ? { category } : {}),
+        ...(membership.notes !== undefined ? { notes: membership.notes } : {}),
+        urlId: membership.urlId,
+      }
+    }),
     name: project.collection.name,
     projectKeywords: {
       domainKeywords: [
@@ -72,21 +76,25 @@ export const toSavedTabsTabGroupViewModel = (
     })),
     domain: group.collection.definition.domain,
     id: group.collection.id,
-    memberships: group.memberships.map((membership) => ({
-      ...(membership.categoryId
-        ? { category: categoryNameById.get(membership.categoryId) }
-        : {}),
-      ...(membership.notes ? { notes: membership.notes } : {}),
-      urlId: membership.urlId,
-    })),
-    ...(group.collection.groupId
+    memberships: group.memberships.map((membership) => {
+      const category =
+        membership.categoryId !== undefined
+          ? categoryNameById.get(membership.categoryId)
+          : undefined
+      return {
+        ...(category !== undefined ? { category } : {}),
+        ...(membership.notes !== undefined ? { notes: membership.notes } : {}),
+        urlId: membership.urlId,
+      }
+    }),
+    ...(group.collection.groupId !== undefined
       ? { parentCategoryId: group.collection.groupId }
       : {}),
     savedAt: group.collection.createdAt,
     subCategories: categories.map(({ name }) => name),
     subCategoryOrder: categories.map(({ name }) => name),
     subCategoryOrderWithUncategorized: categories.map(({ name }) => name),
-    ...(group.resolvedUrls
+    ...(group.resolvedUrls !== undefined
       ? { urls: group.resolvedUrls.map((url) => ({ ...url })) }
       : {}),
   }
@@ -108,10 +116,10 @@ export const toTabGroupFromViewModel = (
         ...(view.categoryKeywords?.map(({ categoryName }) => categoryName) ??
           []),
         ...(view.memberships?.flatMap(({ category }) =>
-          category ? [category] : [],
+          category !== undefined ? [category] : [],
         ) ?? []),
         ...(view.urls?.flatMap(({ subCategory }) =>
-          subCategory ? [subCategory] : [],
+          subCategory !== undefined ? [subCategory] : [],
         ) ?? []),
       ].filter(
         (name) =>
@@ -135,36 +143,41 @@ export const toTabGroupFromViewModel = (
   )
   const memberships =
     view.memberships ??
-    view.urls?.flatMap(({ id }) => (id ? [{ urlId: id }] : [])) ??
+    view.urls?.flatMap(({ id }) => (id !== undefined ? [{ urlId: id }] : [])) ??
     []
   const group = createSavedTabsTabGroupDtoFromProjection({
     collection: {
       createdAt: timestamp,
       definition: { domain: view.domain, type: 'domain' },
-      ...(view.parentCategoryId ? { groupId: view.parentCategoryId } : {}),
+      ...(view.parentCategoryId !== undefined
+        ? { groupId: view.parentCategoryId }
+        : {}),
       id: view.id,
       name: view.domain,
       sortOrder: 0,
       updatedAt: timestamp,
     },
     collectionCategories: categories,
-    memberships: memberships.map((membership, sortOrder) => ({
-      addedAt: timestamp,
-      ...('category' in membership && membership.category
-        ? { categoryId: categoryIdByName.get(membership.category) }
-        : {}),
-      collectionId: view.id,
-      ...('notes' in membership && membership.notes
-        ? { notes: membership.notes }
-        : {}),
-      sortOrder,
-      updatedAt: timestamp,
-      urlId: membership.urlId,
-    })),
+    memberships: memberships.map((membership, sortOrder) => {
+      const category =
+        'category' in membership ? membership.category : undefined
+      const categoryId =
+        category !== undefined ? categoryIdByName.get(category) : undefined
+      const notes = 'notes' in membership ? membership.notes : undefined
+      return {
+        addedAt: timestamp,
+        ...(categoryId !== undefined ? { categoryId } : {}),
+        collectionId: view.id,
+        ...(notes !== undefined ? { notes } : {}),
+        sortOrder,
+        updatedAt: timestamp,
+        urlId: membership.urlId,
+      }
+    }),
   })
   return {
     ...group,
-    ...(view.urls
+    ...(view.urls !== undefined
       ? { resolvedUrls: view.urls.map((url) => ({ ...url })) }
       : {}),
   }
@@ -188,7 +201,7 @@ export const toCustomProjectFromViewModel = (
   )
   const memberships =
     view.memberships ??
-    view.urls?.flatMap(({ id }) => (id ? [{ urlId: id }] : [])) ??
+    view.urls?.flatMap(({ id }) => (id !== undefined ? [{ urlId: id }] : [])) ??
     []
   return createSavedTabsCustomProjectDtoFromProjection({
     collection: {
@@ -207,18 +220,21 @@ export const toCustomProjectFromViewModel = (
       updatedAt: view.updatedAt,
     },
     collectionCategories: categories,
-    memberships: memberships.map((membership, sortOrder) => ({
-      addedAt: view.createdAt,
-      ...('category' in membership && membership.category
-        ? { categoryId: categoryIdByName.get(membership.category) }
-        : {}),
-      collectionId: view.id,
-      ...('notes' in membership && membership.notes
-        ? { notes: membership.notes }
-        : {}),
-      sortOrder,
-      updatedAt: view.updatedAt,
-      urlId: membership.urlId,
-    })),
+    memberships: memberships.map((membership, sortOrder) => {
+      const category =
+        'category' in membership ? membership.category : undefined
+      const categoryId =
+        category !== undefined ? categoryIdByName.get(category) : undefined
+      const notes = 'notes' in membership ? membership.notes : undefined
+      return {
+        addedAt: view.createdAt,
+        ...(categoryId !== undefined ? { categoryId } : {}),
+        collectionId: view.id,
+        ...(notes !== undefined ? { notes } : {}),
+        sortOrder,
+        updatedAt: view.updatedAt,
+        urlId: membership.urlId,
+      }
+    }),
   })
 }

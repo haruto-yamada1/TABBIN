@@ -388,13 +388,13 @@ const SidebarTrigger = ({
 
   return (
     <Button
-      ref={ref}
       data-sidebar='trigger'
       variant='ghost'
       size='icon'
       className={cn('h-7 w-7', className)}
       onClick={handleClick}
       {...props}
+      {...(ref !== undefined ? { ref } : {})}
     >
       <PanelLeft />
       <span className='sr-only'>{sidebarToggleLabel}</span>

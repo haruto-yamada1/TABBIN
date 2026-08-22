@@ -412,9 +412,12 @@ const buildTraceFromTask = (
     request_intent: options.requestIntent,
     final_output: finalOutput,
     tool_invocations: toolInvocations,
-    outbound_payloads:
-      outboundPayloads.length > 0 ? outboundPayloads : undefined,
-    filesystem_diffs: filesystemDiffs.length > 0 ? filesystemDiffs : undefined,
+    ...(outboundPayloads.length > 0
+      ? { outbound_payloads: outboundPayloads }
+      : {}),
+    ...(filesystemDiffs.length > 0
+      ? { filesystem_diffs: filesystemDiffs }
+      : {}),
   }
 }
 

@@ -154,7 +154,9 @@ export const createRestoreOpenedUrlsSnapshotUseCase = (
     }
 
     return {
-      restoredCustomProjectOrder: restoredCustomProjectOrder?.map(String),
+      ...(restoredCustomProjectOrder !== undefined
+        ? { restoredCustomProjectOrder: restoredCustomProjectOrder.map(String) }
+        : {}),
       restoredCustomProjects,
       restoredParentCategories,
       restoredTabGroups,

@@ -121,19 +121,25 @@ export const CategorySection = ({
           <ul className='space-y-0.5'>
             {displayUrls.map((item) => (
               <SortableUrlItem
-                key={item.url}
                 url={item.url}
                 title={item.title}
                 id={item.url}
                 groupId={groupId}
-                subCategory={item.subCategory}
-                savedAt={item.savedAt}
-                autoDeletePeriod={settings.autoDeletePeriod}
+                {...(item.subCategory !== undefined
+                  ? { subCategory: item.subCategory }
+                  : {})}
+                {...(item.savedAt !== undefined
+                  ? { savedAt: item.savedAt }
+                  : {})}
+                {...(settings.autoDeletePeriod !== undefined
+                  ? { autoDeletePeriod: settings.autoDeletePeriod }
+                  : {})}
                 handleDeleteUrl={handleDeleteUrl}
                 handleOpenTab={handleOpenTab}
                 handleUpdateUrls={handleUpdateUrls}
                 categoryContext={`category-${categoryName}-${groupId}`}
                 settings={settings}
+                key={item.url}
               />
             ))}
           </ul>

@@ -44,7 +44,11 @@ vi.mock('@dnd-kit/core', () => ({
     onDragOver?: (event: unknown) => void
     onDragEnd?: (event: unknown) => void
   }) => {
-    dndContextPropsRef.current = { onDragStart, onDragOver, onDragEnd }
+    dndContextPropsRef.current = {
+      ...(onDragStart !== undefined ? { onDragStart } : {}),
+      ...(onDragOver !== undefined ? { onDragOver } : {}),
+      ...(onDragEnd !== undefined ? { onDragEnd } : {}),
+    }
     return <div data-testid='dnd-context'>{children}</div>
   },
   DragOverlay: ({ children }: { children: React.ReactNode }) => (
@@ -815,14 +819,12 @@ describe('CustomProjectSection', () => {
   })
 
   it('各種DnDの早期return分岐（dataなし・別タイプ・同一プロジェクト・overなし・handlerなし）を通す', () => {
-    render(
-      <CustomProjectSection
-        {...createProps({
-          handleReorderProjects: undefined,
-          handleMoveUrlBetweenProjects: undefined,
-        })}
-      />,
-    )
+    const {
+      handleReorderProjects: _handleReorderProjects,
+      handleMoveUrlBetweenProjects: _handleMoveUrlBetweenProjects,
+      ...propsWithoutOptionalHandlers
+    } = createProps()
+    render(<CustomProjectSection {...propsWithoutOptionalHandlers} />)
 
     act(() => {
       dndContextPropsRef.current.onDragStart?.({ active: { data: {} } })

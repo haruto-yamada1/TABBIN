@@ -1062,8 +1062,8 @@ describe('useProjectManagement', () => {
     expect(result.current.customProjects[3]).toMatchObject({
       categories: ['New'],
       categoryOrder: ['New'],
-      urls: undefined,
     })
+    expect(result.current.customProjects[3]).not.toHaveProperty('urls')
   })
 
   it('プロジェクト順序更新は順序指定のないプロジェクトを末尾に送る', async () => {

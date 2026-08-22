@@ -912,6 +912,7 @@ describe('useDomainCardState', () => {
   })
 
   it('optional dependency がない場合は repository fallback せず no-op/throw する', async () => {
+    // Deliberately model missing runtime dependencies outside the strict type.
     const params = {
       ...createUseDomainCardStateParams({ group: createGroup() }).params,
       assignDomainToCategoryUseCase: undefined,
@@ -921,7 +922,7 @@ describe('useDomainCardState', () => {
       getSavedTabsPageDataQuery: undefined,
       handleDeleteCategory: undefined,
       handleDeleteUrls: undefined,
-    } as UseDomainCardStateParams
+    } as unknown as UseDomainCardStateParams
 
     const { result } = renderHook(() => useDomainCardState(params))
 

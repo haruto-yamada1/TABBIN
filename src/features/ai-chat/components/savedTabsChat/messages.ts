@@ -3,6 +3,23 @@ import type { AiChatToolTrace } from '@/types/background'
 
 type ChatMessage = AiChatConversationMessage
 
+type ChatMessageOptionalMetadata = Pick<
+  ChatMessage,
+  | 'attachments'
+  | 'charts'
+  | 'isStreaming'
+  | 'ollamaError'
+  | 'reasoning'
+  | 'toolTraces'
+>
+
+type ChatMessageUpdate = Omit<
+  Partial<ChatMessage>,
+  keyof ChatMessageOptionalMetadata
+> & {
+  [Key in keyof ChatMessageOptionalMetadata]?: ChatMessage[Key] | undefined
+}
+
 type TranslateFn = (
   key: string,
   fallback?: string,
@@ -27,15 +44,48 @@ const createChatMessage = (
     'attachments' | 'charts' | 'isStreaming' | 'reasoning' | 'toolTraces'
   >,
 ): ChatMessage => ({
-  attachments: metadata?.attachments,
-  charts: metadata?.charts,
   content,
   id: createMessageId(),
-  isStreaming: metadata?.isStreaming,
-  reasoning: metadata?.reasoning,
   role,
-  toolTraces: metadata?.toolTraces,
+  ...(metadata?.attachments !== undefined
+    ? { attachments: metadata.attachments }
+    : {}),
+  ...(metadata?.charts !== undefined ? { charts: metadata.charts } : {}),
+  ...(metadata?.isStreaming !== undefined
+    ? { isStreaming: metadata.isStreaming }
+    : {}),
+  ...(metadata?.reasoning !== undefined
+    ? { reasoning: metadata.reasoning }
+    : {}),
+  ...(metadata?.toolTraces !== undefined
+    ? { toolTraces: metadata.toolTraces }
+    : {}),
 })
+
+const mergeChatMessage = (
+  message: ChatMessage,
+  nextMessage: ChatMessageUpdate,
+): ChatMessage => {
+  const {
+    attachments,
+    charts,
+    isStreaming,
+    ollamaError,
+    reasoning,
+    toolTraces,
+    ...requiredMessage
+  } = { ...message, ...nextMessage }
+
+  return {
+    ...requiredMessage,
+    ...(attachments !== undefined ? { attachments } : {}),
+    ...(charts !== undefined ? { charts } : {}),
+    ...(isStreaming !== undefined ? { isStreaming } : {}),
+    ...(ollamaError !== undefined ? { ollamaError } : {}),
+    ...(reasoning !== undefined ? { reasoning } : {}),
+    ...(toolTraces !== undefined ? { toolTraces } : {}),
+  }
+}
 
 const getConversationCopyText = (
   messages: ChatMessage[],
@@ -169,7 +219,8 @@ export {
   getSourcesLabel,
   getSourceItems,
   insertLineBreakAtCursor,
+  mergeChatMessage,
   requestPromptSubmit,
   tryGetItemsArray,
 }
-export type { ChatMessage, ChatMessageSource, TranslateFn }
+export type { ChatMessage, ChatMessageSource, ChatMessageUpdate, TranslateFn }

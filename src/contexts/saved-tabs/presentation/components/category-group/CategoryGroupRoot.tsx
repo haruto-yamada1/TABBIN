@@ -79,7 +79,9 @@ export const CategoryGroupRoot = ({
     category,
     domains,
     handleDeleteGroup: handlers.handleDeleteGroup,
-    handleUpdateDomainsOrder: handlers.handleUpdateDomainsOrder,
+    ...(handlers.handleUpdateDomainsOrder !== undefined
+      ? { handleUpdateDomainsOrder: handlers.handleUpdateDomainsOrder }
+      : {}),
     isCategoryReorderMode,
     renameParentCategoryUseCase,
   })

@@ -272,9 +272,11 @@ const useAnalyticsRouteView = () => {
 
   const generatedAnalyticsResult = useMemo(
     () =>
-      generateAnalyticsResult(records, query, {
-        messages: chartMessages,
-      }),
+      generateAnalyticsResult(
+        records,
+        query,
+        chartMessages !== undefined ? { messages: chartMessages } : {},
+      ),
     [chartMessages, query, records],
   )
   const generatedChartSpecs = generatedAnalyticsResult.chartSpecs
@@ -291,9 +293,11 @@ const useAnalyticsRouteView = () => {
 
   const filteredRecords = useMemo(
     () =>
-      filterAnalyticsRecords(records, query, {
-        messages: chartMessages,
-      }),
+      filterAnalyticsRecords(
+        records,
+        query,
+        chartMessages !== undefined ? { messages: chartMessages } : {},
+      ),
     [chartMessages, query, records],
   )
 
@@ -366,7 +370,7 @@ const useAnalyticsRouteView = () => {
           label,
           query,
           record,
-          seriesKey,
+          ...(seriesKey !== undefined ? { seriesKey } : {}),
           uncategorizedLabel: t('analytics.uncategorized'),
         }),
       )
@@ -374,7 +378,7 @@ const useAnalyticsRouteView = () => {
       setDrilldownSelection({
         label,
         matchingRecords,
-        seriesKey,
+        ...(seriesKey !== undefined ? { seriesKey } : {}),
         specTitle: spec.title,
       })
     },

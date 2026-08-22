@@ -107,7 +107,7 @@ const showOpenedUrlsUndoToast = ({
 }
 
 type NotifyDeleteFailureParams = UndoNotificationContext & {
-  readonly snapshot?: OpenedUrlsRestoreSnapshot
+  readonly snapshot: OpenedUrlsRestoreSnapshot | undefined
   readonly t: (key: string, fallback?: string) => string
 }
 

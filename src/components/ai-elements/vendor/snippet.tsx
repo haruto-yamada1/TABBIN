@@ -88,7 +88,11 @@ export const SnippetCopyButton = ({
 }: SnippetCopyButtonProps) => {
   const t = useI18nText()
   const { code } = use(SnippetContext)
-  const { copyText, isCopied } = useCopyState({ onCopy, onError, timeout })
+  const { copyText, isCopied } = useCopyState({
+    ...(onCopy !== undefined ? { onCopy } : {}),
+    ...(onError !== undefined ? { onError } : {}),
+    timeout,
+  })
   const handleCopy = useCallback(() => {
     void copyText(code, { skipIfCopied: true })
   }, [copyText, code])

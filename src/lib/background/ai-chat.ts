@@ -703,8 +703,8 @@ const listLocalOllamaModels = async (
     return [
       {
         label: parameterSize ? `${name} (${parameterSize})` : name,
-        modifiedAt,
         name,
+        ...(modifiedAt !== undefined ? { modifiedAt } : {}),
       },
     ]
   })
@@ -743,7 +743,9 @@ const runAiChatRequest = async (
   const result = await (async () => {
     try {
       return await generateText({
-        abortSignal: options.signal,
+        ...(options.signal !== undefined
+          ? { abortSignal: options.signal }
+          : {}),
         messages: [
           ...history.map((message) =>
             message.role === 'user'

@@ -101,7 +101,10 @@ const withAppShell: Decorator = (Story, context) => {
     typeof rawTheme === 'string' && isStoryTheme(rawTheme) ? rawTheme : 'light'
 
   return (
-    <StorybookTestHarness storage={storybookStorage} theme={theme}>
+    <StorybookTestHarness
+      {...(storybookStorage !== undefined ? { storage: storybookStorage } : {})}
+      theme={theme}
+    >
       <Story />
     </StorybookTestHarness>
   )

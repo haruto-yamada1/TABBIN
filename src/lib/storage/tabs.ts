@@ -95,9 +95,9 @@ const renameSubCategoryInTabGroup = async (
       subCategoryOrder: updatedSubCategoryOrder,
       subCategoryOrderWithUncategorized:
         updatedSubCategoryOrderWithUncategorized,
-      urlSubCategories: urlSubCategoriesChanged
-        ? updatedUrlSubCategories
-        : tab.urlSubCategories,
+      ...(urlSubCategoriesChanged
+        ? { urlSubCategories: updatedUrlSubCategories }
+        : {}),
       urls: updatedUrls,
     }
   })
@@ -125,7 +125,9 @@ const resolveTabGroupUrlsFromMap = (
       ? [
           {
             ...record,
-            subCategory: tabGroup.urlSubCategories?.[record.id],
+            ...(tabGroup.urlSubCategories?.[record.id] !== undefined
+              ? { subCategory: tabGroup.urlSubCategories[record.id] }
+              : {}),
           },
         ]
       : []
@@ -472,9 +474,9 @@ const removeSubCategoryFromTabGroup = async (
       ...currentGroup,
       categoryKeywords: nextCategoryKeywords,
       subCategories: nextSubCategories,
-      urlSubCategories: urlSubCategoriesChanged
-        ? nextUrlSubCategories
-        : currentGroup.urlSubCategories,
+      ...(urlSubCategoriesChanged
+        ? { urlSubCategories: nextUrlSubCategories }
+        : {}),
     }
   })
   await getRequiredPersistenceStorageLocal().set({ savedTabs: updatedGroups })
@@ -845,7 +847,9 @@ const removeUrlIdsFromTabGroup = async (
     idsToDelete,
     rollbackSavedTabs,
     savedTabs,
-    throwOnSyncError: options.throwOnSyncError,
+    ...(options.throwOnSyncError !== undefined
+      ? { throwOnSyncError: options.throwOnSyncError }
+      : {}),
   })
 }
 
@@ -891,7 +895,9 @@ const removeUrlsFromTabGroup = async (
         idsToDelete,
         rollbackSavedTabs,
         savedTabs,
-        throwOnSyncError: options.throwOnSyncError,
+        ...(options.throwOnSyncError !== undefined
+          ? { throwOnSyncError: options.throwOnSyncError }
+          : {}),
       })
     }
   }

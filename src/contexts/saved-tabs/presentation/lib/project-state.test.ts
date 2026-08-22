@@ -4,6 +4,11 @@ import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/save
 
 import { moveUrlBetweenProjectsState } from './project-state'
 
+const omitProjectUrls = (project: CustomProject): CustomProject => {
+  const { urls: _urls, ...projectWithoutUrls } = project
+  return projectWithoutUrls
+}
+
 const createProjects = (): CustomProject[] => [
   {
     id: 'project-a',
@@ -95,7 +100,7 @@ describe('moveUrlBetweenProjectsState', () => {
 
   it('移動先 urls が未初期化でも配列を生成して追加できる', () => {
     const projects = createProjects().map((project) =>
-      project.id === 'project-b' ? { ...project, urls: undefined } : project,
+      project.id === 'project-b' ? omitProjectUrls(project) : project,
     )
 
     const next = moveUrlBetweenProjectsState({
@@ -120,7 +125,7 @@ describe('moveUrlBetweenProjectsState', () => {
 
   it('移動元 urls が未初期化でも安全に処理できる', () => {
     const projects = createProjects().map((project) =>
-      project.id === 'project-a' ? { ...project, urls: undefined } : project,
+      project.id === 'project-a' ? omitProjectUrls(project) : project,
     )
 
     const next = moveUrlBetweenProjectsState({

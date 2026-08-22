@@ -47,12 +47,7 @@ describe('SavedTabsPresentationMapper', () => {
       subCategories: ['docs'],
       subCategoryOrder: ['docs'],
       subCategoryOrderWithUncategorized: ['docs', 'uncategorized'],
-      memberships: ['url-1'].map((urlId) => ({
-        urlId,
-        ...({ 'url-1': 'docs' }?.[urlId]
-          ? { category: { 'url-1': 'docs' }[urlId] }
-          : {}),
-      })),
+      memberships: [{ category: 'docs', urlId: 'url-1' }],
     })
     const record = createUrlRecord({
       favIconUrl: 'https://example.com/favicon.ico',

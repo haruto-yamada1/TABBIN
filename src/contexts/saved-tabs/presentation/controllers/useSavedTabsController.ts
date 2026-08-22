@@ -148,10 +148,44 @@ const toTabGroupViewModelFromEntity = (
   return toTabGroupViewModel({
     domain: view.domain,
     id: view.id,
-    parentCategoryId: view.parentCategoryId,
+    ...(view.parentCategoryId !== undefined
+      ? { parentCategoryId: view.parentCategoryId }
+      : {}),
     urls: [],
   })
 }
+
+const copyRestoreSnapshot = (
+  snapshot: OpenedUrlsRestoreSnapshot,
+): OpenedUrlsRestoreSnapshot => ({
+  ...(snapshot.customProjects !== undefined
+    ? { customProjects: [...snapshot.customProjects] }
+    : {}),
+  ...(snapshot.parentCategories !== undefined
+    ? {
+        parentCategories: snapshot.parentCategories.map((category) => ({
+          collections: category.collections.map((collection) => ({
+            ...collection,
+          })),
+          id: category.id,
+          name: category.name,
+        })),
+      }
+    : {}),
+  ...(snapshot.savedTabs !== undefined
+    ? { savedTabs: [...snapshot.savedTabs] }
+    : {}),
+  ...(snapshot.urlRecords !== undefined
+    ? {
+        urlRecords: snapshot.urlRecords.map((record) => ({
+          id: record.id,
+          savedAt: record.savedAt,
+          title: record.title,
+          url: record.url,
+        })),
+      }
+    : {}),
+})
 
 /**
  * presentation 層の中心 controller hook。
@@ -225,31 +259,7 @@ export const useSavedTabsController = (
           urlRecordId: openInput.urlRecordId,
         })
         if (dto.snapshot) {
-          lastSnapshotRef.current = {
-            customProjects: dto.snapshot.customProjects
-              ? [...dto.snapshot.customProjects]
-              : undefined,
-            parentCategories: dto.snapshot.parentCategories
-              ? dto.snapshot.parentCategories.map((category) => ({
-                  collections: category.collections.map((collection) => ({
-                    ...collection,
-                  })),
-                  id: category.id,
-                  name: category.name,
-                }))
-              : undefined,
-            savedTabs: dto.snapshot.savedTabs
-              ? [...dto.snapshot.savedTabs]
-              : undefined,
-            urlRecords: dto.snapshot.urlRecords
-              ? dto.snapshot.urlRecords.map((record) => ({
-                  id: record.id,
-                  savedAt: record.savedAt,
-                  title: record.title,
-                  url: record.url,
-                }))
-              : undefined,
-          }
+          lastSnapshotRef.current = copyRestoreSnapshot(dto.snapshot)
         }
         await refresh()
         return {
@@ -270,31 +280,7 @@ export const useSavedTabsController = (
         const dto = await deleteTabGroupUseCase({
           tabGroupId: deleteInput.tabGroupId,
         })
-        lastSnapshotRef.current = {
-          customProjects: dto.snapshot.customProjects
-            ? [...dto.snapshot.customProjects]
-            : undefined,
-          parentCategories: dto.snapshot.parentCategories
-            ? dto.snapshot.parentCategories.map((category) => ({
-                collections: category.collections.map((collection) => ({
-                  ...collection,
-                })),
-                id: category.id,
-                name: category.name,
-              }))
-            : undefined,
-          savedTabs: dto.snapshot.savedTabs
-            ? [...dto.snapshot.savedTabs]
-            : undefined,
-          urlRecords: dto.snapshot.urlRecords
-            ? dto.snapshot.urlRecords.map((record) => ({
-                id: record.id,
-                savedAt: record.savedAt,
-                title: record.title,
-                url: record.url,
-              }))
-            : undefined,
-        }
+        lastSnapshotRef.current = copyRestoreSnapshot(dto.snapshot)
         await refresh()
         return {
           removedTabGroupId: dto.removedTabGroupId,

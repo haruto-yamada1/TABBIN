@@ -73,6 +73,13 @@ type CategoryEditState = {
   keywords: string[]
   newCategoryName: string
 }
+type TabGroupUrl = NonNullable<TabGroup['urls']>[number]
+
+const omitSubCategory = (item: TabGroupUrl): TabGroupUrl => {
+  const { subCategory: _subCategory, ...itemWithoutSubCategory } = item
+  return itemWithoutSubCategory
+}
+
 const resolveSelectedParentCategoryId = (
   storedCategories: ParentCategory[],
   group: TabGroup,
@@ -379,10 +386,7 @@ export const useCategoryKeywordModal = ({
                 ),
                 urls: (g.urls ?? []).map((item) =>
                   item.subCategory === activeCategory
-                    ? {
-                        ...item,
-                        subCategory: undefined,
-                      }
+                    ? omitSubCategory(item)
                     : item,
                 ),
               }

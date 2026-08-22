@@ -75,7 +75,10 @@ const createSpyBrowserWindowPort = (): SpyBrowserWindowPort => {
   const opened: { focused?: boolean; urls: readonly string[] }[] = []
   const openWithUrls = vi.fn(
     async (input: { urls: readonly string[]; focused?: boolean }) => {
-      opened.push({ focused: input.focused, urls: [...input.urls] })
+      opened.push({
+        ...(input.focused !== undefined ? { focused: input.focused } : {}),
+        urls: [...input.urls],
+      })
       return { urls: [...input.urls] }
     },
   )

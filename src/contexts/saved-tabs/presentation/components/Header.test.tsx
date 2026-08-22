@@ -163,7 +163,6 @@ const createProps = (
   overrides: Partial<React.ComponentProps<typeof Header>> = {},
 ) => ({
   tabGroups: createTabGroups(),
-  filteredTabGroups: undefined,
   currentMode: 'domain' as ViewMode,
   onModeChange: vi.fn(),
   searchQuery: '',
@@ -479,7 +478,6 @@ describe('Header', () => {
               categories: [],
               createdAt: 0,
               updatedAt: 0,
-              urls: undefined,
             },
             {
               id: 'p2',
@@ -490,9 +488,7 @@ describe('Header', () => {
               urls: [],
             },
           ],
-          filteredCustomProjects: undefined,
         }) as React.ComponentProps<typeof Header>)}
-        onCreateProject={undefined as unknown as (name: string) => void}
       />,
     )
 

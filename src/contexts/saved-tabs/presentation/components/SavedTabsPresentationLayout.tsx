@@ -83,7 +83,7 @@ export const SavedTabsPresentationLayout = ({
       deps={deps}
       initialViewMode={initialViewMode}
       isAiSidebarOpen={isAiSidebarOpen}
-      onViewModeNavigate={onViewModeNavigate}
+      {...(onViewModeNavigate !== undefined ? { onViewModeNavigate } : {})}
       resolveActiveRef={resolveActiveRef}
       useCases={useCases}
     />

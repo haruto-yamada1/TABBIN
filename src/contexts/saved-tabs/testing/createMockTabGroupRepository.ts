@@ -108,7 +108,7 @@ export const toMockTabGroup = (input: {
         id
           ? [
               {
-                ...(subCategory ? { category: subCategory } : {}),
+                ...(subCategory !== undefined ? { category: subCategory } : {}),
                 urlId: id,
               },
             ]
@@ -116,14 +116,27 @@ export const toMockTabGroup = (input: {
       )
     : (input.urlIds ?? []).map((urlId) => ({ urlId }))
   return createTabGroup({
-    categoryKeywords: input.categoryKeywords,
+    ...(input.categoryKeywords !== undefined
+      ? { categoryKeywords: input.categoryKeywords }
+      : {}),
     domain: input.domain,
     id: input.id,
     memberships,
-    parentCategoryId: input.parentCategoryId,
-    savedAt: input.savedAt,
-    subCategories: input.subCategories,
-    subCategoryOrder: input.subCategoryOrder,
-    subCategoryOrderWithUncategorized: input.subCategoryOrderWithUncategorized,
+    ...(input.parentCategoryId !== undefined
+      ? { parentCategoryId: input.parentCategoryId }
+      : {}),
+    ...(input.savedAt !== undefined ? { savedAt: input.savedAt } : {}),
+    ...(input.subCategories !== undefined
+      ? { subCategories: input.subCategories }
+      : {}),
+    ...(input.subCategoryOrder !== undefined
+      ? { subCategoryOrder: input.subCategoryOrder }
+      : {}),
+    ...(input.subCategoryOrderWithUncategorized !== undefined
+      ? {
+          subCategoryOrderWithUncategorized:
+            input.subCategoryOrderWithUncategorized,
+        }
+      : {}),
   })
 }

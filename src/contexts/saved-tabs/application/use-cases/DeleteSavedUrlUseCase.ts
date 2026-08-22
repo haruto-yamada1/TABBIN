@@ -178,9 +178,7 @@ export const createDeleteSavedUrlUseCase = (
     // UrlRecord を含めて、RestoreOpenedUrlsSnapshotUseCase が
     // storage を正確に巻き戻せるようにする。
     const snapshot: OpenedUrlsRestoreSnapshot = {
-      customProjectOrder: undefined,
       customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
-      parentCategories: undefined,
       savedTabs: isGroupEmpty ? [toSavedTabsTabGroupDto(previousGroup)] : [],
       urlRecords: removedUrlRecord
         ? [toSavedTabsUrlRecordDto(previousUrlRecord)]

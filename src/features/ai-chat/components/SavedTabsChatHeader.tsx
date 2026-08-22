@@ -207,12 +207,16 @@ const ChatHistoryDropdown = ({
                 <SavedTabsChatHistoryItemCard
                   historyItem={historyItem}
                   isActive={historyItem.isActive}
-                  key={historyItem.id}
-                  onDeleteHistoryItem={onDeleteHistoryItem}
-                  onSelectHistoryItem={onSelectHistoryItem}
                   setIsOpen={setIsOpen}
                   setPendingDeleteHistoryItem={setPendingDeleteHistoryItem}
                   t={t}
+                  {...(onDeleteHistoryItem !== undefined
+                    ? { onDeleteHistoryItem }
+                    : {})}
+                  {...(onSelectHistoryItem !== undefined
+                    ? { onSelectHistoryItem }
+                    : {})}
+                  key={historyItem.id}
                 />
               ))
             ) : (
@@ -293,14 +297,20 @@ const SavedTabsChatHeader = ({
           {historyVariant === 'sidebar-toggle' ? (
             <ChatHistoryButton
               label={t('aiChat.historyTitle')}
-              onClick={onToggleHistory}
+              {...(onToggleHistory !== undefined
+                ? { onClick: onToggleHistory }
+                : {})}
             />
           ) : null}
           {historyVariant === 'dropdown' ? (
             <ChatHistoryDropdown
               historyItems={historyItems}
-              onDeleteHistoryItem={onDeleteHistoryItem}
-              onSelectHistoryItem={onSelectHistoryItem}
+              {...(onDeleteHistoryItem !== undefined
+                ? { onDeleteHistoryItem }
+                : {})}
+              {...(onSelectHistoryItem !== undefined
+                ? { onSelectHistoryItem }
+                : {})}
             />
           ) : null}
           <SavedTabsChatHeaderTooltipButton

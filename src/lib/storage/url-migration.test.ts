@@ -157,14 +157,12 @@ describe('url-migration', () => {
         url: 'https://shared.test',
       },
       {
-        favIconUrl: undefined,
         id: 'uuid-1',
         savedAt: 999,
         title: 'Tab Unique',
         url: 'https://tab.test',
       },
       {
-        favIconUrl: undefined,
         id: 'uuid-2',
         savedAt: 999,
         title: 'Unique',
@@ -180,7 +178,6 @@ describe('url-migration', () => {
           'existing-1': 'news',
           'uuid-1': 'guides',
         },
-        urls: undefined,
       },
     ])
     expect(state.customProjects).toStrictEqual([
@@ -201,7 +198,6 @@ describe('url-migration', () => {
             notes: 'raw memo',
           },
         },
-        urls: undefined,
       },
     ])
   })
@@ -313,7 +309,6 @@ describe('url-migration', () => {
         domain: 'https://tab-no-sub.example.com',
         id: 'group-with-url',
         urlIds: ['uuid-1'],
-        urls: undefined,
       },
     ])
     expect(state.customProjects).toStrictEqual([
@@ -323,20 +318,17 @@ describe('url-migration', () => {
       expect.objectContaining({
         id: 'project-with-url',
         urlIds: ['uuid-2'],
-        urls: undefined,
       }),
     ])
     expect(state.customProjects?.[1]).not.toHaveProperty('urlMetadata')
     expect(state.urls).toStrictEqual([
       {
-        favIconUrl: undefined,
         id: 'uuid-1',
         savedAt: 1234,
         title: '',
         url: 'https://tab-no-sub.example.com/page',
       },
       {
-        favIconUrl: undefined,
         id: 'uuid-2',
         savedAt: 1234,
         title: '',

@@ -47,12 +47,12 @@ const SortableDomainCardComponent = ({
   const handlers = useMemo(
     () => ({
       handleDeleteGroup,
-      handleDeleteGroups,
       handleDeleteUrl,
-      handleDeleteUrls,
       handleOpenAllTabs,
       handleOpenTab,
       handleUpdateUrls,
+      ...(handleDeleteGroups !== undefined ? { handleDeleteGroups } : {}),
+      ...(handleDeleteUrls !== undefined ? { handleDeleteUrls } : {}),
     }),
     [
       handleOpenAllTabs,
@@ -69,11 +69,11 @@ const SortableDomainCardComponent = ({
     <DomainCardRoot
       group={group}
       settings={settings}
-      categoryId={categoryId}
+      {...(categoryId !== undefined ? { categoryId } : {})}
       isReorderMode={isReorderMode}
       searchQuery={searchQuery}
       handlers={handlers}
-      handleDeleteCategory={handleDeleteCategory}
+      {...(handleDeleteCategory !== undefined ? { handleDeleteCategory } : {})}
       reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
     >
       <DomainCardHeader>

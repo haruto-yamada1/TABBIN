@@ -910,7 +910,7 @@ const createSingleSeriesChart = (
         : getSingleSeriesTitle(query.groupBy, messages, query.collectionType)),
     type: query.chartType,
     valueFormat: query.normalize ? 'percent' : 'count',
-    xKey: query.chartType === 'pie' ? undefined : 'label',
+    ...(query.chartType !== 'pie' ? { xKey: 'label' } : {}),
   }
 }
 
@@ -997,7 +997,7 @@ const createModeComparisonChart = (
     title: query.title ?? getTimeTitle(query.timeBucket, messages),
     type: query.chartType,
     valueFormat: query.normalize ? 'percent' : 'count',
-    xKey: query.chartType === 'pie' ? undefined : 'label',
+    ...(query.chartType !== 'pie' ? { xKey: 'label' } : {}),
   }
 }
 
@@ -1021,7 +1021,9 @@ const filterAnalyticsRecords = (
         customDateRange: normalizedQuery.customDateRange,
         now,
         timeRange: normalizedQuery.timeRange,
-        timeZone: options.timeZone,
+        ...(options.timeZone !== undefined
+          ? { timeZone: options.timeZone }
+          : {}),
       }) &&
       matchesFilters(
         record,

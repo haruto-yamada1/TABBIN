@@ -178,9 +178,9 @@ export const parseBunLockPackages = (
     result.push({
       name,
       version,
-      integrity,
       metadata,
       isProduction: productionNames.has(name),
+      ...(integrity !== undefined ? { integrity } : {}),
     })
   }
 

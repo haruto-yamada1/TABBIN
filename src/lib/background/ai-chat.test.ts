@@ -119,7 +119,6 @@ describe('listLocalOllamaModels', () => {
     expect(models).toStrictEqual([
       {
         label: 'mistral',
-        modifiedAt: undefined,
         name: 'mistral',
       },
     ])

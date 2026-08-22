@@ -131,7 +131,7 @@ const AssistantMessageDiagnostics = ({
       {reasoning ? (
         <Reasoning
           className='mb-0 rounded-md border border-border/70 bg-background/70 px-3 py-2'
-          isStreaming={isStreaming}
+          {...(isStreaming !== undefined ? { isStreaming } : {})}
         >
           <ReasoningTrigger getThinkingMessage={getThinkingMessage} />
           <ReasoningContent>{reasoning}</ReasoningContent>
@@ -255,6 +255,19 @@ const renderConversationMessageBody = ({
     <MessageResponse>{message.content}</MessageResponse>
   )
 
+const getAssistantMessageOptionalProps = (message: ChatMessage) => ({
+  ...(message.isStreaming !== undefined
+    ? { isStreaming: message.isStreaming }
+    : {}),
+  ...(message.reasoning !== undefined ? { reasoning: message.reasoning } : {}),
+  ...(message.toolTraces !== undefined
+    ? { toolTraces: message.toolTraces }
+    : {}),
+})
+
+const getAiChartOptionalProps = (message: ChatMessage) =>
+  message.charts !== undefined ? { charts: message.charts } : {}
+
 const renderChatConversationMessage = ({
   // eslint-disable-line eslint/complexity
   message,
@@ -306,9 +319,7 @@ const renderChatConversationMessage = ({
       ) : null}
       {message.role === 'assistant' ? (
         <AssistantMessageDiagnostics
-          isStreaming={message.isStreaming}
-          reasoning={message.reasoning}
-          toolTraces={message.toolTraces}
+          {...getAssistantMessageOptionalProps(message)}
         />
       ) : null}
       <MessageContent
@@ -326,7 +337,7 @@ const renderChatConversationMessage = ({
           : null}
         {messageBody}
         {message.role === 'assistant' ? (
-          <AiChartRenderer charts={message.charts} />
+          <AiChartRenderer {...getAiChartOptionalProps(message)} />
         ) : null}
         {shouldShowStreamingShimmer ? (
           <Shimmer className='text-sm'>{t('aiChat.shimmer')}</Shimmer>
@@ -467,16 +478,16 @@ const SavedTabsChatPanel = ({
         historyVariant={historyVariant}
         onClose={onClose}
         onCopyConversation={onCopyConversation}
-        onDeleteHistoryItem={onDeleteHistoryItem}
         onOpenSystemPromptManager={onOpenSystemPromptManager}
         onResetConversation={onResetConversation}
-        onSelectHistoryItem={onSelectHistoryItem}
         onSelectSystemPrompt={onSelectSystemPrompt}
-        onToggleHistory={onToggleHistory}
         presentation={headerPresentation}
         status={headerStatus}
         systemPrompts={headerSystemPrompts}
         title={title}
+        {...(onDeleteHistoryItem !== undefined ? { onDeleteHistoryItem } : {})}
+        {...(onSelectHistoryItem !== undefined ? { onSelectHistoryItem } : {})}
+        {...(onToggleHistory !== undefined ? { onToggleHistory } : {})}
       />
       <CardContent
         className={cn(
@@ -517,7 +528,6 @@ const SavedTabsChatPanel = ({
           {chatDataScopeNotice}
           <SavedTabsChatComposer
             input={input}
-            modelName={modelName}
             modelOptions={modelOptions}
             onAttachmentError={handleAttachmentError}
             onFetchModels={onFetchModels}
@@ -527,8 +537,9 @@ const SavedTabsChatPanel = ({
             platform={platform}
             presentation={composerPresentation}
             setupErrorMessage={setupErrorMessage}
-            setupOllamaError={setupOllamaError}
             status={composerStatus}
+            {...(modelName !== undefined ? { modelName } : {})}
+            {...(setupOllamaError !== undefined ? { setupOllamaError } : {})}
           />
         </div>
       </CardContent>

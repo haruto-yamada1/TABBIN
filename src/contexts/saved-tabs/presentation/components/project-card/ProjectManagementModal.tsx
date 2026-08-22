@@ -265,7 +265,14 @@ const useProjectManagementModalView = ({
     urlKeywords,
   } = useProjectModalState(
     project,
-    { onRenameProject, onUpdateProjectKeywords, onDeleteProject, onClose },
+    {
+      onClose,
+      ...(onDeleteProject !== undefined ? { onDeleteProject } : {}),
+      ...(onRenameProject !== undefined ? { onRenameProject } : {}),
+      ...(onUpdateProjectKeywords !== undefined
+        ? { onUpdateProjectKeywords }
+        : {}),
+    },
     localizedProjectNameSchema,
   )
 

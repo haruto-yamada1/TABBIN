@@ -397,7 +397,7 @@ const useSavedTabsAppView = ({
     if (
       shouldWaitForInitialViewMode({
         hasResolvedInitialViewMode: hasResolvedInitialViewModeRef.current,
-        initialViewMode,
+        ...(initialViewMode !== undefined ? { initialViewMode } : {}),
         viewMode,
       })
     ) {
@@ -408,7 +408,10 @@ const useSavedTabsAppView = ({
       hasResolvedInitialViewModeRef.current = true
     }
 
-    syncSavedTabsViewModeLocation({ onViewModeNavigate, viewMode })
+    syncSavedTabsViewModeLocation({
+      ...(onViewModeNavigate !== undefined ? { onViewModeNavigate } : {}),
+      viewMode,
+    })
   }, [initialViewMode, onViewModeNavigate, viewMode])
 
   const { handleMoveUrlBetweenProjects } = useProjectMoveHandlers({

@@ -82,11 +82,13 @@ const CustomProjectCard = memo(
       <ProjectCardRoot
         project={project}
         settings={settings}
-        draggedItem={draggedItem}
+        {...(draggedItem !== undefined ? { draggedItem } : {})}
         isDropTarget={isDropTarget}
         isProjectReorderMode={isProjectReorderMode}
         isCrossProjectUrlDragActive={isCrossProjectUrlDragActive}
-        getProjectUrlsUseCase={getProjectUrlsUseCase}
+        {...(getProjectUrlsUseCase !== undefined
+          ? { getProjectUrlsUseCase }
+          : {})}
         handlers={handlers}
         hookHandlers={hookHandlers}
       >

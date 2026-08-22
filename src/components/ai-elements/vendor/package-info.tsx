@@ -37,7 +37,12 @@ export const PackageInfo = ({
   ...props
 }: PackageInfoProps) => {
   const contextValue = useMemo(
-    () => ({ changeType, currentVersion, name, newVersion }),
+    () => ({
+      ...(changeType !== undefined ? { changeType } : {}),
+      ...(currentVersion !== undefined ? { currentVersion } : {}),
+      name,
+      ...(newVersion !== undefined ? { newVersion } : {}),
+    }),
     [changeType, currentVersion, name, newVersion],
   )
 

@@ -91,23 +91,20 @@ const diffMemberships = (
 const toWritePlan = (
   current: IndexedDbSavedTabsMutableState,
   next: IndexedDbSavedTabsMutableState,
-): PersistenceV2WritePlan => ({
-  ...(diffById(current.categories, next.categories)
-    ? { categories: diffById(current.categories, next.categories) }
-    : {}),
-  ...(diffById(current.collections, next.collections)
-    ? { collections: diffById(current.collections, next.collections) }
-    : {}),
-  ...(diffById(current.groups, next.groups)
-    ? { groups: diffById(current.groups, next.groups) }
-    : {}),
-  ...(diffMemberships(current.memberships, next.memberships)
-    ? { memberships: diffMemberships(current.memberships, next.memberships) }
-    : {}),
-  ...(diffById(current.urls, next.urls)
-    ? { urls: diffById(current.urls, next.urls) }
-    : {}),
-})
+): PersistenceV2WritePlan => {
+  const categories = diffById(current.categories, next.categories)
+  const collections = diffById(current.collections, next.collections)
+  const groups = diffById(current.groups, next.groups)
+  const memberships = diffMemberships(current.memberships, next.memberships)
+  const urls = diffById(current.urls, next.urls)
+  return {
+    ...(categories !== undefined ? { categories } : {}),
+    ...(collections !== undefined ? { collections } : {}),
+    ...(groups !== undefined ? { groups } : {}),
+    ...(memberships !== undefined ? { memberships } : {}),
+    ...(urls !== undefined ? { urls } : {}),
+  }
+}
 
 const hasWritePlanChanges = (plan: PersistenceV2WritePlan): boolean =>
   Object.keys(plan).length > 0

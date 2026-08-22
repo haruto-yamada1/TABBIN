@@ -175,7 +175,7 @@ export const JSXPreview = memo(
         components,
         error,
         jsx,
-        onErrorProp: onError,
+        ...(onError !== undefined ? { onErrorProp: onError } : {}),
         processedJsx,
         setError,
       }),

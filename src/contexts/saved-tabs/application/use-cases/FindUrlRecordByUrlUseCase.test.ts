@@ -7,7 +7,6 @@ import { createFindUrlRecordByUrlUseCase } from './FindUrlRecordByUrlUseCase'
 import type { FindUrlRecordByUrlUseCaseDeps } from './FindUrlRecordByUrlUseCase'
 
 const createUrlRecord = (overrides: Partial<UrlRecord>): UrlRecord => ({
-  favIconUrl: undefined,
   id: 'url-1' as never,
   savedAt: 1 as never,
   title: 'Title',

@@ -158,12 +158,7 @@ describe('tab-group-state.buildUpdatedGroupAfterUrlIdRemoval', () => {
         {
           domain: 'example.com',
           id: 'g1',
-          memberships: ['u1'].map((urlId) => ({
-            urlId,
-            ...({ u1: 'news' }?.[urlId]
-              ? { category: { u1: 'news' }[urlId] }
-              : {}),
-          })),
+          memberships: [{ category: 'news', urlId: 'u1' }],
         },
         [],
       ),
@@ -180,20 +175,10 @@ describe('tab-group-state.buildUpdatedGroupAfterUrlIdRemoval', () => {
         {
           domain: 'example.com',
           id: 'g1',
-          memberships: ['u1', 'u2'].map((urlId) => ({
-            urlId,
-            ...({
-              u1: 'news',
-              u2: 'docs',
-            }?.[urlId]
-              ? {
-                  category: {
-                    u1: 'news',
-                    u2: 'docs',
-                  }[urlId],
-                }
-              : {}),
-          })),
+          memberships: [
+            { category: 'news', urlId: 'u1' },
+            { category: 'docs', urlId: 'u2' },
+          ],
         },
         [{ category: 'docs', urlId: 'u2' }],
       ),

@@ -60,7 +60,17 @@ const toLegacyCustomProjectFixture = (
     urlIds: memberships.map(({ urlId }) => urlId),
     urlMetadata: Object.fromEntries(
       memberships.flatMap(({ category, notes, urlId }) =>
-        category || notes ? [[urlId, { category, notes }]] : [],
+        category !== undefined || notes !== undefined
+          ? [
+              [
+                urlId,
+                {
+                  ...(category !== undefined ? { category } : {}),
+                  ...(notes !== undefined ? { notes } : {}),
+                },
+              ],
+            ]
+          : [],
       ),
     ),
   }
@@ -694,8 +704,6 @@ describe('SavedTabsApp custom search', () => {
     })
 
     const restoreOpenedUrlsSnapshotView = vi.fn(async () => ({
-      customProjects: undefined,
-      parentCategories: undefined,
       savedTabs: [],
     }))
 
@@ -844,6 +852,7 @@ describe('SavedTabsApp custom search', () => {
         moveUrlBetweenCustomProjects: vi.fn(),
       },
       setCustomProjects: vi.fn(),
+      snapshot: undefined,
       t: (key) => key,
     })
 
@@ -2112,20 +2121,10 @@ describe('SavedTabsApp custom search', () => {
     const group1: TabGroup = {
       id: 'group-1',
       domain: 'example.com',
-      memberships: ['url-a', 'url-b'].map((urlId) => ({
-        urlId,
-        ...({
-          'url-a': 'news',
-          'url-b': 'docs',
-        }?.[urlId]
-          ? {
-              category: {
-                'url-a': 'news',
-                'url-b': 'docs',
-              }[urlId],
-            }
-          : {}),
-      })),
+      memberships: [
+        { category: 'news', urlId: 'url-a' },
+        { category: 'docs', urlId: 'url-b' },
+      ],
       urls: [
         {
           id: 'url-a',
@@ -3849,12 +3848,10 @@ describe('SavedTabsApp custom search', () => {
     const group: TabGroup = {
       domain: 'example.com',
       id: 'group-1',
-      memberships: ['url-remove', 'url-keep'].map((urlId) => ({
-        urlId,
-        ...({ 'url-remove': 'news' }?.[urlId]
-          ? { category: { 'url-remove': 'news' }[urlId] }
-          : {}),
-      })),
+      memberships: [
+        { category: 'news', urlId: 'url-remove' },
+        { urlId: 'url-keep' },
+      ],
       urls: [
         {
           id: 'url-remove',

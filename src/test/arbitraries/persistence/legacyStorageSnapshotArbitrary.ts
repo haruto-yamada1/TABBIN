@@ -177,9 +177,11 @@ const assembleGroup = (
         const canonical = canonicalById.get(id)
         return {
           id,
-          savedAt: canonical?.savedAt,
           title: canonical?.title ?? '',
           url: canonical?.url ?? '',
+          ...(canonical?.savedAt !== undefined
+            ? { savedAt: canonical.savedAt }
+            : {}),
         }
       }),
     }
@@ -244,9 +246,11 @@ const assembleProject = (
       urls: urlIds.map((id) => {
         const canonical = canonicalById.get(id)
         return {
-          savedAt: canonical?.savedAt,
           title: canonical?.title ?? '',
           url: canonical?.url ?? '',
+          ...(canonical?.savedAt !== undefined
+            ? { savedAt: canonical.savedAt }
+            : {}),
         }
       }),
     }

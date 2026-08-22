@@ -145,18 +145,90 @@ const safeParseArrayPayload = <T extends z.ZodType>(
   return results
 }
 
+const PartialUserSettingsRawSchema = UserSettingsRawSchema.partial()
+type ParsedUserSettingsPayload = z.output<typeof PartialUserSettingsRawSchema>
+type UserSettingsPayload = Extract<
+  TypedSavedTabsStorageChange,
+  { readonly key: 'userSettings' }
+>['payload'][number]
+
+const toUserSettingsPresentationPayload = (
+  settings: ParsedUserSettingsPayload,
+): UserSettingsPayload => ({
+  ...(settings.activeAiSystemPromptId !== undefined
+    ? { activeAiSystemPromptId: settings.activeAiSystemPromptId }
+    : {}),
+  ...(settings.aiSystemPrompts !== undefined
+    ? { aiSystemPrompts: settings.aiSystemPrompts }
+    : {}),
+  ...(settings.autoDeletePeriod !== undefined
+    ? { autoDeletePeriod: settings.autoDeletePeriod }
+    : {}),
+  ...(settings.clickBehavior !== undefined
+    ? { clickBehavior: settings.clickBehavior }
+    : {}),
+  ...(settings.colors !== undefined ? { colors: settings.colors } : {}),
+  ...(settings.fontSizePercent !== undefined
+    ? { fontSizePercent: settings.fontSizePercent }
+    : {}),
+  ...(settings.language !== undefined ? { language: settings.language } : {}),
+  ...(settings.ollamaModel !== undefined
+    ? { ollamaModel: settings.ollamaModel }
+    : {}),
+})
+
+const toUserSettingsBehaviorPayload = (
+  settings: ParsedUserSettingsPayload,
+): UserSettingsPayload => ({
+  ...(settings.confirmDeleteAll !== undefined
+    ? { confirmDeleteAll: settings.confirmDeleteAll }
+    : {}),
+  ...(settings.confirmDeleteEach !== undefined
+    ? { confirmDeleteEach: settings.confirmDeleteEach }
+    : {}),
+  ...(settings.enableCategories !== undefined
+    ? { enableCategories: settings.enableCategories }
+    : {}),
+  ...(settings.excludePatterns !== undefined
+    ? { excludePatterns: settings.excludePatterns }
+    : {}),
+  ...(settings.excludePinnedTabs !== undefined
+    ? { excludePinnedTabs: settings.excludePinnedTabs }
+    : {}),
+  ...(settings.openAllInNewWindow !== undefined
+    ? { openAllInNewWindow: settings.openAllInNewWindow }
+    : {}),
+  ...(settings.openUrlInBackground !== undefined
+    ? { openUrlInBackground: settings.openUrlInBackground }
+    : {}),
+  ...(settings.removeTabAfterExternalDrop !== undefined
+    ? { removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop }
+    : {}),
+  ...(settings.removeTabAfterOpen !== undefined
+    ? { removeTabAfterOpen: settings.removeTabAfterOpen }
+    : {}),
+  ...(settings.showSavedTime !== undefined
+    ? { showSavedTime: settings.showSavedTime }
+    : {}),
+})
+
+const toUserSettingsPayload = (
+  settings: ParsedUserSettingsPayload,
+): UserSettingsPayload => ({
+  ...toUserSettingsPresentationPayload(settings),
+  ...toUserSettingsBehaviorPayload(settings),
+})
+
 /**
  * `userSettings` は partial 適用が許されているため、`unknown` 値を
  * `Partial<UserSettings>` 相当にパースし、失敗時は空 payload を返す。
  */
-const parseUserSettingsPayload = (
-  value: unknown,
-): Partial<z.infer<typeof UserSettingsRawSchema>>[] => {
-  const parsed = UserSettingsRawSchema.partial().safeParse(value)
+const parseUserSettingsPayload = (value: unknown): UserSettingsPayload[] => {
+  const parsed = PartialUserSettingsRawSchema.safeParse(value)
   if (!parsed.success) {
     return []
   }
-  return [parsed.data]
+  return [toUserSettingsPayload(parsed.data)]
 }
 
 /**

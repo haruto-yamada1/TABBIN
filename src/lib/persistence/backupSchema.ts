@@ -23,8 +23,8 @@ const BACKUP_SCHEMA_ERROR_MESSAGES: Readonly<
 
 export class BackupSchemaError extends Error {
   readonly code: BackupSchemaErrorCode
-  readonly currentVersion?: number
-  readonly receivedVersion?: number
+  readonly currentVersion: number | undefined
+  readonly receivedVersion: number | undefined
 
   constructor(
     code: BackupSchemaErrorCode,

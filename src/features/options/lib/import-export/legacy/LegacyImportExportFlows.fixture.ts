@@ -558,21 +558,21 @@ const importSettings = async (
     if (mergeData) {
       // eslint-disable-next-line typescript/return-await
       return importWithMerge({
-        bulkUrlRecordMap,
         importedData,
         normalizedImportedTabs,
         resolvedImportedCustomProjects,
-        translate,
+        ...(bulkUrlRecordMap !== undefined ? { bulkUrlRecordMap } : {}),
+        ...(translate !== undefined ? { translate } : {}),
         unresolvedTabs,
       })
     }
     // eslint-disable-next-line typescript/return-await
     return importWithOverwrite({
-      bulkUrlRecordMap,
       importedData,
       normalizedImportedTabs,
       resolvedImportedCustomProjects,
-      translate,
+      ...(bulkUrlRecordMap !== undefined ? { bulkUrlRecordMap } : {}),
+      ...(translate !== undefined ? { translate } : {}),
       unresolvedTabs,
     })
   } catch (error) {

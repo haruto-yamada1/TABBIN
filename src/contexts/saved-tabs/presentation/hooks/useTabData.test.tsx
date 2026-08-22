@@ -113,12 +113,7 @@ describe('useTabData', () => {
       {
         id: 'group-by-id',
         domain: 'id.example.com',
-        memberships: ['url-1'].map((urlId) => ({
-          urlId,
-          ...({ 'url-1': 'Docs' }?.[urlId]
-            ? { category: { 'url-1': 'Docs' }[urlId] }
-            : {}),
-        })),
+        memberships: [{ category: 'Docs', urlId: 'url-1' }],
       },
       {
         id: 'group-by-name',

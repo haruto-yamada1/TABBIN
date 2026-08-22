@@ -11,7 +11,6 @@ import { createReorderTabGroupUrlsUseCase } from './ReorderTabGroupUrlsUseCase'
 import type { ReorderTabGroupUrlsUseCaseDeps } from './ReorderTabGroupUrlsUseCase'
 
 const createUrlRecord = (overrides: Partial<UrlRecord>): UrlRecord => ({
-  favIconUrl: undefined,
   id: 'url-1' as never,
   savedAt: 1 as never,
   title: 'Title',

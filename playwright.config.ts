@@ -21,5 +21,5 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     trace: 'on-first-retry',
   },
-  workers: process.env.CI ? 1 : undefined,
+  ...(process.env.CI ? { workers: 1 } : {}),
 })

@@ -39,9 +39,15 @@ export const CategoryModal = ({
   assignDomainToCategoryUseCase,
 }: CategoryModalProps) => (
   <CategoryModalRoot
-    assignDomainToCategoryUseCase={assignDomainToCategoryUseCase}
-    createParentCategoryUseCase={createParentCategoryUseCase}
-    deleteParentCategoryUseCase={deleteParentCategoryUseCase}
+    {...(assignDomainToCategoryUseCase !== undefined
+      ? { assignDomainToCategoryUseCase }
+      : {})}
+    {...(createParentCategoryUseCase !== undefined
+      ? { createParentCategoryUseCase }
+      : {})}
+    {...(deleteParentCategoryUseCase !== undefined
+      ? { deleteParentCategoryUseCase }
+      : {})}
     getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
     onClose={onClose}
     tabGroups={tabGroups}

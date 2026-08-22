@@ -70,6 +70,12 @@ const createGroup = (overrides: Partial<TabGroup> = {}): TabGroup => ({
   ...overrides,
 })
 
+const createMalformedLegacyGroup = (
+  overrides: Record<string, unknown>,
+): TabGroup =>
+  // Deliberately cross the runtime-storage boundary with explicit undefined.
+  createGroup(overrides as unknown as Partial<TabGroup>)
+
 const createParentCategories = (): ParentCategory[] => [
   {
     collections: ['group-1'].map((id, index) => ({
@@ -261,7 +267,7 @@ describe('useCategoryKeywordModal', () => {
   })
 
   it('helper は legacy tab のリネーム fallback と親カテゴリ解決を扱う', () => {
-    const legacyGroup = createGroup({
+    const legacyGroup = createMalformedLegacyGroup({
       categoryKeywords: undefined,
       subCategories: undefined,
       subCategoryOrder: undefined,
@@ -289,7 +295,7 @@ describe('useCategoryKeywordModal', () => {
     )
     expect(
       renameCategoryInTab(
-        createGroup({
+        createMalformedLegacyGroup({
           categoryKeywords: [
             {
               categoryName: 'Other',
@@ -614,7 +620,7 @@ describe('useCategoryKeywordModal', () => {
       parentCategories: createParentCategories(),
       savedTabs: [
         group,
-        createGroup({
+        createMalformedLegacyGroup({
           domain: 'other.example.com',
           id: 'group-2',
         }),
@@ -675,7 +681,7 @@ describe('useCategoryKeywordModal', () => {
     storage.local.set.mockRejectedValueOnce(new Error('set failed'))
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { result } = renderModalHook({
-      group: createGroup({
+      group: createMalformedLegacyGroup({
         categoryKeywords: [
           {
             categoryName: 'Existing subcategory',
@@ -706,7 +712,7 @@ describe('useCategoryKeywordModal', () => {
     const storage = setupChromeStorage({
       parentCategories: createParentCategories(),
       savedTabs: [
-        createGroup({
+        createMalformedLegacyGroup({
           categoryKeywords: undefined,
           urls: undefined,
         }),
@@ -891,13 +897,13 @@ describe('useCategoryKeywordModal', () => {
     const storage = setupChromeStorage({
       parentCategories: createParentCategories(),
       savedTabs: [
-        createGroup({
+        createMalformedLegacyGroup({
           subCategories: undefined,
         }),
       ],
     })
     const { result } = renderModalHook({
-      group: createGroup({
+      group: createMalformedLegacyGroup({
         subCategories: undefined,
       }),
     })

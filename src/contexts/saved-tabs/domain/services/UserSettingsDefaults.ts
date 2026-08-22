@@ -75,6 +75,75 @@ const mergeStoredUserSettings = (
 ): UserSettingsDto =>
   mergeStoredUserSettingsDefaults(defaultUserSettings, settings)
 
+type ParsedStoredUserSettings = ReturnType<typeof parseStoredUserSettings>
+
+const toUserSettingsPresentationPatch = (
+  settings: ParsedStoredUserSettings,
+): Partial<UserSettingsDto> => ({
+  ...(settings.activeAiSystemPromptId !== undefined
+    ? { activeAiSystemPromptId: settings.activeAiSystemPromptId }
+    : {}),
+  ...(settings.aiSystemPrompts !== undefined
+    ? { aiSystemPrompts: settings.aiSystemPrompts }
+    : {}),
+  ...(settings.autoDeletePeriod !== undefined
+    ? { autoDeletePeriod: settings.autoDeletePeriod }
+    : {}),
+  ...(settings.clickBehavior !== undefined
+    ? { clickBehavior: settings.clickBehavior }
+    : {}),
+  ...(settings.colors !== undefined ? { colors: settings.colors } : {}),
+  ...(settings.fontSizePercent !== undefined
+    ? { fontSizePercent: settings.fontSizePercent }
+    : {}),
+  ...(settings.language !== undefined ? { language: settings.language } : {}),
+  ...(settings.ollamaModel !== undefined
+    ? { ollamaModel: settings.ollamaModel }
+    : {}),
+})
+
+const toUserSettingsBehaviorPatch = (
+  settings: ParsedStoredUserSettings,
+): Partial<UserSettingsDto> => ({
+  ...(settings.confirmDeleteAll !== undefined
+    ? { confirmDeleteAll: settings.confirmDeleteAll }
+    : {}),
+  ...(settings.confirmDeleteEach !== undefined
+    ? { confirmDeleteEach: settings.confirmDeleteEach }
+    : {}),
+  ...(settings.enableCategories !== undefined
+    ? { enableCategories: settings.enableCategories }
+    : {}),
+  ...(settings.excludePatterns !== undefined
+    ? { excludePatterns: settings.excludePatterns }
+    : {}),
+  ...(settings.excludePinnedTabs !== undefined
+    ? { excludePinnedTabs: settings.excludePinnedTabs }
+    : {}),
+  ...(settings.openAllInNewWindow !== undefined
+    ? { openAllInNewWindow: settings.openAllInNewWindow }
+    : {}),
+  ...(settings.openUrlInBackground !== undefined
+    ? { openUrlInBackground: settings.openUrlInBackground }
+    : {}),
+  ...(settings.removeTabAfterExternalDrop !== undefined
+    ? { removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop }
+    : {}),
+  ...(settings.removeTabAfterOpen !== undefined
+    ? { removeTabAfterOpen: settings.removeTabAfterOpen }
+    : {}),
+  ...(settings.showSavedTime !== undefined
+    ? { showSavedTime: settings.showSavedTime }
+    : {}),
+})
+
+const toUserSettingsDtoPatch = (
+  settings: ParsedStoredUserSettings,
+): Partial<UserSettingsDto> => ({
+  ...toUserSettingsPresentationPatch(settings),
+  ...toUserSettingsBehaviorPatch(settings),
+})
+
 /**
  * `UserSettingsDto` → `normalizeAiSystemPromptSettings` 入力形へ投影する純関数。
  *
@@ -93,11 +162,14 @@ const toStorageUserSettingsForNormalization = (
   // ため、戻り値型は normalizeAiSystemPromptSettings の引数型を
   // 取り、storage 形 `UserSettings` と互換な plain object として
   // 構築する (issue #511)。
+  const { aiSystemPrompts, colors, ...settings } = dto
   return {
-    ...dto,
+    ...settings,
     excludePatterns: [...dto.excludePatterns],
-    aiSystemPrompts: dto.aiSystemPrompts?.map((preset) => ({ ...preset })),
-    colors: dto.colors ? { ...dto.colors } : undefined,
+    ...(aiSystemPrompts !== undefined
+      ? { aiSystemPrompts: aiSystemPrompts.map((preset) => ({ ...preset })) }
+      : {}),
+    ...(colors !== undefined ? { colors: { ...colors } } : {}),
   }
 }
 
@@ -107,14 +179,31 @@ const toStorageUserSettingsForNormalization = (
  */
 const fromNormalizedStorageUserSettings = (
   storage: Parameters<typeof normalizeAiSystemPromptSettings>[0],
-): UserSettingsDto => ({
-  ...storage,
-  excludePatterns: [...storage.excludePatterns],
-  aiSystemPrompts: storage.aiSystemPrompts?.map((preset) => ({
-    ...preset,
-  })),
-  colors: storage.colors ? { ...storage.colors } : undefined,
-})
+): UserSettingsDto => {
+  const {
+    activeAiSystemPromptId,
+    aiSystemPrompts,
+    autoDeletePeriod,
+    colors,
+    fontSizePercent,
+    language,
+    ollamaModel,
+    ...settings
+  } = storage
+  return {
+    ...settings,
+    excludePatterns: [...storage.excludePatterns],
+    ...(activeAiSystemPromptId !== undefined ? { activeAiSystemPromptId } : {}),
+    ...(aiSystemPrompts !== undefined
+      ? { aiSystemPrompts: aiSystemPrompts.map((preset) => ({ ...preset })) }
+      : {}),
+    ...(autoDeletePeriod !== undefined ? { autoDeletePeriod } : {}),
+    ...(colors !== undefined ? { colors: { ...colors } } : {}),
+    ...(fontSizePercent !== undefined ? { fontSizePercent } : {}),
+    ...(language !== undefined ? { language } : {}),
+    ...(ollamaModel !== undefined ? { ollamaModel } : {}),
+  }
+}
 
 /**
  * 保存済み `UserSettingsDto` の merge / 正規化 / 旧キー除去を 1 箇所に
@@ -134,7 +223,7 @@ export const normalizeUserSettings = (
       stripLegacyUserSettings(raw),
     )
     const mergedStoredSettings = mergeStoredUserSettings(
-      sanitizedStoredSettings,
+      toUserSettingsDtoPatch(sanitizedStoredSettings),
     )
     const normalized = normalizeAiSystemPromptSettings(
       toStorageUserSettingsForNormalization({

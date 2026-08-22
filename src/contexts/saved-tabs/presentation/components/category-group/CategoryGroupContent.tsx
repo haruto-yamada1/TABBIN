@@ -69,7 +69,6 @@ export const CategoryGroupContent = () => {
         >
           {displayDomains.map((group) => (
             <SortableDomainCard
-              key={group.id}
               group={group}
               // eslint-disable-next-line react/jsx-handler-names
               handleOpenAllTabs={handlers.handleOpenAllTabs}
@@ -78,19 +77,24 @@ export const CategoryGroupContent = () => {
               // eslint-disable-next-line react/jsx-handler-names
               handleDeleteUrl={handlers.handleDeleteUrl}
               // eslint-disable-next-line react/jsx-handler-names
-              handleDeleteUrls={handlers.handleDeleteUrls}
+              {...(handlers.handleDeleteUrls !== undefined
+                ? { handleDeleteUrls: handlers.handleDeleteUrls }
+                : {})}
               // eslint-disable-next-line react/jsx-handler-names
               handleOpenTab={handlers.handleOpenTab}
               // eslint-disable-next-line react/jsx-handler-names
               handleUpdateUrls={handlers.handleUpdateUrls}
               // eslint-disable-next-line react/jsx-handler-names
-              handleDeleteCategory={handlers.handleDeleteCategory}
+              {...(handlers.handleDeleteCategory !== undefined
+                ? { handleDeleteCategory: handlers.handleDeleteCategory }
+                : {})}
               categoryId={category.id}
               isDraggingOver={reorder.isDraggingDomains}
               settings={settings}
               isReorderMode={reorder.isReorderMode}
               searchQuery={searchQuery}
               reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+              key={group.id}
             />
           ))}
         </SortableContext>

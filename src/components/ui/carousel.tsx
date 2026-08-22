@@ -211,7 +211,6 @@ const CarouselPrevious = ({
 
   return (
     <Button
-      ref={ref}
       variant={variant}
       size={size}
       className={cn(
@@ -224,6 +223,7 @@ const CarouselPrevious = ({
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       {...props}
+      {...(ref !== undefined ? { ref } : {})}
     >
       <ArrowLeft className='size-4' />
       <span className='sr-only'>{t('common.previousSlide')}</span>
@@ -244,7 +244,6 @@ const CarouselNext = ({
 
   return (
     <Button
-      ref={ref}
       variant={variant}
       size={size}
       className={cn(
@@ -257,6 +256,7 @@ const CarouselNext = ({
       disabled={!canScrollNext}
       onClick={scrollNext}
       {...props}
+      {...(ref !== undefined ? { ref } : {})}
     >
       <ArrowRight className='size-4' />
       <span className='sr-only'>{t('common.nextSlide')}</span>

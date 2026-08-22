@@ -65,7 +65,7 @@ const isSavableUrl = (
   )
 }
 
-const filterItemsBySavableUrl = <T extends { url?: string | null }>(
+const filterItemsBySavableUrl = <T extends { url?: string | null | undefined }>(
   items: T[],
   excludePatterns: readonly unknown[] | undefined,
 ): T[] => {

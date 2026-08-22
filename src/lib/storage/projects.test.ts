@@ -73,7 +73,9 @@ const createProject = (
   categories: overrides.categories ?? [],
   createdAt: overrides.createdAt ?? 1,
   updatedAt: overrides.updatedAt ?? 1,
-  urlMetadata: overrides.urlMetadata,
+  ...(overrides.urlMetadata !== undefined
+    ? { urlMetadata: overrides.urlMetadata }
+    : {}),
 })
 
 const loadModule = async () => {
@@ -167,9 +169,13 @@ describe('projects storage', () => {
 
     expect(projectWithUrl.urlMetadata).toEqual({
       'url-2': {
-        category: undefined,
         notes: 'note',
       },
+    })
+    setProjectUrlMetadata(projectWithUrl, 'url-empty', '', '')
+    expect(projectWithUrl.urlMetadata?.['url-empty']).toStrictEqual({
+      category: '',
+      notes: '',
     })
     const metadataProject = createProject()
     ensureProjectMetadataEntry(metadataProject, 'url-1')
@@ -330,9 +336,9 @@ describe('projects storage', () => {
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
-        urls: undefined,
       }),
     )
+    expect(state.customProjects?.[0]).not.toHaveProperty('urls')
 
     await reorderProjectUrls('source', [
       {
@@ -365,9 +371,9 @@ describe('projects storage', () => {
     expect(state.customProjects?.[2]).toEqual(
       expect.objectContaining({
         categories: ['new'],
-        urlMetadata: undefined,
       }),
     )
+    expect(state.customProjects?.[2]).not.toHaveProperty('urlMetadata')
   })
 
   it('removeUrlsFromCustomProject は URL ID 欠損を扱いドメイン保存を維持する', async () => {
@@ -1172,14 +1178,12 @@ describe('projects storage', () => {
 
     expect(state.urls).toEqual([
       {
-        favIconUrl: undefined,
         id: 'url-1',
         savedAt: 1000,
         title: 'Updated',
         url: 'https://example.test/a',
       },
       {
-        favIconUrl: undefined,
         id: 'uuid-1',
         savedAt: 1001,
         title: 'New',
@@ -1502,9 +1506,9 @@ describe('projects storage', () => {
     expect(state.customProjects?.[0]).toEqual(
       expect.objectContaining({
         urlIds: ['url-1'],
-        urlMetadata: undefined,
       }),
     )
+    expect(state.customProjects?.[0]).not.toHaveProperty('urlMetadata')
 
     expect(state.savedTabs).toEqual([
       {
@@ -2270,9 +2274,9 @@ describe('projects storage', () => {
       expect.objectContaining({
         id: 'custom-uncategorized',
         urlIds: ['url-1'],
-        urlMetadata: undefined,
       }),
     ])
+    expect(state.customProjects?.[0]).not.toHaveProperty('urlMetadata')
   })
 
   it('カテゴリ/並び順/名称/キーワード API は対象プロジェクトだけを更新する', async () => {
@@ -2397,11 +2401,12 @@ describe('projects storage', () => {
         categories: ['new'],
         categoryOrder: ['new'],
         urlMetadata: {
-          'url-1': {
-            category: undefined,
-          },
+          'url-1': {},
         },
       }),
+    )
+    expect(state.customProjects?.[0].urlMetadata?.['url-1']).not.toHaveProperty(
+      'category',
     )
   })
 
@@ -2581,6 +2586,15 @@ describe('projects storage', () => {
     const { reorderProjectUrls, setUrlCategory } = await loadModule()
 
     await setUrlCategory('target', 'https://example.test/same', 'same')
+    expect(state.customProjects?.[0].urlMetadata?.['url-1']).toHaveProperty(
+      'category',
+      'same',
+    )
+    await setUrlCategory('target', 'https://example.test/same', undefined)
+    expect(state.customProjects?.[0].urlMetadata?.['url-1']).not.toHaveProperty(
+      'category',
+    )
+    await setUrlCategory('target', 'https://example.test/same', 'same')
     await reorderProjectUrls('target', [
       { title: 'Same', url: 'https://example.test/same' },
       { title: 'Same Again', url: 'https://example.test/same' },
@@ -2633,13 +2647,13 @@ describe('projects storage', () => {
     expect(state.customProjects).toEqual([
       expect.objectContaining({
         id: 'empty',
-        urlMetadata: undefined,
       }),
       expect.objectContaining({
         id: 'target',
-        urlMetadata: undefined,
       }),
     ])
+    expect(state.customProjects?.[0]).not.toHaveProperty('urlMetadata')
+    expect(state.customProjects?.[1]).not.toHaveProperty('urlMetadata')
   })
 
   it('moveUrlBetweenCustomProjects はURLとメモを移動しエラー条件を扱う', async () => {

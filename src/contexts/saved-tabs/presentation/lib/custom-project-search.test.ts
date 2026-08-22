@@ -110,7 +110,6 @@ describe('filterCustomProjectsByQuery', () => {
             title: 'Docker CMD',
             savedAt: 10,
             category: 'Later',
-            notes: undefined,
           },
         ],
       },
@@ -148,9 +147,7 @@ describe('filterCustomProjectsByQuery', () => {
 
     expect(result[0]?.urls).toStrictEqual([
       {
-        category: undefined,
         id: 'url-1',
-        notes: undefined,
         savedAt: 1,
         title: 'React Guide',
         url: 'https://example.com/react',

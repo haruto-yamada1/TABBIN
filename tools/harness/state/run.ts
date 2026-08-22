@@ -441,7 +441,7 @@ export function recordHarnessGovernanceEvent(options: {
 }): HarnessFileResult {
   const resolved = resolveHarnessRun({
     projectRoot: options.projectRoot,
-    runId: options.runId,
+    ...(options.runId !== undefined ? { runId: options.runId } : {}),
   })
   const eventDirectory =
     resolved?.runDirectory ?? path.join(options.projectRoot, harnessRoot)

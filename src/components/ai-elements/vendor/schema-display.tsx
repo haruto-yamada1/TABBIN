@@ -72,12 +72,12 @@ export const SchemaDisplay = ({
 }: SchemaDisplayProps) => {
   const contextValue = useMemo(
     () => ({
-      description,
       method,
-      parameters,
       path,
-      requestBody,
-      responseBody,
+      ...(description !== undefined ? { description } : {}),
+      ...(parameters !== undefined ? { parameters } : {}),
+      ...(requestBody !== undefined ? { requestBody } : {}),
+      ...(responseBody !== undefined ? { responseBody } : {}),
     }),
     [description, method, parameters, path, requestBody, responseBody],
   )

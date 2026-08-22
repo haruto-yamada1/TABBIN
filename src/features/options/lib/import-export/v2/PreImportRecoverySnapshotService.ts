@@ -27,6 +27,7 @@ import {
 } from '@/lib/persistence/capacity'
 import type { PersistenceStorageEstimatePort } from '@/lib/persistence/capacity'
 import { isJsonValue } from '@/lib/persistence/jsonValue'
+import type { JsonValue } from '@/lib/persistence/jsonValue'
 import type { UserSettings } from '@/types/storage'
 
 import { BackupMapper } from './BackupMapper'
@@ -102,7 +103,9 @@ export class PreImportRecoverySnapshotError extends Error {
   ) {
     super(ERROR_MESSAGES[code])
     this.code = code
-    this.compensation = compensation
+    if (compensation !== undefined) {
+      this.compensation = compensation
+    }
     this.name = 'PreImportRecoverySnapshotError'
   }
 }
@@ -188,7 +191,7 @@ const toRecoveryData = (
   snapshot: PersistenceLogicalSnapshot,
   userSettings: UserSettings,
 ): {
-  readonly data: BackupDataV2
+  readonly data: BackupDataV2 & JsonValue
   readonly serializedBytes: number
 } => {
   let data: BackupDataV2

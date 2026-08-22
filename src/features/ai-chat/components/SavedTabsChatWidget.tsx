@@ -28,17 +28,14 @@ const SavedTabsChatWidget = (props: SavedTabsChatWidgetProps = {}) => {
       <SavedTabsChatPanel
         activeSystemPromptId={controller.settings.activeSystemPromptId}
         chatErrorMessage={controller.errors.chatMessage}
-        chatOllamaError={controller.errors.chatOllama}
         historyItems={controller.history.items}
         historyVariant={controller.history.variant}
         input={controller.messages.input}
         layout={controller.layout}
         messages={controller.messages.items}
-        modelName={controller.settings.modelName}
         modelOptions={controller.settings.modelOptions}
         onClose={controller.actions.handleClose}
         onCopyConversation={controller.actions.handleCopyConversation}
-        onDeleteHistoryItem={controller.history.handleDeleteItem}
         onFetchModels={controller.actions.handleFetchModels}
         onInputChange={controller.actions.handleInputChange}
         onOpenSystemPromptManager={
@@ -46,18 +43,33 @@ const SavedTabsChatWidget = (props: SavedTabsChatWidgetProps = {}) => {
         }
         onResetConversation={controller.actions.handleCreateConversation}
         onResizeStart={controller.actions.handleResizeStart}
-        onSelectHistoryItem={controller.history.handleSelectItem}
         onSelectModel={controller.actions.handleSelectModel}
         onSelectSuggestion={controller.actions.handleSelectSuggestion}
         onSelectSystemPrompt={controller.actions.handleSelectSystemPrompt}
         onSubmit={controller.actions.handleSubmit}
-        onToggleHistory={controller.history.handleToggle}
         platform={controller.settings.platform}
         setupErrorMessage={controller.errors.setupMessage}
-        setupOllamaError={controller.errors.setupOllama}
         status={controller.status}
         systemPrompts={controller.settings.systemPrompts}
         title={controller.title}
+        {...(controller.errors.chatOllama !== undefined
+          ? { chatOllamaError: controller.errors.chatOllama }
+          : {})}
+        {...(controller.settings.modelName !== undefined
+          ? { modelName: controller.settings.modelName }
+          : {})}
+        {...(controller.history.handleDeleteItem !== undefined
+          ? { onDeleteHistoryItem: controller.history.handleDeleteItem }
+          : {})}
+        {...(controller.history.handleSelectItem !== undefined
+          ? { onSelectHistoryItem: controller.history.handleSelectItem }
+          : {})}
+        {...(controller.history.handleToggle !== undefined
+          ? { onToggleHistory: controller.history.handleToggle }
+          : {})}
+        {...(controller.errors.setupOllama !== undefined
+          ? { setupOllamaError: controller.errors.setupOllama }
+          : {})}
       />
       <SystemPromptManagerDialog {...controller.dialog} />
     </>

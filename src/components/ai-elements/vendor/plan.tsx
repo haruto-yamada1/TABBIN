@@ -129,7 +129,7 @@ export const PlanFooter = (props: PlanFooterProps) => (
 
 export type PlanTriggerProps = ComponentProps<typeof CollapsibleTrigger>
 
-export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => {
+export const PlanTrigger = ({ className, ref, ...props }: PlanTriggerProps) => {
   const t = useI18nText()
 
   return (
@@ -140,6 +140,7 @@ export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => {
         size='icon'
         variant='ghost'
         {...props}
+        {...(ref !== undefined ? { ref } : {})}
       >
         <ChevronsUpDownIcon className='size-4' />
         <span className='sr-only'>{t('common.togglePlan')}</span>

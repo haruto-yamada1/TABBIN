@@ -184,9 +184,7 @@ export const createDeleteSavedUrlsUseCase = (
     }
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
-      customProjectOrder: undefined,
       customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
-      parentCategories: undefined,
       savedTabs: isGroupEmpty ? [toSavedTabsTabGroupDto(previousGroup)] : [],
       urlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }

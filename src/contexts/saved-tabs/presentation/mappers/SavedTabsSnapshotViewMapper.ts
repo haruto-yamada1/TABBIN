@@ -48,10 +48,17 @@ export const getSnapshotSavedTabs = (
 ): SavedTabsTabGroupViewModel[] =>
   snapshot.savedTabs?.map(toSavedTabsTabGroupViewModel) ?? []
 
-export const toDomainParentCategories = (
+export function toDomainParentCategories(
+  categories: readonly SavedTabsParentCategoryDto[],
+): NonNullable<BuildSavedTabsSnapshotCommand['parentCategories']>
+export function toDomainParentCategories(
   categories: readonly SavedTabsParentCategoryDto[] | undefined,
-): BuildSavedTabsSnapshotCommand['parentCategories'] =>
-  toCurrentParentCategories(categories)
+): BuildSavedTabsSnapshotCommand['parentCategories']
+export function toDomainParentCategories(
+  categories: readonly SavedTabsParentCategoryDto[] | undefined,
+): BuildSavedTabsSnapshotCommand['parentCategories'] {
+  return toCurrentParentCategories(categories)
+}
 
 export const toDomainTabGroupsForReorder = (
   groups: readonly SavedTabsTabGroupViewModel[],

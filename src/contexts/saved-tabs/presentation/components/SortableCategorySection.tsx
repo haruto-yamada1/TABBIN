@@ -372,7 +372,9 @@ const useSortableCategorySectionView = ({
             urls={sortedUrls}
             settings={settings}
             scrollTarget={false}
-            reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+            {...(reorderTabGroupUrlsUseCase !== undefined
+              ? { reorderTabGroupUrlsUseCase }
+              : {})}
           />
         )}
       </div>
