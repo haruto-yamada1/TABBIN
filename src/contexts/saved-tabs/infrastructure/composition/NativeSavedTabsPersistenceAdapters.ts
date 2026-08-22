@@ -350,9 +350,13 @@ const createCustomProjectsCommandService = (
     )
     touch(projectId)
   }
-  const removeOrphanUrls = (): void => {
+  const removeUnreferencedCandidateUrls = (
+    candidateUrlIds: ReadonlySet<string>,
+  ): void => {
     const referenced = new Set(state.memberships.map(({ urlId }) => urlId))
-    state.urls = state.urls.filter(({ id }) => referenced.has(id))
+    state.urls = state.urls.filter(
+      ({ id }) => !candidateUrlIds.has(id) || referenced.has(id),
+    )
   }
   const findCategory = (projectId: string, name: string) =>
     categoriesFor(state, projectId).find((category) => category.name === name)
@@ -467,8 +471,9 @@ const createCustomProjectsCommandService = (
       if (!record) {
         return
       }
-      removeUrlIds(projectId, new Set([record.id]))
-      removeOrphanUrls()
+      const candidateUrlIds = new Set([record.id])
+      removeUrlIds(projectId, candidateUrlIds)
+      removeUnreferencedCandidateUrls(candidateUrlIds)
     },
     removeUrlIdsFromAllCustomProjects: async (urlIds) => {
       const ids = new Set(urlIds)
@@ -478,7 +483,7 @@ const createCustomProjectsCommandService = (
           state.collections.find(({ id }) => id === membership.collectionId)
             ?.definition.type !== 'custom',
       )
-      removeOrphanUrls()
+      removeUnreferencedCandidateUrls(ids)
     },
     removeUrlsFromAllCustomProjects: async (urls) => {
       const selected = new Set(urls)
@@ -488,13 +493,11 @@ const createCustomProjectsCommandService = (
     },
     removeUrlsFromCustomProject: async (projectId, urls) => {
       const selected = new Set(urls)
-      removeUrlIds(
-        projectId,
-        new Set(
-          state.urls.filter(({ url }) => selected.has(url)).map(({ id }) => id),
-        ),
+      const candidateUrlIds = new Set(
+        state.urls.filter(({ url }) => selected.has(url)).map(({ id }) => id),
       )
-      removeOrphanUrls()
+      removeUrlIds(projectId, candidateUrlIds)
+      removeUnreferencedCandidateUrls(candidateUrlIds)
     },
     renameCategoryInProject: async (projectId, oldName, newName) => {
       const category = findCategory(projectId, oldName)

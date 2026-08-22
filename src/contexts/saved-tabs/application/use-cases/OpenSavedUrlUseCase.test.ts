@@ -207,7 +207,7 @@ describe('OpenSavedUrlUseCase', () => {
     expect(repos.tabGroups).toStrictEqual([])
   })
 
-  it('他で参照されている UrlRecord は削除しない（CustomProject 参照）', async () => {
+  it('TabGroup と CustomProject の両方から外した UrlRecord を孤立させず削除する', async () => {
     const url = createUrlRecord({
       id: 'url-1',
       savedAt: 1,
@@ -244,16 +244,16 @@ describe('OpenSavedUrlUseCase', () => {
       urlRecordId: url.id,
     })
 
-    expect(result.removedUrlRecordId).toBeNull()
-    expect(repos.urlRecords.map((record) => record.id)).toStrictEqual([url.id])
+    expect(result.removedUrlRecordId).toBe(url.id)
+    expect(result.removedUrlRecord?.id).toBe(url.id)
+    expect(repos.urlRecords).toStrictEqual([])
     expect(repos.tabGroups).toStrictEqual([])
-    // CustomProject 側にまだ参照があるので、saveAll は呼ばれない（変化なし）
-    expect(repos.customProjects.map((project) => project.id)).toStrictEqual([
-      project.id,
+    expect(repos.customProjects).toStrictEqual([
+      expect.objectContaining({ memberships: [] }),
     ])
   })
 
-  it('他で参照されている UrlRecord は削除しない（別 TabGroup 参照）', async () => {
+  it('複数 TabGroup すべてから外した UrlRecord を孤立させず削除する', async () => {
     const url = createUrlRecord({
       id: 'url-1',
       savedAt: 1,
@@ -286,8 +286,9 @@ describe('OpenSavedUrlUseCase', () => {
       urlRecordId: url.id,
     })
 
-    expect(result.removedUrlRecordId).toBeNull()
-    expect(repos.urlRecords.map((record) => record.id)).toStrictEqual([url.id])
+    expect(result.removedUrlRecordId).toBe(url.id)
+    expect(repos.urlRecords).toStrictEqual([])
+    expect(repos.tabGroups).toStrictEqual([])
   })
 
   it('externalDrop のときは removeTabAfterExternalDrop 設定を参照する', async () => {

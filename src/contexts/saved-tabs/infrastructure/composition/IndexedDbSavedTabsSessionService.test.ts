@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { PersistenceV2QueryPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2QueryPort'
+import type { PersistenceV2SnapshotReaderPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type { PersistenceV2UnitOfWorkPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 
 import { IndexedDbSavedTabsSessionService } from './IndexedDbSavedTabsSessionService'
@@ -52,23 +52,17 @@ const group = {
   updatedAt: 2,
 }
 
-const createQueryPort = (): PersistenceV2QueryPort => ({
-  findCollection: vi.fn(),
-  findCollectionsForUrl: vi.fn(),
-  findCollectionsInGroup: vi.fn(),
-  readAnalyticsRecords: vi.fn(async () => [
-    { collectionCount: 1, membershipCount: 1, url },
-  ]),
-  readInitialLoad: vi.fn(async () => ({
-    categories: [category],
-    collections: [
-      {
-        collection,
-        items: [{ category, membership, url }],
-      },
-    ],
-    groups: [group],
+const createSnapshotReaderPort = (): PersistenceV2SnapshotReaderPort => ({
+  readConsistentSnapshot: vi.fn(),
+  readVerifiedSavedTabsSnapshot: vi.fn(async () => ({
     revision: 7,
+    savedTabs: {
+      categories: [category],
+      collections: [collection],
+      groups: [group],
+      memberships: [membership],
+      urls: [url],
+    },
   })),
 })
 
@@ -86,10 +80,10 @@ const createUnitOfWork = () => {
 
 describe('IndexedDbSavedTabsSessionService', () => {
   it('commits one normalized multi-store plan with expectedRevision CAS', async () => {
-    const queryPort = createQueryPort()
+    const snapshotReaderPort = createSnapshotReaderPort()
     const { commit, unitOfWork } = createUnitOfWork()
     const service = new IndexedDbSavedTabsSessionService({
-      queryPort,
+      snapshotReaderPort,
       unitOfWorkPort: unitOfWork,
     })
 
@@ -110,10 +104,10 @@ describe('IndexedDbSavedTabsSessionService', () => {
   })
 
   it('does not create an empty commit for a read-only operation', async () => {
-    const queryPort = createQueryPort()
+    const snapshotReaderPort = createSnapshotReaderPort()
     const { commit, unitOfWork } = createUnitOfWork()
     const service = new IndexedDbSavedTabsSessionService({
-      queryPort,
+      snapshotReaderPort,
       unitOfWorkPort: unitOfWork,
     })
 
@@ -125,22 +119,23 @@ describe('IndexedDbSavedTabsSessionService', () => {
   })
 
   it('keeps categories that have no membership in the native session state', async () => {
-    const queryPort = createQueryPort()
+    const snapshotReaderPort = createSnapshotReaderPort()
     const emptyCategory = { ...category, id: 'category-empty', name: 'Empty' }
-    vi.mocked(queryPort.readInitialLoad).mockResolvedValueOnce({
-      categories: [category, emptyCategory],
-      collections: [
-        {
-          collection,
-          items: [{ category, membership, url }],
-        },
-      ],
-      groups: [group],
+    vi.mocked(
+      snapshotReaderPort.readVerifiedSavedTabsSnapshot,
+    ).mockResolvedValueOnce({
       revision: 7,
+      savedTabs: {
+        categories: [category, emptyCategory],
+        collections: [collection],
+        groups: [group],
+        memberships: [membership],
+        urls: [url],
+      },
     })
     const { commit, unitOfWork } = createUnitOfWork()
     const service = new IndexedDbSavedTabsSessionService({
-      queryPort,
+      snapshotReaderPort,
       unitOfWorkPort: unitOfWork,
     })
 
@@ -153,8 +148,42 @@ describe('IndexedDbSavedTabsSessionService', () => {
     expect(commit).not.toHaveBeenCalled()
   })
 
+  it('keeps warning-only orphan URLs in the mutation source state', async () => {
+    const snapshotReaderPort = createSnapshotReaderPort()
+    const orphanUrl = {
+      ...url,
+      id: 'url-orphan',
+      normalizedUrl: 'https://orphan.example/',
+      title: 'Orphan',
+      url: 'https://orphan.example/',
+    }
+    vi.mocked(
+      snapshotReaderPort.readVerifiedSavedTabsSnapshot,
+    ).mockResolvedValueOnce({
+      revision: 7,
+      savedTabs: {
+        categories: [category],
+        collections: [collection],
+        groups: [group],
+        memberships: [membership],
+        urls: [url, orphanUrl],
+      },
+    })
+    const { commit, unitOfWork } = createUnitOfWork()
+    const service = new IndexedDbSavedTabsSessionService({
+      snapshotReaderPort,
+      unitOfWorkPort: unitOfWork,
+    })
+
+    await expect(
+      service.run(async (state) => state.urls.map(({ id }) => id).toSorted()),
+    ).resolves.toStrictEqual(['url-1', 'url-orphan'])
+
+    expect(commit).not.toHaveBeenCalled()
+  })
+
   it('propagates a rejected CAS commit without retry or fallback', async () => {
-    const queryPort = createQueryPort()
+    const snapshotReaderPort = createSnapshotReaderPort()
     const error = new Error('revision conflict')
     const unitOfWork: PersistenceV2UnitOfWorkPort = {
       commit: vi.fn(async () => {
@@ -163,7 +192,7 @@ describe('IndexedDbSavedTabsSessionService', () => {
       readRevision: vi.fn(async () => 7),
     }
     const service = new IndexedDbSavedTabsSessionService({
-      queryPort,
+      snapshotReaderPort,
       unitOfWorkPort: unitOfWork,
     })
 
@@ -172,7 +201,9 @@ describe('IndexedDbSavedTabsSessionService', () => {
         state.collections = []
       }),
     ).rejects.toBe(error)
-    expect(queryPort.readInitialLoad).toHaveBeenCalledOnce()
+    expect(
+      snapshotReaderPort.readVerifiedSavedTabsSnapshot,
+    ).toHaveBeenCalledOnce()
     expect(unitOfWork.commit).toHaveBeenCalledOnce()
   })
 })

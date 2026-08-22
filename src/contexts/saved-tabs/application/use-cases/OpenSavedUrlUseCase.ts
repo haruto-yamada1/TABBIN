@@ -15,8 +15,7 @@ import {
   decideUrlRecordIdsToRemoveAfterOpen,
   removeUrlRecordIdsFromTabGroups,
 } from '@/contexts/saved-tabs/domain/services/OpenedUrlRemovalPolicy'
-import type { UrlReferenceOrigin } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
-import { isUrlRecordReferencedElsewhere } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
+import { filterUnreferencedUrlRecords } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
@@ -104,34 +103,13 @@ export const createOpenSavedUrlUseCase = (
       return { ...project, memberships: remaining }
     })
 
-    const urlRecordIdsToDelete = new Set<typeof urlRecord.id>()
-    for (const id of idsToRemove) {
-      const origin: UrlReferenceOrigin | undefined = (() => {
-        const fromGroup = previousTabGroups.find((group) =>
-          group.memberships.some(({ urlId }) => urlId === id),
-        )
-        if (fromGroup) {
-          return { id: fromGroup.id, kind: 'tabGroup' as const }
-        }
-        const fromProject = previousCustomProjects.find((project) =>
-          project.memberships.some(({ urlId }) => urlId === id),
-        )
-        if (fromProject) {
-          return { id: fromProject.id, kind: 'customProject' as const }
-        }
-        return undefined
-      })()
-      if (
-        !isUrlRecordReferencedElsewhere({
-          customProjects: previousCustomProjects,
-          origin,
-          tabGroups: previousTabGroups,
-          urlRecordId: id,
-        })
-      ) {
-        urlRecordIdsToDelete.add(id)
-      }
-    }
+    const urlRecordIdsToDelete = new Set(
+      filterUnreferencedUrlRecords({
+        customProjects: updatedCustomProjects,
+        tabGroups: updatedTabGroups,
+        urlRecords: [urlRecord],
+      }).map(({ id }) => id),
+    )
 
     if (updatedTabGroups.length !== previousTabGroups.length) {
       await deps.tabGroupRepository.saveAll(updatedTabGroups)

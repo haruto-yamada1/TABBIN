@@ -227,6 +227,36 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     expect(state.categories).toStrictEqual([])
   })
 
+  it('expires only affected domain memberships and preserves unrelated legacy orphans', async () => {
+    const state = createState()
+    state.urls.push({
+      firstSavedAt: 1,
+      id: 'legacy-orphan',
+      lastSavedAt: 1,
+      normalizedUrl: 'https://orphan.example/',
+      title: 'Legacy orphan',
+      updatedAt: 1,
+      url: 'https://orphan.example/',
+    })
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+      removedCount: 1,
+      sourceCount: 1,
+    })
+
+    expect(state.urls.map(({ id }) => id)).toStrictEqual([
+      'url-1',
+      'legacy-orphan',
+    ])
+    expect(state.memberships).toStrictEqual([
+      expect.objectContaining({
+        collectionId: 'project-1',
+        urlId: 'url-1',
+      }),
+    ])
+  })
+
   it('propagates a native session failure without another backend attempt', async () => {
     const error = new Error('indexeddb failed')
     const session = {

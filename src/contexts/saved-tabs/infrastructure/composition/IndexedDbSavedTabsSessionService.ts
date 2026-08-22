@@ -1,4 +1,4 @@
-import type { PersistenceV2QueryPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2QueryPort'
+import type { PersistenceV2SnapshotReaderPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type {
   PersistenceRecordMutation,
   PersistenceV2MembershipKey,
@@ -22,7 +22,7 @@ export type IndexedDbSavedTabsMutableState = {
 }
 
 export type IndexedDbSavedTabsSessionServiceDeps = {
-  readonly queryPort: PersistenceV2QueryPort
+  readonly snapshotReaderPort: PersistenceV2SnapshotReaderPort
   readonly unitOfWorkPort: PersistenceV2UnitOfWorkPort
 }
 
@@ -113,28 +113,20 @@ const hasWritePlanChanges = (plan: PersistenceV2WritePlan): boolean =>
   Object.keys(plan).length > 0
 
 const materializeState = async (
-  queryPort: PersistenceV2QueryPort,
+  snapshotReaderPort: PersistenceV2SnapshotReaderPort,
 ): Promise<{
   readonly revision: number
   readonly state: IndexedDbSavedTabsMutableState
 }> => {
-  const initial = await queryPort.readInitialLoad()
-  const urlsById = new Map<string, PersistenceV2Url>()
-  const memberships: PersistenceV2CollectionMembership[] = []
-  for (const projection of initial.collections) {
-    for (const item of projection.items) {
-      memberships.push(item.membership)
-      urlsById.set(item.url.id, item.url)
-    }
-  }
+  const snapshot = await snapshotReaderPort.readVerifiedSavedTabsSnapshot()
   return {
-    revision: initial.revision,
+    revision: snapshot.revision,
     state: {
-      categories: [...initial.categories],
-      collections: initial.collections.map(({ collection }) => collection),
-      groups: [...initial.groups],
-      memberships,
-      urls: [...urlsById.values()],
+      categories: [...snapshot.savedTabs.categories],
+      collections: [...snapshot.savedTabs.collections],
+      groups: [...snapshot.savedTabs.groups],
+      memberships: [...snapshot.savedTabs.memberships],
+      urls: [...snapshot.savedTabs.urls],
     },
   }
 }
@@ -152,7 +144,7 @@ export class IndexedDbSavedTabsSessionService {
     ) => Promise<Result> | Result,
   ): Promise<Result> {
     const { revision, state: source } = await materializeState(
-      this.deps.queryPort,
+      this.deps.snapshotReaderPort,
     )
     const state = structuredClone(source)
     const result = await operation(state)

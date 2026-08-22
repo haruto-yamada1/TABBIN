@@ -10,7 +10,6 @@ import { IndexedDbSavedTabsSessionService } from '@/contexts/saved-tabs/infrastr
 import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
-import { IndexedDbSavedTabsQueryAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbSavedTabsQueryAdapter'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 import { logger } from '@/lib/logging/logger'
 
@@ -155,7 +154,7 @@ const createProductionBackgroundSavedTabsDataPlane =
             ),
           })
           const session = new IndexedDbSavedTabsSessionService({
-            queryPort: new IndexedDbSavedTabsQueryAdapter(snapshotReader),
+            snapshotReaderPort: snapshotReader,
             unitOfWorkPort: unitOfWork,
           })
           return createBackgroundSavedTabsIndexedDbDataPlane({

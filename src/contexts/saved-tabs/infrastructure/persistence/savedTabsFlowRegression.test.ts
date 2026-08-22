@@ -595,7 +595,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       )
     })
 
-    it('CustomProject に参照されている UrlRecord は removeTabAfterOpen=true でも消えない', async () => {
+    it('TabGroup と CustomProject の双方から外した UrlRecord を孤立させない', async () => {
       const bundle = createBundle(buildLegacyFixture())
       const result = await bundle.useCases.openSavedUrl({
         origin: 'click',
@@ -605,13 +605,10 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         },
         urlRecordId: 'url-shared' as never,
       })
-      // url-shared は project-research からの参照があるため UrlRecord は
-      // 削除されない（previous 状態での参照で判定する）
-      expect(result.removedUrlRecordId).toBeNull()
+      expect(result.removedUrlRecordId).toBe('url-shared')
       const urlRecords = await bundle.deps.urlRecordRepository.findAll()
-      expect(urlRecords.map((record) => record.id)).toContain('url-shared')
-      // ただし url-shared は TabGroup / CustomProject 双方から urlIds が
-      // 取り除かれている
+      expect(urlRecords.map((record) => record.id)).not.toContain('url-shared')
+      // url-shared は TabGroup / CustomProject 双方からも取り除かれている
       const tabGroups = await bundle.deps.tabGroupRepository.findAll()
       const exampleGroup = tabGroups.find(
         (group) => group.id === 'group-example',

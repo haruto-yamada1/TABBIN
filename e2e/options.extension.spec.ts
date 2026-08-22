@@ -9,6 +9,7 @@ import {
   defaultUserSettings,
   expect,
   getExtensionUrl,
+  readPersistenceV2SavedTabsSnapshot,
   seedPersistenceV2SavedTabs,
   seedStorage,
   test,
@@ -16,6 +17,16 @@ import {
 } from './helpers/extension'
 
 const now = Date.now()
+
+const requireValue = <Value>(
+  value: Value | null | undefined,
+  message: string,
+): Value => {
+  if (value === null || value === undefined) {
+    throw new Error(message)
+  }
+  return value
+}
 
 const createSeedWithUrls = () =>
   createBaseSeed({
@@ -68,8 +79,7 @@ const createLegacyBackup = () => {
     customProjectOrder: ['project-legacy'],
     customProjects: [
       {
-        categories: ['Reference'],
-        categoryOrder: ['Reference'],
+        categories: [],
         createdAt: now - 1,
         id: 'project-legacy',
         name: 'Legacy Project',
@@ -81,8 +91,6 @@ const createLegacyBackup = () => {
         updatedAt: now,
         urls: [
           {
-            category: 'Reference',
-            notes: 'Legacy memo',
             savedAt: legacyUrl.savedAt,
             title: legacyUrl.title,
             url: legacyUrl.url,
@@ -118,9 +126,14 @@ const createLegacyBackup = () => {
     timestamp: new Date(now).toISOString(),
     urls: [legacyUrl, orphanLegacyUrl],
     userSettings: {
+      ...defaultUserSettings,
       activeAiSystemPrompt,
       activeAiSystemPromptId: activeAiSystemPrompt.id,
       aiSystemPrompts: [activeAiSystemPrompt],
+      autoDeletePeriod: 'never',
+      clickBehavior: 'saveCurrentTab',
+      openUrlInBackground: false,
+      removeTabAfterOpen: true,
     },
     version: '2.0.9',
   }
@@ -257,7 +270,8 @@ test.describe('extension options', () => {
     }
   })
 
-  test('旧形式のバックアップを実際のインポートUIで取り込める', async ({
+  test('旧形式を import して URL を開き、再保存後に reload できる', async ({
+    extensionContext,
     extensionId,
     page,
     serviceWorker,
@@ -288,10 +302,113 @@ test.describe('extension options', () => {
       await page.goto(
         getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
       )
-      await expect(page.getByText('Legacy Home')).toBeVisible()
+      const legacyUrlButton = page.getByRole('button', {
+        exact: true,
+        name: 'Legacy Home',
+      })
+      await expect(legacyUrlButton).toBeVisible()
+      await expect
+        .poll(async () => {
+          const snapshot =
+            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+          return {
+            memberships: snapshot.memberships.length,
+            revision: snapshot.revision,
+            urls: snapshot.urls.length,
+          }
+        })
+        .toEqual({ memberships: 2, revision: 1, urls: 2 })
+
+      const openedPagePromise = extensionContext.waitForEvent('page')
+      await legacyUrlButton.click()
+      const openedPage = await openedPagePromise
+      await expect
+        .poll(async () => {
+          const snapshot =
+            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+          return {
+            memberships: snapshot.memberships.length,
+            revision: snapshot.revision,
+            urls: snapshot.urls.length,
+          }
+        })
+        .toEqual({ memberships: 0, revision: 2, urls: 1 })
+
+      await openedPage.bringToFront()
+      const openedPageClosed = openedPage.waitForEvent('close')
+      const browser = requireValue(
+        extensionContext.browser(),
+        'Extension browser is unavailable.',
+      )
+      const browserCdp = await browser.newBrowserCDPSession()
+      try {
+        const { targetInfos } = await browserCdp.send('Target.getTargets', {
+          filter: [{ type: 'tab' }],
+        })
+        const target = requireValue(
+          targetInfos.find(
+            ({ type, url }) =>
+              type === 'tab' && url === 'https://legacy.example/',
+          ),
+          'Opened legacy URL tab target was not found.',
+        )
+        await browserCdp.send('Extensions.triggerAction', {
+          id: extensionId,
+          targetId: target.targetId,
+        })
+      } finally {
+        await browserCdp.detach()
+      }
+      await openedPageClosed
+
+      await expect
+        .poll(async () => {
+          const snapshot =
+            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+          return {
+            memberships: snapshot.memberships.length,
+            revision: snapshot.revision,
+            urls: snapshot.urls.length,
+          }
+        })
+        .toEqual({ memberships: 2, revision: 3, urls: 2 })
+      const savedSnapshot =
+        await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+      const resavedUrl = requireValue(
+        savedSnapshot.urls.find(
+          (record) =>
+            (record as { normalizedUrl?: unknown }).normalizedUrl ===
+            'https://legacy.example/',
+        ) as { normalizedUrl: string; title: string } | undefined,
+        'Resaved legacy URL was not found.',
+      )
+      expect(resavedUrl).toEqual(
+        expect.objectContaining({ normalizedUrl: 'https://legacy.example/' }),
+      )
+      expect(resavedUrl.title).toEqual(expect.any(String))
+      expect(resavedUrl.title.length).toBeGreaterThan(0)
 
       await page.reload()
-      await expect(page.getByText('Legacy Home')).toBeVisible()
+      await expect(
+        page.getByRole('button', {
+          exact: true,
+          name: resavedUrl.title,
+        }),
+      ).toBeVisible()
+      const reloaded = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+      expect(reloaded).toEqual(
+        expect.objectContaining({
+          memberships: expect.arrayContaining([
+            expect.objectContaining({ urlId: expect.any(String) }),
+          ]),
+          revision: 3,
+          urls: expect.arrayContaining([
+            expect.objectContaining({
+              normalizedUrl: 'https://legacy.example/',
+            }),
+          ]),
+        }),
+      )
     } finally {
       await rm(tmpDir, { force: true, recursive: true })
     }
