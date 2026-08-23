@@ -138,7 +138,7 @@ describe('Renovate dependency update policy', () => {
     expect(ciWorkflow).toContain('run: bun run security:audit')
   })
 
-  it('documents every temporary audit exception with an expiry date', () => {
+  it('documents temporary audit exception state and rejects expired deadlines', () => {
     const packageJson = JSON.parse(readRepositoryFile('package.json')) as {
       scripts: Record<string, string>
     }
@@ -149,11 +149,25 @@ describe('Renovate dependency update policy', () => {
       ),
     ].map(([, advisory]) => advisory)
 
-    expect(ignoredAdvisories.length).toBeGreaterThan(0)
-    for (const advisory of ignoredAdvisories) {
-      expect(policy).toContain(advisory)
+    const requiredPolicyMarkers =
+      ignoredAdvisories.length === 0
+        ? ['継続する temporary exception はなく']
+        : ignoredAdvisories
+
+    for (const marker of requiredPolicyMarkers) {
+      expect(policy).toContain(marker)
     }
-    expect(policy).toContain('期限: 2026-08-12')
+
+    const expiryDates = [...policy.matchAll(/期限: (\d{4}-\d{2}-\d{2})/g)].map(
+      ([, date]) => date,
+    )
+
+    expect(ignoredAdvisories.length === 0 || expiryDates.length > 0).toBe(true)
+    for (const expiryDate of expiryDates) {
+      const expiryEnd = Date.parse(`${expiryDate}T23:59:59+09:00`)
+
+      expect(expiryEnd).toBeGreaterThanOrEqual(Date.now())
+    }
   })
 
   it('pins external Actions and leaves Renovate branch updates to Renovate', () => {
