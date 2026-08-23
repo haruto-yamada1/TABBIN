@@ -48,6 +48,46 @@ type RenovateConfig = {
 
 const readRepositoryFile = (path: string) => readFileSync(path, 'utf8')
 
+const inspectTemporaryAuditExceptionExpiries = (
+  policy: string,
+  ignoredAdvisories: string[],
+) => {
+  const sectionStart = policy.indexOf('## Temporary audit exceptions')
+  const sectionEnd =
+    sectionStart < 0 ? -1 : policy.indexOf('\n## ', sectionStart + 1)
+  const section =
+    sectionStart < 0
+      ? ''
+      : policy.slice(sectionStart, sectionEnd < 0 ? policy.length : sectionEnd)
+  const sectionLines = section.split(/\r?\n/)
+  const expiryDates = ignoredAdvisories.flatMap((advisory) => {
+    const recordStart = sectionLines.findIndex(
+      (line) => line.startsWith('- ') && line.includes(advisory),
+    )
+
+    if (recordStart < 0) {
+      return []
+    }
+
+    const nextRecordOffset = sectionLines
+      .slice(recordStart + 1)
+      .findIndex((line) => line.startsWith('- '))
+    const recordEnd =
+      nextRecordOffset < 0
+        ? sectionLines.length
+        : recordStart + 1 + nextRecordOffset
+    const record = sectionLines.slice(recordStart, recordEnd).join('\n')
+    const expiryDate = /期限: (\d{4}-\d{2}-\d{2})/.exec(record)?.[1]
+
+    return expiryDate ? [expiryDate] : []
+  })
+
+  return {
+    complete: expiryDates.length === ignoredAdvisories.length,
+    expiryDates,
+  }
+}
+
 describe('Renovate dependency update policy', () => {
   it('keeps routine updates reviewable and security-sensitive updates manual', () => {
     const config = JSON.parse(
@@ -138,7 +178,7 @@ describe('Renovate dependency update policy', () => {
     expect(ciWorkflow).toContain('run: bun run security:audit')
   })
 
-  it('documents every temporary audit exception with an expiry date', () => {
+  it('documents temporary audit exception state and rejects expired deadlines', () => {
     const packageJson = JSON.parse(readRepositoryFile('package.json')) as {
       scripts: Record<string, string>
     }
@@ -149,11 +189,63 @@ describe('Renovate dependency update policy', () => {
       ),
     ].map(([, advisory]) => advisory)
 
-    expect(ignoredAdvisories.length).toBeGreaterThan(0)
-    for (const advisory of ignoredAdvisories) {
-      expect(policy).toContain(advisory)
+    const requiredPolicyMarkers =
+      ignoredAdvisories.length === 0
+        ? ['継続する temporary exception はなく']
+        : ignoredAdvisories
+
+    for (const marker of requiredPolicyMarkers) {
+      expect(policy).toContain(marker)
     }
-    expect(policy).toContain('期限: 2026-08-12')
+
+    const expiryInspection = inspectTemporaryAuditExceptionExpiries(
+      policy,
+      ignoredAdvisories,
+    )
+
+    expect(expiryInspection.complete).toBe(true)
+    for (const expiryDate of expiryInspection.expiryDates) {
+      const expiryEnd = Date.parse(`${expiryDate}T23:59:59+09:00`)
+
+      expect(expiryEnd).toBeGreaterThanOrEqual(Date.now())
+    }
+  })
+
+  it('requires each ignored advisory to own its expiry date', () => {
+    const ignoredAdvisories = ['GHSA-aaaa-bbbb-cccc', 'GHSA-dddd-eeee-ffff']
+    const policy = [
+      '## Unrelated maintenance deadline',
+      '期限: 2099-12-31',
+      '## Temporary audit exceptions',
+      '- `GHSA-aaaa-bbbb-cccc`: first exception',
+      '  期限: 2099-12-31',
+      '- `GHSA-dddd-eeee-ffff`: second exception without an expiry',
+    ].join('\n')
+
+    expect(
+      inspectTemporaryAuditExceptionExpiries(policy, ignoredAdvisories)
+        .complete,
+    ).toBe(false)
+  })
+
+  it('collects one expiry date from each ignored advisory record', () => {
+    const ignoredAdvisories = ['GHSA-aaaa-bbbb-cccc', 'GHSA-dddd-eeee-ffff']
+    const policy = [
+      '## Temporary audit exceptions',
+      '- `GHSA-aaaa-bbbb-cccc`: first exception',
+      '  期限: 2099-12-30',
+      '- `GHSA-dddd-eeee-ffff`: second exception',
+      '  期限: 2099-12-31',
+      '## Unrelated maintenance deadline',
+      '期限: 2000-01-01',
+    ].join('\n')
+
+    expect(
+      inspectTemporaryAuditExceptionExpiries(policy, ignoredAdvisories),
+    ).toEqual({
+      complete: true,
+      expiryDates: ['2099-12-30', '2099-12-31'],
+    })
   })
 
   it('pins external Actions and leaves Renovate branch updates to Renovate', () => {
