@@ -110,6 +110,219 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     expect(storageSet).not.toHaveBeenCalled()
   })
 
+  it('カテゴリキーワード保存時に対象collectionの既存membershipをordered categoryへ再分類する', async () => {
+    vi.stubGlobal('chrome', {
+      storage: {
+        local: {
+          get: vi.fn(async () => ({})),
+          remove: vi.fn(),
+          set: vi.fn(),
+        },
+      },
+    })
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'saved-tabs-category-keyword-reclassification-test',
+      indexedDb: new IDBFactory(),
+    })
+    const matchingMembership = {
+      addedAt: 1,
+      addedAtProvenance: 'exact' as const,
+      collectionId: 'domain-example',
+      notes: 'matching keep',
+      sortOrder: 0,
+      updatedAt: 1,
+      urlId: 'url-members',
+    }
+    const unmatchedMembership = {
+      addedAt: 3,
+      addedAtProvenance: 'exact' as const,
+      categoryId: 'category-existing',
+      collectionId: 'domain-example',
+      notes: 'keep',
+      sortOrder: 2,
+      updatedAt: 3,
+      urlId: 'url-unmatched',
+    }
+    const alreadyCategorizedMembership = {
+      addedAt: 4,
+      categoryId: 'category-members',
+      collectionId: 'domain-example',
+      sortOrder: 3,
+      updatedAt: 4,
+      urlId: 'url-already-categorized',
+    }
+    const otherCollectionMembership = {
+      addedAt: 5,
+      collectionId: 'domain-other',
+      notes: 'other',
+      sortOrder: 0,
+      updatedAt: 5,
+      urlId: 'url-other',
+    }
+    await new IndexedDbPersistenceUnitOfWork(manager, gate).commit({
+      categories: {
+        put: [
+          {
+            collectionId: 'domain-example',
+            createdAt: 1,
+            id: 'category-team',
+            keywords: ['team', ''],
+            name: 'Team',
+            sortOrder: 0,
+            updatedAt: 1,
+          },
+          {
+            collectionId: 'domain-example',
+            createdAt: 1,
+            id: 'category-members',
+            keywords: [],
+            name: 'Members',
+            sortOrder: 1,
+            updatedAt: 1,
+          },
+          {
+            collectionId: 'domain-example',
+            createdAt: 1,
+            id: 'category-existing',
+            keywords: [],
+            name: 'Existing',
+            sortOrder: 2,
+            updatedAt: 1,
+          },
+        ],
+      },
+      collections: {
+        put: [
+          {
+            createdAt: 1,
+            definition: { domain: 'example.com', type: 'domain' },
+            id: 'domain-example',
+            name: 'example.com',
+            sortOrder: 0,
+            updatedAt: 1,
+          },
+          {
+            createdAt: 1,
+            definition: { domain: 'other.example', type: 'domain' },
+            id: 'domain-other',
+            name: 'other.example',
+            sortOrder: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+      memberships: {
+        put: [
+          matchingMembership,
+          {
+            addedAt: 2,
+            collectionId: 'domain-example',
+            sortOrder: 1,
+            updatedAt: 2,
+            urlId: 'url-overlap',
+          },
+          unmatchedMembership,
+          alreadyCategorizedMembership,
+          otherCollectionMembership,
+        ],
+      },
+      urls: {
+        put: [
+          {
+            firstSavedAt: 1,
+            id: 'url-members',
+            lastSavedAt: 1,
+            normalizedUrl: 'https://example.com/members',
+            title: 'MEMBER handbook',
+            updatedAt: 1,
+            url: 'https://example.com/members',
+          },
+          {
+            firstSavedAt: 1,
+            id: 'url-overlap',
+            lastSavedAt: 1,
+            normalizedUrl: 'https://example.com/team-member',
+            title: 'Team Member dashboard',
+            updatedAt: 1,
+            url: 'https://example.com/team-member',
+          },
+          {
+            firstSavedAt: 1,
+            id: 'url-unmatched',
+            lastSavedAt: 1,
+            normalizedUrl: 'https://example.com/unmatched',
+            title: 'Unrelated article',
+            updatedAt: 1,
+            url: 'https://example.com/unmatched',
+          },
+          {
+            firstSavedAt: 1,
+            id: 'url-already-categorized',
+            lastSavedAt: 1,
+            normalizedUrl: 'https://example.com/already-categorized',
+            title: 'Existing member profile',
+            updatedAt: 1,
+            url: 'https://example.com/already-categorized',
+          },
+          {
+            firstSavedAt: 1,
+            id: 'url-other',
+            lastSavedAt: 1,
+            normalizedUrl: 'https://other.example/member',
+            title: 'Member in another collection',
+            updatedAt: 1,
+            url: 'https://other.example/member',
+          },
+        ],
+      },
+    })
+    const useCases = createIndexedDbSavedTabsUseCases({
+      connectionManager: manager,
+    })
+
+    await useCases.setCategoryKeywords({
+      categoryName: 'Members',
+      keywords: ['member'],
+      tabGroupId: 'domain-example',
+    })
+
+    const snapshot = await new IndexedDbPersistenceSnapshotReader(
+      manager,
+      gate,
+    ).readVerifiedSavedTabsSnapshot()
+    const membershipByUrlId = new Map(
+      snapshot.savedTabs.memberships.map((membership) => [
+        membership.urlId,
+        membership,
+      ]),
+    )
+    expect(
+      snapshot.savedTabs.categories.find(({ id }) => id === 'category-members'),
+    ).toMatchObject({
+      id: 'category-members',
+      keywords: ['member'],
+    })
+    expect(membershipByUrlId.get('url-members')).toMatchObject({
+      ...matchingMembership,
+      categoryId: 'category-members',
+      updatedAt: expect.any(Number),
+    })
+    expect(membershipByUrlId.get('url-members')?.updatedAt).toBeGreaterThan(1)
+    expect(membershipByUrlId.get('url-overlap')).toMatchObject({
+      categoryId: 'category-team',
+    })
+    expect(membershipByUrlId.get('url-unmatched')).toStrictEqual(
+      unmatchedMembership,
+    )
+    expect(membershipByUrlId.get('url-already-categorized')).toStrictEqual(
+      alreadyCategorizedMembership,
+    )
+    expect(membershipByUrlId.get('url-other')).toStrictEqual(
+      otherCollectionMembership,
+    )
+    expect(snapshot.revision).toBe(2)
+  })
+
   it('propagates an IndexedDB open failure without reading or writing legacy saved-tabs storage', async () => {
     const storageGet = vi.fn(async () => ({}))
     const storageSet = vi.fn()

@@ -66,6 +66,19 @@ const categoriesFor = (
     .filter((category) => category.collectionId === collectionId)
     .toSorted((left, right) => left.sortOrder - right.sortOrder)
 
+const findCategoryMatchingTitle = (
+  title: string,
+  categories: readonly PersistenceV2CollectionCategory[],
+): PersistenceV2CollectionCategory | undefined => {
+  const normalizedTitle = title.toLowerCase()
+  return categories.find(({ keywords }) =>
+    keywords.some(
+      (keyword) =>
+        keyword.length > 0 && normalizedTitle.includes(keyword.toLowerCase()),
+    ),
+  )
+}
+
 const membershipsFor = (
   state: IndexedDbSavedTabsMutableState,
   collectionId: string,
@@ -798,6 +811,26 @@ export const createNativeSavedTabsPersistenceAdapters = (
           names,
           new Map([[categoryName, keywords]]),
         )
+        const categories = categoriesFor(state, collection.id)
+        const urlsById = new Map(state.urls.map((url) => [url.id, url]))
+        const timestamp = now()
+        state.memberships = state.memberships.map((membership) => {
+          if (membership.collectionId !== collection.id) {
+            return membership
+          }
+          const url = urlsById.get(membership.urlId)
+          const category = url
+            ? findCategoryMatchingTitle(url.title, categories)
+            : undefined
+          if (!category || membership.categoryId === category.id) {
+            return membership
+          }
+          return {
+            ...membership,
+            categoryId: category.id,
+            updatedAt: timestamp,
+          }
+        })
       },
     },
     tabGroupRepository,
