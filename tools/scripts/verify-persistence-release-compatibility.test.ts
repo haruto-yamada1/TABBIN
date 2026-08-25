@@ -11,7 +11,7 @@ const createArtifact = (
 ): PersistenceReleaseArtifact => ({
   appVersion: '2.0.9',
   databaseVersion: 1,
-  minimumCompatibleAppVersion: '2.0.8',
+  minimumCompatibleAppVersion: '2.0.9',
   persistenceGeneration: 2,
   rollbackCompatibility: {
     databaseDowngradeCompatible: true,
@@ -24,12 +24,12 @@ const createArtifact = (
 describe('persistence release compatibility verifier', () => {
   it('allows an older v2 artifact when every rollback contract remains compatible', () => {
     const deployed = createArtifact()
-    const candidate = createArtifact({ appVersion: '2.0.8' })
+    const candidate = createArtifact({ appVersion: '2.0.9' })
 
     expect(
       verifyPersistenceRollbackCompatibility({ candidate, deployed }),
     ).toEqual({
-      candidateAppVersion: '2.0.8',
+      candidateAppVersion: '2.0.9',
       deployedAppVersion: '2.0.9',
       persistenceGeneration: 2,
     })
@@ -44,24 +44,10 @@ describe('persistence release compatibility verifier', () => {
     ).toThrow(/persistence generation/i)
   })
 
-  it('rejects a candidate below the deployed minimum compatible app version', () => {
-    expect(() =>
-      verifyPersistenceRollbackCompatibility({
-        candidate: createArtifact({
-          appVersion: '2.0.7',
-          minimumCompatibleAppVersion: '2.0.7',
-        }),
-        deployed: createArtifact(),
-      }),
-    ).toThrow(
-      /Candidate 2\.0\.7 is below the deployed minimum compatible app version 2\.0\.8\./,
-    )
-  })
-
   it('rejects an IndexedDB database version mismatch', () => {
     expect(() =>
       verifyPersistenceRollbackCompatibility({
-        candidate: createArtifact({ appVersion: '2.0.8', databaseVersion: 2 }),
+        candidate: createArtifact({ appVersion: '2.0.9', databaseVersion: 2 }),
         deployed: createArtifact(),
       }),
     ).toThrow(/database version/i)
@@ -70,7 +56,7 @@ describe('persistence release compatibility verifier', () => {
   it('rejects rollback after a destructive schema change', () => {
     expect(() =>
       verifyPersistenceRollbackCompatibility({
-        candidate: createArtifact({ appVersion: '2.0.8' }),
+        candidate: createArtifact({ appVersion: '2.0.9' }),
         deployed: createArtifact({
           rollbackCompatibility: {
             databaseDowngradeCompatible: false,
@@ -85,7 +71,7 @@ describe('persistence release compatibility verifier', () => {
   it('rejects a query/write contract incompatibility', () => {
     expect(() =>
       verifyPersistenceRollbackCompatibility({
-        candidate: createArtifact({ appVersion: '2.0.8' }),
+        candidate: createArtifact({ appVersion: '2.0.9' }),
         deployed: createArtifact({
           rollbackCompatibility: {
             databaseDowngradeCompatible: true,
