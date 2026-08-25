@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
   categorizeTabGroups,
@@ -12,36 +12,37 @@ import {
 const docs = createParentCategory({
   id: 'docs',
   name: 'Docs',
-  domains: ['group-docs-1', 'group-docs-2'],
-  domainNames: [],
+  collections: [
+    { id: 'group-docs-1', domain: 'docs1.example.com' },
+    { id: 'group-docs-2', domain: 'docs2.example.com' },
+  ],
 })
 
 const news = createParentCategory({
   id: 'news',
   name: 'News',
-  domains: [],
-  domainNames: ['news.example.com'],
+  collections: [{ id: 'group-news', domain: 'news.example.com' }],
 })
 
 const docsGroup1 = createTabGroup({
   id: 'group-docs-1',
   domain: 'docs1.example.com',
-  urlIds: [],
+  memberships: [].map((urlId) => ({ urlId })),
 })
 const docsGroup2 = createTabGroup({
   id: 'group-docs-2',
   domain: 'docs2.example.com',
-  urlIds: [],
+  memberships: [].map((urlId) => ({ urlId })),
 })
 const newsGroup = createTabGroup({
   id: 'group-news',
   domain: 'news.example.com',
-  urlIds: [],
+  memberships: [].map((urlId) => ({ urlId })),
 })
 const uncategorizedGroup = createTabGroup({
   id: 'group-misc',
   domain: 'misc.example.com',
-  urlIds: [],
+  memberships: [].map((urlId) => ({ urlId })),
 })
 
 describe('TabGroupCategorizationService.categorizeTabGroups', () => {
@@ -100,7 +101,7 @@ describe('TabGroupCategorizationService.sortGroupsByCategoryDomainOrder', () => 
     const extra = createTabGroup({
       id: 'group-extra',
       domain: 'extra.example.com',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const sorted = sortGroupsByCategoryDomainOrder(
       [extra, docsGroup2, docsGroup1],
@@ -116,7 +117,7 @@ describe('TabGroupCategorizationService.sortGroupsByCategoryDomainOrder', () => 
   it('domains が空のカテゴリでは入力順をそのまま返す', () => {
     const sorted = sortGroupsByCategoryDomainOrder([docsGroup2, docsGroup1], {
       ...docs,
-      domains: [],
+      collections: [],
     })
     expect(sorted.map((group) => group.id)).toStrictEqual([
       'group-docs-2',

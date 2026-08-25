@@ -10,10 +10,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import { savedTabsDefaultUserSettings as defaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
-import type {
-  SavedTabsTabGroupDto as TabGroup,
-  SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import { CategoryReorderFooter } from '@/contexts/saved-tabs/presentation/components/Footer'
 import { Header } from '@/contexts/saved-tabs/presentation/components/Header' // ヘッダーコンポーネントをインポート
@@ -26,8 +22,16 @@ import { useCategorySync } from '@/contexts/saved-tabs/presentation/hooks/useCat
 import { useFilteredCustomProjects } from '@/contexts/saved-tabs/presentation/hooks/useFilteredCustomProjects'
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
+import {
+  toSavedTabsTabGroupViewModel,
+  toTabGroupFromViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type { ResolveActiveRef } from '@/contexts/saved-tabs/presentation/types/ResolveActiveRef'
+import type {
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import {
@@ -231,19 +235,31 @@ const useSavedTabsAppView = ({
   )
 
   // タブグループをカテゴリごとに整理する関数を強化
-  const organizeTabGroups = useCallback(
-    (): {
-      categorized: Record<string, TabGroup[]>
-      uncategorized: TabGroup[]
-    } =>
-      organizeTabGroupsWithCategories({
-        categoryLookup,
-        enableCategories: settings.enableCategories,
-        searchQuery,
-        tabGroupsWithUrls,
-      }),
-    [tabGroupsWithUrls, categoryLookup, settings.enableCategories, searchQuery],
-  )
+  const organizeTabGroups = useCallback((): {
+    categorized: Record<string, TabGroup[]>
+    uncategorized: TabGroup[]
+  } => {
+    const organized = organizeTabGroupsWithCategories({
+      categoryLookup,
+      enableCategories: settings.enableCategories,
+      searchQuery,
+      tabGroupsWithUrls: tabGroupsWithUrls.map(toTabGroupFromViewModel),
+    })
+    return {
+      categorized: Object.fromEntries(
+        Object.entries(organized.categorized).map(([id, groups]) => [
+          id,
+          groups.map(toSavedTabsTabGroupViewModel),
+        ]),
+      ),
+      uncategorized: organized.uncategorized.map(toSavedTabsTabGroupViewModel),
+    }
+  }, [
+    tabGroupsWithUrls,
+    categoryLookup,
+    settings.enableCategories,
+    searchQuery,
+  ])
 
   // TabGroupsWithUrls と categories が変わったとき、カテゴリ割り当ての不一致を
   // ストレージに反映するための副作用。同期本体は custom hook
@@ -381,7 +397,7 @@ const useSavedTabsAppView = ({
     if (
       shouldWaitForInitialViewMode({
         hasResolvedInitialViewMode: hasResolvedInitialViewModeRef.current,
-        initialViewMode,
+        ...(initialViewMode !== undefined ? { initialViewMode } : {}),
         viewMode,
       })
     ) {
@@ -392,7 +408,10 @@ const useSavedTabsAppView = ({
       hasResolvedInitialViewModeRef.current = true
     }
 
-    syncSavedTabsViewModeLocation({ onViewModeNavigate, viewMode })
+    syncSavedTabsViewModeLocation({
+      ...(onViewModeNavigate !== undefined ? { onViewModeNavigate } : {}),
+      viewMode,
+    })
   }, [initialViewMode, onViewModeNavigate, viewMode])
 
   const { handleMoveUrlBetweenProjects } = useProjectMoveHandlers({

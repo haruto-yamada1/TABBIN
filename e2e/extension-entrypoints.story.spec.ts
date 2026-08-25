@@ -3,8 +3,10 @@ import {
   expect,
   getExtensionUrl,
   readStorage,
+  seedPersistenceV2SavedTabs,
   seedStorage,
   test,
+  waitForPersistenceV2Ready,
 } from './helpers/extension'
 
 const now = 1_763_600_000_000
@@ -49,30 +51,65 @@ const createBaseSeed = () => ({
 })
 
 const createAnalyticsSeed = () => ({
-  ...createBaseSeed(),
-  savedTabs: [
+  categories: [],
+  collections: [
     {
-      domain: 'example.com',
-      id: 'group-example',
-      urlIds: ['url-example'],
+      createdAt: now,
+      definition: { domain: 'example.com', type: 'domain' },
+      id: 'collection-example',
+      name: 'example.com',
+      sortOrder: 1024,
+      updatedAt: now,
     },
     {
-      domain: 'docs.example.com',
-      id: 'group-docs',
-      urlIds: ['url-docs'],
+      createdAt: now + 1,
+      definition: { domain: 'docs.example.com', type: 'domain' },
+      id: 'collection-docs',
+      name: 'docs.example.com',
+      sortOrder: 2048,
+      updatedAt: now + 1,
+    },
+  ],
+  groups: [],
+  memberships: [
+    {
+      addedAt: now,
+      addedAtProvenance: 'exact',
+      collectionId: 'collection-example',
+      sortOrder: 1024,
+      updatedAt: now,
+      urlId: 'url-example',
+    },
+    {
+      addedAt: now + 1,
+      addedAtProvenance: 'exact',
+      collectionId: 'collection-docs',
+      sortOrder: 1024,
+      updatedAt: now + 1,
+      urlId: 'url-docs',
     },
   ],
   urls: [
     {
+      firstSavedAt: now,
+      firstSavedAtProvenance: 'exact',
       id: 'url-example',
-      savedAt: now,
+      lastSavedAt: now + 10,
+      lastSavedAtProvenance: 'exact',
+      normalizedUrl: 'https://example.com/',
       title: 'Example Home',
+      updatedAt: now + 10,
       url: 'https://example.com/',
     },
     {
+      firstSavedAt: now + 1,
+      firstSavedAtProvenance: 'exact',
       id: 'url-docs',
-      savedAt: now + 1,
+      lastSavedAt: now + 20,
+      lastSavedAtProvenance: 'exact',
+      normalizedUrl: 'https://docs.example.com/guide',
       title: 'Docs Guide',
+      updatedAt: now + 20,
       url: 'https://docs.example.com/guide',
     },
   ],
@@ -201,10 +238,72 @@ test.describe('extension entrypoint stories', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createAnalyticsSeed())
-
+    const pageErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
+    await seedStorage(serviceWorker, createBaseSeed())
     await page.goto(getExtensionUrl(extensionId, 'app.html#/analytics'))
+    await expect(
+      page.getByRole('heading', { name: 'Analytics canvas' }),
+    ).toBeVisible()
+    await expect(
+      readStorage(serviceWorker, 'tabbin:persistenceControlState:v2'),
+    ).resolves.toEqual({
+      'tabbin:persistenceControlState:v2': {
+        migrationId: 'persistence-v2-production',
+        persistenceGeneration: 2,
+        status: 'indexeddb',
+      },
+    })
+    await seedPersistenceV2SavedTabs(serviceWorker, createAnalyticsSeed())
+    const seededUrlIds = await page.evaluate(async () => {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('tabbin-persistence-v2', 1)
+        request.addEventListener('success', () => resolve(request.result))
+        request.addEventListener('error', () =>
+          reject(request.error ?? new Error('Failed to open persistence v2.')),
+        )
+      })
+      const transaction = database.transaction('urls', 'readonly')
+      const request = transaction.objectStore('urls').getAllKeys()
+      const ids = await new Promise<IDBValidKey[]>((resolve, reject) => {
+        request.addEventListener('success', () => resolve(request.result))
+        request.addEventListener('error', () =>
+          reject(request.error ?? new Error('Failed to read URL IDs.')),
+        )
+      })
+      database.close()
+      return ids
+    })
+    expect(seededUrlIds).toEqual(['url-docs', 'url-example'])
+    await page.reload()
+    const reloadedUrlCount = await page.evaluate(async () => {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('tabbin-persistence-v2', 1)
+        request.addEventListener('success', () => resolve(request.result))
+        request.addEventListener('error', () =>
+          reject(request.error ?? new Error('Failed to open persistence v2.')),
+        )
+      })
+      const transaction = database.transaction('urls', 'readonly')
+      const request = transaction.objectStore('urls').count()
+      const count = await new Promise<number>((resolve, reject) => {
+        request.addEventListener('success', () => resolve(request.result))
+        request.addEventListener('error', () =>
+          reject(request.error ?? new Error('Failed to count URLs.')),
+        )
+      })
+      database.close()
+      return count
+    })
+    expect(reloadedUrlCount).toBe(2)
 
+    await expect(page.getByRole('combobox', { name: 'Metric' })).toHaveText(
+      'First saved URLs',
+    )
+    expect(pageErrors).toEqual([])
+    await expect(
+      page.getByText('Some historical dates come from legacy'),
+    ).toHaveCount(0)
     await expect(
       page.getByRole('heading', { name: 'Saved count by domain' }),
     ).toBeVisible()
@@ -232,6 +331,7 @@ test.describe('extension entrypoint stories', () => {
     await installOllamaListFailureMock(page)
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/ai-chat'))
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByLabel('Ask AI')).toBeDisabled()
     await page.getByRole('combobox', { name: 'Select a model' }).click()

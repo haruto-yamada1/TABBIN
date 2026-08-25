@@ -14,6 +14,61 @@
 
 export { normalizeDomainString } from './domain/value-objects/DomainName'
 
+export { mapLegacyStorageToPersistenceV2 } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
+export type { LegacyMigrationIssueCode } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
+export type {
+  RawLegacyStorageSnapshot,
+  RawLegacyStorageValue,
+} from './application/ports/RawLegacyStorageReaderPort'
+export type {
+  CustomProject,
+  DomainCategorySettings,
+  DomainParentCategoryMapping,
+  LegacyChromeStorageDto,
+  ParentCategory,
+  ProjectKeywordSettings,
+  SubCategoryKeyword,
+  TabGroup,
+  UrlRecord,
+} from './application/dto/LegacyChromeStorageDto'
+export type { ClockPort } from './application/ports/ClockPort'
+export type { IdGeneratorPort } from './application/ports/IdGeneratorPort'
+export type {
+  PersistenceChangeEvent,
+  PersistenceChangePort,
+  PersistenceChangeScope,
+} from './application/ports/PersistenceChangePort'
+export type {
+  PersistenceRecoverySnapshotRecord,
+  PersistenceRecoverySnapshotRepositoryPort,
+  PersistenceRecoverySnapshotRetentionPolicy,
+  PersistenceRecoverySnapshotSaveResult,
+  PersistenceRecoverySnapshotSummary,
+} from './application/ports/PersistenceRecoverySnapshotPort'
+export { PERSISTENCE_NOTIFICATION_FAILED_AFTER_COMMIT_CODE } from './application/services/PersistenceMutationCoordinatorService'
+export type {
+  PersistenceNotificationFailureDiagnostic,
+  PersistenceNotificationFailureStage,
+} from './application/services/PersistenceMutationCoordinatorService'
+export type {
+  PersistenceLogicalSnapshot,
+  PersistenceVersionedSavedTabsSnapshot,
+} from './application/ports/PersistenceV2SnapshotReaderPort'
+export type {
+  PersistenceV2ReplacementErrorCode,
+  PersistenceV2ReplacementPort,
+  PersistenceV2ReplacementResult,
+  PersistenceV2ReplacementTarget,
+} from './application/ports/PersistenceV2ReplacementPort'
+export type {
+  PersistenceJsonRecord,
+  PersistenceMessageRecord,
+} from './application/ports/PersistenceV2UnitOfWorkPort'
+export {
+  PERSISTENCE_DATABASE_VERSION,
+  PERSISTENCE_GENERATION,
+} from './application/services/PersistenceReleasePolicyService'
+
 // issue #639: settings defaults を public API 経由で提供する
 export { savedTabsActionSettingsDefaults } from './domain/services/SavedTabsActionSettingsPolicy'
 export {
@@ -38,6 +93,7 @@ export type {
 } from './domain/entities/PersistenceModelV2'
 export {
   checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
   PERSISTENCE_V2_INVARIANT_POLICY,
 } from './domain/services/PersistenceIntegrityChecker'
 export type {

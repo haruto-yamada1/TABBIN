@@ -14,12 +14,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import type {

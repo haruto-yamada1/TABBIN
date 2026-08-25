@@ -19,6 +19,7 @@ describe('UrlRecord entity', () => {
     expect(record.title).toBe('Example')
     expect(record.savedAt).toBe(1_700_000_000_000)
     expect(record.favIconUrl).toBeUndefined()
+    expect(Object.hasOwn(record, 'favIconUrl')).toBe(false)
   })
 
   it('title が空文字列でも許容する（タイトル未取得ケース）', () => {
@@ -32,6 +33,7 @@ describe('UrlRecord entity', () => {
       favIconUrl: 'https://example.com/favicon.ico',
     })
     expect(record.favIconUrl).toBe('https://example.com/favicon.ico')
+    expect(Object.hasOwn(record, 'favIconUrl')).toBe(true)
   })
 
   it('不正な URL は INVALID_URL を投げる', () => {

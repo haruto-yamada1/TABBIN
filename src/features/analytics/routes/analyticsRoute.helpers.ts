@@ -1,4 +1,5 @@
-import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
+import type { PersistenceVersionedSavedTabsSnapshot } from '@/contexts/saved-tabs/public-api'
 import type {
   AiChartSpec,
   AiChatConversationMessage,
@@ -7,39 +8,22 @@ import type {
 import {
   filterAnalyticsRecords,
   generateAnalyticsResult,
+  getLabelsForGroup,
   normalizeAnalyticsQuery,
+  parseAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { isObjectLike } from '@/lib/browser/chrome-global'
-import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
-import type {
-  CustomProject,
-  ParentCategory,
-  TabGroup,
-  UrlRecord,
-} from '@/types/storage'
-
-const isAnalyticsQuery = (value: unknown): value is AnalyticsQuery => {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const chartType: unknown = Reflect.get(value, 'chartType')
-  const groupBy: unknown = Reflect.get(value, 'groupBy')
-  const mode: unknown = Reflect.get(value, 'mode')
-  return (
-    typeof chartType === 'string' &&
-    typeof groupBy === 'string' &&
-    typeof mode === 'string'
-  )
-}
 
 const parseGroupBy = (value: string): AnalyticsQuery['groupBy'] => {
   switch (value) {
+    case 'collection':
+    case 'collectionCategory':
+    case 'collectionGroup':
     case 'domain':
     case 'parentCategory':
     case 'project':
@@ -70,6 +54,34 @@ const parseChartType = (value: string): AnalyticsQuery['chartType'] => {
   }
 }
 
+const parseMetric = (value: string): NonNullable<AnalyticsQuery['metric']> => {
+  switch (value) {
+    case 'first-saved':
+    case 'last-saved':
+    case 'membership-added': {
+      return value
+    }
+    default: {
+      return 'first-saved'
+    }
+  }
+}
+
+const parseCollectionType = (
+  value: string,
+): NonNullable<AnalyticsQuery['collectionType']> => {
+  switch (value) {
+    case 'all':
+    case 'custom':
+    case 'domain': {
+      return value
+    }
+    default: {
+      return 'all'
+    }
+  }
+}
+
 const getLatestAnalyticsQuery = (
   toolTraces: AiChatToolTrace[] | undefined,
 ): AnalyticsQuery | null => {
@@ -86,8 +98,9 @@ const getLatestAnalyticsQuery = (
       toolTrace.output && typeof toolTrace.output === 'object'
         ? Reflect.get(toolTrace.output, 'query')
         : undefined
-    if (isAnalyticsQuery(query)) {
-      return query
+    const parsedQuery = parseAnalyticsQuery(query)
+    if (parsedQuery) {
+      return parsedQuery
     }
   }
 
@@ -324,68 +337,17 @@ const removeUrlRecordsFromStorage = async (urlIds: string[]): Promise<void> => {
   }
 }
 
-type AnalyticsDeleteUndoSnapshot = {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-  urls?: UrlRecord[]
-}
+type AnalyticsDeleteUndoSnapshot = PersistenceVersionedSavedTabsSnapshot
 
-type AnalyticsDeleteUndoPayload = {
-  customProjectOrder?: string[]
-  customProjects?: CustomProject[]
-  parentCategories?: ParentCategory[]
-  savedTabs?: TabGroup[]
-  urls?: UrlRecord[]
-}
+type AnalyticsDeleteUndoPayload = PersistenceVersionedSavedTabsSnapshot
 
 const getAnalyticsDeleteUndoSnapshot =
-  async (): Promise<AnalyticsDeleteUndoSnapshot> => {
-    const storageLocal = getPersistenceStorageLocal()
-    if (!storageLocal) {
-      warnMissingChromeStorage('分析削除アンドゥスナップショット')
-      return {}
-    }
-    return storageLocal.get<AnalyticsDeleteUndoSnapshot>([
-      'savedTabs',
-      'customProjects',
-      'customProjectOrder',
-      'parentCategories',
-      'urls',
-    ])
-  }
+  async (): Promise<AnalyticsDeleteUndoSnapshot> =>
+    getBackgroundSavedTabsDataPlane().readUndoSnapshot()
 
-const getSnapshotArray = <T>(value: T[] | undefined): T[] | undefined =>
-  Array.isArray(value) ? value : undefined
 const createAnalyticsDeleteUndoPayload = (
   snapshot: AnalyticsDeleteUndoSnapshot,
-): AnalyticsDeleteUndoPayload => {
-  const payload: AnalyticsDeleteUndoPayload = {}
-  const savedTabs = getSnapshotArray(snapshot.savedTabs)
-  const customProjects = getSnapshotArray(snapshot.customProjects)
-  const customProjectOrder = getSnapshotArray(snapshot.customProjectOrder)
-  const parentCategories = getSnapshotArray(snapshot.parentCategories)
-  const urls = getSnapshotArray(snapshot.urls)
-
-  if (savedTabs) {
-    payload.savedTabs = savedTabs
-  }
-  if (customProjects) {
-    payload.customProjects = customProjects
-  }
-  if (customProjectOrder) {
-    payload.customProjectOrder = customProjectOrder
-  }
-  if (parentCategories) {
-    payload.parentCategories = parentCategories
-  }
-  if (urls) {
-    payload.urls = urls
-  }
-
-  return payload
-}
+): AnalyticsDeleteUndoPayload => snapshot
 
 const normalizeAnalyticsRouteQuery = (
   analyticsQuery: AnalyticsQuery,
@@ -425,45 +387,24 @@ const getDrilldownLabelsForRecord = (
   uncategorizedLabel: string,
   chartMessages: AnalyticsChartMessages,
 ): string[] => {
-  // eslint-disable-next-line typescript/switch-exhaustiveness-check
-  switch (query.groupBy) {
-    case 'timeRecent':
-    case 'timeTop': {
-      return getAnalyticsChartDatumLabels(
-        generateAnalyticsResult(
-          [record],
-          {
-            ...query,
-            compareBy: 'none',
-          },
-          { messages: chartMessages },
-        ).chartSpecs[0]?.data,
-      )
-    }
-    case 'parentCategory': {
-      return record.parentCategories.length > 0
-        ? record.parentCategories
-        : [uncategorizedLabel]
-    }
-    case 'subCategory': {
-      return record.subCategories.length > 0
-        ? record.subCategories
-        : [uncategorizedLabel]
-    }
-    case 'project': {
-      return record.savedInProjects.length > 0
-        ? record.savedInProjects
-        : [uncategorizedLabel]
-    }
-    case 'projectCategory': {
-      return record.projectCategories.length > 0
-        ? record.projectCategories
-        : [uncategorizedLabel]
-    }
-    default: {
-      return [record.domain]
-    }
+  if (query.groupBy === 'timeRecent' || query.groupBy === 'timeTop') {
+    return getAnalyticsChartDatumLabels(
+      generateAnalyticsResult(
+        [record],
+        {
+          ...query,
+          compareBy: 'none',
+        },
+        chartMessages !== undefined ? { messages: chartMessages } : {},
+      ).chartSpecs[0]?.data,
+    )
   }
+  return getLabelsForGroup(
+    record,
+    query.groupBy,
+    uncategorizedLabel,
+    query.collectionType,
+  )
 }
 
 const matchesDrilldownMode = ({
@@ -510,7 +451,13 @@ const matchesDrilldownLabel = ({
     return false
   }
 
-  if (!matchesDrilldownMode({ query, record, seriesKey })) {
+  if (
+    !matchesDrilldownMode({
+      query,
+      record,
+      ...(seriesKey !== undefined ? { seriesKey } : {}),
+    })
+  ) {
     return false
   }
 
@@ -541,15 +488,19 @@ const rebuildAnalyticsDrilldownSelection = ({
 
   return {
     ...currentSelection,
-    matchingRecords: filterAnalyticsRecords(nextRecords, query, {
-      messages: chartMessages,
-    }).filter((record) =>
+    matchingRecords: filterAnalyticsRecords(
+      nextRecords,
+      query,
+      chartMessages !== undefined ? { messages: chartMessages } : {},
+    ).filter((record) =>
       matchesDrilldownLabel({
         chartMessages,
         label: currentSelection.label,
         query,
         record,
-        seriesKey: currentSelection.seriesKey,
+        ...(currentSelection.seriesKey !== undefined
+          ? { seriesKey: currentSelection.seriesKey }
+          : {}),
         uncategorizedLabel,
       }),
     ),
@@ -616,7 +567,9 @@ export {
   noop,
   normalizeAnalyticsRouteQuery,
   parseChartType,
+  parseCollectionType,
   parseGroupBy,
+  parseMetric,
   rebuildAnalyticsDrilldownSelection,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,

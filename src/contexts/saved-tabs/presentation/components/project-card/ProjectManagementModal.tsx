@@ -13,15 +13,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { savedTabsUncategorizedProjectId as UNCATEGORIZED_PROJECT_ID } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
-import type {
-  SavedTabsCustomProjectDto as CustomProject,
-  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { DeleteEntityConfirmPanel } from '@/contexts/saved-tabs/presentation/components/shared/DeleteEntityConfirmPanel'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import type {
+  SavedTabsCustomProjectDto as CustomProject,
+  SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useProjectModalState } from './useProjectModalState'
@@ -265,7 +265,14 @@ const useProjectManagementModalView = ({
     urlKeywords,
   } = useProjectModalState(
     project,
-    { onRenameProject, onUpdateProjectKeywords, onDeleteProject, onClose },
+    {
+      onClose,
+      ...(onDeleteProject !== undefined ? { onDeleteProject } : {}),
+      ...(onRenameProject !== undefined ? { onRenameProject } : {}),
+      ...(onUpdateProjectKeywords !== undefined
+        ? { onUpdateProjectKeywords }
+        : {}),
+    },
     localizedProjectNameSchema,
   )
 

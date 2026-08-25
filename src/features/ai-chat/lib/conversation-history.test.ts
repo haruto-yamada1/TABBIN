@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { resetAiConversationHistoryDataPlaneForTesting } from '@/app/composition/aiConversationHistoryDataPlane'
+
 const mocked = vi.hoisted(() => ({
   getChromeStorageLocal: vi.fn(),
   storageLocal: {
@@ -24,6 +26,7 @@ import {
 describe('conversation-history', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetAiConversationHistoryDataPlaneForTesting()
     mocked.getChromeStorageLocal.mockReturnValue(mocked.storageLocal)
     mocked.storageLocal.get.mockResolvedValue({})
     mocked.storageLocal.set.mockResolvedValue(undefined)

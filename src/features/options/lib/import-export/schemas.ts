@@ -1,10 +1,18 @@
 import { z } from 'zod'
 
+import type { ParentCategory } from '@/contexts/saved-tabs/public-api'
 import type { AiChatConversation } from '@/features/ai-chat/types'
+import { LEGACY_BACKUP_ADVISORY } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
+import type { LegacyBackupAdvisory } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
+import { LegacyBackupV0Schema } from '@/features/options/lib/import-export/legacy/LegacyBackupV0Schema'
+import { isJsonValue } from '@/lib/persistence/jsonValue'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
-import { storedUserSettingsSchema } from '@/lib/storage/zod-storage'
+import {
+  parseStoredUserSettings,
+  storedUserSettingsSchema,
+} from '@/lib/storage/zod-storage'
 import { isValidUrl } from '@/lib/url-filter'
-import type { ParentCategory, UserSettings } from '@/types/storage'
+import type { UserSettings } from '@/types/storage'
 
 type ImportedUrlData = {
   url: string
@@ -159,6 +167,9 @@ const importedCustomProjectSchema = z.object({
 const analyticsGroupBySchema = z.preprocess(
   (value) => (value === 'time' ? 'timeRecent' : value),
   z.enum([
+    'collection',
+    'collectionCategory',
+    'collectionGroup',
     'domain',
     'parentCategory',
     'project',
@@ -171,6 +182,7 @@ const analyticsGroupBySchema = z.preprocess(
 
 const analyticsQuerySchema = z.object({
   chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']),
+  collectionType: z.enum(['all', 'custom', 'domain']).optional(),
   compareBy: z.enum(['mode', 'none']),
   customDateRange: z
     .object({
@@ -192,8 +204,10 @@ const analyticsQuerySchema = z.object({
   }),
   groupBy: analyticsGroupBySchema,
   limit: z.number(),
+  metric: z.enum(['first-saved', 'last-saved', 'membership-added']).optional(),
   mode: z.enum(['both', 'custom', 'domain']),
   normalize: z.boolean(),
+  schemaVersion: z.literal(2).optional(),
   sort: z.enum(['label-asc', 'label-desc', 'value-asc', 'value-desc']),
   stacked: z.boolean(),
   timeBucket: z.enum(['day', 'month', 'week']),
@@ -286,45 +300,53 @@ const aiChatConversationSchema = z.object({
   updatedAt: z.number(),
 })
 
-const backupDataSchema: z.ZodType<BackupData> = z.object({
-  version: z.string(),
-  timestamp: z.string(),
-  userSettings: storedUserSettingsSchema,
-  parentCategories: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      domains: z.array(z.string()),
-      domainNames: z.array(z.string()),
-      // Keywords はスキーマ上は許可するが、処理中に適切に扱う
-      keywords: z.array(z.string()).optional(),
-    }),
-  ),
-  savedTabs: z.array(
-    z.object({
-      id: z.string(),
-      domain: z.string(),
-      // 旧形式: URLsを直接保持
-      urls: z.array(importedUrlDataSchema).optional(),
-      // 新形式: URL ID参照
-      urlIds: z.array(z.string()).optional(),
-      urlSubCategories: z.record(z.string(), z.string()).optional(),
-      parentCategoryId: z.string().optional(),
-      subCategories: z.array(z.unknown()).optional(),
-      categoryKeywords: z.array(z.unknown()).optional(),
-      subCategoryOrder: z.array(z.unknown()).optional(),
-      subCategoryOrderWithUncategorized: z.array(z.unknown()).optional(),
-      savedAt: z.number().optional(),
-    }),
-  ),
-  aiChatConversations: z.array(aiChatConversationSchema).optional(),
-  activeAiChatConversationId: z.string().optional(),
-  customProjects: z.array(importedCustomProjectSchema).optional(),
-  customProjectOrder: z.array(z.string()).optional(),
-  savedAnalyticsViews: z.array(savedAnalyticsViewSchema).optional(),
-  // 新形式バックアップ用: URLレコード本体
-  urls: z.array(importedUrlRecordSchema).optional(),
-})
+const backupDataSchema = z
+  .object({
+    version: z.string(),
+    timestamp: z.string(),
+    userSettings: storedUserSettingsSchema.transform(parseStoredUserSettings),
+    parentCategories: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        domains: z.array(z.string()),
+        domainNames: z.array(z.string()),
+        // Keywords はスキーマ上は許可するが、処理中に適切に扱う
+        keywords: z.array(z.string()).optional(),
+      }),
+    ),
+    savedTabs: z.array(
+      z.object({
+        id: z.string(),
+        domain: z.string(),
+        // 旧形式: URLsを直接保持
+        urls: z.array(importedUrlDataSchema).optional(),
+        // 新形式: URL ID参照
+        urlIds: z.array(z.string()).optional(),
+        urlSubCategories: z.record(z.string(), z.string()).optional(),
+        parentCategoryId: z.string().optional(),
+        subCategories: z.array(z.unknown()).optional(),
+        categoryKeywords: z.array(z.unknown()).optional(),
+        subCategoryOrder: z.array(z.unknown()).optional(),
+        subCategoryOrderWithUncategorized: z.array(z.unknown()).optional(),
+        savedAt: z.number().optional(),
+      }),
+    ),
+    aiChatConversations: z.array(aiChatConversationSchema).optional(),
+    activeAiChatConversationId: z.string().optional(),
+    customProjects: z.array(importedCustomProjectSchema).optional(),
+    customProjectOrder: z.array(z.string()).optional(),
+    savedAnalyticsViews: z.array(savedAnalyticsViewSchema).optional(),
+    // 新形式バックアップ用: URLレコード本体
+    urls: z.array(importedUrlRecordSchema).optional(),
+  })
+  .refine((data): boolean => isJsonValue(data), {
+    message: 'Backup data must be JSON-safe',
+  })
+
+const isExactOptionalBackupData = (
+  data: z.infer<typeof backupDataSchema>,
+): data is BackupData => isJsonValue(data)
 
 function parseBackupData(jsonData: string): BackupData | null {
   // eslint-disable-next-line typescript/no-unsafe-assignment
@@ -334,13 +356,24 @@ function parseBackupData(jsonData: string): BackupData | null {
     console.error('バリデーションエラー:', validationResult.error)
     return null
   }
+  if (!isExactOptionalBackupData(validationResult.data)) {
+    return null
+  }
   const backupData: BackupData = structuredClone(validationResult.data)
   return backupData
 }
 
+const getLegacyBackupDeadlineAdvisory = (
+  backup: unknown,
+): LegacyBackupAdvisory | undefined =>
+  LegacyBackupV0Schema.safeParse(backup).success
+    ? LEGACY_BACKUP_ADVISORY
+    : undefined
+
 export {
   backupDataSchema,
   favIconUrlSchema,
+  getLegacyBackupDeadlineAdvisory,
   importableUrlSchema,
   parseBackupData,
 }

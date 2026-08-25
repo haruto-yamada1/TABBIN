@@ -1,3 +1,8 @@
+import type {
+  PersistenceEmergencyBackup,
+  PersistenceV2MigrationDiagnostic,
+} from './PersistenceRecoveryPort'
+
 export const PERSISTENCE_BOOTSTRAP_ERROR_CODES = [
   'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
   'PERSISTENCE_CONTROL_STATE_INVALID',
@@ -50,6 +55,7 @@ export type PersistenceControlState =
       readonly status: 'read-only-emergency'
       readonly readSource: 'indexeddb'
       readonly migrationId: string
+      readonly persistenceGeneration: 2
     }
 
 export type PersistenceControlStateTransition =
@@ -81,6 +87,11 @@ export type PersistenceControlStateTransition =
     }
   | {
       readonly type: 'enter-read-only-emergency'
+      readonly readSource: 'indexeddb'
+      readonly migrationId: string
+    }
+  | {
+      readonly type: 'exit-read-only-emergency'
       readonly readSource: 'indexeddb'
       readonly migrationId: string
     }
@@ -135,9 +146,39 @@ export type PersistenceOperationGatePort = {
   ) => Promise<Result>
 }
 
+/**
+ * A pair of repository operations for one logical read or write.
+ *
+ * The router invokes exactly one callback after resolving the authoritative
+ * persistence route. Callers must keep backend-specific shapes inside these
+ * callbacks and expose only application/domain values as `Result`.
+ */
+export type PersistenceDataPlaneOperation<Result> = {
+  readonly indexeddb: () => Promise<Result>
+  readonly legacy: () => Promise<Result>
+}
+
+/**
+ * Resolves the authoritative repository from the persistence control state.
+ *
+ * Unlike `PersistenceOperationGatePort`, callers do not preselect a route.
+ * This prevents a matching-state call from producing
+ * `PERSISTENCE_ROUTE_MISMATCH` and gives current use-cases one fail-closed
+ * data-plane entry point.
+ */
+export type PersistenceDataPlaneRouterPort = {
+  readonly read: <Result>(
+    operation: PersistenceDataPlaneOperation<Result>,
+  ) => Promise<Result>
+  readonly write: <Result>(
+    operation: PersistenceDataPlaneOperation<Result>,
+  ) => Promise<Result>
+}
+
 export type PersistenceRecoveryState =
   | { readonly status: 'available' }
   | {
+      readonly diagnostic?: PersistenceV2MigrationDiagnostic
       readonly status: 'unavailable'
       readonly errorCode: PersistenceBootstrapErrorCode
     }
@@ -146,10 +187,16 @@ export type PersistenceRecoveryReporterPort = {
   readonly reportUnavailable: (errorCode: PersistenceBootstrapErrorCode) => void
 }
 
-export type PersistenceRecoveryControllerPort =
+export type PersistenceBootstrapRecoveryControllerPort =
   PersistenceRecoveryReporterPort & {
     readonly clear: () => void
     readonly getSnapshot: () => PersistenceRecoveryState
     readonly retry: () => Promise<void>
     readonly subscribe: (listener: () => void) => () => void
+  }
+
+export type PersistenceRecoveryControllerPort =
+  PersistenceBootstrapRecoveryControllerPort & {
+    readonly createEmergencyBackup: () => Promise<PersistenceEmergencyBackup>
+    readonly rerunPreflightAndRetry: () => Promise<void>
   }

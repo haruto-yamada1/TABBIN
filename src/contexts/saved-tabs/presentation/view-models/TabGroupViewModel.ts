@@ -5,7 +5,7 @@
  * 既存の `src/features/saved-tabs/components/*` が要求する形と互換に保ち、
  * コンポーネントへそのまま props として渡せることを目標にする。
  *
- * - `id` / `domain` / `urls` / `urlIds` は domain `TabGroup` と同じ意味。
+ * - `id` / `domain` は domain `TabGroup`、`urls` は解決済み表示データ。
  * - `parentCategoryId` は未分類時に `undefined`。
  * - `displayUrlCount` は 0 のとき空カード／非表示判定に利用する。
  * - `subCategoryCount` は CategoryModal / CategoryGroup で「カテゴリ N 件」を
@@ -15,7 +15,6 @@ export type TabGroupViewModel = {
   readonly id: string
   readonly domain: string
   readonly parentCategoryId: string | undefined
-  readonly urlIds: readonly string[]
   readonly urls: readonly {
     readonly id?: string
     readonly url: string
@@ -42,7 +41,7 @@ export const toTabGroupViewModel = (group: {
   id: string
   domain: string
   parentCategoryId?: string
-  urlIds?: readonly string[]
+  memberships?: readonly { urlId: string }[]
   urls?: readonly {
     id?: string
     url: string
@@ -51,10 +50,10 @@ export const toTabGroupViewModel = (group: {
   }[]
   subCategories?: readonly string[]
 }): TabGroupViewModel => {
-  const urlIds = group.urlIds ?? []
   const urls = group.urls ?? []
   const subCategories = group.subCategories ?? []
-  const displayUrlCount = urls.length > 0 ? urls.length : urlIds.length
+  const displayUrlCount =
+    urls.length > 0 ? urls.length : (group.memberships?.length ?? 0)
   return {
     displayUrlCount,
     domain: group.domain,
@@ -62,7 +61,6 @@ export const toTabGroupViewModel = (group: {
     id: group.id,
     parentCategoryId: group.parentCategoryId,
     subCategoryCount: subCategories.length,
-    urlIds: [...urlIds],
     urls: [...urls],
   }
 }

@@ -1,14 +1,19 @@
 import type { RefObject, SetStateAction } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import {
+  toSavedTabsTabGroupViewModel,
+  toCustomProjectFromViewModel,
+  toTabGroupFromViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { syncStorageChanges } from './modeSyncService'
 
@@ -16,10 +21,20 @@ const createProject = (overrides: Partial<CustomProject>): CustomProject => ({
   id: 'project-1',
   name: 'Project 1',
   categories: [],
+  categoryOrder: [],
   createdAt: 1,
+  memberships: [],
+  projectKeywords: {
+    domainKeywords: [],
+    titleKeywords: [],
+    urlKeywords: [],
+  },
   updatedAt: 1,
   ...overrides,
 })
+
+const createStorageProject = (overrides: Partial<CustomProject>) =>
+  toCustomProjectFromViewModel(createProject(overrides))
 
 // テストヘルパー: port DTO を直接組み立てるための薄いラッパー。
 // ポート仕様 (`TypedSavedTabsStorageChange`) を満たす値だけを渡し、
@@ -128,23 +143,16 @@ describe('syncStorageChanges', () => {
     ])
   })
 
-  it('customProjects 更新時に未変更プロジェクトの参照を維持する', async () => {
+  it('customProjects 更新時に未変更プロジェクトの内容を維持する', async () => {
     const prevP1 = createProject({
+      categories: ['Work'],
+      categoryOrder: ['Work'],
       id: 'project-1',
       name: 'P1',
-      urlIds: ['url-1'],
-      urlMetadata: {
-        'url-1': {
-          category: 'Work',
-        },
-      },
-      urls: [
-        {
-          url: 'https://a.example.com',
-          title: 'A',
-          category: 'Work',
-        },
-      ],
+      memberships: ['url-1'].map((urlId) => ({
+        urlId,
+        ...{ 'url-1': { category: 'Work' } }?.[urlId],
+      })),
     })
     const prevP2 = createProject({ id: 'project-2', name: 'P2' })
     const ctx = createSyncContext({
@@ -155,24 +163,17 @@ describe('syncStorageChanges', () => {
       kind: 'parsed',
       oldValue: [],
       payload: [
-        createProject({
+        createStorageProject({
+          categories: ['Work'],
+          categoryOrder: ['Work'],
           id: 'project-1',
           name: 'P1',
-          urlIds: ['url-1'],
-          urlMetadata: {
-            'url-1': {
-              category: 'Work',
-            },
-          },
-          urls: [
-            {
-              url: 'https://a.example.com',
-              title: 'A',
-              category: 'Work',
-            },
-          ],
+          memberships: ['url-1'].map((urlId) => ({
+            urlId,
+            ...{ 'url-1': { category: 'Work' } }?.[urlId],
+          })),
         }),
-        createProject({ id: 'project-2', name: 'P2 updated' }),
+        createStorageProject({ id: 'project-2', name: 'P2 updated' }),
       ],
     }
 
@@ -182,7 +183,7 @@ describe('syncStorageChanges', () => {
     })
 
     const nextProjects = ctx.state.getProjects()
-    expect(nextProjects[0]).toBe(prevP1)
+    expect(nextProjects[0]).toStrictEqual(prevP1)
     expect(nextProjects[1]).not.toBe(prevP2)
     expect(nextProjects[1]?.name).toBe('P2 updated')
   })
@@ -192,15 +193,15 @@ describe('syncStorageChanges', () => {
     const nextSavedTabs: TabGroup[] = [
       {
         id: 'group-1',
-        domain: 'https://example.com',
-        urlIds: ['url-1'],
+        domain: 'example.com',
+        memberships: ['url-1'].map((urlId) => ({ urlId })),
       },
     ]
     const savedTabsChange: TypedSavedTabsStorageChange = {
       key: 'savedTabs',
       kind: 'parsed',
       oldValue: [],
-      payload: nextSavedTabs,
+      payload: nextSavedTabs.map(toTabGroupFromViewModel),
     }
 
     const events = await syncStorageChanges({
@@ -211,7 +212,9 @@ describe('syncStorageChanges', () => {
     // 旧 `invalidateUrlCache()` の呼び出しは DDD 移行で撤去済み。
     // cache 無効化は不要（repository 経由の `findAll` は storage から都度読む）。
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith(
-      nextSavedTabs,
+      nextSavedTabs.map((group) =>
+        toSavedTabsTabGroupViewModel(toTabGroupFromViewModel(group)),
+      ),
     )
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledTimes(1)
     expect(ctx.spies.syncDomainDataToCustomProjects).toHaveBeenCalledTimes(1)
@@ -244,8 +247,10 @@ describe('syncStorageChanges', () => {
       {
         id: 'parent-1',
         name: 'Work',
-        domains: [],
-        domainNames: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
       },
     ]
     const settingsChange: TypedSavedTabsStorageChange = {
@@ -314,7 +319,7 @@ describe('syncStorageChanges', () => {
       key: 'customProjects',
       kind: 'parsed',
       oldValue: [],
-      payload: [createProject({ id: 'project-1', name: 'P1 updated' })],
+      payload: [createStorageProject({ id: 'project-1', name: 'P1 updated' })],
     }
 
     await syncStorageChanges({
@@ -348,11 +353,7 @@ describe('syncStorageChanges', () => {
   it('urlMetadata のキー数が異なる場合は参照を維持しない', async () => {
     const prev = createProject({
       id: 'project-1',
-      urlMetadata: {
-        'url-1': {
-          category: 'Work',
-        },
-      },
+      memberships: [{ category: 'Work', urlId: 'url-1' }],
     })
     const ctx = createSyncContext({
       projects: [prev],
@@ -362,9 +363,9 @@ describe('syncStorageChanges', () => {
       kind: 'parsed',
       oldValue: [],
       payload: [
-        createProject({
+        createStorageProject({
           id: 'project-1',
-          urlMetadata: {},
+          memberships: [],
         }),
       ],
     }
@@ -380,11 +381,7 @@ describe('syncStorageChanges', () => {
   it('urlMetadata のキー名が異なる場合は参照を維持しない', async () => {
     const prev = createProject({
       id: 'project-1',
-      urlMetadata: {
-        'url-a': {
-          category: 'Work',
-        },
-      },
+      memberships: [{ category: 'Work', urlId: 'url-a' }],
     })
     const ctx = createSyncContext({
       projects: [prev],
@@ -394,13 +391,9 @@ describe('syncStorageChanges', () => {
       kind: 'parsed',
       oldValue: [],
       payload: [
-        createProject({
+        createStorageProject({
           id: 'project-1',
-          urlMetadata: {
-            'url-b': {
-              category: 'Work',
-            },
-          },
+          memberships: [{ category: 'Work', urlId: 'url-b' }],
         }),
       ],
     }
@@ -416,11 +409,7 @@ describe('syncStorageChanges', () => {
   it('urlMetadata のネスト値が異なる場合は参照を維持しない', async () => {
     const prev = createProject({
       id: 'project-1',
-      urlMetadata: {
-        'url-1': {
-          category: 'Work',
-        },
-      },
+      memberships: [{ category: 'Work', urlId: 'url-1' }],
     })
     const ctx = createSyncContext({
       projects: [prev],
@@ -430,13 +419,9 @@ describe('syncStorageChanges', () => {
       kind: 'parsed',
       oldValue: [],
       payload: [
-        createProject({
+        createStorageProject({
           id: 'project-1',
-          urlMetadata: {
-            'url-1': {
-              category: 'Private',
-            },
-          },
+          memberships: [{ category: 'Private', urlId: 'url-1' }],
         }),
       ],
     }
@@ -462,7 +447,7 @@ describe('syncStorageChanges', () => {
       kind: 'parsed',
       oldValue: [],
       payload: [
-        createProject({
+        createStorageProject({
           id: 'project-1',
           categories: [],
         }),
@@ -490,7 +475,7 @@ describe('syncStorageChanges', () => {
       kind: 'parsed',
       oldValue: [],
       payload: [
-        createProject({
+        createStorageProject({
           id: 'project-1',
           categories: ['Private'],
         }),
@@ -552,8 +537,10 @@ describe('syncStorageChanges', () => {
         {
           id: 'parent-1',
           name: 'Work',
-          domains: [],
-          domainNames: [],
+          collections: [].map((id, index) => ({
+            id,
+            domain: [][index] ?? id,
+          })),
         },
       ],
     })
@@ -585,7 +572,7 @@ describe('syncStorageChanges', () => {
       kind: 'parsed',
       oldValue: [],
       payload: [
-        createProject({
+        createStorageProject({
           id: 'project-1',
           name: 'Same',
         }),
@@ -621,14 +608,14 @@ describe('syncStorageChanges', () => {
     const ctx = createSyncContext()
     const validGroup: TabGroup = {
       id: 'group-1',
-      domain: 'https://example.com',
-      urlIds: ['url-1'],
+      domain: 'example.com',
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     }
     const savedTabsChange: TypedSavedTabsStorageChange = {
       key: 'savedTabs',
       kind: 'parsed',
       oldValue: [],
-      payload: [validGroup],
+      payload: [toTabGroupFromViewModel(validGroup)],
     }
 
     await syncStorageChanges({
@@ -637,7 +624,7 @@ describe('syncStorageChanges', () => {
     })
 
     expect(ctx.spies.refreshTabGroupsWithUrls).toHaveBeenCalledWith([
-      validGroup,
+      toSavedTabsTabGroupViewModel(toTabGroupFromViewModel(validGroup)),
     ])
     expect(ctx.spies.syncDomainDataToCustomProjects).toHaveBeenCalledTimes(1)
   })
@@ -648,8 +635,10 @@ describe('syncStorageChanges', () => {
     const valid: ParentCategory = {
       id: 'parent-1',
       name: 'Work',
-      domains: [],
-      domainNames: [],
+      collections: [].map((id, index) => ({
+        id,
+        domain: [][index] ?? id,
+      })),
     }
     const categoriesChange: TypedSavedTabsStorageChange = {
       key: 'parentCategories',

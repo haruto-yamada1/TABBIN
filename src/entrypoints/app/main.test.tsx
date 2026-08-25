@@ -102,11 +102,39 @@ describe('app bootstrap', () => {
     document.body.innerHTML = '<div id="app"></div>'
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
+    await vi.waitFor(() => expect(mocked.renderRoot).toHaveBeenCalledOnce())
     expect(mocked.createRoot).toHaveBeenCalledWith(
       document.querySelector('#app'), // eslint-disable-line testing-library/no-node-access -- createRoot のマウント先要素の検証には DOM ノード参照が必須
     )
-    expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
     expect(mocked.runMigrationPreflight).toHaveBeenCalledOnce()
+  })
+
+  it('preflight が完了するまで route を mount しない', async () => {
+    let domReadyHandler: EventListener | undefined
+    let resolvePreflight: (() => void) | undefined
+    mocked.runMigrationPreflight.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        resolvePreflight = resolve
+      })
+    })
+
+    vi.spyOn(document, 'addEventListener').mockImplementation(((
+      type: string,
+      callback: EventListenerOrEventListenerObject | null,
+    ) => {
+      if (type === 'DOMContentLoaded' && typeof callback === 'function') {
+        domReadyHandler = callback
+      }
+    }) as typeof document.addEventListener)
+
+    await importModule()
+    document.body.innerHTML = '<div id="app"></div>'
+    domReadyHandler?.(new Event('DOMContentLoaded'))
+
+    expect(mocked.renderRoot).not.toHaveBeenCalled()
+
+    resolvePreflight?.()
+    await vi.waitFor(() => expect(mocked.renderRoot).toHaveBeenCalledOnce())
   })
 
   it('同じ app 要素へ再度 mount しても createRoot を再利用する', async () => {
@@ -127,8 +155,8 @@ describe('app bootstrap', () => {
     domReadyHandler?.(new Event('DOMContentLoaded'))
     domReadyHandler?.(new Event('DOMContentLoaded'))
 
+    await vi.waitFor(() => expect(mocked.renderRoot).toHaveBeenCalledTimes(2))
     expect(mocked.createRoot).toHaveBeenCalledTimes(1)
-    expect(mocked.renderRoot).toHaveBeenCalledTimes(2)
   })
 
   it('preflight の初期化に失敗しても app を描画する', async () => {
@@ -150,6 +178,7 @@ describe('app bootstrap', () => {
     document.body.innerHTML = '<div id="app"></div>'
 
     expect(() => domReadyHandler?.(new Event('DOMContentLoaded'))).not.toThrow()
+    await vi.waitFor(() => expect(mocked.renderRoot).toHaveBeenCalledOnce())
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('raw secret')).toBeNull()
   })
@@ -171,7 +200,7 @@ describe('app bootstrap', () => {
     document.body.innerHTML = '<div id="app"></div>'
 
     expect(() => domReadyHandler?.(new Event('DOMContentLoaded'))).not.toThrow()
-    await Promise.resolve()
+    await vi.waitFor(() => expect(mocked.renderRoot).toHaveBeenCalledOnce())
 
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('raw secret')).toBeNull()

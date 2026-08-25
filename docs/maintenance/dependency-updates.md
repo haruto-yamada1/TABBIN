@@ -51,34 +51,63 @@ baseline test と build に不要だったため allowlist は空にした。
 `bun install --frozen-lockfile`、`bun pm untrusted`、build、test を実行する。
 `bun pm trust --all` は使用しない。
 
-## Temporary audit exceptions
+## Audit exception review (2026-08-23)
 
-次の例外は、同一 package の複数 major が lockfile に共存する、または親 package が
-旧 major を固定しているため、top-level `overrides` では安全に解消できない。
-期限: 2026-08-12。期限までに親 package と lockfile を再確認し、修正版へ進めるなら
-例外を削除する。期限延長には新しい Issue、upstream status、影響評価が必要。
+Issue #827 で期限切れだった10件を全件再評価した。すべて解消可能になったため、
+`security:audit` から ignore を削除した。継続する temporary exception はなく、
+新しい期限は不要である。owner は dependency maintenance。
 
-- `GHSA-22p9-wv53-3rq4`: `ansi-to-react` が旧 `linkify-it` major を要求するため。
-- `GHSA-3ppc-4f35-3m26`: `minimatch` 3系と10系が共存するため。
-- `GHSA-7r86-cg39-jmmj`: 同じ `minimatch` 複数世代制約のため。
-- `GHSA-23c5-xmqv-rm74`: 同じ `minimatch` 複数世代制約のため。
-- `GHSA-c2c7-rcm5-vvqj`: `picomatch` 2系と4系が共存するため。
-- `GHSA-fx2h-pf6j-xcff`: direct Vite 8 と WXT 経由の Vite 6 が共存するため。
-- `GHSA-p9ff-h696-f583`: 同じ WXT / Vite 6 経路のため。
-- `GHSA-mh99-v99m-4gvg`: WXT → `web-ext-run` → `multimatch` →
-  `minimatch` 3 が修正版のない `brace-expansion` 1.x を要求し、Storybook /
-  ESLint 系 tooling も 5.0.7 を解決する。修正版は 5.0.8 のみで、Bun は親を
-  限定した nested override を未対応。すべて build / test tooling の経路であり、
-  TABBIN は外部入力の glob を渡さない。
-- `GHSA-qwww-vcr4-c8h2`: TABBIN は client-side browser extension であり、対象の
-  unstable React Server Components API を使用しない。修正版 `react-router` 8.3.0
-  に対応する `react-router-dom` は未公開で、現行 7.18.1 が core 7.18.1 を固定するため。
+lockfile は既存 parent range の範囲内で修正版へ進めた。package owner / repository、
+dependency 名、lifecycle script、`trustedDependencies` は変更せず、新しい transitive
+package も追加していない。
 
-追加した2件の owner は dependency maintenance。期限内に WXT の旧 glob chain と
-`react-router-dom` の 8.x 対応を再確認する。
+### Resolved inventory
 
-修正版が同じ互換世代にある `defu`、`lodash-es`、`node-forge`、`postcss`、
-`rollup`、`shell-quote`、`tmp`、`undici` は `overrides` で固定し、例外にしない。
+- [`GHSA-22p9-wv53-3rq4`](https://github.com/advisories/GHSA-22p9-wv53-3rq4)
+  (`linkify-it`): `ansi-to-react` と `linkify-it` は current lockfile から既に消滅しており、
+  production / tooling の dependency path はない。旧 ignore は stale だったため削除した。
+- [`GHSA-3ppc-4f35-3m26`](https://github.com/advisories/GHSA-3ppc-4f35-3m26)
+  (`minimatch`): `@storybook/react-vite` → docgen plugin → `glob` → `minimatch`
+  と WXT → `web-ext-run` → `multimatch` → `minimatch` の build / test tooling path。
+  attacker-controlled glob pattern を渡す product path はない。upstream の同一 major
+  修正版 10.2.5 / 3.1.5 へ更新した。
+- [`GHSA-7r86-cg39-jmmj`](https://github.com/advisories/GHSA-7r86-cg39-jmmj)
+  (`minimatch`): dependency path と production 影響は上記と同じ。複数の非隣接
+  `GLOBSTAR` を含む attacker-controlled pattern が必要で、TABBIN は固定した tooling
+  pattern だけを使う。upstream 修正版 10.2.5 / 3.1.5 へ更新した。
+- [`GHSA-23c5-xmqv-rm74`](https://github.com/advisories/GHSA-23c5-xmqv-rm74)
+  (`minimatch`): dependency path と production 影響は上記と同じ。nested extglob と
+  non-match input が必要で product input から到達しない。upstream 修正版
+  10.2.5 / 3.1.5 へ更新した。
+- [`GHSA-c2c7-rcm5-vvqj`](https://github.com/advisories/GHSA-c2c7-rcm5-vvqj)
+  (`picomatch`): WXT visualizer / unimport / Vite plugin、Storybook plugin、
+  React Doctor → `micromatch` の build / test tooling path。attacker-controlled extglob
+  は渡さない。upstream の同一 major 修正版 2.3.2 / 4.0.4 へ更新した。
+- [`GHSA-fx2h-pf6j-xcff`](https://github.com/advisories/GHSA-fx2h-pf6j-xcff)
+  (Vite): WXT → `vite-node` → Vite 6 の tooling path だけが対象で、direct Vite 8
+  と extension production bundle は対象外。network-exposed dev server と Windows
+  path 条件を満たす設定はない。upstream 修正版 6.4.3 へ更新した。
+- [`GHSA-p9ff-h696-f583`](https://github.com/advisories/GHSA-p9ff-h696-f583)
+  (Vite): dependency path と production 影響は上記と同じ。unauthenticated client が
+  network-exposed dev server の WebSocket へ到達する条件はない。upstream 修正版
+  6.4.3 へ更新した。
+- [`GHSA-mh99-v99m-4gvg`](https://github.com/advisories/GHSA-mh99-v99m-4gvg)
+  (`brace-expansion`): WXT → `web-ext-run` → `multimatch` → `minimatch` 3 と、
+  Storybook / ESLint 系 → `minimatch` 10 の build / test tooling path。外部入力の
+  brace pattern は渡さない。後続 advisory も直す upstream 修正版 1.1.18 / 5.0.9
+  へ更新した。
+- [`GHSA-qwww-vcr4-c8h2`](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)
+  (`react-router`): `react-router-dom` から production bundle に入る唯一の runtime
+  path。exploit は unstable React Server Components action API が条件だが、TABBIN は
+  client-side router だけを使う。互換 pair の `react-router-dom` / `react-router`
+  7.18.2 が公開済みになったため更新した。
+- [`GHSA-rgw5-rvv9-x895`](https://github.com/advisories/GHSA-rgw5-rvv9-x895)
+  (`brace-expansion`): dependency path と production 影響は上記 brace advisory と同じ。
+  attacker-controlled expansion が必要で product path はない。bypass も解消する
+  upstream 修正版 1.1.18 / 5.0.9 へ更新した。
+
+`defu`、`lodash-es`、`node-forge`、`postcss`、`rollup`、`shell-quote`、
+`tmp`、`undici` は引き続き同じ互換世代の修正版を top-level `overrides` で固定する。
 
 ## Vulnerability response
 

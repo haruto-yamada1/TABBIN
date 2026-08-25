@@ -22,13 +22,13 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import {
   getScopedNounActionLabel,
   getScopedObjectActionLabel,
   getScopedSortLabel,
 } from '@/contexts/saved-tabs/presentation/lib/accessibility'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableCategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -372,7 +372,9 @@ const useSortableCategorySectionView = ({
             urls={sortedUrls}
             settings={settings}
             scrollTarget={false}
-            reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+            {...(reorderTabGroupUrlsUseCase !== undefined
+              ? { reorderTabGroupUrlsUseCase }
+              : {})}
           />
         )}
       </div>

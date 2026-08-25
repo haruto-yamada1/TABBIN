@@ -1,9 +1,13 @@
+import type { CollectionProjectionDto } from '@/contexts/saved-tabs/domain/dto/CollectionProjectionDto'
+import type {
+  PersistenceV2Collection,
+  PersistenceV2CollectionCategory,
+  PersistenceV2CollectionMembership,
+} from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
-import { ensureStringArray } from '@/contexts/saved-tabs/domain/services/ensureStringArray'
+import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
 import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
-import type { DomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
-import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import { createSavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
 import type { SavedAt } from '@/contexts/saved-tabs/domain/value-objects/SavedAt'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
@@ -14,9 +18,8 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
 /**
  * ドメイン単位で URL レコードをまとめるタブグループのドメインエンティティ。
  *
- * `chrome.storage.local` 上の `savedTabs[]` と 1:1 対応する不変モデル。
- * 実 URL は `urlIds`（`UrlRecordId` の配列）として参照し、URL 本体は
- * `urlRecords[]` に集約する設計（issue #454 / #456）。
+ * 永続化形式とは独立した不変モデル。URL 本体は `UrlRecord` 集約が保持し、
+ * この集約は `memberships` を通して URL とカテゴリの所属関係を表現する。
  *
  * 既存データ互換のため `parentCategoryId` は省略可能。`savedAt` も省略可能で、
  * 「いつ作られたか」が判明していないグループは未設定のまま扱う。
@@ -26,101 +29,114 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * const group = createTabGroup({
  *   id: 'group-1',
  *   domain: 'example.com',
- *   urlIds: ['url-1', 'url-2'],
+ *   memberships: [{ urlId: 'url-1' }, { urlId: 'url-2' }],
  * })
  * tabGroupUrlCount(group) // 2
  * ```
  */
-export type TabGroup = {
+export type TabGroup = Omit<
+  CollectionProjectionDto,
+  'collection' | 'memberships'
+> & {
+  readonly collection: PersistenceV2Collection & {
+    readonly definition: Extract<
+      PersistenceV2Collection['definition'],
+      { readonly type: 'domain' }
+    >
+  }
   readonly id: TabGroupId
-  readonly domain: DomainName
-  readonly urlIds: readonly UrlRecordId[]
-  readonly urlSubCategories?: Readonly<Record<string, string>>
-  readonly subCategories?: readonly string[]
-  readonly categoryKeywords?: readonly {
-    readonly categoryName: string
-    readonly keywords: readonly string[]
-  }[]
-  readonly subCategoryOrder?: readonly string[]
-  readonly subCategoryOrderWithUncategorized?: readonly string[]
-  readonly parentCategoryId?: ParentCategoryId
+  readonly memberships: readonly TabGroupMembership[]
   readonly savedAt?: SavedAt
 }
 
+export type TabGroupMembership = Omit<
+  PersistenceV2CollectionMembership,
+  'collectionId' | 'urlId'
+> & {
+  readonly collectionId: TabGroupId
+  readonly urlId: UrlRecordId
+}
+
 type CreateTabGroupInput = {
-  id: string
-  domain: string
-  urlIds: readonly string[]
-  urlSubCategories?: Readonly<Record<string, string>>
-  subCategories?: readonly string[]
-  categoryKeywords?: readonly {
-    readonly categoryName: string
-    readonly keywords: readonly string[]
-  }[]
-  subCategoryOrder?: readonly string[]
-  subCategoryOrderWithUncategorized?: readonly string[]
-  parentCategoryId?: string
-  savedAt?: number
+  readonly collection: TabGroup['collection']
+  readonly collectionCategories: readonly PersistenceV2CollectionCategory[]
+  readonly memberships: readonly PersistenceV2CollectionMembership[]
 }
 
 /**
  * `TabGroup` を生成する。
  *
- * `urlIds` 内に空文字列や重複があった場合は `SavedTabsDomainError` を投げる。
+ * membership の URL ID に空文字列や重複があった場合は
+ * `SavedTabsDomainError` を投げる。
  * `parentCategoryId` と `savedAt` は省略可能だが、与えられた場合は
  * 各値オブジェクトのバリデーションを必ず通る。
  */
 export const createTabGroup = (input: CreateTabGroupInput): TabGroup => {
-  const rawUrlIds: readonly string[] = ensureStringArray(
-    input.urlIds,
-    'TabGroup の urlIds は配列で指定してください',
-    'INVALID_TAB_GROUP',
-  )
-  const seen = new Set<string>()
-  const urlIds: UrlRecordId[] = []
-  for (const rawId of rawUrlIds) {
-    const urlId = createUrlRecordId(rawId)
-    if (seen.has(urlId)) {
-      throw new SavedTabsDomainError(
-        'TabGroup の urlIds に重複があります',
-        'INVALID_TAB_GROUP',
-      )
-    }
-    seen.add(urlId)
-    urlIds.push(urlId)
+  if (!Array.isArray(input.memberships)) {
+    throw new SavedTabsDomainError(
+      'TabGroup の memberships は配列で指定してください',
+      'INVALID_TAB_GROUP',
+    )
   }
+  const id = createTabGroupId(input.collection.id)
+  const domain = createDomainName(input.collection.definition.domain)
+  const createdAt = createSavedAt(input.collection.createdAt)
+  const updatedAt = createSavedAt(input.collection.updatedAt)
+  const { groupId: inputGroupId, ...inputCollection } = input.collection
+  const groupId =
+    inputGroupId === undefined
+      ? undefined
+      : createParentCategoryId(inputGroupId)
+  const seen = new Set<string>()
+  const inputMemberships: readonly PersistenceV2CollectionMembership[] =
+    input.memberships
+  const memberships: TabGroupMembership[] = inputMemberships.map(
+    (membership) => {
+      if (membership.collectionId !== id) {
+        throw new SavedTabsDomainError(
+          'TabGroup の membership が別の collection を参照しています',
+          'INVALID_TAB_GROUP',
+        )
+      }
+      const urlId = createUrlRecordId(membership.urlId)
+      if (seen.has(urlId)) {
+        throw new SavedTabsDomainError(
+          'TabGroup の memberships に重複した URL ID があります',
+          'INVALID_TAB_GROUP',
+        )
+      }
+      seen.add(urlId)
+      const { addedAtProvenance, categoryId, notes, ...requiredMembership } =
+        membership
+      return {
+        ...requiredMembership,
+        ...(addedAtProvenance === undefined ? {} : { addedAtProvenance }),
+        ...(categoryId === undefined ? {} : { categoryId }),
+        collectionId: id,
+        ...(notes === undefined ? {} : { notes }),
+        urlId,
+      }
+    },
+  )
   return {
-    id: createTabGroupId(input.id),
-    domain: createDomainName(input.domain),
-    urlIds,
-    ...(input.urlSubCategories
-      ? { urlSubCategories: { ...input.urlSubCategories } }
-      : {}),
-    ...(input.subCategories ? { subCategories: [...input.subCategories] } : {}),
-    ...(input.categoryKeywords
-      ? {
-          categoryKeywords: input.categoryKeywords.map((entry) => ({
-            categoryName: entry.categoryName,
-            keywords: [...entry.keywords],
-          })),
-        }
-      : {}),
-    ...(input.subCategoryOrder
-      ? { subCategoryOrder: [...input.subCategoryOrder] }
-      : {}),
-    ...(input.subCategoryOrderWithUncategorized
-      ? {
-          subCategoryOrderWithUncategorized: [
-            ...input.subCategoryOrderWithUncategorized,
-          ],
-        }
-      : {}),
-    parentCategoryId:
-      input.parentCategoryId === undefined
-        ? undefined
-        : createParentCategoryId(input.parentCategoryId),
-    savedAt:
-      input.savedAt === undefined ? undefined : createSavedAt(input.savedAt),
+    collection: {
+      ...inputCollection,
+      createdAt,
+      definition: { domain, type: 'domain' },
+      ...(groupId === undefined ? {} : { groupId }),
+      id,
+      name: createCategoryName(input.collection.name),
+      updatedAt,
+    },
+    collectionCategories: input.collectionCategories.map((category) => ({
+      ...category,
+      collectionId: id,
+      keywords: [...category.keywords],
+      name: createCategoryName(category.name),
+    })),
+    id,
+    memberships,
+    savedAt: createdAt,
   }
 }
 
@@ -128,14 +144,36 @@ export const createTabGroup = (input: CreateTabGroupInput): TabGroup => {
  * 2 つの `TabGroup` を ID で同一視するかを判定する。
  */
 export const isSameTabGroup = (a: TabGroup, b: TabGroup): boolean =>
-  a.id === b.id
+  a.collection.id === b.collection.id
+
+export const tabGroupDomainName = (group: TabGroup): string =>
+  group.collection.definition.domain
+
+export const tabGroupCollectionGroupId = (
+  group: TabGroup,
+): string | undefined => group.collection.groupId
+
+export const assignTabGroupToCollectionGroup = (
+  group: TabGroup,
+  nextGroupId: string | undefined,
+): TabGroup => {
+  const { groupId: _groupId, ...collection } = group.collection
+  return {
+    ...group,
+    collection: {
+      ...collection,
+      ...(nextGroupId === undefined ? {} : { groupId: nextGroupId }),
+    },
+  }
+}
 
 /**
  * `TabGroup` が保持する URL レコード数を返す。
  *
  * 既存の `countTabGroupUrls` / `getDisplayUrlCount` ヘルパーの domain 等価物。
  */
-export const tabGroupUrlCount = (group: TabGroup): number => group.urlIds.length
+export const tabGroupUrlCount = (group: TabGroup): number =>
+  group.memberships.length
 
 /**
  * 指定の `UrlRecordId` を含むかを判定する。
@@ -143,4 +181,4 @@ export const tabGroupUrlCount = (group: TabGroup): number => group.urlIds.length
 export const tabGroupContainsUrlRecord = (
   group: TabGroup,
   urlRecordId: UrlRecordId,
-): boolean => group.urlIds.includes(urlRecordId)
+): boolean => group.memberships.some(({ urlId }) => urlId === urlRecordId)

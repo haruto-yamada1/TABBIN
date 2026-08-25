@@ -102,6 +102,10 @@ export default defineConfig({
         '.storybook/**',
         '**/*.stories.ts',
         '**/*.stories.tsx',
+        // Test-only compatibility fixtures are exercised through their consumers;
+        // they are not production modules and must not dilute production thresholds.
+        '**/*.fixture.ts',
+        '**/*.fixture.tsx',
         '**/*.css',
         // Generated shadcn-style UI primitives are not hand-maintained.
         'src/components/ui/**',
@@ -172,6 +176,7 @@ export default defineConfig({
             'src/features/**/lib/**/*.test.ts',
             'src/features/i18n/lib/**/*.test.ts',
             'src/features/analytics/**/*.test.ts',
+            'src/test/**/*.test.ts',
             'tools/**/*.test.ts',
           ],
         },

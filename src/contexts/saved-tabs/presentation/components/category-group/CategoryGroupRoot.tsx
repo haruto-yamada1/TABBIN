@@ -3,7 +3,6 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useCallback, useMemo } from 'react'
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type {
   CategoryManagementModalDeps,
@@ -11,6 +10,7 @@ import type {
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { CategoryManagementModal } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { useCategoryGroupState } from '@/contexts/saved-tabs/presentation/hooks/useCategoryGroupState'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CategoryGroupProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -79,7 +79,9 @@ export const CategoryGroupRoot = ({
     category,
     domains,
     handleDeleteGroup: handlers.handleDeleteGroup,
-    handleUpdateDomainsOrder: handlers.handleUpdateDomainsOrder,
+    ...(handlers.handleUpdateDomainsOrder !== undefined
+      ? { handleUpdateDomainsOrder: handlers.handleUpdateDomainsOrder }
+      : {}),
     isCategoryReorderMode,
     renameParentCategoryUseCase,
   })

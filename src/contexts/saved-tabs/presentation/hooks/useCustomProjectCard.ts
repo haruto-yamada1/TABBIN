@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+import { toCustomProjectFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsUrlRecordDto as UrlRecord,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { getMessage } from '@/features/i18n/lib/language'
 
@@ -148,14 +149,16 @@ const applyMovedCategoryToUrls = (
   actualUrl: string,
   overCategory: string | undefined,
 ): ProjectUrlItem[] =>
-  urls.map((url) =>
-    url.url === actualUrl
-      ? {
-          ...url,
-          category: overCategory,
-        }
-      : url,
-  )
+  urls.map((url) => {
+    if (url.url !== actualUrl) {
+      return url
+    }
+    const { category: _category, ...urlWithoutCategory } = url
+    return {
+      ...urlWithoutCategory,
+      ...(overCategory !== undefined ? { category: overCategory } : {}),
+    }
+  })
 const handleProcessedUrlDrop = (params: {
   projectId: string
   actualUrl: string
@@ -365,7 +368,9 @@ export const useCustomProjectCard = ({
     const run = async () => {
       let nextProjectUrls: ProjectUrlItem[] = []
       try {
-        nextProjectUrls = await getProjectUrlsUseCase(project)
+        nextProjectUrls = await getProjectUrlsUseCase(
+          toCustomProjectFromViewModel(project),
+        )
       } catch (error) {
         console.error('プロジェクトURLの取得エラー:', error)
       }

@@ -2,17 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import {
-  toPresentationTabGroups,
-  toStorageParentCategory,
-} from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import {
+  toPresentationTabGroups,
+  toStorageParentCategory,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { tabGroupMatchesCategory } from '@/utils/domain-normalize'
 
@@ -47,7 +48,10 @@ type UseCategoryKeywordModalParams = {
   /** 保存ハンドラ */
   onSave: (groupId: string, categoryName: string, keywords: string[]) => void
   /** カテゴリ削除ハンドラ */
-  onDeleteCategory: (groupId: string, categoryName: string) => void
+  onDeleteCategory: (
+    groupId: string,
+    categoryName: string,
+  ) => void | Promise<void>
   /** 初期の親カテゴリリスト */
   initialParentCategories: ParentCategory[]
   /** 親カテゴリ更新ハンドラ */
@@ -69,6 +73,13 @@ type CategoryEditState = {
   keywords: string[]
   newCategoryName: string
 }
+type TabGroupUrl = NonNullable<TabGroup['urls']>[number]
+
+const omitSubCategory = (item: TabGroupUrl): TabGroupUrl => {
+  const { subCategory: _subCategory, ...itemWithoutSubCategory } = item
+  return itemWithoutSubCategory
+}
+
 const resolveSelectedParentCategoryId = (
   storedCategories: ParentCategory[],
   group: TabGroup,
@@ -78,8 +89,8 @@ const resolveSelectedParentCategoryId = (
   }
   const matchedCategory = storedCategories.find((category) =>
     tabGroupMatchesCategory(
-      category.domains,
-      category.domainNames,
+      category.collections.map(({ id }) => id),
+      category.collections.map(({ domain }) => domain),
       group.id,
       group.domain,
     ),
@@ -375,16 +386,15 @@ export const useCategoryKeywordModal = ({
                 ),
                 urls: (g.urls ?? []).map((item) =>
                   item.subCategory === activeCategory
-                    ? {
-                        ...item,
-                        subCategory: undefined,
-                      }
+                    ? omitSubCategory(item)
                     : item,
                 ),
               }
             : g,
         )
-        await categoryAssignmentPort.saveTabGroups(updatedGroups)
+        await categoryAssignmentPort.saveTabGroups(
+          updatedGroups.map(toTabGroupFromViewModel),
+        )
       } catch (error) {
         console.error('キーワード削除に伴う保存処理に失敗しました:', error)
       }
@@ -449,7 +459,9 @@ export const useCategoryKeywordModal = ({
         }
         return tab
       })
-      await categoryAssignmentPort.saveTabGroups(updatedTabs)
+      await categoryAssignmentPort.saveTabGroups(
+        updatedTabs.map(toTabGroupFromViewModel),
+      )
       setActiveCategory(validName)
       setNewSubCategory('')
       setSubCategoryNameError(null)
@@ -579,7 +591,9 @@ export const useCategoryKeywordModal = ({
       const updatedTabs = savedTabs.map((tab) =>
         renameCategoryInTab(tab, group.id, activeCategory, validName),
       )
-      await categoryAssignmentPort.saveTabGroups(updatedTabs)
+      await categoryAssignmentPort.saveTabGroups(
+        updatedTabs.map(toTabGroupFromViewModel),
+      )
       setActiveCategory(validName)
       updateCategoryEditState({
         isRenaming: false,

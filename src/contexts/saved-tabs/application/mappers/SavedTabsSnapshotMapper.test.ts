@@ -1,13 +1,12 @@
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
-import {
-  toSavedTabsCustomProjectDto,
-  toSavedTabsTabGroupDto,
-} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { SavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
   getSnapshotSavedTabs,
@@ -25,382 +24,125 @@ import {
   toStorageTabGroup,
 } from './SavedTabsSnapshotMapper'
 
-const buildSnapshot = (
-  overrides: Partial<OpenedUrlsRestoreSnapshot> = {},
-): OpenedUrlsRestoreSnapshot => ({
-  customProjectOrder: undefined,
-  customProjects: undefined,
-  parentCategories: undefined,
-  savedTabs: undefined,
-  urlRecords: undefined,
-  ...overrides,
+const project = createCustomProject({
+  categories: ['Research'],
+  createdAt: 1,
+  id: 'project-1',
+  memberships: [{ category: 'Research', notes: 'memo', urlId: 'url-1' }],
+  name: 'Reading',
+  updatedAt: 2,
+})
+const group = createTabGroup({
+  domain: 'example.com',
+  id: 'group-1',
+  memberships: [{ category: 'Docs', urlId: 'url-1' }],
+  parentCategoryId: 'category-1',
+  savedAt: 10,
+  subCategories: ['Docs'],
+})
+const category = createParentCategory({
+  collections: [{ domain: 'example.com', id: 'group-1' }],
+  id: 'category-1',
+  name: 'Docs',
 })
 
-describe('SavedTabsSnapshotMapper.toStorageCustomProject', () => {
-  it('domain entity の CustomProject を storage 形へコピーし、配列フィールドを新規配列にする', () => {
-    const result = toStorageCustomProject(
-      createCustomProject({
-        categories: ['cat-1'],
-        createdAt: 1,
-        id: 'project-1',
-        name: 'Reading',
-        updatedAt: 2,
-        urlIds: ['url-1', 'url-2'],
-      }),
-    )
-    expect(result).toStrictEqual({
-      categories: ['cat-1'],
-      createdAt: 1,
-      id: 'project-1',
-      name: 'Reading',
-      updatedAt: 2,
-      urlIds: ['url-1', 'url-2'],
-    })
-    expect(result).toMatchObject({
-      categories: ['cat-1'],
-      createdAt: 1,
-      id: 'project-1',
-      name: 'Reading',
-      updatedAt: 2,
-      urlIds: ['url-1', 'url-2'],
-    })
-    // mapper 戻り値は storage 形 (mutable) であり、push が通る。
-    if (result.urlIds) {
-      result.urlIds.push('url-3')
+const snapshot = (
+  overrides: OpenedUrlsRestoreSnapshot = {},
+): OpenedUrlsRestoreSnapshot => overrides
+
+describe('SavedTabsSnapshotMapper current projection', () => {
+  it('custom projectをnested projectionごとdeep copyする', () => {
+    const copied = toStorageCustomProject(project)
+    const copiedRaw = toStorageCustomProjectFromRaw(project)
+
+    expect(copied).toStrictEqual(project)
+    expect(copiedRaw).toStrictEqual(project)
+    expect(copied).not.toBe(project)
+    expect(copied.collectionCategories).not.toBe(project.collectionCategories)
+    expect(copied.memberships).not.toBe(project.memberships)
+  })
+
+  it('parent categoryをcollection referencesごとcopyする', () => {
+    const copied = toStorageParentCategory(category)
+    expect(copied).toStrictEqual(category)
+    expect(copied).not.toBe(category)
+    expect(copied.collections).not.toBe(category.collections)
+  })
+
+  it('tab groupをcurrent collection projectionへcopyしresolved read modelを残さない', () => {
+    const displayGroup: SavedTabsDisplayTabGroupDto = {
+      ...group,
+      resolvedUrls: [{ title: 'Example', url: 'https://example.com' }],
     }
-    expect(result.urlIds).toStrictEqual(['url-1', 'url-2', 'url-3'])
+    const copied = toStorageTabGroup(displayGroup)
+
+    expect(copied).toStrictEqual(group)
+    expect('resolvedUrls' in copied).toBe(false)
+    expect(copied.memberships).not.toBe(group.memberships)
   })
-})
 
-describe('SavedTabsSnapshotMapper.toStorageCustomProjectFromRaw', () => {
-  it('raw snapshot の rich フィールドを storage 形へ複製する', () => {
-    const result = toStorageCustomProjectFromRaw({
-      categories: ['research'],
-      categoryOrder: ['research', 'news'],
-      createdAt: 1,
-      id: 'project-1',
-      name: 'Q4',
-      projectKeywords: {
-        domainKeywords: ['example.com'],
-        titleKeywords: ['design'],
-        urlKeywords: ['plan'],
-      },
-      updatedAt: 2,
-      urlIds: ['url-1'],
-      urlMetadata: {
-        'url-1': { category: 'research', notes: 'note-1' },
-      },
-      urls: [{ title: 'A', url: 'https://example.com/a' }],
-    })
-
-    expect(result).toStrictEqual({
-      categories: ['research'],
-      categoryOrder: ['research', 'news'],
-      createdAt: 1,
-      id: 'project-1',
-      name: 'Q4',
-      projectKeywords: {
-        domainKeywords: ['example.com'],
-        titleKeywords: ['design'],
-        urlKeywords: ['plan'],
-      },
-      updatedAt: 2,
-      urlIds: ['url-1'],
-      urlMetadata: {
-        'url-1': { category: 'research', notes: 'note-1' },
-      },
-      urls: [{ title: 'A', url: 'https://example.com/a' }],
-    })
-  })
-})
-
-describe('SavedTabsSnapshotMapper.toStorageParentCategory', () => {
-  it('domain entity の ParentCategory を storage 形へコピーする', () => {
+  it('snapshot savedTabs未指定・不正値・current配列を扱う', () => {
+    expect(getSnapshotSavedTabs(snapshot())).toStrictEqual([])
     expect(
-      toStorageParentCategory(
-        createParentCategory({
-          domains: ['group-1'],
-          domainNames: ['example.com'],
-          id: 'cat-1',
-          name: 'Reading',
-        }),
-      ),
-    ).toStrictEqual({
-      domains: ['group-1'],
-      domainNames: ['example.com'],
-      id: 'cat-1',
-      name: 'Reading',
-    })
-  })
-})
-
-describe('SavedTabsSnapshotMapper.toStorageTabGroup', () => {
-  it('domain entity の TabGroup を storage 形へコピーする (urls は捨てる)', () => {
-    const result = toStorageTabGroup(
-      createTabGroup({
-        domain: 'example.com',
-        id: 'group-1',
-        parentCategoryId: 'cat-1',
-        savedAt: 10,
-        urlIds: ['url-1'],
-      }),
-    )
-    expect(result).toStrictEqual({
-      domain: 'example.com',
-      id: 'group-1',
-      parentCategoryId: 'cat-1',
-      savedAt: 10,
-      urlIds: ['url-1'],
-    })
-    expect('urls' in result).toBe(false)
-  })
-})
-
-describe('SavedTabsSnapshotMapper.getSnapshotSavedTabs', () => {
-  it('savedTabs 未指定なら空配列を返す', () => {
-    expect(getSnapshotSavedTabs(buildSnapshot())).toStrictEqual([])
-  })
-
-  it('savedTabs が配列以外なら空配列を返す', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    expect(
-      getSnapshotSavedTabs(buildSnapshot({ savedTabs: 'invalid' as never })),
+      getSnapshotSavedTabs(snapshot({ savedTabs: 'invalid' as never })),
     ).toStrictEqual([])
+    const copied = getSnapshotSavedTabs(snapshot({ savedTabs: [group] }))
+    expect(copied).toStrictEqual([group])
+    expect(copied[0]).not.toBe(group)
   })
 
-  it('savedTabs を storage 形 TabGroup[] へ変換して返す', () => {
-    const result = getSnapshotSavedTabs(
-      buildSnapshot({
-        savedTabs: [
-          toSavedTabsTabGroupDto(
-            createTabGroup({
-              domain: 'example.com',
-              id: 'group-1',
-              parentCategoryId: 'cat-1',
-              savedAt: 10,
-              urlIds: ['url-1'],
-            }),
-          ),
-        ],
-      }),
-    )
-    expect(result).toStrictEqual([
-      {
-        domain: 'example.com',
-        id: 'group-1',
-        parentCategoryId: 'cat-1',
-        savedAt: 10,
-        urlIds: ['url-1'],
-      },
-    ])
-  })
-})
-
-describe('SavedTabsSnapshotMapper.toDomainParentCategories', () => {
-  it('undefined 入力は undefined を返す', () => {
+  it('parent categoriesをdomainへ変換しURL風domainはhostnameへ正規化する', () => {
     expect(toDomainParentCategories(undefined)).toBeUndefined()
-  })
-
-  it('storage 形 ParentCategory[] を branded 互換の形へ持ち替える', () => {
     const result = toDomainParentCategories([
       {
-        domains: ['group-1'],
-        domainNames: ['example.com'],
-        id: 'cat-1',
-        name: 'Reading',
-      },
-    ])
-    expect(result).toBeDefined()
-    expect(result?.[0]).toMatchObject({
-      domains: ['group-1'],
-      domainNames: ['example.com'],
-      id: 'cat-1',
-      name: 'Reading',
-    })
-  })
-
-  // 回帰: 保存フロー (lib/storage/migration getTabDomain) が
-  // `https://example.com` のようにスキーム付き文字列を domainNames に書き込む
-  // 既存データを開くとき、toDomainParentCategories 経由で
-  // createDomainName が「ドメイン名にスキームを含めることはできません」を投げて
-  // useTabOpeningHandlers.handleOpenTab がタブを開けなくする不具合の回帰。
-  it('domainNames にスキーム付き文字列が含まれても hostname へ正規化して例外を投げない', () => {
-    const result = toDomainParentCategories([
-      {
-        domains: ['group-1'],
-        domainNames: [
-          'https://example.com',
-          'http://other.com/path',
-          'plain.org',
+        collections: [
+          { domain: 'https://example.com/path', id: 'group-1' },
+          { domain: 'plain.org', id: 'group-2' },
         ],
-        id: 'cat-1',
-        name: 'Reading',
-      },
-    ])
-    expect(result?.[0].domainNames).toStrictEqual([
-      'example.com',
-      'other.com',
-      'plain.org',
-    ])
-  })
-})
-
-describe('SavedTabsSnapshotMapper.toDomainTabGroupsForReorder', () => {
-  it('storage 形 TabGroup[] を use-case 入力の形へ持ち替える', () => {
-    const result = toDomainTabGroupsForReorder([
-      {
-        domain: 'a.example.com',
-        id: 'group-a',
-        parentCategoryId: 'cat-1',
-        savedAt: 1,
-        urlIds: ['url-1'],
-      },
-    ])
-    expect(result).toHaveLength(1)
-    expect(result[0]).toMatchObject({
-      domain: 'a.example.com',
-      id: 'group-a',
-      parentCategoryId: 'cat-1',
-      savedAt: 1,
-      urlIds: ['url-1'],
-    })
-  })
-
-  it('urlIds が undefined のグループは空配列で詰める', () => {
-    const result = toDomainTabGroupsForReorder([
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      { domain: 'a.example.com', id: 'group-a' } as never,
-    ])
-    expect(result[0]?.urlIds).toStrictEqual([])
-  })
-})
-
-describe('SavedTabsSnapshotMapper.toRestoreOpenedUrlsSnapshotCommand', () => {
-  it('snapshot をそのままコマンドに包む', () => {
-    const snapshot = buildSnapshot({ savedTabs: [] })
-    expect(toRestoreOpenedUrlsSnapshotCommand(snapshot)).toStrictEqual({
-      snapshot,
-    })
-  })
-})
-
-describe('SavedTabsSnapshotMapper.toStorageCustomProjects', () => {
-  it('undefined 入力は undefined を返す', () => {
-    expect(toStorageCustomProjects(buildSnapshot())).toBeUndefined()
-  })
-
-  it('customProjects が空配列のものは空配列を維持', () => {
-    expect(
-      toStorageCustomProjects(buildSnapshot({ customProjects: [] })),
-    ).toStrictEqual([])
-  })
-
-  it('customProjects を storage 形配列へ変換する', () => {
-    expect(
-      toStorageCustomProjects(
-        buildSnapshot({
-          customProjects: [
-            toSavedTabsCustomProjectDto(
-              createCustomProject({
-                categories: ['cat-1'],
-                createdAt: 1,
-                id: 'project-1',
-                name: 'Reading',
-                updatedAt: 2,
-                urlIds: ['url-1'],
-              }),
-            ),
-          ],
-        }),
-      ),
-    ).toStrictEqual([
-      {
-        categories: ['cat-1'],
-        createdAt: 1,
-        id: 'project-1',
-        name: 'Reading',
-        updatedAt: 2,
-        urlIds: ['url-1'],
-      },
-    ])
-  })
-})
-
-describe('SavedTabsSnapshotMapper.toStorageParentCategories', () => {
-  it('undefined 入力は undefined を返す', () => {
-    expect(toStorageParentCategories(buildSnapshot())).toBeUndefined()
-  })
-
-  it('parentCategories を storage 形配列へ変換する', () => {
-    expect(
-      toStorageParentCategories(
-        buildSnapshot({
-          parentCategories: [
-            createParentCategory({
-              domains: ['group-1'],
-              domainNames: ['example.com'],
-              id: 'cat-1',
-              name: 'Reading',
-            }),
-          ],
-        }),
-      ),
-    ).toStrictEqual([
-      {
-        domains: ['group-1'],
-        domainNames: ['example.com'],
-        id: 'cat-1',
-        name: 'Reading',
-      },
-    ])
-  })
-})
-
-describe('SavedTabsSnapshotMapper storage application bridges', () => {
-  it('storage tab groupsをdomainとapplication DTOへ変換する', () => {
-    const groups = [
-      {
-        domain: 'example.com',
-        id: 'group-1',
-        parentCategoryId: 'category-1',
-        savedAt: 1,
-        urlIds: ['url-1'],
-      },
-    ]
-
-    expect(toDomainTabGroupsFromStorage(groups)[0]).toMatchObject({
-      domain: 'example.com',
-      id: 'group-1',
-      urlIds: ['url-1'],
-    })
-    expect(toSavedTabsTabGroupsFromStorage(groups)).toStrictEqual([
-      {
-        domain: 'example.com',
-        id: 'group-1',
-        parentCategoryId: 'category-1',
-        savedAt: 1,
-        urlIds: ['url-1'],
-      },
-    ])
-  })
-
-  it('storage parent categoriesをdomainへ変換する', () => {
-    expect(
-      toDomainParentCategoriesFromStorage([
-        {
-          domainNames: ['example.com'],
-          domains: ['group-1'],
-          id: 'category-1',
-          name: 'Docs',
-        },
-      ]),
-    ).toStrictEqual([
-      {
-        domainNames: ['example.com'],
-        domains: ['group-1'],
         id: 'category-1',
         name: 'Docs',
       },
+    ])
+    expect(result?.[0]?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'example.com',
+      'plain.org',
+    ])
+  })
+
+  it('tab group reorder/domain/application bridgesはnormalized projectionをcopyする', () => {
+    expect(toDomainTabGroupsForReorder([group])).toStrictEqual([group])
+    expect(toDomainTabGroupsFromStorage([group])).toStrictEqual([group])
+    expect(toSavedTabsTabGroupsFromStorage([group])).toStrictEqual([group])
+  })
+
+  it('restore commandはsnapshotをそのまま包む', () => {
+    const value = snapshot({ savedTabs: [group] })
+    expect(toRestoreOpenedUrlsSnapshotCommand(value)).toStrictEqual({
+      snapshot: value,
+    })
+  })
+
+  it('custom projectsのundefined/空/current配列を保持してcopyする', () => {
+    expect(toStorageCustomProjects(snapshot())).toBeUndefined()
+    expect(toStorageCustomProjects(snapshot({ customProjects: [] }))).toEqual(
+      [],
+    )
+    const copied = toStorageCustomProjects(
+      snapshot({ customProjects: [project] }),
+    )
+    expect(copied).toStrictEqual([project])
+    expect(copied?.[0]).not.toBe(project)
+  })
+
+  it('parent category snapshotのundefined/current配列を保持してcopyする', () => {
+    expect(toStorageParentCategories(snapshot())).toBeUndefined()
+    const copied = toStorageParentCategories(
+      snapshot({ parentCategories: [category] }),
+    )
+    expect(copied).toStrictEqual([category])
+    expect(copied?.[0]).not.toBe(category)
+    expect(toDomainParentCategoriesFromStorage([category])).toStrictEqual([
+      category,
     ])
   })
 })

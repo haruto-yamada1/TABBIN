@@ -9,6 +9,7 @@ import type {
   PersistenceCoordinationPort,
   PersistenceMigrationLifecyclePort,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import { createCompletePersistenceBootstrapServiceForTesting } from '@/contexts/saved-tabs/testing/createCompletePersistenceBootstrapService'
 
 import { PersistenceBootstrapService } from './PersistenceBootstrapService'
 import { transitionPersistenceControlState } from './PersistenceControlStateService'
@@ -185,7 +186,7 @@ describe('PersistenceBootstrapService', () => {
     const lifecycle = createLifecycle()
     const coordination = new SerialPersistenceCoordinator()
     const createContext = () =>
-      new PersistenceBootstrapService({
+      createCompletePersistenceBootstrapServiceForTesting({
         access: createAccess(),
         controlStateRepository: repository,
         coordination,
@@ -209,7 +210,7 @@ describe('PersistenceBootstrapService', () => {
       migrationId: 'migration-1',
     })
     const lifecycle = createLifecycle()
-    const restarted = new PersistenceBootstrapService({
+    const restarted = createCompletePersistenceBootstrapServiceForTesting({
       access: createAccess(),
       controlStateRepository: repository,
       coordination: new SerialPersistenceCoordinator(),
@@ -229,7 +230,7 @@ describe('PersistenceBootstrapService', () => {
       migrationId: 'migration-1',
     })
     const lifecycle = createLifecycle()
-    const restarted = new PersistenceBootstrapService({
+    const restarted = createCompletePersistenceBootstrapServiceForTesting({
       access: createAccess(),
       controlStateRepository: repository,
       coordination: new SerialPersistenceCoordinator(),
@@ -243,10 +244,34 @@ describe('PersistenceBootstrapService', () => {
     expect(repository.state.status).toBe('indexeddb')
   })
 
+  it('defers cutover-pending by default until completion is explicitly enabled', async () => {
+    const repository = new FakeControlStateRepository({
+      status: 'cutover-pending',
+      migrationId: 'migration-1',
+    })
+    const lifecycle = createLifecycle()
+    const restarted = new PersistenceBootstrapService({
+      access: createAccess(),
+      controlStateRepository: repository,
+      coordination: new SerialPersistenceCoordinator(),
+      migrationLifecycle: lifecycle,
+    })
+
+    await restarted.ready()
+
+    expect(lifecycle.migrate).not.toHaveBeenCalled()
+    expect(lifecycle.verify).not.toHaveBeenCalled()
+    expect(repository.transition).not.toHaveBeenCalled()
+    expect(repository.state).toEqual({
+      status: 'cutover-pending',
+      migrationId: 'migration-1',
+    })
+  })
+
   it('runs migration and verification before publishing indexeddb state', async () => {
     const repository = new FakeControlStateRepository({ status: 'legacy' })
     const lifecycle = createLifecycle()
-    const service = new PersistenceBootstrapService({
+    const service = createCompletePersistenceBootstrapServiceForTesting({
       access: createAccess(),
       controlStateRepository: repository,
       coordination: new SerialPersistenceCoordinator(),
@@ -352,7 +377,7 @@ describe('PersistenceBootstrapService', () => {
     const repository = new FakeControlStateRepository({ status: 'legacy' })
     const lifecycle = createLifecycle()
     vi.mocked(lifecycle.migrate).mockRejectedValueOnce(new Error('temporary'))
-    const service = new PersistenceBootstrapService({
+    const service = createCompletePersistenceBootstrapServiceForTesting({
       access: createAccess(),
       controlStateRepository: repository,
       coordination: new SerialPersistenceCoordinator(),

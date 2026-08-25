@@ -1,4 +1,5 @@
 import type { RemoveSubCategoryFromTabGroupPort } from '@/contexts/saved-tabs/application/ports/RemoveSubCategoryFromTabGroupPort'
+import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import { removeSubCategoryFromTabGroup } from '@/lib/storage/tabs'
 
 /**
@@ -27,7 +28,8 @@ export const createLibRemoveSubCategoryFromTabGroupAdapter =
   (): RemoveSubCategoryFromTabGroupPort => {
     return {
       removeSubCategoryFromTabGroup: async (groupId, categoryName) => {
-        return removeSubCategoryFromTabGroup(groupId, categoryName)
+        const raw = await removeSubCategoryFromTabGroup(groupId, categoryName)
+        return ChromeSavedTabsStorageMapper.parseTabGroups(raw)
       },
     }
   }

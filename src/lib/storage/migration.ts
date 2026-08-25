@@ -1,15 +1,15 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { filterItemsBySavableUrl } from '@/lib/url-filter'
 import type {
   DomainCategorySettings,
   DomainParentCategoryMapping,
   ParentCategory,
   SubCategoryKeyword,
   TabGroup,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
+import { filterItemsBySavableUrl } from '@/lib/url-filter'
 import {
   domainMatches,
   hasNormalizedDomain,

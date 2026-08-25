@@ -3,8 +3,9 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
+import { toSavedTabsCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 
@@ -39,18 +40,7 @@ export const useProjectMoveHandlers = ({
           // のため、mapper 経由で projection する。
           getCustomProjects: async () => {
             const projects = await savedTabsUseCases.getCustomProjects()
-            return projects.map((project) => ({
-              categories: [...project.categories],
-              createdAt: project.createdAt,
-              // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain CustomProjectId と storage 側の string 差 (issue #511 と同系統)
-              id: project.id,
-              name: project.name,
-              updatedAt: project.updatedAt,
-              ...((project.urlIds ?? []).length > 0
-                ? // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain UrlRecordId と storage 側の string 差 (issue #511 と同系統)
-                  { urlIds: [...(project.urlIds ?? [])] }
-                : {}),
-            }))
+            return projects.map(toSavedTabsCustomProjectViewModel)
           },
           moveUrlBetweenCustomProjects:
             savedTabsUseCases.moveUrlBetweenCustomProjects,

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CustomModeViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomModeViewModel'
 import { createCustomModeViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomModeViewModel'
 import type { CustomProjectViewModel } from '@/contexts/saved-tabs/presentation/view-models/CustomProjectViewModel'
@@ -74,13 +74,13 @@ export const useCustomModeController = (
         categories: [...project.categories],
         categoryOrder: project.categories,
         createdAt: project.createdAt,
-        displayUrlCount: (project.urlIds ?? []).length,
-        hasUrls: (project.urlIds ?? []).length > 0,
+        displayUrlCount:
+          project.urls?.length ?? project.memberships?.length ?? 0,
+        hasUrls: (project.urls?.length ?? project.memberships?.length ?? 0) > 0,
         id: project.id,
         name: project.name,
         updatedAt: project.updatedAt,
-        urlIds: [...(project.urlIds ?? [])],
-        urls: [],
+        urls: project.urls?.map((url) => ({ ...url })) ?? [],
       }))
     }
     return parentViewModel.customProjects
@@ -103,7 +103,6 @@ export const useCustomModeController = (
           id: vm.id,
           name: vm.name,
           updatedAt: vm.updatedAt,
-          urlIds: [...vm.urlIds],
           urls: [...vm.urls],
         })),
         searchQuery,

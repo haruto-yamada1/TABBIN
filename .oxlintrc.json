@@ -453,7 +453,10 @@
     "vitest/require-top-level-describe": "error",
     "vitest/no-identical-title": "error",
     "vitest/valid-title": "error",
-    "vitest/expect-expect": "error",
+    "vitest/expect-expect": [
+      "error",
+      { "assertFunctionNames": ["expect", "expectTypeOf", "fc.assert"] }
+    ],
     "vitest/no-conditional-expect": "error",
     "vitest/no-conditional-tests": "error",
     "vitest/prefer-expect-resolves": "error",

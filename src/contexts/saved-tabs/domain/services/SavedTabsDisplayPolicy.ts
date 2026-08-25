@@ -21,7 +21,5 @@ import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
  * ```
  */
 export const hasDisplayableUrls = (group: TabGroupDto): boolean => {
-  const hasNewUrls = Boolean(group.urlIds && group.urlIds.length > 0)
-  const hasOldUrls = Boolean(group.urls && group.urls.length > 0)
-  return hasNewUrls || hasOldUrls
+  return group.memberships.length > 0 || (group.resolvedUrls?.length ?? 0) > 0
 }

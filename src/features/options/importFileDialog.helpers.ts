@@ -1,13 +1,17 @@
 import type { Dispatch } from 'react'
 
+import type { LegacyBackupAdvisory } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
+
 type PreviewData = {
   version: string
   timestamp: string
   categoriesCount: number
   domainsCount: number
+  formatKind: 'current-v2' | 'legacy'
   projectsCount: number
   hasAiChat: boolean
   hasAnalytics: boolean
+  legacyBackupAdvisory?: LegacyBackupAdvisory
 }
 
 type ImportDialogState = {
@@ -46,7 +50,13 @@ const importDialogReducer = (
       return { ...state, step: 'select', previewData: null }
     }
     case 'SET_PREVIEW': {
-      return { ...state, previewData: action.preview, step: 'preview' }
+      return {
+        ...state,
+        mergeData:
+          action.preview.formatKind === 'current-v2' ? false : state.mergeData,
+        previewData: action.preview,
+        step: 'preview',
+      }
     }
     case 'SET_MERGE': {
       return { ...state, mergeData: action.mergeData }

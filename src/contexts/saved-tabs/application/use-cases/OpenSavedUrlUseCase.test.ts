@@ -1,13 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createOpenSavedUrlUseCase } from './OpenSavedUrlUseCase'
 
@@ -179,7 +181,7 @@ describe('OpenSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [group],
@@ -205,7 +207,7 @@ describe('OpenSavedUrlUseCase', () => {
     expect(repos.tabGroups).toStrictEqual([])
   })
 
-  it('他で参照されている UrlRecord は削除しない（CustomProject 参照）', async () => {
+  it('TabGroup と CustomProject の両方から外した UrlRecord を孤立させず削除する', async () => {
     const url = createUrlRecord({
       id: 'url-1',
       savedAt: 1,
@@ -215,7 +217,7 @@ describe('OpenSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: ['research'],
@@ -223,7 +225,7 @@ describe('OpenSavedUrlUseCase', () => {
       id: 'project-1',
       name: 'Project',
       updatedAt: 1,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [project],
@@ -242,16 +244,16 @@ describe('OpenSavedUrlUseCase', () => {
       urlRecordId: url.id,
     })
 
-    expect(result.removedUrlRecordId).toBeNull()
-    expect(repos.urlRecords.map((record) => record.id)).toStrictEqual([url.id])
+    expect(result.removedUrlRecordId).toBe(url.id)
+    expect(result.removedUrlRecord?.id).toBe(url.id)
+    expect(repos.urlRecords).toStrictEqual([])
     expect(repos.tabGroups).toStrictEqual([])
-    // CustomProject 側にまだ参照があるので、saveAll は呼ばれない（変化なし）
-    expect(repos.customProjects.map((project) => project.id)).toStrictEqual([
-      project.id,
+    expect(repos.customProjects).toStrictEqual([
+      expect.objectContaining({ memberships: [] }),
     ])
   })
 
-  it('他で参照されている UrlRecord は削除しない（別 TabGroup 参照）', async () => {
+  it('複数 TabGroup すべてから外した UrlRecord を孤立させず削除する', async () => {
     const url = createUrlRecord({
       id: 'url-1',
       savedAt: 1,
@@ -261,12 +263,12 @@ describe('OpenSavedUrlUseCase', () => {
     const sourceGroup = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const otherGroup = createTabGroup({
       domain: 'other.com',
       id: 'group-2',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [sourceGroup, otherGroup],
@@ -284,8 +286,9 @@ describe('OpenSavedUrlUseCase', () => {
       urlRecordId: url.id,
     })
 
-    expect(result.removedUrlRecordId).toBeNull()
-    expect(repos.urlRecords.map((record) => record.id)).toStrictEqual([url.id])
+    expect(result.removedUrlRecordId).toBe(url.id)
+    expect(repos.urlRecords).toStrictEqual([])
+    expect(repos.tabGroups).toStrictEqual([])
   })
 
   it('externalDrop のときは removeTabAfterExternalDrop 設定を参照する', async () => {
@@ -298,7 +301,7 @@ describe('OpenSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [group],
@@ -335,7 +338,7 @@ describe('OpenSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: ['research'],
@@ -343,7 +346,7 @@ describe('OpenSavedUrlUseCase', () => {
       id: 'project-1',
       name: 'Project',
       updatedAt: 1,
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [project],
@@ -364,7 +367,9 @@ describe('OpenSavedUrlUseCase', () => {
 
     // urlIds から url-1 だけ削除された状態になる
     const afterProject = repos.customProjects[0]
-    expect(afterProject?.urlIds).toStrictEqual([urlKept.id])
+    expect(afterProject?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      urlKept.id,
+    ])
   })
 
   it('CustomProject にしか参照されていない UrlRecord も削除する', async () => {
@@ -380,7 +385,7 @@ describe('OpenSavedUrlUseCase', () => {
       id: 'project-1',
       name: 'Project',
       updatedAt: 1,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [project],
@@ -419,7 +424,7 @@ describe('OpenSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const unrelatedProject = createCustomProject({
       categories: ['research'],
@@ -427,7 +432,7 @@ describe('OpenSavedUrlUseCase', () => {
       id: 'project-unrelated',
       name: 'Unrelated',
       updatedAt: 1,
-      urlIds: ['url-other'],
+      memberships: ['url-other'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [unrelatedProject],
@@ -449,7 +454,9 @@ describe('OpenSavedUrlUseCase', () => {
 
     // 関係ない CustomProject は変化しないので saveAll は呼ばれない
     expect(saveSpy).not.toHaveBeenCalled()
-    expect(repos.customProjects[0]?.urlIds).toStrictEqual([otherUrl.id])
+    expect(
+      repos.customProjects[0]?.memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual([otherUrl.id])
   })
 
   it('どの TabGroup / CustomProject からも参照されていない UrlRecord も削除する', async () => {
@@ -511,7 +518,7 @@ describe('OpenSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [group],
@@ -531,7 +538,9 @@ describe('OpenSavedUrlUseCase', () => {
     })
 
     expect(saveSpy).toHaveBeenCalledTimes(1)
-    expect(repos.tabGroups[0]?.urlIds).toStrictEqual([urlKept.id])
+    expect(
+      repos.tabGroups[0]?.memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual([urlKept.id])
   })
 
   it('TabGroup の内容が変わらないときは saveAll を呼ばない', async () => {
@@ -544,7 +553,7 @@ describe('OpenSavedUrlUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [group],

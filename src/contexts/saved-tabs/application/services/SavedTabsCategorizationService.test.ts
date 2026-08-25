@@ -4,6 +4,8 @@ import type {
   SavedTabsParentCategoryDto as ParentCategoryDto,
   SavedTabsDisplayTabGroupDto as TabGroupDto,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { ResolvedTabGroupUrlDto } from '@/contexts/saved-tabs/domain/dto/ResolvedTabGroupUrlDto'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
   buildPresentationCategoryLookup,
@@ -11,23 +13,36 @@ import {
 } from './SavedTabsCategorizationService'
 
 const docsCategory: ParentCategoryDto = {
-  domainNames: ['docs.example.com'],
-  domains: ['group-docs-1', 'group-docs-2'],
+  collections: [
+    { id: 'group-docs-1', domain: 'docs1.example.com' },
+    { id: 'group-docs-2', domain: 'docs2.example.com' },
+  ],
   id: 'docs',
   name: 'Docs',
 }
 const newsCategory: ParentCategoryDto = {
-  domainNames: ['news.example.com'],
-  domains: [],
+  collections: [{ id: 'news-domain-reference', domain: 'news.example.com' }],
   id: 'news',
   name: 'News',
 }
 
-const makeGroup = (overrides: Partial<TabGroupDto> = {}): TabGroupDto => ({
-  domain: 'example.com',
-  id: 'group-1',
-  urlIds: ['url-1'],
-  ...overrides,
+const makeGroup = ({
+  domain = 'example.com',
+  groupId,
+  id = 'group-1',
+  resolvedUrls = ['url-1'].map((url) => ({ title: url, url })),
+}: {
+  readonly domain?: string
+  readonly groupId?: string
+  readonly id?: string
+  readonly resolvedUrls?: readonly ResolvedTabGroupUrlDto[]
+} = {}): TabGroupDto => ({
+  ...createTabGroup({
+    domain,
+    id,
+    ...(groupId !== undefined ? { parentCategoryId: groupId } : {}),
+  }),
+  resolvedUrls,
 })
 
 describe('SavedTabsCategorizationService.buildPresentationCategoryLookup', () => {
@@ -42,14 +57,13 @@ describe('SavedTabsCategorizationService.buildPresentationCategoryLookup', () =>
 
   it('同一 id / domainName を複数カテゴリが宣言したら先勝ちで保持する', () => {
     const conflicting: ParentCategoryDto = {
-      domainNames: ['docs.example.com'],
-      domains: ['group-docs-1'],
+      collections: [{ id: 'group-docs-1', domain: 'docs1.example.com' }],
       id: 'docs-conflict',
       name: 'Docs Conflict',
     }
     const lookup = buildPresentationCategoryLookup([docsCategory, conflicting])
     expect(lookup.byGroupId.get('group-docs-1')?.id).toBe('docs')
-    expect(lookup.byDomainName.get('docs.example.com')?.id).toBe('docs')
+    expect(lookup.byDomainName.get('docs1.example.com')?.id).toBe('docs')
   })
 
   it('空配列を渡しても例外を出さない', () => {
@@ -80,7 +94,7 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
         makeGroup({
           domain: 'other.example.com',
           id: 'group-other',
-          parentCategoryId: 'docs',
+          groupId: 'docs',
         }),
       ],
     })
@@ -141,7 +155,7 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
         makeGroup({
           domain: 'news.example.com',
           id: 'group-empty',
-          urlIds: [],
+          resolvedUrls: [],
         }),
         makeGroup({ domain: 'news.example.com', id: 'group-news' }),
       ],
@@ -215,7 +229,7 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
         makeGroup({
           domain: 'docs1.example.com',
           id: 'group-docs-1',
-          urls: [
+          resolvedUrls: [
             { title: 'React 入門', url: 'https://docs.example.com/react' },
             { title: 'Vue 入門', url: 'https://docs.example.com/vue' },
           ],
@@ -223,18 +237,19 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
         makeGroup({
           domain: 'docs2.example.com',
           id: 'group-docs-2',
-          urls: [{ title: 'Angular 入門', url: 'https://docs.example.com/ng' }],
+          resolvedUrls: [
+            { title: 'Angular 入門', url: 'https://docs.example.com/ng' },
+          ],
         }),
       ],
     })
-    expect(result.categorized.docs).toHaveLength(2)
+    expect(result.categorized.docs).toHaveLength(1)
     const group1 = result.categorized.docs?.find((g) => g.id === 'group-docs-1')
     const group2 = result.categorized.docs?.find((g) => g.id === 'group-docs-2')
-    expect(group1?.urls).toHaveLength(1)
-    expect(group1?.urls?.[0]?.title).toBe('React 入門')
-    // group-docs-2 は urls が全件フィルタで消えるが urlIds があり
-    // hasDisplayableUrls=true なので categorized に残る (既存挙動)。
-    expect(group2?.urls).toHaveLength(0)
+    expect(group1?.resolvedUrls).toHaveLength(1)
+    expect(group1?.resolvedUrls?.[0]?.title).toBe('React 入門')
+    // group-docs-2 は hydrated urls が全件フィルタで消えるため表示対象外。
+    expect(group2).toBeUndefined()
   })
 
   it('searchQuery が何にもマッチしない urls を持つグループは categorizing から除外される', () => {
@@ -250,8 +265,7 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
         makeGroup({
           domain: 'news.example.com',
           id: 'group-news',
-          urlIds: [],
-          urls: [{ title: 'Other', url: 'https://other.example.com' }],
+          resolvedUrls: [{ title: 'Other', url: 'https://other.example.com' }],
         }),
       ],
     })
@@ -295,11 +309,11 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
         makeGroup({
           domain: 'news.example.com',
           id: 'group-other',
-          parentCategoryId: 'news',
+          groupId: 'news',
         }),
       ],
     })
-    expect(result.categorized.news?.[0]?.parentCategoryId).toBe('news')
+    expect(result.categorized.news?.[0]?.collection.groupId).toBe('news')
   })
 
   it('URL 件数やカテゴリ件数が既存表示と同じになる (混合パターン)', () => {
@@ -314,7 +328,7 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
         makeGroup({
           domain: 'empty.example.com',
           id: 'group-empty',
-          urlIds: [],
+          resolvedUrls: [],
         }),
       ],
     })

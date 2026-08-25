@@ -2,15 +2,11 @@
  * 拡張機能アクション管理モジュール
  */
 
+import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { getMessage } from '@/features/i18n/lib/language'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { saveTabsWithAutoCategory } from '@/lib/storage/migration'
-import { saveUrlsToCustomProjects } from '@/lib/storage/projects'
 import { getUserSettings } from '@/lib/storage/settings'
-import {
-  filterItemsBySavableUrl,
-  normalizeUrlCandidate,
-} from '@/lib/url-filter'
+import { normalizeUrlCandidate } from '@/lib/url-filter'
 import type { UserSettings } from '@/types/storage'
 
 import { getBackgroundLanguage } from './i18n'
@@ -65,35 +61,8 @@ const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
   return chrome.tabs.query({})
 }
 
-const toSavedTabItems = async (
-  tabs: {
-    url?: string
-    title?: string
-  }[],
-): Promise<
-  {
-    url: string
-    title: string
-  }[]
-> => {
-  const { excludePatterns } = await getUserSettings()
-
-  return filterItemsBySavableUrl(tabs, excludePatterns).reduce<
-    { title: string; url: string }[]
-  >((items, tab) => {
-    items.push({
-      title: tab.title ?? '',
-      url: normalizeUrlCandidate(tab.url) ?? '',
-    })
-    return items
-  }, [])
-}
-
 const toResultItems = (
-  tabs: {
-    url?: string
-    title?: string
-  }[],
+  tabs: Pick<chrome.tabs.Tab, 'title' | 'url'>[],
 ): {
   url: string
   title: string
@@ -109,28 +78,17 @@ const toResultItems = (
     return items
   }, [])
 
-const syncSavedTabsToCustomMode = async (
-  tabs: {
-    url?: string
-    title?: string
-  }[],
-): Promise<void> => {
-  const savedTabItems = await toSavedTabItems(tabs)
-  if (savedTabItems.length === 0) {
+const saveTabsInBothModes = async (tabs: chrome.tabs.Tab[]): Promise<void> => {
+  if (tabs.length === 0) {
     return
   }
-  try {
-    await saveUrlsToCustomProjects(savedTabItems)
-  } catch (error) {
-    console.error('カスタムモードへの同期に失敗しました:', error)
-  }
-}
-
-const saveTabsInBothModes = async (tabs: chrome.tabs.Tab[]): Promise<void> => {
-  // Both paths upsert the shared `urls` collection. Keep them sequential so
-  // their read-modify-write cycles cannot create divergent IDs or lose URLs.
-  await saveTabsWithAutoCategory(tabs)
-  await syncSavedTabsToCustomMode(tabs)
+  await getBackgroundSavedTabsDataPlane().saveTabs(
+    tabs.map(({ title, url, ...tabMetadata }) => ({
+      ...tabMetadata,
+      ...(url !== undefined ? { url } : {}),
+      ...(title !== undefined ? { title } : {}),
+    })),
+  )
 }
 
 const notifyAndCloseTabs = async (

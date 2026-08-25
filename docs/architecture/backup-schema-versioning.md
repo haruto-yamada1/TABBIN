@@ -36,13 +36,71 @@ type BackupEnvelope<TData> = {
 }
 ```
 
-The concrete current `data` schema and production current version belong to
-#730. Components and mappers consume the caller-owned schema registry; they do
-not duplicate a schema-version magic number.
+The production current contract is `BackupEnvelopeV2`:
+
+```ts
+type BackupEnvelopeV2 = {
+  readonly schemaVersion: 2
+  readonly appVersion: string
+  readonly exportedAt: string
+  readonly data: {
+    readonly savedTabs: {
+      readonly urls: readonly PersistenceV2Url[]
+      readonly collections: readonly PersistenceV2Collection[]
+      readonly memberships: readonly PersistenceV2CollectionMembership[]
+      readonly categories: readonly PersistenceV2CollectionCategory[]
+      readonly groups: readonly PersistenceV2CollectionGroup[]
+    }
+    readonly conversations: readonly PersistenceJsonRecord[]
+    readonly messages: readonly PersistenceMessageRecord[]
+    readonly analyticsViews: readonly PersistenceJsonRecord[]
+    readonly userSettings: UserSettings
+  }
+}
+```
 
 Backup V2 is a logical, JSON-safe projection selected by the Storage Placement
 Matrix. It is never an IndexedDB database, object-store, index, cache, migration
-metadata, or transaction log dump.
+metadata, recovery snapshot, revision, transaction log, or other internal
+control state.
+
+The concrete runtime contract and canonical mapper live in
+`src/features/options/lib/import-export/v2/BackupV2Schema.ts` and
+`BackupMapper.ts`. The current Options export entry point is composed in
+`src/app/composition/optionsBackupV2Export.ts`; the old schema-less
+`exportSettings` remains a compatibility boundary and is not called by the
+production Options export button.
+
+## Consistent and deterministic export
+
+The IndexedDB-backed portion of a backup is read by
+`IndexedDbPersistenceSnapshotReader` in one readonly transaction spanning the
+saved-tab, conversation, message, and analytics stores. The mapper then removes
+the internal revision and canonicalizes logical records, entity arrays, and
+JSON object keys. Equivalent logical snapshots therefore produce identical
+`data`; only the caller-provided `exportedAt` changes with the clock.
+
+User settings remain owned by `chrome.storage.local` and are read after the
+IndexedDB snapshot. Browser storage engines cannot participate in one atomic
+transaction, so Backup V2 does not claim cross-engine atomicity for settings.
+The schema still validates the combined public envelope strictly and rejects
+non-JSON-safe values without silently repairing them.
+
+Export validation order is:
+
+```text
+one IndexedDB logical snapshot
+  -> #712 saved-tabs integrity check
+  -> strict public mapping and canonical ordering
+  -> logical resource limits
+  -> JSON serialization
+  -> serialized-byte limit
+```
+
+The shared resource limits live in
+`src/lib/persistence/backupResourcePolicy.ts`. A healthy backup is not rejected
+by the former fixed 10 MiB file limit; both export and import use the shared
+128 MiB serialized limit plus entity, nested-array, and UTF-8 byte limits.
 
 ## Format detection boundary
 
@@ -57,6 +115,13 @@ unknown JSON
 
 Legacy classification is routing information only. The versioned pipeline does
 not parse, migrate, or accept pre-IndexedDB data.
+
+`BackupV2Inspector.ts` owns strict current, future, and legacy inspection.
+Current V2 is fully validated before it is accepted, a future positive integer
+version preserves `UNSUPPORTED_FUTURE_SCHEMA`, and a malformed versioned
+envelope is never retried as legacy. The temporary production mutation boundary
+is `productionImportGate.ts`, which runs before installed-data migration or any
+storage read/write.
 
 ## Sequential migration registry
 
@@ -141,15 +206,63 @@ validation.
 
 The target support policy is:
 
-- legacy pre-IndexedDB backup import is available through `2026-08-31`;
+- legacy pre-IndexedDB backup import is available through `2026-09-30`;
 - #734 removes the legacy parser, mapper, detector branch, fixtures, deadline
-  constants, and temporary UI branch from `2026-09-01`;
+  constants, and temporary UI branch from `2026-10-01`;
 - the parent policy still requires at least 30 days after the production notice
-  release, so a late notice release postpones the cutoff consistently across
-  #724, #730, #731, #734, docs, i18n, constants, and tests.
+  release. The notice must reach the Chrome Web Store by `2026-09-01`; a later
+  release postpones the cutoff consistently across #724, #730, #731, #734,
+  docs, i18n, constants, and tests.
+
+The central dates and notice calculation are defined only in
+`compatibility/legacyBackupPolicy.ts`:
+
+| Policy value                  | Date / rule  |
+| ----------------------------- | ------------ |
+| Last supported import date    | `2026-09-30` |
+| Cutoff date                   | `2026-10-01` |
+| Latest on-time notice release | `2026-09-01` |
+| Minimum notice                | 30 days      |
+
+Legacy preview metadata carries a content-free advisory with
+`requiresReExport: true`, `lastSupportedDate`, and `cutoffDate`. Notice rendering
+and translations belong to #731, not this persistence contract.
 
 The live installed-data `chrome.storage.local` to IndexedDB migration has a
 separate lifecycle and is not deleted by the backup cutoff.
+
+## Production import rollout gate
+
+Current Backup V2 overwrite and a valid legacy overwrite before the cutoff now
+route through the recovery-backed `ImportBackupV2UseCase`. The use case must
+persist a consistent logical recovery snapshot before opening the replacement
+transaction; capture, capacity, retention, or persistence failure blocks the
+overwrite. Current V2 merge remains fail-closed with
+`CURRENT_V2_MERGE_UNAVAILABLE`; a valid legacy merge before the cutoff continues
+through the temporary merge route. Versioned input is inspected before routing
+so future and invalid schemas retain their typed schema errors.
+
+An allowed legacy merge is converted by `LegacyBackupAdapter` and committed as
+strict IndexedDB `put` mutations through `IndexedDbPersistenceUnitOfWork`.
+Existing logical records are not cleared, and the actual persistence operation
+gate must authorize the `indexeddb` route. The merge never falls back to
+`chrome.storage.local` domain writes after IndexedDB cutover; user settings
+remain the separately owned cross-engine write.
+
+`ImportBackupV2UseCase.ts` owns the production overwrite transaction and
+readback contract, including the unavoidable separate settings write. Recovery
+data is local-only, is strictly parsed before restore, and is never included in
+the public backup, diagnostics, logs, or change-event payload. Legacy, future,
+expired-legacy, and invalid versioned inputs are classified before mutation;
+the compatibility parser remains isolated under `import-export/legacy/`.
+
+`PreImportRecoverySnapshotService` holds the pre-restore logical state and
+settings in memory before replacement. A settings-write or target-readback
+failure after commit runs a second strict replacement to re-establish that
+state, writes the prior settings, verifies both stores, and returns a fixed
+typed failure containing only compensation metadata. Post-commit change-ID or
+publication failure is instead typed partial success retaining the committed
+revision, scopes, and failed notification stage.
 
 ## Validation and review checklist
 
@@ -161,6 +274,15 @@ separate lifecycle and is not deleted by the backup cutoff.
 - Unsupported old input is rejected with `UNSUPPORTED_SCHEMA_VERSION`.
 - Invalid data is rejected with `INVALID_SCHEMA`.
 - Legacy detection does not import or migrate legacy data.
+- Every production overwrite enters the recovery-backed use case before
+  mutation.
+- A restore failure after replacement either verifies compensation or returns
+  `RECOVERY_COMPENSATION_FAILED`; it does not silently leave a mixed state.
+- Recovery notification failure retains committed revision and scopes as typed
+  partial success.
+- Current V2 merge remains fail-closed until its own rollout contract exists.
+- Settings are documented as a separate cross-engine write.
+- Logical resource validation precedes serialized-byte validation.
 - Golden fixtures cover each supported version, current, future, and invalid
   data.
 - The public backup remains a logical JSON-safe contract rather than an

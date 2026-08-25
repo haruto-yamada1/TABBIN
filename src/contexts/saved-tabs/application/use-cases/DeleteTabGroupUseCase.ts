@@ -72,7 +72,7 @@ export const createDeleteTabGroupUseCase = (
       (group) => group.id !== targetGroup.id,
     )
     const urlRecordsInTarget = allUrlRecords.filter((record) =>
-      targetGroup.urlIds.includes(record.id),
+      targetGroup.memberships.some(({ urlId }) => urlId === record.id),
     )
     const unreferenced = filterUnreferencedUrlRecords({
       customProjects: allCustomProjects,
@@ -91,9 +91,6 @@ export const createDeleteTabGroupUseCase = (
     }
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
-      customProjectOrder: undefined,
-      customProjects: undefined,
-      parentCategories: undefined,
       savedTabs: [toSavedTabsTabGroupDto(targetGroup)],
       urlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }

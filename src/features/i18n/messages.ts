@@ -29,6 +29,10 @@ const messages = {
     'aiChat.history.resumeHint': 'Resume from a saved conversation',
     'aiChat.history.startPrompt': 'Start a new conversation',
     'aiChat.historyHint': 'Click to continue',
+    'aiChat.historyLoadError':
+      'Conversation history could not be loaded. Reload the page and try again.',
+    'aiChat.historySaveError':
+      'Your latest conversation changes could not be saved. Reload before continuing to avoid losing more changes.',
     'aiChat.historyTitle': 'Recent conversations',
     'aiChat.inputLabel': 'Ask AI',
     'aiChat.inputPlaceholder': 'Ask about your saved tabs',
@@ -180,6 +184,9 @@ const messages = {
     'analytics.chart.descriptionCompareMode':
       '{{count}} saved records compared by mode',
     'analytics.chart.monthlySavedTrend': 'Monthly saved trend',
+    'analytics.chart.savedCountByCollection': 'Saved count by collection',
+    'analytics.chart.savedCountByCollectionCategory':
+      'Saved count by collection category',
     'analytics.chart.savedCountByDomain': 'Saved count by domain',
     'analytics.chart.savedCountByParentCategory':
       'Saved count by parent category',
@@ -206,6 +213,9 @@ const messages = {
     'analytics.drilldownEmpty': 'No matching saved tabs were found.',
     'analytics.drilldownTitle': 'Saved tabs in this item',
     'analytics.groupBy.domain': 'Domain',
+    'analytics.groupBy.collection': 'Collection',
+    'analytics.groupBy.collectionCategory': 'Collection category',
+    'analytics.groupBy.collectionGroup': 'Collection group',
     'analytics.groupBy.parentCategory': 'Parent category',
     'analytics.groupBy.project': 'Project',
     'analytics.groupBy.subCategory': 'Sub category',
@@ -213,6 +223,14 @@ const messages = {
     'analytics.groupBy.timeTop': 'Time series (top counts)',
     'analytics.groupByLabel': 'Group by',
     'analytics.limitLabel': 'Top count',
+    'analytics.collectionType.all': 'All collections',
+    'analytics.collectionType.custom': 'Custom collections',
+    'analytics.collectionType.domain': 'Domain collections',
+    'analytics.collectionTypeLabel': 'Collection type',
+    'analytics.metric.firstSaved': 'First saved URLs',
+    'analytics.metric.lastSaved': 'Last saved activity',
+    'analytics.metric.membershipAdded': 'Collection additions',
+    'analytics.metricLabel': 'Metric',
     'analytics.open': 'Open',
     'analytics.openAllAria': 'Open all tabs in this item',
     'analytics.openAria': 'Open {{title}}',
@@ -222,6 +240,8 @@ const messages = {
     'analytics.savedViewsEmpty': 'No saved analytics views yet.',
     'analytics.savedViewsTitle': 'Saved views',
     'analytics.summary': 'Created {{title}} from {{count}} saved records.',
+    'analytics.timestampQualityNotice':
+      'Some historical dates come from legacy fallback data. Counts remain available, but first-save, last-save activity, or collection-addition dates may be approximate.',
     'analytics.uncategorized': 'Uncategorized',
     'analytics.viewName': 'View name',
     'analytics.viewNameDuplicate': 'A view with this name already exists',
@@ -448,6 +468,11 @@ const messages = {
     'options.fontSize.rangeLabel': 'Font size slider',
     'options.importExport.back': 'Back',
     'options.importExport.cancel': 'Cancel',
+    'options.importExport.compatibilityAction':
+      'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
+    'options.importExport.compatibilityTitle': 'Backup format',
+    'options.importExport.compatibilityWarning':
+      'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
     'options.importExport.confirmImport': 'Confirm Import',
     'options.importExport.dialogDescription':
       'Restore settings and tab data from a previously exported backup file.',
@@ -469,6 +494,11 @@ const messages = {
       'The imported data format is invalid',
     'options.importExport.importing': 'Importing...',
     'options.importExport.invalidJson': 'Please select a JSON file',
+    'options.importExport.legacyPreviewAction':
+      'After importing, export a new-format backup again.',
+    'options.importExport.legacyPreviewTitle': 'Legacy backup',
+    'options.importExport.legacyPreviewWarning':
+      'This legacy backup can no longer be imported on or after {{cutoffDate}}.',
     'options.importExport.merge': 'Merge with existing data (recommended)',
     'options.importExport.mergeDescription':
       'Keep existing data and add or update new data.',
@@ -492,6 +522,19 @@ const messages = {
     'options.importExport.previewTitle': 'Import Preview',
     'options.importExport.previewVersionLabel': 'Backup Version',
     'options.importExport.readError': 'Failed to read the file',
+    'options.importExport.recoveryDescription':
+      'Created {{createdAt}}. Available until {{expiresAt}}.',
+    'options.importExport.recoveryRestore': 'Restore original data',
+    'options.importExport.recoveryRestoreConfirmAction': 'Restore now',
+    'options.importExport.recoveryRestoreConfirmDescription':
+      'Replace the current data with this recovery point? A recovery point for the current data will be saved first.',
+    'options.importExport.recoveryRestoreConfirmTitle':
+      'Restore the data from before import?',
+    'options.importExport.recoveryRestoreError':
+      'Could not restore the original data',
+    'options.importExport.recoveryRestoreSuccess': 'Restored the original data',
+    'options.importExport.recoveryRestoring': 'Restoring...',
+    'options.importExport.recoveryTitle': 'Recovery point available',
     'options.importExport.replaceDescription':
       'Importing will overwrite all current settings and tab data. This cannot be undone.',
     'options.importExport.replaceLabel': 'Warning',
@@ -506,19 +549,33 @@ const messages = {
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
+    'options.persistenceRecovery.actionFailed':
+      'The action could not be completed. Try again.',
     'options.persistenceRecovery.backup': 'Back up current data',
+    'options.persistenceRecovery.backupPrivacy':
+      'The emergency backup contains private URLs, titles, notes, and AI content. Store it securely.',
+    'options.persistenceRecovery.copyDiagnostic': 'Copy diagnostics',
     'options.persistenceRecovery.description':
       'The update could not be completed. Your previous data has not been deleted.',
+    'options.persistenceRecovery.diagnostic': 'Safe migration diagnostics',
     'options.persistenceRecovery.diskWriteFailed':
       'Writing data to browser storage failed.',
     'options.persistenceRecovery.preflightFailed':
       'Available browser storage could not be confirmed.',
     'options.persistenceRecovery.quotaExceeded':
       'There is not enough browser storage to complete the update.',
+    'options.persistenceRecovery.recheck': 'Run checks and retry',
     'options.persistenceRecovery.retry': 'Retry',
     'options.persistenceRecovery.storageUnavailable':
       'Browser storage is currently unavailable.',
     'options.persistenceRecovery.title': 'Storage recovery required',
+    'persistenceMigrationNotice.dismiss': 'Dismiss migration notice',
+    'persistenceMigrationNotice.importExportLink': 'Open Import / Export',
+    'persistenceMigrationNotice.message':
+      'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
+    'persistenceMigrationNotice.title': 'Data storage was updated',
+    'persistenceMigrationNotice.warning':
+      'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
     'options.previewFontSizeCustomization': '(preview) Font size',
@@ -894,6 +951,10 @@ const messages = {
     'aiChat.history.resumeHint': '保存済みの会話から再開できます',
     'aiChat.history.startPrompt': '新しい会話を始めてください',
     'aiChat.historyHint': 'クリックして続きを開く',
+    'aiChat.historyLoadError':
+      '会話履歴を読み込めませんでした。ページを再読み込みして、もう一度お試しください。',
+    'aiChat.historySaveError':
+      '最新の会話変更を保存できませんでした。これ以上変更を失わないよう、続ける前にページを再読み込みしてください。',
     'aiChat.historyTitle': '最近の会話',
     'aiChat.inputLabel': 'AIに質問する',
     'aiChat.inputPlaceholder': '保存済みタブについて質問してください',
@@ -1039,6 +1100,9 @@ const messages = {
     'analytics.chart.descriptionCompareMode':
       '{{count}} 件の保存データをモード別に比較',
     'analytics.chart.monthlySavedTrend': '月別の保存推移',
+    'analytics.chart.savedCountByCollection': 'コレクションごとの保存数',
+    'analytics.chart.savedCountByCollectionCategory':
+      'コレクションカテゴリごとの保存数',
     'analytics.chart.savedCountByDomain': 'ドメインごとの保存数',
     'analytics.chart.savedCountByParentCategory': '親カテゴリごとの保存数',
     'analytics.chart.savedCountByProject': 'プロジェクトごとの保存数',
@@ -1064,6 +1128,9 @@ const messages = {
     'analytics.drilldownEmpty': '該当する保存タブはありません。',
     'analytics.drilldownTitle': '項目に含まれる保存タブ',
     'analytics.groupBy.domain': 'ドメイン',
+    'analytics.groupBy.collection': 'コレクション',
+    'analytics.groupBy.collectionCategory': 'コレクションカテゴリ',
+    'analytics.groupBy.collectionGroup': 'コレクショングループ',
     'analytics.groupBy.parentCategory': '親カテゴリ',
     'analytics.groupBy.project': 'プロジェクト',
     'analytics.groupBy.subCategory': '子カテゴリ',
@@ -1071,6 +1138,14 @@ const messages = {
     'analytics.groupBy.timeTop': '時系列（件数）',
     'analytics.groupByLabel': '集計軸',
     'analytics.limitLabel': '上位件数',
+    'analytics.collectionType.all': 'すべてのコレクション',
+    'analytics.collectionType.custom': 'カスタムコレクション',
+    'analytics.collectionType.domain': 'ドメインコレクション',
+    'analytics.collectionTypeLabel': 'コレクション種別',
+    'analytics.metric.firstSaved': 'URLの初回保存',
+    'analytics.metric.lastSaved': '最終保存アクティビティ',
+    'analytics.metric.membershipAdded': 'コレクションへの追加',
+    'analytics.metricLabel': '指標',
     'analytics.open': '開く',
     'analytics.openAllAria': 'この項目のタブをすべて開く',
     'analytics.openAria': '{{title}} を開く',
@@ -1081,6 +1156,8 @@ const messages = {
     'analytics.savedViewsTitle': '保存済みビュー',
     'analytics.summary':
       '{{count}} 件の保存データから「{{title}}」を作成しました。',
+    'analytics.timestampQualityNotice':
+      '一部の履歴日時は旧データからの代替値です。件数は確認できますが、初回保存日、最終保存日時、コレクション追加日は概算の場合があります。',
     'analytics.uncategorized': '未分類',
     'analytics.viewName': 'ビュー名',
     'analytics.viewNameDuplicate': 'このビュー名は既に存在しています',
@@ -1310,6 +1387,11 @@ const messages = {
     'options.fontSize.rangeLabel': 'フォントサイズスライダー',
     'options.importExport.back': '戻る',
     'options.importExport.cancel': 'キャンセル',
+    'options.importExport.compatibilityAction':
+      '必要なバックアップは{{lastSupportedDate}}までにインポートし、新しい形式で再度エクスポートしてください。',
+    'options.importExport.compatibilityTitle': 'バックアップ形式について',
+    'options.importExport.compatibilityWarning':
+      '以前のバージョンで作成したバックアップは、{{cutoffDate}}以降インポートできなくなります。',
     'options.importExport.confirmImport': 'インポートを実行',
     'options.importExport.dialogDescription':
       '以前にエクスポートしたバックアップファイルから設定とタブデータを復元します。',
@@ -1329,6 +1411,11 @@ const messages = {
       'インポートされたデータの形式が正しくありません',
     'options.importExport.importing': 'インポート中...',
     'options.importExport.invalidJson': 'JSONファイルを選択してください',
+    'options.importExport.legacyPreviewAction':
+      'インポート後、新しい形式でバックアップを再作成してください。',
+    'options.importExport.legacyPreviewTitle': '旧形式のバックアップです',
+    'options.importExport.legacyPreviewWarning':
+      '{{cutoffDate}}以降、この形式はインポートできなくなります。',
     'options.importExport.merge': '既存データとマージする（推奨）',
     'options.importExport.mergeDescription':
       '既存のデータを保持しつつ、新しいデータを追加・更新します。',
@@ -1350,6 +1437,19 @@ const messages = {
     'options.importExport.previewTitle': 'インポートプレビュー',
     'options.importExport.previewVersionLabel': 'バックアップバージョン',
     'options.importExport.readError': 'ファイルの読み込みに失敗しました',
+    'options.importExport.recoveryDescription':
+      '{{createdAt}} に保存されました。{{expiresAt}} まで利用できます。',
+    'options.importExport.recoveryRestore': '元のデータに戻す',
+    'options.importExport.recoveryRestoreConfirmAction': '復元する',
+    'options.importExport.recoveryRestoreConfirmDescription':
+      '現在のデータをこの回復ポイントで置き換えます。現在のデータも復元前に回復ポイントとして保存されます。',
+    'options.importExport.recoveryRestoreConfirmTitle':
+      'インポート前のデータに戻しますか？',
+    'options.importExport.recoveryRestoreError':
+      '元のデータに戻すことができませんでした',
+    'options.importExport.recoveryRestoreSuccess': '元のデータに戻しました',
+    'options.importExport.recoveryRestoring': '復元中...',
+    'options.importExport.recoveryTitle': '回復ポイントがあります',
     'options.importExport.replaceDescription':
       'インポートすると現在の設定とタブデータがすべて上書きされます。この操作は元に戻せません。',
     'options.importExport.replaceLabel': '警告',
@@ -1364,19 +1464,33 @@ const messages = {
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
+    'options.persistenceRecovery.actionFailed':
+      '操作を完了できませんでした。もう一度お試しください。',
     'options.persistenceRecovery.backup': '現在のデータをバックアップ',
+    'options.persistenceRecovery.backupPrivacy':
+      '緊急バックアップには非公開のURL、タイトル、メモ、AIの内容が含まれます。安全な場所に保管してください。',
+    'options.persistenceRecovery.copyDiagnostic': '診断情報をコピー',
     'options.persistenceRecovery.description':
       'データの更新を完了できませんでした。以前のデータは削除されていません。',
+    'options.persistenceRecovery.diagnostic': '安全な移行診断情報',
     'options.persistenceRecovery.diskWriteFailed':
       'ブラウザの保存領域への書き込みに失敗しました。',
     'options.persistenceRecovery.preflightFailed':
       '利用可能なブラウザの保存領域を確認できませんでした。',
     'options.persistenceRecovery.quotaExceeded':
       'データの更新に必要なブラウザの保存領域を確保できませんでした。',
+    'options.persistenceRecovery.recheck': '事前確認を再実行して再試行',
     'options.persistenceRecovery.retry': '再試行',
     'options.persistenceRecovery.storageUnavailable':
       'ブラウザの保存領域を現在利用できません。',
     'options.persistenceRecovery.title': '保存領域の復旧が必要です',
+    'persistenceMigrationNotice.dismiss': '移行に関するお知らせを閉じる',
+    'persistenceMigrationNotice.importExportLink': 'Import / Export を開く',
+    'persistenceMigrationNotice.message':
+      '必要なバックアップは{{lastSupportedDate}}までにインポートし、新しい形式で再度エクスポートしてください。',
+    'persistenceMigrationNotice.title': 'データの保存方式を更新しました。',
+    'persistenceMigrationNotice.warning':
+      '以前のバージョンで作成したバックアップは、{{cutoffDate}}以降インポートできなくなります。',
     'options.previewColorCustomization': '(preview)カラーカスタマイズ',
     'options.previewColorCustomizationReset': 'リセット',
     'options.previewFontSizeCustomization': '(preview)フォントサイズ',

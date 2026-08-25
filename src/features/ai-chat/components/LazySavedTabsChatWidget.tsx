@@ -3,6 +3,7 @@ import { Suspense, lazy, useCallback, useState } from 'react'
 import type { ComponentType } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ConversationHistoryErrorNotice } from '@/features/ai-chat/components/ConversationHistoryErrorNotice'
 import type { AiChatConversationMessage } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -32,7 +33,9 @@ const SavedTabsChatWidgetWithHistory = lazy(async () => {
       activeConversation,
       createConversation,
       deleteConversation,
+      historyError,
       historyItems,
+      isLoading,
       selectConversation,
       updateMessages,
     } = useSharedAiChatHistory()
@@ -45,18 +48,35 @@ const SavedTabsChatWidgetWithHistory = lazy(async () => {
       [updateMessages, onMessagesChange],
     )
 
+    if (isLoading) {
+      return null
+    }
+
+    const errorClassName =
+      props.mode === 'floating'
+        ? 'fixed right-4 bottom-16 z-50 max-w-sm bg-background'
+        : 'mb-3'
+
     return (
-      <SavedTabsChatWidget
-        conversationId={activeConversation?.id}
-        historyItems={historyItems}
-        initialMessages={activeConversation?.messages}
-        onCreateConversation={createConversation}
-        onDeleteHistoryItem={deleteConversation}
-        onMessagesChange={handleMessagesChange}
-        onSelectHistoryItem={selectConversation}
-        title={activeConversation?.title}
-        {...props}
-      />
+      <>
+        <ConversationHistoryErrorNotice
+          className={errorClassName}
+          error={historyError}
+        />
+        {activeConversation ? (
+          <SavedTabsChatWidget
+            conversationId={activeConversation.id}
+            historyItems={historyItems}
+            initialMessages={activeConversation.messages}
+            onCreateConversation={createConversation}
+            onDeleteHistoryItem={deleteConversation}
+            onMessagesChange={handleMessagesChange}
+            onSelectHistoryItem={selectConversation}
+            title={activeConversation.title}
+            {...props}
+          />
+        ) : null}
+      </>
     )
   }
 
@@ -85,7 +105,7 @@ export const LazySavedTabsChatWidget = ({
         <SavedTabsChatWidgetWithHistory
           defaultOpen={openOnLoad}
           mode={mode}
-          onOpenChange={onOpenChange}
+          {...(onOpenChange !== undefined ? { onOpenChange } : {})}
           {...props}
         />
       </Suspense>

@@ -1,6 +1,7 @@
 import type {
   MigrationPreflightDiagnostic,
   MigrationPreflightIssueCode,
+  MigrationPreflightReaderPort,
   MigrationPreflightRepositoryPort,
   StoredMigrationPreflight,
 } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
@@ -9,6 +10,10 @@ import {
   MIGRATION_PREFLIGHT_VERSION,
   MIGRATION_SOURCE_FINGERPRINT_VERSION,
 } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
+import type {
+  PersistenceTimestampMigrationSummary,
+  PersistenceTimestampQualityCount,
+} from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import type {
   PersistenceSourceEntityCounts,
   PersistenceSourceEntityKind,
@@ -21,6 +26,11 @@ export type MigrationPreflightStorageArea = {
   readonly get: (key: string) => Promise<Record<string, unknown>>
   readonly set: (values: Record<string, unknown>) => Promise<void>
 }
+
+export type MigrationPreflightStorageReader = Pick<
+  MigrationPreflightStorageArea,
+  'get'
+>
 
 const entityKindSet = new Set<string>(PERSISTENCE_SOURCE_ENTITY_KINDS)
 
@@ -56,6 +66,66 @@ const decodeIssueCodes = (
   return value
 }
 
+const decodeTimestampQualityCount = (
+  value: unknown,
+): PersistenceTimestampQualityCount => {
+  if (
+    !isRecord(value) ||
+    !isNonNegativeInteger(value.exactCount) ||
+    !isNonNegativeInteger(value.legacyFallbackCount)
+  ) {
+    throw new MigrationPreflightRecordError()
+  }
+  return {
+    exactCount: value.exactCount,
+    legacyFallbackCount: value.legacyFallbackCount,
+  }
+}
+
+const decodeTimestampMigrationSummary = (
+  value: unknown,
+  entityCounts: PersistenceSourceEntityCounts,
+): PersistenceTimestampMigrationSummary => {
+  if (value === undefined) {
+    return {
+      membershipAddedAt: {
+        exactCount: 0,
+        legacyFallbackCount: entityCounts.memberships ?? 0,
+      },
+      urlFirstSavedAt: {
+        exactCount: 0,
+        legacyFallbackCount: entityCounts.urls ?? 0,
+      },
+      urlLastSavedAt: {
+        exactCount: 0,
+        legacyFallbackCount: entityCounts.urls ?? 0,
+      },
+    }
+  }
+  if (!isRecord(value)) {
+    throw new MigrationPreflightRecordError()
+  }
+  const summary = {
+    membershipAddedAt: decodeTimestampQualityCount(value.membershipAddedAt),
+    urlFirstSavedAt: decodeTimestampQualityCount(value.urlFirstSavedAt),
+    urlLastSavedAt: decodeTimestampQualityCount(value.urlLastSavedAt),
+  }
+  const hasExpectedTotal = (
+    count: PersistenceTimestampQualityCount,
+    expectedTotal: number,
+  ): boolean =>
+    count.exactCount <= expectedTotal &&
+    count.legacyFallbackCount === expectedTotal - count.exactCount
+  if (
+    !hasExpectedTotal(summary.urlFirstSavedAt, entityCounts.urls ?? 0) ||
+    !hasExpectedTotal(summary.urlLastSavedAt, entityCounts.urls ?? 0) ||
+    !hasExpectedTotal(summary.membershipAddedAt, entityCounts.memberships ?? 0)
+  ) {
+    throw new MigrationPreflightRecordError()
+  }
+  return summary
+}
+
 const decodeDiagnostic = (value: unknown): MigrationPreflightDiagnostic => {
   if (
     !isRecord(value) ||
@@ -66,13 +136,18 @@ const decodeDiagnostic = (value: unknown): MigrationPreflightDiagnostic => {
   ) {
     throw new MigrationPreflightRecordError()
   }
+  const entityCounts = decodeEntityCounts(value.entityCounts)
   return {
     capacityStatus: value.capacityStatus,
     collisionCount: value.collisionCount,
-    entityCounts: decodeEntityCounts(value.entityCounts),
+    entityCounts,
     issueCodes: decodeIssueCodes(value.issueCodes),
     preflightVersion: MIGRATION_PREFLIGHT_VERSION,
     sourceFingerprintVersion: MIGRATION_SOURCE_FINGERPRINT_VERSION,
+    timestampMigrationSummary: decodeTimestampMigrationSummary(
+      value.timestampMigrationSummary,
+      entityCounts,
+    ),
   }
 }
 
@@ -113,6 +188,32 @@ export class MigrationPreflightRecordError extends Error {
   }
 }
 
+const readStoredPreflight = async (
+  storage: MigrationPreflightStorageReader,
+): Promise<StoredMigrationPreflight | undefined> => {
+  let stored: Record<string, unknown>
+  try {
+    stored = await storage.get(MIGRATION_PREFLIGHT_STORAGE_KEY)
+  } catch (error) {
+    throw new MigrationPreflightRecordError({ cause: error })
+  }
+  if (!Object.hasOwn(stored, MIGRATION_PREFLIGHT_STORAGE_KEY)) {
+    return undefined
+  }
+  return decodeStoredPreflight(stored[MIGRATION_PREFLIGHT_STORAGE_KEY])
+}
+
+export class ChromeMigrationPreflightReader implements MigrationPreflightReaderPort {
+  private readonly storage: MigrationPreflightStorageReader
+
+  constructor(storage: MigrationPreflightStorageReader) {
+    this.storage = storage
+  }
+
+  readonly read = async (): Promise<StoredMigrationPreflight | undefined> =>
+    readStoredPreflight(this.storage)
+}
+
 export class ChromeMigrationPreflightRepository implements MigrationPreflightRepositoryPort {
   private readonly storage: MigrationPreflightStorageArea
 
@@ -120,18 +221,8 @@ export class ChromeMigrationPreflightRepository implements MigrationPreflightRep
     this.storage = storage
   }
 
-  readonly read = async (): Promise<StoredMigrationPreflight | undefined> => {
-    let stored: Record<string, unknown>
-    try {
-      stored = await this.storage.get(MIGRATION_PREFLIGHT_STORAGE_KEY)
-    } catch (error) {
-      throw new MigrationPreflightRecordError({ cause: error })
-    }
-    if (!Object.hasOwn(stored, MIGRATION_PREFLIGHT_STORAGE_KEY)) {
-      return undefined
-    }
-    return decodeStoredPreflight(stored[MIGRATION_PREFLIGHT_STORAGE_KEY])
-  }
+  readonly read = async (): Promise<StoredMigrationPreflight | undefined> =>
+    readStoredPreflight(this.storage)
 
   readonly save = async (record: StoredMigrationPreflight): Promise<void> => {
     try {

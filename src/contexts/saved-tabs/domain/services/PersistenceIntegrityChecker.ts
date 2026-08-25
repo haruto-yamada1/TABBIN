@@ -241,6 +241,10 @@ export type StorageIntegrityReport = {
   readonly issues: readonly StorageIntegrityIssue[]
 }
 
+export const hasBlockingPersistenceIntegrityIssues = (
+  report: StorageIntegrityReport,
+): boolean => report.issues.some(({ severity }) => severity === 'error')
+
 const createIssue = <Code extends PersistenceV2InvariantCode>(
   code: Code,
   details: StorageIntegrityIssueDetails[Code],

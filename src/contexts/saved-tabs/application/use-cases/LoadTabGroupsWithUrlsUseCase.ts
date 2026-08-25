@@ -46,10 +46,21 @@ export const createLoadTabGroupsWithUrlsUseCase = (
       return { tabGroups: [] }
     }
     const allUrlRecords = await deps.urlRecordRepository.findAll()
+    const resolvedGroups = resolveTabGroupsWithUrls({
+      tabGroups: command.tabGroups,
+      urlRecords: allUrlRecords,
+    })
+    const resolvedById = new Map(
+      resolvedGroups.map((group) => [group.collection.id, group]),
+    )
     return {
-      tabGroups: resolveTabGroupsWithUrls({
-        tabGroups: command.tabGroups,
-        urlRecords: allUrlRecords,
+      tabGroups: command.tabGroups.map((inputGroup) => {
+        const resolved = resolvedById.get(inputGroup.collection.id)
+        return {
+          ...inputGroup,
+          resolvedUrls:
+            resolved?.resolvedUrls?.map((url) => ({ ...url })) ?? [],
+        }
       }),
     }
   }

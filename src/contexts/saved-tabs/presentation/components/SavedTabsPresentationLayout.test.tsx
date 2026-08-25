@@ -174,7 +174,7 @@ const buildLayoutComposition = () => {
       migrateDomainStorageToHostname: vi.fn().mockResolvedValue(undefined),
     },
     categoriesCommandService: {
-      updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+      updateCollectionCategories: vi.fn().mockResolvedValue(undefined),
     },
     categoryAssignmentPort: {
       saveParentCategories: vi.fn().mockResolvedValue(undefined),

@@ -45,6 +45,7 @@ describe('createAiChatTools', () => {
     const result = (await execute(
       {
         chartType: 'bar',
+        collectionType: 'all',
         compareBy: 'none',
         filters: {
           excludedDomains: [],
@@ -60,6 +61,7 @@ describe('createAiChatTools', () => {
         },
         groupBy: 'domain',
         limit: 8,
+        metric: 'first-saved',
         mode: 'both',
         normalize: false,
         sort: 'value-desc',
@@ -84,6 +86,72 @@ describe('createAiChatTools', () => {
     expect(result.summary).toBe(
       '2 件の保存データから「ドメインごとの保存数」を作成しました。',
     )
+  })
+
+  it('分析toolはAI共用savedAtではなく専用metric eventを使う', async () => {
+    const analyticsRecords = [
+      {
+        ...records[0],
+        eventId: 'url-1:first-saved',
+        metric: 'first-saved' as const,
+        savedAt: Date.UTC(2026, 0, 1),
+        timestampAccuracy: 'exact' as const,
+      },
+      {
+        ...records[0],
+        eventId: 'url-1:last-saved',
+        metric: 'last-saved' as const,
+        savedAt: Date.UTC(2026, 2, 1),
+        timestampAccuracy: 'exact' as const,
+      },
+    ]
+    const tools = createAiChatTools(records, 'ja', analyticsRecords)
+    const execute = tools.generateSavedTabsAnalytics.execute
+    if (!execute) {
+      throw new Error('generateSavedTabsAnalytics.execute is not available')
+    }
+
+    const result = (await execute(
+      {
+        chartType: 'line',
+        collectionType: 'all',
+        compareBy: 'none',
+        filters: {
+          excludedDomains: [],
+          excludedParentCategories: [],
+          excludedProjectCategories: [],
+          excludedProjects: [],
+          excludedSubCategories: [],
+          includedDomains: [],
+          includedParentCategories: [],
+          includedProjectCategories: [],
+          includedProjects: [],
+          includedSubCategories: [],
+        },
+        groupBy: 'timeRecent',
+        limit: 8,
+        metric: 'last-saved',
+        mode: 'both',
+        normalize: false,
+        sort: 'value-desc',
+        stacked: false,
+        timeBucket: 'month',
+        timeRange: 'all',
+      },
+      {
+        abortSignal: new AbortController().signal,
+        context: {},
+        messages: [],
+        toolCallId: 'tool-metric',
+      },
+    )) as AnalyticsResult
+
+    expect(result.query).toEqual(
+      expect.objectContaining({ metric: 'last-saved', schemaVersion: 2 }),
+    )
+    expect(result.chartSpecs[0]?.data).toStrictEqual([
+      { count: 1, label: '2026-03' },
+    ])
   })
 })
 

@@ -4,8 +4,8 @@ import { createChromeBrowserTabAdapter } from './ChromeBrowserTabAdapter'
 import type { ChromeApiLike, ChromeTabsLike } from './ChromeBrowserTabAdapter'
 
 const createMockTabs = (
-  impl?: ChromeTabsLike['create'],
-): ChromeTabsLike['create'] =>
+  impl?: NonNullable<ChromeTabsLike['create']>,
+): NonNullable<ChromeTabsLike['create']> =>
   impl ??
   vi.fn(async (createProperties) => ({
     url: createProperties.url,

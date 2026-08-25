@@ -1,11 +1,9 @@
 import type { ReorderTabGroupUrlsCommand } from '@/contexts/saved-tabs/application/commands/ReorderTabGroupUrlsCommand'
-import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import { reorderTabGroupUrlIds } from '@/contexts/saved-tabs/domain/services/TabGroupUrlReorderer'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
-import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
  * `ReorderTabGroupUrlsUseCase` が依存する repository 群。
@@ -61,13 +59,8 @@ export const createReorderTabGroupUrlsUseCase = (
       )
     }
     const targetGroup = allTabGroups[targetIndex]
-    const dtoGroup: TabGroupDto = {
-      id: targetGroup.id,
-      domain: targetGroup.domain,
-      urlIds: targetGroup.urlIds.map(String),
-    }
     const reorderedUrlIds = reorderTabGroupUrlIds({
-      group: dtoGroup,
+      group: targetGroup,
       newUrlOrder: command.newUrlOrder,
       urlRecords: allUrlRecords,
     })
@@ -75,7 +68,21 @@ export const createReorderTabGroupUrlsUseCase = (
       index === targetIndex
         ? {
             ...group,
-            urlIds: reorderedUrlIds.map((id) => createUrlRecordId(id)),
+            memberships: reorderedUrlIds.map((id, sortOrder) => {
+              const existing = targetGroup.memberships.find(
+                ({ urlId }) => urlId === id,
+              )
+              if (!existing) {
+                throw new SavedTabsDomainError(
+                  '並び替え対象の membership が見つかりません',
+                  'URL_RECORD_NOT_FOUND',
+                )
+              }
+              return {
+                ...existing,
+                sortOrder,
+              }
+            }),
           }
         : group,
     )

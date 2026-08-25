@@ -128,6 +128,77 @@ export const seedStorage = async (
   }, seed)
 }
 
+type PersistenceV2SavedTabsSeed = {
+  categories: readonly Record<string, unknown>[]
+  collections: readonly Record<string, unknown>[]
+  groups: readonly Record<string, unknown>[]
+  memberships: readonly Record<string, unknown>[]
+  urls: readonly Record<string, unknown>[]
+}
+
+export const seedPersistenceV2SavedTabs = async (
+  serviceWorker: Worker,
+  seed: PersistenceV2SavedTabsSeed,
+) => {
+  await serviceWorker.evaluate(async (value) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      request.addEventListener('success', () => resolve(request.result))
+      request.addEventListener('error', () =>
+        reject(request.error ?? new Error('Failed to open persistence v2.')),
+      )
+    })
+    const storeNames = [
+      'collectionCategories',
+      'collections',
+      'collectionGroups',
+      'collectionMemberships',
+      'metadata',
+      'urls',
+    ]
+    const transaction = database.transaction(storeNames, 'readwrite')
+    const transactionComplete = new Promise<void>((resolve, reject) => {
+      transaction.addEventListener('complete', () => resolve())
+      transaction.addEventListener('abort', () =>
+        reject(
+          transaction.error ?? new Error('Persistence v2 seed was aborted.'),
+        ),
+      )
+      transaction.addEventListener('error', () =>
+        reject(transaction.error ?? new Error('Persistence v2 seed failed.')),
+      )
+    })
+
+    transaction.objectStore('collectionCategories').clear()
+    transaction.objectStore('collections').clear()
+    transaction.objectStore('collectionGroups').clear()
+    transaction.objectStore('collectionMemberships').clear()
+    transaction.objectStore('urls').clear()
+    for (const category of value.categories) {
+      transaction.objectStore('collectionCategories').put(category)
+    }
+    for (const collection of value.collections) {
+      transaction.objectStore('collections').put(collection)
+    }
+    for (const group of value.groups) {
+      transaction.objectStore('collectionGroups').put(group)
+    }
+    for (const membership of value.memberships) {
+      transaction.objectStore('collectionMemberships').put(membership)
+    }
+    for (const url of value.urls) {
+      transaction.objectStore('urls').put(url)
+    }
+    transaction.objectStore('metadata').put({ key: 'revision', value: 1 })
+
+    try {
+      await transactionComplete
+    } finally {
+      database.close()
+    }
+  }, seed)
+}
+
 export const readStorage = async <T>(
   serviceWorker: Worker,
   keys?: string | string[],
@@ -157,3 +228,121 @@ export const readStorage = async <T>(
 
     return getItems(value)
   }, keys) as Promise<T>
+
+type PersistenceV2SavedTabsStoreName =
+  | 'collectionCategories'
+  | 'collectionGroups'
+  | 'collectionMemberships'
+  | 'collections'
+  | 'urls'
+
+export const readPersistenceV2Store = async <T>(
+  serviceWorker: Worker,
+  storeName: PersistenceV2SavedTabsStoreName,
+): Promise<T[]> =>
+  serviceWorker.evaluate(async (value) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      request.addEventListener('success', () => resolve(request.result))
+      request.addEventListener('error', () =>
+        reject(request.error ?? new Error('Failed to open persistence v2.')),
+      )
+    })
+    const transaction = database.transaction(value, 'readonly')
+    const request = transaction.objectStore(value).getAll()
+
+    try {
+      return await new Promise<T[]>((resolve, reject) => {
+        request.addEventListener('success', () => resolve(request.result))
+        request.addEventListener('error', () =>
+          reject(
+            request.error ?? new Error(`Failed to read ${value} records.`),
+          ),
+        )
+      })
+    } finally {
+      database.close()
+    }
+  }, storeName)
+
+export const readPersistenceV2SavedTabsSnapshot = async (
+  serviceWorker: Worker,
+) =>
+  serviceWorker.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      request.addEventListener('success', () => resolve(request.result))
+      request.addEventListener('error', () =>
+        reject(request.error ?? new Error('Failed to open persistence v2.')),
+      )
+    })
+    const storeNames = [
+      'collectionCategories',
+      'collections',
+      'collectionGroups',
+      'collectionMemberships',
+      'metadata',
+      'urls',
+    ]
+    const transaction = database.transaction(storeNames, 'readonly')
+    const categories = transaction.objectStore('collectionCategories').getAll()
+    const collections = transaction.objectStore('collections').getAll()
+    const groups = transaction.objectStore('collectionGroups').getAll()
+    const memberships = transaction
+      .objectStore('collectionMemberships')
+      .getAll()
+    const revision = transaction.objectStore('metadata').get('revision')
+    const urls = transaction.objectStore('urls').getAll()
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        transaction.addEventListener('complete', () => resolve())
+        transaction.addEventListener('abort', () =>
+          reject(
+            transaction.error ??
+              new Error('Persistence v2 snapshot read was aborted.'),
+          ),
+        )
+        transaction.addEventListener('error', () =>
+          reject(
+            transaction.error ??
+              new Error('Persistence v2 snapshot read failed.'),
+          ),
+        )
+      })
+      return {
+        categories: categories.result,
+        collections: collections.result,
+        groups: groups.result,
+        memberships: memberships.result,
+        revision: (revision.result as { value?: unknown } | undefined)?.value,
+        urls: urls.result,
+      }
+    } finally {
+      database.close()
+    }
+  })
+
+export const waitForPersistenceV2Ready = async (
+  serviceWorker: Worker,
+): Promise<void> => {
+  await expect
+    .poll(async () => {
+      const state = await readStorage<
+        Record<string, { issueCodes?: string[]; status?: string }>
+      >(serviceWorker, [
+        'tabbin:migrationPreflight:v1',
+        'tabbin:persistenceControlState:v2',
+      ])
+      return {
+        control: state['tabbin:persistenceControlState:v2']?.status,
+        issueCodes: state['tabbin:migrationPreflight:v1']?.issueCodes,
+        preflight: state['tabbin:migrationPreflight:v1']?.status,
+      }
+    })
+    .toEqual({
+      control: 'indexeddb',
+      issueCodes: undefined,
+      preflight: 'healthy',
+    })
+}

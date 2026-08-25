@@ -3,12 +3,12 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const headerI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -163,7 +163,6 @@ const createProps = (
   overrides: Partial<React.ComponentProps<typeof Header>> = {},
 ) => ({
   tabGroups: createTabGroups(),
-  filteredTabGroups: undefined,
   currentMode: 'domain' as ViewMode,
   onModeChange: vi.fn(),
   searchQuery: '',
@@ -235,7 +234,7 @@ describe('Header', () => {
       {
         id: 'group-1',
         domain: 'Domain A',
-        urlIds: ['url-1', 'url-2'],
+        memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
       },
     ] as unknown as TabGroup[]
 
@@ -243,7 +242,7 @@ describe('Header', () => {
       {
         id: 'custom-project-1',
         name: 'Project A',
-        urlIds: ['url-1', 'url-2'],
+        memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
       },
     ] as unknown as CustomProject[]
 
@@ -281,7 +280,7 @@ describe('Header', () => {
         createdAt: 1,
         updatedAt: 1,
         urls: [{ url: 'https://example.com/legacy', title: 'Legacy' }],
-        urlIds: ['url-1', 'url-2', 'url-3'],
+        memberships: ['url-1', 'url-2', 'url-3'].map((urlId) => ({ urlId })),
       },
     ] as CustomProject[]
 
@@ -306,7 +305,7 @@ describe('Header', () => {
         categories: [],
         createdAt: 1,
         updatedAt: 1,
-        urlIds: ['url-1', 'url-2', 'url-3'],
+        memberships: ['url-1', 'url-2', 'url-3'].map((urlId) => ({ urlId })),
       },
     ] as CustomProject[]
     const filteredCustomProjects = [
@@ -479,7 +478,6 @@ describe('Header', () => {
               categories: [],
               createdAt: 0,
               updatedAt: 0,
-              urls: undefined,
             },
             {
               id: 'p2',
@@ -490,9 +488,7 @@ describe('Header', () => {
               urls: [],
             },
           ],
-          filteredCustomProjects: undefined,
         }) as React.ComponentProps<typeof Header>)}
-        onCreateProject={undefined as unknown as (name: string) => void}
       />,
     )
 

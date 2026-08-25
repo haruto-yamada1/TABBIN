@@ -3,16 +3,16 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-  SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const domainModeI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -295,12 +295,12 @@ describe('DomainModeContainer', () => {
   it('未分類ヘッダーのすべて削除は一括削除ハンドラがなければ単体削除にフォールバックする', async () => {
     const user = userEvent.setup()
     const handleDeleteGroup = vi.fn()
+    const { handleDeleteGroups: _handleDeleteGroups, ...props } = createProps()
 
     render(
       <DomainModeContainer
-        {...createProps()}
+        {...props}
         handleDeleteGroup={handleDeleteGroup}
-        handleDeleteGroups={undefined}
         state={{
           ...createProps().state,
           shouldShowUncategorizedList: true,
@@ -500,20 +500,26 @@ describe('DomainModeContainer', () => {
           {
             id: 'category-1',
             name: 'Category 1',
-            domains: [],
-            domainNames: [],
+            collections: [].map((id, index) => ({
+              id,
+              domain: [][index] ?? id,
+            })),
           },
           {
             id: 'empty-category',
             name: 'Empty',
-            domains: [],
-            domainNames: [],
+            collections: [].map((id, index) => ({
+              id,
+              domain: [][index] ?? id,
+            })),
           },
           {
             id: 'missing-groups-category',
             name: 'Missing Groups',
-            domains: [],
-            domainNames: [],
+            collections: [].map((id, index) => ({
+              id,
+              domain: [][index] ?? id,
+            })),
           },
         ]}
         categorized={{

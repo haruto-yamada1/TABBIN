@@ -44,6 +44,10 @@ const args = process.argv.slice(2)
 const command = isCommandName(args[0]) ? args[0] : undefined
 const projectRoot = process.cwd()
 const runId = readOption('--run')
+const runOptions = {
+  projectRoot,
+  ...(runId !== undefined ? { runId } : {}),
+}
 
 if (!command) {
   printUsage()
@@ -52,8 +56,7 @@ if (!command) {
 
 if (command === 'governance') {
   const result = recordHarnessGovernanceEvent({
-    projectRoot,
-    runId,
+    ...runOptions,
     event: {
       kind: readOption('--kind') ?? 'manual',
       severity: readOption('--severity') ?? 'info',
@@ -73,8 +76,7 @@ if (command === 'start') {
   }
 
   const result = initializeHarnessRun({
-    projectRoot,
-    runId,
+    ...runOptions,
     task,
   })
   console.log(`harness: started (${result.runId})`)
@@ -83,7 +85,7 @@ if (command === 'start') {
 }
 
 if (command === 'validate') {
-  const result = validateHarnessRun({ projectRoot, runId })
+  const result = validateHarnessRun(runOptions)
   if (result.ok) {
     console.log(`harness: valid (${result.runId ?? 'unknown'})`)
     process.exit(0)
@@ -97,11 +99,12 @@ if (command === 'validate') {
 }
 
 if (command === 'plan') {
+  const summary = readOption('--summary')
+  const nextAction = readOption('--next-action')
   const result = planHarnessRun({
-    projectRoot,
-    runId,
-    summary: readOption('--summary'),
-    nextAction: readOption('--next-action'),
+    ...runOptions,
+    ...(summary !== undefined ? { summary } : {}),
+    ...(nextAction !== undefined ? { nextAction } : {}),
     tasks: readOptions('--task'),
   })
   console.log(`harness: planner updated (${result.path})`)
@@ -112,6 +115,8 @@ if (command === 'checkpoint') {
   const commandText = readOption('--command')
   const notes = readOption('--notes')
   const status = readOption('--status') ?? 'recorded'
+  const nextAction = readOption('--next-action')
+  const summary = readOption('--summary')
   if (!commandText || !notes) {
     console.error('harness: checkpoint には --command と --notes が必要です。')
     process.exit(1)
@@ -119,23 +124,23 @@ if (command === 'checkpoint') {
 
   const result = checkpointHarnessRun({
     command: commandText,
-    nextAction: readOption('--next-action'),
     notes,
-    projectRoot,
-    runId,
+    ...runOptions,
     status,
-    summary: readOption('--summary'),
+    ...(nextAction !== undefined ? { nextAction } : {}),
+    ...(summary !== undefined ? { summary } : {}),
   })
   console.log(`harness: checkpoint recorded (${result.path})`)
   process.exit(0)
 }
 
 if (command === 'evaluate') {
+  const summary = readOption('--summary')
+  const nextAction = readOption('--next-action')
   const result = evaluateHarnessRun({
-    projectRoot,
-    runId,
-    summary: readOption('--summary'),
-    nextAction: readOption('--next-action'),
+    ...runOptions,
+    ...(summary !== undefined ? { summary } : {}),
+    ...(nextAction !== undefined ? { nextAction } : {}),
   })
   console.log(`harness: evaluator prepared (${result.path})`)
   process.exit(0)
@@ -143,42 +148,42 @@ if (command === 'evaluate') {
 
 if (command === 'status') {
   if (args.includes('--write')) {
-    const result = writeHarnessStatusSnapshot({ projectRoot, runId })
+    const result = writeHarnessStatusSnapshot(runOptions)
     console.log(`harness: status snapshot written (${result.path})`)
     process.exit(0)
   }
-  console.log(buildHarnessStatusMarkdown({ projectRoot, runId }))
+  console.log(buildHarnessStatusMarkdown(runOptions))
   process.exit(0)
 }
 
 if (command === 'audit') {
-  console.log(buildHarnessAudit({ projectRoot, runId }))
+  console.log(buildHarnessAudit(runOptions))
   process.exit(0)
 }
 
 if (command === 'surface-audit') {
-  console.log(buildHarnessSurfaceAudit({ projectRoot, runId }))
+  console.log(buildHarnessSurfaceAudit(runOptions))
   process.exit(0)
 }
 
 if (command === 'security-audit') {
-  console.log(buildHarnessSecurityAudit({ projectRoot, runId }))
+  console.log(buildHarnessSecurityAudit(runOptions))
   process.exit(0)
 }
 
 if (command === 'repo-status') {
-  console.log(buildHarnessRepoStatus({ projectRoot, runId }))
+  console.log(buildHarnessRepoStatus(runOptions))
   process.exit(0)
 }
 
 if (command === 'learn') {
-  const result = learnFromHarnessRun({ projectRoot, runId })
+  const result = learnFromHarnessRun(runOptions)
   console.log(`harness: learning candidates written (${result.path})`)
   process.exit(0)
 }
 
 if (command === 'profile') {
-  console.log(buildHarnessProfile({ projectRoot, runId }))
+  console.log(buildHarnessProfile(runOptions))
   process.exit(0)
 }
 

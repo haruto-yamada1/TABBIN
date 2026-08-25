@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -20,7 +21,6 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/features/options/lib/import-export', () => ({
-  exportSettings: vi.fn(),
   downloadAsJson: vi.fn(),
   importSettings: vi.fn(),
   getImportPreview: vi.fn().mockReturnValue({
@@ -31,11 +31,21 @@ vi.mock('@/features/options/lib/import-export', () => ({
       timestamp: '2026-02-16T00:00:00.000Z',
       categoriesCount: 1,
       domainsCount: 1,
+      formatKind: 'legacy',
       projectsCount: 0,
       hasAiChat: false,
       hasAnalytics: false,
     },
   }),
+}))
+
+vi.mock('@/app/composition/optionsBackupV2Export', () => ({
+  exportBackupV2: vi.fn(),
+}))
+
+vi.mock('@/app/composition/optionsBackupRecovery', () => ({
+  listBackupRecoverySnapshots: vi.fn(),
+  restoreBackupRecoverySnapshot: vi.fn(),
 }))
 
 vi.mock('@/lib/browser/runtime', () => ({
@@ -44,6 +54,7 @@ vi.mock('@/lib/browser/runtime', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
+    language: 'en',
     t: (key: string, fallback?: string, values?: Record<string, string>) => {
       const messages: Record<string, string> = {
         'options.importExport.cancel': 'Cancel',
@@ -55,6 +66,11 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.scopeDescription':
           'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
         'options.importExport.scopeTitle': 'Backup scope',
+        'options.importExport.compatibilityTitle': 'Backup format',
+        'options.importExport.compatibilityWarning':
+          'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
+        'options.importExport.compatibilityAction':
+          'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
         'options.importExport.export': 'Export settings and tab data',
         'options.importExport.exporting': 'Exporting...',
         'options.importExport.exportError': 'An error occurred while exporting',
@@ -94,10 +110,29 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.previewDomains': 'Domains: {{count}}',
         'options.importExport.previewProjects': 'Projects: {{count}}',
         'options.importExport.previewAiChat': 'AI Chat History: {{hasAiChat}}',
+        'options.importExport.legacyPreviewTitle': 'Legacy backup',
+        'options.importExport.legacyPreviewWarning':
+          'This legacy backup can no longer be imported on or after {{cutoffDate}}.',
+        'options.importExport.legacyPreviewAction':
+          'After importing, export a new-format backup again.',
         'options.importExport.autoBackup':
           'Create a recovery backup before importing',
         'options.importExport.autoBackupDescription':
           'Saves current settings to allow recovery if the import fails or is accidental.',
+        'options.importExport.recoveryDescription':
+          'Created {{createdAt}}. Available until {{expiresAt}}.',
+        'options.importExport.recoveryRestore': 'Restore original data',
+        'options.importExport.recoveryRestoreConfirmAction': 'Restore now',
+        'options.importExport.recoveryRestoreConfirmDescription':
+          'Replace current data with this recovery point?',
+        'options.importExport.recoveryRestoreConfirmTitle':
+          'Restore the data from before import?',
+        'options.importExport.recoveryRestoreError':
+          'Could not restore the original data',
+        'options.importExport.recoveryRestoreSuccess':
+          'Restored the original data',
+        'options.importExport.recoveryRestoring': 'Restoring...',
+        'options.importExport.recoveryTitle': 'Recovery point available',
         'options.importExport.back': 'Back',
         'options.importExport.confirmImport': 'Confirm Import',
         'common.yes': 'Yes',
@@ -117,8 +152,13 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 import { toast } from 'sonner'
 
 import {
+  listBackupRecoverySnapshots,
+  restoreBackupRecoverySnapshot,
+} from '@/app/composition/optionsBackupRecovery'
+import { exportBackupV2 } from '@/app/composition/optionsBackupV2Export'
+import type { PersistenceRecoverySnapshotSummary } from '@/contexts/saved-tabs/public-api'
+import {
   downloadAsJson,
-  exportSettings,
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
@@ -166,6 +206,14 @@ const getHiddenFileInput = (container: HTMLElement): HTMLInputElement =>
 const getDropzoneFileInput = (): HTMLInputElement =>
   screen.getByTestId('dropzone-file-input') as HTMLInputElement
 
+const recoverySnapshot = {
+  createdAt: Date.UTC(2026, 6, 29, 12),
+  expiresAt: Date.UTC(2026, 7, 5, 12),
+  id: '00000000-0000-4000-8000-000000000740',
+  serializedBytes: 1_024,
+  sourceRevision: 1,
+} as const satisfies PersistenceRecoverySnapshotSummary
+
 describe('ImportExportSettingsコンポーネント', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -181,28 +229,52 @@ describe('ImportExportSettingsコンポーネント', () => {
     readerMode = 'success'
     readerContent = '{"import":"payload"}'
     readerAsync = false
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([])
+    vi.mocked(restoreBackupRecoverySnapshot).mockResolvedValue({
+      notification: {
+        event: {
+          changeId: 'recovery-change',
+          revision: 3,
+          scopes: ['recoverySnapshots'],
+        },
+        kind: 'committed_and_published',
+      },
+      revision: 3,
+    })
+    vi.mocked(sendRuntimeMessage).mockResolvedValue(undefined)
 
     ;(globalThis as Record<string, unknown>).FileReader =
       MockFileReader as unknown as typeof FileReader
 
-    vi.mocked(exportSettings).mockResolvedValue({
-      version: '1.0.0',
-      timestamp: '2026-02-16T00:00:00.000Z',
-      userSettings: {
-        removeTabAfterOpen: true,
-        removeTabAfterExternalDrop: true,
-        excludePatterns: [],
-        enableCategories: true,
-        showSavedTime: false,
-        clickBehavior: 'saveWindowTabs',
-        excludePinnedTabs: true,
-        openUrlInBackground: true,
-        openAllInNewWindow: false,
-        confirmDeleteAll: false,
-        confirmDeleteEach: false,
+    vi.mocked(exportBackupV2).mockResolvedValue({
+      appVersion: '2.0.9',
+      data: {
+        analyticsViews: [],
+        conversations: [],
+        messages: [],
+        savedTabs: {
+          categories: [],
+          collections: [],
+          groups: [],
+          memberships: [],
+          urls: [],
+        },
+        userSettings: {
+          clickBehavior: 'saveWindowTabs',
+          confirmDeleteAll: false,
+          confirmDeleteEach: false,
+          enableCategories: true,
+          excludePatterns: [],
+          excludePinnedTabs: true,
+          openAllInNewWindow: false,
+          openUrlInBackground: true,
+          removeTabAfterExternalDrop: true,
+          removeTabAfterOpen: true,
+          showSavedTime: false,
+        },
       },
-      parentCategories: [],
-      savedTabs: [],
+      exportedAt: '2026-02-16T00:00:00.000Z',
+      schemaVersion: 2,
     })
   })
 
@@ -214,26 +286,6 @@ describe('ImportExportSettingsコンポーネント', () => {
 
   it('データをエクスポートしてバックアップファイルをダウンロードする', async () => {
     const user = userEvent.setup()
-    vi.mocked(exportSettings).mockResolvedValue({
-      version: '1.0.0',
-      timestamp: '2026-02-16T00:00:00.000Z',
-      userSettings: {
-        removeTabAfterOpen: true,
-        removeTabAfterExternalDrop: true,
-        excludePatterns: [],
-        enableCategories: true,
-        showSavedTime: false,
-        clickBehavior: 'saveWindowTabs',
-        excludePinnedTabs: true,
-        openUrlInBackground: true,
-        openAllInNewWindow: false,
-        confirmDeleteAll: false,
-        confirmDeleteEach: false,
-      },
-      parentCategories: [],
-      savedTabs: [],
-    })
-
     render(<ImportExportSettings />)
 
     await user.click(
@@ -241,7 +293,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     )
 
     await waitFor(() => {
-      expect(exportSettings).toHaveBeenCalledTimes(1)
+      expect(exportBackupV2).toHaveBeenCalledTimes(1)
     })
 
     expect(downloadAsJson).toHaveBeenCalledTimes(1)
@@ -262,9 +314,144 @@ describe('ImportExportSettingsコンポーネント', () => {
     ).toBeTruthy()
   })
 
+  it('旧backup期限と再エクスポート案内を常設表示する', () => {
+    render(<ImportExportSettings />)
+
+    expect(screen.getByText('Backup format')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Backups created with older versions can no longer be imported on or after October 1, 2026.',
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Import any required backups by September 30, 2026, then export them again in the new format.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('保存済み回復ポイントを表示し確認後に元のデータへ戻す', async () => {
+    const user = userEvent.setup()
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([recoverySnapshot])
+
+    render(<ImportExportSettings />)
+
+    expect(await screen.findByText('Recovery point available')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'Restore original data' }),
+    )
+    expect(
+      screen.getByText('Restore the data from before import?'),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Restore now' }))
+
+    await waitFor(() => {
+      expect(restoreBackupRecoverySnapshot).toHaveBeenCalledWith(
+        '00000000-0000-4000-8000-000000000740',
+      )
+      expect(sendRuntimeMessage).toHaveBeenCalledWith({
+        action: 'settingsImported',
+      })
+      expect(toast.success).toHaveBeenCalledWith('Restored the original data')
+    })
+  })
+
+  it('復元後の通知失敗を復元失敗として表示しない', async () => {
+    const user = userEvent.setup()
+    const secret = 'https://secret.example.test/private'
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([recoverySnapshot])
+    vi.mocked(sendRuntimeMessage).mockRejectedValue(new Error(secret))
+
+    render(<ImportExportSettings />)
+    await screen.findByText('Recovery point available')
+    await user.click(
+      screen.getByRole('button', { name: 'Restore original data' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Restore now' }))
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('Restored the original data')
+    })
+    expect(toast.error).not.toHaveBeenCalledWith(
+      'Could not restore the original data',
+    )
+    expect(restoreBackupRecoverySnapshot).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      secret,
+    )
+  })
+
+  it('復元失敗時は内容をログへ出さず失敗を通知する', async () => {
+    const user = userEvent.setup()
+    const secret = 'https://secret.example.test/private'
+    vi.mocked(listBackupRecoverySnapshots).mockResolvedValue([recoverySnapshot])
+    vi.mocked(restoreBackupRecoverySnapshot).mockRejectedValue(
+      new Error(secret),
+    )
+
+    render(<ImportExportSettings />)
+    await screen.findByText('Recovery point available')
+    await user.click(
+      screen.getByRole('button', { name: 'Restore original data' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Restore now' }))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Could not restore the original data',
+      )
+    })
+    expect(sendRuntimeMessage).not.toHaveBeenCalled()
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      secret,
+    )
+  })
+
+  it('古い一覧取得結果でインポート後の回復ポイントを上書きしない', async () => {
+    const user = userEvent.setup()
+    let resolveInitialRequest:
+      | ((snapshots: readonly PersistenceRecoverySnapshotSummary[]) => void)
+      | undefined
+    const initialRequest = new Promise<
+      readonly PersistenceRecoverySnapshotSummary[]
+    >((resolve) => {
+      resolveInitialRequest = resolve
+    })
+    vi.mocked(listBackupRecoverySnapshots)
+      .mockImplementationOnce(async () => initialRequest)
+      .mockResolvedValueOnce([recoverySnapshot])
+    vi.mocked(importSettings).mockResolvedValue({
+      success: true,
+      message: 'Import successful',
+    })
+
+    const { container } = render(<ImportExportSettings />)
+    // user.upload internally calls user.click which fails on hidden inputs.
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+    await user.click(
+      await screen.findByRole('button', { name: 'Confirm Import' }),
+    )
+
+    expect(await screen.findByText('Recovery point available')).toBeTruthy()
+    await act(async () => {
+      resolveInitialRequest?.([])
+      await initialRequest
+    })
+    expect(screen.getByText('Recovery point available')).toBeTruthy()
+  })
+
   it('エクスポート失敗時にエラートーストを表示する', async () => {
     const user = userEvent.setup()
-    vi.mocked(exportSettings).mockRejectedValue(new Error('export failed'))
+    const secret = 'https://secret.example.test/private'
+    vi.mocked(exportBackupV2).mockRejectedValue(new Error(secret))
 
     render(<ImportExportSettings />)
 
@@ -277,6 +464,9 @@ describe('ImportExportSettingsコンポーネント', () => {
         'An error occurred while exporting',
       )
     })
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      secret,
+    )
   })
 
   it('マージ設定を切り替えるとインポート時に mergeData=false を渡す', async () => {
@@ -325,6 +515,55 @@ describe('ImportExportSettingsコンポーネント', () => {
         readerContent,
         false,
         expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+      )
+    })
+  })
+
+  it('current Backup V2 は自動的に overwrite mode でインポートする', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getImportPreview).mockReturnValueOnce({
+      success: true,
+      message: 'ok',
+      preview: {
+        categoriesCount: 0,
+        domainsCount: 0,
+        formatKind: 'current-v2',
+        hasAiChat: false,
+        hasAnalytics: false,
+        projectsCount: 0,
+        timestamp: '2026-08-12T00:00:00.000Z',
+        version: '2.0.9',
+      },
+    })
+    vi.mocked(importSettings).mockResolvedValue({
+      success: true,
+      message: 'ok',
+    })
+    const { container } = render(<ImportExportSettings />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Import settings and tab data' }),
+    )
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+    await user.click(
+      await screen.findByRole('button', { name: 'Confirm Import' }),
+    )
+
+    await waitFor(() => {
+      expect(importSettings).toHaveBeenCalledWith(
+        readerContent,
+        false,
+        expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
   })
@@ -379,6 +618,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         readerContent,
         true,
         expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
   })
@@ -584,6 +824,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       preview: {
         categoriesCount: 1,
         domainsCount: 1,
+        formatKind: 'legacy',
         hasAiChat: true,
         hasAnalytics: true,
         projectsCount: 1,
@@ -607,6 +848,49 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(screen.getByText('Yes')).toBeTruthy()
     })
+    expect(screen.queryByText('Legacy backup')).toBeNull()
+  })
+
+  it('legacy backup preview に期限 warning を表示する', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getImportPreview).mockReturnValueOnce({
+      success: true,
+      message: 'ok',
+      preview: {
+        categoriesCount: 1,
+        domainsCount: 1,
+        formatKind: 'legacy',
+        hasAiChat: false,
+        hasAnalytics: false,
+        legacyBackupAdvisory: {
+          cutoffDate: '2026-10-01',
+          lastSupportedDate: '2026-09-30',
+          requiresReExport: true,
+        },
+        projectsCount: 0,
+        timestamp: '2026-02-16T00:00:00.000Z',
+        version: '1.0.0',
+      },
+    })
+
+    const { container } = render(<ImportExportSettings />)
+
+    await user.upload(
+      getHiddenFileInput(container),
+      new File(['dummy'], 'legacy-backup.json', {
+        type: 'application/json',
+      }),
+    )
+
+    expect(await screen.findByText('Legacy backup')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'This legacy backup can no longer be imported on or after October 1, 2026.',
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText('After importing, export a new-format backup again.'),
+    ).toBeTruthy()
   })
 
   it('JSON ファイルを正常にインポートして background に通知する', async () => {
@@ -641,6 +925,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         readerContent,
         true,
         expect.any(Function),
+        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
 

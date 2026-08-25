@@ -15,8 +15,7 @@ import {
   decideUrlRecordIdsToRemoveAfterOpen,
   removeUrlRecordIdsFromTabGroups,
 } from '@/contexts/saved-tabs/domain/services/OpenedUrlRemovalPolicy'
-import type { UrlReferenceOrigin } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
-import { isUrlRecordReferencedElsewhere } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
+import { filterUnreferencedUrlRecords } from '@/contexts/saved-tabs/domain/services/UrlReferenceService'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
 /**
@@ -95,43 +94,22 @@ export const createOpenSavedUrlUseCase = (
     // CustomProject は空になっても削除せず保持する。
     // ユーザーがあとから手動で整理できるようにするため、副作用は最小化する。
     const updatedCustomProjects = previousCustomProjects.map((project) => {
-      const remaining = project.urlIds.filter(
-        (urlId) => !idsToRemove.has(urlId),
+      const remaining = project.memberships.filter(
+        ({ urlId }) => !idsToRemove.has(urlId),
       )
-      if (remaining.length === project.urlIds.length) {
+      if (remaining.length === project.memberships.length) {
         return project
       }
-      return { ...project, urlIds: remaining }
+      return { ...project, memberships: remaining }
     })
 
-    const urlRecordIdsToDelete = new Set<typeof urlRecord.id>()
-    for (const id of idsToRemove) {
-      const origin: UrlReferenceOrigin | undefined = (() => {
-        const fromGroup = previousTabGroups.find((group) =>
-          group.urlIds.includes(id),
-        )
-        if (fromGroup) {
-          return { id: fromGroup.id, kind: 'tabGroup' as const }
-        }
-        const fromProject = previousCustomProjects.find((project) =>
-          project.urlIds.includes(id),
-        )
-        if (fromProject) {
-          return { id: fromProject.id, kind: 'customProject' as const }
-        }
-        return undefined
-      })()
-      if (
-        !isUrlRecordReferencedElsewhere({
-          customProjects: previousCustomProjects,
-          origin,
-          tabGroups: previousTabGroups,
-          urlRecordId: id,
-        })
-      ) {
-        urlRecordIdsToDelete.add(id)
-      }
-    }
+    const urlRecordIdsToDelete = new Set(
+      filterUnreferencedUrlRecords({
+        customProjects: updatedCustomProjects,
+        tabGroups: updatedTabGroups,
+        urlRecords: [urlRecord],
+      }).map(({ id }) => id),
+    )
 
     if (updatedTabGroups.length !== previousTabGroups.length) {
       await deps.tabGroupRepository.saveAll(updatedTabGroups)
@@ -166,9 +144,7 @@ export const createOpenSavedUrlUseCase = (
       removedId !== null ? previousUrlRecord : null
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
-      customProjectOrder: undefined,
       customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
-      parentCategories: undefined,
       savedTabs: previousTabGroups.map(toSavedTabsTabGroupDto),
       urlRecords: removedRecord
         ? [toSavedTabsUrlRecordDto(previousUrlRecord)]

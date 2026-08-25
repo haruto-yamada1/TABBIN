@@ -16,12 +16,16 @@ const originalChrome = globalWithChrome.chrome
 describe('getAppVersion', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
-    globalWithChrome.chrome = originalChrome
+    if (originalChrome === undefined) {
+      delete globalWithChrome.chrome
+    } else {
+      globalWithChrome.chrome = originalChrome
+    }
   })
 
   it('build-time に注入された __APP_VERSION__ があればそれを返す', () => {
-    vi.stubGlobal('__APP_VERSION__', '2.0.8')
-    expect(getAppVersion()).toBe('2.0.8')
+    vi.stubGlobal('__APP_VERSION__', '2.0.9')
+    expect(getAppVersion()).toBe('2.0.9')
   })
 
   it('__APP_VERSION__ が未定義なら manifest version を返す', () => {

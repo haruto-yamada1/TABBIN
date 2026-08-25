@@ -1,6 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb'
 import { describe, expect, it, vi } from 'vitest'
 
+import { PersistenceRevisionConflictError } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
 
 import { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
@@ -47,21 +48,24 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       operationGate,
     )
 
-    const result = await unitOfWork.commit({
-      collections: { put: [createDomainCollection('collection-1')] },
-      memberships: {
-        put: [
-          {
-            addedAt: 1,
-            collectionId: 'collection-1',
-            sortOrder: 1024,
-            updatedAt: 1,
-            urlId: 'url-1',
-          },
-        ],
+    const result = await unitOfWork.commit(
+      {
+        collections: { put: [createDomainCollection('collection-1')] },
+        memberships: {
+          put: [
+            {
+              addedAt: 1,
+              collectionId: 'collection-1',
+              sortOrder: 1024,
+              updatedAt: 1,
+              urlId: 'url-1',
+            },
+          ],
+        },
+        urls: { put: [createUrl('url-1')] },
       },
-      urls: { put: [createUrl('url-1')] },
-    })
+      { expectedRevision: 0 },
+    )
 
     expect(result).toEqual({
       changedScopes: ['collections', 'memberships', 'urls'],
@@ -74,6 +78,74 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     expect(snapshot.savedTabs.urls).toHaveLength(1)
     expect(snapshot.savedTabs.collections).toHaveLength(1)
     expect(snapshot.savedTabs.memberships).toHaveLength(1)
+    manager.close()
+  })
+
+  it('expected revision conflictでmulti-store mutationとrevisionをrollbackする', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'revision-conflict',
+      indexedDb: new IDBFactory(),
+    })
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(
+      manager,
+      operationGate,
+    )
+    await unitOfWork.commit(
+      {
+        collections: { put: [createDomainCollection('collection-1')] },
+        memberships: {
+          put: [
+            {
+              addedAt: 1,
+              collectionId: 'collection-1',
+              sortOrder: 1024,
+              updatedAt: 1,
+              urlId: 'url-1',
+            },
+          ],
+        },
+        urls: { put: [createUrl('url-1')] },
+      },
+      { expectedRevision: 0 },
+    )
+
+    const error = await unitOfWork
+      .commit(
+        {
+          collections: { put: [createDomainCollection('collection-2')] },
+          memberships: {
+            put: [
+              {
+                addedAt: 2,
+                collectionId: 'collection-2',
+                sortOrder: 2048,
+                updatedAt: 2,
+                urlId: 'url-2',
+              },
+            ],
+          },
+          urls: { put: [createUrl('url-2')] },
+        },
+        { expectedRevision: 0 },
+      )
+      .catch((error: unknown) => error)
+
+    expect(error).toMatchObject({
+      actualRevision: 1,
+      expectedRevision: 0,
+      name: 'PersistenceRevisionConflictError',
+    })
+    expect(error).toBeInstanceOf(PersistenceRevisionConflictError)
+    const snapshot = await new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    ).readConsistentSnapshot()
+    expect(snapshot.savedTabs.collections.map(({ id }) => id)).toEqual([
+      'collection-1',
+    ])
+    expect(snapshot.savedTabs.memberships).toHaveLength(1)
+    expect(snapshot.savedTabs.urls.map(({ id }) => id)).toEqual(['url-1'])
+    await expect(unitOfWork.readRevision()).resolves.toBe(1)
     manager.close()
   })
 

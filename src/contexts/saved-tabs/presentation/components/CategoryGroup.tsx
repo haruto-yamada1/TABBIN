@@ -68,16 +68,16 @@ const CategoryGroupComponent = ({
 }) => {
   const handlers = useMemo(
     () => ({
-      handleDeleteCategory,
       handleDeleteGroup,
-      handleDeleteGroups,
       handleDeleteUrl,
-      handleDeleteUrls,
-      handleMoveDomainToCategory,
       handleOpenAllTabs,
       handleOpenTab,
+      handleDeleteCategory,
+      handleMoveDomainToCategory,
       handleUpdateDomainsOrder,
       handleUpdateUrls,
+      ...(handleDeleteGroups !== undefined ? { handleDeleteGroups } : {}),
+      ...(handleDeleteUrls !== undefined ? { handleDeleteUrls } : {}),
     }),
     [
       handleOpenAllTabs,

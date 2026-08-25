@@ -472,6 +472,74 @@ describe('useSharedAiChatHistory', () => {
     expect(mocked.saveConversationHistory).not.toHaveBeenCalled()
   })
 
+  it('履歴ロード失敗をUI向けerror stateとして返す', async () => {
+    mocked.loadConversationHistory.mockRejectedValueOnce(
+      new Error('IndexedDB unavailable'),
+    )
+
+    const { result } = renderHook(() => useSharedAiChatHistory())
+
+    await waitFor(() => {
+      expect(result.current).toMatchObject({
+        activeConversation: null,
+        historyError: 'load',
+        isLoading: false,
+      })
+    })
+    expect(mocked.saveConversationHistory).not.toHaveBeenCalled()
+  })
+
+  it('履歴保存失敗をUI向けerror stateとして返す', async () => {
+    mocked.saveConversationHistory.mockRejectedValueOnce(
+      new Error('revision conflict'),
+    )
+    const { result } = renderHook(() => useSharedAiChatHistory())
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+    act(() => {
+      result.current.selectConversation('conversation-2')
+    })
+
+    await waitFor(() => {
+      expect(result.current).toMatchObject({ historyError: 'save' })
+    })
+  })
+
+  it('連続した履歴保存を直列化する', async () => {
+    let resolveFirstSave: (() => void) | undefined
+    mocked.saveConversationHistory
+      .mockImplementationOnce(async () => {
+        await new Promise<void>((resolve) => {
+          resolveFirstSave = resolve
+        })
+      })
+      .mockResolvedValueOnce(undefined)
+    const { result } = renderHook(() => useSharedAiChatHistory())
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+    act(() => {
+      result.current.selectConversation('conversation-2')
+    })
+    await waitFor(() => {
+      expect(mocked.saveConversationHistory).toHaveBeenCalledTimes(1)
+    })
+    act(() => {
+      result.current.selectConversation('conversation-1')
+    })
+    expect(mocked.saveConversationHistory).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveFirstSave?.()
+    })
+    await waitFor(() => {
+      expect(mocked.saveConversationHistory).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('ロード前の操作と空メッセージ更新は保存しない', () => {
     mocked.loadConversationHistory.mockReturnValue(new Promise(() => undefined))
     const { result } = renderHook(() => useSharedAiChatHistory())

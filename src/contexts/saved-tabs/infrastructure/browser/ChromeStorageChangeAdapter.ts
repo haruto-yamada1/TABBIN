@@ -39,12 +39,18 @@
 
 import { z } from 'zod'
 
+import {
+  toSavedTabsCustomProjectDto,
+  toSavedTabsParentCategoryDto,
+  toSavedTabsTabGroupDto,
+} from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { CHROME_STORAGE_CHANGE_ADAPTER_MARKER } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type {
   SavedTabsStorageChangeKey,
   StorageChangePort,
   TypedSavedTabsStorageChange,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import { ChromeSavedTabsStorageMapper } from '@/contexts/saved-tabs/infrastructure/mappers/ChromeSavedTabsStorageMapper'
 import {
   CustomProjectRawSchema,
   ParentCategoryRawSchema,
@@ -53,7 +59,6 @@ import {
 } from '@/contexts/saved-tabs/infrastructure/persistence/chrome-storage/savedTabsStorageSchema'
 import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
-import type { CustomProject } from '@/types/storage'
 
 export type ChromeStorageOnChangedLike = {
   readonly addListener: (callback: ChromeOnChangedListener) => void
@@ -140,18 +145,90 @@ const safeParseArrayPayload = <T extends z.ZodType>(
   return results
 }
 
+const PartialUserSettingsRawSchema = UserSettingsRawSchema.partial()
+type ParsedUserSettingsPayload = z.output<typeof PartialUserSettingsRawSchema>
+type UserSettingsPayload = Extract<
+  TypedSavedTabsStorageChange,
+  { readonly key: 'userSettings' }
+>['payload'][number]
+
+const toUserSettingsPresentationPayload = (
+  settings: ParsedUserSettingsPayload,
+): UserSettingsPayload => ({
+  ...(settings.activeAiSystemPromptId !== undefined
+    ? { activeAiSystemPromptId: settings.activeAiSystemPromptId }
+    : {}),
+  ...(settings.aiSystemPrompts !== undefined
+    ? { aiSystemPrompts: settings.aiSystemPrompts }
+    : {}),
+  ...(settings.autoDeletePeriod !== undefined
+    ? { autoDeletePeriod: settings.autoDeletePeriod }
+    : {}),
+  ...(settings.clickBehavior !== undefined
+    ? { clickBehavior: settings.clickBehavior }
+    : {}),
+  ...(settings.colors !== undefined ? { colors: settings.colors } : {}),
+  ...(settings.fontSizePercent !== undefined
+    ? { fontSizePercent: settings.fontSizePercent }
+    : {}),
+  ...(settings.language !== undefined ? { language: settings.language } : {}),
+  ...(settings.ollamaModel !== undefined
+    ? { ollamaModel: settings.ollamaModel }
+    : {}),
+})
+
+const toUserSettingsBehaviorPayload = (
+  settings: ParsedUserSettingsPayload,
+): UserSettingsPayload => ({
+  ...(settings.confirmDeleteAll !== undefined
+    ? { confirmDeleteAll: settings.confirmDeleteAll }
+    : {}),
+  ...(settings.confirmDeleteEach !== undefined
+    ? { confirmDeleteEach: settings.confirmDeleteEach }
+    : {}),
+  ...(settings.enableCategories !== undefined
+    ? { enableCategories: settings.enableCategories }
+    : {}),
+  ...(settings.excludePatterns !== undefined
+    ? { excludePatterns: settings.excludePatterns }
+    : {}),
+  ...(settings.excludePinnedTabs !== undefined
+    ? { excludePinnedTabs: settings.excludePinnedTabs }
+    : {}),
+  ...(settings.openAllInNewWindow !== undefined
+    ? { openAllInNewWindow: settings.openAllInNewWindow }
+    : {}),
+  ...(settings.openUrlInBackground !== undefined
+    ? { openUrlInBackground: settings.openUrlInBackground }
+    : {}),
+  ...(settings.removeTabAfterExternalDrop !== undefined
+    ? { removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop }
+    : {}),
+  ...(settings.removeTabAfterOpen !== undefined
+    ? { removeTabAfterOpen: settings.removeTabAfterOpen }
+    : {}),
+  ...(settings.showSavedTime !== undefined
+    ? { showSavedTime: settings.showSavedTime }
+    : {}),
+})
+
+const toUserSettingsPayload = (
+  settings: ParsedUserSettingsPayload,
+): UserSettingsPayload => ({
+  ...toUserSettingsPresentationPayload(settings),
+  ...toUserSettingsBehaviorPayload(settings),
+})
+
 /**
  * `userSettings` は partial 適用が許されているため、`unknown` 値を
  * `Partial<UserSettings>` 相当にパースし、失敗時は空 payload を返す。
  */
-const parseUserSettingsPayload = (
-  value: unknown,
-): Partial<z.infer<typeof UserSettingsRawSchema>>[] => {
-  const parsed = UserSettingsRawSchema.partial().safeParse(value)
+const parseUserSettingsPayload = (value: unknown): UserSettingsPayload[] => {
+  const parsed = PartialUserSettingsRawSchema.safeParse(value)
   if (!parsed.success) {
     return []
   }
-  return [parsed.data]
+  return [toUserSettingsPayload(parsed.data)]
 }
 
 /**
@@ -195,19 +272,33 @@ export const createChromeStorageChangeAdapter = (
       }
     }
     if (key === 'savedTabs') {
+      const payload = safeParseArrayPayload(
+        SavedTabRawSchema,
+        newValue,
+      ).flatMap((raw) => {
+        const entity = ChromeSavedTabsStorageMapper.toTabGroupFromRaw(raw)
+        return entity ? [toSavedTabsTabGroupDto(entity)] : []
+      })
       return {
         key,
         kind: 'parsed',
         oldValue,
-        payload: safeParseArrayPayload(SavedTabRawSchema, newValue),
+        payload,
       }
     }
     if (key === 'parentCategories') {
+      const payload = safeParseArrayPayload(
+        ParentCategoryRawSchema,
+        newValue,
+      ).flatMap((raw) => {
+        const entity = ChromeSavedTabsStorageMapper.toParentCategoryFromRaw(raw)
+        return entity ? [toSavedTabsParentCategoryDto(entity)] : []
+      })
       return {
         key,
         kind: 'parsed',
         oldValue,
-        payload: safeParseArrayPayload(ParentCategoryRawSchema, newValue),
+        payload,
       }
     }
     if (key === 'customProjects') {
@@ -217,13 +308,13 @@ export const createChromeStorageChangeAdapter = (
       // port 境界で default を入れてから payload として流す。
       // `categories` 未設定時は `[]`、`createdAt` / `updatedAt` 未設定時
       // は `0`（mapper の entity 化と整合する default）。
-      const raws = safeParseArrayPayload(CustomProjectRawSchema, newValue)
-      const payload: CustomProject[] = raws.map((raw) => ({
-        ...raw,
-        categories: raw.categories ?? [],
-        createdAt: raw.createdAt ?? 0,
-        updatedAt: raw.updatedAt ?? 0,
-      }))
+      const payload = safeParseArrayPayload(
+        CustomProjectRawSchema,
+        newValue,
+      ).flatMap((raw) => {
+        const entity = ChromeSavedTabsStorageMapper.toCustomProjectFromRaw(raw)
+        return entity ? [toSavedTabsCustomProjectDto(entity)] : []
+      })
       return {
         key,
         kind: 'parsed',

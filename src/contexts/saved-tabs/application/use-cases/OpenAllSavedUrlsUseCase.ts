@@ -97,13 +97,13 @@ const computeRemovalPlan = ({
 
   const updatedCustomProjects: CustomProject[] = previousCustomProjects.map(
     (project) => {
-      const remaining = project.urlIds.filter(
-        (urlId) => !effectiveIds.has(urlId),
+      const remaining = project.memberships.filter(
+        ({ urlId }) => !effectiveIds.has(urlId),
       )
-      if (remaining.length === project.urlIds.length) {
+      if (remaining.length === project.memberships.length) {
         return project
       }
-      return { ...project, urlIds: remaining }
+      return { ...project, memberships: remaining }
     },
   )
 
@@ -215,11 +215,9 @@ export const createOpenAllSavedUrlsUseCase = (
     await deps.urlRecordRepository.removeByIds(plan.urlRecordIdsToDelete)
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
-      customProjectOrder: undefined,
       customProjects: plan.previousCustomProjects.map(
         toSavedTabsCustomProjectDto,
       ),
-      parentCategories: undefined,
       savedTabs: plan.previousTabGroups.map(toSavedTabsTabGroupDto),
       urlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }

@@ -13,6 +13,7 @@ export type PersistenceBootstrapServiceOptions = {
   readonly access: PersistenceControlStateAccessPort
   readonly controlStateRepository: PersistenceControlStateRepositoryPort
   readonly coordination: PersistenceCoordinationPort
+  readonly cutoverPolicy?: 'complete' | 'defer'
   readonly migrationLifecycle?: PersistenceMigrationLifecyclePort
 }
 
@@ -160,6 +161,9 @@ export class PersistenceBootstrapService implements PersistenceBootstrapPort {
     }
 
     if (state.status === 'cutover-pending') {
+      if (this.options.cutoverPolicy !== 'complete') {
+        return
+      }
       await this.options.controlStateRepository.transition({
         type: 'complete-cutover',
         migrationId: state.migrationId,

@@ -189,8 +189,8 @@ export const StackTrace = memo(
   }: StackTraceProps) => {
     const [isOpen, setIsOpen] = useControllableState({
       defaultProp: defaultOpen,
-      onChange: onOpenChange,
-      prop: open,
+      ...(onOpenChange !== undefined ? { onChange: onOpenChange } : {}),
+      ...(open !== undefined ? { prop: open } : {}),
     })
 
     const parsedTrace = useMemo(() => parseStackTrace(trace), [trace])
@@ -198,10 +198,10 @@ export const StackTrace = memo(
     const contextValue = useMemo(
       () => ({
         isOpen,
-        onFilePathClick,
         raw: trace,
         setIsOpen,
         trace: parsedTrace,
+        ...(onFilePathClick !== undefined ? { onFilePathClick } : {}),
       }),
       [parsedTrace, trace, isOpen, setIsOpen, onFilePathClick],
     )
@@ -516,7 +516,9 @@ export const StackTraceFrames = memo(
                 <span className='text-muted-foreground'>(</span>
                 <FilePathButton
                   frame={frame}
-                  onFilePathClick={onFilePathClick}
+                  {...(onFilePathClick !== undefined
+                    ? { onFilePathClick }
+                    : {})}
                 />
                 <span className='text-muted-foreground'>)</span>
               </>

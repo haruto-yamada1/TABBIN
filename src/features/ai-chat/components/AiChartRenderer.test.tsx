@@ -155,6 +155,9 @@ describe('AiChartRenderer', () => {
     await expect(screen.findByTestId('bar-chart')).resolves.toBeTruthy()
     await expect(screen.findByTestId('chart-tooltip')).resolves.toBeTruthy()
     expect(mocked.barChartProps[0]?.data).toStrictEqual(barSpec.data)
+    expect(Object.hasOwn(mocked.barChartProps[0] ?? {}, 'onClick')).toBe(false)
+    expect(Object.hasOwn(mocked.barProps[0] ?? {}, 'onClick')).toBe(false)
+    expect(Object.hasOwn(mocked.barProps[0] ?? {}, 'stackId')).toBe(false)
     expect(screen.getByText('ジャンル別の保存数')).toBeTruthy()
   })
 

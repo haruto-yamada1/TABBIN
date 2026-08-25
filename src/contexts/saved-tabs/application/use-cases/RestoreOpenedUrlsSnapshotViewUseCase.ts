@@ -71,9 +71,11 @@ export const createRestoreOpenedUrlsSnapshotViewUseCase = (
     await deps.restoreOpenedUrlsSnapshot(
       toRestoreOpenedUrlsSnapshotCommand(command.snapshot),
     )
+    const customProjects = toStorageCustomProjects(command.snapshot)
+    const parentCategories = toStorageParentCategories(command.snapshot)
     return {
-      customProjects: toStorageCustomProjects(command.snapshot),
-      parentCategories: toStorageParentCategories(command.snapshot),
+      ...(customProjects !== undefined ? { customProjects } : {}),
+      ...(parentCategories !== undefined ? { parentCategories } : {}),
       savedTabs: getSnapshotSavedTabs(command.snapshot),
     }
   }

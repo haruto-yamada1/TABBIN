@@ -47,12 +47,17 @@ export const Transcription = ({
 }: TranscriptionProps) => {
   const [currentTime, setCurrentTime] = useControllableState({
     defaultProp: 0,
-    onChange: onSeek,
-    prop: externalCurrentTime,
+    ...(onSeek !== undefined ? { onChange: onSeek } : {}),
+    ...(externalCurrentTime !== undefined ? { prop: externalCurrentTime } : {}),
   })
 
   const contextValue = useMemo(
-    () => ({ currentTime, onSeek, onTimeUpdate: setCurrentTime, segments }),
+    () => ({
+      currentTime,
+      ...(onSeek !== undefined ? { onSeek } : {}),
+      onTimeUpdate: setCurrentTime,
+      segments,
+    }),
     [currentTime, onSeek, setCurrentTime, segments],
   )
 

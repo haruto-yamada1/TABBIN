@@ -94,7 +94,7 @@ export const ProjectCardRoot = ({
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
   const hookState = useCustomProjectCard({
-    getProjectUrlsUseCase,
+    ...(getProjectUrlsUseCase !== undefined ? { getProjectUrlsUseCase } : {}),
     handleDeleteUrl: hookHandlers.handleDeleteUrl,
     handleReorderUrls: hookHandlers.handleReorderUrls,
     handleSetUrlCategory: hookHandlers.handleSetUrlCategory,
@@ -219,7 +219,9 @@ export const ProjectCardRoot = ({
     isProjectReorderMode || isCrossProjectUrlDragActive || userCollapsedState
 
   const projectUrlCount =
-    project.urlIds?.length ?? project.urls?.length ?? sortedProjectUrls.length
+    project.urls?.length ??
+    project.memberships?.length ??
+    sortedProjectUrls.length
 
   const handleOpenAllUrls = useCallback(() => {
     if (projectUrlCount === 0) {
@@ -323,8 +325,10 @@ export const ProjectCardRoot = ({
             />
           </div>
           <CardGroupActions
-            onOpenAll={projectUrlCount > 0 ? handleOpenAllUrls : undefined}
-            onDeleteAll={projectUrlCount > 0 ? handleDeleteAllUrls : undefined}
+            {...(projectUrlCount > 0 ? { onOpenAll: handleOpenAllUrls } : {})}
+            {...(projectUrlCount > 0
+              ? { onDeleteAll: handleDeleteAllUrls }
+              : {})}
             onManage={handleOpenManagement}
             onConfirmOpenAll={projectUrlCount >= BULK_OPEN_THRESHOLD}
             // eslint-disable-next-line react/jsx-handler-names -- boolean toggle prop for CardGroupActions
@@ -369,9 +373,15 @@ export const ProjectCardRoot = ({
         isOpen={isManagementModalOpen}
         onClose={handleCloseManagement}
         project={project}
-        onRenameProject={handlers.handleRenameProject}
-        onUpdateProjectKeywords={handlers.handleUpdateProjectKeywords}
-        onDeleteProject={handlers.handleDeleteProject}
+        {...(handlers.handleRenameProject !== undefined
+          ? { onRenameProject: handlers.handleRenameProject }
+          : {})}
+        {...(handlers.handleUpdateProjectKeywords !== undefined
+          ? { onUpdateProjectKeywords: handlers.handleUpdateProjectKeywords }
+          : {})}
+        {...(handlers.handleDeleteProject !== undefined
+          ? { onDeleteProject: handlers.handleDeleteProject }
+          : {})}
       />
     </ProjectCardContext>
   )

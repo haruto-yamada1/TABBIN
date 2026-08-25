@@ -1,16 +1,20 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
+import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import {
+  toSavedTabsCustomProjectViewModel,
+  toSavedTabsTabGroupViewModel,
+} from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type {
+  ViewMode,
+  ModeSyncEvent,
+} from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { TypedSavedTabsStorageChange } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
-import type {
-  ViewMode,
-  ModeSyncEvent,
-} from '@/contexts/saved-tabs/presentation/types/mode'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 type SyncStorageChangesParams = {
   changes: readonly TypedSavedTabsStorageChange[]
@@ -125,7 +129,9 @@ const applyProjectChange = (
   // payload が空配列 / 壊れた要素だけだった場合でも空配列として
   // 同期する（旧 `modeSyncService` の挙動を維持するため、port 段階
   // で「配列以外なら空配列」と「壊れた要素をスキップ」が保証される）。
-  const nextCustomProjects = projectsChange ? projectsChange.payload : null
+  const nextCustomProjects = projectsChange
+    ? projectsChange.payload.map(toSavedTabsCustomProjectViewModel)
+    : null
   const nextProjectOrder = orderChange ? orderChange.payload : null
 
   setCustomProjects((prevProjects) => {
@@ -157,48 +163,14 @@ const areStringArraysEqual = (a?: string[], b?: string[]): boolean => {
   return true
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v)
-
-const isPlainObjectEqual = (
-  a?: Record<string, unknown>,
-  b?: Record<string, unknown>,
-): boolean => {
-  const left = a ?? {}
-  const right = b ?? {}
-  const leftKeys = Object.keys(left)
-  const rightKeys = Object.keys(right)
-  if (leftKeys.length !== rightKeys.length) {
-    return false
-  }
-  for (const key of leftKeys) {
-    if (!Object.hasOwn(right, key)) {
-      return false
-    }
-    const leftValue = left[key]
-    const rightValue = right[key]
-    if (isRecord(leftValue) && isRecord(rightValue)) {
-      if (!isPlainObjectEqual(leftValue, rightValue)) {
-        return false
-      }
-      continue
-    }
-    if (leftValue !== rightValue) {
-      return false
-    }
-  }
-  return true
-}
-
 const areProjectsEqual = (a: CustomProject, b: CustomProject): boolean =>
   a.id === b.id &&
   a.name === b.name &&
   a.createdAt === b.createdAt &&
   a.updatedAt === b.updatedAt &&
-  areStringArraysEqual(a.urlIds, b.urlIds) &&
+  JSON.stringify(a.memberships) === JSON.stringify(b.memberships) &&
   areStringArraysEqual(a.categories, b.categories) &&
   areStringArraysEqual(a.categoryOrder, b.categoryOrder) &&
-  isPlainObjectEqual(a.urlMetadata, b.urlMetadata) &&
   JSON.stringify(a.urls) === JSON.stringify(b.urls)
 
 const mergeProjectReferences = (
@@ -263,7 +235,9 @@ const applyTabsAndUrlsChanges = async (
   )
 
   if (savedTabsChange) {
-    await refreshTabGroupsWithUrls(savedTabsChange.payload)
+    await refreshTabGroupsWithUrls(
+      savedTabsChange.payload.map(toSavedTabsTabGroupViewModel),
+    )
     await syncDomainDataToCustomProjects()
     return
   }

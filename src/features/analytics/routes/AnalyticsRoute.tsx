@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { getPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Toaster } from '@/components/ui/sonner'
@@ -18,7 +18,10 @@ import {
   generateAnalyticsResult,
   getDefaultAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
-import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
+import type {
+  AnalyticsHistoricalDataQuality,
+  AnalyticsQuery,
+} from '@/features/analytics/lib/analytics'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
 import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
@@ -55,7 +58,6 @@ import {
 } from '@/features/analytics/routes/analyticsRoute.helpers'
 import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 import {
   createSavedAnalyticsView,
   deleteSavedAnalyticsView,
@@ -79,6 +81,7 @@ const CanvasPane = ({
   isDeleteActionDisabled,
   isUsingAiCharts,
   language,
+  historicalDataQuality,
   summary,
   t,
 }: {
@@ -96,6 +99,7 @@ const CanvasPane = ({
   isDeleteActionDisabled: boolean
   isUsingAiCharts: boolean
   language: string
+  historicalDataQuality: AnalyticsHistoricalDataQuality
   summary: string
   t: (key: string) => string
 }) => (
@@ -110,6 +114,11 @@ const CanvasPane = ({
             {t('analytics.canvasTitle')}
           </h2>
           <p className='mt-1 text-sm text-muted-foreground'>{summary}</p>
+          {historicalDataQuality === 'partial' ? (
+            <output className='mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100'>
+              {t('analytics.timestampQualityNotice')}
+            </output>
+          ) : null}
         </div>
       </div>
       <div
@@ -147,6 +156,10 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
       chartDescriptionAggregated: t('analytics.chart.descriptionAggregated'),
       chartDescriptionCompareMode: t('analytics.chart.descriptionCompareMode'),
       chartMonthlySavedTrend: t('analytics.chart.monthlySavedTrend'),
+      chartSavedCountByCollection: t('analytics.chart.savedCountByCollection'),
+      chartSavedCountByCollectionCategory: t(
+        'analytics.chart.savedCountByCollectionCategory',
+      ),
       chartSavedCountByDomain: t('analytics.chart.savedCountByDomain'),
       chartSavedCountByParentCategory: t(
         'analytics.chart.savedCountByParentCategory',
@@ -172,9 +185,12 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
     { label: t('analytics.groupBy.domain'), value: 'domain' },
     { label: t('analytics.groupBy.timeRecent'), value: 'timeRecent' },
     { label: t('analytics.groupBy.timeTop'), value: 'timeTop' },
-    { label: t('analytics.groupBy.parentCategory'), value: 'parentCategory' },
-    { label: t('analytics.groupBy.subCategory'), value: 'subCategory' },
-    { label: t('analytics.groupBy.project'), value: 'project' },
+    { label: t('analytics.groupBy.collectionGroup'), value: 'collectionGroup' },
+    { label: t('analytics.groupBy.collection'), value: 'collection' },
+    {
+      label: t('analytics.groupBy.collectionCategory'),
+      value: 'collectionCategory',
+    },
   ] as const satisfies readonly {
     label: string
     value: AnalyticsQuery['groupBy']
@@ -256,9 +272,11 @@ const useAnalyticsRouteView = () => {
 
   const generatedAnalyticsResult = useMemo(
     () =>
-      generateAnalyticsResult(records, query, {
-        messages: chartMessages,
-      }),
+      generateAnalyticsResult(
+        records,
+        query,
+        chartMessages !== undefined ? { messages: chartMessages } : {},
+      ),
     [chartMessages, query, records],
   )
   const generatedChartSpecs = generatedAnalyticsResult.chartSpecs
@@ -275,9 +293,11 @@ const useAnalyticsRouteView = () => {
 
   const filteredRecords = useMemo(
     () =>
-      filterAnalyticsRecords(records, query, {
-        messages: chartMessages,
-      }),
+      filterAnalyticsRecords(
+        records,
+        query,
+        chartMessages !== undefined ? { messages: chartMessages } : {},
+      ),
     [chartMessages, query, records],
   )
 
@@ -350,7 +370,7 @@ const useAnalyticsRouteView = () => {
           label,
           query,
           record,
-          seriesKey,
+          ...(seriesKey !== undefined ? { seriesKey } : {}),
           uncategorizedLabel: t('analytics.uncategorized'),
         }),
       )
@@ -358,7 +378,7 @@ const useAnalyticsRouteView = () => {
       setDrilldownSelection({
         label,
         matchingRecords,
-        seriesKey,
+        ...(seriesKey !== undefined ? { seriesKey } : {}),
         specTitle: spec.title,
       })
     },
@@ -404,13 +424,7 @@ const useAnalyticsRouteView = () => {
             // eslint-disable-next-line typescript/no-misused-promises
             onClick: async () => {
               try {
-                const storageLocal = getPersistenceStorageLocal()
-                if (!storageLocal) {
-                  warnMissingChromeStorage('分析削除アンドゥ復元')
-                  toast.error(t('savedTabs.undo.restoreError'))
-                  return
-                }
-                await storageLocal.set(
+                await getBackgroundSavedTabsDataPlane().restoreUndoSnapshot(
                   createAnalyticsDeleteUndoPayload(snapshot),
                 )
                 const nextRecords = await refreshRecords()
@@ -663,6 +677,9 @@ const useAnalyticsRouteView = () => {
               isDeleteActionDisabled={isDeleteActionDisabled}
               isUsingAiCharts={isUsingAiCharts}
               language={language}
+              historicalDataQuality={
+                generatedAnalyticsResult.historicalDataQuality
+              }
               summary={summary}
               t={t}
             />

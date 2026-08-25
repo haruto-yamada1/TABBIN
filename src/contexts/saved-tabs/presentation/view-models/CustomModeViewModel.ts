@@ -1,4 +1,4 @@
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import type { CustomProjectViewModel } from './CustomProjectViewModel'
 import { toCustomProjectViewModel } from './CustomProjectViewModel'

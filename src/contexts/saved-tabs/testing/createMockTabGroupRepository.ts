@@ -22,13 +22,13 @@
  * `.mockRejectedValueOnce(...)` で上書きする。
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-assignment, typescript/no-unsafe-type-assertion -- branded ↔ plain 変換キャストの集約点 */
-
 import { vi } from 'vitest'
 
+import { tabGroupDomainName } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
-import type { TabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
+
+import { createTabGroup } from './createCurrentCollectionFixtures'
 
 export type MockTabGroupRepositoryState = {
   readonly savedTabs: readonly TabGroup[]
@@ -54,43 +54,16 @@ export const createMockTabGroupRepository = (
     findAll: vi.fn(async () => state.savedTabs),
 
     findById: vi.fn(async (id) => {
-      const idString = id as unknown as string
-      return state.savedTabs.find((tab) => tab.id === idString) ?? null
+      return state.savedTabs.find((tab) => tab.id === id) ?? null
     }),
 
     findRawDomainById: vi.fn(async (id) => {
-      const idString = id as unknown as string
-      const tab = state.savedTabs.find((entry) => entry.id === idString)
-      return (tab?.domain as unknown as string | undefined) ?? null
+      const tab = state.savedTabs.find((entry) => entry.id === id)
+      return tab ? tabGroupDomainName(tab) : null
     }),
 
     findRawTabGroupById: vi.fn(async (id) => {
-      const idString = id as unknown as string
-      const tab = state.savedTabs.find((entry) => entry.id === idString)
-      if (!tab) {
-        return null
-      }
-      // entity 化された `TabGroup` には `subCategories` /
-      // `categoryKeywords` がないが、mock helper は
-      // `toMockTabGroup` 経由で `as unknown as TabGroup` に
-      // キャストした拡張フィールドを持つ object を保持する。
-      const extra = tab as unknown as {
-        readonly categoryKeywords?: readonly {
-          readonly categoryName: string
-          readonly keywords: readonly string[]
-        }[]
-        readonly subCategories?: readonly string[]
-      }
-      return {
-        categoryKeywords: (extra.categoryKeywords ?? []).map((keyword) => ({
-          categoryName: keyword.categoryName,
-          keywords: [...keyword.keywords],
-        })),
-        domain: tab.domain as unknown as string,
-        id: tab.id as unknown as string,
-        parentCategoryId: tab.parentCategoryId as unknown as string | undefined,
-        subCategories: [...(extra.subCategories ?? [])],
-      }
+      return state.savedTabs.find((entry) => entry.id === id) ?? null
     }),
 
     saveAll: vi.fn(async (next) => {
@@ -98,10 +71,8 @@ export const createMockTabGroupRepository = (
     }),
 
     removeByIds: vi.fn(async (ids) => {
-      const idSet = new Set<string>(ids as unknown as readonly string[])
-      state.savedTabs = state.savedTabs.filter(
-        (tab) => !idSet.has(tab.id as unknown as string),
-      )
+      const idSet = new Set<string>(ids)
+      state.savedTabs = state.savedTabs.filter((tab) => !idSet.has(tab.id))
     }),
   }
 }
@@ -131,27 +102,41 @@ export const toMockTabGroup = (input: {
     subCategory?: string
     savedAt?: number
   }[]
-}): TabGroup =>
-  ({
-    categoryKeywords: input.categoryKeywords
-      ? input.categoryKeywords.map((ck) => ({
-          categoryName: ck.categoryName,
-          keywords: [...ck.keywords],
-        }))
-      : undefined,
+}): TabGroup => {
+  const memberships = input.urls
+    ? input.urls.flatMap(({ id, subCategory }) =>
+        id
+          ? [
+              {
+                ...(subCategory !== undefined ? { category: subCategory } : {}),
+                urlId: id,
+              },
+            ]
+          : [],
+      )
+    : (input.urlIds ?? []).map((urlId) => ({ urlId }))
+  return createTabGroup({
+    ...(input.categoryKeywords !== undefined
+      ? { categoryKeywords: input.categoryKeywords }
+      : {}),
     domain: input.domain,
-    id: input.id as unknown as TabGroupId,
-    parentCategoryId: input.parentCategoryId as unknown as
-      | TabGroupId
-      | undefined,
-    savedAt: input.savedAt,
-    subCategories: input.subCategories ? [...input.subCategories] : undefined,
-    subCategoryOrder: input.subCategoryOrder
-      ? [...input.subCategoryOrder]
-      : undefined,
-    subCategoryOrderWithUncategorized: input.subCategoryOrderWithUncategorized
-      ? [...input.subCategoryOrderWithUncategorized]
-      : undefined,
-    urlIds: input.urlIds ? [...input.urlIds] : undefined,
-    urls: input.urls ? input.urls.map((u) => ({ ...u })) : undefined,
-  }) as unknown as TabGroup
+    id: input.id,
+    memberships,
+    ...(input.parentCategoryId !== undefined
+      ? { parentCategoryId: input.parentCategoryId }
+      : {}),
+    ...(input.savedAt !== undefined ? { savedAt: input.savedAt } : {}),
+    ...(input.subCategories !== undefined
+      ? { subCategories: input.subCategories }
+      : {}),
+    ...(input.subCategoryOrder !== undefined
+      ? { subCategoryOrder: input.subCategoryOrder }
+      : {}),
+    ...(input.subCategoryOrderWithUncategorized !== undefined
+      ? {
+          subCategoryOrderWithUncategorized:
+            input.subCategoryOrderWithUncategorized,
+        }
+      : {}),
+  })
+}

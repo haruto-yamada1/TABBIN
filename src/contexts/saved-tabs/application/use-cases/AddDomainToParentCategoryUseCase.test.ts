@@ -44,8 +44,10 @@ describe('createAddDomainToParentCategoryUseCase', () => {
   beforeEach(() => {
     repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: ['existing.com'],
-        domains: ['tab-existing'],
+        collections: ['tab-existing'].map((id, index) => ({
+          id,
+          domain: ['existing.com'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       }),
@@ -60,8 +62,14 @@ describe('createAddDomainToParentCategoryUseCase', () => {
       domainName: createDomainName('new.com'),
     })
     const target = result.find((c) => c.id === 'cat-1')
-    expect(target?.domains).toStrictEqual(['tab-existing', 'tab-new'])
-    expect(target?.domainNames).toStrictEqual(['existing.com', 'new.com'])
+    expect(target?.collections.map(({ id }) => id)).toStrictEqual([
+      'tab-existing',
+      'tab-new',
+    ])
+    expect(target?.collections.map(({ domain }) => domain)).toStrictEqual([
+      'existing.com',
+      'new.com',
+    ])
   })
 
   it('既存 domains にある domainId の追加はエラー', async () => {

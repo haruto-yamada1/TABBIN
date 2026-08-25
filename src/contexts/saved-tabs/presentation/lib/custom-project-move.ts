@@ -1,8 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react'
 
 import type { MoveUrlBetweenCustomProjectsCommand } from '@/contexts/saved-tabs/application/commands/MoveUrlBetweenCustomProjectsCommand'
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { MoveUrlBetweenCustomProjectsUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveUrlBetweenCustomProjectsUseCase'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 type MoveCustomProjectUrlAndSyncStateParams = {
   sourceProjectId: string

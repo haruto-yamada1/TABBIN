@@ -2,12 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { createOpenAllSavedUrlsUseCase } from './OpenAllSavedUrlsUseCase'
 
@@ -177,7 +179,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: [],
@@ -185,7 +187,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       id: 'project-1',
       name: 'P',
       updatedAt: 1,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [project],
@@ -209,11 +211,15 @@ describe('OpenAllSavedUrlsUseCase', () => {
     expect(result.removedUrlRecordIds).toStrictEqual([])
     expect(result.removedUrlRecords).toStrictEqual([])
     expect(result.snapshot).toBeNull()
-    expect((await repos.tabGroupRepository.findAll())[0].urlIds).toStrictEqual([
-      'url-1',
-    ])
     expect(
-      (await repos.customProjectRepository.findAll())[0].urlIds,
+      (await repos.tabGroupRepository.findAll())[0].memberships.map(
+        ({ urlId }) => urlId,
+      ),
+    ).toStrictEqual(['url-1'])
+    expect(
+      (await repos.customProjectRepository.findAll())[0].memberships.map(
+        ({ urlId }) => urlId,
+      ),
     ).toStrictEqual(['url-1'])
     expect(
       (await repos.urlRecordRepository.findAll()).map((r) => r.id),
@@ -230,7 +236,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: [],
@@ -238,7 +244,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       id: 'project-1',
       name: 'P',
       updatedAt: 1,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [project],
@@ -265,7 +271,9 @@ describe('OpenAllSavedUrlsUseCase', () => {
     await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
     await expect(
       repos.customProjectRepository.findAll(),
-    ).resolves.toStrictEqual([{ ...project, urlIds: [] }])
+    ).resolves.toStrictEqual([
+      { ...project, memberships: [].map((urlId) => ({ urlId })) },
+    ])
     await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([])
   })
 
@@ -279,7 +287,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       tabGroups: [group],
@@ -325,7 +333,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: [],
@@ -333,7 +341,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       id: 'project-1',
       name: 'P',
       updatedAt: 1,
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [project],
@@ -359,9 +367,13 @@ describe('OpenAllSavedUrlsUseCase', () => {
     expect(result.removedUrlRecordIds).toStrictEqual(['url-1'])
     expect(result.snapshot).not.toBeNull()
     const remainingTabGroups = await repos.tabGroupRepository.findAll()
-    expect(remainingTabGroups[0].urlIds).toStrictEqual(['url-2'])
+    expect(
+      remainingTabGroups[0].memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual(['url-2'])
     const remainingProjects = await repos.customProjectRepository.findAll()
-    expect(remainingProjects[0].urlIds).toStrictEqual(['url-2'])
+    expect(
+      remainingProjects[0].memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual(['url-2'])
     const remainingRecords = await repos.urlRecordRepository.findAll()
     expect(remainingRecords.map((record) => record.id)).toStrictEqual(['url-2'])
   })

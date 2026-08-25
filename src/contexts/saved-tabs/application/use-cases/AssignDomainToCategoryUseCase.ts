@@ -1,9 +1,11 @@
 import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import { tabGroupDomainName } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { DomainCategoryMappingRepository } from '@/contexts/saved-tabs/domain/repositories/DomainCategoryMappingRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
+import { createDomainName } from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-objects/ParentCategoryId'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
@@ -95,7 +97,7 @@ export const createAssignDomainToCategoryUseCase = (
     const rawDomain = tabGroup
       ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
         ((await deps.tabGroupRepository.findRawDomainById(tabGroupId)) ??
-        tabGroup.domain)
+        tabGroupDomainName(tabGroup))
       : null
 
     const targetDomain = rawDomain
@@ -122,7 +124,7 @@ export const createAssignDomainToCategoryUseCase = (
       await deps.domainCategoryMappingRepository.saveAll(nextMappings)
     }
 
-    // 2) 親カテゴリの domains / domainNames 更新
+    // 2) 親カテゴリの collection relation 更新
     const targetCategoryId: ParentCategoryId | null =
       command.categoryId === UNCATEGORIZED_SENTINEL
         ? null
@@ -134,34 +136,42 @@ export const createAssignDomainToCategoryUseCase = (
         if (!targetDomain) {
           return category
         }
-        const hasDomainId = category.domains.includes(tabGroupDomainId)
-        const hasDomainName = category.domainNames.includes(targetDomain)
-        if (hasDomainId && hasDomainName) {
+        const hasCollection = category.collections.some(
+          ({ domain, id }) =>
+            id === tabGroupDomainId || domain === targetDomain,
+        )
+        if (hasCollection) {
           return category
         }
         return {
           ...category,
-          domainNames: hasDomainName
-            ? category.domainNames
-            : [...category.domainNames, targetDomain],
-          domains: hasDomainId
-            ? category.domains
-            : [...category.domains, tabGroupDomainId],
+          collections: [
+            ...category.collections,
+            {
+              domain:
+                tabGroup === null
+                  ? createDomainName(targetDomain)
+                  : createDomainName(tabGroupDomainName(tabGroup)),
+              id: tabGroupDomainId,
+            },
+          ],
         }
       }
       // 他のカテゴリからは除く
       if (!targetDomain) {
         return {
           ...category,
-          domains: category.domains.filter((id) => id !== tabGroupDomainId),
+          collections: category.collections.filter(
+            ({ id }) => id !== tabGroupDomainId,
+          ),
         }
       }
       return {
         ...category,
-        domainNames: category.domainNames.filter(
-          (name) => name !== targetDomain,
+        collections: category.collections.filter(
+          ({ domain, id }) =>
+            id !== tabGroupDomainId && domain !== targetDomain,
         ),
-        domains: category.domains.filter((id) => id !== tabGroupDomainId),
       }
     })
 

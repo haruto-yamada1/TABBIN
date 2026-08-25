@@ -1,4 +1,8 @@
 import type {
+  SavedTabsAnalyticsMetric,
+  SavedTabsAnalyticsRecord,
+} from '@/app/composition/backgroundSavedTabsDataPlaneTypes'
+import type {
   AiChartSpec,
   AiChartType,
   AiSavedUrlRecord,
@@ -12,6 +16,9 @@ import {
 
 type AnalyticsMode = 'both' | 'custom' | 'domain'
 type AnalyticsGroupBy =
+  | 'collection'
+  | 'collectionCategory'
+  | 'collectionGroup'
   | 'domain'
   | 'parentCategory'
   | 'project'
@@ -23,6 +30,8 @@ type AnalyticsTimeRange = '30d' | '365d' | '7d' | '90d' | 'all' | 'custom'
 type AnalyticsTimeBucket = 'day' | 'month' | 'week'
 type AnalyticsSort = 'label-asc' | 'label-desc' | 'value-asc' | 'value-desc'
 type AnalyticsCompareBy = 'mode' | 'none'
+type AnalyticsCollectionType = 'all' | 'custom' | 'domain'
+type AnalyticsHistoricalDataQuality = 'exact' | 'partial'
 
 type AnalyticsDateRange = {
   from?: string
@@ -44,13 +53,16 @@ type AnalyticsFilters = {
 
 type AnalyticsQuery = {
   chartType: AiChartType
+  collectionType?: AnalyticsCollectionType
   compareBy: AnalyticsCompareBy
   customDateRange?: AnalyticsDateRange
   filters: AnalyticsFilters
   groupBy: AnalyticsGroupBy
   limit: number
+  metric?: SavedTabsAnalyticsMetric
   mode: AnalyticsMode
   normalize: boolean
+  schemaVersion?: 2
   sort: AnalyticsSort
   stacked: boolean
   timeBucket: AnalyticsTimeBucket
@@ -58,7 +70,13 @@ type AnalyticsQuery = {
   title?: string
 }
 
-type LegacyAnalyticsGroupBy = AnalyticsGroupBy | 'time'
+type LegacyAnalyticsGroupBy =
+  | AnalyticsGroupBy
+  | 'parentCategory'
+  | 'project'
+  | 'projectCategory'
+  | 'subCategory'
+  | 'time'
 
 type AnalyticsQueryInput = Omit<AnalyticsQuery, 'groupBy'> & {
   groupBy: LegacyAnalyticsGroupBy
@@ -75,6 +93,7 @@ type AnalyticsPreset = {
 type AnalyticsResult = {
   chartSpecs: AiChartSpec[]
   filteredRecordCount: number
+  historicalDataQuality: AnalyticsHistoricalDataQuality
   query: AnalyticsQuery
   summary: string
 }
@@ -89,6 +108,8 @@ type AnalyticsMessages = {
   chartDescriptionAggregated: string
   chartDescriptionCompareMode: string
   chartMonthlySavedTrend: string
+  chartSavedCountByCollection: string
+  chartSavedCountByCollectionCategory: string
   chartSavedCountByDomain: string
   chartSavedCountByParentCategory: string
   chartSavedCountByProject: string
@@ -111,6 +132,8 @@ const DEFAULT_ANALYTICS_MESSAGES: AnalyticsMessages = {
   chartDescriptionAggregated: '{{count}} saved records aggregated',
   chartDescriptionCompareMode: '{{count}} saved records compared by mode',
   chartMonthlySavedTrend: 'Monthly saved trend',
+  chartSavedCountByCollection: 'Saved count by collection',
+  chartSavedCountByCollectionCategory: 'Saved count by collection category',
   chartSavedCountByDomain: 'Saved count by domain',
   chartSavedCountByParentCategory: 'Saved count by parent category',
   chartSavedCountByProject: 'Saved count by project',
@@ -174,26 +197,261 @@ const interpolate = (
   template.replaceAll(/\{\{(\w+)\}\}/g, (_, token) => values[token] ?? '')
 const getDefaultAnalyticsQuery = (): AnalyticsQuery => ({
   chartType: 'bar',
+  collectionType: 'all',
   compareBy: 'none',
   filters: {
     ...EMPTY_FILTERS,
   },
   groupBy: 'domain',
   limit: DEFAULT_LIMIT,
+  metric: 'first-saved',
   mode: 'both',
   normalize: false,
+  schemaVersion: 2,
   sort: 'value-desc',
   stacked: false,
   timeBucket: 'day',
   timeRange: 'all',
 })
 
+const LEGACY_CUSTOM_COLLECTION_GROUPS = new Set<LegacyAnalyticsGroupBy>([
+  'project',
+  'projectCategory',
+])
+const LEGACY_DOMAIN_COLLECTION_GROUPS = new Set<LegacyAnalyticsGroupBy>([
+  'parentCategory',
+  'subCategory',
+])
+const COLLECTION_SCOPED_GROUPS = new Set<LegacyAnalyticsGroupBy>([
+  'collection',
+  'collectionCategory',
+  'collectionGroup',
+  ...LEGACY_CUSTOM_COLLECTION_GROUPS,
+  ...LEGACY_DOMAIN_COLLECTION_GROUPS,
+])
+const isCollectionScopedGroupBy = (groupBy: LegacyAnalyticsGroupBy): boolean =>
+  COLLECTION_SCOPED_GROUPS.has(groupBy)
+const URL_METRIC_GROUPS = new Set<AnalyticsGroupBy>([
+  'domain',
+  'timeRecent',
+  'timeTop',
+])
+
+const getNormalizedCollectionType = (
+  query: AnalyticsQueryInput,
+): AnalyticsCollectionType => {
+  if (LEGACY_CUSTOM_COLLECTION_GROUPS.has(query.groupBy)) {
+    return 'custom'
+  }
+  if (LEGACY_DOMAIN_COLLECTION_GROUPS.has(query.groupBy)) {
+    return 'domain'
+  }
+  return query.collectionType ?? (query.mode === 'both' ? 'all' : query.mode)
+}
+
+const getNormalizedGroupBy = (
+  groupBy: LegacyAnalyticsGroupBy,
+): AnalyticsGroupBy => {
+  if (groupBy === 'time') {
+    return 'timeRecent'
+  }
+  if (groupBy === 'parentCategory') {
+    return 'collectionGroup'
+  }
+  if (groupBy === 'project') {
+    return 'collection'
+  }
+  if (groupBy === 'projectCategory' || groupBy === 'subCategory') {
+    return 'collectionCategory'
+  }
+  return groupBy
+}
+
 const normalizeAnalyticsQuery = (
   query: AnalyticsQueryInput,
-): AnalyticsQuery => ({
-  ...query,
-  groupBy: query.groupBy === 'time' ? 'timeRecent' : query.groupBy,
-})
+): AnalyticsQuery => {
+  const collectionType = getNormalizedCollectionType(query)
+  const collectionScoped =
+    isCollectionScopedGroupBy(query.groupBy) ||
+    query.compareBy === 'mode' ||
+    collectionType !== 'all'
+  let metric = query.metric
+  metric ??= collectionScoped ? 'membership-added' : 'first-saved'
+  let groupBy = getNormalizedGroupBy(query.groupBy)
+  if (metric !== 'membership-added' && !URL_METRIC_GROUPS.has(groupBy)) {
+    groupBy = 'domain'
+  }
+  return {
+    ...query,
+    collectionType: metric === 'membership-added' ? collectionType : 'all',
+    compareBy: metric === 'membership-added' ? query.compareBy : 'none',
+    groupBy,
+    metric,
+    schemaVersion: 2,
+  }
+}
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string')
+
+const isJsonRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isAnalyticsFilters = (value: unknown): value is AnalyticsFilters =>
+  isJsonRecord(value) &&
+  isStringArray(value.excludedDomains) &&
+  isStringArray(value.excludedParentCategories) &&
+  isStringArray(value.excludedProjectCategories) &&
+  isStringArray(value.excludedProjects) &&
+  isStringArray(value.excludedSubCategories) &&
+  isStringArray(value.includedDomains) &&
+  isStringArray(value.includedParentCategories) &&
+  isStringArray(value.includedProjectCategories) &&
+  isStringArray(value.includedProjects) &&
+  isStringArray(value.includedSubCategories)
+
+const isAnalyticsDateRange = (value: unknown): value is AnalyticsDateRange =>
+  isJsonRecord(value) &&
+  (value.from === undefined || typeof value.from === 'string') &&
+  (value.to === undefined || typeof value.to === 'string')
+
+const isOneOf = <Value extends string>(
+  value: unknown,
+  options: readonly Value[],
+): value is Value =>
+  typeof value === 'string' && options.some((option) => option === value)
+
+const ANALYTICS_CHART_TYPES: readonly AiChartType[] = [
+  'area',
+  'bar',
+  'line',
+  'pie',
+  'radar',
+]
+const ANALYTICS_GROUP_BY_VALUES: readonly LegacyAnalyticsGroupBy[] = [
+  'collection',
+  'collectionCategory',
+  'collectionGroup',
+  'domain',
+  'parentCategory',
+  'project',
+  'projectCategory',
+  'subCategory',
+  'time',
+  'timeRecent',
+  'timeTop',
+]
+const ANALYTICS_MODE_VALUES: readonly AnalyticsMode[] = [
+  'both',
+  'custom',
+  'domain',
+]
+const ANALYTICS_COMPARE_VALUES: readonly AnalyticsCompareBy[] = ['mode', 'none']
+const ANALYTICS_SORT_VALUES: readonly AnalyticsSort[] = [
+  'label-asc',
+  'label-desc',
+  'value-asc',
+  'value-desc',
+]
+const ANALYTICS_BUCKET_VALUES: readonly AnalyticsTimeBucket[] = [
+  'day',
+  'month',
+  'week',
+]
+const ANALYTICS_RANGE_VALUES: readonly AnalyticsTimeRange[] = [
+  '30d',
+  '365d',
+  '7d',
+  '90d',
+  'all',
+  'custom',
+]
+const ANALYTICS_COLLECTION_TYPE_VALUES: readonly AnalyticsCollectionType[] = [
+  'all',
+  'custom',
+  'domain',
+]
+const ANALYTICS_METRIC_VALUES: readonly SavedTabsAnalyticsMetric[] = [
+  'first-saved',
+  'last-saved',
+  'membership-added',
+]
+
+type ParsedAnalyticsQueryRecord = Record<string, unknown> & {
+  chartType: AiChartType
+  collectionType?: AnalyticsCollectionType
+  compareBy: AnalyticsCompareBy
+  customDateRange?: AnalyticsDateRange
+  filters: AnalyticsFilters
+  groupBy: LegacyAnalyticsGroupBy
+  limit: number
+  metric?: SavedTabsAnalyticsMetric
+  mode: AnalyticsMode
+  normalize: boolean
+  schemaVersion?: 2
+  sort: AnalyticsSort
+  stacked: boolean
+  timeBucket: AnalyticsTimeBucket
+  timeRange: AnalyticsTimeRange
+}
+
+const isOptionalOneOf = <Value extends string>(
+  value: unknown,
+  options: readonly Value[],
+): value is Value | undefined => value === undefined || isOneOf(value, options)
+
+const isPositiveSafeInteger = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+
+const isParsedAnalyticsQueryRecord = (
+  value: Record<string, unknown>,
+): value is ParsedAnalyticsQueryRecord =>
+  [
+    isAnalyticsFilters(value.filters),
+    value.customDateRange === undefined ||
+      isAnalyticsDateRange(value.customDateRange),
+    isOneOf(value.chartType, ANALYTICS_CHART_TYPES),
+    isOneOf(value.compareBy, ANALYTICS_COMPARE_VALUES),
+    isOneOf(value.groupBy, ANALYTICS_GROUP_BY_VALUES),
+    isOneOf(value.mode, ANALYTICS_MODE_VALUES),
+    isOneOf(value.sort, ANALYTICS_SORT_VALUES),
+    isOneOf(value.timeBucket, ANALYTICS_BUCKET_VALUES),
+    isOneOf(value.timeRange, ANALYTICS_RANGE_VALUES),
+    isPositiveSafeInteger(value.limit),
+    typeof value.normalize === 'boolean',
+    typeof value.stacked === 'boolean',
+    value.schemaVersion === undefined || value.schemaVersion === 2,
+    isOptionalOneOf(value.collectionType, ANALYTICS_COLLECTION_TYPE_VALUES),
+    isOptionalOneOf(value.metric, ANALYTICS_METRIC_VALUES),
+  ].every(Boolean)
+
+const parseAnalyticsQuery = (value: unknown): AnalyticsQuery | null => {
+  if (!isJsonRecord(value) || !isParsedAnalyticsQueryRecord(value)) {
+    return null
+  }
+  const query: AnalyticsQueryInput = {
+    chartType: value.chartType,
+    ...(value.collectionType === undefined
+      ? {}
+      : { collectionType: value.collectionType }),
+    compareBy: value.compareBy,
+    ...(value.customDateRange === undefined
+      ? {}
+      : { customDateRange: value.customDateRange }),
+    filters: value.filters,
+    groupBy: value.groupBy,
+    limit: value.limit,
+    ...(value.metric === undefined ? {} : { metric: value.metric }),
+    mode: value.mode,
+    normalize: value.normalize,
+    sort: value.sort,
+    stacked: value.stacked,
+    timeBucket: value.timeBucket,
+    timeRange: value.timeRange,
+    ...(typeof value.title === 'string' ? { title: value.title } : {}),
+  }
+  return normalizeAnalyticsQuery(query)
+}
 
 const isWithinCustomDateRange = (
   savedAt: number,
@@ -211,6 +469,9 @@ const matchesMode = (
   record: AiSavedUrlRecord,
   mode: AnalyticsMode,
 ): boolean => {
+  if ('metric' in record) {
+    return true
+  }
   const inDomainMode = record.savedInTabGroups.length > 0
   const inCustomMode = record.savedInProjects.length > 0
 
@@ -223,6 +484,23 @@ const matchesMode = (
   }
 
   return inDomainMode || inCustomMode
+}
+
+const matchesMetric = (
+  record: AiSavedUrlRecord | SavedTabsAnalyticsRecord,
+  query: AnalyticsQuery,
+): boolean => {
+  if (!('metric' in record)) {
+    return true
+  }
+  if (record.metric !== query.metric) {
+    return false
+  }
+  return (
+    record.metric !== 'membership-added' ||
+    query.collectionType === 'all' ||
+    record.collectionType === query.collectionType
+  )
 }
 
 const isWithinTimeRange = (
@@ -356,34 +634,82 @@ const getTimeBucketLabel = (
   return getLocalDateKey(savedAt, timeZone)
 }
 
+const getCollectionLabelsForType = (
+  record: AiSavedUrlRecord,
+  collectionType: AnalyticsCollectionType = 'all',
+): string[] => {
+  if (collectionType === 'domain') {
+    return record.savedInTabGroups
+  }
+  if (collectionType === 'custom') {
+    return record.savedInProjects
+  }
+  return [...record.savedInTabGroups, ...record.savedInProjects]
+}
+
+const getCollectionCategoryLabelsForType = (
+  record: AiSavedUrlRecord,
+  collectionType: AnalyticsCollectionType = 'all',
+): string[] => {
+  if (collectionType === 'domain') {
+    return record.subCategories
+  }
+  if (collectionType === 'custom') {
+    return record.projectCategories
+  }
+  return [...record.subCategories, ...record.projectCategories]
+}
+
+const withUncategorizedLabel = (
+  labels: string[],
+  uncategorizedLabel: string,
+): string[] => (labels.length > 0 ? labels : [uncategorizedLabel])
+
 // eslint-disable-next-line eslint/complexity
 const getLabelsForGroup = (
   record: AiSavedUrlRecord,
   groupBy: AnalyticsGroupBy,
   uncategorizedLabel = UNCATEGORIZED_LABEL,
+  collectionType: AnalyticsCollectionType = 'all',
 ): string[] => {
   switch (groupBy) {
     case 'domain': {
       return [record.domain]
     }
+    case 'collection': {
+      return withUncategorizedLabel(
+        getCollectionLabelsForType(record, collectionType),
+        uncategorizedLabel,
+      )
+    }
+    case 'project': {
+      return withUncategorizedLabel(
+        getCollectionLabelsForType(record, 'custom'),
+        uncategorizedLabel,
+      )
+    }
+    case 'collectionCategory': {
+      return withUncategorizedLabel(
+        getCollectionCategoryLabelsForType(record, collectionType),
+        uncategorizedLabel,
+      )
+    }
+    case 'projectCategory': {
+      return withUncategorizedLabel(
+        getCollectionCategoryLabelsForType(record, 'custom'),
+        uncategorizedLabel,
+      )
+    }
+    case 'subCategory': {
+      return withUncategorizedLabel(
+        getCollectionCategoryLabelsForType(record, 'domain'),
+        uncategorizedLabel,
+      )
+    }
+    case 'collectionGroup':
     case 'parentCategory': {
       return record.parentCategories.length > 0
         ? record.parentCategories
-        : [uncategorizedLabel]
-    }
-    case 'subCategory': {
-      return record.subCategories.length > 0
-        ? record.subCategories
-        : [uncategorizedLabel]
-    }
-    case 'project': {
-      return record.savedInProjects.length > 0
-        ? record.savedInProjects
-        : [uncategorizedLabel]
-    }
-    case 'projectCategory': {
-      return record.projectCategories.length > 0
-        ? record.projectCategories
         : [uncategorizedLabel]
     }
     case 'timeRecent':
@@ -396,25 +722,53 @@ const getLabelsForGroup = (
   }
 }
 
+const getCollectionTitle = (
+  collectionType: AnalyticsCollectionType,
+  messages: AnalyticsMessages,
+): string =>
+  ({
+    all: messages.chartSavedCountByCollection,
+    custom: messages.chartSavedCountByProject,
+    domain: messages.chartSavedCountByDomain,
+  })[collectionType]
+
+const getCollectionCategoryTitle = (
+  collectionType: AnalyticsCollectionType,
+  messages: AnalyticsMessages,
+): string =>
+  ({
+    all: messages.chartSavedCountByCollectionCategory,
+    custom: messages.chartSavedCountByProjectCategory,
+    domain: messages.chartSavedCountBySubCategory,
+  })[collectionType]
+
 const getSingleSeriesTitle = (
   groupBy: AnalyticsGroupBy,
   messages: AnalyticsMessages,
+  collectionType: AnalyticsCollectionType = 'all',
 ): string => {
   switch (groupBy) {
     case 'domain': {
       return messages.chartSavedCountByDomain
     }
+    case 'collectionGroup':
     case 'parentCategory': {
       return messages.chartSavedCountByParentCategory
-    }
-    case 'subCategory': {
-      return messages.chartSavedCountBySubCategory
     }
     case 'project': {
       return messages.chartSavedCountByProject
     }
     case 'projectCategory': {
       return messages.chartSavedCountByProjectCategory
+    }
+    case 'subCategory': {
+      return messages.chartSavedCountBySubCategory
+    }
+    case 'collection': {
+      return getCollectionTitle(collectionType, messages)
+    }
+    case 'collectionCategory': {
+      return getCollectionCategoryTitle(collectionType, messages)
     }
     case 'timeRecent':
     case 'timeTop': {
@@ -502,7 +856,12 @@ const createSingleSeriesChart = (
   for (const record of filteredRecords) {
     const labels = isTimeSeries
       ? [getTimeBucketLabel(record.savedAt, query.timeBucket, timeZone)]
-      : getLabelsForGroup(record, query.groupBy, messages.uncategorizedLabel)
+      : getLabelsForGroup(
+          record,
+          query.groupBy,
+          messages.uncategorizedLabel,
+          query.collectionType,
+        )
 
     for (const label of labels) {
       bucketMap.set(label, (bucketMap.get(label) ?? 0) + 1)
@@ -548,10 +907,10 @@ const createSingleSeriesChart = (
       query.title ??
       (isTimeSeries
         ? getTimeTitle(query.timeBucket, messages)
-        : getSingleSeriesTitle(query.groupBy, messages)),
+        : getSingleSeriesTitle(query.groupBy, messages, query.collectionType)),
     type: query.chartType,
     valueFormat: query.normalize ? 'percent' : 'count',
-    xKey: query.chartType === 'pie' ? undefined : 'label',
+    ...(query.chartType !== 'pie' ? { xKey: 'label' } : {}),
   }
 }
 
@@ -638,7 +997,7 @@ const createModeComparisonChart = (
     title: query.title ?? getTimeTitle(query.timeBucket, messages),
     type: query.chartType,
     valueFormat: query.normalize ? 'percent' : 'count',
-    xKey: query.chartType === 'pie' ? undefined : 'label',
+    ...(query.chartType !== 'pie' ? { xKey: 'label' } : {}),
   }
 }
 
@@ -656,12 +1015,15 @@ const filterAnalyticsRecords = (
 
   return records.filter(
     (record) =>
+      matchesMetric(record, normalizedQuery) &&
       matchesMode(record, normalizedQuery.mode) &&
       isWithinTimeRange(record.savedAt, {
         customDateRange: normalizedQuery.customDateRange,
         now,
         timeRange: normalizedQuery.timeRange,
-        timeZone: options.timeZone,
+        ...(options.timeZone !== undefined
+          ? { timeZone: options.timeZone }
+          : {}),
       }) &&
       matchesFilters(
         record,
@@ -705,6 +1067,13 @@ const generateAnalyticsResult = (
   return {
     chartSpecs: [chartSpec],
     filteredRecordCount: filteredRecords.length,
+    historicalDataQuality: filteredRecords.some(
+      (record) =>
+        !('timestampAccuracy' in record) ||
+        record.timestampAccuracy === 'legacy-fallback',
+    )
+      ? 'partial'
+      : 'exact',
     query: normalizedQuery,
     summary: interpolate(messages.chartSummary, {
       count: String(filteredRecords.length),
@@ -761,7 +1130,9 @@ const getAnalyticsPresets = (): AnalyticsPreset[] => [
     query: {
       ...getDefaultAnalyticsQuery(),
       chartType: 'pie',
-      groupBy: 'parentCategory',
+      collectionType: 'domain',
+      groupBy: 'collectionGroup',
+      metric: 'membership-added',
       mode: 'domain',
       normalize: true,
     },
@@ -774,7 +1145,9 @@ const getAnalyticsPresets = (): AnalyticsPreset[] => [
     query: {
       ...getDefaultAnalyticsQuery(),
       chartType: 'bar',
-      groupBy: 'project',
+      collectionType: 'custom',
+      groupBy: 'collection',
+      metric: 'membership-added',
       mode: 'custom',
     },
   },
@@ -786,7 +1159,9 @@ const getAnalyticsPresets = (): AnalyticsPreset[] => [
     query: {
       ...getDefaultAnalyticsQuery(),
       chartType: 'bar',
-      groupBy: 'subCategory',
+      collectionType: 'domain',
+      groupBy: 'collectionCategory',
+      metric: 'membership-added',
       mode: 'domain',
     },
   },
@@ -798,7 +1173,9 @@ const getAnalyticsPresets = (): AnalyticsPreset[] => [
     query: {
       ...getDefaultAnalyticsQuery(),
       chartType: 'bar',
-      groupBy: 'projectCategory',
+      collectionType: 'custom',
+      groupBy: 'collectionCategory',
+      metric: 'membership-added',
       mode: 'custom',
     },
   },
@@ -823,7 +1200,9 @@ const getAnalyticsPresets = (): AnalyticsPreset[] => [
     query: {
       ...getDefaultAnalyticsQuery(),
       chartType: 'area',
+      collectionType: 'custom',
       groupBy: 'timeRecent',
+      metric: 'membership-added',
       mode: 'custom',
       timeBucket: 'month',
       timeRange: '365d',
@@ -839,7 +1218,36 @@ const getAnalyticsPresets = (): AnalyticsPreset[] => [
       chartType: 'line',
       compareBy: 'mode',
       groupBy: 'timeRecent',
+      metric: 'membership-added',
       mode: 'both',
+      timeBucket: 'day',
+      timeRange: '30d',
+    },
+  },
+  {
+    description: 'View last saved activity independently from first saves',
+    id: 'last-saved-activity-30d',
+    isReadonly: true,
+    name: 'Last saved activity',
+    query: {
+      ...getDefaultAnalyticsQuery(),
+      chartType: 'line',
+      groupBy: 'timeRecent',
+      metric: 'last-saved',
+      timeBucket: 'day',
+      timeRange: '30d',
+    },
+  },
+  {
+    description: 'View collection additions independently from URL saves',
+    id: 'collection-additions-30d',
+    isReadonly: true,
+    name: 'Collection additions',
+    query: {
+      ...getDefaultAnalyticsQuery(),
+      chartType: 'line',
+      groupBy: 'timeRecent',
+      metric: 'membership-added',
       timeBucket: 'day',
       timeRange: '30d',
     },
@@ -847,10 +1255,12 @@ const getAnalyticsPresets = (): AnalyticsPreset[] => [
 ]
 
 export type {
+  AnalyticsCollectionType,
   AnalyticsCompareBy,
   AnalyticsDateRange,
   AnalyticsFilters,
   AnalyticsGroupBy,
+  AnalyticsHistoricalDataQuality,
   AnalyticsMode,
   AnalyticsPreset,
   AnalyticsQuery,
@@ -864,9 +1274,13 @@ export {
   filterAnalyticsRecords,
   generateAnalyticsResult,
   getAnalyticsPresets,
+  getCollectionCategoryLabelsForType,
+  getCollectionLabelsForType,
   getDefaultAnalyticsQuery,
   getLabelsForGroup,
   getNormalizedCount,
   getSingleSeriesTitle,
+  isCollectionScopedGroupBy,
   normalizeAnalyticsQuery,
+  parseAnalyticsQuery,
 }

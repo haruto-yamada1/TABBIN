@@ -18,11 +18,6 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-  SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
@@ -32,6 +27,12 @@ import type {
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { categoryNameSchema } from '@/contexts/saved-tabs/presentation/components/categoryNameSchema'
+import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const categoryManagementModalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -210,8 +211,10 @@ const resetMockState = () => {
       {
         id: 'cat-1',
         name: '仕事',
-        domains: ['g1'],
-        domainNames: ['a.com'],
+        collections: ['g1'].map((id, index) => ({
+          id,
+          domain: ['a.com'][index] ?? id,
+        })),
       },
     ],
   }
@@ -250,8 +253,8 @@ const createUseCases = (persistence: {
       throw new Error('Parent category not found')
     }
     if (
-      target.domains.includes(domainId) ||
-      target.domainNames.includes(domainName)
+      target.collections.map(({ id }) => id).includes(domainId) ||
+      target.collections.map(({ domain }) => domain).includes(domainName)
     ) {
       throw new Error('Domain already exists')
     }
@@ -259,8 +262,17 @@ const createUseCases = (persistence: {
       category.id === categoryId
         ? {
             ...category,
-            domains: [...category.domains, domainId],
-            domainNames: [...category.domainNames, domainName],
+            collections: [
+              ...category.collections.map(({ id }) => id),
+              domainId,
+            ].map((id, index) => ({
+              id,
+              domain:
+                [
+                  ...category.collections.map(({ domain }) => domain),
+                  domainName,
+                ][index] ?? id,
+            })),
           }
         : category,
     )
@@ -279,8 +291,8 @@ const createUseCases = (persistence: {
       throw new Error('Parent category not found')
     }
     if (
-      !target.domains.includes(domainId) &&
-      !target.domainNames.includes(domainName)
+      !target.collections.map(({ id }) => id).includes(domainId) &&
+      !target.collections.map(({ domain }) => domain).includes(domainName)
     ) {
       throw new Error('Domain not found')
     }
@@ -288,10 +300,16 @@ const createUseCases = (persistence: {
       category.id === categoryId
         ? {
             ...category,
-            domains: category.domains.filter((id) => id !== domainId),
-            domainNames: category.domainNames.filter(
-              (name) => name !== domainName,
-            ),
+            collections: category.collections
+              .map(({ id }) => id)
+              .filter((id) => id !== domainId)
+              .map((id, index) => ({
+                id,
+                domain:
+                  category.collections
+                    .map(({ domain }) => domain)
+                    .filter((name) => name !== domainName)[index] ?? id,
+              })),
           }
         : category,
     )
@@ -333,16 +351,11 @@ const setupMocks = (options: SetupMocksOptions = {}) => {
     saveParentCategories: vi.fn().mockResolvedValue(undefined),
     saveTabGroups: vi.fn().mockResolvedValue(undefined),
   }
-  const getSavedTabsPageDataQuery = vi.fn(
-    () =>
-      Promise.resolve({
-        tabGroups: [...mockStateRef.current.savedTabs],
-        parentCategories: [...mockStateRef.current.parentCategories],
-        userSettings: {} as UserSettingsDto,
-        // domain entity (branded readonly) を storage shape へ投影する
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-  )
+  const getSavedTabsPageDataQuery = vi.fn(async () => ({
+    tabGroups: mockStateRef.current.savedTabs.map(toTabGroupFromViewModel),
+    parentCategories: [...mockStateRef.current.parentCategories],
+    userSettings: {} as UserSettingsDto,
+  }))
   const deps: CategoryManagementModalDeps = {
     categoryAssignmentPort,
     getSavedTabsPageDataQuery,
@@ -923,7 +936,14 @@ describe('CategoryManagementModal', () => {
     )
     // 失敗ケース用に state を再投入して再描画する
     mockStateRef.current.parentCategories = [
-      { id: 'cat-1', name: '仕事', domains: ['g1'], domainNames: ['a.com'] },
+      {
+        id: 'cat-1',
+        name: '仕事',
+        collections: ['g1'].map((id, index) => ({
+          id,
+          domain: ['a.com'][index] ?? id,
+        })),
+      },
     ]
     rerender(
       <CategoryManagementModal
@@ -1032,18 +1052,6 @@ describe('CategoryManagementModal', () => {
       await user.click(plusButton)
 
       await waitFor(() => {
-        // eslint-disable-next-line no-console
-        process.stderr.write(
-          `DEBUG: toastSuccess=${JSON.stringify(toastSuccessSpy.mock.calls)}\n`,
-        )
-        // eslint-disable-next-line no-console
-        process.stderr.write(
-          `DEBUG: toastError=${JSON.stringify(toastErrorSpy.mock.calls)}\n`,
-        )
-        // eslint-disable-next-line no-console
-        process.stderr.write(
-          `DEBUG: state=${JSON.stringify(mockStateRef.current.parentCategories)}\n`,
-        )
         expect(toastSuccessSpy).toHaveBeenCalledWith(
           'ドメイン b.com を「仕事」に追加しました',
         )
@@ -1061,8 +1069,12 @@ describe('CategoryManagementModal', () => {
             {
               id: 'cat-1',
               name: '仕事',
-              domains: [],
-              domainNames: ['b.com'],
+              collections: [
+                {
+                  id: 'legacy-g2',
+                  domain: 'b.com',
+                },
+              ],
             },
           ],
           savedTabs: [{ id: 'g2', domain: 'b.com', urls: [] }],
@@ -1111,14 +1123,17 @@ describe('CategoryManagementModal', () => {
             cat.id === (command.categoryId as unknown as string)
               ? {
                   ...cat,
-                  domains: [
-                    ...cat.domains,
+                  collections: [
+                    ...cat.collections.map(({ id }) => id),
                     command.domainId as unknown as string,
-                  ],
-                  domainNames: [
-                    ...(cat.domainNames ?? []),
-                    command.domainName as unknown as string,
-                  ],
+                  ].map((id, index) => ({
+                    id,
+                    domain:
+                      [
+                        ...(cat.collections.map(({ domain }) => domain) ?? []),
+                        command.domainName as unknown as string,
+                      ][index] ?? id,
+                  })),
                 }
               : cat,
           )
@@ -1133,14 +1148,20 @@ describe('CategoryManagementModal', () => {
           {
             id: 'cat-1',
             name: '仕事',
-            domains: ['g1'],
-            domainNames: undefined as unknown as string[],
+            collections: [
+              {
+                id: 'g1',
+                domain: 'a.com',
+              },
+            ],
           } as ParentCategory,
           {
             id: 'cat-2',
             name: '他',
-            domains: ['g9'],
-            domainNames: ['x.com'],
+            collections: ['g9'].map((id, index) => ({
+              id,
+              domain: ['x.com'][index] ?? id,
+            })),
           },
         ],
       },
@@ -1216,8 +1237,10 @@ describe('CategoryManagementModal', () => {
         expect.objectContaining({
           id: 'cat-2',
           name: '他',
-          domains: ['g9'],
-          domainNames: ['x.com'],
+          collections: ['g9'].map((id, index) => ({
+            id,
+            domain: ['x.com'][index] ?? id,
+          })),
         }),
       ]),
     )
@@ -1225,8 +1248,16 @@ describe('CategoryManagementModal', () => {
       mockStateRef.current.parentCategories.find((cat) => cat.id === 'cat-1'),
     ).toStrictEqual(
       expect.objectContaining({
-        domains: ['g1', 'g2'],
-        domainNames: ['b.com'],
+        collections: [
+          {
+            id: 'g1',
+            domain: 'a.com',
+          },
+          {
+            id: 'g2',
+            domain: 'b.com',
+          },
+        ],
       }),
     )
   })
@@ -1302,9 +1333,8 @@ describe('CategoryManagementModal', () => {
               !('urls' in (item as Record<string, unknown>)),
           )
         ) {
-          return
+          return undefined
         }
-        // eslint-disable-next-line typescript/consistent-return
         return originalFind.call(context, predicate, thisArg)
       })
 
@@ -1399,12 +1429,21 @@ describe('CategoryManagementModal', () => {
             cat.id === (command.categoryId as unknown as string)
               ? {
                   ...cat,
-                  domains: cat.domains.filter(
-                    (d) => d !== (command.domainId as unknown as string),
-                  ),
-                  domainNames: (cat.domainNames ?? []).filter(
-                    (d) => d !== (command.domainName as unknown as string),
-                  ),
+                  collections: cat.collections
+                    .map(({ id }) => id)
+                    .filter(
+                      (d) => d !== (command.domainId as unknown as string),
+                    )
+                    .map((id, index) => ({
+                      id,
+                      domain:
+                        (
+                          cat.collections.map(({ domain }) => domain) ?? []
+                        ).filter(
+                          (d) =>
+                            d !== (command.domainName as unknown as string),
+                        )[index] ?? id,
+                    })),
                 }
               : cat,
           )
@@ -1419,14 +1458,24 @@ describe('CategoryManagementModal', () => {
           {
             id: 'cat-1',
             name: '仕事',
-            domains: ['g1', 'g2'],
-            domainNames: undefined as unknown as string[],
+            collections: [
+              {
+                id: 'g1',
+                domain: 'a.com',
+              },
+              {
+                id: 'g2',
+                domain: 'b.com',
+              },
+            ],
           } as ParentCategory,
           {
             id: 'cat-2',
             name: '他',
-            domains: ['g9'],
-            domainNames: ['x.com'],
+            collections: ['g9'].map((id, index) => ({
+              id,
+              domain: ['x.com'][index] ?? id,
+            })),
           },
         ],
       },
@@ -1480,8 +1529,10 @@ describe('CategoryManagementModal', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: 'cat-2',
-          domains: ['g9'],
-          domainNames: ['x.com'],
+          collections: ['g9'].map((id, index) => ({
+            id,
+            domain: ['x.com'][index] ?? id,
+          })),
         }),
       ]),
     )

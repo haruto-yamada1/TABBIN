@@ -2,7 +2,7 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const { dndContextHandlersRef, reorderTabGroupUrlsUseCaseMock } = vi.hoisted(
   () => ({
@@ -29,7 +29,7 @@ vi.mock('@dnd-kit/core', () => ({
       over: { id: string } | null
     }) => void | Promise<void>
   }) => {
-    dndContextHandlersRef.current.onDragEnd = onDragEnd
+    dndContextHandlersRef.current = onDragEnd !== undefined ? { onDragEnd } : {}
     return <div data-testid='dnd-context'>{children}</div>
   },
   KeyboardSensor: vi.fn(),
@@ -92,9 +92,9 @@ const createProps = () => ({
   handleUpdateUrls: vi.fn(),
   settings: defaultSettings,
   reorderTabGroupUrlsUseCase:
-    reorderTabGroupUrlsUseCaseMock as unknown as Parameters<
-      typeof CategorySection
-    >[0]['reorderTabGroupUrlsUseCase'],
+    reorderTabGroupUrlsUseCaseMock as unknown as NonNullable<
+      Parameters<typeof CategorySection>[0]['reorderTabGroupUrlsUseCase']
+    >,
 })
 
 describe('CategorySection', () => {

@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type {
   CustomProject,
   ProjectKeywordSettings,
   TabGroup,
   UrlRecord,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
+import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { domainMatches, toHostname } from '@/utils/domain-normalize'
 
 import {
@@ -49,11 +49,16 @@ const getProjectUrls = async (
     // マイグレーションを実行（未実行の場合）
     await migrateToUrlsStorage()
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
-    return urlRecords.map((record) => ({
-      ...record,
-      category: project.urlMetadata?.[record.id]?.category,
-      notes: project.urlMetadata?.[record.id]?.notes,
-    }))
+    return urlRecords.map((record) => {
+      const metadata = project.urlMetadata?.[record.id]
+      return {
+        ...record,
+        ...(metadata?.category !== undefined
+          ? { category: metadata.category }
+          : {}),
+        ...(metadata?.notes !== undefined ? { notes: metadata.notes } : {}),
+      }
+    })
   }
   return []
 } // カスタムプロジェクト一覧を取得する関数
@@ -106,9 +111,39 @@ const getCustomProjects = async (): Promise<CustomProject[]> => {
         categories: base.categories ?? [],
         createdAt: base.createdAt ?? Date.now(),
         updatedAt: base.updatedAt ?? Date.now(),
-        urls: base.urls,
-        urlMetadata: base.urlMetadata,
-        categoryOrder: base.categoryOrder,
+        ...(base.urls !== undefined
+          ? {
+              urls: base.urls.map((url) => ({
+                url: url.url,
+                title: url.title,
+                ...(url.notes !== undefined ? { notes: url.notes } : {}),
+                ...(url.savedAt !== undefined ? { savedAt: url.savedAt } : {}),
+                ...(url.category !== undefined
+                  ? { category: url.category }
+                  : {}),
+              })),
+            }
+          : {}),
+        ...(base.urlMetadata !== undefined
+          ? {
+              urlMetadata: Object.fromEntries(
+                Object.entries(base.urlMetadata).map(([urlId, metadata]) => [
+                  urlId,
+                  {
+                    ...(metadata.notes !== undefined
+                      ? { notes: metadata.notes }
+                      : {}),
+                    ...(metadata.category !== undefined
+                      ? { category: metadata.category }
+                      : {}),
+                  },
+                ]),
+              ),
+            }
+          : {}),
+        ...(base.categoryOrder !== undefined
+          ? { categoryOrder: base.categoryOrder }
+          : {}),
       } satisfies CustomProject
       Object.assign(project, validProject)
       return [validProject]
@@ -378,13 +413,13 @@ const setProjectUrlMetadata = (
   notes?: string,
   category?: string,
 ): void => {
-  if (!(notes || category)) {
+  if (notes === undefined && category === undefined) {
     return
   }
   project.urlMetadata ??= {}
   project.urlMetadata[urlId] = {
-    category,
-    notes,
+    ...(category !== undefined ? { category } : {}),
+    ...(notes !== undefined ? { notes } : {}),
   }
 }
 const ensureUrlIdInGroup = (group: TabGroup, urlId: string): TabGroup => {
@@ -942,7 +977,7 @@ const removeCategoryFromProject = async (
   if (project.urlMetadata) {
     for (const [urlId, meta] of Object.entries(project.urlMetadata)) {
       if (meta.category === categoryName) {
-        project.urlMetadata[urlId].category = undefined
+        delete project.urlMetadata[urlId].category
       }
     }
   }
@@ -973,7 +1008,11 @@ const setUrlCategory = async (
       if (!Object.hasOwn(project.urlMetadata, urlRecord.id)) {
         project.urlMetadata[urlRecord.id] = {}
       }
-      project.urlMetadata[urlRecord.id].category = category
+      if (category === undefined) {
+        delete project.urlMetadata[urlRecord.id].category
+      } else {
+        project.urlMetadata[urlRecord.id].category = category
+      }
     }
   }
   project.updatedAt = Date.now()
@@ -1034,7 +1073,11 @@ const reorderProjectUrls = async (
     }
   }
 
-  project.urls = urls
+  if (urls === undefined) {
+    delete project.urls
+  } else {
+    project.urls = urls
+  }
   project.updatedAt = Date.now()
   projects[projectIndex] = project
   await saveCustomProjects(projects)

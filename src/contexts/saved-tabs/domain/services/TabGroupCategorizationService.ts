@@ -88,7 +88,7 @@ export const categorizeTabGroups = ({
 }
 
 /**
- * `ParentCategory.domains` の順序に従って `TabGroup` をソートする。
+ * `ParentCategory.collections` の順序に従って `TabGroup` をソートする。
  *
  * 既存 `sortCategorizedGroups` の domain 等価物。`domains` に出現しないグループは
  * 末尾へ移動し、相対順序は維持する（安定ソート）。
@@ -97,11 +97,11 @@ export const sortGroupsByCategoryDomainOrder = (
   groups: readonly TabGroup[],
   category: ParentCategory,
 ): TabGroup[] => {
-  if (category.domains.length === 0) {
+  if (category.collections.length === 0) {
     return [...groups]
   }
   const order = new Map(
-    category.domains.map((tabGroupId, index) => [tabGroupId, index]),
+    category.collections.map(({ id }, index) => [id, index]),
   )
   const indexed = groups.map((group, originalIndex) => ({
     group,

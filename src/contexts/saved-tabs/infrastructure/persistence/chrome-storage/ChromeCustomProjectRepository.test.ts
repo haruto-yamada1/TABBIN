@@ -118,7 +118,10 @@ describe('ChromeCustomProjectRepository', () => {
       const result = await repo.findAll()
       expect(result).toHaveLength(2)
       expect(result[0]?.name).toBe('Q4')
-      expect(result[1]?.urlIds).toStrictEqual(['url-1', 'url-2'])
+      expect(result[1]?.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+        'url-1',
+        'url-2',
+      ])
     })
 
     it('不正な要素をスキップして有効要素だけ返す (categories 欠損は legacy データとして通す, issue #530 review P1)', async () => {
@@ -152,7 +155,7 @@ describe('ChromeCustomProjectRepository', () => {
         'project-3',
       ])
       const noCategories = result.find((p) => p.id === 'project-2')
-      expect(noCategories?.categories).toStrictEqual([])
+      expect(noCategories?.collectionCategories).toStrictEqual([])
     })
   })
 
@@ -216,9 +219,15 @@ describe('ChromeCustomProjectRepository', () => {
       expect(lastSetArg[CUSTOM_PROJECTS_KEY]).toStrictEqual([
         {
           categories: ['research'],
+          categoryOrder: ['research'],
           createdAt: 1,
           id: 'project-1',
           name: 'Q4',
+          projectKeywords: {
+            domainKeywords: [],
+            titleKeywords: [],
+            urlKeywords: [],
+          },
           updatedAt: 2,
           urlIds: ['url-project-1'],
         },
@@ -269,7 +278,9 @@ describe('ChromeCustomProjectRepository', () => {
       const entities = await repo.findAll()
       const remaining = entities.map((entity) => ({
         ...entity,
-        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+        memberships: entity.memberships.filter(
+          ({ urlId }) => urlId !== 'url-remove',
+        ),
       }))
       await repo.saveAll(remaining)
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
@@ -280,7 +291,7 @@ describe('ChromeCustomProjectRepository', () => {
         (raw) => (raw as Record<string, unknown>)?.id === 'project-1',
       ) as Record<string, unknown>
       expect(savedRaw).toMatchObject({
-        categories: ['research'],
+        categories: ['research', 'news'],
         categoryOrder: ['research', 'news'],
         createdAt: 1,
         id: 'project-1',
@@ -323,7 +334,9 @@ describe('ChromeCustomProjectRepository', () => {
       const entities = await repo.findAll()
       const remaining = entities.map((entity) => ({
         ...entity,
-        urlIds: entity.urlIds.filter((id) => id !== 'url-remove'),
+        memberships: entity.memberships.filter(
+          ({ urlId }) => urlId !== 'url-remove',
+        ),
       }))
       await repo.saveAll(remaining)
       const lastSetArg = (port.set as ReturnType<typeof vi.fn>).mock.calls.at(
@@ -385,9 +398,15 @@ describe('ChromeCustomProjectRepository', () => {
       expect(lastSetArg[CUSTOM_PROJECTS_KEY]).toStrictEqual([
         {
           categories: ['work'],
+          categoryOrder: ['work'],
           createdAt: 1,
           id: 'project-2',
           name: 'Work',
+          projectKeywords: {
+            domainKeywords: [],
+            titleKeywords: [],
+            urlKeywords: [],
+          },
           updatedAt: 1,
         },
       ])
@@ -461,7 +480,7 @@ describe('ChromeCustomProjectRepository', () => {
   })
 
   describe('raw snapshot', () => {
-    it('findAllRaw は legacy default を補い rich fields を保持する', async () => {
+    it('findAllRaw は current collection snapshot を返す', async () => {
       const repo = createChromeCustomProjectRepository(
         createPort({
           [CUSTOM_PROJECTS_KEY]: [
@@ -477,32 +496,36 @@ describe('ChromeCustomProjectRepository', () => {
 
       await expect(repo.findAllRaw?.()).resolves.toStrictEqual([
         expect.objectContaining({
-          categories: [],
           createdAt: 0,
           id: 'project-1',
+          collection: expect.objectContaining({ id: 'project-1' }),
+          collectionCategories: [
+            expect.objectContaining({ name: 'Docs', sortOrder: 0 }),
+          ],
+          memberships: [],
           updatedAt: 0,
-          urls: [{ title: 'Example', url: 'https://example.com' }],
         }),
       ])
     })
 
-    it('restoreAllRaw は snapshot を merge せず保存する', async () => {
+    it('restoreAllRaw は current snapshot を legacy adapter 経由で保存する', async () => {
       const state: StorageState = {}
       const repo = createChromeCustomProjectRepository(createPort(state))
-      const snapshots = [
-        {
-          categories: ['Docs'],
-          createdAt: 1,
-          id: 'project-1',
-          name: 'Docs',
-          updatedAt: 2,
-          urls: [{ title: 'Example', url: 'https://example.com' }],
-        },
-      ]
+      const project = createSampleCustomProject('project-1', 'Docs')
+      expect(project).not.toBeNull()
+      const snapshots = project ? [project] : []
 
       await repo.restoreAllRaw?.(snapshots)
 
-      expect(state[CUSTOM_PROJECTS_KEY]).toStrictEqual(snapshots)
+      expect(state[CUSTOM_PROJECTS_KEY]).toStrictEqual([
+        expect.objectContaining({
+          categories: ['research'],
+          categoryOrder: ['research'],
+          id: 'project-1',
+          name: 'Docs',
+          urlIds: ['url-project-1'],
+        }),
+      ])
       expect(state[CUSTOM_PROJECTS_KEY]).not.toBe(snapshots)
     })
   })

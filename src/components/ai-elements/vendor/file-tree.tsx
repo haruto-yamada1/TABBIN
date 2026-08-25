@@ -74,7 +74,12 @@ export const FileTree = ({
   )
 
   const contextValue = useMemo(
-    () => ({ expandedPaths, onSelect, selectedPath, togglePath }),
+    () => ({
+      expandedPaths,
+      ...(onSelect !== undefined ? { onSelect } : {}),
+      ...(selectedPath !== undefined ? { selectedPath } : {}),
+      togglePath,
+    }),
     [expandedPaths, onSelect, selectedPath, togglePath],
   )
 

@@ -120,6 +120,36 @@ describe('MigrationPreflightService', () => {
     ])
   })
 
+  it('keeps warning-only orphan URLs eligible for migration', async () => {
+    const source = createEmptySnapshot()
+    const { service } = createService({
+      reader: {
+        readSnapshot: vi.fn(async () => ({
+          ...source,
+          urls: {
+            status: 'present' as const,
+            value: [
+              {
+                id: 'orphan-url',
+                savedAt: 1,
+                title: 'Orphan',
+                url: 'https://orphan.example/',
+              },
+            ],
+          },
+        })),
+      },
+    })
+
+    const result = await service.run()
+
+    expect(result.status).toBe('healthy')
+    if (result.status !== 'healthy') {
+      throw new Error('expected healthy preflight')
+    }
+    expect(result.diagnostic.issueCodes).toContain('ORPHAN_URL')
+  })
+
   it('stores stale instead of healthy when the source changes during analysis', async () => {
     const { repository, service } = createService({
       fingerprints: ['fp-before', 'fp-after'],
@@ -176,7 +206,7 @@ describe('MigrationPreflightService', () => {
     expect(diagnostic).not.toContain('private first title')
   })
 
-  it('blocks warning findings that require an explicit migration policy', async () => {
+  it('keeps timestamp fallback diagnostic while blocking unrelated policy findings', async () => {
     const source = createEmptySnapshot()
     const reader: RawLegacyStorageReaderPort = {
       readSnapshot: vi.fn(async () => ({
@@ -191,11 +221,14 @@ describe('MigrationPreflightService', () => {
 
     const result = await service.run()
 
-    expect(result).toEqual(
-      expect.objectContaining({
-        issueCodes: expect.arrayContaining(['MISSING_TIMESTAMP_PROVENANCE']),
-        status: 'blocked',
-      }),
+    expect(result.status).toBe('blocked')
+    if (result.status !== 'blocked') {
+      throw new Error('expected blocked preflight')
+    }
+    expect(result.issueCodes).toContain('LEGACY_CUSTOM_PROJECT_ORDER_CONFLICT')
+    expect(result.issueCodes).not.toContain('MISSING_TIMESTAMP_PROVENANCE')
+    expect(result.diagnostic.issueCodes).toContain(
+      'MISSING_TIMESTAMP_PROVENANCE',
     )
   })
 

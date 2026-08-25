@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { useProjectModalState } from './useProjectModalState'
 import { createProjectNameSchema } from './useProjectNameSchema'
@@ -46,9 +46,15 @@ const setup = (
       project,
       {
         onClose: callbacks.onClose ?? vi.fn(),
-        onDeleteProject: callbacks.onDeleteProject,
-        onRenameProject: callbacks.onRenameProject,
-        onUpdateProjectKeywords: callbacks.onUpdateProjectKeywords,
+        ...(callbacks.onDeleteProject !== undefined
+          ? { onDeleteProject: callbacks.onDeleteProject }
+          : {}),
+        ...(callbacks.onRenameProject !== undefined
+          ? { onRenameProject: callbacks.onRenameProject }
+          : {}),
+        ...(callbacks.onUpdateProjectKeywords !== undefined
+          ? { onUpdateProjectKeywords: callbacks.onUpdateProjectKeywords }
+          : {}),
       },
       createProjectNameSchema(),
     ),

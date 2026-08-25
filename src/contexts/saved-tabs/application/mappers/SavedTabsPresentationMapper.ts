@@ -7,15 +7,11 @@ import type {
   SavedTabsUserSettingsDto,
 } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { UserSettingsDto } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
-import type {
-  createCustomProject,
-  CustomProject,
-} from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import type {
-  createTabGroup,
-  TabGroup,
-} from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
+import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 type Mutable<T> = { -readonly [Key in keyof T]: T[Key] }
@@ -66,97 +62,74 @@ export const toSavedTabsUserSettingsDto = (
   return dto
 }
 
+const cloneCustomProjectInput = (
+  project: CustomProject,
+): Parameters<typeof createCustomProject>[0] => ({
+  collection: {
+    ...project.collection,
+    definition: {
+      ...project.collection.definition,
+      projectKeywords: {
+        domainKeywords: [
+          ...project.collection.definition.projectKeywords.domainKeywords,
+        ],
+        titleKeywords: [
+          ...project.collection.definition.projectKeywords.titleKeywords,
+        ],
+        urlKeywords: [
+          ...project.collection.definition.projectKeywords.urlKeywords,
+        ],
+      },
+    },
+  },
+  collectionCategories: project.collectionCategories.map((category) => ({
+    ...category,
+    keywords: [...category.keywords],
+  })),
+  memberships: project.memberships.map((membership) => ({ ...membership })),
+})
+
 export const toSavedTabsCustomProjectDto = (
   project: CustomProject,
-): SavedTabsCustomProjectDto => ({
-  categories: [...project.categories],
-  createdAt: project.createdAt,
-  id: project.id,
-  name: project.name,
-  updatedAt: project.updatedAt,
-  urlIds: [...project.urlIds],
-})
+): SavedTabsCustomProjectDto =>
+  createCustomProject(cloneCustomProjectInput(project))
 
 export const toSavedTabsParentCategoryDto = (
   category: ParentCategory,
 ): SavedTabsParentCategoryDto => ({
-  domainNames: [...category.domainNames],
-  domains: [...category.domains],
+  collections: category.collections.map(({ domain, id }) => ({ domain, id })),
   id: category.id,
   name: category.name,
 })
 
-export const toSavedTabsTabGroupDto = (
+const cloneTabGroupInput = (
   group: TabGroup,
-): SavedTabsTabGroupDto => {
-  const dto: Mutable<SavedTabsTabGroupDto> = {
-    domain: group.domain,
-    id: group.id,
-    urlIds: [...group.urlIds],
-  }
-  if (group.categoryKeywords !== undefined) {
-    dto.categoryKeywords = group.categoryKeywords.map((entry) => ({
-      categoryName: entry.categoryName,
-      keywords: [...entry.keywords],
-    }))
-  }
-  if (group.parentCategoryId !== undefined) {
-    dto.parentCategoryId = group.parentCategoryId
-  }
-  if (group.savedAt !== undefined) {
-    dto.savedAt = group.savedAt
-  }
-  if (group.subCategories !== undefined) {
-    dto.subCategories = [...group.subCategories]
-  }
-  if (group.subCategoryOrder !== undefined) {
-    dto.subCategoryOrder = [...group.subCategoryOrder]
-  }
-  if (group.subCategoryOrderWithUncategorized !== undefined) {
-    dto.subCategoryOrderWithUncategorized = [
-      ...group.subCategoryOrderWithUncategorized,
-    ]
-  }
-  if (group.urlSubCategories !== undefined) {
-    dto.urlSubCategories = { ...group.urlSubCategories }
-  }
-  return dto
-}
+): Parameters<typeof createTabGroup>[0] => ({
+  collection: {
+    ...group.collection,
+    definition: { ...group.collection.definition },
+  },
+  collectionCategories: group.collectionCategories.map((category) => ({
+    ...category,
+    keywords: [...category.keywords],
+  })),
+  memberships: group.memberships.map((membership) => ({ ...membership })),
+})
+
+export const toSavedTabsTabGroupDto = (group: TabGroup): SavedTabsTabGroupDto =>
+  createTabGroup(cloneTabGroupInput(group))
+
+export const createSavedTabsTabGroupDtoFromProjection = (
+  input: Parameters<typeof createTabGroup>[0],
+): SavedTabsTabGroupDto => createTabGroup(input)
+
+export const createSavedTabsCustomProjectDtoFromProjection = (
+  input: Parameters<typeof createCustomProject>[0],
+): SavedTabsCustomProjectDto => createCustomProject(input)
 
 export const toSavedTabsDisplayTabGroupDto = (
   group: TabGroup,
-): SavedTabsDisplayTabGroupDto => {
-  const dto = toSavedTabsTabGroupDto(group)
-  return {
-    domain: dto.domain,
-    id: dto.id,
-    ...(dto.urlIds ? { urlIds: [...dto.urlIds] } : {}),
-    ...(dto.parentCategoryId ? { parentCategoryId: dto.parentCategoryId } : {}),
-    ...(dto.savedAt === undefined ? {} : { savedAt: dto.savedAt }),
-    ...(dto.urlSubCategories
-      ? { urlSubCategories: { ...dto.urlSubCategories } }
-      : {}),
-    ...(dto.subCategories ? { subCategories: [...dto.subCategories] } : {}),
-    ...(dto.categoryKeywords
-      ? {
-          categoryKeywords: dto.categoryKeywords.map((entry) => ({
-            categoryName: entry.categoryName,
-            keywords: [...entry.keywords],
-          })),
-        }
-      : {}),
-    ...(dto.subCategoryOrder
-      ? { subCategoryOrder: [...dto.subCategoryOrder] }
-      : {}),
-    ...(dto.subCategoryOrderWithUncategorized
-      ? {
-          subCategoryOrderWithUncategorized: [
-            ...dto.subCategoryOrderWithUncategorized,
-          ],
-        }
-      : {}),
-  }
-}
+): SavedTabsDisplayTabGroupDto => toSavedTabsTabGroupDto(group)
 
 export const toSavedTabsUrlRecordDto = (
   record: UrlRecord,
@@ -173,42 +146,10 @@ export const toSavedTabsUrlRecordDto = (
   return dto
 }
 
-/**
- * `SavedTabsTabGroupDto` から domain factory 入力へ変換する。
- *
- * application DTO は storage 互換で `urlIds` を省略可能にしているが、
- * domain factory では必須なので未設定時は空配列に正規化する。
- */
 export const toCreateTabGroupInput = (
   dto: SavedTabsTabGroupDto,
-): Parameters<typeof createTabGroup>[0] => ({
-  categoryKeywords: dto.categoryKeywords,
-  domain: dto.domain,
-  id: dto.id,
-  parentCategoryId: dto.parentCategoryId,
-  savedAt: dto.savedAt,
-  subCategories: dto.subCategories,
-  subCategoryOrder: dto.subCategoryOrder,
-  subCategoryOrderWithUncategorized: dto.subCategoryOrderWithUncategorized,
-  urlIds: dto.urlIds ?? [],
-  urlSubCategories: dto.urlSubCategories,
-})
+): Parameters<typeof createTabGroup>[0] => cloneTabGroupInput(dto)
 
-/**
- * `SavedTabsCustomProjectDto` から domain factory 入力へ変換する。
- *
- * application DTO は storage 互換で `urlIds` を省略可能にしているが、
- * domain factory では必須なので未設定時は空配列に正規化する。
- * storage 互換の rich フィールド (`urls` / `urlMetadata` /
- * `projectKeywords` / `categoryOrder`) は domain 入力に不要なので無視する。
- */
 export const toCreateCustomProjectInput = (
   dto: SavedTabsCustomProjectDto,
-): Parameters<typeof createCustomProject>[0] => ({
-  categories: dto.categories,
-  createdAt: dto.createdAt,
-  id: dto.id,
-  name: dto.name,
-  updatedAt: dto.updatedAt,
-  urlIds: dto.urlIds ?? [],
-})
+): Parameters<typeof createCustomProject>[0] => cloneCustomProjectInput(dto)

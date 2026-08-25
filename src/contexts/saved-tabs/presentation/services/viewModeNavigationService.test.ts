@@ -22,7 +22,6 @@ describe('viewModeNavigationService.shouldWaitForInitialViewMode', () => {
     expect(
       shouldWaitForInitialViewMode({
         hasResolvedInitialViewMode: false,
-        initialViewMode: undefined,
         viewMode: 'custom',
       }),
     ).toBe(false)

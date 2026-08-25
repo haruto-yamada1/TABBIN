@@ -1,8 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import type {
+  CustomProject,
+  TabGroup,
+  UrlRecord,
+} from '@/contexts/saved-tabs/public-api'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 import { invalidateUrlCache } from './urls'
 
@@ -122,7 +126,6 @@ const upsertUrlEntry = (
     // `legacyUrl.savedAt || Date.now()` uses || intentionally: 0 should trigger current time fallback
     // eslint-disable-next-line typescript/prefer-nullish-coalescing
     savedAt: legacyUrl.savedAt || Date.now(),
-    favIconUrl: undefined,
   }
   const created = {
     id: newRecord.id,
@@ -165,7 +168,7 @@ const migrateTabGroupUrls = (tabGroup: TabGroup, urlMap: UrlMap): void => {
     tabGroup.urlSubCategories = urlSubCategories
   }
 
-  tabGroup.urls = undefined
+  delete tabGroup.urls
   console.log(
     `TabGroup ${redactUrlForLog(tabGroup.domain)}: ${urlIds.length}個のURLを移行`,
   )
@@ -218,7 +221,7 @@ const migrateProjectUrls = (project: CustomProject, urlMap: UrlMap): void => {
     project.urlMetadata = urlMetadata
   }
 
-  project.urls = undefined
+  delete project.urls
   console.log(`Project ${project.name}: ${urlIds.length}個のURLを移行`)
 }
 

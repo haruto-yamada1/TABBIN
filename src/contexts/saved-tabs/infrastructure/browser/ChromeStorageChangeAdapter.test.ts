@@ -103,11 +103,15 @@ describe('createChromeStorageChangeAdapter', () => {
         kind: 'parsed',
         oldValue: [],
         payload: [
-          {
+          expect.objectContaining({
+            collection: expect.objectContaining({
+              definition: { domain: 'example.com', type: 'domain' },
+              id: 'group-1',
+            }),
+            collectionCategories: [],
             id: 'group-1',
-            domain: 'example.com',
-            urlIds: [],
-          },
+            memberships: [],
+          }),
         ],
       },
       {
@@ -118,8 +122,7 @@ describe('createChromeStorageChangeAdapter', () => {
           {
             id: 'parent-1',
             name: 'Work',
-            domains: [],
-            domainNames: [],
+            collections: [],
           },
         ],
       },
@@ -302,7 +305,17 @@ describe('createChromeStorageChangeAdapter', () => {
         key: 'savedTabs',
         kind: 'parsed',
         oldValue: [],
-        payload: [{ id: 'group-1', domain: 'example.com' }],
+        payload: [
+          expect.objectContaining({
+            collection: expect.objectContaining({
+              definition: { domain: 'example.com', type: 'domain' },
+              id: 'group-1',
+            }),
+            collectionCategories: [],
+            id: 'group-1',
+            memberships: [],
+          }),
+        ],
       },
     ])
     expect(warnSpy).toHaveBeenCalled()
@@ -345,21 +358,26 @@ describe('createChromeStorageChangeAdapter', () => {
         kind: 'parsed',
         oldValue: [],
         payload: [
-          {
-            categories: [],
+          expect.objectContaining({
+            collection: expect.objectContaining({ id: 'legacy-1' }),
+            collectionCategories: [],
             createdAt: 0,
             id: 'legacy-1',
+            memberships: [],
             name: 'Legacy',
             updatedAt: 0,
-          },
-          {
-            categories: ['research'],
+          }),
+          expect.objectContaining({
+            collection: expect.objectContaining({ id: 'project-1' }),
+            collectionCategories: [
+              expect.objectContaining({ name: 'research' }),
+            ],
             createdAt: 1,
             id: 'project-1',
+            memberships: [expect.objectContaining({ urlId: 'url-1' })],
             name: 'Q4',
             updatedAt: 2,
-            urlIds: ['url-1'],
-          },
+          }),
         ],
       },
     ])

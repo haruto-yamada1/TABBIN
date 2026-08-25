@@ -10,6 +10,38 @@ const mocked = vi.hoisted(() => ({
   filterTabsByUserSettings: vi.fn(),
   showNotification: vi.fn(),
 }))
+vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
+  getBackgroundSavedTabsDataPlane: () => ({
+    saveTabs: async (tabs: chrome.tabs.Tab[]) => {
+      await mocked.saveTabsWithAutoCategory(tabs)
+      const settings = await mocked.getUserSettings()
+      const excludePatterns = settings.excludePatterns ?? []
+      const savableTabs = tabs.filter((tab) => {
+        const url = tab.url?.trim()
+        if (
+          !url ||
+          excludePatterns.some((pattern: string) => url.includes(pattern))
+        ) {
+          return false
+        }
+        try {
+          new URL(url)
+          return true
+        } catch {
+          return false
+        }
+      })
+      if (savableTabs.length > 0) {
+        await mocked.saveUrlsToCustomProjects(
+          savableTabs.map((tab) => ({
+            title: tab.title ?? '',
+            url: tab.url ?? '',
+          })),
+        )
+      }
+    },
+  }),
+}))
 vi.mock('@/lib/storage/migration', () => ({
   saveTabsWithAutoCategory: mocked.saveTabsWithAutoCategory,
 }))
@@ -176,7 +208,7 @@ describe('extension-actions モジュール', () => {
         error,
       )
     })
-    it('カスタム未分類への同期が失敗しても現在タブ保存は継続する', async () => {
+    it('atomic save failureを成功扱いせず通知とタブcloseを中止する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const activeTab = tab({
         id: 12,
@@ -189,20 +221,9 @@ describe('extension-actions モジュール', () => {
         new Error('custom sync failed'),
       )
 
-      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([
-        {
-          url: 'https://current.example/custom-sync-error',
-          title: 'Current',
-        },
-      ])
-      expect(console.error).toHaveBeenCalledWith(
-        'カスタムモードへの同期に失敗しました:',
-        expect.any(Error),
-      )
-      expect(mocked.showNotification).toHaveBeenCalledWith(
-        'タブ保存',
-        '現在のタブを保存しました',
-      )
+      await expect(handleSaveCurrentTab()).rejects.toThrow('custom sync failed')
+      expect(mocked.showNotification).not.toHaveBeenCalled()
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
     it('アクティブタブに id がない場合は fallback タイトルを返してクローズをスキップする', async () => {
       const chromeTabs = createChromeTabsHarness()

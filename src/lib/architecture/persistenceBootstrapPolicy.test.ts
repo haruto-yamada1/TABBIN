@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 const repositoryPath = (path: string): string => resolve(process.cwd(), path)
@@ -8,7 +9,114 @@ const repositoryPath = (path: string): string => resolve(process.cwd(), path)
 const readRepositoryFile = (path: string): string =>
   readFileSync(repositoryPath(path), 'utf8')
 
+// CodeRabbit review: ファイル全体の正規表現は「呼び出しの存在」しか検証できず、
+// 別関数に正しい呼び出しが1つ残っているだけで通ってしまう。各 exported
+// composition 関数の本体内で deps データフローを検証するための AST helper。
+const parseRepositorySourceFile = (path: string): ts.SourceFile => {
+  const source = readRepositoryFile(path)
+  const fileName = path.split('/').pop() ?? path
+  return ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  )
+}
+
+const calleeIdentifier = (call: ts.CallExpression): string | undefined => {
+  const expression = call.expression
+  return ts.isIdentifier(expression) ? expression.text : undefined
+}
+
+const collectCallExpressions = (
+  node: ts.Node,
+): readonly ts.CallExpression[] => {
+  const calls: ts.CallExpression[] = []
+  const visit = (current: ts.Node): void => {
+    if (ts.isCallExpression(current)) {
+      calls.push(current)
+    }
+    ts.forEachChild(current, visit)
+  }
+  visit(node)
+  return calls
+}
+
+// `const <name> = <callee>(...)` 形式の変数宣言を探し、束縛された変数名を返す。
+const findVariableAssignedFromCall = (
+  scope: ts.Node,
+  expectedCallee: string,
+): string | undefined => {
+  let assignedName: string | undefined
+  const visit = (node: ts.Node): void => {
+    if (assignedName !== undefined) {
+      return
+    }
+    if (ts.isVariableStatement(node)) {
+      for (const declaration of node.declarationList.declarations) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.initializer !== undefined &&
+          ts.isCallExpression(declaration.initializer) &&
+          calleeIdentifier(declaration.initializer) === expectedCallee
+        ) {
+          assignedName = declaration.name.text
+          return
+        }
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(scope)
+  return assignedName
+}
+
+// `const <name> = (...) => ...` / `export const <name> = (...) => ...` で
+// 束縛された関数の本体を返す。
+const findNamedFunctionBody = (
+  sourceFile: ts.SourceFile,
+  name: string,
+): ts.Node | undefined => {
+  let body: ts.Node | undefined
+  const visit = (node: ts.Node): void => {
+    if (body !== undefined) {
+      return
+    }
+    if (ts.isVariableStatement(node)) {
+      for (const declaration of node.declarationList.declarations) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === name &&
+          declaration.initializer !== undefined &&
+          (ts.isArrowFunction(declaration.initializer) ||
+            ts.isFunctionExpression(declaration.initializer))
+        ) {
+          body = declaration.initializer.body
+          return
+        }
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return body
+}
+
+// expect().toBeDefined() は実行時に throw するが TS はそれを認識できず、戻り値を
+// narrow するには non-null assertion が必要になる。typescript/no-non-null-assertion
+// (error) を満たすため、制御フローで narrow して non-null assertion を使わずに
+// 値を返す。以降の expect(actual, message) は戻り値を再利用しない純粋な assertion
+// 用途の直接呼び出しなので、両者の使い分けは役割分担で矛盾しない。
+const requireDefined = <T>(value: T | undefined, message: string): T => {
+  if (value === undefined) {
+    throw new Error(message)
+  }
+  return value
+}
+
 const persistenceBootstrapFiles = [
+  'src/app/composition/analyticsViewsDataPlane.ts',
   'src/app/composition/persistenceStorageLocal.ts',
   'src/contexts/saved-tabs/application/ports/PersistenceBootstrapPort.ts',
   'src/contexts/saved-tabs/application/services/PersistenceBootstrapService.ts',
@@ -21,20 +129,22 @@ const persistenceBootstrapFiles = [
 ] as const
 
 const legacyPersistencePaths = [
-  'src/features/ai-chat/lib/conversation-history.ts',
-  'src/features/analytics/routes/AnalyticsRoute.tsx',
-  'src/features/analytics/routes/analyticsRoute.helpers.ts',
-  'src/features/options/lib/import-export/flows.ts',
-  'src/lib/background/expired-tabs.ts',
-  'src/lib/background/ai-chat.ts',
-  'src/lib/background/url-storage.ts',
-  'src/lib/storage/analytics.ts',
   'src/lib/storage/categories.ts',
   'src/lib/storage/migration.ts',
   'src/lib/storage/projects.ts',
   'src/lib/storage/tabs.ts',
   'src/lib/storage/url-migration.ts',
   'src/lib/storage/urls.ts',
+] as const
+
+const routeAwareBackgroundPersistencePaths = [
+  'src/features/analytics/lib/loadAnalyticsRecords.ts',
+  'src/features/analytics/routes/AnalyticsRoute.tsx',
+  'src/features/analytics/routes/analyticsRoute.helpers.ts',
+  'src/lib/background/ai-chat.ts',
+  'src/lib/background/expired-tabs.ts',
+  'src/lib/background/extension-actions.ts',
+  'src/lib/background/url-storage.ts',
 ] as const
 
 const gatedChromeRepositoryPaths = [
@@ -104,6 +214,47 @@ describe('PersistenceBootstrap architecture policy', () => {
     }
   })
 
+  it('routes analytics views through the route-aware data plane', () => {
+    const source = readRepositoryFile('src/lib/storage/analytics.ts')
+    const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    expect(source).toContain("from '@/app/composition/analyticsViewsDataPlane'")
+    expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
+    expect(executableSource).not.toContain('getChromeStorageLocal')
+  })
+
+  it('routes AI conversation history through the route-aware data plane', () => {
+    const source = readRepositoryFile(
+      'src/features/ai-chat/lib/conversation-history.ts',
+    )
+    const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    expect(source).toContain(
+      "from '@/app/composition/aiConversationHistoryDataPlane'",
+    )
+    expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
+    expect(executableSource).not.toContain('getChromeStorageLocal')
+  })
+
+  it('routes background, AI, and analytics through the selected data plane', () => {
+    for (const path of routeAwareBackgroundPersistencePaths) {
+      const source = readRepositoryFile(path)
+      const executableSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+      expect(source).toContain(
+        "from '@/app/composition/backgroundSavedTabsDataPlane'",
+      )
+      expect(executableSource).not.toMatch(/\bchrome\.storage\.local\b/)
+      expect(executableSource).not.toContain('getChromeStorageLocal')
+    }
+
+    const dataPlane = readRepositoryFile(
+      'src/app/composition/backgroundSavedTabsDataPlane.ts',
+    )
+    expect(dataPlane).toContain('router: runtime.dataPlaneRouter')
+    expect(dataPlane).toContain('IndexedDbSavedTabsSessionService')
+    expect(dataPlane).toContain('createBackgroundSavedTabsIndexedDbDataPlane')
+    expect(dataPlane).not.toContain('runIndexedDbSession')
+    expect(dataPlane).toContain('legacyStorage')
+  })
+
   it('requires the operation gate at both IndexedDB boundaries', () => {
     for (const path of [
       'src/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader.ts',
@@ -140,15 +291,89 @@ describe('PersistenceBootstrap architecture policy', () => {
     expect(composition).toContain(
       'createChromeUserSettingsRepository(settingsPort)',
     )
-    expect(useCaseComposition).toContain(
-      'const domainLocal = getPersistenceStorageLocal()',
+    // 同一型の位置引数による誤配線を防ぐため、名前付き引数で domain / settings
+    // storage の対応を明示的に検証する (CodeRabbit review)。
+    expect(useCaseComposition).toMatch(
+      /domainLocal:\s*getPersistenceStorageLocal\(\)/,
     )
-    expect(useCaseComposition).toContain(
-      'const settingsLocal = getChromeStorageLocal()',
+    expect(useCaseComposition).toMatch(
+      /settingsLocal:\s*getChromeStorageLocal\(\)/,
     )
     expect(useCaseComposition).toContain(
       'createChromeUserSettingsRepository(settingsPort)',
     )
+  })
+
+  it('production composition routes the selected legacy deps through the route-aware use-case wiring', () => {
+    // CodeRabbit review: ファイル全体への正規表現は3つの呼び出しの存在しか確認
+    // せず、別関数に正しい呼び出しが1つ残っていれば結線が壊れても通る。
+    // 各 exported composition 関数の本体内で、同じ deps 変数のデータフローを
+    // AST で検証する。
+    const sourceFile = parseRepositorySourceFile(
+      'src/app/composition/createSavedTabsUseCases.ts',
+    )
+
+    // createProductionSavedTabsUseCases は deps を createApplicationSavedTabsUseCases へ渡し、
+    // その結果を createRouteAwareSavedTabsUseCases の legacy slot へ結線する。
+    const productionBody = requireDefined(
+      findNamedFunctionBody(sourceFile, 'createProductionSavedTabsUseCases'),
+      'createProductionSavedTabsUseCases must be defined',
+    )
+    const productionCalls = collectCallExpressions(productionBody)
+    const routeAwareCall = productionCalls.find(
+      (call) => calleeIdentifier(call) === 'createRouteAwareSavedTabsUseCases',
+    )
+    expect(
+      routeAwareCall,
+      'createProductionSavedTabsUseCases must call createRouteAwareSavedTabsUseCases',
+    ).toBeDefined()
+    const applicationUseCaseCall = requireDefined(
+      productionCalls.find(
+        (call) =>
+          calleeIdentifier(call) === 'createApplicationSavedTabsUseCases',
+      ),
+      'createProductionSavedTabsUseCases must call createApplicationSavedTabsUseCases',
+    )
+    const applicationUseCaseArgument = applicationUseCaseCall.arguments[0]
+    expect(
+      ts.isIdentifier(applicationUseCaseArgument) &&
+        applicationUseCaseArgument.text === 'deps',
+      'createApplicationSavedTabsUseCases must receive the deps parameter directly',
+    ).toBe(true)
+
+    // 各 exported entry point は createSelectedLegacySavedTabsUseCasesDeps の戻り値を
+    // 同じ変数へ束縛し、その変数を createProductionSavedTabsUseCases へ渡す。
+    const entryPoints = [
+      'createSavedTabsUseCases',
+      'createSavedTabsPresentationComposition',
+    ]
+    for (const entryPoint of entryPoints) {
+      const body = requireDefined(
+        findNamedFunctionBody(sourceFile, entryPoint),
+        `${entryPoint} must be defined`,
+      )
+      const depsVariableName = requireDefined(
+        findVariableAssignedFromCall(
+          body,
+          'createSelectedLegacySavedTabsUseCasesDeps',
+        ),
+        `${entryPoint} must assign createSelectedLegacySavedTabsUseCasesDeps result to a variable`,
+      )
+      const calls = collectCallExpressions(body)
+      const productionCall = requireDefined(
+        calls.find(
+          (call) =>
+            calleeIdentifier(call) === 'createProductionSavedTabsUseCases',
+        ),
+        `${entryPoint} must call createProductionSavedTabsUseCases`,
+      )
+      const productionArgument = productionCall.arguments[0]
+      expect(
+        ts.isIdentifier(productionArgument) &&
+          productionArgument.text === depsVariableName,
+        `${entryPoint} must pass the selected legacy deps variable to createProductionSavedTabsUseCases`,
+      ).toBe(true)
+    }
   })
 
   it('enforces preflight freshness, silent startup, and app-level recovery', () => {
@@ -189,5 +414,42 @@ describe('PersistenceBootstrap architecture policy', () => {
     expect(rawReader).not.toContain('.set(')
     expect(rawReader).not.toContain('getSavedTabs')
     expect(rawReader).not.toContain('getCustomProjects')
+  })
+
+  it('requires the post-cutover forward-fix runbook and release guard', () => {
+    const runbookPath = 'docs/runbooks/persistence-v2-emergency.md'
+    expect(existsSync(repositoryPath(runbookPath))).toBe(true)
+    if (!existsSync(repositoryPath(runbookPath))) {
+      return
+    }
+
+    const runbook = readRepositoryFile(runbookPath)
+    const release = readRepositoryFile('docs/release.md')
+    const packageJson = readRepositoryFile('package.json')
+    const releaseMetadata = readRepositoryFile(
+      'src/public/persistence-release.json',
+    )
+    const backupCompositions = [
+      'src/app/composition/optionsBackupRecovery.ts',
+      'src/app/composition/optionsBackupV2Export.ts',
+      'src/app/composition/optionsLegacyBackupMerge.ts',
+    ].map(readRepositoryFile)
+
+    for (const contract of [
+      'pre-IDB',
+      'forward-fix',
+      'read-only-emergency',
+      'minimumCompatibleAppVersion',
+      'destructiveSchemaChange',
+      'queryWriteContractCompatible',
+      'git tag',
+      'verify:persistence-release-compatibility',
+    ]) {
+      expect(`${runbook}\n${release}\n${releaseMetadata}`).toContain(contract)
+    }
+    expect(packageJson).toContain('verify:persistence-release-compatibility')
+    for (const composition of backupCompositions) {
+      expect(composition).toContain('readUserSettingsWithoutRepair')
+    }
   })
 })

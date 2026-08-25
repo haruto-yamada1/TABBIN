@@ -7,11 +7,6 @@ import type {
   DomainCategoryMappingDto,
 } from '@/contexts/saved-tabs/domain/dto/DomainCategoryMappingDto'
 import type {
-  DomainCategorySettingsDto as DomainCategorySettings,
-  SubCategoryKeywordDto as SubCategoryKeyword,
-  DomainCategorySettingsDto,
-} from '@/contexts/saved-tabs/domain/dto/DomainCategorySettingsDto'
-import type {
   AiSystemPromptPresetDto,
   UserSettingsDto,
 } from '@/contexts/saved-tabs/domain/dto/UserSettingsDto'
@@ -40,19 +35,31 @@ import type {
  * 値をそのまま詰め替える。
  */
 export const toUserSettingsDto = (storage: UserSettings): UserSettingsDto => ({
-  activeAiSystemPromptId: storage.activeAiSystemPromptId,
-  aiSystemPrompts: storage.aiSystemPrompts?.map(toAiSystemPromptPresetDto),
-  autoDeletePeriod: storage.autoDeletePeriod,
+  ...(storage.activeAiSystemPromptId !== undefined
+    ? { activeAiSystemPromptId: storage.activeAiSystemPromptId }
+    : {}),
+  ...(storage.aiSystemPrompts !== undefined
+    ? {
+        aiSystemPrompts: storage.aiSystemPrompts.map(toAiSystemPromptPresetDto),
+      }
+    : {}),
+  ...(storage.autoDeletePeriod !== undefined
+    ? { autoDeletePeriod: storage.autoDeletePeriod }
+    : {}),
   clickBehavior: storage.clickBehavior,
-  colors: storage.colors,
+  ...(storage.colors !== undefined ? { colors: storage.colors } : {}),
   confirmDeleteAll: storage.confirmDeleteAll,
   confirmDeleteEach: storage.confirmDeleteEach,
   enableCategories: storage.enableCategories,
   excludePatterns: [...storage.excludePatterns],
   excludePinnedTabs: storage.excludePinnedTabs,
-  fontSizePercent: storage.fontSizePercent,
-  language: storage.language,
-  ollamaModel: storage.ollamaModel,
+  ...(storage.fontSizePercent !== undefined
+    ? { fontSizePercent: storage.fontSizePercent }
+    : {}),
+  ...(storage.language !== undefined ? { language: storage.language } : {}),
+  ...(storage.ollamaModel !== undefined
+    ? { ollamaModel: storage.ollamaModel }
+    : {}),
   openAllInNewWindow: storage.openAllInNewWindow,
   openUrlInBackground: storage.openUrlInBackground,
   removeTabAfterExternalDrop: storage.removeTabAfterExternalDrop,
@@ -153,39 +160,3 @@ export const toStorageDomainCategoryMappings = (
 /**
  * storage 形 `DomainCategorySettings[]` を domain DTO 配列へ変換する。
  */
-export const toDomainCategorySettingsDtoArray = (
-  storage: readonly DomainCategorySettings[],
-): readonly DomainCategorySettingsDto[] =>
-  storage.map((settings) => ({
-    categoryKeywords: settings.categoryKeywords.map(toSubCategoryKeywordDto),
-    domain: settings.domain,
-    subCategories: [...settings.subCategories],
-  }))
-
-/**
- * domain DTO 配列を storage 形 `DomainCategorySettings[]` へ逆変換する。
- */
-export const toStorageDomainCategorySettings = (
-  dto: readonly DomainCategorySettingsDto[],
-): readonly DomainCategorySettings[] =>
-  dto.map((settings) => ({
-    categoryKeywords: settings.categoryKeywords.map(
-      toStorageSubCategoryKeyword,
-    ),
-    domain: settings.domain,
-    subCategories: [...settings.subCategories],
-  }))
-
-const toSubCategoryKeywordDto = (
-  keyword: SubCategoryKeyword,
-): DomainCategorySettingsDto['categoryKeywords'][number] => ({
-  categoryName: keyword.categoryName,
-  keywords: [...keyword.keywords],
-})
-
-const toStorageSubCategoryKeyword = (
-  keyword: DomainCategorySettingsDto['categoryKeywords'][number],
-): SubCategoryKeyword => ({
-  categoryName: keyword.categoryName,
-  keywords: [...keyword.keywords],
-})

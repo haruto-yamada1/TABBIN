@@ -1,7 +1,10 @@
 /* eslint-disable eslint/max-lines-per-function -- 1 つの describe ブロックに 4130 行の統合テストがあり、分割すると beforeEach / afterEach の mock 状態が散逸するため */
 // @vitest-environment jsdom
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+// oxlint-disable-next-line eslint/no-restricted-imports -- test-only coverage for retired legacy import shapes
+import type { CustomProject } from '@/contexts/saved-tabs/public-api'
 import type {
   AiChatConversation,
   AiChatConversationMessage,
@@ -9,7 +12,7 @@ import type {
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import type { AiChatToolTrace } from '@/types/background'
-import type { CustomProject, UserSettings } from '@/types/storage'
+import type { UserSettings } from '@/types/storage'
 
 vi.mock('@/lib/storage/categories', () => ({
   getParentCategories: vi.fn(async () => {
@@ -25,7 +28,18 @@ vi.mock('@/lib/storage/migration', () => ({
   migrateToUrlsStorage: vi.fn(),
 }))
 
+vi.mock('@/features/options/lib/import-export/currentImportDate', () => ({
+  getCurrentUtcDateOnly: vi.fn(() => '2026-09-30'),
+}))
+
+// The production boundary has dedicated integration coverage. This suite keeps
+// the legacy post-gate conversion and merge/overwrite mechanics isolated.
+vi.mock('@/features/options/lib/import-export/productionImportGate', () => ({
+  assertProductionImportAllowed: vi.fn(),
+}))
+
 vi.mock('@/lib/storage/settings', () => {
+  const getUserSettings = vi.fn()
   const defaultSettings: UserSettings = {
     removeTabAfterOpen: true,
     removeTabAfterExternalDrop: true,
@@ -45,7 +59,8 @@ vi.mock('@/lib/storage/settings', () => {
 
   return {
     defaultSettings,
-    getUserSettings: vi.fn(),
+    getUserSettings,
+    readUserSettingsWithoutRepair: getUserSettings,
     saveUserSettings: vi.fn(),
   }
 })
@@ -150,14 +165,14 @@ import {
   createOrUpdateUrlRecordsBatch,
 } from '@/lib/storage/urls'
 
+import { downloadAsJson, getImportPreview } from './import-export'
+import { LEGACY_BACKUP_ADVISORY } from './import-export/compatibility/legacyBackupPolicy'
 import {
   alignCustomProjectsWithSavedTabs,
   convertCustomProjectToExportUrls,
   convertImportedCustomProjectUrlsToStorage,
-  downloadAsJson,
   ensurePlaceholderUrlRecords,
   exportSettings,
-  getImportPreview,
   importSettings,
   mergeImportedCustomProjects,
   normalizeImportedCustomProject,
@@ -168,7 +183,8 @@ import {
   resolveOverwriteAiChatHistory,
   resolveCurrentLanguage,
   restoreImportedCustomProjectUrlsFromIds,
-} from './import-export'
+} from './import-export/index.fixture'
+import { LegacyBackupV0Schema } from './import-export/legacy/LegacyBackupV0Schema'
 import {
   buildCustomProject,
   buildFullUserSettings,
@@ -318,7 +334,7 @@ describe('import-export ユーティリティ', () => {
         id: 'project-legacy',
         name: 'Project Legacy',
         urlIds: 'invalid' as unknown as string[],
-        urlMetadata: [] as unknown as CustomProject['urlMetadata'],
+        urlMetadata: [] as unknown as NonNullable<CustomProject['urlMetadata']>,
         urls: [
           {
             notes: 'memo',
@@ -354,7 +370,6 @@ describe('import-export ユーティリティ', () => {
         {
           id: 'imported-url-id',
           savedAt: 1,
-          title: undefined,
           url: 'https://imported.example.com/a',
         },
       ],
@@ -386,8 +401,6 @@ describe('import-export ユーティリティ', () => {
       ),
     ).toEqual([
       {
-        category: undefined,
-        notes: undefined,
         savedAt: 1,
         title: '',
         url: 'https://imported.example.com/a',
@@ -566,7 +579,7 @@ describe('import-export ユーティリティ', () => {
       id: 'project-with-missing-url-record',
       urlIds: ['missing-export-url', 'titleless-export-url'],
       updatedAt: undefined,
-    } as Partial<CustomProject>)
+    } as unknown as Partial<CustomProject>)
 
     const exportedUrls = convertCustomProjectToExportUrls(
       exportSourceProject,
@@ -749,6 +762,7 @@ describe('import-export ユーティリティ', () => {
       customProjectOrder: [],
       urls: [],
     })
+    expect(LegacyBackupV0Schema.safeParse(result).success).toBe(true)
   })
 
   it('exportSettings は AI チャット履歴を含める', async () => {
@@ -945,7 +959,7 @@ describe('import-export ユーティリティ', () => {
             },
           },
           updatedAt: undefined,
-        }),
+        } as unknown as Partial<CustomProject>),
       ],
       parentCategories: [],
       savedTabs: [
@@ -1075,7 +1089,7 @@ describe('import-export ユーティリティ', () => {
             null,
           ] as CustomProject['urls'],
           urlIds: [],
-        }),
+        } as unknown as Partial<CustomProject>),
         buildCustomProject({
           id: 'empty-project',
           name: 'Empty Project',
@@ -2440,26 +2454,27 @@ describe('import-export ユーティリティ', () => {
   })
 
   it('getImportPreview は valid/invalid/malformed JSON を分類する', () => {
-    const valid = getImportPreview(
-      JSON.stringify({
-        aiChatConversations: [buildAiChatConversation()],
-        customProjects: [buildCustomProject()],
-        savedAnalyticsViews: [buildAnalyticsView()],
-        version: '7.0.0',
-        timestamp: '2026-03-15T00:00:00.000Z',
-        userSettings: buildFullUserSettings(),
-        parentCategories: [
-          { id: 'preview-cat', name: 'Preview', domains: [], domainNames: [] },
-        ],
-        savedTabs: [
-          {
-            id: 'preview-group',
-            domain: 'preview.example.com',
-            urls: [],
-          },
-        ],
-      }),
-    )
+    const legacyBackup = {
+      aiChatConversations: [buildAiChatConversation()],
+      customProjectOrder: ['project-1'],
+      customProjects: [buildCustomProject()],
+      savedAnalyticsViews: [buildAnalyticsView()],
+      version: '7.0.0',
+      timestamp: '2026-03-15T00:00:00.000Z',
+      userSettings: buildFullUserSettings(),
+      parentCategories: [
+        { id: 'preview-cat', name: 'Preview', domains: [], domainNames: [] },
+      ],
+      savedTabs: [
+        {
+          id: 'preview-group',
+          domain: 'preview.example.com',
+          urls: [],
+        },
+      ],
+    }
+    expect(LegacyBackupV0Schema.safeParse(legacyBackup).success).toBe(true)
+    const valid = getImportPreview(JSON.stringify(legacyBackup))
 
     expect(valid).toEqual({
       success: true,
@@ -2467,8 +2482,10 @@ describe('import-export ユーティリティ', () => {
       preview: {
         categoriesCount: 1,
         domainsCount: 1,
+        formatKind: 'legacy',
         hasAiChat: true,
         hasAnalytics: true,
+        legacyBackupAdvisory: LEGACY_BACKUP_ADVISORY,
         projectsCount: 1,
         timestamp: '2026-03-15T00:00:00.000Z',
         version: '7.0.0',
@@ -2480,9 +2497,42 @@ describe('import-export ユーティリティ', () => {
       message: 'インポートされたデータの形式が正しくありません',
     })
 
+    expect(
+      getImportPreview(
+        JSON.stringify({
+          appVersion: '99.0.0',
+          data: {},
+          exportedAt: '2026-03-15T00:00:00.000Z',
+          schemaVersion: 99,
+        }),
+      ),
+    ).toEqual({
+      success: false,
+      message: 'インポートされたデータの形式が正しくありません',
+    })
+
     expect(getImportPreview('{malformed-json')).toEqual({
       success: false,
       message: 'データの解析中にエラーが発生しました',
+    })
+  })
+
+  it('getImportPreview は strict legacy backup にだけ deadline advisory を付ける', () => {
+    const preview = getImportPreview(
+      JSON.stringify({
+        parentCategories: [],
+        savedTabs: [],
+        timestamp: '2026-07-05T00:00:00.000Z',
+        userSettings: {},
+        version: '1.9.0',
+      }),
+    )
+
+    expect(preview).toMatchObject({
+      preview: {
+        legacyBackupAdvisory: LEGACY_BACKUP_ADVISORY,
+      },
+      success: true,
     })
   })
 
@@ -3056,11 +3106,11 @@ describe('import-export ユーティリティ', () => {
         id: 'empty-group',
         domain: 'empty.example.com',
         urlIds: [],
-        urlSubCategories: undefined,
         subCategories: [],
         categoryKeywords: [],
       }),
     )
+    expect(Object.hasOwn(savedTabsArg[0] ?? {}, 'urlSubCategories')).toBe(false)
   })
 
   it('overwrite モードでは現在の urls ストレージが配列でなくてもプレースホルダーを生成する', async () => {
@@ -3243,11 +3293,11 @@ describe('import-export ユーティリティ', () => {
         parentCategoryId: 'parent-old',
         savedAt: 777,
         urlIds: ['new-id'],
-        urlSubCategories: undefined,
         categoryKeywords: [],
         subCategories: [],
       }),
     )
+    expect(Object.hasOwn(savedTabsArg[0] ?? {}, 'urlSubCategories')).toBe(false)
   })
 
   it('merge モードでは重複 URL ID を避けつつ混在した subcategory/keyword payload を正規化する', async () => {
@@ -4375,7 +4425,6 @@ describe('import-export ユーティリティ', () => {
             'current-project-url',
             'missing-url',
           ],
-          urls: undefined,
           urlMetadata: {
             'imported-project-url': {
               notes: 'imported memo',

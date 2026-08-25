@@ -2,8 +2,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const { projectCardRootSpy } = vi.hoisted(() => ({
   projectCardRootSpy: vi.fn(),
@@ -91,7 +91,6 @@ describe('CustomProjectCard', () => {
       expect.objectContaining({
         project: props.project,
         settings: props.settings,
-        draggedItem: undefined,
         isDropTarget: false,
         handlers: expect.objectContaining({
           handleOpenUrl: props.handleOpenUrl,
@@ -109,6 +108,9 @@ describe('CustomProjectCard', () => {
           handleReorderUrls: props.handleReorderUrls,
         }),
       }),
+    )
+    expect(projectCardRootSpy.mock.calls[0]?.[0]).not.toHaveProperty(
+      'draggedItem',
     )
 
     expect(screen.getByTestId('project-card-root')).toBeTruthy()

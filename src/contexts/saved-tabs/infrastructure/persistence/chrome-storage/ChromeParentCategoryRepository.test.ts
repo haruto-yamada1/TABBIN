@@ -27,8 +27,8 @@ const createPort = (state: StorageState): ChromeStorageLocalPort => {
 
 const createSampleParentCategory = (id: string, name: string) =>
   ChromeSavedTabsStorageMapper.parseParentCategory({
-    domainNames: [`${name}.example.com`],
     domains: [`group-${id}`],
+    domainNames: [`${name}.example.com`],
     id,
     name,
   })
@@ -90,14 +90,14 @@ describe('ChromeParentCategoryRepository', () => {
       const state: StorageState = {
         [PARENT_CATEGORIES_KEY]: [
           {
-            domainNames: ['docs.example.com'],
             domains: ['group-1'],
+            domainNames: ['docs.example.com'],
             id: 'cat-1',
             name: 'Docs',
           },
           {
-            domainNames: [],
             domains: [],
+            domainNames: [],
             id: 'cat-2',
             name: 'Empty',
           },
@@ -107,24 +107,26 @@ describe('ChromeParentCategoryRepository', () => {
       const result = await repo.findAll()
       expect(result).toHaveLength(2)
       expect(result[0]?.name).toBe('Docs')
-      expect(result[0]?.domainNames).toStrictEqual(['docs.example.com'])
-      expect(result[1]?.domains).toStrictEqual([])
+      expect(result[0]?.collections).toStrictEqual([
+        { domain: 'docs.example.com', id: 'group-1' },
+      ])
+      expect(result[1]?.collections).toStrictEqual([])
     })
 
     it('不正な要素をスキップして有効要素だけ返す', async () => {
       const state: StorageState = {
         [PARENT_CATEGORIES_KEY]: [
           {
-            domainNames: ['docs.example.com'],
             domains: ['group-1'],
+            domainNames: ['docs.example.com'],
             id: 'cat-1',
             name: 'Docs',
           },
           { domainNames: ['x.example.com'], id: 'cat-2', name: 'NoGroup' },
           null,
           {
-            domainNames: ['y.example.com'],
             domains: ['group-2'],
+            domainNames: ['y.example.com'],
             id: 'cat-3',
             name: 'NoGroup3',
           },
@@ -141,14 +143,14 @@ describe('ChromeParentCategoryRepository', () => {
       const state: StorageState = {
         [PARENT_CATEGORIES_KEY]: [
           {
-            domainNames: ['docs.example.com'],
             domains: ['group-1'],
+            domainNames: ['docs.example.com'],
             id: 'cat-1',
             name: 'Docs',
           },
           {
-            domainNames: ['work.example.com'],
             domains: ['group-2'],
+            domainNames: ['work.example.com'],
             id: 'cat-2',
             name: 'Work',
           },
@@ -163,8 +165,8 @@ describe('ChromeParentCategoryRepository', () => {
       const state: StorageState = {
         [PARENT_CATEGORIES_KEY]: [
           {
-            domainNames: ['docs.example.com'],
             domains: ['group-1'],
+            domainNames: ['docs.example.com'],
             id: 'cat-1',
             name: 'Docs',
           },
@@ -192,8 +194,8 @@ describe('ChromeParentCategoryRepository', () => {
       )?.[0] as Record<string, unknown>
       expect(lastSetArg[PARENT_CATEGORIES_KEY]).toStrictEqual([
         {
-          domainNames: ['docs.example.com'],
           domains: ['group-cat-1'],
+          domainNames: ['docs.example.com'],
           id: 'cat-1',
           name: 'Docs',
         },
@@ -216,20 +218,20 @@ describe('ChromeParentCategoryRepository', () => {
       const state: StorageState = {
         [PARENT_CATEGORIES_KEY]: [
           {
-            domainNames: ['docs.example.com'],
             domains: ['group-1'],
+            domainNames: ['docs.example.com'],
             id: 'cat-1',
             name: 'Docs',
           },
           {
-            domainNames: ['work.example.com'],
             domains: ['group-2'],
+            domainNames: ['work.example.com'],
             id: 'cat-2',
             name: 'Work',
           },
           {
-            domainNames: ['side.example.com'],
             domains: ['group-3'],
+            domainNames: ['side.example.com'],
             id: 'cat-3',
             name: 'Side',
           },
@@ -246,8 +248,8 @@ describe('ChromeParentCategoryRepository', () => {
       )?.[0] as Record<string, unknown>
       expect(lastSetArg[PARENT_CATEGORIES_KEY]).toStrictEqual([
         {
-          domainNames: ['work.example.com'],
           domains: ['group-2'],
+          domainNames: ['work.example.com'],
           id: 'cat-2',
           name: 'Work',
         },
@@ -258,8 +260,8 @@ describe('ChromeParentCategoryRepository', () => {
       const port = createPort({
         [PARENT_CATEGORIES_KEY]: [
           {
-            domainNames: ['docs.example.com'],
             domains: ['group-1'],
+            domainNames: ['docs.example.com'],
             id: 'cat-1',
             name: 'Docs',
           },
@@ -274,8 +276,8 @@ describe('ChromeParentCategoryRepository', () => {
       const port = createPort({
         [PARENT_CATEGORIES_KEY]: [
           {
-            domainNames: ['docs.example.com'],
             domains: ['group-1'],
+            domainNames: ['docs.example.com'],
             id: 'cat-1',
             name: 'Docs',
           },

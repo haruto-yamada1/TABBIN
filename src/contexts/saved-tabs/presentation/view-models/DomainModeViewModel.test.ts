@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createSavedTabsParentCategoryDto as createParentCategory,
   createSavedTabsTabGroupDto as createTabGroup,
-} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
+} from '@/contexts/saved-tabs/presentation/testing/SavedTabsCompatibilityFixtures'
 
 import { toCustomProjectViewModel } from './CustomProjectViewModel'
 import {
@@ -16,15 +16,19 @@ describe('DomainModeViewModel', () => {
   describe('toParentCategoryViewModel', () => {
     it('ParentCategory を view-model へ変換する', () => {
       const category = createParentCategory({
-        domainNames: ['example.com', 'docs.example'],
-        domains: ['group-1'],
+        collections: ['group-1'].map((id, index) => ({
+          id,
+          domain: ['example.com', 'docs.example'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       })
       const vm = toParentCategoryViewModel(category)
       expect(vm).toStrictEqual({
-        domainNames: ['example.com', 'docs.example'],
-        domains: ['group-1'],
+        collections: ['group-1'].map((id, index) => ({
+          id,
+          domain: ['example.com', 'docs.example'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Docs',
       })
@@ -37,18 +41,20 @@ describe('DomainModeViewModel', () => {
         createTabGroup({
           domain: 'example.com',
           id: 'g1',
-          urlIds: ['u1', 'u2', 'u3'],
+          memberships: ['u1', 'u2', 'u3'].map((urlId) => ({ urlId })),
         }),
         createTabGroup({
           domain: 'news.example',
           id: 'g2',
-          urlIds: [],
+          memberships: [].map((urlId) => ({ urlId })),
         }),
       ]
       const categories = [
         createParentCategory({
-          domainNames: ['example.com'],
-          domains: ['g1'],
+          collections: ['g1'].map((id, index) => ({
+            id,
+            domain: ['example.com'][index] ?? id,
+          })),
           id: 'cat-1',
           name: 'Docs',
         }),
@@ -60,7 +66,7 @@ describe('DomainModeViewModel', () => {
           id: 'p1',
           name: 'Reading',
           updatedAt: 1,
-          urlIds: ['u9', 'u10'],
+          memberships: ['u9', 'u10'].map((urlId) => ({ urlId })),
         }),
       ]
       const vm = createDomainModeViewModel({
@@ -110,12 +116,12 @@ describe('DomainModeViewModel', () => {
       expect(vm.error).toBe('something went wrong')
     })
 
-    it('tabGroup view-model の urlIds を独立コピーとして保持する', () => {
+    it('tabGroup view-model の memberships を独立コピーとして扱う', () => {
       const groups = [
         createTabGroup({
           domain: 'example.com',
           id: 'g1',
-          urlIds: ['u1', 'u2'],
+          memberships: ['u1', 'u2'].map((urlId) => ({ urlId })),
         }),
       ]
       const vm = createDomainModeViewModel({
@@ -133,7 +139,8 @@ describe('DomainModeViewModel', () => {
       expect(
         toTabGroupViewModel(groups[0] ?? { domain: '', id: '' }),
       ).toBeDefined()
-      expect(vmGroup.urlIds).toStrictEqual(['u1', 'u2'])
+      expect(vmGroup.displayUrlCount).toBe(2)
+      expect(vmGroup.urls).toStrictEqual([])
     })
   })
 })

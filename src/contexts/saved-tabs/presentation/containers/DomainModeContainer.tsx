@@ -10,11 +10,6 @@ import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { savedTabsDefaultUserSettings as defaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-  SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { CategoryGroup } from '@/contexts/saved-tabs/presentation/components/CategoryGroup'
@@ -29,6 +24,11 @@ import {
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 const BULK_OPEN_THRESHOLD = 10
@@ -105,7 +105,7 @@ const UncategorizedReorderActions = ({
   )
 }
 
-type DndSensors = ComponentProps<typeof DndKitContext>['sensors']
+type DndSensors = NonNullable<ComponentProps<typeof DndKitContext>['sensors']>
 
 type DomainModeContainerProps = {
   state: {
@@ -264,6 +264,12 @@ const UncategorizedDomainSection = ({
     () => uncategorizedForDisplay.map((group) => group.id),
     [uncategorizedForDisplay],
   )
+  const handleDeleteGroupsForCard = useCallback(
+    (ids: string[]) => {
+      void handleDeleteGroups?.(ids)
+    },
+    [handleDeleteGroups],
+  )
 
   return (
     <>
@@ -363,27 +369,33 @@ const UncategorizedDomainSection = ({
             <div className='mt-2 flex flex-col gap-1'>
               {uncategorizedForDisplay.map((group) => (
                 <SortableDomainCard
-                  key={group.id}
                   group={group}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleOpenAllTabs={handleOpenAllTabs}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteGroup={handleDeleteGroup}
                   // eslint-disable-next-line typescript/no-misused-promises
-                  handleDeleteGroups={handleDeleteGroups}
+                  {...(handleDeleteGroups !== undefined
+                    ? { handleDeleteGroups: handleDeleteGroupsForCard }
+                    : {})}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteUrl={handleDeleteUrl}
-                  handleDeleteUrls={handleDeleteUrls}
+                  {...(handleDeleteUrls !== undefined
+                    ? { handleDeleteUrls }
+                    : {})}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleOpenTab={handleOpenTab}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleUpdateUrls={handleUpdateUrls}
                   // eslint-disable-next-line typescript/no-misused-promises
-                  handleDeleteCategory={handleDeleteCategory}
+                  {...(handleDeleteCategory !== undefined
+                    ? { handleDeleteCategory }
+                    : {})}
                   settings={uncategorizedSettings}
                   isReorderMode={isReorderMode}
                   searchQuery={searchQuery}
                   reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+                  key={group.id}
                 />
               ))}
             </div>
@@ -444,6 +456,12 @@ export const DomainModeContainer = ({
     shouldShowUncategorizedSectionHeader,
   } = state
   const { t } = useI18n()
+  const handleDeleteGroupsForCategory = useCallback(
+    (ids: string[]) => {
+      void handleDeleteGroups?.(ids)
+    },
+    [handleDeleteGroups],
+  )
   const categoryMap = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
     [categories],
@@ -543,7 +561,6 @@ export const DomainModeContainer = ({
                 }
                 return (
                   <CategoryGroup
-                    key={categoryId}
                     category={category}
                     domains={domainGroups}
                     // eslint-disable-next-line typescript/no-misused-promises
@@ -551,10 +568,14 @@ export const DomainModeContainer = ({
                     // eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteGroup={handleDeleteGroup}
                     // eslint-disable-next-line typescript/no-misused-promises
-                    handleDeleteGroups={handleDeleteGroups}
+                    {...(handleDeleteGroups !== undefined
+                      ? { handleDeleteGroups: handleDeleteGroupsForCategory }
+                      : {})}
                     // eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteUrl={handleDeleteUrl}
-                    handleDeleteUrls={handleDeleteUrls}
+                    {...(handleDeleteUrls !== undefined
+                      ? { handleDeleteUrls }
+                      : {})}
                     // eslint-disable-next-line typescript/no-misused-promises
                     handleOpenTab={handleOpenTab}
                     // eslint-disable-next-line typescript/no-misused-promises
@@ -576,6 +597,7 @@ export const DomainModeContainer = ({
                     categoryManagementModalUseCases={
                       categoryManagementModalUseCases
                     }
+                    key={categoryId}
                   />
                 )
               })}
@@ -598,9 +620,9 @@ export const DomainModeContainer = ({
         uncategorizedForDisplay={uncategorizedForDisplay}
         handleOpenAllTabs={handleOpenAllTabs}
         handleDeleteGroup={handleDeleteGroup}
-        handleDeleteGroups={handleDeleteGroups}
+        {...(handleDeleteGroups !== undefined ? { handleDeleteGroups } : {})}
         handleDeleteUrl={handleDeleteUrl}
-        handleDeleteUrls={handleDeleteUrls}
+        {...(handleDeleteUrls !== undefined ? { handleDeleteUrls } : {})}
         handleOpenTab={handleOpenTab}
         handleUpdateUrls={handleUpdateUrls}
         // eslint-disable-next-line typescript/no-misused-promises

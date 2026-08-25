@@ -1,7 +1,7 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { TabGroup, UrlRecord } from '@/types/storage'
+import type { TabGroup, UrlRecord } from '@/contexts/saved-tabs/public-api'
 
 const mocks = vi.hoisted(() => ({
   createOrUpdateUrlRecordMock:
@@ -105,7 +105,6 @@ describe('tabs storage', () => {
             url: 'https://example.com/b',
             title: 'B',
             savedAt: 2,
-            subCategory: undefined,
           },
           {
             id: 'url-1',
@@ -124,7 +123,6 @@ describe('tabs storage', () => {
             url: 'https://example.org/c',
             title: 'C',
             savedAt: 3,
-            subCategory: undefined,
           },
         ],
       },
@@ -278,7 +276,6 @@ describe('tabs storage', () => {
       {
         id: 'url-2',
         savedAt: 2,
-        subCategory: undefined,
         title: 'Two',
         url: 'https://example.com/two',
       },
@@ -1518,9 +1515,9 @@ describe('tabs storage', () => {
       await loadTabsModule()
 
     await addSubCategoryToGroup('legacy-group', 'docs')
-    state.savedTabs[0].subCategories = undefined
+    delete state.savedTabs[0].subCategories
     await setCategoryKeywords('legacy-group', 'docs', ['guide'])
-    state.savedTabs[0].categoryKeywords = undefined
+    delete state.savedTabs[0].categoryKeywords
     state.savedTabs[0].urlSubCategories = {
       'url-1': 'existing',
     }

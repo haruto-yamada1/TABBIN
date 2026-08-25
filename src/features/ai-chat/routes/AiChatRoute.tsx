@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ConversationHistoryErrorNotice } from '@/features/ai-chat/components/ConversationHistoryErrorNotice'
 import { ConversationPreviewTooltip } from '@/features/ai-chat/components/ConversationPreviewTooltip'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
@@ -99,6 +100,7 @@ export const AiChatRoute = () => {
     activeConversation,
     createConversation,
     deleteConversation,
+    historyError,
     historyItems,
     isLoading,
     selectConversation,
@@ -161,8 +163,18 @@ export const AiChatRoute = () => {
     setPendingDeleteHistoryItem(null)
   }, [deleteConversation, pendingDeleteHistoryItem])
 
-  if (isLoading || !activeConversation) {
+  if (isLoading) {
     return <LoadingState minHeightClassName='min-h-[300px]' />
+  }
+
+  if (!activeConversation) {
+    return historyError ? (
+      <div className='mx-auto max-w-2xl p-6'>
+        <ConversationHistoryErrorNotice error={historyError} />
+      </div>
+    ) : (
+      <LoadingState minHeightClassName='min-h-[300px]' />
+    )
   }
 
   return (
@@ -203,7 +215,8 @@ export const AiChatRoute = () => {
 
       <div className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
         <main className='min-h-0 flex-1 overflow-hidden bg-muted/10 px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-5'>
-          <div className='mx-auto flex h-full min-h-0 max-w-7xl overflow-hidden'>
+          <div className='mx-auto flex h-full min-h-0 max-w-7xl flex-col gap-3 overflow-hidden'>
+            <ConversationHistoryErrorNotice error={historyError} />
             <div
               className='flex min-h-0 flex-1 overflow-hidden'
               data-testid='chat-widget-shell'

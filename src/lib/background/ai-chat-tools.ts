@@ -2,6 +2,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 
+import type { SavedTabsAnalyticsRecord } from '@/app/composition/backgroundSavedTabsDataPlaneTypes'
 import { getAiChatToolDescription } from '@/constants/aiChatTools'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
 import {
@@ -153,6 +154,7 @@ const DEFAULT_ANALYTICS_LIMIT = 8
 const createAiChatTools = (
   records: AiSavedUrlRecord[],
   language: AppLanguage = 'ja',
+  analyticsRecords: readonly SavedTabsAnalyticsRecord[] = [],
 ) => ({
   findUrlsByMonth: tool({
     description: getAiChatToolDescription(language, 'findUrlsByMonth'),
@@ -171,6 +173,7 @@ const createAiChatTools = (
     ),
     inputSchema: z.object({
       chartType: z.enum(['area', 'bar', 'line', 'pie', 'radar']).default('bar'),
+      collectionType: z.enum(['all', 'custom', 'domain']).optional(),
       compareBy: z.enum(['mode', 'none']).default('none'),
       customDateRange: z
         .object({
@@ -210,6 +213,9 @@ const createAiChatTools = (
         .min(1)
         .max(MAX_ANALYTICS_LIMIT)
         .default(DEFAULT_ANALYTICS_LIMIT),
+      metric: z
+        .enum(['first-saved', 'last-saved', 'membership-added'])
+        .optional(),
       mode: z.enum(['both', 'custom', 'domain']).default('both'),
       normalize: z.boolean().default(false),
       sort: z
@@ -223,10 +229,35 @@ const createAiChatTools = (
       title: z.string().trim().optional(),
     }),
 
-    execute: async (input) =>
-      generateAnalyticsResult(records, normalizeAnalyticsQuery(input), {
-        messages: createAnalyticsMessages(language),
-      }),
+    execute: async (input) => {
+      const { collectionType, customDateRange, metric, title, ...required } =
+        input
+      const normalizedInput: Parameters<typeof normalizeAnalyticsQuery>[0] = {
+        ...required,
+        ...(collectionType !== undefined ? { collectionType } : {}),
+        ...(customDateRange !== undefined
+          ? {
+              customDateRange: {
+                ...(customDateRange.from !== undefined
+                  ? { from: customDateRange.from }
+                  : {}),
+                ...(customDateRange.to !== undefined
+                  ? { to: customDateRange.to }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(metric !== undefined ? { metric } : {}),
+        ...(title !== undefined ? { title } : {}),
+      }
+      return generateAnalyticsResult(
+        analyticsRecords.length > 0 ? [...analyticsRecords] : records,
+        normalizeAnalyticsQuery(normalizedInput),
+        {
+          messages: createAnalyticsMessages(language),
+        },
+      )
+    },
   }),
   getCurrentDateTime: tool({
     description: getAiChatToolDescription(language, 'getCurrentDateTime'),

@@ -18,7 +18,37 @@ bun run release:check
 1. `bun run quality` — フォーマット、lint、テスト、重複チェックなど
 2. `bun run build` — Chrome 拡張機能のビルド
 3. `bun run build:firefox` — Firefox 拡張機能のビルド
-4. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
+4. `bun run verify:production-logging` — production build から console / debugger が除去済みであること
+5. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
+6. `bun run verify:persistence-release-compatibility` — 生成された artifact の Persistence v2 compatibility metadata を検証
+7. `bun run verify:production-network-policy` — 生成された manifest の host / CSP / permission 契約を検証
+8. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証
+9. `bun run verify:firefox-source` — production source に `chrome-extension://` literal や Chrome 専用 API 呼び出しが混入していないことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
+
+## Persistence v2 compatibility check
+
+Issue #729 の cutover release 以降は、Store へのアップロード前に
+[Persistence v2 緊急対応 runbook](runbooks/persistence-v2-emergency.md) の
+compatibility policy を適用します。
+
+- [ ] Chrome / Firefox artifact に `persistence-release.json` が含まれる
+- [ ] `persistenceGeneration` と IndexedDB `databaseVersion` が意図した値である
+- [ ] `minimumCompatibleAppVersion` が現在の downgrade 境界を表す
+- [ ] `destructiveSchemaChange` の判断と recovery strategy を記録した
+- [ ] `queryWriteContractCompatible` と `databaseDowngradeCompatible` を確認した
+- [ ] migration / integrity / Backup V2 export fixtures が成功した
+- [ ] rollback candidate がある場合、配布済み artifact と比較 verifier を実行した
+
+```bash
+bun run verify:persistence-release-compatibility -- \
+  --deployed-dir <deployed-unpacked-extension> \
+  --candidate-dir <candidate-unpacked-extension>
+```
+
+metadata が欠落・不正な artifact、pre-IDB runtime、現在の generation / DB version と
+互換性のない artifact は配布しません。過去の git tag は互換性の証明ではありません。
+互換性を証明できない障害対応は rollback ではなく `read-only-emergency` と
+forward-fix を使用します。
 
 ## ZIP 生成
 
@@ -93,4 +123,5 @@ GitHub Release を使う場合は、以下をリリース asset として添付�
 
 - `release:check` は通常の開発サイクルでは使用せず、配布前の最終確認に使います
 - `bun run release:zip` をパスしない ZIP は配布しないでください
+- Persistence v2 compatibility checklist を満たさない ZIP は配布しないでください
 - checksum は artifact の安全性そのものを保証するものではなく、配布物の同一性・追跡性を保つためのものです

@@ -112,8 +112,8 @@ const DropdownMenuCheckboxItem = ({
       'relative flex cursor-default items-center rounded-sm py-1.5 pr-2 pl-8 text-sm transition-colors outline-none select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}
-    checked={checked}
     {...props}
+    {...(checked !== undefined ? { checked } : {})}
   >
     <span className='absolute left-2 flex size-3.5 items-center justify-center'>
       <DropdownMenuPrimitive.ItemIndicator>

@@ -59,9 +59,6 @@ export const createDeleteTabGroupsUseCase = (
         removedTabGroupIds: [],
         removedUrlRecordIds: [],
         snapshot: {
-          customProjectOrder: undefined,
-          customProjects: undefined,
-          parentCategories: undefined,
           savedTabs: [],
           urlRecords: [],
         },
@@ -93,7 +90,9 @@ export const createDeleteTabGroupsUseCase = (
     )
 
     const urlRecordsInTarget = allUrlRecords.filter((record) =>
-      targetGroups.some((group) => group.urlIds.includes(record.id)),
+      targetGroups.some((group) =>
+        group.memberships.some(({ urlId }) => urlId === record.id),
+      ),
     )
     const unreferenced = filterUnreferencedUrlRecords({
       customProjects: allCustomProjects,
@@ -116,9 +115,6 @@ export const createDeleteTabGroupsUseCase = (
     const snapshot: OpenedUrlsRestoreSnapshot & {
       readonly savedTabs: readonly SavedTabsTabGroupDto[]
     } = {
-      customProjectOrder: undefined,
-      customProjects: undefined,
-      parentCategories: undefined,
       savedTabs: targetGroups.map(toSavedTabsTabGroupDto),
       urlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
     }

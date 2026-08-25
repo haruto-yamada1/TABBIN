@@ -9,8 +9,8 @@ import {
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const customProjectCategoryI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -361,19 +361,15 @@ describe('CustomProjectCategory', () => {
   it('10件以上の一括開く確認ダイアログで handleOpenAllUrls 未指定時は window.open にフォールバックする', async () => {
     const user = userEvent.setup()
     using openSpy = vi.spyOn(window, 'open')
-    render(
-      <CustomProjectCategory
-        {...createProps({
-          handleOpenAllUrls: undefined,
-          urls: Array.from({ length: 10 }, (_, i) => ({
-            url: `https://example.com/${i}`,
-            title: `${i}`,
-            category: 'Work',
-            savedAt: i,
-          })),
-        })}
-      />,
-    )
+    const { handleOpenAllUrls: _handleOpenAllUrls, ...props } = createProps({
+      urls: Array.from({ length: 10 }, (_, i) => ({
+        url: `https://example.com/${i}`,
+        title: `${i}`,
+        category: 'Work',
+        savedAt: i,
+      })),
+    })
+    render(<CustomProjectCategory {...props} />)
 
     await user.click(screen.getByRole('button', { name: 'すべて開く' }))
     await user.click(await screen.findByRole('button', { name: '開く' }))
@@ -467,14 +463,13 @@ describe('CustomProjectCategory', () => {
   })
 
   it('空カテゴリ時のメッセージ・ハイライト・並び替えターゲット表示を切り替える', () => {
+    const {
+      handleRenameCategory: _handleRenameCategory,
+      handleDeleteCategory: _handleDeleteCategory,
+      ...emptyCategoryProps
+    } = createProps({ urls: [] })
     const { rerender } = render(
-      <CustomProjectCategory
-        {...createProps({
-          urls: [],
-          handleRenameCategory: undefined,
-          handleDeleteCategory: undefined,
-        })}
-      />,
+      <CustomProjectCategory {...emptyCategoryProps} />,
     )
 
     const emptyState = screen.getByTestId('empty-state')
@@ -565,17 +560,18 @@ describe('CustomProjectCategory', () => {
   it('savedAt 未指定のソートと、管理ダイアログの未設定ハンドラ/イベント分岐を処理する', async () => {
     const user = userEvent.setup()
     const handleDeleteCategory = vi.fn()
+    const {
+      handleRenameCategory: _handleRenameCategory,
+      ...propsWithoutRenameHandler
+    } = createProps({
+      urls: [
+        { url: 'https://m1.com', title: 'M1', category: 'Work' },
+        { url: 'https://m2.com', title: 'M2', category: 'Work' },
+      ],
+      handleDeleteCategory,
+    })
     const { rerender } = render(
-      <CustomProjectCategory
-        {...createProps({
-          urls: [
-            { url: 'https://m1.com', title: 'M1', category: 'Work' },
-            { url: 'https://m2.com', title: 'M2', category: 'Work' },
-          ],
-          handleRenameCategory: undefined,
-          handleDeleteCategory,
-        })}
-      />,
+      <CustomProjectCategory {...propsWithoutRenameHandler} />,
     )
 
     await user.click(screen.getByRole('button', { name: 'デフォルト' }))
@@ -616,15 +612,14 @@ describe('CustomProjectCategory', () => {
     expect(handleDeleteCategory).toHaveBeenCalledWith('project-1', 'Work')
 
     const handleRenameCategory = vi.fn()
-    rerender(
-      <CustomProjectCategory
-        {...createProps({
-          urls: [{ url: 'https://n1.com', title: 'N1', category: 'Work' }],
-          handleRenameCategory,
-          handleDeleteCategory: undefined,
-        })}
-      />,
-    )
+    const {
+      handleDeleteCategory: _handleDeleteCategory,
+      ...propsWithoutDeleteHandler
+    } = createProps({
+      urls: [{ url: 'https://n1.com', title: 'N1', category: 'Work' }],
+      handleRenameCategory,
+    })
+    rerender(<CustomProjectCategory {...propsWithoutDeleteHandler} />)
 
     await user.click(screen.getByRole('button', { name: 'カテゴリ管理' }))
     const deleteCategoryButton = screen.queryByRole('button', {

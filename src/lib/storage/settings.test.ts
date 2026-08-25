@@ -186,6 +186,37 @@ describe('settings storage', () => {
     expect(storageLocal.set).not.toHaveBeenCalled()
   })
 
+  it('read-only backup export 用の読み込みでは設定を正規化しても再保存しない', async () => {
+    const storageLocal = {
+      get: vi.fn(async () => ({
+        userSettings: {
+          aiChatEnabled: true,
+          aiProvider: 'ollama',
+          excludePatterns: ['custom-pattern'],
+          language: 'en',
+        },
+      })),
+      set: vi.fn(async () => undefined),
+    }
+    mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+
+    const { readUserSettingsWithoutRepair } = await loadModule()
+
+    const settings = await readUserSettingsWithoutRepair()
+
+    expect(settings).toMatchObject({
+      excludePatterns: expect.arrayContaining([
+        'about:',
+        'chrome-extension://',
+        'chrome://',
+        'custom-pattern',
+      ]),
+      language: 'en',
+      normalized: true,
+    })
+    expect(storageLocal.set).not.toHaveBeenCalled()
+  })
+
   it('保存時も excludePatterns に既定の内部ページ除外を補完する', async () => {
     const storageLocal = {
       set: vi.fn(async () => undefined),

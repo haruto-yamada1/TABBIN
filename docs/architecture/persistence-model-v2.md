@@ -1,5 +1,8 @@
 # Persistence Model v2
 
+Analytics timestamp and query semantics are defined in
+[analytics-metrics.md](./analytics-metrics.md).
+
 Status: reviewed target contract for Issue #725  
 Parent: Issue #724
 
@@ -10,6 +13,8 @@ identity examples are in `urlIdentityCorpus.ts`.
 
 This contract does not create IndexedDB stores, migrate current data, or switch
 the runtime source of truth. Those changes remain separate Issues and PRs.
+The implemented #728 conversion and verification rules are documented in
+[`legacy-persistence-v2-migration.md`](legacy-persistence-v2-migration.md).
 
 The quota, eviction, permission, capacity-preflight, typed failure, and recovery
 boundary is defined by
@@ -282,8 +287,14 @@ Required relations:
 - Collection membership activity does not update `Collection.updatedAt`.
 
 A missing legacy timestamp is not replaced with migration time. It produces
-`MISSING_TIMESTAMP_PROVENANCE`; the actual #728 mapper must apply an explicitly
-reviewed fallback policy before creating a valid required field.
+`MISSING_TIMESTAMP_PROVENANCE`; the #728 mapper uses the explicitly reviewed
+sentinel `0`. Legacy AI messages use their conversation's source `createdAt`
+because the message shape has no historical timestamp. Message order is not
+encoded into that timestamp. Each conversation value carries an ordered
+`messageIds` list; writers preserve the message array order there and keep an
+existing message record's `createdAt` unchanged when conversation metadata is
+updated. Markerless Persistence v2 records from an older build use the
+deterministic `(createdAt, id)` order only as a compatibility fallback.
 
 ## Current to v2 mapping
 
@@ -325,27 +336,32 @@ current implementation evidence is the
 remains authoritative for writer/context inventory and may discover additional
 entrypoints; new rows must be classified before #726 is finalized.
 
-| Current data / key                                                | Logical responsibility                        | Target storage                               | Authoritative source                         | Backup V2                                    | Change notification                               | Legacy cleanup                               | Retention                                           |
-| ----------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------- | -------------------------------------------- | -------------------------------------------- | ------------------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
-| `urls`                                                            | canonical saved URL data                      | IndexedDB                                    | v2 `Url` store                               | Yes, logical URLs                            | #739 saved-tabs change protocol                   | Yes after verified cutover                   | Persistent while referenced; orphan policy by #712  |
-| `savedTabs`                                                       | legacy domain collections and relations       | IndexedDB                                    | v2 Collection/Membership/Category            | Yes, logical mapping                         | #739 saved-tabs change protocol                   | Yes after verified cutover                   | Migration source only after cutover                 |
-| `customProjects`                                                  | legacy custom collections and relations       | IndexedDB                                    | v2 Collection/Membership/Category            | Yes, logical mapping                         | #739 saved-tabs change protocol                   | Yes after verified cutover                   | Migration source only after cutover                 |
-| `parentCategories`                                                | legacy group metadata and duplicated relation | IndexedDB                                    | v2 CollectionGroup plus `Collection.groupId` | Yes, logical groups                          | #739 saved-tabs change protocol                   | Yes after verified cutover                   | Migration source only after cutover                 |
-| `customProjectOrder`                                              | custom collection ordering                    | IndexedDB                                    | `Collection.sortOrder`                       | Yes, logical order                           | #739 saved-tabs change protocol                   | Yes after verified cutover                   | Migration source only after cutover                 |
-| `domainCategoryMappings`                                          | legacy duplicated parent relation             | IndexedDB                                    | `Collection.groupId`                         | No raw key; logical relation is backed up    | #739 saved-tabs change protocol                   | Yes after verified cutover                   | Migration source only                               |
-| `domainCategorySettings`                                          | legacy domain category configuration          | IndexedDB                                    | CollectionCategory/keywords                  | No raw key; logical categories are backed up | #739 saved-tabs change protocol                   | Yes after verified cutover                   | Migration source only                               |
-| `urlsMigrationCompleted` / `domainHostnameMigrationCompleted`     | legacy migration flags                        | `chrome.storage.local` until legacy cleanup  | legacy bootstrap code                        | No                                           | Internal bootstrap event                          | Remove with owning legacy migrator           | Until corresponding legacy path is removed          |
-| `userSettings`                                                    | small user configuration and prompt presets   | `chrome.storage.local`                       | `userSettings` schema                        | Yes, field policy                            | Existing settings `chrome.storage.onChanged` path | Keep                                         | Persistent                                          |
-| `aiChatConversations`                                             | large user-authored conversation content      | IndexedDB                                    | AI conversation repository                   | Yes through JSON-safe projection             | #739 AI-history scope                             | Remove chrome key after verified migration   | Persistent subject to user deletion and #719 limits |
-| `activeAiChatConversationId`                                      | per-device current selection                  | `chrome.storage.local`                       | selection control key                        | No; import selects a valid default           | #739 selection scope or local settings event      | Keep                                         | Persistent until referenced conversation disappears |
-| `savedAnalyticsViews`                                             | user-defined analytics projections            | IndexedDB                                    | analytics view repository                    | Yes                                          | #739 analytics scope                              | Remove chrome key after verified migration   | Persistent until user deletion                      |
-| `tab-manager-theme`                                               | legacy UI preference                          | `chrome.storage.local` under `userSettings`  | `userSettings` theme field                   | Yes through settings                         | Settings change event                             | Remove standalone legacy key after migration | Persistent                                          |
-| `viewMode`                                                        | legacy saved-tabs route preference            | None; URL route is authoritative             | saved-tabs router                            | No                                           | No                                                | Remove on route bootstrap                    | Until the first v2 route bootstrap                  |
-| `seenVersion` / `changelogShown`                                  | release display control                       | `chrome.storage.local`                       | background release control                   | No                                           | No cross-context domain event                     | Keep                                         | Persistent, overwritten per release policy          |
-| migration control state                                           | trusted migration barrier and phase           | `chrome.storage.local`                       | one control-plane record defined by #727     | No                                           | Internal barrier event                            | Keep by compatibility policy                 | Through cutover and forward-fix window              |
-| notice dismissals                                                 | versioned migration-notice UX control         | `chrome.storage.local` dedicated control key | notice control record                        | No                                           | Settings/control event                            | Keep; expire by notice version               | Until the represented notice expires                |
-| recovery snapshots                                                | overwrite-import recovery data                | IndexedDB                                    | recovery repository from #740                | No (internal backup artifact)                | #739 recovery lifecycle event                     | TTL cleanup by #740                          | Bounded TTL and count from #740                     |
-| `tabbin-ai-chat-sidebar-width` / `tabbin-extension-sidebar-width` | local layout preference                       | local UI storage                             | owning UI component                          | No                                           | No                                                | Keep outside migration                       | Persistent per device; safe to reset                |
+| Current data / key                                                | Logical responsibility                        | Target storage                               | Authoritative source                         | Backup V2                                    | Change notification                               | Legacy cleanup                                                 | Retention                                           |
+| ----------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------- | -------------------------------------------- | -------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------- |
+| `urls`                                                            | canonical saved URL data                      | IndexedDB                                    | v2 `Url` store                               | Yes, logical URLs                            | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Persistent while referenced; orphan policy by #712  |
+| `savedTabs`                                                       | legacy domain collections and relations       | IndexedDB                                    | v2 Collection/Membership/Category            | Yes, logical mapping                         | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
+| `customProjects`                                                  | legacy custom collections and relations       | IndexedDB                                    | v2 Collection/Membership/Category            | Yes, logical mapping                         | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
+| `parentCategories`                                                | legacy group metadata and duplicated relation | IndexedDB                                    | v2 CollectionGroup plus `Collection.groupId` | Yes, logical groups                          | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
+| `customProjectOrder`                                              | custom collection ordering                    | IndexedDB                                    | `Collection.sortOrder`                       | Yes, logical order                           | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
+| `domainCategoryMappings`                                          | legacy duplicated parent relation             | IndexedDB                                    | `Collection.groupId`                         | No raw key; logical relation is backed up    | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only                               |
+| `domainCategorySettings`                                          | legacy domain category configuration          | IndexedDB                                    | CollectionCategory/keywords                  | No raw key; logical categories are backed up | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only                               |
+| `urlsMigrationCompleted` / `domainHostnameMigrationCompleted`     | legacy migration flags                        | `chrome.storage.local` until legacy cleanup  | legacy bootstrap code                        | No                                           | Internal bootstrap event                          | Remove with owning legacy migrator                             | Until corresponding legacy path is removed          |
+| `userSettings`                                                    | small user configuration and prompt presets   | `chrome.storage.local`                       | `userSettings` schema                        | Yes, field policy                            | Existing settings `chrome.storage.onChanged` path | Keep                                                           | Persistent                                          |
+| `aiChatConversations`                                             | large user-authored conversation content      | IndexedDB                                    | AI conversation repository                   | Yes through JSON-safe projection             | #739 AI-history scope                             | Remove chrome key after verified migration                     | Persistent subject to user deletion and #719 limits |
+| `activeAiChatConversationId`                                      | per-device current selection                  | `chrome.storage.local`                       | selection control key                        | No; import selects a valid default           | #739 selection scope or local settings event      | Keep                                                           | Persistent until referenced conversation disappears |
+| `savedAnalyticsViews`                                             | user-defined analytics projections            | IndexedDB                                    | analytics view repository                    | Yes                                          | #739 analytics scope                              | Remove chrome key after verified migration                     | Persistent until user deletion                      |
+| `tab-manager-theme`                                               | legacy UI preference                          | `chrome.storage.local` under `userSettings`  | `userSettings` theme field                   | Yes through settings                         | Settings change event                             | Remove standalone legacy key after migration                   | Persistent                                          |
+| `viewMode`                                                        | legacy saved-tabs route preference            | None; URL route is authoritative             | saved-tabs router                            | No                                           | No                                                | Remove on route bootstrap                                      | Until the first v2 route bootstrap                  |
+| `seenVersion` / `changelogShown`                                  | release display control                       | `chrome.storage.local`                       | background release control                   | No                                           | No cross-context domain event                     | Keep                                                           | Persistent, overwritten per release policy          |
+| migration control state                                           | trusted migration barrier and phase           | `chrome.storage.local`                       | one control-plane record defined by #727     | No                                           | Internal barrier event                            | Keep by compatibility policy                                   | Through cutover and forward-fix window              |
+| `tabbin:noticeDismissals:v1` (notice dismissals)                  | versioned migration-notice UX control         | `chrome.storage.local` dedicated control key | notice control record                        | No                                           | Settings/control event                            | Retain in the versioned key; future key migration owns removal | Not read after the key version is retired           |
+| recovery snapshots                                                | overwrite-import recovery data                | IndexedDB                                    | recovery repository from #740                | No (internal backup artifact)                | #739 recovery lifecycle event                     | TTL cleanup by #740                                            | Bounded TTL and count from #740                     |
+| `tabbin-ai-chat-sidebar-width` / `tabbin-extension-sidebar-width` | local layout preference                       | local UI storage                             | owning UI component                          | No                                           | No                                                | Keep outside migration                                         | Persistent per device; safe to reset                |
+
+Notice dismissals use the dedicated `tabbin:noticeDismissals:v1` record in
+`chrome.storage.local`, rather than `userSettings` or the IndexedDB domain
+model. This control-plane UI state is read alongside the authoritative migration
+status, is not included in Backup V2, and is scoped by versioned notice IDs.
 
 No raw current key is a second authority after its logical cutover. Backup V2
 contains the logical model, not both legacy and v2 representations.
@@ -628,6 +644,12 @@ input, write storage, or repair the snapshot. It returns a deterministic
 `StorageIntegrityReport`; `isHealthy` is true only when the typed `issues` list
 is empty.
 
+Operational reads and migration/import admission use the issue severity rather
+than `isHealthy` as their blocking boundary. An `error` finding rejects the
+snapshot. A warning-only snapshot remains readable and preserves its records
+for explicit review; in particular, an `ORPHAN_URL` warning must not make a
+target that was accepted during migration unreadable after cutover.
+
 Every code in `PERSISTENCE_V2_INVARIANT_CODES` has an exhaustive severity and
 repairability entry in `PERSISTENCE_V2_INVARIANT_POLICY`. The v2 checker emits
 only findings supported by the logical target snapshot. Source-only findings,
@@ -720,8 +742,12 @@ The extension app renders a persistent recovery notice that states legacy data
 was not deleted and exposes an explicit retry action; retry success clears the
 notice, while another typed failure replaces the visible recovery state.
 `read-only-emergency` permits only reads from its declared source. An IndexedDB
-emergency-read state must retain its migration ID; the decoder rejects an
-IndexedDB source without that identity. The
+emergency-read state must retain its migration ID and persistence generation;
+the decoder rejects an IndexedDB source without that identity or generation.
+Only a typed exit transition with the same migration ID restores the IndexedDB
+state. The emergency operation matrix, forward-fix policy, and release
+compatibility procedure are defined in
+[`persistence-v2-emergency.md`](../runbooks/persistence-v2-emergency.md). The
 bootstrap port has no legacy-delete capability. Raw legacy parsing, mapping,
 transactional copy, and semantic verification remain owned by #728. The #727
 lifecycle boundary requires the approved preflight source fingerprint and a

@@ -7,12 +7,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-  SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import { toPresentationTabGroups } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { GetSavedTabsQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsQuery'
@@ -21,6 +15,13 @@ import type {
   RepairTabGroupParentCategoryIdsCommand,
   RepairTabGroupParentCategoryIdsUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RepairTabGroupParentCategoryIdsUseCase'
+import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import { toPresentationTabGroups } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+  SavedTabsUserSettingsDto as UserSettingsDto,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 /** UseTabData フックの引数 */
 type UseTabDataParams = {
@@ -115,10 +116,7 @@ const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
   for (const group of savedTabs) {
     console.log(`グループ ${redactUrlForLog(group.domain)}:`, {
       id: group.id,
-      urlIds: group.urlIds?.length ?? 0,
-      urlSubCategories: group.urlSubCategories
-        ? Object.keys(group.urlSubCategories).length
-        : 0,
+      memberships: group.memberships?.length ?? 0,
       urls: group.urls?.length ?? 0,
     })
   }
@@ -133,7 +131,7 @@ const ensureValidParentCategories = async (
 ): Promise<ParentCategory[]> => {
   const hasInvalidCategory = parentCategories.some(
     (cat) =>
-      !Object.hasOwn(cat, 'domainNames') || !Array.isArray(cat.domainNames),
+      !Object.hasOwn(cat, 'collections') || !Array.isArray(cat.collections),
   )
   if (!(hasInvalidCategory || parentCategories.length === 0)) {
     return parentCategories
@@ -246,23 +244,20 @@ const useTabData = ({
       }
       console.log('タブグループのURL取得を開始...')
       const { tabGroups: groupsWithUrls } =
-        await loadTabGroupsWithUrlsUseCaseRef.current({ tabGroups: groups })
-      for (const group of groupsWithUrls) {
-        if (group.urlIds && group.urlIds.length > 0) {
-          console.log(
-            `グループ ${redactUrlForLog(group.domain)}: ${group.urls?.length ?? 0}個のURLを取得`,
-          )
-          continue
-        }
+        await loadTabGroupsWithUrlsUseCaseRef.current({
+          tabGroups: groups.map(toTabGroupFromViewModel),
+        })
+      const presentationGroups = toPresentationTabGroups(groupsWithUrls)
+      for (const group of presentationGroups) {
         if (group.urls && group.urls.length > 0) {
           console.log(
-            `グループ ${redactUrlForLog(group.domain)}: 旧形式のまま使用`,
+            `グループ ${redactUrlForLog(group.domain)}: ${group.urls.length}個のURLを取得`,
           )
           continue
         }
         console.log(`グループ ${redactUrlForLog(group.domain)}: URLなし`)
       }
-      return [...groupsWithUrls]
+      return presentationGroups
     },
     [],
   )
@@ -274,9 +269,9 @@ const useTabData = ({
    */
   const refreshTabGroupsWithUrls = useCallback(
     async (nextGroups?: TabGroup[]): Promise<TabGroup[]> => {
-      const normalizedGroups = [
-        ...(nextGroups ?? (await getSavedTabsQueryRef.current())),
-      ]
+      const normalizedGroups = nextGroups
+        ? [...nextGroups]
+        : toPresentationTabGroups(await getSavedTabsQueryRef.current())
       const groupsWithUrls = await loadTabGroupsWithUrls(normalizedGroups)
       skipNextTabGroupsSyncRef.current = true
       setTabData((prev) => ({

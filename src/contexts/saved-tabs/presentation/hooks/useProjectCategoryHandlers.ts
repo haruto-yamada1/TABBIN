@@ -2,8 +2,8 @@ import { useCallback, useEffect } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { toRawStorageCustomProject } from './projectManagementDefaults'
 import type { ProjectManagementRefs } from './useProjectManagementRefs'
@@ -15,6 +15,84 @@ type ProjectCategoryHandlerDeps = {
   initialViewMode: ViewMode | undefined
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
 }
+
+type CustomProjectUrl = NonNullable<CustomProject['urls']>[number]
+type ResolvedCustomProjectUrl = CustomProjectUrl & { readonly id: string }
+
+const reorderProjectMemberships = (
+  memberships: CustomProject['memberships'],
+  urls: readonly ResolvedCustomProjectUrl[],
+): CustomProject['memberships'] => {
+  if (!memberships) {
+    return undefined
+  }
+  const orderByUrlId = new Map(
+    urls.map(({ id }, index) => [id, index] as const),
+  )
+  return memberships.toSorted((left, right) => {
+    const leftIndex = orderByUrlId.get(left.urlId)
+    const rightIndex = orderByUrlId.get(right.urlId)
+    if (leftIndex === undefined && rightIndex === undefined) {
+      return 0
+    }
+    if (leftIndex === undefined) {
+      return 1
+    }
+    if (rightIndex === undefined) {
+      return -1
+    }
+    return leftIndex - rightIndex
+  })
+}
+
+const renameUrlCategory = (
+  item: CustomProjectUrl,
+  oldCategoryName: string,
+  newCategoryName: string,
+): CustomProjectUrl => {
+  const nextCategory =
+    item.category === oldCategoryName ? newCategoryName : item.category
+  const { category: _category, ...itemWithoutCategory } = item
+  return {
+    ...itemWithoutCategory,
+    ...(nextCategory !== undefined ? { category: nextCategory } : {}),
+  }
+}
+
+const renameProjectCategory = (
+  project: CustomProject,
+  projectId: string,
+  oldCategoryName: string,
+  newCategoryName: string,
+): CustomProject => {
+  if (project.id !== projectId) {
+    return project
+  }
+  const categoryOrder = project.categoryOrder?.map((category) =>
+    category === oldCategoryName ? newCategoryName : category,
+  )
+  const urls = project.urls?.map((item) =>
+    renameUrlCategory(item, oldCategoryName, newCategoryName),
+  )
+  return {
+    ...project,
+    categories: project.categories.map((category) =>
+      category === oldCategoryName ? newCategoryName : category,
+    ),
+    ...(categoryOrder !== undefined ? { categoryOrder } : {}),
+    ...(urls !== undefined ? { urls } : {}),
+  }
+}
+
+const renameProjectCategoryState = (
+  projects: CustomProject[],
+  projectId: string,
+  oldCategoryName: string,
+  newCategoryName: string,
+): CustomProject[] =>
+  projects.map((project) =>
+    renameProjectCategory(project, projectId, oldCategoryName, newCategoryName),
+  )
 
 const useProjectCategoryHandlers = ({
   refs,
@@ -99,7 +177,7 @@ const useProjectCategoryHandlers = ({
     ): Promise<void> => {
       try {
         await refs.setCustomProjectUrlCategoryUseCaseRef.current({
-          category,
+          ...(category !== undefined ? { category } : {}),
           projectId,
           url,
         })
@@ -148,20 +226,38 @@ const useProjectCategoryHandlers = ({
   const handleReorderUrls = useCallback(
     async (projectId: string, urls: CustomProject['urls']): Promise<void> => {
       try {
+        const resolvedUrls = (urls ?? []).flatMap((url) =>
+          url.id
+            ? [
+                {
+                  ...url,
+                  id: url.id,
+                  savedAt: url.savedAt ?? 0,
+                },
+              ]
+            : [],
+        )
         await refs.reorderCustomProjectUrlsUseCaseRef.current({
           projectId,
-          urls,
+          urls: resolvedUrls,
         })
         setCustomProjects((prev) =>
-          prev.map((p) =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  updatedAt: Date.now(),
-                  urls,
-                }
-              : p,
-          ),
+          prev.map((project) => {
+            if (project.id !== projectId) {
+              return project
+            }
+            const { urls: _currentUrls, ...projectWithoutUrls } = project
+            const memberships = reorderProjectMemberships(
+              project.memberships,
+              resolvedUrls,
+            )
+            return {
+              ...projectWithoutUrls,
+              ...(memberships !== undefined ? { memberships } : {}),
+              updatedAt: Date.now(),
+              ...(urls !== undefined ? { urls } : {}),
+            }
+          }),
         )
       } catch (error) {
         console.error('URL順序更新エラー:', error)
@@ -210,31 +306,12 @@ const useProjectCategoryHandlers = ({
           oldCategoryName,
           projectId,
         })
-        setCustomProjects((prev) =>
-          prev.map((project) =>
-            project.id === projectId
-              ? {
-                  ...project,
-                  // eslint-disable-next-line eslint/max-nested-callbacks
-                  categories: project.categories.map((cat) =>
-                    cat === oldCategoryName ? newCategoryName : cat,
-                  ),
-                  categoryOrder: project.categoryOrder
-                    ? // eslint-disable-next-line eslint/max-nested-callbacks
-                      project.categoryOrder.map((cat) =>
-                        cat === oldCategoryName ? newCategoryName : cat,
-                      )
-                    : project.categoryOrder,
-                  // eslint-disable-next-line eslint/max-nested-callbacks
-                  urls: project.urls?.map((item) => ({
-                    ...item,
-                    category:
-                      item.category === oldCategoryName
-                        ? newCategoryName
-                        : item.category,
-                  })),
-                }
-              : project,
+        setCustomProjects((projects) =>
+          renameProjectCategoryState(
+            projects,
+            projectId,
+            oldCategoryName,
+            newCategoryName,
           ),
         )
         toast.success(t('savedTabs.projectCategory.renamed'))

@@ -63,7 +63,12 @@ export const Context = ({
   ...props
 }: ContextProps) => {
   const contextValue = useMemo(
-    () => ({ maxTokens, modelId, usage, usedTokens }),
+    () => ({
+      maxTokens,
+      ...(modelId !== undefined ? { modelId } : {}),
+      ...(usage !== undefined ? { usage } : {}),
+      usedTokens,
+    }),
     [maxTokens, modelId, usage, usedTokens],
   )
 

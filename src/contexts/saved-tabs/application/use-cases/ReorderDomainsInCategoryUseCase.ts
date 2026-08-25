@@ -1,8 +1,13 @@
 import type { ReorderDomainsInCategoryCommand } from '@/contexts/saved-tabs/application/commands/ReorderDomainsInCategoryCommand'
 import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import { tabGroupDomainName } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import { reorderDomainsInCategory } from '@/contexts/saved-tabs/domain/services/CategoryDomainOrderingService'
+import {
+  createDomainName,
+  normalizeDomainString,
+} from '@/contexts/saved-tabs/domain/value-objects/DomainName'
 import { createTabGroupId } from '@/contexts/saved-tabs/domain/value-objects/TabGroupId'
 
 /**
@@ -47,13 +52,16 @@ export const createReorderDomainsInCategoryUseCase = (
 ): ReorderDomainsInCategoryUseCase => {
   return async (command) => {
     const allCategories = await deps.parentCategoryRepository.findAll()
-    const domainIds = command.updatedDomains.map((domain) =>
-      createTabGroupId(domain.id),
-    )
+    const collections = command.updatedDomains.map((group) => ({
+      domain: createDomainName(
+        normalizeDomainString(tabGroupDomainName(group)),
+      ),
+      id: createTabGroupId(group.id),
+    }))
     const { updatedCategories } = reorderDomainsInCategory({
       categories: allCategories,
       categoryId: command.categoryId,
-      domainIds,
+      collections,
     })
     await deps.parentCategoryRepository.saveAll(updatedCategories)
     return updatedCategories.map(toSavedTabsParentCategoryDto)

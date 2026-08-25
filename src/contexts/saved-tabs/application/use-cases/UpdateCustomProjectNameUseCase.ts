@@ -2,6 +2,7 @@ import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/applicatio
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { ClockPort } from '@/contexts/saved-tabs/application/ports/ClockPort'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import { createCategoryName } from '@/contexts/saved-tabs/domain/value-objects/CategoryName'
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
@@ -56,11 +57,16 @@ export const createUpdateCustomProjectNameUseCase = (
     let updated: CustomProject | null = null
     for (const project of all) {
       if (project.id === targetId) {
-        const next: CustomProject = {
-          ...project,
-          name: createCategoryName(newName),
-          updatedAt: now,
-        }
+        const validatedName = createCategoryName(newName)
+        const next = createCustomProject({
+          collection: {
+            ...project.collection,
+            name: validatedName,
+            updatedAt: now,
+          },
+          collectionCategories: project.collectionCategories,
+          memberships: project.memberships,
+        })
         updatedAll.push(next)
         updated = next
       } else {

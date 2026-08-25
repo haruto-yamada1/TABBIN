@@ -18,6 +18,7 @@ export type PersistenceV2CollectionProjection = {
 }
 
 export type PersistenceV2InitialProjection = {
+  readonly categories: readonly PersistenceV2CollectionCategory[]
   readonly collections: readonly PersistenceV2CollectionProjection[]
   readonly groups: readonly PersistenceV2CollectionGroup[]
   readonly revision: number

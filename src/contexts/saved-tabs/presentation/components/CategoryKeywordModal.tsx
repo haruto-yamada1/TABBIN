@@ -1,7 +1,7 @@
-import type { SavedTabsParentCategoryDto as ParentCategory } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/ports/CategoryAssignmentPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
+import type { SavedTabsParentCategoryDto as ParentCategory } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CategoryKeywordModalProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { KeywordEditor } from './keyword-modal/KeywordEditor'
@@ -44,9 +44,11 @@ export const CategoryKeywordModal = ({
     onSave={onSave}
     onDeleteCategory={onDeleteCategory}
     initialParentCategories={initialParentCategories}
-    onUpdateParentCategories={onUpdateParentCategories}
+    {...(onUpdateParentCategories !== undefined
+      ? { onUpdateParentCategories }
+      : {})}
     deps={deps}
-    storageChangePort={storageChangePort}
+    {...(storageChangePort !== undefined ? { storageChangePort } : {})}
   >
     <SubCategoryAddSection />
     <SubCategorySelector />

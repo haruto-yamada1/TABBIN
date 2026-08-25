@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const projectCardRootI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -167,10 +167,18 @@ const createProps = (overrides?: Partial<CustomProjectCardProps>) => {
       handleUpdateCategoryOrder: vi.fn(),
       handleReorderUrls: vi.fn(),
     },
-    draggedItem: overrides?.draggedItem,
-    isDropTarget: overrides?.isDropTarget,
-    isProjectReorderMode: overrides?.isProjectReorderMode,
-    isCrossProjectUrlDragActive: overrides?.isCrossProjectUrlDragActive,
+    ...(overrides?.draggedItem !== undefined
+      ? { draggedItem: overrides.draggedItem }
+      : {}),
+    ...(overrides?.isDropTarget !== undefined
+      ? { isDropTarget: overrides.isDropTarget }
+      : {}),
+    ...(overrides?.isProjectReorderMode !== undefined
+      ? { isProjectReorderMode: overrides.isProjectReorderMode }
+      : {}),
+    ...(overrides?.isCrossProjectUrlDragActive !== undefined
+      ? { isCrossProjectUrlDragActive: overrides.isCrossProjectUrlDragActive }
+      : {}),
   }
 }
 

@@ -55,7 +55,10 @@ export const TestResults = ({
   children,
   ...props
 }: TestResultsProps) => {
-  const contextValue = useMemo(() => ({ summary }), [summary])
+  const contextValue = useMemo(
+    () => (summary !== undefined ? { summary } : {}),
+    [summary],
+  )
 
   return (
     <TestResultsContext.Provider value={contextValue}>
@@ -352,7 +355,11 @@ export const Test = ({
   ...props
 }: TestProps) => {
   const contextValue = useMemo(
-    () => ({ duration, name, status }),
+    () => ({
+      ...(duration !== undefined ? { duration } : {}),
+      name,
+      status,
+    }),
     [duration, name, status],
   )
 

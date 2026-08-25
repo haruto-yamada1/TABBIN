@@ -5,6 +5,7 @@
 
 import { defineBackground } from 'wxt/utils/define-background'
 
+import { getMigrationPreflightController } from '@/app/composition/createMigrationPreflightController'
 import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
 // 分離したモジュールをインポート
 import { createContextMenus } from '@/lib/background/context-menu'
@@ -13,8 +14,6 @@ import { setupMessageListener } from '@/lib/background/message-handler'
 import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
 import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
-import { getParentCategories } from '@/lib/storage/categories'
-import { migrateParentCategoriesToDomainNames } from '@/lib/storage/migration'
 
 export default defineBackground(() => {
   // eslint-disable-line import/no-default-export
@@ -81,26 +80,14 @@ export default defineBackground(() => {
   } catch (error) {
     logger.error('background_context_menu_initialization_failed', error)
   }
-  // バックグラウンド初期化時に一度だけマイグレーションを実行
+  // バックグラウンド初期化時にpreflight済みのPersistence v2 migrationを
+  // 一度だけ開始または再開する。bootstrap/control-state coordinationが
+  // concurrent contextを直列化し、verification前のcutoverを防ぐ。
   void (async () => {
     try {
-      logger.debug('background_data_migration_started')
-
-      // 既存のカテゴリを確認
-      const categories = await getParentCategories()
-      logger.debug('background_parent_categories_loaded', {
-        recordCount: categories.length,
-      })
-
-      // 強制的にマイグレーションを実行する
-      logger.debug('background_parent_category_migration_started')
-      await migrateParentCategoriesToDomainNames()
-
-      // 移行後のデータを確認
-      const updatedCategories = await getParentCategories()
-      logger.debug('background_parent_category_migration_completed', {
-        recordCount: updatedCategories.length,
-      })
+      logger.debug('background_persistence_migration_started')
+      await getMigrationPreflightController().run()
+      logger.debug('background_persistence_migration_completed')
 
       // 期限切れタブのチェック用アラームを設定
       setupExpiredTabsCheckAlarm()

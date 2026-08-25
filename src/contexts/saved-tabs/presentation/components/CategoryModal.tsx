@@ -1,8 +1,8 @@
-import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { CategoryCreateSection } from './category-modal/CategoryCreateSection'
 import { CategoryModalRoot } from './category-modal/CategoryModalRoot'
@@ -39,9 +39,15 @@ export const CategoryModal = ({
   assignDomainToCategoryUseCase,
 }: CategoryModalProps) => (
   <CategoryModalRoot
-    assignDomainToCategoryUseCase={assignDomainToCategoryUseCase}
-    createParentCategoryUseCase={createParentCategoryUseCase}
-    deleteParentCategoryUseCase={deleteParentCategoryUseCase}
+    {...(assignDomainToCategoryUseCase !== undefined
+      ? { assignDomainToCategoryUseCase }
+      : {})}
+    {...(createParentCategoryUseCase !== undefined
+      ? { createParentCategoryUseCase }
+      : {})}
+    {...(deleteParentCategoryUseCase !== undefined
+      ? { deleteParentCategoryUseCase }
+      : {})}
     getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
     onClose={onClose}
     tabGroups={tabGroups}

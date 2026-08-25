@@ -20,6 +20,10 @@ describe('SavedAt 値オブジェクト', () => {
     expect(savedAtToMillis(savedAt)).toBe(0)
   })
 
+  it('-0 は INVALID_SAVED_AT で拒否する', () => {
+    expect(() => createSavedAt(-0)).toThrow(SavedTabsDomainError)
+  })
+
   it('負の値は INVALID_SAVED_AT で拒否する', () => {
     expect(() => createSavedAt(-1)).toThrow(SavedTabsDomainError)
   })

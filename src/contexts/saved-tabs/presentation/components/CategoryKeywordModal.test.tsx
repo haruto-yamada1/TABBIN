@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-l
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CategoryKeywordModalProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 const { keywordModalRootSpy } = vi.hoisted(() => ({
@@ -66,14 +66,23 @@ const createProps = (
   onSave: vi.fn(),
   onDeleteCategory: vi.fn(),
   parentCategories: [
-    { id: 'parent-1', name: 'Work', domains: [], domainNames: [] },
+    {
+      id: 'parent-1',
+      name: 'Work',
+      collections: [].map((id, index) => ({
+        id,
+        domain: [][index] ?? id,
+      })),
+    },
   ],
 
   onCreateParentCategory: vi.fn(async (name: string) => ({
     id: 'created',
     name,
-    domains: [],
-    domainNames: [],
+    collections: [].map((id, index) => ({
+      id,
+      domain: [][index] ?? id,
+    })),
   })),
   onAssignToParentCategory: vi.fn(async () => {}),
   ...overrides,
@@ -86,19 +95,16 @@ describe('CategoryKeywordModal', () => {
   })
 
   it('parentCategories 未指定時に空配列を KeywordModalRoot に渡す', () => {
-    render(
-      <CategoryKeywordModal
-        {...createProps({
-          parentCategories: undefined as unknown as ParentCategory[],
-        })}
-      />,
-    )
+    const { parentCategories: _parentCategories, ...props } = createProps()
+    render(<CategoryKeywordModal {...props} />)
 
     expect(keywordModalRootSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         initialParentCategories: [],
-        onUpdateParentCategories: undefined,
       }),
+    )
+    expect(keywordModalRootSpy.mock.calls[0]?.[0]).not.toHaveProperty(
+      'onUpdateParentCategories',
     )
     expect(screen.getByTestId('keyword-modal-root')).toBeTruthy()
     expect(screen.getByTestId('sub-category-add-section')).toBeTruthy()
@@ -108,7 +114,14 @@ describe('CategoryKeywordModal', () => {
 
   it('parentCategories と onUpdateParentCategories を KeywordModalRoot に引き継ぐ', () => {
     const parentCategories: ParentCategory[] = [
-      { id: 'parent-2', name: 'Private', domains: [], domainNames: [] },
+      {
+        id: 'parent-2',
+        name: 'Private',
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
+      },
     ]
     const onUpdateParentCategories = vi.fn()
 

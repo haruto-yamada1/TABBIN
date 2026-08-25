@@ -1,8 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import type {
+  CustomProject,
+  TabGroup,
+  UrlRecord,
+} from '@/contexts/saved-tabs/public-api'
 import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
-import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
 
 /** セッション中のインメモリキャッシュ */
 let urlRecordsCache: UrlRecord[] | null = null
@@ -154,11 +158,13 @@ const createOrUpdateUrlRecordUnsafe = async (
     }
 
     // 既存のレコードを更新
+    const { favIconUrl: _previousFavIconUrl, ...recordWithoutFavIconUrl } =
+      existingRecord
     const updatedRecord: UrlRecord = {
-      ...existingRecord,
-      favIconUrl,
+      ...recordWithoutFavIconUrl,
       savedAt: Date.now(), // 更新時刻を記録
       title,
+      ...(favIconUrl !== undefined ? { favIconUrl } : {}),
     }
     const updatedRecords = urlRecords.map((record) =>
       record.id === existingRecord.id ? updatedRecord : record,
@@ -168,11 +174,11 @@ const createOrUpdateUrlRecordUnsafe = async (
   }
   // 新しいレコードを作成
   const newRecord: UrlRecord = {
-    favIconUrl,
     id: uuidv4(),
     savedAt: Date.now(),
     title,
     url,
+    ...(favIconUrl !== undefined ? { favIconUrl } : {}),
   }
   await saveUrlRecordsUnsafe([...urlRecords, newRecord])
   return newRecord
@@ -213,11 +219,13 @@ const createOrUpdateUrlRecordsBatchUnsafe = async (
     const recordIndex = recordIndexByUrl.get(input.url)
     if (recordIndex === undefined) {
       const newRecord: UrlRecord = {
-        favIconUrl: input.favIconUrl,
         id: uuidv4(),
         savedAt: now + offset,
         title: input.title,
         url: input.url,
+        ...(input.favIconUrl !== undefined
+          ? { favIconUrl: input.favIconUrl }
+          : {}),
       }
       offset += 1
       records.push(newRecord)
@@ -232,11 +240,15 @@ const createOrUpdateUrlRecordsBatchUnsafe = async (
       continue
     }
 
+    const { favIconUrl: _previousFavIconUrl, ...recordWithoutFavIconUrl } =
+      existingRecord
     const updatedRecord: UrlRecord = {
-      ...existingRecord,
-      favIconUrl: input.favIconUrl,
+      ...recordWithoutFavIconUrl,
       savedAt: now + offset,
       title: input.title,
+      ...(input.favIconUrl !== undefined
+        ? { favIconUrl: input.favIconUrl }
+        : {}),
     }
     offset += 1
     records[recordIndex] = updatedRecord
@@ -502,7 +514,13 @@ const updateUrlReferencesUnsafe = async (
         replacementIdMap,
       )
       if (updatedSubCategories !== tabGroup.urlSubCategories) {
-        tabGroup.urlSubCategories = updatedSubCategories
+        Reflect.deleteProperty(tabGroup, 'urlSubCategories')
+        Object.assign(
+          tabGroup,
+          updatedSubCategories === undefined
+            ? {}
+            : { urlSubCategories: updatedSubCategories },
+        )
         tabsUpdated = true
       }
     }
@@ -540,7 +558,11 @@ const updateUrlReferencesUnsafe = async (
         replacementIdMap,
       )
       if (updatedMetadata !== project.urlMetadata) {
-        project.urlMetadata = updatedMetadata
+        Reflect.deleteProperty(project, 'urlMetadata')
+        Object.assign(
+          project,
+          updatedMetadata === undefined ? {} : { urlMetadata: updatedMetadata },
+        )
         projectsUpdated = true
       }
     }

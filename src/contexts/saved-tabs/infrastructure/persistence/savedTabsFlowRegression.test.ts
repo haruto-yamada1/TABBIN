@@ -13,7 +13,10 @@ import { createChromeDomainCategorySettingsRepository } from './chrome-storage/C
 import { createChromeParentCategoryRepository } from './chrome-storage/ChromeParentCategoryRepository'
 import { createLibRemoveSubCategoryFromTabGroupAdapter } from './chrome-storage/ChromeRemoveSubCategoryFromTabGroupAdapter'
 import { createLibSetCategoryKeywordsAdapter } from './chrome-storage/ChromeSetCategoryKeywordsAdapter'
-import { createChromeTabGroupRepository } from './chrome-storage/ChromeTabGroupRepository'
+import {
+  createChromeSavedTabsTabGroupReadAdapter,
+  createChromeTabGroupRepository,
+} from './chrome-storage/ChromeTabGroupRepository'
 import type { ChromeStorageLocalPort } from './chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUrlRecordRepository } from './chrome-storage/ChromeUrlRecordRepository'
 import { createChromeUserSettingsRepository } from './chrome-storage/ChromeUserSettingsRepository'
@@ -72,7 +75,10 @@ const createSpyBrowserWindowPort = (): SpyBrowserWindowPort => {
   const opened: { focused?: boolean; urls: readonly string[] }[] = []
   const openWithUrls = vi.fn(
     async (input: { urls: readonly string[]; focused?: boolean }) => {
-      opened.push({ focused: input.focused, urls: [...input.urls] })
+      opened.push({
+        ...(input.focused !== undefined ? { focused: input.focused } : {}),
+        urls: [...input.urls],
+      })
       return { urls: [...input.urls] }
     },
   )
@@ -124,7 +130,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     idGenerator: { generate: () => 'test-id' },
     browserWindowPort: browserWindowPort.port,
     categoriesCommandService: {
-      updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+      updateCollectionCategories: vi.fn().mockResolvedValue(undefined),
     },
     categoryAssignmentPort: {
       saveParentCategories: vi.fn().mockResolvedValue(undefined),
@@ -161,6 +167,7 @@ const createBundle = (initial: StorageState = {}): Bundle => {
     parentCategoryRepository: createChromeParentCategoryRepository(port),
     removeSubCategoryFromTabGroupPort:
       createLibRemoveSubCategoryFromTabGroupAdapter(),
+    savedTabsTabGroupReadPort: createChromeSavedTabsTabGroupReadAdapter(port),
     setCategoryKeywordsPort: createLibSetCategoryKeywordsAdapter(),
     storageChangePort: {
       subscribe: () => () => {},
@@ -218,14 +225,14 @@ const buildLegacyFixture = (): StorageState => {
     ],
     [PARENT_CATEGORIES_KEY]: [
       {
-        domainNames: ['example.com'],
         domains: ['group-example'],
+        domainNames: ['example.com'],
         id: 'cat-docs',
         name: 'Docs',
       },
       {
-        domainNames: ['other.com'],
         domains: ['group-other'],
+        domainNames: ['other.com'],
         id: 'cat-news',
         name: 'News',
       },
@@ -316,30 +323,44 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const exampleGroup = tabGroups.find(
         (group) => group.id === 'group-example',
       )
-      expect(exampleGroup?.domain).toBe('example.com')
-      expect(exampleGroup?.parentCategoryId).toBe('cat-docs')
-      expect(exampleGroup?.urlIds).toStrictEqual([
-        'url-shared',
-        'url-example-only',
+      expect(exampleGroup?.collection.definition.domain).toBe('example.com')
+      expect(exampleGroup?.collection.groupId).toBe('cat-docs')
+      expect(exampleGroup?.collectionCategories).toStrictEqual([
+        expect.objectContaining({
+          keywords: ['doc', 'spec'],
+          name: 'docs',
+          sortOrder: 0,
+        }),
       ])
-      expect(exampleGroup?.subCategories).toStrictEqual(['docs'])
-      expect(exampleGroup?.categoryKeywords).toStrictEqual([
-        { categoryName: 'docs', keywords: ['doc', 'spec'] },
+      expect(
+        exampleGroup?.memberships.map(({ categoryId, urlId }) => ({
+          categoryId,
+          urlId,
+        })),
+      ).toStrictEqual([
+        { categoryId: 'group-example:category:0', urlId: 'url-shared' },
+        {
+          categoryId: 'group-example:category:0',
+          urlId: 'url-example-only',
+        },
       ])
-      expect(exampleGroup?.subCategoryOrder).toStrictEqual(['docs'])
-      expect(exampleGroup?.subCategoryOrderWithUncategorized).toStrictEqual([
-        'docs',
-        'uncategorized',
-      ])
-      expect(exampleGroup?.urlSubCategories).toStrictEqual({
-        'url-example-only': 'docs',
-        'url-shared': 'docs',
-      })
       expect(tabGroups).toHaveLength(2)
       expect(urlRecords).toHaveLength(3)
       expect(parentCategories).toHaveLength(2)
       expect(customProjects).toHaveLength(1)
-      expect(customProjects[0]?.urlIds).toStrictEqual(['url-shared'])
+      expect(
+        customProjects[0]?.memberships.map(({ categoryId, notes, urlId }) => ({
+          categoryId,
+          notes,
+          urlId,
+        })),
+      ).toStrictEqual([
+        {
+          categoryId: 'project-research:category:0',
+          notes: 'shared note',
+          urlId: 'url-shared',
+        },
+      ])
     })
 
     it('インポート済みの子カテゴリは D&D 並び替えとタブ open 後の再読込で維持される', async () => {
@@ -350,11 +371,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         const exampleGroup = pageData.tabGroups.find(
           (group) => group.id === 'group-example',
         )
-        expect(exampleGroup?.subCategories).toStrictEqual(['docs'])
-        expect(exampleGroup?.urlSubCategories).toStrictEqual({
-          'url-example-only': 'docs',
-          'url-shared': 'docs',
-        })
+        expect(
+          exampleGroup?.collectionCategories.map(({ name }) => name),
+        ).toStrictEqual(['docs'])
 
         const { tabGroups } = await bundle.useCases.loadTabGroupsWithUrls({
           tabGroups: pageData.tabGroups as never,
@@ -363,7 +382,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       }
 
       const initialGroup = await loadExampleGroup()
-      expect(initialGroup?.urls).toStrictEqual(
+      expect(initialGroup?.resolvedUrls).toStrictEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: 'url-example-only',
@@ -378,7 +397,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       })
 
       const reorderedGroup = await loadExampleGroup()
-      expect(reorderedGroup?.urls).toStrictEqual([
+      expect(reorderedGroup?.resolvedUrls).toStrictEqual([
         expect.objectContaining({
           id: 'url-example-only',
           subCategory: 'docs',
@@ -399,7 +418,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       })
 
       const reloadedGroup = await loadExampleGroup()
-      expect(reloadedGroup?.urls).toStrictEqual(
+      expect(reloadedGroup?.resolvedUrls).toStrictEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: 'url-example-only',
@@ -469,7 +488,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         idGenerator: { generate: () => 'test-id' },
         browserWindowPort,
         categoriesCommandService: {
-          updateDomainCategorySettings: vi.fn().mockResolvedValue(undefined),
+          updateCollectionCategories: vi.fn().mockResolvedValue(undefined),
         },
         categoryAssignmentPort: {
           saveParentCategories: vi.fn().mockResolvedValue(undefined),
@@ -570,14 +589,16 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         (group) => group.id === 'group-example',
       )
       // 対象 urlId だけが TabGroup から外れている
-      expect(exampleGroup?.urlIds).toStrictEqual(['url-shared'])
+      expect(exampleGroup?.memberships.map(({ urlId }) => urlId)).toStrictEqual(
+        ['url-shared'],
+      )
       const urlRecords = await bundle.deps.urlRecordRepository.findAll()
       expect(urlRecords.map((record) => record.id)).not.toContain(
         'url-example-only',
       )
     })
 
-    it('CustomProject に参照されている UrlRecord は removeTabAfterOpen=true でも消えない', async () => {
+    it('TabGroup と CustomProject の双方から外した UrlRecord を孤立させない', async () => {
       const bundle = createBundle(buildLegacyFixture())
       const result = await bundle.useCases.openSavedUrl({
         origin: 'click',
@@ -587,20 +608,21 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         },
         urlRecordId: 'url-shared' as never,
       })
-      // url-shared は project-research からの参照があるため UrlRecord は
-      // 削除されない（previous 状態での参照で判定する）
-      expect(result.removedUrlRecordId).toBeNull()
+      expect(result.removedUrlRecordId).toBe('url-shared')
       const urlRecords = await bundle.deps.urlRecordRepository.findAll()
-      expect(urlRecords.map((record) => record.id)).toContain('url-shared')
-      // ただし url-shared は TabGroup / CustomProject 双方から urlIds が
-      // 取り除かれている
+      expect(urlRecords.map((record) => record.id)).not.toContain('url-shared')
+      // url-shared は TabGroup / CustomProject 双方からも取り除かれている
       const tabGroups = await bundle.deps.tabGroupRepository.findAll()
       const exampleGroup = tabGroups.find(
         (group) => group.id === 'group-example',
       )
-      expect(exampleGroup?.urlIds).not.toContain('url-shared')
+      expect(exampleGroup?.memberships.map(({ urlId }) => urlId)).not.toContain(
+        'url-shared',
+      )
       const customProjects = await bundle.deps.customProjectRepository.findAll()
-      expect(customProjects[0]?.urlIds).not.toContain('url-shared')
+      expect(
+        customProjects[0]?.memberships.map(({ urlId }) => urlId),
+      ).not.toContain('url-shared')
     })
   })
 
@@ -714,10 +736,14 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const restoredGroup = tabGroups.find(
         (group) => group.id === 'group-example',
       )
-      expect(restoredGroup?.urlIds).toContain('url-example-only')
+      expect(restoredGroup?.memberships.map(({ urlId }) => urlId)).toContain(
+        'url-example-only',
+      )
       // url-shared は CustomProject 側に居続けるので project-research の urlIds はそのまま
       const customProjects = await bundle.deps.customProjectRepository.findAll()
-      expect(customProjects[0]?.urlIds).toContain('url-shared')
+      expect(
+        customProjects[0]?.memberships.map(({ urlId }) => urlId),
+      ).toContain('url-shared')
     })
   })
 
@@ -739,7 +765,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const exampleGroup = tabGroups.find(
         (group) => group.id === 'group-example',
       )
-      expect(exampleGroup?.parentCategoryId).toBe('cat-docs')
+      expect(exampleGroup?.collection.groupId).toBe('cat-docs')
     })
 
     it('単一ドメイン同期で該当 TabGroup を別 ParentCategory へ移動できる', async () => {
@@ -753,7 +779,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       expect(result.assignedTabGroupIds).toContain('group-other')
       const tabGroups = await bundle.deps.tabGroupRepository.findAll()
       const otherGroup = tabGroups.find((group) => group.id === 'group-other')
-      expect(otherGroup?.parentCategoryId).toBe('cat-docs')
+      expect(otherGroup?.collection.groupId).toBe('cat-docs')
     })
 
     it('未分類の TabGroup は parentCategoryId が外れる', async () => {
@@ -787,7 +813,7 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const exampleGroup = tabGroups.find(
         (group) => group.id === 'group-example',
       )
-      expect(exampleGroup?.parentCategoryId).toBeUndefined()
+      expect(exampleGroup?.collection.groupId).toBeUndefined()
     })
 
     it('検索フィルタは旧挙動（URL / title / domain / category）を維持する', async () => {
@@ -802,7 +828,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         categories: parentCategories,
         contexts: tabGroups.map((group) => ({
           group,
-          urls: urlRecords.filter((record) => group.urlIds.includes(record.id)),
+          urls: urlRecords.filter((record) =>
+            group.memberships.some(({ urlId }) => urlId === record.id),
+          ),
         })),
         input: { query: 'shared' },
       })
@@ -814,7 +842,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         categories: parentCategories,
         contexts: tabGroups.map((group) => ({
           group,
-          urls: urlRecords.filter((record) => group.urlIds.includes(record.id)),
+          urls: urlRecords.filter((record) =>
+            group.memberships.some(({ urlId }) => urlId === record.id),
+          ),
         })),
         input: { query: 'Only' },
       })
@@ -828,7 +858,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         categories: parentCategories,
         contexts: tabGroups.map((group) => ({
           group,
-          urls: urlRecords.filter((record) => group.urlIds.includes(record.id)),
+          urls: urlRecords.filter((record) =>
+            group.memberships.some(({ urlId }) => urlId === record.id),
+          ),
         })),
         input: { query: 'other' },
       })
@@ -840,7 +872,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         categories: parentCategories,
         contexts: tabGroups.map((group) => ({
           group,
-          urls: urlRecords.filter((record) => group.urlIds.includes(record.id)),
+          urls: urlRecords.filter((record) =>
+            group.memberships.some(({ urlId }) => urlId === record.id),
+          ),
         })),
         input: { query: 'Docs' },
       })
@@ -856,7 +890,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
         categories: parentCategories,
         contexts: tabGroups.map((group) => ({
           group,
-          urls: urlRecords.filter((record) => group.urlIds.includes(record.id)),
+          urls: urlRecords.filter((record) =>
+            group.memberships.some(({ urlId }) => urlId === record.id),
+          ),
         })),
         input: { query: 'no-such-needle-zzz' },
       })
@@ -950,7 +986,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const exampleGroup = tabGroups.find(
         (group) => group.id === 'group-example',
       )
-      expect(exampleGroup?.urlIds).toContain('url-example-only')
+      expect(exampleGroup?.memberships.map(({ urlId }) => urlId)).toContain(
+        'url-example-only',
+      )
       const urlRecords = await bundle.deps.urlRecordRepository.findAll()
       expect(urlRecords.map((record) => record.id)).toContain(
         'url-example-only',
@@ -975,7 +1013,9 @@ describe('savedTabs DDD 移行 後 回帰テスト', () => {
       const exampleGroup2 = tabGroups2.find(
         (group) => group.id === 'group-example',
       )
-      expect(exampleGroup2?.urlIds).toContain('url-example-only')
+      expect(exampleGroup2?.memberships.map(({ urlId }) => urlId)).toContain(
+        'url-example-only',
+      )
     })
   })
 })

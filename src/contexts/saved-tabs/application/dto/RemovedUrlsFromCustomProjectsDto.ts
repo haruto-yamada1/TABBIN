@@ -8,7 +8,7 @@
  * 拡張する (issue #512)。
  *
  * - `removedUrlIdCount`: `removeUrlIdsFromAllCustomProjects` で
- *   同期削除した URL ID の件数 (modern 形式グループの `urlIds` 由来)。
+ *   同期削除した URL ID の件数（current membership projection 由来）。
  * - `removedUrlCount`: `removeUrlsFromAllCustomProjects` で
  *   同期削除した URL 文字列の件数 (legacy 形式グループ由来)。
  */

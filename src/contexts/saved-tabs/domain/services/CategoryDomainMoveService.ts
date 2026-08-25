@@ -45,16 +45,11 @@ const removeDomainFromCategory = (
   domainId: TabGroupId,
   domainName: DomainName,
 ): ParentCategory => {
-  const filteredDomains = category.domains.includes(domainId)
-    ? category.domains.filter((id) => id !== domainId)
-    : [...category.domains]
-  const filteredDomainNames = category.domainNames.includes(domainName)
-    ? category.domainNames.filter((name) => name !== domainName)
-    : [...category.domainNames]
   return {
     ...category,
-    domainNames: filteredDomainNames,
-    domains: filteredDomains,
+    collections: category.collections.filter(
+      ({ domain, id }) => id !== domainId && domain !== domainName,
+    ),
   }
 }
 
@@ -63,16 +58,14 @@ const addDomainToCategory = (
   domainId: TabGroupId,
   domainName: DomainName,
 ): ParentCategory => {
-  const nextDomains = category.domains.includes(domainId)
-    ? [...category.domains]
-    : [...category.domains, domainId]
-  const nextDomainNames = category.domainNames.includes(domainName)
-    ? [...category.domainNames]
-    : [...category.domainNames, domainName]
+  const alreadyAssigned = category.collections.some(
+    ({ domain, id }) => id === domainId || domain === domainName,
+  )
   return {
     ...category,
-    domainNames: nextDomainNames,
-    domains: nextDomains,
+    collections: alreadyAssigned
+      ? [...category.collections]
+      : [...category.collections, { domain: domainName, id: domainId }],
   }
 }
 
@@ -96,11 +89,7 @@ export const moveDomainBetweenCategories = (
         domainName,
       )
       const afterAdd = addDomainToCategory(afterRemove, domainId, domainName)
-      if (
-        afterAdd.domains.length !== before.domains.length ||
-        afterAdd.domainNames.length !== before.domainNames.length ||
-        afterRemove.domains.length !== before.domains.length
-      ) {
+      if (afterRemove.collections.length !== before.collections.length) {
         moved = true
       }
       return afterAdd
@@ -108,10 +97,7 @@ export const moveDomainBetweenCategories = (
     if (fromCategoryId !== null && category.id === fromCategoryId) {
       const before = category
       const next = removeDomainFromCategory(category, domainId, domainName)
-      if (
-        next.domains.length !== before.domains.length ||
-        next.domainNames.length !== before.domainNames.length
-      ) {
+      if (next.collections.length !== before.collections.length) {
         moved = true
       }
       return next
@@ -119,10 +105,7 @@ export const moveDomainBetweenCategories = (
     if (category.id === toCategoryId) {
       const before = category
       const next = addDomainToCategory(category, domainId, domainName)
-      if (
-        next.domains.length !== before.domains.length ||
-        next.domainNames.length !== before.domainNames.length
-      ) {
+      if (next.collections.length !== before.collections.length) {
         moved = true
       }
       return next

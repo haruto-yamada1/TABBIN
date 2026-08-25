@@ -10,7 +10,7 @@ import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettings,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 export type DomainCardActionHandlers = {
   handleOpenAllTabs: (urls: { url: string; title: string }[]) => void

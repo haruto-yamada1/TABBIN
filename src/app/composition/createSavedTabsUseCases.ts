@@ -1,9 +1,26 @@
 import { createSavedTabsUseCases as createApplicationSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
 import type { SavedTabsUseCasesDeps } from '@/contexts/saved-tabs/application/SavedTabsUseCasesDeps'
-import { createSavedTabsUseCasesDeps as createInfrastructureSavedTabsUseCasesDeps } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { createRouteAwareSavedTabsUseCases } from '@/contexts/saved-tabs/application/services/RouteAwareSavedTabsUseCasesService'
+import { createBroadcastChannelPersistenceChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/BroadcastChannelPersistenceChangeAdapter'
+import { createPersistenceChangeStorageAdapter } from '@/contexts/saved-tabs/infrastructure/browser/PersistenceChangeStorageAdapter'
+import {
+  createIndexedDbSavedTabsUseCases,
+  createNativeIndexedDbSavedTabsRuntime,
+  createUnavailableIndexedDbSavedTabsUseCases,
+} from '@/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsUseCases'
+import {
+  createSavedTabsUseCasesDeps as createInfrastructureSavedTabsUseCasesDeps,
+  createSelectedLegacySavedTabsUseCasesDeps,
+} from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
 import type { CreateSavedTabsUseCasesDepsOptions } from '@/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps'
+import { createNativeCategoryAssignmentPort } from '@/contexts/saved-tabs/infrastructure/composition/NativeSavedTabsPersistenceAdapters'
+import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
+import { logger } from '@/lib/logging/logger'
+
+import { createRouteAwareSavedTabsPresentationPorts } from './RouteAwareSavedTabsPresentationPorts'
 
 /**
  * `createSavedTabsUseCases` 呼び出し時に渡せる任意設定。
@@ -17,6 +34,24 @@ export type CreateSavedTabsUseCasesOptions = CreateSavedTabsUseCasesDepsOptions
 export const createSavedTabsUseCasesDeps = (
   options: CreateSavedTabsUseCasesDepsOptions = {},
 ): SavedTabsUseCasesDeps => createInfrastructureSavedTabsUseCasesDeps(options)
+
+const createProductionSavedTabsUseCases = (
+  deps: SavedTabsUseCasesDeps,
+  options: CreateSavedTabsUseCasesOptions,
+): SavedTabsUseCases =>
+  (() => {
+    const runtime = getPersistenceBootstrapRuntime()
+    return createRouteAwareSavedTabsUseCases({
+      indexeddb: runtime.connectionManager
+        ? createIndexedDbSavedTabsUseCases({
+            connectionManager: runtime.connectionManager,
+            presentationOptions: options,
+          })
+        : createUnavailableIndexedDbSavedTabsUseCases(),
+      legacy: createApplicationSavedTabsUseCases(deps),
+      router: runtime.dataPlaneRouter,
+    })
+  })()
 
 /**
  * `src/app/composition/` レベルの composition root。
@@ -46,8 +81,8 @@ export const createSavedTabsUseCasesDeps = (
 export const createSavedTabsUseCases = (
   options: CreateSavedTabsUseCasesOptions = {},
 ): SavedTabsUseCases => {
-  const deps: SavedTabsUseCasesDeps = createSavedTabsUseCasesDeps(options)
-  return createApplicationSavedTabsUseCases(deps)
+  const deps = createSelectedLegacySavedTabsUseCasesDeps(options)
+  return createProductionSavedTabsUseCases(deps, options)
 }
 
 /**
@@ -67,6 +102,68 @@ const toSavedTabsPresentationPorts = (
   migrationPort: deps.migrationPort,
   storageChangePort: deps.storageChangePort,
 })
+
+const createIndexedDbPresentationPorts = (
+  options: CreateSavedTabsUseCasesDepsOptions,
+): Pick<
+  SavedTabsPresentationPorts,
+  'categoryAssignmentPort' | 'migrationPort' | 'storageChangePort'
+> => {
+  const runtime = getPersistenceBootstrapRuntime()
+  const unavailable = async (): Promise<never> => {
+    await Promise.resolve()
+    throw new PersistenceUnavailableError(
+      'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
+    )
+  }
+  const categoryAssignmentPort = runtime.connectionManager
+    ? (() => {
+        const nativeRuntime = createNativeIndexedDbSavedTabsRuntime({
+          connectionManager: runtime.connectionManager,
+          presentationOptions: options,
+        })
+        return {
+          saveParentCategories: async (
+            categories: Parameters<
+              SavedTabsPresentationPorts['categoryAssignmentPort']['saveParentCategories']
+            >[0],
+          ) =>
+            nativeRuntime.session.run(async (state) => {
+              await createNativeCategoryAssignmentPort(
+                state,
+                nativeRuntime.deps,
+              ).saveParentCategories(categories)
+            }),
+          saveTabGroups: async (
+            tabGroups: Parameters<
+              SavedTabsPresentationPorts['categoryAssignmentPort']['saveTabGroups']
+            >[0],
+          ) =>
+            nativeRuntime.session.run(async (state) => {
+              await createNativeCategoryAssignmentPort(
+                state,
+                nativeRuntime.deps,
+              ).saveTabGroups(tabGroups)
+            }),
+        }
+      })()
+    : {
+        saveParentCategories: unavailable,
+        saveTabGroups: unavailable,
+      }
+  return {
+    categoryAssignmentPort,
+    migrationPort: {
+      // IndexedDB snapshots are already normalized by migration verification.
+      migrateDomainStorageToHostname: async () => {},
+      migrateParentCategoriesToDomainNames: async () => {},
+      migrateToUrlsStorage: async () => {},
+    },
+    storageChangePort: createPersistenceChangeStorageAdapter(
+      createBroadcastChannelPersistenceChangeAdapter(),
+    ),
+  }
+}
 
 /**
  * saved-tabs presentation 層が受け取る依存バンドルを一度に構築する。
@@ -89,9 +186,23 @@ export const createSavedTabsPresentationComposition = (
   readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
 } => {
-  const deps = createSavedTabsUseCasesDeps(options)
+  const deps = createSelectedLegacySavedTabsUseCasesDeps(options)
+  const runtime = getPersistenceBootstrapRuntime()
+  const routeAwarePersistencePorts = createRouteAwareSavedTabsPresentationPorts(
+    {
+      indexeddb: createIndexedDbPresentationPorts(options),
+      legacy: toSavedTabsPresentationPorts(deps),
+      onRoutingFailure: (error) => {
+        logger.error('saved_tabs_presentation_route_failed', error)
+      },
+      router: runtime.dataPlaneRouter,
+    },
+  )
   return {
-    deps: toSavedTabsPresentationPorts(deps),
-    useCases: createApplicationSavedTabsUseCases(deps),
+    deps: {
+      ...toSavedTabsPresentationPorts(deps),
+      ...routeAwarePersistencePorts,
+    },
+    useCases: createProductionSavedTabsUseCases(deps, options),
   }
 }

@@ -1,25 +1,36 @@
 import { describe, expect, it } from 'vitest'
 
+import type { ResolvedTabGroupUrlDto } from '@/contexts/saved-tabs/domain/dto/ResolvedTabGroupUrlDto'
 import type { TabGroupDto } from '@/contexts/saved-tabs/domain/dto/TabGroupDto'
+import { createTabGroup } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import { hasDisplayableUrls } from './SavedTabsDisplayPolicy'
 
-const makeGroup = (overrides: Partial<TabGroupDto> = {}): TabGroupDto => ({
-  domain: 'example.com',
-  id: 'group-1',
-  ...overrides,
+const makeGroup = ({
+  memberships = [],
+  resolvedUrls,
+}: {
+  readonly memberships?: readonly { readonly urlId: string }[]
+  readonly resolvedUrls?: readonly ResolvedTabGroupUrlDto[]
+} = {}): TabGroupDto => ({
+  ...createTabGroup({ id: 'group-1', memberships }),
+  ...(resolvedUrls ? { resolvedUrls } : {}),
 })
 
 describe('SavedTabsDisplayPolicy.hasDisplayableUrls', () => {
   it('新形式 urlIds が 1 件以上あれば true を返す', () => {
-    expect(hasDisplayableUrls(makeGroup({ urlIds: ['url-1'] }))).toBe(true)
+    expect(
+      hasDisplayableUrls(
+        makeGroup({ memberships: ['url-1'].map((urlId) => ({ urlId })) }),
+      ),
+    ).toBe(true)
   })
 
   it('旧形式 urls が 1 件以上あれば true を返す', () => {
     expect(
       hasDisplayableUrls(
         makeGroup({
-          urls: [{ title: 'A', url: 'https://example.com' }],
+          resolvedUrls: [{ title: 'A', url: 'https://example.com' }],
         }),
       ),
     ).toBe(true)
@@ -29,15 +40,22 @@ describe('SavedTabsDisplayPolicy.hasDisplayableUrls', () => {
     expect(
       hasDisplayableUrls(
         makeGroup({
-          urlIds: ['url-1'],
-          urls: [{ title: 'A', url: 'https://example.com' }],
+          memberships: ['url-1'].map((urlId) => ({ urlId })),
+          resolvedUrls: [{ title: 'A', url: 'https://example.com' }],
         }),
       ),
     ).toBe(true)
   })
 
   it('新形式旧形式ともに空配列なら false を返す', () => {
-    expect(hasDisplayableUrls(makeGroup({ urlIds: [], urls: [] }))).toBe(false)
+    expect(
+      hasDisplayableUrls(
+        makeGroup({
+          memberships: [].map((urlId) => ({ urlId })),
+          resolvedUrls: [],
+        }),
+      ),
+    ).toBe(false)
   })
 
   it('フィールド自体が無いグループは false を返す', () => {
@@ -48,7 +66,7 @@ describe('SavedTabsDisplayPolicy.hasDisplayableUrls', () => {
     expect(
       hasDisplayableUrls(
         makeGroup({
-          urls: [{ title: 'A', url: 'https://example.com' }],
+          resolvedUrls: [{ title: 'A', url: 'https://example.com' }],
         }),
       ),
     ).toBe(true)

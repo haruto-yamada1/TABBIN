@@ -39,8 +39,10 @@ describe('createReorderParentCategoriesUseCase', () => {
   it('受け取った categories を repository.saveAll へ委譲する', async () => {
     const repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
         id: 'cat-a',
         name: 'A',
       }),
@@ -50,14 +52,18 @@ describe('createReorderParentCategoriesUseCase', () => {
 
     const reordered = [
       createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
         id: 'cat-b',
         name: 'B',
       }),
       createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
         id: 'cat-a',
         name: 'A',
       }),
@@ -76,8 +82,10 @@ describe('createReorderParentCategoriesUseCase', () => {
   it('空配列を渡された場合は repository へ空配列を保存する', async () => {
     const repo = createInMemoryRepository([
       createParentCategory({
-        domainNames: [],
-        domains: [],
+        collections: [].map((id, index) => ({
+          id,
+          domain: [][index] ?? id,
+        })),
         id: 'cat-a',
         name: 'A',
       }),

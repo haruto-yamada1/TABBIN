@@ -1,22 +1,20 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { filterCustomProjectsByQuery } from './custom-project-search'
-
-const asUseCase = (fn: ReturnType<typeof vi.fn>): GetProjectUrlsUseCase =>
-  fn as unknown as GetProjectUrlsUseCase
 
 const createProjects = (): CustomProject[] => [
   {
     id: 'project-1',
     name: 'Reading List',
-    urlIds: ['url-1', 'url-2'],
-    urlMetadata: {
-      'url-1': { category: 'Later' },
-      'url-2': { category: 'Watch' },
-    },
+    memberships: ['url-1', 'url-2'].map((urlId) => ({
+      urlId,
+      ...{
+        'url-1': { category: 'Later' },
+        'url-2': { category: 'Watch' },
+      }?.[urlId],
+    })),
     categories: ['Later', 'Watch'],
     createdAt: 1,
     updatedAt: 1,
@@ -24,7 +22,7 @@ const createProjects = (): CustomProject[] => [
   {
     id: 'project-2',
     name: 'Work',
-    urlIds: ['url-3'],
+    memberships: ['url-3'].map((urlId) => ({ urlId })),
     categories: [],
     createdAt: 2,
     updatedAt: 2,
@@ -38,7 +36,7 @@ describe('filterCustomProjectsByQuery', () => {
     const result = await filterCustomProjectsByQuery({
       customProjects: projects,
       searchQuery: '  ',
-      loadProjectUrls: asUseCase(vi.fn()),
+      loadProjectUrls: vi.fn(async () => []),
     })
 
     expect(result).toBe(projects)
@@ -46,12 +44,12 @@ describe('filterCustomProjectsByQuery', () => {
 
   it('プロジェクト名一致は URL 解決なしでそのまま返す', async () => {
     const projects = createProjects()
-    const loadProjectUrls = vi.fn()
+    const loadProjectUrls = vi.fn(async () => [])
 
     const result = await filterCustomProjectsByQuery({
       customProjects: projects,
       searchQuery: 'Reading',
-      loadProjectUrls: asUseCase(loadProjectUrls),
+      loadProjectUrls,
     })
 
     expect(result).toStrictEqual([projects[0]])
@@ -101,17 +99,17 @@ describe('filterCustomProjectsByQuery', () => {
     expect(result).toStrictEqual([
       {
         ...projects[0],
-        urlIds: ['url-1'],
-        urlMetadata: {
-          'url-1': { category: 'Later' },
-        },
+        memberships: ['url-1'].map((urlId) => ({
+          urlId,
+          ...{ 'url-1': { category: 'Later' } }?.[urlId],
+        })),
         urls: [
           {
+            id: 'url-1',
             url: 'https://example.com/docker-cmd',
             title: 'Docker CMD',
             savedAt: 10,
             category: 'Later',
-            notes: undefined,
           },
         ],
       },
@@ -149,8 +147,7 @@ describe('filterCustomProjectsByQuery', () => {
 
     expect(result[0]?.urls).toStrictEqual([
       {
-        category: undefined,
-        notes: undefined,
+        id: 'url-1',
         savedAt: 1,
         title: 'React Guide',
         url: 'https://example.com/react',

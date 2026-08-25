@@ -1,6 +1,10 @@
 import { getRequiredPersistenceStorageLocal } from '@/app/composition/persistenceStorageLocal'
+import type {
+  SubCategoryKeyword,
+  TabGroup,
+  UrlRecord,
+} from '@/contexts/saved-tabs/public-api'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import type { SubCategoryKeyword, TabGroup, UrlRecord } from '@/types/storage'
 import { domainMatches } from '@/utils/domain-normalize'
 
 import {
@@ -46,8 +50,7 @@ const saveTabGroups = async (tabGroups: TabGroup[]): Promise<void> => {
  * 指定タブグループ内の子カテゴリ名をリネームし、関連する
  * `categoryKeywords`, `urls[].subCategory`, `subCategoryOrder`,
  * `subCategoryOrderWithUncategorized` も一括更新する。
- * `SubCategoryKeywordManager` のリネーム操作を
- * `chrome.storage.local` 直叩きから置換するために追加。
+ * legacy storage migration/import boundaryで子カテゴリ名を一括更新する。
  */
 const renameSubCategoryInTabGroup = async (
   groupId: string,
@@ -92,9 +95,9 @@ const renameSubCategoryInTabGroup = async (
       subCategoryOrder: updatedSubCategoryOrder,
       subCategoryOrderWithUncategorized:
         updatedSubCategoryOrderWithUncategorized,
-      urlSubCategories: urlSubCategoriesChanged
-        ? updatedUrlSubCategories
-        : tab.urlSubCategories,
+      ...(urlSubCategoriesChanged
+        ? { urlSubCategories: updatedUrlSubCategories }
+        : {}),
       urls: updatedUrls,
     }
   })
@@ -122,7 +125,9 @@ const resolveTabGroupUrlsFromMap = (
       ? [
           {
             ...record,
-            subCategory: tabGroup.urlSubCategories?.[record.id],
+            ...(tabGroup.urlSubCategories?.[record.id] !== undefined
+              ? { subCategory: tabGroup.urlSubCategories[record.id] }
+              : {}),
           },
         ]
       : []
@@ -469,9 +474,9 @@ const removeSubCategoryFromTabGroup = async (
       ...currentGroup,
       categoryKeywords: nextCategoryKeywords,
       subCategories: nextSubCategories,
-      urlSubCategories: urlSubCategoriesChanged
-        ? nextUrlSubCategories
-        : currentGroup.urlSubCategories,
+      ...(urlSubCategoriesChanged
+        ? { urlSubCategories: nextUrlSubCategories }
+        : {}),
     }
   })
   await getRequiredPersistenceStorageLocal().set({ savedTabs: updatedGroups })
@@ -842,7 +847,9 @@ const removeUrlIdsFromTabGroup = async (
     idsToDelete,
     rollbackSavedTabs,
     savedTabs,
-    throwOnSyncError: options.throwOnSyncError,
+    ...(options.throwOnSyncError !== undefined
+      ? { throwOnSyncError: options.throwOnSyncError }
+      : {}),
   })
 }
 
@@ -888,7 +895,9 @@ const removeUrlsFromTabGroup = async (
         idsToDelete,
         rollbackSavedTabs,
         savedTabs,
-        throwOnSyncError: options.throwOnSyncError,
+        ...(options.throwOnSyncError !== undefined
+          ? { throwOnSyncError: options.throwOnSyncError }
+          : {}),
       })
     }
   }

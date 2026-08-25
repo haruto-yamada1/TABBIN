@@ -9,6 +9,16 @@ type ToastMock = {
   success: ReturnType<typeof vi.fn>
 }
 
+type ToastOverride = NonNullable<SonnerNotificationAdapterDeps['toastOverride']>
+
+const createMissingToastOverride = (): ToastOverride =>
+  // Deliberately model a malformed runtime dependency outside the strict type.
+  ({
+    error: undefined,
+    info: undefined,
+    success: undefined,
+  }) as unknown as ToastOverride
+
 const createMockToast = (): ToastMock => {
   return {
     error: vi.fn(),
@@ -25,8 +35,7 @@ describe('createSonnerNotificationAdapter', () => {
   it('info / success / error が対応する toast メソッドに委譲される', () => {
     const mockToast = createMockToast()
     const port = createSonnerNotificationAdapter({
-      toastOverride:
-        mockToast as SonnerNotificationAdapterDeps['toastOverride'],
+      toastOverride: mockToast as ToastOverride,
     })
     port.info({ message: 'info message' })
     port.success({ message: 'success message' })
@@ -40,8 +49,7 @@ describe('createSonnerNotificationAdapter', () => {
     const mockToast = createMockToast()
     const onClick = vi.fn()
     const port = createSonnerNotificationAdapter({
-      toastOverride:
-        mockToast as SonnerNotificationAdapterDeps['toastOverride'],
+      toastOverride: mockToast as ToastOverride,
     })
     port.info({ action: { label: 'Undo', onClick }, message: 'removed' })
     const call = mockToast.info.mock.calls[0]
@@ -60,8 +68,7 @@ describe('createSonnerNotificationAdapter', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => undefined)
     const port = createSonnerNotificationAdapter({
-      toastOverride:
-        mockToast as SonnerNotificationAdapterDeps['toastOverride'],
+      toastOverride: mockToast as ToastOverride,
     })
     port.error({
       action: {
@@ -93,8 +100,7 @@ describe('createSonnerNotificationAdapter', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => undefined)
     const port = createSonnerNotificationAdapter({
-      toastOverride:
-        mockToast as SonnerNotificationAdapterDeps['toastOverride'],
+      toastOverride: mockToast as ToastOverride,
     })
     port.info({
       action: {
@@ -123,11 +129,7 @@ describe('createSonnerNotificationAdapter', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => undefined)
     const port = createSonnerNotificationAdapter({
-      toastOverride: {
-        error: undefined,
-        info: undefined,
-        success: undefined,
-      } as unknown as SonnerNotificationAdapterDeps['toastOverride'],
+      toastOverride: createMissingToastOverride(),
     })
     port.error({ message: 'failed without toast' })
     expect(errorSpy).toHaveBeenCalledWith('failed without toast')
@@ -138,11 +140,7 @@ describe('createSonnerNotificationAdapter', () => {
       .spyOn(console, 'warn')
       .mockImplementation(() => undefined)
     const port = createSonnerNotificationAdapter({
-      toastOverride: {
-        error: undefined,
-        info: undefined,
-        success: undefined,
-      } as unknown as SonnerNotificationAdapterDeps['toastOverride'],
+      toastOverride: createMissingToastOverride(),
     })
     port.info({ message: 'informational' })
     expect(warnSpy).toHaveBeenCalledWith('informational')

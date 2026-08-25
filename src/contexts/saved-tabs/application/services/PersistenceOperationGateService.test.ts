@@ -92,6 +92,7 @@ describe('PersistenceOperationGateService', () => {
         status: 'read-only-emergency',
         readSource: 'indexeddb',
         migrationId: 'migration-1',
+        persistenceGeneration: 2,
       } as const,
       method: 'runIndexedDbRead' as const,
     },
@@ -136,6 +137,16 @@ describe('PersistenceOperationGateService', () => {
         readSource: 'legacy',
       } as const,
       method: 'runLegacyWrite' as const,
+      code: 'PERSISTENCE_READ_ONLY' as const,
+    },
+    {
+      state: {
+        status: 'read-only-emergency',
+        readSource: 'indexeddb',
+        migrationId: 'migration-1',
+        persistenceGeneration: 2,
+      } as const,
+      method: 'runIndexedDbWrite' as const,
       code: 'PERSISTENCE_READ_ONLY' as const,
     },
     {

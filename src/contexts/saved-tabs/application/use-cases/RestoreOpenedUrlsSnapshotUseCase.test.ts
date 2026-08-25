@@ -6,15 +6,17 @@ import {
   toSavedTabsTabGroupDto,
   toSavedTabsUrlRecordDto,
 } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { RestoreOpenedUrlsSnapshotUseCaseDeps } from './RestoreOpenedUrlsSnapshotUseCase'
 import { createRestoreOpenedUrlsSnapshotUseCase } from './RestoreOpenedUrlsSnapshotUseCase'
@@ -142,7 +144,7 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     const target = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const url = createUrlRecord({
       id: 'url-1',
@@ -156,11 +158,13 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
       id: 'project-1',
       name: 'Project',
       updatedAt: 1,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const category = createParentCategory({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'cat-1',
       name: 'Docs',
     })
@@ -198,12 +202,12 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     const existing = createTabGroup({
       domain: 'other.com',
       id: 'group-existing',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const restored = createTabGroup({
       domain: 'example.com',
       id: 'group-restored',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({ tabGroups: [existing] })
     const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
@@ -222,12 +226,12 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     const existing = createTabGroup({
       domain: 'old.example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const restored = createTabGroup({
       domain: 'new.example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({ tabGroups: [existing] })
     const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
@@ -258,7 +262,7 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
       id: 'project-existing',
       name: 'Old',
       updatedAt: 1,
-      urlIds: ['url-existing'],
+      memberships: ['url-existing'].map((urlId) => ({ urlId })),
     })
     const restoredProject = createCustomProject({
       categories: ['b'],
@@ -266,7 +270,7 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
       id: 'project-existing',
       name: 'New',
       updatedAt: 2,
-      urlIds: ['url-existing'],
+      memberships: ['url-existing'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [existingProject],
@@ -336,26 +340,26 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     expect(repos.customProjectOrder).toStrictEqual(initial)
   })
 
-  it('legacy snapshot で savedTabs[].urlIds / customProjects[].urlIds が省略されている場合、urlIds: [] を持つ entity へ正規化する', async () => {
+  it('空membershipのcurrent snapshotをentityとして復元する', async () => {
     const repos = createInMemoryRepositories()
     const useCase = createRestoreOpenedUrlsSnapshotUseCase(repos)
 
     const result = await useCase({
       snapshot: {
         savedTabs: [
-          {
+          createTabGroup({
             domain: 'legacy-tabs.com',
             id: 'group-legacy',
-          },
+          }),
         ],
         customProjects: [
-          {
+          createCustomProject({
             id: 'project-legacy',
             name: 'Legacy Project',
             categories: [],
             createdAt: 1,
             updatedAt: 1,
-          },
+          }),
         ],
       },
     })
@@ -364,15 +368,14 @@ describe('RestoreOpenedUrlsSnapshotUseCase', () => {
     expect(result.restoredCustomProjects).toHaveLength(1)
     expect(repos.tabGroups).toHaveLength(1)
     expect(repos.tabGroups[0]).toMatchObject({
-      domain: 'legacy-tabs.com',
       id: 'group-legacy',
-      urlIds: [],
+      memberships: [],
     })
     expect(repos.customProjects).toHaveLength(1)
     expect(repos.customProjects[0]).toMatchObject({
       id: 'project-legacy',
       name: 'Legacy Project',
-      urlIds: [],
+      memberships: [],
     })
   })
 })

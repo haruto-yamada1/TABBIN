@@ -306,7 +306,7 @@ describe('OptionsRoute', () => {
     optionsRouteMocks.settings = createSettings({
       clickBehavior: undefined,
       excludePatterns: ['  '],
-    })
+    } as unknown as Partial<UserSettings>)
 
     render(<OptionsRoute />)
     expect(

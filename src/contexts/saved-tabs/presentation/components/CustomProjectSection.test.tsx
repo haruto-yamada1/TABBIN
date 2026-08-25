@@ -3,8 +3,8 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const customProjectSectionI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
@@ -44,7 +44,11 @@ vi.mock('@dnd-kit/core', () => ({
     onDragOver?: (event: unknown) => void
     onDragEnd?: (event: unknown) => void
   }) => {
-    dndContextPropsRef.current = { onDragStart, onDragOver, onDragEnd }
+    dndContextPropsRef.current = {
+      ...(onDragStart !== undefined ? { onDragStart } : {}),
+      ...(onDragOver !== undefined ? { onDragOver } : {}),
+      ...(onDragEnd !== undefined ? { onDragEnd } : {}),
+    }
     return <div data-testid='dnd-context'>{children}</div>
   },
   DragOverlay: ({ children }: { children: React.ReactNode }) => (
@@ -815,14 +819,12 @@ describe('CustomProjectSection', () => {
   })
 
   it('各種DnDの早期return分岐（dataなし・別タイプ・同一プロジェクト・overなし・handlerなし）を通す', () => {
-    render(
-      <CustomProjectSection
-        {...createProps({
-          handleReorderProjects: undefined,
-          handleMoveUrlBetweenProjects: undefined,
-        })}
-      />,
-    )
+    const {
+      handleReorderProjects: _handleReorderProjects,
+      handleMoveUrlBetweenProjects: _handleMoveUrlBetweenProjects,
+      ...propsWithoutOptionalHandlers
+    } = createProps()
+    render(<CustomProjectSection {...propsWithoutOptionalHandlers} />)
 
     act(() => {
       dndContextPropsRef.current.onDragStart?.({ active: { data: {} } })

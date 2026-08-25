@@ -106,7 +106,8 @@ export const createCorruptedPersistenceV2Snapshot =
       ...alphaUrl,
       favIconUrl: undefined,
       firstSavedAt: 30,
-    } as PersistenceV2Url
+      // Deliberately model malformed runtime input outside the strict DTO type.
+    } as unknown as PersistenceV2Url
 
     return {
       categories: [

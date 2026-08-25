@@ -1,9 +1,10 @@
 import {
   expect,
   getExtensionUrl,
-  readStorage,
+  readPersistenceV2Store,
   seedStorage,
   test,
+  waitForPersistenceV2Ready,
 } from './helpers/extension'
 
 const now = 1_763_600_000_000
@@ -101,6 +102,7 @@ test.describe('saved-tabs stories', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByText('保存されたタブはありません')).toBeVisible()
   })
@@ -116,6 +118,7 @@ test.describe('saved-tabs stories', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await expect(page.getByText('example.com', { exact: true })).toBeVisible()
     await expect(
@@ -131,7 +134,9 @@ test.describe('saved-tabs stories', () => {
     await page.getByPlaceholder('検索').fill('')
 
     const openedPagePromise = extensionContext.waitForEvent('page')
-    await page.getByRole('button', { name: 'Example Home' }).click()
+    await page
+      .getByRole('button', { exact: true, name: 'Example Home' })
+      .click()
     const openedPage = await openedPagePromise
     await openedPage.waitForLoadState()
 
@@ -139,15 +144,13 @@ test.describe('saved-tabs stories', () => {
 
     await expect
       .poll(async () => {
-        const data = await readStorage<{
-          savedTabs: { id: string; urlIds?: string[] }[]
-        }>(serviceWorker, ['savedTabs'])
-        return (
-          data.savedTabs.find((group) => group.id === 'group-example')?.urlIds
-            ?.length ?? 0
+        const urls = await readPersistenceV2Store<{ id: string }>(
+          serviceWorker,
+          'urls',
         )
+        return urls.some(({ id }) => id === 'url-example')
       })
-      .toBe(0)
+      .toBe(false)
   })
 
   test('親カテゴリを作成してドメインを分類できる', async ({
@@ -160,6 +163,7 @@ test.describe('saved-tabs stories', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await page.getByRole('button', { name: /親カテゴリ管理/ }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -175,20 +179,32 @@ test.describe('saved-tabs stories', () => {
 
     await page.keyboard.press('Escape')
 
-    await expect(page.getByText('仕事', { exact: true })).toBeVisible()
-    await expect(page.getByText('example.com', { exact: true })).toBeVisible()
-
     await expect
       .poll(async () => {
-        const data = await readStorage<{
-          parentCategories: { domainNames: string[]; name: string }[]
-        }>(serviceWorker, ['parentCategories'])
-        return data.parentCategories[0]
+        const [collections, groups] = await Promise.all([
+          readPersistenceV2Store<{
+            definition: { domain?: string; type: string }
+            groupId?: string
+          }>(serviceWorker, 'collections'),
+          readPersistenceV2Store<{ id: string; name: string }>(
+            serviceWorker,
+            'collectionGroups',
+          ),
+        ])
+        const group = groups.find(({ name }) => name === '仕事')
+        const domain = collections.find(
+          ({ definition }) => definition.domain === 'example.com',
+        )
+        return {
+          assigned: group !== undefined && domain?.groupId === group.id,
+          groupName: group?.name,
+        }
       })
-      .toMatchObject({
-        domainNames: ['example.com'],
-        name: '仕事',
-      })
+      .toEqual({ assigned: true, groupName: '仕事' })
+
+    await page.reload()
+    await expect(page.getByText('仕事', { exact: true })).toBeVisible()
+    await expect(page.getByText('example.com', { exact: true })).toBeVisible()
   })
 
   test('カスタムモードでプロジェクトを追加し、再読み込み後も保持する', async ({
@@ -201,6 +217,7 @@ test.describe('saved-tabs stories', () => {
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
     )
+    await waitForPersistenceV2Ready(serviceWorker)
 
     await page.getByRole('combobox').click()
     await page.getByRole('option', { name: 'カスタムモード' }).click()
@@ -222,10 +239,13 @@ test.describe('saved-tabs stories', () => {
 
     await expect
       .poll(async () => {
-        const data = await readStorage<{
-          customProjects: { name: string }[]
-        }>(serviceWorker, ['customProjects'])
-        return data.customProjects.map((project) => project.name)
+        const collections = await readPersistenceV2Store<{
+          definition: { type: string }
+          name: string
+        }>(serviceWorker, 'collections')
+        return collections
+          .filter(({ definition }) => definition.type === 'custom')
+          .map(({ name }) => name)
       })
       .toEqual(['調査'])
   })

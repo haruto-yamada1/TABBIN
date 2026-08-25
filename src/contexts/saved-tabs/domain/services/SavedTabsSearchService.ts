@@ -1,4 +1,5 @@
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { tabGroupDomainName } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { TabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
@@ -69,7 +70,7 @@ const matchesUrlOrTitleOrDomain = (
 ): boolean =>
   includesQuery(urlRecord.title, normalizedQuery) ||
   includesQuery(urlRecord.url, normalizedQuery) ||
-  includesQuery(group.domain, normalizedQuery)
+  includesQuery(tabGroupDomainName(group), normalizedQuery)
 
 /**
  * 保存タブ検索の本体。

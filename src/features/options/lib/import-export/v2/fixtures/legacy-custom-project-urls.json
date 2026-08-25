@@ -1,0 +1,27 @@
+{
+  "version": "1.9.0",
+  "timestamp": "2026-07-03T00:00:00.000Z",
+  "userSettings": {},
+  "parentCategories": [],
+  "savedTabs": [],
+  "customProjects": [
+    {
+      "id": "project-nested",
+      "name": "Nested project",
+      "categories": ["research"],
+      "categoryOrder": ["research"],
+      "createdAt": 303,
+      "updatedAt": 404,
+      "urls": [
+        {
+          "url": "https://project.example.com/paper",
+          "title": "Project paper",
+          "notes": "private-project-note",
+          "savedAt": 505,
+          "category": "research"
+        }
+      ]
+    }
+  ],
+  "customProjectOrder": ["project-nested"]
+}

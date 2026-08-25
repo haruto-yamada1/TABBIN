@@ -28,6 +28,7 @@ export const createSavedAt = (value: number): SavedAt => {
     typeof value !== 'number' ||
     !Number.isFinite(value) ||
     !Number.isInteger(value) ||
+    Object.is(value, -0) ||
     value < 0
   ) {
     throw new SavedTabsDomainError(

@@ -6,7 +6,7 @@ import type {
   DomainParentCategoryMapping,
   ParentCategory,
   TabGroup,
-} from '@/types/storage'
+} from '@/contexts/saved-tabs/public-api'
 
 const mocks = vi.hoisted(() => {
   let uuidIndex = 0
@@ -379,15 +379,16 @@ describe('migration storage facade', () => {
     mocks.restoreCategorySettings.mockImplementation(async (group) => ({
       // eslint-disable-line
       ...group,
-      categoryKeywords:
-        group.domain === 'mapped.example.com'
-          ? [
+      ...(group.domain === 'mapped.example.com'
+        ? {
+            categoryKeywords: [
               {
                 categoryName: 'docs',
                 keywords: ['Guide'],
               },
-            ]
-          : undefined,
+            ],
+          }
+        : {}),
     }))
     globalThis.chrome = {
       storage: {

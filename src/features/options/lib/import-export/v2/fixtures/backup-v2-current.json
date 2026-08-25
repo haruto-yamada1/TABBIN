@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "appVersion": "2.0.0",
+  "exportedAt": "2026-07-08T00:00:00.000Z",
+  "data": {
+    "savedTabs": {
+      "urls": [],
+      "collections": [],
+      "memberships": [],
+      "categories": [],
+      "groups": []
+    },
+    "conversations": [],
+    "messages": [],
+    "analyticsViews": [],
+    "userSettings": {
+      "removeTabAfterOpen": false,
+      "removeTabAfterExternalDrop": false,
+      "excludePatterns": [],
+      "enableCategories": true,
+      "showSavedTime": false,
+      "clickBehavior": "saveSameDomainTabs",
+      "excludePinnedTabs": true,
+      "openUrlInBackground": true,
+      "openAllInNewWindow": false,
+      "confirmDeleteAll": true,
+      "confirmDeleteEach": false
+    }
+  }
+}

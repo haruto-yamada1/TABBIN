@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
 import { DomainCardActions } from './domain-card/DomainCardActions'
@@ -47,12 +47,12 @@ const SortableDomainCardComponent = ({
   const handlers = useMemo(
     () => ({
       handleDeleteGroup,
-      handleDeleteGroups,
       handleDeleteUrl,
-      handleDeleteUrls,
       handleOpenAllTabs,
       handleOpenTab,
       handleUpdateUrls,
+      ...(handleDeleteGroups !== undefined ? { handleDeleteGroups } : {}),
+      ...(handleDeleteUrls !== undefined ? { handleDeleteUrls } : {}),
     }),
     [
       handleOpenAllTabs,
@@ -69,11 +69,11 @@ const SortableDomainCardComponent = ({
     <DomainCardRoot
       group={group}
       settings={settings}
-      categoryId={categoryId}
+      {...(categoryId !== undefined ? { categoryId } : {})}
       isReorderMode={isReorderMode}
       searchQuery={searchQuery}
       handlers={handlers}
-      handleDeleteCategory={handleDeleteCategory}
+      {...(handleDeleteCategory !== undefined ? { handleDeleteCategory } : {})}
       reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
     >
       <DomainCardHeader>

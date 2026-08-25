@@ -9,13 +9,11 @@ import { mountToElement } from '@/lib/react/render-root'
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
-const runMigrationPreflight = (): void => {
+const runMigrationPreflight = async (): Promise<void> => {
   try {
-    void getMigrationPreflightController()
-      .run()
-      .catch(() => {})
+    await getMigrationPreflightController().run()
   } catch {
-    // Preflight is best-effort until migration owns an actionable failure UI.
+    // Recovery UI owns actionable migration failures after the app mounts.
   }
 }
 
@@ -28,8 +26,7 @@ const AppPage = () => (
   </I18nProvider>
 )
 
-document.addEventListener('DOMContentLoaded', () => {
-  runMigrationPreflight()
+const mountApp = (): void => {
   mountToElement(
     'app',
     <ThemeProvider defaultTheme='system' storageKey='tab-manager-theme'>
@@ -37,6 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     </ThemeProvider>,
     'Failed to find the app container',
   )
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  void runMigrationPreflight().then(mountApp)
 })
 
 export { AppPage }

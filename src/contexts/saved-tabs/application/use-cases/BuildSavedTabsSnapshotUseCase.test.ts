@@ -1,14 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
 import { createCustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { BuildSavedTabsSnapshotUseCaseDeps } from './BuildSavedTabsSnapshotUseCase'
 import { createBuildSavedTabsSnapshotUseCase } from './BuildSavedTabsSnapshotUseCase'
@@ -119,7 +121,7 @@ describe('BuildSavedTabsSnapshotUseCase', () => {
       createTabGroup({
         domain: 'example.com',
         id: 'group-1',
-        urlIds: ['url-1'],
+        memberships: ['url-1'].map((urlId) => ({ urlId })),
       }),
     ]
     const customProjects = [
@@ -129,14 +131,16 @@ describe('BuildSavedTabsSnapshotUseCase', () => {
         id: 'project-1',
         name: 'Project 1',
         updatedAt: 1,
-        urlIds: ['url-1'],
+        memberships: ['url-1'].map((urlId) => ({ urlId })),
       }),
     ]
     const customProjectOrder = [createCustomProjectId('project-1')]
     const parentCategories = [
       createParentCategory({
-        domainNames: ['example.com'],
-        domains: ['group-1'],
+        collections: ['group-1'].map((id, index) => ({
+          id,
+          domain: ['example.com'][index] ?? id,
+        })),
         id: 'cat-1',
         name: 'Cat 1',
       }),
@@ -173,14 +177,18 @@ describe('BuildSavedTabsSnapshotUseCase', () => {
 
   it('command.parentCategories が指定された場合は storage より優先する', async () => {
     const stored = createParentCategory({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'cat-stored',
       name: 'Stored',
     })
     const overrideCategory = createParentCategory({
-      domainNames: ['other.com'],
-      domains: ['group-2'],
+      collections: ['group-2'].map((id, index) => ({
+        id,
+        domain: ['other.com'][index] ?? id,
+      })),
       id: 'cat-override',
       name: 'Override',
     })
@@ -199,8 +207,10 @@ describe('BuildSavedTabsSnapshotUseCase', () => {
 
   it('command 未指定のときは storage の parentCategories を使う', async () => {
     const stored = createParentCategory({
-      domainNames: ['example.com'],
-      domains: ['group-1'],
+      collections: ['group-1'].map((id, index) => ({
+        id,
+        domain: ['example.com'][index] ?? id,
+      })),
       id: 'cat-stored',
       name: 'Stored',
     })

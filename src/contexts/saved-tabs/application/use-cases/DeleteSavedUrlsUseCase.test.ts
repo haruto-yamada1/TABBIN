@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import type { DeleteSavedUrlsUseCaseDeps } from './DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlsUseCase } from './DeleteSavedUrlsUseCase'
@@ -94,7 +96,7 @@ describe('DeleteSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2', 'url-3'],
+      memberships: ['url-1', 'url-2', 'url-3'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -132,7 +134,9 @@ describe('DeleteSavedUrlsUseCase', () => {
     ])
     expect(result.removedTabGroupIds).toStrictEqual([])
     const remainingTabGroups = await repos.tabGroupRepository.findAll()
-    expect(remainingTabGroups[0].urlIds).toStrictEqual(['url-3'])
+    expect(
+      remainingTabGroups[0].memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual(['url-3'])
     const remainingRecords = await repos.urlRecordRepository.findAll()
     expect(remainingRecords.map((record) => record.id)).toStrictEqual(['url-3'])
   })
@@ -141,7 +145,7 @@ describe('DeleteSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -174,7 +178,7 @@ describe('DeleteSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const project = createCustomProject({
       categories: [],
@@ -182,7 +186,7 @@ describe('DeleteSavedUrlsUseCase', () => {
       id: 'project-1',
       name: 'P',
       updatedAt: 1,
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -218,19 +222,21 @@ describe('DeleteSavedUrlsUseCase', () => {
       (await repos.urlRecordRepository.findAll()).map((record) => record.id),
     ).toStrictEqual([])
     const remainingProjects = await repos.customProjectRepository.findAll()
-    expect(remainingProjects[0].urlIds).toStrictEqual([])
+    expect(
+      remainingProjects[0].memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual([])
   })
 
   it('別 group が同じ UrlRecord を参照している場合はその UrlRecord を残す', async () => {
     const targetGroup = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const otherGroup = createTabGroup({
       domain: 'other.com',
       id: 'group-2',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -267,7 +273,7 @@ describe('DeleteSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-other'],
+      memberships: ['url-other'].map((urlId) => ({ urlId })),
     })
     const record = createUrlRecord({
       id: 'url-1',
@@ -297,12 +303,12 @@ describe('DeleteSavedUrlsUseCase', () => {
     const targetGroup = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: ['url-1', 'url-2'],
+      memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
     })
     const otherGroup = createTabGroup({
       domain: 'other.com',
       id: 'group-2',
-      urlIds: ['url-1'],
+      memberships: ['url-1'].map((urlId) => ({ urlId })),
     })
     const url1 = createUrlRecord({
       id: 'url-1',
@@ -322,7 +328,7 @@ describe('DeleteSavedUrlsUseCase', () => {
       id: 'project-1',
       name: 'Unrelated',
       updatedAt: 1,
-      urlIds: ['url-2'],
+      memberships: ['url-2'].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({
       customProjects: [unrelatedProject],
@@ -338,11 +344,14 @@ describe('DeleteSavedUrlsUseCase', () => {
     expect(result.snapshot).toBeNull()
     expect(result.removedUrlRecordIds).toStrictEqual([])
     expect(
-      (await repos.tabGroupRepository.findById(targetGroup.id))?.urlIds,
+      (
+        await repos.tabGroupRepository.findById(targetGroup.id)
+      )?.memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-2'])
     expect(
-      (await repos.customProjectRepository.findById(unrelatedProject.id))
-        ?.urlIds,
+      (
+        await repos.customProjectRepository.findById(unrelatedProject.id)
+      )?.memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-2'])
   })
 
@@ -376,7 +385,7 @@ describe('DeleteSavedUrlsUseCase', () => {
     const group = createTabGroup({
       domain: 'example.com',
       id: 'group-1',
-      urlIds: [],
+      memberships: [].map((urlId) => ({ urlId })),
     })
     const repos = createInMemoryRepositories({ tabGroups: [group] })
     const useCase = createDeleteSavedUrlsUseCase(repos)

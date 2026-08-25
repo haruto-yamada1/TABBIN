@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
+import type { PersistenceV2CollectionMembership } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import { createUrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
+import { createCustomProject } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
 
 import {
-  createCustomProject,
+  createCustomProject as createNormalizedCustomProject,
   customProjectContainsUrlRecord,
   customProjectUrlCount,
   isSameCustomProject,
@@ -13,7 +15,7 @@ import {
 const baseInput = {
   id: 'project-1',
   name: 'Q4 Research',
-  urlIds: ['url-1', 'url-2'],
+  memberships: ['url-1', 'url-2'].map((urlId) => ({ urlId })),
   categories: ['Research', 'Notes'],
   createdAt: 1_700_000_000_000,
   updatedAt: 1_700_000_000_001,
@@ -24,21 +26,103 @@ describe('CustomProject entity', () => {
     const project = createCustomProject(baseInput)
     expect(project.id).toBe('project-1')
     expect(project.name).toBe('Q4 Research')
-    expect(project.urlIds).toStrictEqual(['url-1', 'url-2'])
-    expect(project.categories).toStrictEqual(['Research', 'Notes'])
+    expect(project.memberships.map(({ urlId }) => urlId)).toStrictEqual([
+      'url-1',
+      'url-2',
+    ])
+    expect(project.collectionCategories.map(({ name }) => name)).toStrictEqual([
+      'Research',
+      'Notes',
+    ])
     expect(project.createdAt).toBe(1_700_000_000_000)
     expect(project.updatedAt).toBe(1_700_000_000_001)
   })
 
-  it('urlIds に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
+  it('normalized collection の undefined groupId を省略する', () => {
+    const seed = createCustomProject(baseInput)
+    const collection = { ...seed.collection }
+    Reflect.set(collection, 'groupId', undefined)
+
+    const project = createNormalizedCustomProject({
+      collection,
+      collectionCategories: seed.collectionCategories,
+      memberships: seed.memberships,
+    })
+
+    expect(Object.hasOwn(project.collection, 'groupId')).toBe(false)
+  })
+
+  it('normalized membership の undefined optional property を省略する', () => {
+    const seed = createCustomProject({
+      ...baseInput,
+      memberships: [{ urlId: 'url-1' }],
+    })
+    const membership = { ...seed.memberships[0] }
+    Reflect.set(membership, 'addedAtProvenance', undefined)
+    Reflect.set(membership, 'categoryId', undefined)
+    Reflect.set(membership, 'notes', undefined)
+
+    const project = createNormalizedCustomProject({
+      collection: seed.collection,
+      collectionCategories: seed.collectionCategories,
+      memberships: [membership],
+    })
+
+    expect(
+      ['addedAtProvenance', 'categoryId', 'notes'].map((property) =>
+        Object.hasOwn(project.memberships[0], property),
+      ),
+    ).toStrictEqual([false, false, false])
+  })
+
+  it('normalized membership の定義済み optional property と必須項目を保持する', () => {
+    const seed = createCustomProject({
+      ...baseInput,
+      categories: ['Research'],
+      memberships: [{ urlId: 'url-1' }],
+    })
+    const category = seed.collectionCategories[0]
+    const seedMembership = seed.memberships[0]
+    if (!category || !seedMembership) {
+      throw new Error('expected normalized membership fixtures')
+    }
+    const membership: PersistenceV2CollectionMembership = {
+      ...seedMembership,
+      addedAtProvenance: 'exact',
+      categoryId: category.id,
+      notes: '',
+    }
+
+    const project = createNormalizedCustomProject({
+      collection: seed.collection,
+      collectionCategories: seed.collectionCategories,
+      memberships: [membership],
+    })
+
+    expect(project.memberships[0]).toStrictEqual(membership)
+  })
+
+  it('membership の URL ID に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
     expect(() =>
-      createCustomProject({ ...baseInput, urlIds: ['dup', 'dup'] }),
+      createCustomProject({
+        ...baseInput,
+        memberships: ['dup', 'dup'].map((urlId) => ({ urlId })),
+      }),
     ).toThrow(SavedTabsDomainError)
   })
 
-  it('categories に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
+  it('collection category ID に重複があると INVALID_CUSTOM_PROJECT を投げる', () => {
+    const project = createCustomProject(baseInput)
+    const category = project.collectionCategories[0]
+    if (!category) {
+      throw new Error('expected category fixture')
+    }
     expect(() =>
-      createCustomProject({ ...baseInput, categories: ['x', 'x'] }),
+      createNormalizedCustomProject({
+        collection: project.collection,
+        collectionCategories: [category, category],
+        memberships: project.memberships,
+      }),
     ).toThrow(SavedTabsDomainError)
   })
 

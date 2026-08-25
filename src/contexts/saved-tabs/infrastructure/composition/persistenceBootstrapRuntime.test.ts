@@ -1,15 +1,25 @@
+import { IDBFactory } from 'fake-indexeddb'
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
+import {
+  MIGRATION_PREFLIGHT_VERSION,
+  MIGRATION_SOURCE_FINGERPRINT_VERSION,
+} from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
 import type {
+  PersistenceControlState,
   PersistenceControlStateRepositoryPort,
   PersistenceCoordinationPort,
+  PersistenceMigrationLifecyclePort,
   PersistenceOperationGatePort,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import { MIGRATION_SOURCE_KEYS } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
+import { transitionPersistenceControlState } from '@/contexts/saved-tabs/application/services/PersistenceControlStateService'
 
 import {
   createGatedPersistenceStorageLocal,
   createPersistenceBootstrapRuntime,
+  createPersistenceV2MigrationLifecycle,
 } from './persistenceBootstrapRuntime'
 
 const createGate = (): PersistenceOperationGatePort => ({
@@ -20,6 +30,106 @@ const createGate = (): PersistenceOperationGatePort => ({
 })
 
 describe('persistenceBootstrapRuntime storage facade', () => {
+  it('composes the raw reader, fingerprint, and private IndexedDB migration target', async () => {
+    const values: Record<string, unknown> = Object.fromEntries(
+      MIGRATION_SOURCE_KEYS.map((key) => [
+        key,
+        key === 'activeAiChatConversationId' ? '' : [],
+      ]),
+    )
+    const storage = {
+      get: vi.fn(async (keys: string | readonly string[]) => {
+        const selected = typeof keys === 'string' ? [keys] : keys
+        return Object.fromEntries(
+          selected.flatMap((key) =>
+            Object.hasOwn(values, key) ? [[key, values[key]]] : [],
+          ),
+        )
+      }),
+      set: vi.fn(async (entries: Record<string, unknown>) => {
+        Object.assign(values, entries)
+      }),
+    }
+    const lifecycle = createPersistenceV2MigrationLifecycle({
+      indexedDb: new IDBFactory(),
+      storage,
+    })
+    const fingerprint = await lifecycle.readCurrentSourceFingerprint()
+    values['tabbin:migrationPreflight:v1'] = {
+      checkedAt: 1,
+      diagnostic: {
+        capacityStatus: 'ready',
+        collisionCount: 0,
+        entityCounts: {},
+        issueCodes: [],
+        preflightVersion: MIGRATION_PREFLIGHT_VERSION,
+        sourceFingerprintVersion: MIGRATION_SOURCE_FINGERPRINT_VERSION,
+      },
+      sourceFingerprint: fingerprint,
+      status: 'healthy',
+    }
+
+    await lifecycle.migrate('migration-1')
+    await lifecycle.verify('migration-1')
+
+    expect(storage.get).toHaveBeenCalled()
+    expect(lifecycle.readReport('migration-1')).toEqual(
+      expect.objectContaining({
+        migrationId: 'migration-1',
+        migratedCollectionCount: 0,
+        migratedUrlCount: 0,
+      }),
+    )
+  })
+
+  it('completes production cutover after explicit migration', async () => {
+    let state: PersistenceControlState = { status: 'legacy' }
+    const lifecycle: PersistenceMigrationLifecyclePort = {
+      migrate: vi.fn(async () => undefined),
+      readCurrentSourceFingerprint: vi.fn(async () => 'fingerprint-a'),
+      readPreflightSourceFingerprint: vi.fn(async () => 'fingerprint-a'),
+      verify: vi.fn(async () => undefined),
+    }
+    const controlStateRepository: PersistenceControlStateRepositoryPort = {
+      read: vi.fn(async () => state),
+      transition: vi.fn(async (transition) => {
+        state = transitionPersistenceControlState(state, transition)
+        return state
+      }),
+    }
+    const coordination: PersistenceCoordinationPort = {
+      runExclusive: async (operation) => operation(),
+      runShared: async (operation) => operation(),
+    }
+    const runtime = createPersistenceBootstrapRuntime(
+      { initialize: vi.fn(async () => undefined) },
+      controlStateRepository,
+      coordination,
+      lifecycle,
+    )
+
+    await runtime.bootstrap.ready()
+    expect(lifecycle.migrate).not.toHaveBeenCalled()
+
+    await runtime.bootstrap.migrate('migration-1')
+
+    expect(lifecycle.migrate).toHaveBeenCalledWith('migration-1')
+    expect(lifecycle.verify).toHaveBeenCalledWith('migration-1')
+    expect(state).toEqual({
+      migrationId: 'migration-1',
+      persistenceGeneration: 2,
+      status: 'indexeddb',
+    })
+
+    await runtime.bootstrap.ready()
+
+    expect(state).toEqual({
+      migrationId: 'migration-1',
+      persistenceGeneration: 2,
+      status: 'indexeddb',
+    })
+  })
+
   it('retries the same production bootstrap after a transient gate failure', async () => {
     expect.hasAssertions()
     const initialize = vi

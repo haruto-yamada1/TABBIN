@@ -36,21 +36,28 @@ describe('ReorderCustomProjectUrlsUseCase', () => {
     const useCase = createReorderCustomProjectUrlsUseCase({
       customProjectsCommandService: commandService,
     })
-    const urls = [{ title: 'B', url: 'https://example.com/b' }]
+    const urls = [
+      {
+        id: 'url-b',
+        savedAt: 1,
+        title: 'B',
+        url: 'https://example.com/b',
+      },
+    ]
 
     await useCase({ projectId: 'project-1', urls })
 
     expect(reorderProjectUrls).toHaveBeenCalledWith('project-1', urls)
   })
 
-  it('urls が undefined の場合 port へ undefined をそのまま渡す', async () => {
+  it('空のcurrent URL projectionをそのままportへ渡す', async () => {
     const { commandService, reorderProjectUrls } = buildCommandService()
     const useCase = createReorderCustomProjectUrlsUseCase({
       customProjectsCommandService: commandService,
     })
 
-    await useCase({ projectId: 'project-1', urls: undefined })
+    await useCase({ projectId: 'project-1', urls: [] })
 
-    expect(reorderProjectUrls).toHaveBeenCalledWith('project-1', undefined)
+    expect(reorderProjectUrls).toHaveBeenCalledWith('project-1', [])
   })
 })

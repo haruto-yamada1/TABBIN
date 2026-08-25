@@ -5,7 +5,10 @@ import type {
   PersistenceVersionedSavedTabsSnapshot,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
-import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
+import {
+  checkPersistenceIntegrity,
+  hasBlockingPersistenceIntegrityIssues,
+} from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 import type { StorageIntegrityReport } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 
 import type { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
@@ -118,7 +121,7 @@ const verifySavedTabsSnapshot = (
   snapshot: PersistenceV2Snapshot,
 ): PersistenceV2Snapshot => {
   const report = checkPersistenceIntegrity(snapshot)
-  if (!report.isHealthy) {
+  if (hasBlockingPersistenceIntegrityIssues(report)) {
     throw new PersistenceSnapshotIntegrityError(report)
   }
 

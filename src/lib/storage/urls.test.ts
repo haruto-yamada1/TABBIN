@@ -1,7 +1,11 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { CustomProject, TabGroup, UrlRecord } from '@/types/storage'
+import type {
+  CustomProject,
+  TabGroup,
+  UrlRecord,
+} from '@/contexts/saved-tabs/public-api'
 
 const mocks = vi.hoisted(() => {
   let uuidIndex = 0
@@ -572,7 +576,6 @@ describe('urls storage', () => {
         savedAt: expect.any(Number),
         title: 'New',
         url: 'https://example.com/new',
-        favIconUrl: undefined,
       },
     ])
   })
@@ -581,6 +584,7 @@ describe('urls storage', () => {
     const state: StorageState = {
       urls: [
         {
+          favIconUrl: 'icon-old',
           id: 'existing-1',
           savedAt: 1,
           title: 'Old',
@@ -623,7 +627,6 @@ describe('urls storage', () => {
           savedAt: 500,
           title: 'Updated',
           url: 'https://example.com',
-          favIconUrl: undefined,
         },
       ],
       [
@@ -637,13 +640,14 @@ describe('urls storage', () => {
         },
       ],
     ])
-    await expect(getUrlRecords()).resolves.toStrictEqual([
+    expect(records.get('https://example.com')).not.toHaveProperty('favIconUrl')
+    const persistedRecords = await getUrlRecords()
+    expect(persistedRecords).toStrictEqual([
       {
         id: 'existing-1',
         savedAt: 500,
         title: 'Updated',
         url: 'https://example.com',
-        favIconUrl: undefined,
       },
       {
         id: 'uuid-1',
@@ -653,6 +657,7 @@ describe('urls storage', () => {
         favIconUrl: 'icon-2',
       },
     ])
+    expect(persistedRecords[0]).not.toHaveProperty('favIconUrl')
   })
 
   it('一括 upsert は空URLだけなら保存せず空Mapを返す', async () => {

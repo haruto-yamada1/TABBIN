@@ -78,8 +78,10 @@ export const KeywordModalRoot = ({
     isOpen,
     onDeleteCategory,
     onSave,
-    onUpdateParentCategories,
-    storageChangePort,
+    ...(onUpdateParentCategories !== undefined
+      ? { onUpdateParentCategories }
+      : {}),
+    ...(storageChangePort !== undefined ? { storageChangePort } : {}),
   })
 
   const contextValue: KeywordModalContextType = useMemo(

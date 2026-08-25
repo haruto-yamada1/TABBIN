@@ -1,8 +1,8 @@
 import type { useSortable } from '@dnd-kit/sortable'
 
-import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import type { useCategoryGroupState } from '@/contexts/saved-tabs/presentation/hooks/useCategoryGroupState'
+import type { SavedTabsUserSettingsDto as UserSettingsDto } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CategoryGroupProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 

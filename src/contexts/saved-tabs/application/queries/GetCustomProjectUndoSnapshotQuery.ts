@@ -2,7 +2,6 @@ import type { SavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsCustomProjectRawSnapshotMapper'
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
-import { createCustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
 import type {
   CustomProjectRawSnapshot,
@@ -53,14 +52,7 @@ export type GetCustomProjectUndoSnapshotQueryDeps = {
 }
 
 const entityFromRaw = (raw: CustomProjectRawSnapshot): CustomProject =>
-  createCustomProject({
-    categories: raw.categories,
-    createdAt: raw.createdAt,
-    id: raw.id,
-    name: raw.name,
-    updatedAt: raw.updatedAt,
-    urlIds: raw.urlIds ?? [],
-  })
+  toSavedTabsCustomProjectDto(raw)
 
 /**
  * `GetCustomProjectUndoSnapshotQuery` を生成する。

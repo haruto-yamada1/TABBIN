@@ -3,15 +3,15 @@ import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import type {
-  SavedTabsParentCategoryDto as ParentCategory,
-  SavedTabsTabGroupDto as TabGroup,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
-import { toStorageParentCategory } from '@/contexts/saved-tabs/application/mappers/SavedTabsSnapshotMapper'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
+import { toStorageParentCategory } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
+import type {
+  SavedTabsParentCategoryDto as ParentCategory,
+  SavedTabsTabGroupDto as TabGroup,
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 /** UseCategoryModal フックの引数 */
@@ -41,8 +41,8 @@ const buildDomainCategoriesMap = (
   const domainCategoriesMap: DomainCategoryMap = {}
   const categoryByDomainName = new Map<string, ParentCategory>()
   for (const category of parentCategories) {
-    for (const domainName of category.domainNames) {
-      categoryByDomainName.set(domainName, category)
+    for (const collection of category.collections) {
+      categoryByDomainName.set(collection.domain, category)
     }
   }
   for (const group of tabGroups) {
@@ -250,7 +250,7 @@ export const useCategoryModal = ({
         category === 'uncategorized'
           ? null
           : // eslint-disable-next-line unicorn/no-useless-collection-argument
-            new Set(category.domainNames)
+            new Set(category.collections.map(({ domain }) => domain))
       for (const group of tabGroups) {
         if (category === 'uncategorized') {
           newSelectedDomains[group.id] = !domainCategories[group.id]

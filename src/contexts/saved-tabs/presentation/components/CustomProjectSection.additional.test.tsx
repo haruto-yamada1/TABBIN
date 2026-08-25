@@ -3,9 +3,9 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { ProjectDragHandlers } from '@/contexts/saved-tabs/presentation/components/DragHandlersContext'
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
+import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const { dndContextPropsRef, projectHandlerSpies } = vi.hoisted(() => ({
   dndContextPropsRef: {
@@ -44,7 +44,11 @@ vi.mock('@dnd-kit/core', () => ({
     onDragOver?: (event: unknown) => void
     onDragEnd?: (event: unknown) => void
   }) => {
-    dndContextPropsRef.current = { onDragStart, onDragOver, onDragEnd }
+    dndContextPropsRef.current = {
+      ...(onDragStart !== undefined ? { onDragStart } : {}),
+      ...(onDragOver !== undefined ? { onDragOver } : {}),
+      ...(onDragEnd !== undefined ? { onDragEnd } : {}),
+    }
     return <div>{children}</div>
   },
   DragOverlay: ({ children }: { children: React.ReactNode }) => (

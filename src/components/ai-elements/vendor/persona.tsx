@@ -238,12 +238,22 @@ export const Persona: FC<PersonaProps> = memo(
 
     const { rive, RiveComponent } = useRive({
       autoplay: true,
-      onLoad: stableCallbacks.onLoad,
-      onLoadError: stableCallbacks.onLoadError,
-      onPause: stableCallbacks.onPause,
-      onPlay: stableCallbacks.onPlay,
+      ...(stableCallbacks.onLoad !== undefined
+        ? { onLoad: stableCallbacks.onLoad }
+        : {}),
+      ...(stableCallbacks.onLoadError !== undefined
+        ? { onLoadError: stableCallbacks.onLoadError }
+        : {}),
+      ...(stableCallbacks.onPause !== undefined
+        ? { onPause: stableCallbacks.onPause }
+        : {}),
+      ...(stableCallbacks.onPlay !== undefined
+        ? { onPlay: stableCallbacks.onPlay }
+        : {}),
       onRiveReady: stableCallbacks.onReady,
-      onStop: stableCallbacks.onStop,
+      ...(stableCallbacks.onStop !== undefined
+        ? { onStop: stableCallbacks.onStop }
+        : {}),
       src: source.source,
       stateMachines: stateMachine,
     })

@@ -10,6 +10,8 @@ import {
   getLabelsForGroup,
   getNormalizedCount,
   getSingleSeriesTitle,
+  normalizeAnalyticsQuery,
+  parseAnalyticsQuery,
 } from './analytics'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -67,6 +69,131 @@ const records: AiSavedUrlRecord[] = [
 ]
 
 describe('analytics', () => {
+  it('canonicalizes URL metrics away from collection-only query dimensions', () => {
+    const incompatible = {
+      ...getDefaultAnalyticsQuery(),
+      collectionType: 'custom' as const,
+      compareBy: 'mode' as const,
+      groupBy: 'collectionGroup' as const,
+      metric: 'first-saved' as const,
+    }
+
+    expect(normalizeAnalyticsQuery(incompatible)).toMatchObject({
+      collectionType: 'all',
+      compareBy: 'none',
+      groupBy: 'domain',
+      metric: 'first-saved',
+      schemaVersion: 2,
+    })
+    expect(parseAnalyticsQuery(incompatible)).toMatchObject({
+      collectionType: 'all',
+      compareBy: 'none',
+      groupBy: 'domain',
+      metric: 'first-saved',
+      schemaVersion: 2,
+    })
+  })
+
+  it('separates first-save, last-save, and membership-addition trends', () => {
+    const eventRecords = [
+      {
+        ...records[0],
+        id: 'url-1:first-saved',
+        metric: 'first-saved' as const,
+        savedAt: Date.UTC(2026, 0, 10),
+        timestampAccuracy: 'exact' as const,
+      },
+      {
+        ...records[0],
+        id: 'url-1:last-saved',
+        metric: 'last-saved' as const,
+        savedAt: Date.UTC(2026, 2, 10),
+        timestampAccuracy: 'exact' as const,
+      },
+      {
+        ...records[0],
+        collectionType: 'custom' as const,
+        id: 'project-1:url-1',
+        metric: 'membership-added' as const,
+        savedAt: Date.UTC(2026, 5, 10),
+        timestampAccuracy: 'legacy-fallback' as const,
+      },
+    ]
+    const firstSaved = generateAnalyticsResult(eventRecords, {
+      ...getDefaultAnalyticsQuery(),
+      metric: 'first-saved',
+      timeBucket: 'month',
+      groupBy: 'timeRecent',
+    })
+    const lastSaved = generateAnalyticsResult(eventRecords, {
+      ...getDefaultAnalyticsQuery(),
+      metric: 'last-saved',
+      timeBucket: 'month',
+      groupBy: 'timeRecent',
+    })
+    const membershipAdded = generateAnalyticsResult(eventRecords, {
+      ...getDefaultAnalyticsQuery(),
+      collectionType: 'custom',
+      metric: 'membership-added',
+      timeBucket: 'month',
+      groupBy: 'timeRecent',
+    })
+
+    expect(firstSaved.chartSpecs[0]?.data).toStrictEqual([
+      { count: 1, label: '2026-01' },
+    ])
+    expect(lastSaved.chartSpecs[0]?.data).toStrictEqual([
+      { count: 1, label: '2026-03' },
+    ])
+    expect(membershipAdded.chartSpecs[0]?.data).toStrictEqual([
+      { count: 1, label: '2026-06' },
+    ])
+    expect(membershipAdded.historicalDataQuality).toBe('partial')
+    expect(firstSaved.historicalDataQuality).toBe('exact')
+  })
+
+  it('counts separate collection additions for the same URL deterministically', () => {
+    const membershipEvents = [
+      {
+        ...records[0],
+        id: 'project-b:url-1',
+        metric: 'membership-added' as const,
+        collectionType: 'custom' as const,
+        savedAt: Date.UTC(2026, 1, 2),
+        savedInProjects: ['Project B'],
+        timestampAccuracy: 'exact' as const,
+      },
+      {
+        ...records[0],
+        id: 'project-a:url-1',
+        metric: 'membership-added' as const,
+        collectionType: 'custom' as const,
+        savedAt: Date.UTC(2026, 0, 2),
+        savedInProjects: ['Project A'],
+        timestampAccuracy: 'exact' as const,
+      },
+    ]
+    const query = {
+      ...getDefaultAnalyticsQuery(),
+      collectionType: 'custom' as const,
+      groupBy: 'project' as const,
+      metric: 'membership-added' as const,
+    }
+
+    const forward = generateAnalyticsResult(membershipEvents, query)
+    const reversed = generateAnalyticsResult(
+      membershipEvents.toReversed(),
+      query,
+    )
+
+    expect(forward.filteredRecordCount).toBe(2)
+    expect(forward.chartSpecs).toStrictEqual(reversed.chartSpecs)
+    expect(forward.chartSpecs[0]?.data).toStrictEqual([
+      { count: 1, label: 'Project A' },
+      { count: 1, label: 'Project B' },
+    ])
+  })
+
   it('renders a domain-mode top-domain bar chart', () => {
     const result = generateAnalyticsResult(
       records,
@@ -106,6 +233,7 @@ describe('analytics', () => {
         chartType: 'line',
         compareBy: 'mode',
         groupBy: 'timeRecent',
+        metric: 'membership-added',
         mode: 'both',
         timeBucket: 'day',
         timeRange: '30d',
@@ -271,6 +399,7 @@ describe('analytics', () => {
       {
         ...getDefaultAnalyticsQuery(),
         groupBy: 'project',
+        metric: 'membership-added',
         mode: 'both',
         timeRange: '30d',
       },
@@ -283,6 +412,7 @@ describe('analytics', () => {
       {
         ...getDefaultAnalyticsQuery(),
         groupBy: 'projectCategory',
+        metric: 'membership-added',
         mode: 'both',
         timeRange: '30d',
       },
@@ -354,6 +484,7 @@ describe('analytics', () => {
           includedParentCategories: ['Work'],
         },
         groupBy: 'parentCategory',
+        metric: 'membership-added',
         mode: 'domain',
         normalize: true,
         timeRange: '30d',
@@ -374,12 +505,45 @@ describe('analytics', () => {
     ])
   })
 
+  it('uses collection-wide titles when both collection types are included', () => {
+    const collectionResult = generateAnalyticsResult(
+      records,
+      {
+        ...getDefaultAnalyticsQuery(),
+        collectionType: 'all',
+        groupBy: 'collection',
+        metric: 'membership-added',
+        timeRange: '30d',
+      },
+      { now: NOW },
+    )
+    const categoryResult = generateAnalyticsResult(
+      records,
+      {
+        ...getDefaultAnalyticsQuery(),
+        collectionType: 'all',
+        groupBy: 'collectionCategory',
+        metric: 'membership-added',
+        timeRange: '30d',
+      },
+      { now: NOW },
+    )
+
+    expect(collectionResult.chartSpecs[0]?.title).toBe(
+      'Saved count by collection',
+    )
+    expect(categoryResult.chartSpecs[0]?.title).toBe(
+      'Saved count by collection category',
+    )
+  })
+
   it('custom mode, label/value sorts, and uncategorized category labels are supported', () => {
     const customResult = generateAnalyticsResult(
       records,
       {
         ...getDefaultAnalyticsQuery(),
         groupBy: 'projectCategory',
+        metric: 'membership-added',
         mode: 'custom',
         sort: 'label-desc',
         timeRange: '30d',
@@ -404,6 +568,7 @@ describe('analytics', () => {
       {
         ...getDefaultAnalyticsQuery(),
         groupBy: 'subCategory',
+        metric: 'membership-added',
         mode: 'custom',
         sort: 'value-asc',
         timeRange: '30d',
@@ -480,6 +645,7 @@ describe('analytics', () => {
         ...getDefaultAnalyticsQuery(),
         compareBy: 'mode',
         groupBy: 'domain',
+        metric: 'membership-added',
         mode: 'both',
         normalize: true,
         sort: 'value-asc',
@@ -535,6 +701,7 @@ describe('analytics', () => {
         chartType: 'pie',
         compareBy: 'mode',
         groupBy: 'domain',
+        metric: 'membership-added',
         mode: 'both',
         timeRange: '30d',
       },
@@ -544,6 +711,7 @@ describe('analytics', () => {
     )
 
     expect(result.chartSpecs[0]?.xKey).toBeUndefined()
+    expect(Object.hasOwn(result.chartSpecs[0] ?? {}, 'xKey')).toBe(false)
   })
 
   it('空データの normalize は0件として扱い日次タイトルを返す', () => {

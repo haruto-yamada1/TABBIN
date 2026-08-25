@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-l
 import type {
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
-} from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+} from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 const {
   sortableDomainCardSpy,

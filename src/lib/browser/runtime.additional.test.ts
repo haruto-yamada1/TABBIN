@@ -21,7 +21,11 @@ afterEach(() => {
   vi.resetModules()
   vi.doUnmock('webextension-polyfill')
   globalWithApis.browser = originalBrowser
-  globalWithApis.chrome = originalChrome
+  if (originalChrome === undefined) {
+    delete globalWithApis.chrome
+  } else {
+    globalWithApis.chrome = originalChrome
+  }
 })
 
 describe('sendRuntimeMessage の追加分岐', () => {
@@ -30,8 +34,8 @@ describe('sendRuntimeMessage の追加分岐', () => {
       throw new Error('import failed')
     })
 
-    globalWithApis.browser = undefined
-    globalWithApis.chrome = undefined
+    delete globalWithApis.browser
+    delete globalWithApis.chrome
 
     const { sendRuntimeMessage } = await import('./runtime')
     const response = await sendRuntimeMessage({ action: 'noop' })
@@ -48,7 +52,7 @@ describe('sendRuntimeMessage の追加分岐', () => {
       },
     }))
 
-    globalWithApis.browser = undefined
+    delete globalWithApis.browser
     globalWithApis.chrome = {
       runtime: {
         sendMessage: () => {
@@ -66,8 +70,8 @@ describe('sendRuntimeMessage の追加分岐', () => {
   it('polyfill が default export を返さない場合は undefined を返す', async () => {
     vi.doMock('webextension-polyfill', () => ({}))
 
-    globalWithApis.browser = undefined
-    globalWithApis.chrome = undefined
+    delete globalWithApis.browser
+    delete globalWithApis.chrome
 
     const { sendRuntimeMessage } = await import('./runtime')
     const response = await sendRuntimeMessage({ action: 'noop' })
@@ -82,8 +86,8 @@ describe('sendRuntimeMessage の追加分岐', () => {
       },
     }))
 
-    globalWithApis.browser = undefined
-    globalWithApis.chrome = undefined
+    delete globalWithApis.browser
+    delete globalWithApis.chrome
 
     const { connectRuntimePort } = await import('./runtime')
     const port = await connectRuntimePort('ai-chat-stream')
@@ -96,8 +100,8 @@ describe('sendRuntimeMessage の追加分岐', () => {
       throw new Error('import failed')
     })
 
-    globalWithApis.browser = undefined
-    globalWithApis.chrome = undefined
+    delete globalWithApis.browser
+    delete globalWithApis.chrome
 
     const { connectRuntimePort } = await import('./runtime')
     const port = await connectRuntimePort('ai-chat-stream')
@@ -112,7 +116,7 @@ describe('sendRuntimeMessage の追加分岐', () => {
       },
     }))
 
-    globalWithApis.browser = undefined
+    delete globalWithApis.browser
     globalWithApis.chrome = {
       runtime: {
         connect: () => {

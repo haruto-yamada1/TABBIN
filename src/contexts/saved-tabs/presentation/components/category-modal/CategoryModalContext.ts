@@ -1,5 +1,5 @@
-import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import type { useCategoryModal } from '@/contexts/saved-tabs/presentation/hooks/useCategoryModal'
+import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** CategoryModal のコンテキスト型 */
