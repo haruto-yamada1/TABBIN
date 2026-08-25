@@ -20,7 +20,7 @@ import { getCurrentUtcDateOnly } from './currentImportDate'
 import { getImportPreview, importSettings } from './flows'
 
 const currentV2 = {
-  appVersion: '2.0.8',
+  appVersion: '2.0.9',
   data: {
     analyticsViews: [],
     conversations: [],
@@ -160,7 +160,7 @@ describe('importSettings production pre-mutation gate', () => {
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-07-28T00:00:00.000Z',
-        version: '2.0.8',
+        version: '2.0.9',
       },
     })
   })

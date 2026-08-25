@@ -42,7 +42,7 @@ const settingsOnlyLegacyFixture = JSON.stringify({
   savedTabs: [],
   timestamp: '2026-08-01T00:00:00.000Z',
   userSettings: { language: 'en' },
-  version: '2.0.8',
+  version: '2.0.9',
 })
 
 const warningOnlyLegacyFixture = JSON.stringify({
