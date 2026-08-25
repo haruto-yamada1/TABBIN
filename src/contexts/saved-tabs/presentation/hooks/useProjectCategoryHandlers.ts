@@ -17,6 +17,33 @@ type ProjectCategoryHandlerDeps = {
 }
 
 type CustomProjectUrl = NonNullable<CustomProject['urls']>[number]
+type ResolvedCustomProjectUrl = CustomProjectUrl & { readonly id: string }
+
+const reorderProjectMemberships = (
+  memberships: CustomProject['memberships'],
+  urls: readonly ResolvedCustomProjectUrl[],
+): CustomProject['memberships'] => {
+  if (!memberships) {
+    return undefined
+  }
+  const orderByUrlId = new Map(
+    urls.map(({ id }, index) => [id, index] as const),
+  )
+  return memberships.toSorted((left, right) => {
+    const leftIndex = orderByUrlId.get(left.urlId)
+    const rightIndex = orderByUrlId.get(right.urlId)
+    if (leftIndex === undefined && rightIndex === undefined) {
+      return 0
+    }
+    if (leftIndex === undefined) {
+      return 1
+    }
+    if (rightIndex === undefined) {
+      return -1
+    }
+    return leftIndex - rightIndex
+  })
+}
 
 const renameUrlCategory = (
   item: CustomProjectUrl,
@@ -220,8 +247,13 @@ const useProjectCategoryHandlers = ({
               return project
             }
             const { urls: _currentUrls, ...projectWithoutUrls } = project
+            const memberships = reorderProjectMemberships(
+              project.memberships,
+              resolvedUrls,
+            )
             return {
               ...projectWithoutUrls,
+              ...(memberships !== undefined ? { memberships } : {}),
               updatedAt: Date.now(),
               ...(urls !== undefined ? { urls } : {}),
             }
