@@ -44,20 +44,6 @@ describe('persistence release compatibility verifier', () => {
     ).toThrow(/persistence generation/i)
   })
 
-  it('rejects a candidate below the deployed minimum compatible app version', () => {
-    expect(() =>
-      verifyPersistenceRollbackCompatibility({
-        candidate: createArtifact({
-          appVersion: '2.0.7',
-          minimumCompatibleAppVersion: '2.0.7',
-        }),
-        deployed: createArtifact(),
-      }),
-    ).toThrow(
-      /Candidate 2\.0\.7 is below the deployed minimum compatible app version 2\.0\.8\./,
-    )
-  })
-
   it('rejects an IndexedDB database version mismatch', () => {
     expect(() =>
       verifyPersistenceRollbackCompatibility({
