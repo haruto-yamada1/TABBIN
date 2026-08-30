@@ -292,6 +292,34 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     )
     expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
   })
+  it('issue code が空の blocked preflight は型付き fallback を記録する', async () => {
+    await loadBackground({
+      clearAfterImport: false,
+      setupMocks: () => {
+        mocked.runPersistenceMigration.mockResolvedValueOnce({
+          checkedAt: 1,
+          diagnostic: {
+            capacityStatus: 'blocked',
+            collisionCount: 0,
+            entityCounts: {},
+            issueCodes: [],
+            preflightVersion: 1,
+            sourceFingerprintVersion: 1,
+          },
+          issueCodes: [],
+          status: 'blocked',
+        })
+      },
+    })
+
+    expect(mocked.logger.warn).toHaveBeenCalledWith(
+      'background_persistence_migration_blocked',
+      {
+        errorCode: 'PERSISTENCE_PREFLIGHT_BLOCKED',
+        recordCount: 0,
+      },
+    )
+  })
   it.each([
     [
       'stale',

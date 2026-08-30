@@ -32,7 +32,7 @@ const reportPersistenceMigrationOutcome = (
     }
     case 'blocked': {
       logger.warn('background_persistence_migration_blocked', {
-        errorCode: outcome.issueCodes[0],
+        errorCode: outcome.issueCodes[0] ?? 'PERSISTENCE_PREFLIGHT_BLOCKED',
         recordCount: outcome.issueCodes.length,
       })
       break

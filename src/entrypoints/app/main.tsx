@@ -1,8 +1,6 @@
-import {
-  getMigrationPreflightController,
-  PRODUCTION_PERSISTENCE_V2_MIGRATION_ID,
-} from '@/app/composition/createMigrationPreflightController'
+import { getMigrationPreflightController } from '@/app/composition/createMigrationPreflightController'
 import type { MigrationPreflightControllerResult } from '@/app/composition/createMigrationPreflightController'
+import { createMigrationPreflightRecoveryDiagnostic } from '@/app/composition/createMigrationPreflightRecoveryDiagnostic'
 import { getPersistenceRecoveryController } from '@/app/composition/createPersistenceRecoveryController'
 import { PersistenceRecoveryNotice } from '@/app/composition/PersistenceRecoveryNotice'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -28,17 +26,7 @@ const reportMigrationRecoveryOutcome = (
         outcome.status === 'blocked'
           ? 'PERSISTENCE_PREFLIGHT_BLOCKED'
           : 'PERSISTENCE_PREFLIGHT_STALE',
-        {
-          errorCode:
-            outcome.status === 'blocked'
-              ? 'MIGRATION_SOURCE_BLOCKED'
-              : 'MIGRATION_SOURCE_CHANGED',
-          issueCodes: [...outcome.diagnostic.issueCodes],
-          migrationId: PRODUCTION_PERSISTENCE_V2_MIGRATION_ID,
-          sourceBytes: 0,
-          sourceEntityCounts: { ...outcome.diagnostic.entityCounts },
-          stage: 'preflight',
-        },
+        createMigrationPreflightRecoveryDiagnostic(outcome),
       )
       return
     }

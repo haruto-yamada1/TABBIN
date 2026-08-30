@@ -113,6 +113,14 @@ describe('createPersistenceRecoveryController', () => {
     expect(calls).toEqual(['preflight'])
     expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
       'PERSISTENCE_PREFLIGHT_BLOCKED',
+      {
+        errorCode: 'MIGRATION_SOURCE_BLOCKED',
+        issueCodes: ['MIGRATION_SOURCE_INVALID_TYPE'],
+        migrationId: 'persistence-v2-production',
+        sourceBytes: 0,
+        sourceEntityCounts: {},
+        stage: 'preflight',
+      },
     )
   })
 
@@ -145,6 +153,14 @@ describe('createPersistenceRecoveryController', () => {
     expect(calls).toEqual(['preflight'])
     expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
       'PERSISTENCE_PREFLIGHT_STALE',
+      {
+        errorCode: 'MIGRATION_SOURCE_CHANGED',
+        issueCodes: [],
+        migrationId: 'persistence-v2-production',
+        sourceBytes: 0,
+        sourceEntityCounts: {},
+        stage: 'preflight',
+      },
     )
   })
 })
