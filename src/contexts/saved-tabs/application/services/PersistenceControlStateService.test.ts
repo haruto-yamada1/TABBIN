@@ -60,6 +60,14 @@ describe('PersistenceControlStateService', () => {
       status: 'failed',
       migrationId: 'migration-1',
       errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      diagnostic: {
+        errorCode: 'MIGRATION_TARGET_WRITE_FAILED',
+        issueCodes: ['DUPLICATE_URL_ID'],
+        migrationId: 'migration-1',
+        sourceBytes: 128,
+        sourceEntityCounts: { urls: 2 },
+        stage: 'target-write',
+      },
     },
     {
       status: 'failed',
@@ -96,6 +104,19 @@ describe('PersistenceControlStateService', () => {
     {
       status: 'failed',
       errorCode: 'UNKNOWN_ERROR',
+    },
+    {
+      status: 'failed',
+      migrationId: 'migration-1',
+      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      diagnostic: {
+        errorCode: 'MIGRATION_TARGET_WRITE_FAILED',
+        issueCodes: ['DUPLICATE_URL_ID'],
+        migrationId: 'migration-1',
+        sourceBytes: -1,
+        sourceEntityCounts: { urls: 2 },
+        stage: 'target-write',
+      },
     },
     {
       status: 'read-only-emergency',

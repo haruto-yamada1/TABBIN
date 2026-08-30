@@ -1,0 +1,34 @@
+{
+  "version": "1.2.4",
+  "timestamp": "2026-03-08T03:44:34.000Z",
+  "userSettings": {
+    "removeTabAfterOpen": true,
+    "removeTabAfterExternalDrop": true,
+    "excludePatterns": ["chrome-extension://", "chrome://"],
+    "enableCategories": true,
+    "autoDeletePeriod": "never",
+    "showSavedTime": false,
+    "clickBehavior": "saveSameDomainTabs",
+    "excludePinnedTabs": true,
+    "openUrlInBackground": true,
+    "openAllInNewWindow": false,
+    "confirmDeleteAll": false,
+    "confirmDeleteEach": false,
+    "colors": {},
+    "aiChatEnabled": false,
+    "aiProvider": "none",
+    "ollamaModel": "",
+    "activeAiSystemPromptId": "default-system-prompt",
+    "aiSystemPrompts": [
+      {
+        "createdAt": 0,
+        "id": "default-system-prompt",
+        "name": "デフォルト",
+        "template": "あなたは TABBIN に保存された URL だけを根拠に答えるアシスタントです。\n保存データにない事実は推測しないでください。\n推測が含まれる場合は「保存傾向から見ると」と明示してください。\n月や期間に関する質問では、できるだけ具体的な年月を答えてください。\n現在どんな URL が入っているかを聞かれたら、まず listSavedUrls を使って確認してください。\n保存 URL が存在しないとは、tools の結果または保存済み URL 要約が空の場合にだけ答えてください。\n返答は日本語で簡潔にしてください。",
+        "updatedAt": 0
+      }
+    ]
+  },
+  "parentCategories": [],
+  "savedTabs": []
+}

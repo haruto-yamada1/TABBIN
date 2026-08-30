@@ -55,6 +55,31 @@ describe('PersistenceRecoveryService', () => {
     })
   })
 
+  it('hydrates the recovery state from a persisted failed-state diagnostic', () => {
+    const diagnostic = {
+      errorCode: 'MIGRATION_TARGET_WRITE_FAILED' as const,
+      issueCodes: ['DUPLICATE_URL_ID'],
+      migrationId: 'migration-1',
+      sourceBytes: 128,
+      sourceEntityCounts: { urls: 2 },
+      stage: 'target-write' as const,
+    }
+    const service = new PersistenceRecoveryService({
+      retry: vi.fn(async () => undefined),
+    })
+
+    Reflect.apply(service.reportUnavailable, service, [
+      'PERSISTENCE_MIGRATION_FAILED',
+      diagnostic,
+    ])
+
+    expect(service.getSnapshot()).toEqual({
+      diagnostic,
+      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      status: 'unavailable',
+    })
+  })
+
   it('keeps the latest typed error visible when retry fails again', async () => {
     expect.hasAssertions()
     const retry = vi.fn(async () => {

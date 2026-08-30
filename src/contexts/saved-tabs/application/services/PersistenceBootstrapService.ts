@@ -247,10 +247,13 @@ export class PersistenceBootstrapService implements PersistenceBootstrapPort {
     try {
       return await operation()
     } catch (error) {
+      const diagnostic =
+        this.options.migrationLifecycle?.readFailureDiagnostic?.()
       await this.options.controlStateRepository.transition({
         type: 'fail',
         migrationId,
         errorCode,
+        ...(diagnostic?.migrationId === migrationId ? { diagnostic } : {}),
       })
       throw new PersistenceUnavailableError(errorCode, { cause: error })
     }

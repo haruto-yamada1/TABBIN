@@ -136,6 +136,26 @@ describe('assertProductionImportAllowed', () => {
     })
   })
 
+  it('accepts official 1.2.4 settings without forwarding retired AI provider fields', () => {
+    const allowed = assertProductionImportAllowed(
+      readFixture('legacy-v1.2.4-user-settings.json'),
+      {
+        importDate: '2026-09-30',
+        importMode: 'merge',
+      },
+    )
+    if (allowed?.kind !== 'legacy-merge') {
+      throw new TypeError('Expected legacy merge import')
+    }
+
+    expect(allowed.userSettingsPatch).toMatchObject({
+      activeAiSystemPromptId: 'default-system-prompt',
+      clickBehavior: 'saveSameDomainTabs',
+    })
+    expect(allowed.userSettingsPatch).not.toHaveProperty('aiChatEnabled')
+    expect(allowed.userSettingsPatch).not.toHaveProperty('aiProvider')
+  })
+
   it('accepts the legacy exporter runtime prompt without forwarding it to settings', () => {
     const legacy: unknown = JSON.parse(
       readFixture('legacy-tab-group-url-ids.json'),

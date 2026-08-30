@@ -28,6 +28,12 @@ export const createPersistenceRecoveryController = (
   reportUnavailable: options.bootstrapRecovery.reportUnavailable,
   rerunPreflightAndRetry: async () => {
     const status = await options.preflight.run()
+    if (status.status === 'blocked') {
+      options.bootstrapRecovery.reportUnavailable(
+        'PERSISTENCE_PREFLIGHT_BLOCKED',
+      )
+      throw new PersistenceUnavailableError('PERSISTENCE_PREFLIGHT_BLOCKED')
+    }
     if (status.status !== 'healthy') {
       options.bootstrapRecovery.reportUnavailable('PERSISTENCE_PREFLIGHT_STALE')
       throw new PersistenceUnavailableError('PERSISTENCE_PREFLIGHT_STALE')

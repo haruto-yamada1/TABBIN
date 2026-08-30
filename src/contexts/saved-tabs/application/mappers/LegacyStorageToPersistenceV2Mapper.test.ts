@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import { MIGRATION_SOURCE_KEYS } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
@@ -36,6 +38,54 @@ const withSource = (
   ...snapshot,
   [key]: { status: 'present', value },
 })
+
+const parsedProductionDuplicateDomainFixture: unknown = JSON.parse(
+  readFileSync(
+    new URL(
+      'fixtures/legacy-v2.0.8-duplicate-domain-groups.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+)
+const isProductionDuplicateDomainFixture = (
+  value: unknown,
+): value is { readonly savedTabs: unknown; readonly urls: unknown } =>
+  typeof value === 'object' &&
+  value !== null &&
+  'savedTabs' in value &&
+  'urls' in value
+if (
+  !isProductionDuplicateDomainFixture(parsedProductionDuplicateDomainFixture)
+) {
+  throw new TypeError('Invalid production duplicate-domain fixture')
+}
+const productionDuplicateDomainFixture = parsedProductionDuplicateDomainFixture
+
+const parsedProductionActionFixture: unknown = JSON.parse(
+  readFileSync(
+    new URL('fixtures/legacy-v2.0.8-action-storage.json', import.meta.url),
+    'utf8',
+  ),
+)
+const isProductionActionFixture = (
+  value: unknown,
+): value is {
+  readonly customProjectOrder: unknown
+  readonly customProjects: unknown
+  readonly savedTabs: unknown
+  readonly urls: unknown
+} =>
+  typeof value === 'object' &&
+  value !== null &&
+  'customProjectOrder' in value &&
+  'customProjects' in value &&
+  'savedTabs' in value &&
+  'urls' in value
+if (!isProductionActionFixture(parsedProductionActionFixture)) {
+  throw new TypeError('Invalid production action fixture')
+}
+const productionActionFixture = parsedProductionActionFixture
 
 describe('analyzeLegacyMigrationPreflight', () => {
   it('uses the dedicated pure legacy-to-v2 mapper as the preflight source of truth', () => {
@@ -136,6 +186,111 @@ describe('analyzeLegacyMigrationPreflight', () => {
         }),
       ]),
     )
+  })
+
+  it('losslessly merges the duplicate normalized domain groups preserved by the 2.0.8 production migration', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'urls', productionDuplicateDomainFixture.urls)
+    source = withSource(
+      source,
+      'savedTabs',
+      productionDuplicateDomainFixture.savedTabs,
+    )
+
+    const result = mapLegacyStorageToPersistenceV2(source)
+
+    expect(
+      result.issues.filter(({ severity }) => severity === 'error'),
+    ).toEqual([])
+    expect(result.issues).toContainEqual({
+      code: 'DUPLICATE_DOMAIN_COLLECTION',
+      occurrenceCount: 1,
+      severity: 'warning',
+    })
+    expect(result.snapshot.collections).toEqual([
+      expect.objectContaining({
+        createdAt: 10,
+        definition: { domain: 'x.example.com', type: 'domain' },
+        id: 'group-1',
+        updatedAt: 20,
+      }),
+    ])
+    expect(result.snapshot.memberships).toEqual([
+      expect.objectContaining({
+        collectionId: 'group-1',
+        sortOrder: 0,
+        urlId: 'url-1',
+      }),
+      expect.objectContaining({
+        collectionId: 'group-1',
+        sortOrder: 1024,
+        urlId: 'url-2',
+      }),
+    ])
+    expect(result.snapshot.urls.map(({ id }) => id)).toEqual(['url-1', 'url-2'])
+  })
+
+  it('keeps duplicate domain groups fail-closed when category metadata is ambiguous', () => {
+    const source = withSource(createEmptySnapshot(), 'savedTabs', [
+      {
+        domain: 'https://x.example.com',
+        id: 'group-1',
+        subCategories: ['docs'],
+        urlIds: [],
+      },
+      {
+        domain: 'x.example.com',
+        id: 'group-2',
+        urlIds: [],
+      },
+    ])
+
+    const result = mapLegacyStorageToPersistenceV2(source)
+
+    expect(result.issues).toContainEqual({
+      code: 'DUPLICATE_DOMAIN_COLLECTION',
+      occurrenceCount: 1,
+      severity: 'error',
+    })
+    expect(result.snapshot.collections).toHaveLength(2)
+  })
+
+  it('accepts the canonical-only custom project references written by the 2.0.8 action runtime', () => {
+    let source = createEmptySnapshot()
+    source = withSource(
+      source,
+      'customProjectOrder',
+      productionActionFixture.customProjectOrder,
+    )
+    source = withSource(
+      source,
+      'customProjects',
+      productionActionFixture.customProjects,
+    )
+    source = withSource(source, 'savedTabs', productionActionFixture.savedTabs)
+    source = withSource(source, 'urls', productionActionFixture.urls)
+
+    const result = mapLegacyStorageToPersistenceV2(source)
+
+    expect(
+      result.issues.filter(({ severity }) => severity === 'error'),
+    ).toEqual([])
+    expect(result.snapshot.collections).toHaveLength(2)
+    expect(result.snapshot.memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          collectionId: 'domain-1',
+          urlId: 'url-1',
+        }),
+        expect.objectContaining({
+          collectionId: 'custom-uncategorized',
+          urlId: 'url-1',
+        }),
+      ]),
+    )
+    expect(result.snapshot.urls).toEqual([
+      expect.objectContaining({ id: 'url-1' }),
+    ])
   })
 
   it('reports non-JSON-safe target values without throwing', () => {

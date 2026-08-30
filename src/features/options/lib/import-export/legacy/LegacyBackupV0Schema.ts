@@ -20,6 +20,8 @@ const legacyUserSettingsSchema = z
   .strictObject({
     activeAiSystemPrompt: legacyAiSystemPromptPresetSchema.optional(),
     activeAiSystemPromptId: z.string().optional(),
+    aiChatEnabled: z.boolean().optional(),
+    aiProvider: z.enum(['none', 'ollama']).optional(),
     aiSystemPrompts: z.array(legacyAiSystemPromptPresetSchema).optional(),
     autoDeletePeriod: z
       .enum([
@@ -59,8 +61,12 @@ const legacyUserSettingsSchema = z
     showSavedTime: z.boolean().optional(),
   })
   .transform(
-    ({ activeAiSystemPrompt: _activeAiSystemPrompt, ...persistableSettings }) =>
-      persistableSettings,
+    ({
+      activeAiSystemPrompt: _activeAiSystemPrompt,
+      aiChatEnabled: _aiChatEnabled,
+      aiProvider: _aiProvider,
+      ...persistableSettings
+    }) => persistableSettings,
   )
 
 const legacyNestedUrlSchema = z.strictObject({

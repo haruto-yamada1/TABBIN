@@ -34,8 +34,9 @@ export class PersistenceRecoveryService implements PersistenceBootstrapRecoveryC
 
   readonly reportUnavailable = (
     errorCode: PersistenceBootstrapErrorCode,
+    persistedDiagnostic?: PersistenceV2MigrationDiagnostic,
   ): void => {
-    const diagnostic = this.options.readDiagnostic?.()
+    const diagnostic = persistedDiagnostic ?? this.options.readDiagnostic?.()
     if (
       this.state.status === 'unavailable' &&
       this.state.errorCode === errorCode &&
@@ -75,10 +76,10 @@ export class PersistenceRecoveryService implements PersistenceBootstrapRecoveryC
   }
 
   private readonly retainFailure = (error: unknown): void => {
-    this.reportUnavailable(
-      error instanceof PersistenceUnavailableError
-        ? error.code
-        : 'PERSISTENCE_RECOVERY_REQUIRED',
-    )
+    if (error instanceof PersistenceUnavailableError) {
+      this.reportUnavailable(error.code, error.diagnostic)
+      return
+    }
+    this.reportUnavailable('PERSISTENCE_RECOVERY_REQUIRED')
   }
 }
