@@ -5,11 +5,31 @@ import type {
   PersistenceControlStateTransition,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { PERSISTENCE_BOOTSTRAP_ERROR_CODES } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import type {
+  PersistenceV2MigrationDiagnostic,
+  PersistenceV2MigrationStage,
+} from '@/contexts/saved-tabs/application/ports/PersistenceRecoveryPort'
+import { PERSISTENCE_V2_MIGRATION_ERROR_CODES } from '@/contexts/saved-tabs/application/ports/PersistenceRecoveryPort'
 import { PERSISTENCE_GENERATION } from '@/contexts/saved-tabs/application/services/PersistenceReleasePolicyService'
+import { PERSISTENCE_SOURCE_ENTITY_KINDS } from '@/lib/persistence/capacity'
 
 const persistenceBootstrapErrorCodes = new Set<string>(
   PERSISTENCE_BOOTSTRAP_ERROR_CODES,
 )
+const persistenceV2MigrationErrorCodes = new Set<string>(
+  PERSISTENCE_V2_MIGRATION_ERROR_CODES,
+)
+const persistenceV2MigrationStages = new Set<string>([
+  'preflight',
+  'source-map',
+  'target-read',
+  'target-write',
+  'verification',
+] satisfies readonly PersistenceV2MigrationStage[])
+const persistenceSourceEntityKinds = new Set<string>(
+  PERSISTENCE_SOURCE_ENTITY_KINDS,
+)
+const SAFE_ISSUE_CODE_PATTERN = /^[A-Z0-9][A-Z0-9_:-]{0,127}$/u
 
 const persistenceControlStatuses = new Set<string>([
   'cutover-pending',
@@ -37,6 +57,59 @@ const hasOnlyKeys = (
 
 const isMigrationId = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0
+
+const isSafeCount = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+
+const isPersistenceV2MigrationErrorCode = (
+  value: unknown,
+): value is PersistenceV2MigrationDiagnostic['errorCode'] =>
+  typeof value === 'string' && persistenceV2MigrationErrorCodes.has(value)
+
+const isPersistenceV2MigrationStage = (
+  value: unknown,
+): value is PersistenceV2MigrationStage =>
+  typeof value === 'string' && persistenceV2MigrationStages.has(value)
+
+const decodeMigrationDiagnostic = (
+  value: unknown,
+): PersistenceV2MigrationDiagnostic => {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, [
+      'errorCode',
+      'issueCodes',
+      'migrationId',
+      'sourceBytes',
+      'sourceEntityCounts',
+      'stage',
+    ]) ||
+    !isPersistenceV2MigrationErrorCode(value.errorCode) ||
+    !Array.isArray(value.issueCodes) ||
+    !value.issueCodes.every(
+      (code): code is string =>
+        typeof code === 'string' && SAFE_ISSUE_CODE_PATTERN.test(code),
+    ) ||
+    !isMigrationId(value.migrationId) ||
+    !isSafeCount(value.sourceBytes) ||
+    !isRecord(value.sourceEntityCounts) ||
+    !Object.entries(value.sourceEntityCounts).every(
+      ([kind, count]) =>
+        persistenceSourceEntityKinds.has(kind) && isSafeCount(count),
+    ) ||
+    !isPersistenceV2MigrationStage(value.stage)
+  ) {
+    return invalidControlState()
+  }
+  return {
+    errorCode: value.errorCode,
+    issueCodes: [...value.issueCodes],
+    migrationId: value.migrationId,
+    sourceBytes: value.sourceBytes,
+    sourceEntityCounts: { ...value.sourceEntityCounts },
+    stage: value.stage,
+  }
+}
 
 const isPersistenceBootstrapErrorCode = (
   value: unknown,
@@ -99,12 +172,17 @@ const decodeFailedState = (
   value: Record<string, unknown>,
 ): PersistenceControlState => {
   const hasMigrationId = Object.hasOwn(value, 'migrationId')
-  const keys = hasMigrationId
-    ? ['status', 'migrationId', 'errorCode']
-    : ['status', 'errorCode']
+  const hasDiagnostic = Object.hasOwn(value, 'diagnostic')
+  const keys = [
+    'status',
+    ...(hasMigrationId ? ['migrationId'] : []),
+    'errorCode',
+    ...(hasDiagnostic ? ['diagnostic'] : []),
+  ]
   if (
     !hasOnlyKeys(value, keys) ||
-    !isPersistenceBootstrapErrorCode(value.errorCode)
+    !isPersistenceBootstrapErrorCode(value.errorCode) ||
+    (hasDiagnostic && !hasMigrationId)
   ) {
     return invalidControlState()
   }
@@ -114,10 +192,17 @@ const decodeFailedState = (
   if (!isMigrationId(value.migrationId)) {
     return invalidControlState()
   }
+  const diagnostic = hasDiagnostic
+    ? decodeMigrationDiagnostic(value.diagnostic)
+    : undefined
+  if (diagnostic && diagnostic.migrationId !== value.migrationId) {
+    return invalidControlState()
+  }
   return {
     status: 'failed',
     migrationId: value.migrationId,
     errorCode: value.errorCode,
+    ...(diagnostic ? { diagnostic } : {}),
   }
 }
 
@@ -280,10 +365,19 @@ const failMigration = (
   ) {
     return invalidTransition()
   }
+  if (
+    transition.diagnostic !== undefined &&
+    transition.diagnostic.migrationId !== current.migrationId
+  ) {
+    return invalidTransition()
+  }
   return {
     status: 'failed',
     migrationId: current.migrationId,
     errorCode: transition.errorCode,
+    ...(transition.diagnostic === undefined
+      ? {}
+      : { diagnostic: transition.diagnostic }),
   }
 }
 

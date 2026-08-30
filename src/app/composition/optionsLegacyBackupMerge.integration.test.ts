@@ -266,7 +266,6 @@ describe('options legacy Backup merge integration', () => {
   })
 
   it('rejects a settings-only legacy import while IndexedDB is read-only', async () => {
-    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const operationGate = createIndexedDbGate({
       migrationId: 'migration-1',
       persistenceGeneration: 2,
@@ -295,13 +294,16 @@ describe('options legacy Backup merge integration', () => {
       { importDate: '2026-09-30' },
     )
 
-    expect(result.success).toBe(false)
+    expect(result).toMatchObject({
+      diagnostic: {
+        errorCode: 'PERSISTENCE_READ_ONLY',
+        issueCodes: [],
+        stage: 'legacy-merge',
+      },
+      success: false,
+    })
     expect(readUserSettings).toHaveBeenCalledOnce()
     expect(writeUserSettings).not.toHaveBeenCalled()
-    expect(errorSpy).toHaveBeenCalledWith(
-      'インポートエラー:',
-      expect.objectContaining({ code: 'PERSISTENCE_READ_ONLY' }),
-    )
   })
 
   it('replaces a cached runtime when explicit dependencies are supplied', () => {

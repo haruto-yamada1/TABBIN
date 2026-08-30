@@ -779,11 +779,19 @@ const checkParallelUrlRepresentations = (
   }
 }
 
+type SavedTabAppendOptions = {
+  readonly indexOffset?: number
+  readonly targetCollectionId?: string
+}
+
 const appendSavedTabMemberships = (
   input: DecodedSavedTab,
   categoryIds: ReadonlyMap<string, string>,
   state: AnalyzerState,
+  options: SavedTabAppendOptions = {},
 ): void => {
+  const targetCollectionId = options.targetCollectionId ?? input.collectionId
+  const indexOffset = options.indexOffset ?? 0
   const ids = input.urlIds ?? []
   const idSet = new Set(ids)
   ids.forEach((urlId, index) => {
@@ -801,8 +809,8 @@ const appendSavedTabMemberships = (
     }
     addMembership(state, {
       ...(categoryId ? { categoryId } : {}),
-      collectionId: input.collectionId,
-      index,
+      collectionId: targetCollectionId,
+      index: indexOffset + index,
       timestamp: input.timestamp,
       timestampProvenance: 'legacy-fallback',
       urlId,
@@ -886,7 +894,9 @@ const appendNestedSavedTabUrl = (
   input: {
     readonly categoryIds: ReadonlyMap<string, string>
     readonly idSet: ReadonlySet<string>
+    readonly indexOffset: number
     readonly savedTab: DecodedSavedTab
+    readonly targetCollectionId: string
   },
   state: AnalyzerState,
 ): void => {
@@ -903,13 +913,14 @@ const appendNestedSavedTabUrl = (
     decoded,
     savedTab: input.savedTab,
   })
-  const membershipIndex = (input.savedTab.urlIds?.length ?? 0) + index
+  const membershipIndex =
+    input.indexOffset + (input.savedTab.urlIds?.length ?? 0) + index
   if (state.urlsById.has(decoded.id)) {
     appendExistingNestedSavedTabUrl(
       decoded,
       {
         ...(categoryId ? { categoryId } : {}),
-        collectionId: input.savedTab.collectionId,
+        collectionId: input.targetCollectionId,
         idSet: input.idSet,
         index: membershipIndex,
       },
@@ -923,7 +934,7 @@ const appendNestedSavedTabUrl = (
   }
   addMembership(state, {
     ...(categoryId ? { categoryId } : {}),
-    collectionId: input.savedTab.collectionId,
+    collectionId: input.targetCollectionId,
     index: membershipIndex,
     timestamp: decoded.savedAt ?? url.firstSavedAt,
     timestampProvenance:
@@ -936,13 +947,22 @@ const appendNestedSavedTabUrls = (
   input: DecodedSavedTab,
   categoryIds: ReadonlyMap<string, string>,
   state: AnalyzerState,
+  options: SavedTabAppendOptions = {},
 ): void => {
+  const targetCollectionId = options.targetCollectionId ?? input.collectionId
+  const indexOffset = options.indexOffset ?? 0
   const idSet = new Set(input.urlIds)
   ;(input.nestedUrls ?? []).forEach((item, index) => {
     appendNestedSavedTabUrl(
       item,
       index,
-      { categoryIds, idSet, savedTab: input },
+      {
+        categoryIds,
+        idSet,
+        indexOffset,
+        savedTab: input,
+        targetCollectionId,
+      },
       state,
     )
   })
@@ -1020,6 +1040,173 @@ const resolveDomainCategories = (
   return { keywords, names }
 }
 
+type DecodedSavedTabEntry = {
+  readonly collectionIndex: number
+  readonly input: DecodedSavedTab
+}
+
+type DuplicateDomainMergePlan = {
+  readonly collectionId: string
+  readonly collectionIndex: number
+  readonly createdAt: number
+  nextMembershipIndex: number
+  readonly updatedAt: number
+}
+
+const hasDuplicateDomainParentMetadata = (
+  input: DecodedSavedTab,
+  relations: ParentRelationContext,
+): boolean =>
+  input.parentCategoryId !== undefined ||
+  (relations.parentsByCollectionId.get(input.collectionId)?.size ?? 0) > 0 ||
+  (relations.parentsByDomain.get(input.domain)?.size ?? 0) > 0 ||
+  (relations.mappingParentsByDomain.get(input.domain)?.size ?? 0) > 0
+
+const hasDuplicateDomainCategoryMetadata = (input: DecodedSavedTab): boolean =>
+  input.subCategories.length > 0 ||
+  input.subCategoryOrder !== undefined ||
+  Object.keys(input.urlSubCategories).length > 0 ||
+  (input.record.categoryKeywords !== undefined &&
+    (!Array.isArray(input.record.categoryKeywords) ||
+      input.record.categoryKeywords.length > 0)) ||
+  (input.nestedUrls?.length ?? 0) > 0
+
+const hasDuplicateDomainMetadata = (
+  input: DecodedSavedTab,
+  relations: ParentRelationContext,
+): boolean =>
+  hasDuplicateDomainParentMetadata(input, relations) ||
+  hasDuplicateDomainCategoryMetadata(input)
+
+const hasOverlappingSavedTabUrlIds = (
+  entries: readonly DecodedSavedTabEntry[],
+): boolean => {
+  const seenUrlIds = new Set<string>()
+  for (const { input } of entries) {
+    for (const urlId of input.urlIds ?? []) {
+      if (seenUrlIds.has(urlId)) {
+        return true
+      }
+      seenUrlIds.add(urlId)
+    }
+  }
+  return false
+}
+
+const canMergeDuplicateDomainEntries = (
+  entries: readonly DecodedSavedTabEntry[],
+  relations: ParentRelationContext,
+): boolean =>
+  !entries.some(({ input }) => hasDuplicateDomainMetadata(input, relations)) &&
+  !hasOverlappingSavedTabUrlIds(entries)
+
+const createDuplicateDomainMergePlans = (
+  entries: readonly DecodedSavedTabEntry[],
+  relations: ParentRelationContext,
+  state: AnalyzerState,
+): ReadonlyMap<string, DuplicateDomainMergePlan> => {
+  const entriesByDomain = new Map<string, DecodedSavedTabEntry[]>()
+  for (const entry of entries) {
+    const matches = entriesByDomain.get(entry.input.domain) ?? []
+    matches.push(entry)
+    entriesByDomain.set(entry.input.domain, matches)
+  }
+  const plans = new Map<string, DuplicateDomainMergePlan>()
+  for (const [domain, matches] of entriesByDomain) {
+    if (
+      matches.length < 2 ||
+      !canMergeDuplicateDomainEntries(matches, relations)
+    ) {
+      continue
+    }
+    const canonical = matches[0]
+    plans.set(domain, {
+      collectionId: canonical.input.collectionId,
+      collectionIndex: canonical.collectionIndex,
+      createdAt: Math.min(...matches.map(({ input }) => input.timestamp)),
+      nextMembershipIndex: 0,
+      updatedAt: Math.max(...matches.map(({ input }) => input.timestamp)),
+    })
+    addIssue(state, 'DUPLICATE_DOMAIN_COLLECTION', 'warning')
+  }
+  return plans
+}
+
+const getSavedTabMembershipSpan = (input: DecodedSavedTab): number =>
+  (input.urlIds?.length ?? 0) + (input.nestedUrls?.length ?? 0)
+
+type SavedTabsParseContext = {
+  readonly categoryIdsByDomain: Map<string, ReadonlyMap<string, string>>
+  readonly matchedSettingDomains: Set<string>
+  readonly mergePlans: ReadonlyMap<string, DuplicateDomainMergePlan>
+  readonly relations: ParentRelationContext
+  readonly settingsByDomain: ReadonlyMap<string, DecodedDomainCategorySetting>
+  readonly state: AnalyzerState
+}
+
+const createSavedTabCategoryIds = (
+  entry: DecodedSavedTabEntry,
+  targetCollectionId: string,
+  mergePlan: DuplicateDomainMergePlan | undefined,
+  context: SavedTabsParseContext,
+): ReadonlyMap<string, string> => {
+  if (mergePlan && mergePlan.collectionIndex !== entry.collectionIndex) {
+    return context.categoryIdsByDomain.get(entry.input.domain) ?? new Map()
+  }
+  const { input } = entry
+  context.state.collections.push({
+    createdAt: mergePlan?.createdAt ?? input.timestamp,
+    definition: { domain: input.domain, type: 'domain' },
+    ...(input.parentCategoryId ? { groupId: input.parentCategoryId } : {}),
+    id: targetCollectionId,
+    name: input.domain,
+    sortOrder: entry.collectionIndex * ORDER_GAP,
+    updatedAt: mergePlan?.updatedAt ?? input.timestamp,
+  })
+  const setting = context.settingsByDomain.get(input.domain)
+  if (setting) {
+    context.matchedSettingDomains.add(input.domain)
+  }
+  const categories = resolveDomainCategories(input, setting, context.state)
+  const categoryIds = createCategories(context.state, {
+    collectionId: targetCollectionId,
+    createdAt: input.timestamp,
+    keywords: categories.keywords,
+    names: categories.names,
+    updatedAt: input.timestamp,
+  })
+  if (mergePlan) {
+    context.categoryIdsByDomain.set(input.domain, categoryIds)
+  }
+  return categoryIds
+}
+
+const appendSavedTabEntry = (
+  entry: DecodedSavedTabEntry,
+  context: SavedTabsParseContext,
+): void => {
+  const { input } = entry
+  const mergePlan = context.mergePlans.get(input.domain)
+  const targetCollectionId = mergePlan?.collectionId ?? input.collectionId
+  if (hasParentRelationConflict(input, context.relations)) {
+    addIssue(context.state, 'LEGACY_PARENT_CATEGORY_CONFLICT', 'error')
+  }
+  const categoryIds = createSavedTabCategoryIds(
+    entry,
+    targetCollectionId,
+    mergePlan,
+    context,
+  )
+  const indexOffset = mergePlan?.nextMembershipIndex ?? 0
+  const appendOptions = { indexOffset, targetCollectionId }
+  checkParallelUrlRepresentations(input, context.state)
+  appendSavedTabMemberships(input, categoryIds, context.state, appendOptions)
+  appendNestedSavedTabUrls(input, categoryIds, context.state, appendOptions)
+  if (mergePlan) {
+    mergePlan.nextMembershipIndex += getSavedTabMembershipSpan(input)
+  }
+}
+
 const parseSavedTabs = (
   values: readonly unknown[],
   relations: ParentRelationContext,
@@ -1027,39 +1214,25 @@ const parseSavedTabs = (
   state: AnalyzerState,
 ): void => {
   const matchedSettingDomains = new Set<string>()
+  const entries: DecodedSavedTabEntry[] = []
   values.forEach((value, collectionIndex) => {
     const input = decodeSavedTab(value, state)
-    if (!input) {
-      return
+    if (input) {
+      entries.push({ collectionIndex, input })
     }
-    if (hasParentRelationConflict(input, relations)) {
-      addIssue(state, 'LEGACY_PARENT_CATEGORY_CONFLICT', 'error')
-    }
-    state.collections.push({
-      createdAt: input.timestamp,
-      definition: { domain: input.domain, type: 'domain' },
-      ...(input.parentCategoryId ? { groupId: input.parentCategoryId } : {}),
-      id: input.collectionId,
-      name: input.domain,
-      sortOrder: collectionIndex * ORDER_GAP,
-      updatedAt: input.timestamp,
-    })
-    const setting = settingsByDomain.get(input.domain)
-    if (setting) {
-      matchedSettingDomains.add(input.domain)
-    }
-    const categories = resolveDomainCategories(input, setting, state)
-    const categoryIds = createCategories(state, {
-      collectionId: input.collectionId,
-      createdAt: input.timestamp,
-      keywords: categories.keywords,
-      names: categories.names,
-      updatedAt: input.timestamp,
-    })
-    checkParallelUrlRepresentations(input, state)
-    appendSavedTabMemberships(input, categoryIds, state)
-    appendNestedSavedTabUrls(input, categoryIds, state)
   })
+  const mergePlans = createDuplicateDomainMergePlans(entries, relations, state)
+  const context: SavedTabsParseContext = {
+    categoryIdsByDomain: new Map(),
+    matchedSettingDomains,
+    mergePlans,
+    relations,
+    settingsByDomain,
+    state,
+  }
+  for (const entry of entries) {
+    appendSavedTabEntry(entry, context)
+  }
   for (const domain of settingsByDomain.keys()) {
     if (!matchedSettingDomains.has(domain)) {
       addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
@@ -1402,7 +1575,11 @@ const appendNestedCustomProjectUrls = (
   state: AnalyzerState,
 ): void => {
   const ids = input.urlIds ?? []
-  if (input.urlIds && input.nestedUrls.length !== ids.length) {
+  if (
+    input.urlIds &&
+    input.nestedUrls.length > 0 &&
+    input.nestedUrls.length !== ids.length
+  ) {
     addIssue(state, 'LEGACY_URL_REFERENCE_CONFLICT', 'error')
   }
   input.nestedUrls.forEach((item, index) => {

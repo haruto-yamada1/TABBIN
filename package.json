@@ -74,6 +74,7 @@
     "test:firefox:smoke": "playwright test --config playwright.firefox.config.ts",
     "build:firefox:migration-smoke-harness": "bun build e2e/support/firefox-persistence-v2-migration-harness.ts --outfile=.output/firefox-persistence-v2-migration-harness.js --target=browser --format=iife --define 'import.meta.env={\"DEV\":false,\"PROD\":true,\"MODE\":\"test\"}'",
     "test:firefox:migration-smoke": "bun run build:firefox && bun run build:firefox:migration-smoke-harness && bun tools/scripts/firefox-persistence-migration-smoke.ts",
+    "test:production-artifact-upgrade": "bun tools/scripts/production-artifact-upgrade-smoke.ts",
     "knip": "knip",
     "doctor": "react-doctor",
     "verify:app-version": "bun tools/scripts/verify-app-version.ts",

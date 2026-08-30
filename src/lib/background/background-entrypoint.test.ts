@@ -189,7 +189,11 @@ const loadBackground = async (
     vi.stubEnv('DEV', options.dev)
   }
   mocked.openSavedTabsPage.mockResolvedValue(123)
-  mocked.runPersistenceMigration.mockResolvedValue(undefined)
+  mocked.runPersistenceMigration.mockResolvedValue({
+    migrationId: 'persistence-v2-production',
+    persistenceGeneration: 2,
+    status: 'indexeddb',
+  })
   mocked.getParentCategories.mockResolvedValue([])
   mocked.migrateParentCategoriesToDomainNames.mockResolvedValue(undefined)
   mocked.createContextMenus.mockImplementation(() => {})
@@ -256,6 +260,119 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       changelogShown: true,
     })
   })
+  it('preflight blocked を migration completed として報告しない', async () => {
+    await loadBackground({
+      clearAfterImport: false,
+      setupMocks: () => {
+        mocked.runPersistenceMigration.mockResolvedValueOnce({
+          checkedAt: 1,
+          diagnostic: {
+            capacityStatus: 'blocked',
+            collisionCount: 1,
+            entityCounts: { urls: 2 },
+            issueCodes: ['DUPLICATE_URL_ID'],
+            preflightVersion: 1,
+            sourceFingerprintVersion: 1,
+          },
+          issueCodes: ['DUPLICATE_URL_ID'],
+          status: 'blocked',
+        })
+      },
+    })
+
+    expect(mocked.logger.debug).not.toHaveBeenCalledWith(
+      'background_persistence_migration_completed',
+    )
+    expect(mocked.logger.warn).toHaveBeenCalledWith(
+      'background_persistence_migration_blocked',
+      {
+        errorCode: 'DUPLICATE_URL_ID',
+        recordCount: 1,
+      },
+    )
+    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
+  })
+  it('issue code が空の blocked preflight は型付き fallback を記録する', async () => {
+    await loadBackground({
+      clearAfterImport: false,
+      setupMocks: () => {
+        mocked.runPersistenceMigration.mockResolvedValueOnce({
+          checkedAt: 1,
+          diagnostic: {
+            capacityStatus: 'blocked',
+            collisionCount: 0,
+            entityCounts: {},
+            issueCodes: [],
+            preflightVersion: 1,
+            sourceFingerprintVersion: 1,
+          },
+          issueCodes: [],
+          status: 'blocked',
+        })
+      },
+    })
+
+    expect(mocked.logger.warn).toHaveBeenCalledWith(
+      'background_persistence_migration_blocked',
+      {
+        errorCode: 'PERSISTENCE_PREFLIGHT_BLOCKED',
+        recordCount: 0,
+      },
+    )
+  })
+  it.each([
+    [
+      'stale',
+      {
+        checkedAt: 1,
+        diagnostic: {
+          capacityStatus: 'blocked',
+          collisionCount: 0,
+          entityCounts: {},
+          issueCodes: [],
+          preflightVersion: 1,
+          sourceFingerprintVersion: 1,
+        },
+        status: 'stale',
+      },
+      'background_persistence_migration_stale',
+    ],
+    [
+      'failed',
+      {
+        errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+        migrationId: 'persistence-v2-production',
+        status: 'failed',
+      },
+      'background_persistence_migration_failed',
+    ],
+    [
+      'read-only emergency',
+      {
+        migrationId: 'persistence-v2-production',
+        persistenceGeneration: 2,
+        readSource: 'indexeddb',
+        status: 'read-only-emergency',
+      },
+      'background_persistence_migration_read_only',
+    ],
+  ] as const)(
+    '%s outcome を migration completed として報告しない',
+    async (_label, outcome, event) => {
+      await loadBackground({
+        clearAfterImport: false,
+        setupMocks: () => {
+          mocked.runPersistenceMigration.mockResolvedValueOnce(outcome)
+        },
+      })
+
+      expect(mocked.logger.debug).not.toHaveBeenCalledWith(
+        'background_persistence_migration_completed',
+      )
+      expect(mocked.logger.warn).toHaveBeenCalledWith(event, expect.anything())
+      expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
+    },
+  )
   it('更新時は最初に changelog を開き、その後 saved-tabs を開く', async () => {
     const harness = await loadBackground({
       initialStorage: {

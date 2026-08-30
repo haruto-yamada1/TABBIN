@@ -8,6 +8,7 @@ export const PERSISTENCE_BOOTSTRAP_ERROR_CODES = [
   'PERSISTENCE_CONTROL_STATE_INVALID',
   'PERSISTENCE_CONTROL_STATE_ACCESS_POLICY_FAILED',
   'PERSISTENCE_COORDINATION_UNAVAILABLE',
+  'PERSISTENCE_PREFLIGHT_BLOCKED',
   'PERSISTENCE_PREFLIGHT_STALE',
   'PERSISTENCE_MIGRATION_FAILED',
   'PERSISTENCE_VERIFICATION_FAILED',
@@ -45,6 +46,7 @@ export type PersistenceControlState =
       readonly status: 'failed'
       readonly migrationId?: string
       readonly errorCode: PersistenceBootstrapErrorCode
+      readonly diagnostic?: PersistenceV2MigrationDiagnostic
     }
   | {
       readonly status: 'read-only-emergency'
@@ -79,6 +81,7 @@ export type PersistenceControlStateTransition =
       readonly type: 'fail'
       readonly migrationId?: string
       readonly errorCode: PersistenceBootstrapErrorCode
+      readonly diagnostic?: PersistenceV2MigrationDiagnostic
     }
   | {
       readonly type: 'enter-read-only-emergency'
@@ -122,6 +125,9 @@ export type PersistenceMigrationLifecyclePort = {
     migrationId: string,
   ) => Promise<string>
   readonly migrate: (migrationId: string) => Promise<void>
+  readonly readFailureDiagnostic?: () =>
+    | PersistenceV2MigrationDiagnostic
+    | undefined
   readonly verify: (migrationId: string) => Promise<void>
 }
 
@@ -184,7 +190,10 @@ export type PersistenceRecoveryState =
     }
 
 export type PersistenceRecoveryReporterPort = {
-  readonly reportUnavailable: (errorCode: PersistenceBootstrapErrorCode) => void
+  readonly reportUnavailable: (
+    errorCode: PersistenceBootstrapErrorCode,
+    diagnostic?: PersistenceV2MigrationDiagnostic,
+  ) => void
 }
 
 export type PersistenceBootstrapRecoveryControllerPort =

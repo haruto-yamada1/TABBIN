@@ -140,20 +140,32 @@ describe('PersistenceDataPlaneRouterService', () => {
   })
 
   it('propagates the recorded error code in failed state without invoking either backend', async () => {
+    const diagnostic = {
+      errorCode: 'MIGRATION_TARGET_WRITE_FAILED' as const,
+      issueCodes: ['DUPLICATE_URL_ID'],
+      migrationId: 'migration-1',
+      sourceBytes: 128,
+      sourceEntityCounts: { urls: 2 },
+      stage: 'target-write' as const,
+    }
     const { recovery, router } = createRouter({
       status: 'failed',
-      errorCode: 'PERSISTENCE_CONTROL_STATE_INVALID',
+      diagnostic,
+      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      migrationId: 'migration-1',
     })
     const legacy = vi.fn(async () => 'legacy')
     const indexeddb = vi.fn(async () => 'indexeddb')
 
-    await expect(router.read({ indexeddb, legacy })).rejects.toEqual(
-      new PersistenceUnavailableError('PERSISTENCE_CONTROL_STATE_INVALID'),
-    )
+    await expect(router.read({ indexeddb, legacy })).rejects.toMatchObject({
+      code: 'PERSISTENCE_MIGRATION_FAILED',
+      diagnostic,
+    })
     expect(legacy).not.toHaveBeenCalled()
     expect(indexeddb).not.toHaveBeenCalled()
     expect(recovery.reportUnavailable).toHaveBeenCalledWith(
-      'PERSISTENCE_CONTROL_STATE_INVALID',
+      'PERSISTENCE_MIGRATION_FAILED',
+      diagnostic,
     )
   })
 })

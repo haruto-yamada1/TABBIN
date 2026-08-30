@@ -7,6 +7,8 @@ import type {
 import { getMigrationPreflightRuntime } from '@/contexts/saved-tabs/infrastructure/composition/migrationPreflightRuntime'
 import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 
+import { createMigrationPreflightRecoveryDiagnostic } from './createMigrationPreflightRecoveryDiagnostic'
+
 export type PersistenceRecoveryControllerOptions = {
   readonly bootstrapRecovery: PersistenceBootstrapRecoveryControllerPort
   readonly now: () => number
@@ -28,6 +30,17 @@ export const createPersistenceRecoveryController = (
   reportUnavailable: options.bootstrapRecovery.reportUnavailable,
   rerunPreflightAndRetry: async () => {
     const status = await options.preflight.run()
+    if (status.status === 'blocked' || status.status === 'stale') {
+      const errorCode =
+        status.status === 'blocked'
+          ? 'PERSISTENCE_PREFLIGHT_BLOCKED'
+          : 'PERSISTENCE_PREFLIGHT_STALE'
+      options.bootstrapRecovery.reportUnavailable(
+        errorCode,
+        createMigrationPreflightRecoveryDiagnostic(status),
+      )
+      throw new PersistenceUnavailableError(errorCode)
+    }
     if (status.status !== 'healthy') {
       options.bootstrapRecovery.reportUnavailable('PERSISTENCE_PREFLIGHT_STALE')
       throw new PersistenceUnavailableError('PERSISTENCE_PREFLIGHT_STALE')

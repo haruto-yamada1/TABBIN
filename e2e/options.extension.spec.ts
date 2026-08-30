@@ -129,13 +129,15 @@ const createLegacyBackup = () => {
       ...defaultUserSettings,
       activeAiSystemPrompt,
       activeAiSystemPromptId: activeAiSystemPrompt.id,
+      aiChatEnabled: false,
+      aiProvider: 'none',
       aiSystemPrompts: [activeAiSystemPrompt],
       autoDeletePeriod: 'never',
       clickBehavior: 'saveCurrentTab',
       openUrlInBackground: false,
       removeTabAfterOpen: true,
     },
-    version: '2.0.9',
+    version: '1.2.4',
   }
 }
 
@@ -188,6 +190,55 @@ test.describe('extension options', () => {
 
     await page.reload()
     await expect(page.getByText('Example Home')).toBeVisible()
+  })
+
+  test('blocked preflightを安全な診断と再確認導線として表示する', async ({
+    extensionId,
+    page,
+    serviceWorker,
+  }) => {
+    await seedStorage(
+      serviceWorker,
+      createBaseSeed({
+        savedTabs: [
+          {
+            domain: 'blocked.example',
+            id: 'group-blocked',
+            urlIds: ['duplicate-url'],
+          },
+        ],
+        urls: [
+          {
+            id: 'duplicate-url',
+            savedAt: now - 1,
+            title: 'First duplicate',
+            url: 'https://blocked.example/first',
+          },
+          {
+            id: 'duplicate-url',
+            savedAt: now,
+            title: 'Second duplicate',
+            url: 'https://blocked.example/second',
+          },
+        ],
+      }),
+    )
+
+    await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+
+    const recoveryAlert = page
+      .getByRole('alert')
+      .filter({ hasText: 'Storage recovery required' })
+    await expect(recoveryAlert).toBeVisible()
+    await expect(recoveryAlert).toContainText('Storage recovery required')
+    await recoveryAlert.getByText('Safe migration diagnostics').click()
+    await expect(recoveryAlert).toContainText('MIGRATION_SOURCE_BLOCKED')
+    await expect(recoveryAlert).toContainText('DUPLICATE_URL_ID')
+
+    await recoveryAlert
+      .getByRole('button', { name: 'Run checks and retry' })
+      .click()
+    await expect(recoveryAlert).toBeVisible()
   })
 
   test('設定をBackup V2でエクスポートできる', async ({
@@ -408,6 +459,24 @@ test.describe('extension options', () => {
             }),
           ]),
         }),
+      )
+
+      await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+      const downloadPromise = page.waitForEvent('download')
+      await page.getByRole('button', { name: /export/i }).click()
+      const download = await downloadPromise
+      const downloadPath = await download.path()
+      expect(downloadPath).toBeTruthy()
+      const exported = BackupEnvelopeV2Schema.parse(
+        JSON.parse(await readFile(downloadPath as string, 'utf8')),
+      )
+      expect(exported.schemaVersion).toBe(2)
+      expect(exported.data.userSettings).not.toHaveProperty('aiChatEnabled')
+      expect(exported.data.userSettings).not.toHaveProperty('aiProvider')
+      expect(exported.data.savedTabs.urls).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ url: 'https://legacy.example/' }),
+        ]),
       )
     } finally {
       await rm(tmpDir, { force: true, recursive: true })

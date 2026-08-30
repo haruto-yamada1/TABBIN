@@ -108,11 +108,59 @@ describe('createPersistenceRecoveryController', () => {
     })
 
     await expect(controller.rerunPreflightAndRetry()).rejects.toMatchObject({
+      code: 'PERSISTENCE_PREFLIGHT_BLOCKED',
+    })
+    expect(calls).toEqual(['preflight'])
+    expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
+      'PERSISTENCE_PREFLIGHT_BLOCKED',
+      {
+        errorCode: 'MIGRATION_SOURCE_BLOCKED',
+        issueCodes: ['MIGRATION_SOURCE_INVALID_TYPE'],
+        migrationId: 'persistence-v2-production',
+        sourceBytes: 0,
+        sourceEntityCounts: {},
+        stage: 'preflight',
+      },
+    )
+  })
+
+  it('keeps a repeated stale preflight distinct from blocked', async () => {
+    const calls: string[] = []
+    const bootstrapRecovery = createBootstrapRecovery(calls)
+    const controller = createPersistenceRecoveryController({
+      bootstrapRecovery,
+      now: () => 123,
+      preflight: createPreflight(
+        {
+          checkedAt: 1,
+          diagnostic: {
+            capacityStatus: 'blocked',
+            collisionCount: 0,
+            entityCounts: {},
+            issueCodes: [],
+            preflightVersion: 1,
+            sourceFingerprintVersion: 1,
+          },
+          status: 'stale',
+        },
+        calls,
+      ),
+    })
+
+    await expect(controller.rerunPreflightAndRetry()).rejects.toMatchObject({
       code: 'PERSISTENCE_PREFLIGHT_STALE',
     })
     expect(calls).toEqual(['preflight'])
     expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
       'PERSISTENCE_PREFLIGHT_STALE',
+      {
+        errorCode: 'MIGRATION_SOURCE_CHANGED',
+        issueCodes: [],
+        migrationId: 'persistence-v2-production',
+        sourceBytes: 0,
+        sourceEntityCounts: {},
+        stage: 'preflight',
+      },
     )
   })
 })

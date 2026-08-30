@@ -49,7 +49,11 @@ export class PersistenceDataPlaneRouterService implements PersistenceDataPlaneRo
       })
     } catch (error) {
       if (error instanceof PersistenceUnavailableError) {
-        this.options.recovery.reportUnavailable(error.code)
+        if (error.diagnostic) {
+          this.options.recovery.reportUnavailable(error.code, error.diagnostic)
+        } else {
+          this.options.recovery.reportUnavailable(error.code)
+        }
       }
       throw error
     }
@@ -71,7 +75,10 @@ export class PersistenceDataPlaneRouterService implements PersistenceDataPlaneRo
         return state.readSource
       }
       case 'failed': {
-        throw new PersistenceUnavailableError(state.errorCode)
+        throw new PersistenceUnavailableError(
+          state.errorCode,
+          state.diagnostic ? { diagnostic: state.diagnostic } : undefined,
+        )
       }
       case 'migrating':
       case 'verifying':
