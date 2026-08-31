@@ -1,15 +1,18 @@
 import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { MigrationPreflightServicePort } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
 import type {
+  PersistenceBootstrapPort,
   PersistenceBootstrapRecoveryControllerPort,
   PersistenceRecoveryControllerPort,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { getMigrationPreflightRuntime } from '@/contexts/saved-tabs/infrastructure/composition/migrationPreflightRuntime'
 import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 
+import { PRODUCTION_PERSISTENCE_V2_MIGRATION_ID } from './createMigrationPreflightController'
 import { createMigrationPreflightRecoveryDiagnostic } from './createMigrationPreflightRecoveryDiagnostic'
 
 export type PersistenceRecoveryControllerOptions = {
+  readonly bootstrap: Pick<PersistenceBootstrapPort, 'migrate' | 'readState'>
   readonly bootstrapRecovery: PersistenceBootstrapRecoveryControllerPort
   readonly now: () => number
   readonly preflight: MigrationPreflightServicePort
@@ -45,6 +48,10 @@ export const createPersistenceRecoveryController = (
       options.bootstrapRecovery.reportUnavailable('PERSISTENCE_PREFLIGHT_STALE')
       throw new PersistenceUnavailableError('PERSISTENCE_PREFLIGHT_STALE')
     }
+    const controlState = await options.bootstrap.readState()
+    if (controlState.status === 'legacy' || controlState.status === 'failed') {
+      await options.bootstrap.migrate(PRODUCTION_PERSISTENCE_V2_MIGRATION_ID)
+    }
     await options.bootstrapRecovery.retry()
   },
   retry: options.bootstrapRecovery.retry,
@@ -55,8 +62,10 @@ let controller: PersistenceRecoveryControllerPort | undefined
 
 export const getPersistenceRecoveryController =
   (): PersistenceRecoveryControllerPort => {
+    const bootstrapRuntime = getPersistenceBootstrapRuntime()
     controller ??= createPersistenceRecoveryController({
-      bootstrapRecovery: getPersistenceBootstrapRuntime().recovery,
+      bootstrap: bootstrapRuntime.bootstrap,
+      bootstrapRecovery: bootstrapRuntime.recovery,
       now: Date.now,
       preflight: getMigrationPreflightRuntime().service,
     })

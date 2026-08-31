@@ -223,4 +223,30 @@ describe('PersistenceOperationGateService', () => {
       }),
     ).rejects.toBe(operationError)
   })
+
+  it('does not report a stale route mismatch after the route becomes authorized', async () => {
+    const repository = createRepository({ status: 'legacy' })
+    vi.mocked(repository.read)
+      .mockResolvedValueOnce({ status: 'legacy' })
+      .mockResolvedValueOnce({
+        migrationId: 'migration-1',
+        persistenceGeneration: 2,
+        status: 'indexeddb',
+      })
+    const recovery = createRecovery()
+    const gate = new PersistenceOperationGateService({
+      bootstrap: createBootstrap(),
+      controlStateRepository: repository,
+      coordination: createCoordination(),
+      recovery,
+    })
+
+    await expectUnavailableCode(
+      gate.runIndexedDbWrite(async () => 'unexpected'),
+      'PERSISTENCE_ROUTE_MISMATCH',
+    )
+
+    expect(repository.read).toHaveBeenCalledTimes(2)
+    expect(recovery.reportUnavailable).not.toHaveBeenCalled()
+  })
 })
