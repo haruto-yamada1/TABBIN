@@ -1,3 +1,5 @@
+import { getPersistenceRecoveryController } from '@/app/composition/createPersistenceRecoveryController'
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceV2UnitOfWorkPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import {
@@ -25,6 +27,7 @@ export type OptionsLegacyBackupMergeRuntime = {
 }
 
 export type OptionsLegacyBackupMergeRuntimeDeps = {
+  readonly clearRecovery: () => void
   readonly createConnectionManager: () => IndexedDbConnectionManager
   readonly createUnitOfWork: (
     connectionManager: IndexedDbConnectionManager,
@@ -32,6 +35,7 @@ export type OptionsLegacyBackupMergeRuntimeDeps = {
   ) => PersistenceV2UnitOfWorkPort
   readonly getOperationGate: () => PersistenceOperationGatePort
   readonly readUserSettings: typeof readUserSettingsWithoutRepair
+  readonly recoverLegacyRoute: () => Promise<void>
   readonly writeUserSettings: typeof saveUserSettings
 }
 
@@ -41,11 +45,16 @@ type ManagedOptionsLegacyBackupMergeRuntime =
   }
 
 const defaultDeps: OptionsLegacyBackupMergeRuntimeDeps = {
+  clearRecovery: () => {
+    getPersistenceRecoveryController().clear()
+  },
   createConnectionManager: () => new IndexedDbConnectionManager(),
   createUnitOfWork: (connectionManager, operationGate) =>
     new IndexedDbPersistenceUnitOfWork(connectionManager, operationGate),
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   readUserSettings: readUserSettingsWithoutRepair,
+  recoverLegacyRoute: async () =>
+    getPersistenceRecoveryController().rerunPreflightAndRetry(),
   writeUserSettings: saveUserSettings,
 }
 
@@ -65,7 +74,7 @@ const createRuntime = (
     operationGate.runIndexedDbWrite(async () =>
       deps.writeUserSettings(settings),
     )
-  const mergeLegacyBackup = createImportLegacyBackupMergeUseCase({
+  const mergeLegacyBackupOnce = createImportLegacyBackupMergeUseCase({
     commit: unitOfWork.commit.bind(unitOfWork),
     hasBlockingSavedTabsIssues: (savedTabs) =>
       hasBlockingPersistenceIntegrityIssues(
@@ -75,6 +84,24 @@ const createRuntime = (
     readUserSettings: deps.readUserSettings,
     writeUserSettings,
   })
+  const mergeLegacyBackup = async (
+    input: LegacyBackupMergeInput,
+  ): Promise<LegacyBackupMergeResult> => {
+    try {
+      return await mergeLegacyBackupOnce(input)
+    } catch (error) {
+      if (
+        !(error instanceof PersistenceUnavailableError) ||
+        error.code !== 'PERSISTENCE_ROUTE_MISMATCH'
+      ) {
+        throw error
+      }
+      await deps.recoverLegacyRoute()
+      const result = await mergeLegacyBackupOnce(input)
+      deps.clearRecovery()
+      return result
+    }
+  }
   return {
     close: () => {
       connectionManager.close()

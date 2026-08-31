@@ -54,6 +54,31 @@ const createSeedWithUrls = () =>
     userSettings: { ...defaultUserSettings, clickBehavior: 'saveCurrentTab' },
   })
 
+const createBlockedPreflightSeed = () =>
+  createBaseSeed({
+    savedTabs: [
+      {
+        domain: 'blocked.example',
+        id: 'group-blocked',
+        urlIds: ['duplicate-url'],
+      },
+    ],
+    urls: [
+      {
+        id: 'duplicate-url',
+        savedAt: now - 1,
+        title: 'First duplicate',
+        url: 'https://blocked.example/first',
+      },
+      {
+        id: 'duplicate-url',
+        savedAt: now,
+        title: 'Second duplicate',
+        url: 'https://blocked.example/second',
+      },
+    ],
+  })
+
 const createLegacyBackup = () => {
   const activeAiSystemPrompt = {
     createdAt: now - 1,
@@ -197,32 +222,7 @@ test.describe('extension options', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(
-      serviceWorker,
-      createBaseSeed({
-        savedTabs: [
-          {
-            domain: 'blocked.example',
-            id: 'group-blocked',
-            urlIds: ['duplicate-url'],
-          },
-        ],
-        urls: [
-          {
-            id: 'duplicate-url',
-            savedAt: now - 1,
-            title: 'First duplicate',
-            url: 'https://blocked.example/first',
-          },
-          {
-            id: 'duplicate-url',
-            savedAt: now,
-            title: 'Second duplicate',
-            url: 'https://blocked.example/second',
-          },
-        ],
-      }),
-    )
+    await seedStorage(serviceWorker, createBlockedPreflightSeed())
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
 
@@ -239,6 +239,64 @@ test.describe('extension options', () => {
       .getByRole('button', { name: 'Run checks and retry' })
       .click()
     await expect(recoveryAlert).toBeVisible()
+  })
+
+  test('blocked preflight修復後に旧形式importをIndexedDBへ保存できる', async ({
+    extensionId,
+    page,
+    serviceWorker,
+  }) => {
+    await seedStorage(serviceWorker, createBlockedPreflightSeed())
+
+    await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+    const recoveryAlert = page
+      .getByRole('alert')
+      .filter({ hasText: 'Storage recovery required' })
+    await expect(recoveryAlert).toBeVisible()
+
+    await serviceWorker.evaluate(
+      async (urls) => {
+        await chrome.storage.local.set({ urls })
+      },
+      [
+        {
+          id: 'duplicate-url',
+          savedAt: now,
+          title: 'Recovered legacy URL',
+          url: 'https://blocked.example/recovered',
+        },
+      ],
+    )
+    const tmpDir = await mkdtemp(
+      path.join(os.tmpdir(), 'tabbin-import-after-recovery-'),
+    )
+    try {
+      const tmpFilePath = path.join(tmpDir, 'tabbin-backup-legacy.json')
+      await writeFile(tmpFilePath, JSON.stringify(createLegacyBackup()))
+
+      await page.getByRole('button', { name: /import/i }).click()
+      await page
+        .locator('[data-testid="hidden-file-input"]')
+        .setInputFiles(tmpFilePath)
+      await page.getByRole('button', { name: /confirm.*import/i }).click()
+      await expect(
+        page.getByRole('button', { name: /confirm.*import/i }),
+      ).toBeHidden()
+
+      await waitForPersistenceV2Ready(serviceWorker)
+      await expect(recoveryAlert).toBeHidden()
+      await expect
+        .poll(async () => {
+          const snapshot =
+            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+          return snapshot.urls.some(
+            ({ url }) => url === 'https://legacy.example/',
+          )
+        })
+        .toBe(true)
+    } finally {
+      await rm(tmpDir, { force: true, recursive: true })
+    }
   })
 
   test('設定をBackup V2でエクスポートできる', async ({
