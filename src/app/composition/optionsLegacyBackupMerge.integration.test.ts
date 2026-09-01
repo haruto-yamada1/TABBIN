@@ -42,7 +42,7 @@ const settingsOnlyLegacyFixture = JSON.stringify({
   savedTabs: [],
   timestamp: '2026-08-01T00:00:00.000Z',
   userSettings: { language: 'en' },
-  version: '2.0.9',
+  version: '2.0.16',
 })
 
 const warningOnlyLegacyFixture = JSON.stringify({
@@ -58,7 +58,7 @@ const warningOnlyLegacyFixture = JSON.stringify({
     },
   ],
   userSettings: {},
-  version: '2.0.9',
+  version: '2.0.16',
 })
 
 const indexedDbState = {

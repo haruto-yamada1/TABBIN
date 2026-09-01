@@ -83,7 +83,7 @@ const createLegacyExporterBackup = () => {
       activeAiSystemPromptId: activeAiSystemPrompt.id,
       aiSystemPrompts: [activeAiSystemPrompt],
     },
-    version: '2.0.9',
+    version: '2.0.16',
   }
 }
 
