@@ -3,20 +3,45 @@ import { render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { MigrationPreflightController } from '@/app/composition/createMigrationPreflightController'
+
 const mocked = vi.hoisted(() => {
-  const runMigrationPreflight = vi.fn(async () => {})
+  const runMigrationPreflight = vi.fn<MigrationPreflightController['run']>(
+    async () => ({
+      migrationId: 'persistence-v2-production',
+      persistenceGeneration: 2,
+      status: 'indexeddb',
+    }),
+  )
+  const availableRecoveryState = { status: 'available' }
+  const reportUnavailable = vi.fn()
+  const recoveryController = {
+    clear: vi.fn(),
+    createEmergencyBackup: vi.fn(),
+    getSnapshot: () => availableRecoveryState,
+    rerunPreflightAndRetry: vi.fn(),
+    reportUnavailable,
+    retry: vi.fn(),
+    subscribe: () => () => undefined,
+  }
   return {
     createRoot: vi.fn(),
     getMigrationPreflightController: vi.fn(() => ({
       run: runMigrationPreflight,
     })),
+    getPersistenceRecoveryController: vi.fn(() => recoveryController),
     renderRoot: vi.fn(),
+    reportUnavailable,
     runMigrationPreflight,
   }
 })
 
 vi.mock('@/app/composition/createMigrationPreflightController', () => ({
   getMigrationPreflightController: mocked.getMigrationPreflightController,
+  PRODUCTION_PERSISTENCE_V2_MIGRATION_ID: 'persistence-v2-production',
+}))
+vi.mock('@/app/composition/createPersistenceRecoveryController', () => ({
+  getPersistenceRecoveryController: mocked.getPersistenceRecoveryController,
 }))
 
 vi.mock('react-dom/client', () => ({
@@ -116,6 +141,11 @@ describe('app bootstrap', () => {
       await new Promise<void>((resolve) => {
         resolvePreflight = resolve
       })
+      return {
+        migrationId: 'persistence-v2-production',
+        persistenceGeneration: 2,
+        status: 'indexeddb',
+      }
     })
 
     vi.spyOn(document, 'addEventListener').mockImplementation(((
@@ -204,5 +234,56 @@ describe('app bootstrap', () => {
 
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('raw secret')).toBeNull()
+  })
+
+  it('blocked preflight を recovery UI state へ安全に伝える', async () => {
+    let domReadyHandler: EventListener | undefined
+    mocked.runMigrationPreflight.mockResolvedValueOnce({
+      checkedAt: 1,
+      diagnostic: {
+        capacityStatus: 'blocked',
+        collisionCount: 1,
+        entityCounts: { urls: 2 },
+        issueCodes: ['DUPLICATE_URL_ID'],
+        preflightVersion: 1,
+        sourceFingerprintVersion: 1,
+      },
+      issueCodes: ['DUPLICATE_URL_ID'],
+      status: 'blocked',
+    })
+    vi.spyOn(document, 'addEventListener').mockImplementation(((
+      type: string,
+      callback: EventListenerOrEventListenerObject | null,
+    ) => {
+      if (type === 'DOMContentLoaded' && typeof callback === 'function') {
+        domReadyHandler = callback
+      }
+    }) as typeof document.addEventListener)
+
+    await importModule()
+    document.body.innerHTML = '<div id="app"></div>'
+    domReadyHandler?.(new Event('DOMContentLoaded'))
+
+    await vi.waitFor(() =>
+      expect(mocked.runMigrationPreflight).toHaveBeenCalledOnce(),
+    )
+    await expect(
+      mocked.runMigrationPreflight.mock.results[0]?.value,
+    ).resolves.toMatchObject({ status: 'blocked' })
+    await vi.waitFor(() => {
+      expect(mocked.getPersistenceRecoveryController).toHaveBeenCalled()
+      expect(mocked.reportUnavailable).toHaveBeenCalledWith(
+        'PERSISTENCE_PREFLIGHT_BLOCKED',
+        {
+          errorCode: 'MIGRATION_SOURCE_BLOCKED',
+          issueCodes: ['DUPLICATE_URL_ID'],
+          migrationId: 'persistence-v2-production',
+          sourceBytes: 0,
+          sourceEntityCounts: { urls: 2 },
+          stage: 'preflight',
+        },
+      )
+      expect(mocked.renderRoot).toHaveBeenCalledOnce()
+    })
   })
 })

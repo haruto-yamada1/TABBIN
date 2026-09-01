@@ -42,7 +42,7 @@ const settingsOnlyLegacyFixture = JSON.stringify({
   savedTabs: [],
   timestamp: '2026-08-01T00:00:00.000Z',
   userSettings: { language: 'en' },
-  version: '2.0.9',
+  version: '2.0.16',
 })
 
 const warningOnlyLegacyFixture = JSON.stringify({
@@ -58,7 +58,7 @@ const warningOnlyLegacyFixture = JSON.stringify({
     },
   ],
   userSettings: {},
-  version: '2.0.9',
+  version: '2.0.16',
 })
 
 const indexedDbState = {
@@ -132,11 +132,13 @@ describe('options legacy Backup merge integration', () => {
     })
     const writeUserSettings = vi.fn(async () => undefined)
     getOptionsLegacyBackupMergeRuntime({
+      clearRecovery: vi.fn(),
       createConnectionManager: () => connectionManager,
       createUnitOfWork: (manager, gate) =>
         new IndexedDbPersistenceUnitOfWork(manager, gate),
       getOperationGate: () => operationGate,
       readUserSettings: vi.fn(async () => defaultSettings),
+      recoverLegacyRoute: vi.fn(async () => undefined),
       writeUserSettings,
     })
     await new IndexedDbPersistenceUnitOfWork(
@@ -242,11 +244,13 @@ describe('options legacy Backup merge integration', () => {
       indexedDb: new IDBFactory(),
     })
     getOptionsLegacyBackupMergeRuntime({
+      clearRecovery: vi.fn(),
       createConnectionManager: () => connectionManager,
       createUnitOfWork: (manager, gate) =>
         new IndexedDbPersistenceUnitOfWork(manager, gate),
       getOperationGate: () => operationGate,
       readUserSettings: vi.fn(async () => defaultSettings),
+      recoverLegacyRoute: vi.fn(async () => undefined),
       writeUserSettings: vi.fn(async () => undefined),
     })
 
@@ -265,8 +269,68 @@ describe('options legacy Backup merge integration', () => {
     ])
   })
 
+  it('recovers a legacy route before importing the backup into IndexedDB', async () => {
+    let state: PersistenceControlState = { status: 'legacy' }
+    const bootstrap: PersistenceBootstrapPort = {
+      migrate: vi.fn(async () => undefined),
+      readState: vi.fn(async () => state),
+      ready: vi.fn(async () => undefined),
+    }
+    const controlStateRepository: PersistenceControlStateRepositoryPort = {
+      read: vi.fn(async () => state),
+      transition: vi.fn(),
+    }
+    const operationGate = new PersistenceOperationGateService({
+      bootstrap,
+      controlStateRepository,
+      coordination: {
+        runExclusive: async (operation) => operation(),
+        runShared: async (operation) => operation(),
+      },
+      recovery: { reportUnavailable: vi.fn() },
+    })
+    const recoverLegacyRoute = vi.fn(async () => {
+      state = indexedDbState
+    })
+    const clearRecovery = vi.fn()
+    const connectionManager = new IndexedDbConnectionManager({
+      databaseName: 'options-legacy-route-recovery',
+      indexedDb: new IDBFactory(),
+    })
+    getOptionsLegacyBackupMergeRuntime({
+      clearRecovery,
+      createConnectionManager: () => connectionManager,
+      createUnitOfWork: (manager, gate) =>
+        new IndexedDbPersistenceUnitOfWork(manager, gate),
+      getOperationGate: () => operationGate,
+      readUserSettings: vi.fn(async () => defaultSettings),
+      recoverLegacyRoute,
+      writeUserSettings: vi.fn(async () => undefined),
+    })
+
+    const result = await importSettings(legacyFixture, true, undefined, {
+      importDate: '2026-09-30',
+    })
+
+    expect(result.success).toBe(true)
+    expect(recoverLegacyRoute).toHaveBeenCalledOnce()
+    expect(clearRecovery).toHaveBeenCalledOnce()
+    expect(migrateToUrlsStorage).not.toHaveBeenCalled()
+    const snapshot = await new IndexedDbPersistenceSnapshotReader(
+      connectionManager,
+      operationGate,
+    ).readConsistentSnapshot()
+    expect(snapshot.savedTabs.urls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'Nested guide',
+          url: 'https://nested.example.com/guide',
+        }),
+      ]),
+    )
+  })
+
   it('rejects a settings-only legacy import while IndexedDB is read-only', async () => {
-    using errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const operationGate = createIndexedDbGate({
       migrationId: 'migration-1',
       persistenceGeneration: 2,
@@ -280,11 +344,13 @@ describe('options legacy Backup merge integration', () => {
     const readUserSettings = vi.fn(async () => defaultSettings)
     const writeUserSettings = vi.fn(async () => undefined)
     getOptionsLegacyBackupMergeRuntime({
+      clearRecovery: vi.fn(),
       createConnectionManager: () => connectionManager,
       createUnitOfWork: (manager, gate) =>
         new IndexedDbPersistenceUnitOfWork(manager, gate),
       getOperationGate: () => operationGate,
       readUserSettings,
+      recoverLegacyRoute: vi.fn(async () => undefined),
       writeUserSettings,
     })
 
@@ -295,13 +361,16 @@ describe('options legacy Backup merge integration', () => {
       { importDate: '2026-09-30' },
     )
 
-    expect(result.success).toBe(false)
+    expect(result).toMatchObject({
+      diagnostic: {
+        errorCode: 'PERSISTENCE_READ_ONLY',
+        issueCodes: [],
+        stage: 'legacy-merge',
+      },
+      success: false,
+    })
     expect(readUserSettings).toHaveBeenCalledOnce()
     expect(writeUserSettings).not.toHaveBeenCalled()
-    expect(errorSpy).toHaveBeenCalledWith(
-      'インポートエラー:',
-      expect.objectContaining({ code: 'PERSISTENCE_READ_ONLY' }),
-    )
   })
 
   it('replaces a cached runtime when explicit dependencies are supplied', () => {
@@ -315,6 +384,7 @@ describe('options legacy Backup merge integration', () => {
     })
     const operationGate = createIndexedDbGate()
     const createDeps = (manager: IndexedDbConnectionManager) => ({
+      clearRecovery: vi.fn(),
       createConnectionManager: () => manager,
       createUnitOfWork: (
         connectionManager: IndexedDbConnectionManager,
@@ -322,6 +392,7 @@ describe('options legacy Backup merge integration', () => {
       ) => new IndexedDbPersistenceUnitOfWork(connectionManager, gate),
       getOperationGate: () => operationGate,
       readUserSettings: vi.fn(async () => defaultSettings),
+      recoverLegacyRoute: vi.fn(async () => undefined),
       writeUserSettings: vi.fn(async () => undefined),
     })
 

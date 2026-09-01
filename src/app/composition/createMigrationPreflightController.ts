@@ -1,13 +1,23 @@
-import type { MigrationPreflightServicePort } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
-import type { PersistenceBootstrapPort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import type {
+  MigrationPreflightServicePort,
+  MigrationPreflightStatus,
+} from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
+import type {
+  PersistenceBootstrapPort,
+  PersistenceControlState,
+} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { getMigrationPreflightRuntime } from '@/contexts/saved-tabs/infrastructure/composition/migrationPreflightRuntime'
 import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 
 export const PRODUCTION_PERSISTENCE_V2_MIGRATION_ID =
   'persistence-v2-production'
 
+export type MigrationPreflightControllerResult =
+  | Exclude<MigrationPreflightStatus, { readonly status: 'healthy' }>
+  | PersistenceControlState
+
 export type MigrationPreflightController = {
-  readonly run: () => Promise<void>
+  readonly run: () => Promise<MigrationPreflightControllerResult>
 }
 
 export type MigrationPreflightControllerOptions = {
@@ -22,27 +32,41 @@ export type MigrationPreflightControllerOptions = {
 export const createMigrationPreflightController = (
   options: MigrationPreflightControllerOptions,
 ): MigrationPreflightController => {
-  let runPromise: Promise<void> | undefined
+  let runPromise: Promise<MigrationPreflightControllerResult> | undefined
 
-  const run = async (): Promise<void> => {
+  const run = async (): Promise<MigrationPreflightControllerResult> => {
     let status = await options.service.readStatus()
     if (status.status !== 'healthy') {
       status = await options.service.run()
     }
     if (status.status !== 'healthy') {
-      return
+      return status
     }
 
     const controlState = await options.bootstrap.readState()
-    if (controlState.status === 'legacy') {
-      await options.bootstrap.migrate(options.migrationId)
-      return
+    try {
+      if (controlState.status === 'legacy') {
+        await options.bootstrap.migrate(options.migrationId)
+      } else {
+        await options.bootstrap.ready()
+      }
+    } catch (error) {
+      try {
+        const failedState = await options.bootstrap.readState()
+        if (failedState.status === 'failed') {
+          return failedState
+        }
+      } catch {
+        // Preserve the original lifecycle failure when control state is unreadable.
+      }
+      throw error
     }
-    await options.bootstrap.ready()
+    return options.bootstrap.readState()
   }
 
   return {
-    run: async (): Promise<void> => (runPromise ??= run()),
+    run: async (): Promise<MigrationPreflightControllerResult> =>
+      (runPromise ??= run()),
   }
 }
 

@@ -44,7 +44,9 @@ const defaultDeps: OptionsBackupV2ExportRuntimeDeps = {
   getAppVersion,
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   now: () => new Date(),
-  preparePersistence: async () => getMigrationPreflightController().run(),
+  preparePersistence: async () => {
+    await getMigrationPreflightController().run()
+  },
   readUserSettings: readUserSettingsWithoutRepair,
 }
 

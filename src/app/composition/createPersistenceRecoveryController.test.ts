@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { MigrationPreflightServicePort } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
-import type { PersistenceBootstrapRecoveryControllerPort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import type {
+  PersistenceBootstrapPort,
+  PersistenceBootstrapRecoveryControllerPort,
+  PersistenceControlState,
+} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import { MIGRATION_SOURCE_KEYS } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 import type { RawLegacyStorageSnapshot } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
 
@@ -23,6 +27,16 @@ const createBootstrapRecovery = (
   subscribe: () => () => undefined,
 })
 
+const createBootstrap = (
+  calls: string[],
+  state: PersistenceControlState = { status: 'legacy' },
+): Pick<PersistenceBootstrapPort, 'migrate' | 'readState'> => ({
+  migrate: vi.fn(async () => {
+    calls.push('migrate')
+  }),
+  readState: vi.fn(async () => state),
+})
+
 const createPreflight = (
   status: Awaited<ReturnType<MigrationPreflightServicePort['run']>>,
   calls: string[],
@@ -41,6 +55,7 @@ describe('createPersistenceRecoveryController', () => {
     const calls: string[] = []
     const preflight = createPreflight({ status: 'not-run' }, calls)
     const controller = createPersistenceRecoveryController({
+      bootstrap: createBootstrap(calls),
       bootstrapRecovery: createBootstrapRecovery(calls),
       now: () => 123,
       preflight,
@@ -58,7 +73,9 @@ describe('createPersistenceRecoveryController', () => {
 
   it('reruns preflight before retrying bootstrap', async () => {
     const calls: string[] = []
+    const bootstrap = createBootstrap(calls)
     const controller = createPersistenceRecoveryController({
+      bootstrap,
       bootstrapRecovery: createBootstrapRecovery(calls),
       now: () => 123,
       preflight: createPreflight(
@@ -80,13 +97,15 @@ describe('createPersistenceRecoveryController', () => {
 
     await controller.rerunPreflightAndRetry()
 
-    expect(calls).toEqual(['preflight', 'retry'])
+    expect(calls).toEqual(['preflight', 'migrate', 'retry'])
+    expect(bootstrap.migrate).toHaveBeenCalledWith('persistence-v2-production')
   })
 
   it('does not retry bootstrap when the repeated preflight is blocked', async () => {
     const calls: string[] = []
     const bootstrapRecovery = createBootstrapRecovery(calls)
     const controller = createPersistenceRecoveryController({
+      bootstrap: createBootstrap(calls),
       bootstrapRecovery,
       now: () => 123,
       preflight: createPreflight(
@@ -108,11 +127,60 @@ describe('createPersistenceRecoveryController', () => {
     })
 
     await expect(controller.rerunPreflightAndRetry()).rejects.toMatchObject({
+      code: 'PERSISTENCE_PREFLIGHT_BLOCKED',
+    })
+    expect(calls).toEqual(['preflight'])
+    expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
+      'PERSISTENCE_PREFLIGHT_BLOCKED',
+      {
+        errorCode: 'MIGRATION_SOURCE_BLOCKED',
+        issueCodes: ['MIGRATION_SOURCE_INVALID_TYPE'],
+        migrationId: 'persistence-v2-production',
+        sourceBytes: 0,
+        sourceEntityCounts: {},
+        stage: 'preflight',
+      },
+    )
+  })
+
+  it('keeps a repeated stale preflight distinct from blocked', async () => {
+    const calls: string[] = []
+    const bootstrapRecovery = createBootstrapRecovery(calls)
+    const controller = createPersistenceRecoveryController({
+      bootstrap: createBootstrap(calls),
+      bootstrapRecovery,
+      now: () => 123,
+      preflight: createPreflight(
+        {
+          checkedAt: 1,
+          diagnostic: {
+            capacityStatus: 'blocked',
+            collisionCount: 0,
+            entityCounts: {},
+            issueCodes: [],
+            preflightVersion: 1,
+            sourceFingerprintVersion: 1,
+          },
+          status: 'stale',
+        },
+        calls,
+      ),
+    })
+
+    await expect(controller.rerunPreflightAndRetry()).rejects.toMatchObject({
       code: 'PERSISTENCE_PREFLIGHT_STALE',
     })
     expect(calls).toEqual(['preflight'])
     expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
       'PERSISTENCE_PREFLIGHT_STALE',
+      {
+        errorCode: 'MIGRATION_SOURCE_CHANGED',
+        issueCodes: [],
+        migrationId: 'persistence-v2-production',
+        sourceBytes: 0,
+        sourceEntityCounts: {},
+        stage: 'preflight',
+      },
     )
   })
 })

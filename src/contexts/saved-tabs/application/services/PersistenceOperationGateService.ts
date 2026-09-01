@@ -94,10 +94,57 @@ export class PersistenceOperationGateService implements PersistenceOperationGate
         return operation()
       })
     } catch (error) {
-      if (error instanceof PersistenceUnavailableError) {
+      if (
+        error instanceof PersistenceUnavailableError &&
+        (await this.shouldReportUnavailable(error, route, isWrite))
+      ) {
         this.options.recovery.reportUnavailable(error.code)
       }
       throw error
     }
   }
+
+  private readonly shouldReportUnavailable = async (
+    error: PersistenceUnavailableError,
+    route: PersistenceRoute,
+    isWrite: boolean,
+  ): Promise<boolean> => {
+    if (error.code !== 'PERSISTENCE_ROUTE_MISMATCH') {
+      return true
+    }
+    try {
+      return !(await this.isRouteAuthorized(route, isWrite))
+    } catch {
+      // Preserve and report the original route failure when state cannot be re-read.
+      return true
+    }
+  }
+
+  private readonly isRouteAuthorized = async (
+    route: PersistenceRoute,
+    isWrite: boolean,
+  ): Promise<boolean> =>
+    this.options.coordination.runShared(async () => {
+      const state = await this.options.controlStateRepository.read()
+      switch (state.status) {
+        case 'legacy': {
+          return route === 'legacy'
+        }
+        case 'indexeddb': {
+          return route === 'indexeddb'
+        }
+        case 'read-only-emergency': {
+          return !isWrite && state.readSource === route
+        }
+        case 'cutover-pending':
+        case 'failed':
+        case 'migrating':
+        case 'verifying': {
+          return false
+        }
+        default: {
+          return false
+        }
+      }
+    })
 }

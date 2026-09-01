@@ -1,0 +1,35 @@
+{
+  "customProjectOrder": ["custom-uncategorized"],
+  "customProjects": [
+    {
+      "categories": [],
+      "createdAt": 20,
+      "id": "custom-uncategorized",
+      "name": "Uncategorized",
+      "projectKeywords": {
+        "domainKeywords": [],
+        "titleKeywords": [],
+        "urlKeywords": []
+      },
+      "updatedAt": 21,
+      "urlIds": ["url-1"]
+    }
+  ],
+  "savedTabs": [
+    {
+      "domain": "127.0.0.1",
+      "id": "domain-1",
+      "savedAt": 10,
+      "subCategories": [],
+      "urlIds": ["url-1"]
+    }
+  ],
+  "urls": [
+    {
+      "id": "url-1",
+      "savedAt": 20,
+      "title": "Production artifact legacy URL",
+      "url": "http://127.0.0.1/legacy"
+    }
+  ]
+}

@@ -247,7 +247,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       MockFileReader as unknown as typeof FileReader
 
     vi.mocked(exportBackupV2).mockResolvedValue({
-      appVersion: '2.0.9',
+      appVersion: '2.0.16',
       data: {
         analyticsViews: [],
         conversations: [],
@@ -533,7 +533,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-08-12T00:00:00.000Z',
-        version: '2.0.9',
+        version: '2.0.16',
       },
     })
     vi.mocked(importSettings).mockResolvedValue({

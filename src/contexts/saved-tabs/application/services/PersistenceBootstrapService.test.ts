@@ -328,7 +328,18 @@ describe('PersistenceBootstrapService', () => {
 
   it('persists migration failure and never starts verification', async () => {
     const repository = new FakeControlStateRepository({ status: 'legacy' })
-    const lifecycle = createLifecycle()
+    const diagnostic = {
+      errorCode: 'MIGRATION_TARGET_WRITE_FAILED' as const,
+      issueCodes: ['DUPLICATE_URL_ID'],
+      migrationId: 'migration-1',
+      sourceBytes: 128,
+      sourceEntityCounts: { urls: 2 },
+      stage: 'target-write' as const,
+    }
+    const lifecycle = {
+      ...createLifecycle(),
+      readFailureDiagnostic: vi.fn(() => diagnostic),
+    }
     vi.mocked(lifecycle.migrate).mockRejectedValueOnce(new Error('copy failed'))
     const service = new PersistenceBootstrapService({
       access: createAccess(),
@@ -346,6 +357,7 @@ describe('PersistenceBootstrapService', () => {
       status: 'failed',
       migrationId: 'migration-1',
       errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      diagnostic,
     })
   })
 

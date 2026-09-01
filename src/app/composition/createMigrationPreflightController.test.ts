@@ -179,9 +179,38 @@ describe('createMigrationPreflightController', () => {
       status: 'healthy',
     })
     const bootstrap = createBootstrap('legacy')
+    vi.mocked(bootstrap.readState)
+      .mockResolvedValueOnce(createControlState('legacy'))
+      .mockResolvedValueOnce(createControlState('indexeddb'))
     const controller = createController(service, bootstrap)
 
-    await controller.run()
+    await expect(controller.run()).resolves.toEqual(
+      createControlState('indexeddb'),
+    )
+
+    expect(bootstrap.migrate).toHaveBeenCalledWith('persistence-v2-production')
+    expect(bootstrap.ready).not.toHaveBeenCalled()
+  })
+
+  it('returns the persisted failed state when migration execution fails', async () => {
+    const service = createService({
+      checkedAt: 1,
+      diagnostic: { ...diagnostic, capacityStatus: 'ready', issueCodes: [] },
+      status: 'healthy',
+    })
+    const failed: PersistenceControlState = {
+      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      migrationId: 'persistence-v2-production',
+      status: 'failed',
+    }
+    const bootstrap = createBootstrap('legacy')
+    vi.mocked(bootstrap.readState)
+      .mockResolvedValueOnce(createControlState('legacy'))
+      .mockResolvedValueOnce(failed)
+    vi.mocked(bootstrap.migrate).mockRejectedValueOnce(new Error('copy failed'))
+    const controller = createController(service, bootstrap)
+
+    await expect(controller.run()).resolves.toEqual(failed)
 
     expect(bootstrap.migrate).toHaveBeenCalledWith('persistence-v2-production')
     expect(bootstrap.ready).not.toHaveBeenCalled()
@@ -220,8 +249,25 @@ describe('createMigrationPreflightController', () => {
     const bootstrap = createBootstrap('legacy')
     const controller = createController(service, bootstrap)
 
-    await controller.run()
+    await expect(controller.run()).resolves.toEqual(blocked)
 
+    expect(bootstrap.migrate).not.toHaveBeenCalled()
+    expect(bootstrap.ready).not.toHaveBeenCalled()
+  })
+
+  it('returns a stale outcome without touching persistence authority', async () => {
+    const stale: MigrationPreflightStatus = {
+      checkedAt: 2,
+      diagnostic,
+      status: 'stale',
+    }
+    const service = createService({ status: 'not-run' }, stale)
+    const bootstrap = createBootstrap('legacy')
+    const controller = createController(service, bootstrap)
+
+    await expect(controller.run()).resolves.toEqual(stale)
+
+    expect(bootstrap.readState).not.toHaveBeenCalled()
     expect(bootstrap.migrate).not.toHaveBeenCalled()
     expect(bootstrap.ready).not.toHaveBeenCalled()
   })

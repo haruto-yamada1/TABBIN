@@ -1,0 +1,30 @@
+{
+  "urls": [
+    {
+      "id": "url-1",
+      "savedAt": 10,
+      "title": "First",
+      "url": "https://x.example.com/first"
+    },
+    {
+      "id": "url-2",
+      "savedAt": 20,
+      "title": "Second",
+      "url": "https://x.example.com/second"
+    }
+  ],
+  "savedTabs": [
+    {
+      "domain": "https://x.example.com",
+      "id": "group-1",
+      "savedAt": 10,
+      "urlIds": ["url-1"]
+    },
+    {
+      "domain": "x.example.com",
+      "id": "group-2",
+      "savedAt": 20,
+      "urlIds": ["url-2"]
+    }
+  ]
+}
