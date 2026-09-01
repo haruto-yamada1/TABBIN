@@ -22,7 +22,7 @@ import {
 } from './optionsBackupV2Export'
 
 const envelope = {
-  appVersion: '2.0.9',
+  appVersion: '2.0.16',
   data: {
     analyticsViews: [],
     conversations: [],
@@ -79,7 +79,7 @@ describe('optionsBackupV2Export composition', () => {
       createConnectionManager,
       createExportUseCase,
       createSnapshotReader,
-      getAppVersion: vi.fn(() => '2.0.9'),
+      getAppVersion: vi.fn(() => '2.0.16'),
       getOperationGate: vi.fn(() => operationGate),
       now: vi.fn(() => new Date('2026-07-28T00:00:00.000Z')),
       preparePersistence,
@@ -153,7 +153,7 @@ describe('optionsBackupV2Export composition', () => {
       createExportUseCase: createExportBackupV2UseCase,
       createSnapshotReader: (manager, gate) =>
         new IndexedDbPersistenceSnapshotReader(manager, gate),
-      getAppVersion: () => '2.0.9',
+      getAppVersion: () => '2.0.16',
       getOperationGate: () => operationGate,
       now: () => new Date('2026-08-01T00:00:00.000Z'),
       preparePersistence: vi.fn(async () => undefined),
@@ -162,7 +162,7 @@ describe('optionsBackupV2Export composition', () => {
 
     const backup = await runtime.exportBackupV2()
     expect(backup).toMatchObject({
-      appVersion: '2.0.9',
+      appVersion: '2.0.16',
       data: {
         savedTabs: {
           categories: [],

@@ -1,6 +1,6 @@
 {
   "name": "tabbin",
-  "version": "2.0.9",
+  "version": "2.0.16",
   "private": true,
   "description": "An extension for organizing and categorizing browser tabs so cluttered tab lists stay manageable.",
   "type": "module",
