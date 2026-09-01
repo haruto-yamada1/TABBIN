@@ -140,7 +140,10 @@ describe('generateBuildMetadata', () => {
     )
     const outputDir = path.join(projectRoot, '.output')
     mkdirSync(outputDir, { recursive: true })
-    writeFileSync(path.join(outputDir, 'tabbin-2.0.16-chrome.zip'), 'chrome-zip')
+    writeFileSync(
+      path.join(outputDir, 'tabbin-2.0.16-chrome.zip'),
+      'chrome-zip',
+    )
     writeFileSync(
       path.join(outputDir, 'tabbin-2.0.16-firefox.zip'),
       'firefox-zip',
