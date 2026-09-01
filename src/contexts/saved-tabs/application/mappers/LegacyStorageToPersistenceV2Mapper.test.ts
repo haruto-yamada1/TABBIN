@@ -665,6 +665,114 @@ describe('analyzeLegacyMigrationPreflight', () => {
     ])
   })
 
+  it('prefers live saved-tab categories over stale settings left by rename or removal', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'savedTabs', [
+      {
+        categoryKeywords: [{ categoryName: 'renamed', keywords: ['current'] }],
+        domain: 'example.com',
+        id: 'group-1',
+        savedAt: 1,
+        subCategories: ['renamed'],
+        urlIds: [],
+      },
+    ])
+    source = withSource(source, 'domainCategorySettings', [
+      {
+        categoryKeywords: [{ categoryName: 'old', keywords: ['stale'] }],
+        domain: 'https://example.com',
+        subCategories: ['old'],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(
+      result.issues.filter(({ severity }) => severity === 'error'),
+    ).toEqual([])
+    expect(result.issues).toContainEqual({
+      code: 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
+      occurrenceCount: 1,
+      severity: 'warning',
+    })
+    expect(result.snapshot.categories).toEqual([
+      expect.objectContaining({
+        collectionId: 'group-1',
+        keywords: ['current'],
+        name: 'renamed',
+      }),
+    ])
+  })
+
+  it('keeps explicitly empty live categories after legacy removal instead of restoring stale settings', () => {
+    let source = createEmptySnapshot()
+    source = withSource(source, 'savedTabs', [
+      {
+        categoryKeywords: [],
+        domain: 'example.com',
+        id: 'group-1',
+        savedAt: 1,
+        subCategories: [],
+        urlIds: [],
+      },
+    ])
+    source = withSource(source, 'domainCategorySettings', [
+      {
+        categoryKeywords: [{ categoryName: 'old', keywords: ['stale'] }],
+        domain: 'https://example.com',
+        subCategories: ['old'],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(
+      result.issues.filter(({ severity }) => severity === 'error'),
+    ).toEqual([])
+    expect(result.issues).toContainEqual({
+      code: 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
+      occurrenceCount: 1,
+      severity: 'warning',
+    })
+    expect(result.snapshot.categories).toEqual([])
+  })
+
+  it('preserves settings for a domain whose last live tab group was removed', () => {
+    const source = withSource(createEmptySnapshot(), 'domainCategorySettings', [
+      {
+        categoryKeywords: [{ categoryName: 'docs', keywords: ['reference'] }],
+        domain: 'https://settings-only.example',
+        subCategories: ['docs'],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(
+      result.issues.filter(({ severity }) => severity === 'error'),
+    ).toEqual([])
+    expect(result.issues).toContainEqual({
+      code: 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
+      occurrenceCount: 1,
+      severity: 'warning',
+    })
+    expect(result.snapshot.collections).toEqual([
+      expect.objectContaining({
+        definition: {
+          domain: 'settings-only.example',
+          type: 'domain',
+        },
+        name: 'settings-only.example',
+      }),
+    ])
+    expect(result.snapshot.categories).toEqual([
+      expect.objectContaining({
+        keywords: ['reference'],
+        name: 'docs',
+      }),
+    ])
+  })
+
   it('preserves legacy domain subCategoryOrder in category sortOrder', () => {
     const source = withSource(createEmptySnapshot(), 'savedTabs', [
       {
@@ -684,6 +792,146 @@ describe('analyzeLegacyMigrationPreflight', () => {
       expect.objectContaining({ name: 'docs', sortOrder: 1024 }),
     ])
   })
+
+  it('completes a valid partial category order written by the legacy runtime', () => {
+    const source = withSource(createEmptySnapshot(), 'savedTabs', [
+      {
+        categoryKeywords: [
+          { categoryName: 'docs', keywords: [] },
+          { categoryName: 'news', keywords: [] },
+        ],
+        domain: 'example.com',
+        id: 'group-1',
+        savedAt: 1,
+        subCategories: ['docs', 'news'],
+        subCategoryOrder: ['news'],
+        subCategoryOrderWithUncategorized: ['__uncategorized', 'news'],
+        urlIds: [],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(
+      result.issues.filter(({ severity }) => severity === 'error'),
+    ).toEqual([])
+    expect(result.snapshot.categories).toEqual([
+      expect.objectContaining({ name: 'news', sortOrder: 0 }),
+      expect.objectContaining({ name: 'docs', sortOrder: 1024 }),
+    ])
+  })
+
+  it('preserves production-scale category drift without blocking migration', () => {
+    const urls = Array.from({ length: 1790 }, (_, index) => ({
+      id: `url-${index}`,
+      savedAt: 1,
+      title: `URL ${index}`,
+      url: `https://example.test/${index}`,
+    }))
+    const categoryNames = Array.from(
+      { length: 12 },
+      (_, index) => `category-${index}`,
+    )
+    const savedTabs = Array.from({ length: 26 }, (_, collectionIndex) => {
+      const membershipCount = collectionIndex < 14 ? 126 : 125
+      const urlIds = Array.from(
+        { length: membershipCount },
+        (_, index) => `url-${(collectionIndex * 69 + index) % 1789}`,
+      )
+      return {
+        domain: `group-${collectionIndex}.example`,
+        id: `group-${collectionIndex}`,
+        savedAt: 1,
+        urlIds,
+        ...(collectionIndex === 0
+          ? {
+              categoryKeywords: categoryNames.map((categoryName) => ({
+                categoryName,
+                keywords: [],
+              })),
+              subCategories: categoryNames,
+              subCategoryOrder: categoryNames.slice(0, 6),
+              subCategoryOrderWithUncategorized: [
+                '__uncategorized',
+                ...categoryNames.slice(0, 6),
+              ],
+            }
+          : {}),
+      }
+    })
+    let source = createEmptySnapshot()
+    source = withSource(source, 'urls', urls)
+    source = withSource(source, 'savedTabs', savedTabs)
+    source = withSource(source, 'domainCategorySettings', [
+      {
+        categoryKeywords: [
+          { categoryName: 'old-category', keywords: ['stale'] },
+        ],
+        domain: 'https://group-0.example',
+        subCategories: ['old-category'],
+      },
+    ])
+
+    const result = analyzeLegacyMigrationPreflight(source)
+
+    expect(
+      result.issues.filter(({ severity }) => severity === 'error'),
+    ).toEqual([])
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
+          severity: 'warning',
+        }),
+        expect.objectContaining({ code: 'ORPHAN_URL', severity: 'warning' }),
+      ]),
+    )
+    expect(result.snapshot).toMatchObject({
+      categories: { length: 12 },
+      collections: { length: 26 },
+      memberships: { length: 3264 },
+      urls: { length: 1790 },
+    })
+  })
+
+  it.each([
+    {
+      label: 'unknown category',
+      subCategoryOrder: ['news', 'unknown'],
+      subCategoryOrderWithUncategorized: undefined,
+    },
+    {
+      label: 'mutually conflicting partial orders',
+      subCategoryOrder: ['news'],
+      subCategoryOrderWithUncategorized: ['__uncategorized', 'docs'],
+    },
+  ])(
+    'keeps $label in raw category order fail-closed',
+    ({ subCategoryOrder, subCategoryOrderWithUncategorized }) => {
+      const source = withSource(createEmptySnapshot(), 'savedTabs', [
+        {
+          domain: 'example.com',
+          id: 'group-1',
+          savedAt: 1,
+          subCategories: ['docs', 'news'],
+          subCategoryOrder,
+          ...(subCategoryOrderWithUncategorized
+            ? { subCategoryOrderWithUncategorized }
+            : {}),
+          urlIds: [],
+        },
+      ])
+
+      const result = analyzeLegacyMigrationPreflight(source)
+
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          code: 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT',
+          severity: 'error',
+        }),
+      )
+    },
+  )
 
   it('blocks duplicate or incomplete legacy domain category order', () => {
     const source = withSource(createEmptySnapshot(), 'savedTabs', [

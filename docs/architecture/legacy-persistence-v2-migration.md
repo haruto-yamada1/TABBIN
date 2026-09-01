@@ -52,9 +52,20 @@ preflight and the actual migration.
   ordering fields are preserved in their v2 destinations.
 - Domain category order comes from `subCategoryOrder`, or from
   `subCategoryOrderWithUncategorized` after removing its
-  `__uncategorized` sentinel. Duplicate, incomplete, unknown, or conflicting
-  order metadata blocks migration. Custom category order and
-  `customProjectOrder` follow the same fail-closed rule.
+  `__uncategorized` sentinel. The legacy runtime persisted valid partial
+  orders, so missing declared categories are appended in declaration order.
+  Duplicate, unknown, or mutually conflicting order metadata still blocks
+  migration. Custom category order and `customProjectOrder` remain
+  fail-closed.
+- For an existing saved-tab group, its declared `subCategories` and
+  `categoryKeywords` are the live source of truth. Historical rename/remove
+  paths could leave `domainCategorySettings` stale; matching settings fill
+  only fields absent from the live record, while stale setting-only entries
+  become a warning instead of overriding current data.
+- A `domainCategorySettings` record may legitimately outlive the last tab
+  group because the legacy runtime retained it for later restoration. It maps
+  to an empty domain collection with timestamp provenance `0`, preserving its
+  category names and keywords without inventing current time.
 - A missing historical saved-tabs timestamp uses the explicit sentinel `0`
   and emits `MISSING_TIMESTAMP_PROVENANCE`. Migration time is never used as
   historical time.
@@ -78,7 +89,8 @@ public exporters:
   project URL IDs are restored only when URL and title identify exactly one
   canonical top-level record; and
 - a valid partial domain category order is completed with the remaining
-  declared categories in declaration order.
+  declared categories in declaration order. The raw-storage migration mapper
+  applies the same rule because the runtime storage writer used this shape too.
 
 The 2.x exporter always included its nested URLs in the canonical top-level URL
 list, so ambiguous or unmatched 2.x references remain typed blocking issues.

@@ -23,6 +23,8 @@ import { measureSerializedBytes } from '@/lib/persistence/capacity'
 import { isJsonValue } from '@/lib/persistence/jsonValue'
 import type { JsonObject } from '@/lib/persistence/jsonValue'
 
+import { mapLegacyDomainCategoryOrder } from './LegacyDomainCategoryOrderMapper'
+
 export type LegacyMigrationIssueCode =
   | 'MIGRATION_SOURCE_MISSING_KEY'
   | 'MIGRATION_SOURCE_INVALID_TYPE'
@@ -636,6 +638,7 @@ const hasInvalidSavedTabMetadata = (input: {
 
 const readSavedTabCategoryOrder = (
   value: RecordLike,
+  categories: readonly string[],
   state: AnalyzerState,
 ): readonly string[] | null | undefined => {
   const order = readOptionalStringArray(value, 'subCategoryOrder')
@@ -646,22 +649,15 @@ const readSavedTabCategoryOrder = (
   if (order === null || orderWithUncategorized === null) {
     return null
   }
-  const uncategorizedMarkerCount =
-    orderWithUncategorized?.filter((category) => category === '__uncategorized')
-      .length ?? 0
-  const filteredOrder = orderWithUncategorized?.filter(
-    (category) => category !== '__uncategorized',
-  )
-  if (
-    uncategorizedMarkerCount > 1 ||
-    (order &&
-      filteredOrder &&
-      (order.length !== filteredOrder.length ||
-        order.some((category, index) => category !== filteredOrder[index])))
-  ) {
+  const result = mapLegacyDomainCategoryOrder({
+    categories,
+    order,
+    orderWithUncategorized,
+  })
+  if (result.hasConflict) {
     addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
   }
-  return order ?? filteredOrder
+  return result.order
 }
 
 const decodeSavedTabFields = (
@@ -670,7 +666,11 @@ const decodeSavedTabFields = (
 ): DecodedSavedTabFields | undefined => {
   const urlIds = readOptionalStringArray(value, 'urlIds')
   const subCategories = readOptionalStringArray(value, 'subCategories')
-  const subCategoryOrder = readSavedTabCategoryOrder(value, state)
+  const subCategoryOrder = readSavedTabCategoryOrder(
+    value,
+    subCategories ?? [],
+    state,
+  )
   const savedAt = readOptionalTimestamp(value, 'savedAt')
   const nestedUrls = value.urls
   const parentCategoryId = value.parentCategoryId
@@ -995,6 +995,81 @@ const orderDomainCategoryNames = (
   return order
 }
 
+const resolveDomainCategoryNames = (
+  input: DecodedSavedTab,
+  setting: DecodedDomainCategorySetting | undefined,
+  state: AnalyzerState,
+): {
+  readonly hasLiveCategoryNames: boolean
+  readonly hasStaleSetting: boolean
+  readonly names: readonly string[]
+} => {
+  const hasLiveCategoryNames = Object.hasOwn(input.record, 'subCategories')
+  const hasStaleSetting = Boolean(
+    setting &&
+    hasLiveCategoryNames &&
+    !haveSameOrderedStrings(input.subCategories, setting.names),
+  )
+  const unorderedNames = hasLiveCategoryNames
+    ? input.subCategories
+    : (setting?.names ?? [])
+  return {
+    hasLiveCategoryNames,
+    hasStaleSetting,
+    names: orderDomainCategoryNames(
+      unorderedNames,
+      input.subCategoryOrder,
+      state,
+    ),
+  }
+}
+
+const resolveDomainCategoryKeywords = (input: {
+  readonly embeddedKeywords: ReadonlyMap<string, readonly string[]>
+  readonly hasLiveCategoryNames: boolean
+  readonly hasLiveKeywordDefinitions: boolean
+  readonly names: readonly string[]
+  readonly setting: DecodedDomainCategorySetting | undefined
+  readonly state: AnalyzerState
+}): {
+  readonly hasStaleSetting: boolean
+  readonly keywords: ReadonlyMap<string, readonly string[]>
+} => {
+  const nameSet = new Set(input.names)
+  const keywords = new Map<string, readonly string[]>()
+  let hasStaleSetting = false
+  if (!input.hasLiveKeywordDefinitions) {
+    for (const [name, values] of input.setting?.keywords ?? []) {
+      if (nameSet.has(name)) {
+        keywords.set(name, values)
+      } else if (input.hasLiveCategoryNames) {
+        hasStaleSetting = true
+      }
+    }
+  }
+  for (const [name, values] of input.embeddedKeywords) {
+    if (!nameSet.has(name)) {
+      addIssue(input.state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
+      continue
+    }
+    const settingValues = input.setting?.keywords.get(name)
+    if (settingValues && !haveSameOrderedStrings(settingValues, values)) {
+      hasStaleSetting = true
+    }
+    keywords.set(name, values)
+  }
+  if (
+    input.hasLiveKeywordDefinitions &&
+    input.setting &&
+    [...input.setting.keywords.keys()].some(
+      (name) => !input.embeddedKeywords.has(name),
+    )
+  ) {
+    hasStaleSetting = true
+  }
+  return { hasStaleSetting, keywords }
+}
+
 const resolveDomainCategories = (
   input: DecodedSavedTab,
   setting: DecodedDomainCategorySetting | undefined,
@@ -1004,40 +1079,32 @@ const resolveDomainCategories = (
   readonly names: readonly string[]
 } => {
   const embeddedKeywords = readKeywordMap(input.record.categoryKeywords, state)
+  const hasLiveKeywordDefinitions = Object.hasOwn(
+    input.record,
+    'categoryKeywords',
+  )
   if (
     hasDuplicateStrings(input.subCategories) ||
     hasDuplicateCategoryKeywordDefinitions(input.record.categoryKeywords)
   ) {
     addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
   }
-  if (
-    setting &&
-    input.subCategories.length > 0 &&
-    !haveSameOrderedStrings(input.subCategories, setting.names)
-  ) {
-    addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
-  }
-  const unorderedNames = [
-    ...new Set([...(setting?.names ?? []), ...input.subCategories]),
-  ]
-  const names = orderDomainCategoryNames(
-    unorderedNames,
-    input.subCategoryOrder,
+  const resolvedNames = resolveDomainCategoryNames(input, setting, state)
+  const resolvedKeywords = resolveDomainCategoryKeywords({
+    embeddedKeywords,
+    hasLiveCategoryNames: resolvedNames.hasLiveCategoryNames,
+    hasLiveKeywordDefinitions,
+    names: resolvedNames.names,
+    setting,
     state,
-  )
-  const nameSet = new Set(names)
-  const keywords = new Map(setting?.keywords)
-  for (const [name, values] of embeddedKeywords) {
-    const existing = keywords.get(name)
-    if (existing && !haveSameOrderedStrings(existing, values)) {
-      addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
-    }
-    keywords.set(name, values)
+  })
+  if (resolvedNames.hasStaleSetting || resolvedKeywords.hasStaleSetting) {
+    addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'warning')
   }
-  if ([...keywords.keys()].some((name) => !nameSet.has(name))) {
-    addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
+  return {
+    keywords: resolvedKeywords.keywords,
+    names: resolvedNames.names,
   }
-  return { keywords, names }
 }
 
 type DecodedSavedTabEntry = {
@@ -1207,6 +1274,78 @@ const appendSavedTabEntry = (
   }
 }
 
+const resolveSettingsOnlyParentCategoryId = (
+  domain: string,
+  relations: ParentRelationContext,
+  state: AnalyzerState,
+): string | undefined => {
+  const parentIds = new Set([
+    ...(relations.parentsByDomain.get(domain) ?? []),
+    ...(relations.mappingParentsByDomain.get(domain) ?? []),
+  ])
+  if (parentIds.size > 1) {
+    addIssue(state, 'LEGACY_PARENT_CATEGORY_CONFLICT', 'error')
+    return undefined
+  }
+  const parentCategoryId = parentIds.values().next().value
+  if (
+    typeof parentCategoryId === 'string' &&
+    !relations.parentIds.has(parentCategoryId)
+  ) {
+    addIssue(state, 'LEGACY_PARENT_CATEGORY_CONFLICT', 'error')
+    return undefined
+  }
+  return typeof parentCategoryId === 'string' ? parentCategoryId : undefined
+}
+
+const createSettingsOnlyCollectionId = (
+  domain: string,
+  state: AnalyzerState,
+): string => {
+  const baseId = `legacy:domain-setting:${domain}`
+  const existingIds = new Set(state.collections.map(({ id }) => id))
+  let candidate = baseId
+  let suffix = 1
+  while (existingIds.has(candidate)) {
+    candidate = `${baseId}:${suffix}`
+    suffix += 1
+  }
+  return candidate
+}
+
+const appendSettingsOnlyDomain = (input: {
+  readonly collectionIndex: number
+  readonly domain: string
+  readonly relations: ParentRelationContext
+  readonly setting: DecodedDomainCategorySetting
+  readonly state: AnalyzerState
+}): void => {
+  const collectionId = createSettingsOnlyCollectionId(input.domain, input.state)
+  const parentCategoryId = resolveSettingsOnlyParentCategoryId(
+    input.domain,
+    input.relations,
+    input.state,
+  )
+  input.state.collections.push({
+    createdAt: 0,
+    definition: { domain: input.domain, type: 'domain' },
+    ...(parentCategoryId ? { groupId: parentCategoryId } : {}),
+    id: collectionId,
+    name: input.domain,
+    sortOrder: input.collectionIndex * ORDER_GAP,
+    updatedAt: 0,
+  })
+  createCategories(input.state, {
+    collectionId,
+    createdAt: 0,
+    keywords: input.setting.keywords,
+    names: input.setting.names,
+    updatedAt: 0,
+  })
+  addIssue(input.state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'warning')
+  addIssue(input.state, 'MISSING_TIMESTAMP_PROVENANCE', 'warning')
+}
+
 const parseSavedTabs = (
   values: readonly unknown[],
   relations: ParentRelationContext,
@@ -1233,9 +1372,17 @@ const parseSavedTabs = (
   for (const entry of entries) {
     appendSavedTabEntry(entry, context)
   }
-  for (const domain of settingsByDomain.keys()) {
+  let settingsOnlyIndex = entries.length
+  for (const [domain, setting] of settingsByDomain) {
     if (!matchedSettingDomains.has(domain)) {
-      addIssue(state, 'LEGACY_DOMAIN_CATEGORY_MAPPING_CONFLICT', 'error')
+      appendSettingsOnlyDomain({
+        collectionIndex: settingsOnlyIndex,
+        domain,
+        relations,
+        setting,
+        state,
+      })
+      settingsOnlyIndex += 1
     }
   }
 }
