@@ -44,6 +44,7 @@ const readStorage = async (worker: Worker) =>
     const result = await chrome.storage.local.get([
       'customProjectOrder',
       'customProjects',
+      'domainCategorySettings',
       'savedTabs',
       'urls',
       'tabbin:migrationPreflight:v1',
@@ -51,6 +52,7 @@ const readStorage = async (worker: Worker) =>
     ])
     const customProjectOrder: unknown = result.customProjectOrder
     const customProjects: unknown = result.customProjects
+    const domainCategorySettings: unknown = result.domainCategorySettings
     const savedTabs: unknown = result.savedTabs
     const urls: unknown = result.urls
     const migrationPreflight: unknown = result['tabbin:migrationPreflight:v1']
@@ -59,6 +61,7 @@ const readStorage = async (worker: Worker) =>
     return {
       customProjectOrder,
       customProjects,
+      domainCategorySettings,
       savedTabs,
       urls,
       'tabbin:migrationPreflight:v1': migrationPreflight,
@@ -187,11 +190,51 @@ try {
   }
   assert.ok(Array.isArray(legacy.savedTabs) && legacy.savedTabs.length > 0)
   assert.ok(Array.isArray(legacy.urls) && legacy.urls.length > 0)
+  await worker.evaluate(async () => {
+    const { savedTabs = [] } = await chrome.storage.local.get<{
+      savedTabs?: Record<string, unknown>[]
+    }>('savedTabs')
+    if (savedTabs.length === 0) {
+      throw new Error('Historical category drift requires a domain group.')
+    }
+    const firstGroup = savedTabs[0]
+    const domain =
+      typeof firstGroup.domain === 'string' ? firstGroup.domain : undefined
+    if (!domain) {
+      throw new Error('Historical category drift requires a domain group.')
+    }
+    await chrome.storage.local.set({
+      domainCategorySettings: [
+        {
+          categoryKeywords: [
+            { categoryName: 'old-category', keywords: ['stale'] },
+          ],
+          domain: `https://${domain}`,
+          subCategories: ['old-category'],
+        },
+      ],
+      savedTabs: [
+        {
+          ...firstGroup,
+          categoryKeywords: [
+            { categoryName: 'docs', keywords: ['reference'] },
+            { categoryName: 'news', keywords: [] },
+          ],
+          subCategories: ['docs', 'news'],
+          subCategoryOrder: ['news'],
+          subCategoryOrderWithUncategorized: ['__uncategorized', 'news'],
+        },
+        ...savedTabs.slice(1),
+      ],
+    })
+  })
+  legacy = await readStorage(worker)
   await cdp.detach()
   await legacyPage.close()
   const legacyBefore = structuredClone({
     customProjectOrder: legacy.customProjectOrder,
     customProjects: legacy.customProjects,
+    domainCategorySettings: legacy.domainCategorySettings,
     savedTabs: legacy.savedTabs,
     urls: legacy.urls,
   })
@@ -229,6 +272,7 @@ try {
     {
       customProjectOrder: migrated.customProjectOrder,
       customProjects: migrated.customProjects,
+      domainCategorySettings: migrated.domainCategorySettings,
       savedTabs: migrated.savedTabs,
       urls: migrated.urls,
     },

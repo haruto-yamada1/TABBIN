@@ -79,6 +79,42 @@ const createBlockedPreflightSeed = () =>
     ],
   })
 
+const createLegacyCategoryDriftSeed = () =>
+  createBaseSeed({
+    domainCategorySettings: [
+      {
+        categoryKeywords: [
+          { categoryName: 'old-category', keywords: ['stale'] },
+        ],
+        domain: 'https://category-drift.example',
+        subCategories: ['old-category'],
+      },
+    ],
+    savedTabs: [
+      {
+        categoryKeywords: [
+          { categoryName: 'docs', keywords: ['reference'] },
+          { categoryName: 'news', keywords: [] },
+        ],
+        domain: 'category-drift.example',
+        id: 'group-category-drift',
+        savedAt: now,
+        subCategories: ['docs', 'news'],
+        subCategoryOrder: ['news'],
+        subCategoryOrderWithUncategorized: ['__uncategorized', 'news'],
+        urlIds: ['url-category-drift'],
+      },
+    ],
+    urls: [
+      {
+        id: 'url-category-drift',
+        savedAt: now,
+        title: 'Category Drift Home',
+        url: 'https://category-drift.example/',
+      },
+    ],
+  })
+
 const createLegacyBackup = () => {
   const activeAiSystemPrompt = {
     createdAt: now - 1,
@@ -215,6 +251,33 @@ test.describe('extension options', () => {
 
     await page.reload()
     await expect(page.getByText('Example Home')).toBeVisible()
+  })
+
+  test('旧runtimeのcategory driftを自動移行してIndexedDBから読める', async ({
+    extensionId,
+    page,
+    serviceWorker,
+  }) => {
+    await seedStorage(serviceWorker, createLegacyCategoryDriftSeed())
+
+    await page.goto(
+      getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+    )
+    await waitForPersistenceV2Ready(serviceWorker)
+
+    await expect(page.getByText('Category Drift Home')).toBeVisible()
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'Storage recovery required' }),
+    ).toBeHidden()
+    const snapshot = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+    expect(snapshot.categories).toEqual([
+      expect.objectContaining({ name: 'news', sortOrder: 0 }),
+      expect.objectContaining({
+        keywords: ['reference'],
+        name: 'docs',
+        sortOrder: 1024,
+      }),
+    ])
   })
 
   test('blocked preflightを安全な診断と再確認導線として表示する', async ({
