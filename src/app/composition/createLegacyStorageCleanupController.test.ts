@@ -1,8 +1,28 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LegacyStorageCleanupError } from '@/contexts/saved-tabs/application/ports/LegacyStorageCleanupPort'
 
-import { createLegacyStorageCleanupController } from './createLegacyStorageCleanupController'
+const mocked = vi.hoisted(() => ({
+  getLegacyStorageCleanupRuntime: vi.fn(),
+}))
+
+vi.mock(
+  '@/contexts/saved-tabs/infrastructure/composition/legacyStorageCleanupRuntime',
+  () => ({
+    getLegacyStorageCleanupRuntime: mocked.getLegacyStorageCleanupRuntime,
+  }),
+)
+
+import {
+  createLegacyStorageCleanupController,
+  getLegacyStorageCleanupController,
+  resetLegacyStorageCleanupControllerForTesting,
+} from './createLegacyStorageCleanupController'
+
+beforeEach(() => {
+  resetLegacyStorageCleanupControllerForTesting()
+  vi.clearAllMocks()
+})
 
 describe('createLegacyStorageCleanupController', () => {
   it('returns the maintenance outcome without hiding it', async () => {
@@ -42,5 +62,30 @@ describe('createLegacyStorageCleanupController', () => {
     })
 
     await expect(controller.run()).rejects.toBe(error)
+  })
+
+  it('converts runtime initialization errors and retries on the next run', async () => {
+    mocked.getLegacyStorageCleanupRuntime
+      .mockImplementationOnce(() => {
+        throw new LegacyStorageCleanupError(
+          'LEGACY_STORAGE_CLEANUP_STORAGE_UNAVAILABLE',
+        )
+      })
+      .mockReturnValue({
+        service: { run: vi.fn(async () => 'skipped' as const) },
+      })
+
+    await expect(
+      Promise.resolve().then(async () =>
+        getLegacyStorageCleanupController().run(),
+      ),
+    ).resolves.toEqual({
+      errorCode: 'LEGACY_STORAGE_CLEANUP_STORAGE_UNAVAILABLE',
+      status: 'failed',
+    })
+    await expect(getLegacyStorageCleanupController().run()).resolves.toEqual({
+      status: 'skipped',
+    })
+    expect(mocked.getLegacyStorageCleanupRuntime).toHaveBeenCalledTimes(2)
   })
 })

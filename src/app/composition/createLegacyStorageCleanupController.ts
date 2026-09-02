@@ -40,7 +40,9 @@ let controller: LegacyStorageCleanupController | undefined
 export const getLegacyStorageCleanupController =
   (): LegacyStorageCleanupController => {
     controller ??= createLegacyStorageCleanupController({
-      service: getLegacyStorageCleanupRuntime().service,
+      service: {
+        run: async () => getLegacyStorageCleanupRuntime().service.run(),
+      },
     })
     return controller
   }
