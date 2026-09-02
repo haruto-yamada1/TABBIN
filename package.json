@@ -205,6 +205,7 @@
   },
   "overrides": {
     "adm-zip": "0.6.0",
+    "browserslist": "4.28.8",
     "defu": "6.1.7",
     "fast-uri": "3.1.5",
     "js-yaml": "4.3.1",

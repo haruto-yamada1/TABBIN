@@ -63,6 +63,7 @@ const CURRENT_WRITER_IDS = [
   'UI-ROUTE-CLEANUP',
   'RELEASE-CONTROL',
   'PERSISTENCE-CONTROL-STATE',
+  'LEGACY-DOMAIN-CLEANUP',
   'SETTINGS-REPAIR',
   'SETTINGS-SAVE',
   'SETTINGS-AUTO-DELETE',
@@ -324,7 +325,7 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 39 rows, found 38')
+    ).toThrow('Writer ID baseline mismatch: expected 40 rows, found 39')
   })
 
   test.each([

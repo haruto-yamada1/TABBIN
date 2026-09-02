@@ -52,3 +52,9 @@ export type PersistenceV2MigrationTargetPort = {
     plan: PersistenceV2WritePlan,
   ) => Promise<void>
 }
+
+export type PersistenceV2VerifiedMigrationTargetPort = {
+  readonly readVerifiedSnapshot: (
+    migrationId: string,
+  ) => Promise<PersistenceLogicalSnapshot>
+}
