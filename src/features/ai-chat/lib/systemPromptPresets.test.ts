@@ -36,6 +36,20 @@ describe('systemPromptPresets', () => {
     )
   })
 
+  it('表示言語が英語なら既定 prompt の本文と名前を英語にする', () => {
+    const settings = normalizeAiSystemPromptSettings({
+      language: 'en',
+      ollamaModel: 'llama3.2',
+    } as UserSettings)
+
+    expect(getActiveAiSystemPrompt(settings)).toStrictEqual(
+      expect.objectContaining({
+        name: 'Default',
+        template: expect.stringContaining('You are an assistant'),
+      }),
+    )
+  })
+
   it('active id が壊れていても先頭 preset に補正し、50件までに丸める', () => {
     const settings = normalizeAiSystemPromptSettings({
       activeAiSystemPromptId: 'missing',
