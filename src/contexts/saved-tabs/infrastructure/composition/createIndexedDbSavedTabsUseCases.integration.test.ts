@@ -110,6 +110,88 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     expect(storageSet).not.toHaveBeenCalled()
   })
 
+  it('ドメインの並び替えを保存後に再読込してもカテゴリ内の順序を維持する', async () => {
+    vi.stubGlobal('chrome', {
+      storage: {
+        local: {
+          get: vi.fn(async () => ({})),
+          remove: vi.fn(),
+          set: vi.fn(),
+        },
+      },
+    })
+    const databaseName = 'saved-tabs-domain-reorder-reload-test'
+    const indexedDb = new IDBFactory()
+    const manager = new IndexedDbConnectionManager({
+      databaseName,
+      indexedDb,
+    })
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager, gate)
+    await unitOfWork.commit({
+      collections: {
+        put: [
+          {
+            createdAt: 1,
+            definition: { domain: 'first.example', type: 'domain' },
+            groupId: 'group-docs',
+            id: 'domain-first',
+            name: 'first.example',
+            sortOrder: 0,
+            updatedAt: 1,
+          },
+          {
+            createdAt: 1,
+            definition: { domain: 'second.example', type: 'domain' },
+            groupId: 'group-docs',
+            id: 'domain-second',
+            name: 'second.example',
+            sortOrder: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+      groups: {
+        put: [
+          {
+            createdAt: 1,
+            id: 'group-docs',
+            name: 'Docs',
+            sortOrder: 0,
+            updatedAt: 1,
+          },
+        ],
+      },
+    })
+
+    const useCases = createIndexedDbSavedTabsUseCases({
+      connectionManager: manager,
+    })
+    const before = await useCases.getSavedTabsPageData()
+    expect(before.parentCategories[0]?.collections.map(({ id }) => id)).toEqual(
+      ['domain-first', 'domain-second'],
+    )
+
+    await useCases.reorderDomainsInCategory({
+      categoryId: 'group-docs',
+      updatedDomains: before.tabGroups.toReversed(),
+    })
+
+    manager.close()
+    const reloadedManager = new IndexedDbConnectionManager({
+      databaseName,
+      indexedDb,
+    })
+    const reloadedUseCases = createIndexedDbSavedTabsUseCases({
+      connectionManager: reloadedManager,
+    })
+    const after = await reloadedUseCases.getSavedTabsPageData()
+
+    expect(after.parentCategories[0]?.collections.map(({ id }) => id)).toEqual([
+      'domain-second',
+      'domain-first',
+    ])
+  })
+
   it('カテゴリキーワード保存時に対象collectionの既存membershipをordered categoryへ再分類する', async () => {
     vi.stubGlobal('chrome', {
       storage: {
