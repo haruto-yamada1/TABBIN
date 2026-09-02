@@ -38,14 +38,23 @@ const BASE_METADATA_KEYS = [
   'status',
   'version',
 ] as const
+const BASE_METADATA_KEY_SET: ReadonlySet<string> = new Set(BASE_METADATA_KEYS)
+const COMPLETED_METADATA_KEY_SET: ReadonlySet<string> = new Set([
+  ...BASE_METADATA_KEYS,
+  'completedAt',
+])
+const FAILED_METADATA_KEY_SET: ReadonlySet<string> = new Set([
+  ...BASE_METADATA_KEYS,
+  'failedAt',
+])
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const hasOnlyKeys = (
   value: Record<string, unknown>,
-  allowedKeys: readonly string[],
-): boolean => Object.keys(value).every((key) => allowedKeys.includes(key))
+  allowedKeys: ReadonlySet<string>,
+): boolean => Object.keys(value).every((key) => allowedKeys.has(key))
 
 const isTimestamp = (value: unknown): value is number =>
   Number.isSafeInteger(value) && typeof value === 'number' && value >= 0
@@ -81,7 +90,7 @@ const decodeRetainedMetadata = (
   base: DecodedMetadataBase,
   status: 'eligible' | 'retained',
 ): LegacyStorageCleanupMetadata => {
-  if (!hasOnlyKeys(base.record, BASE_METADATA_KEYS)) {
+  if (!hasOnlyKeys(base.record, BASE_METADATA_KEY_SET)) {
     return invalidMetadata()
   }
   return {
@@ -97,7 +106,7 @@ const decodeFailedMetadata = (
 ): LegacyStorageCleanupMetadata => {
   const failedAt = base.record.failedAt
   if (
-    !hasOnlyKeys(base.record, [...BASE_METADATA_KEYS, 'failedAt']) ||
+    !hasOnlyKeys(base.record, FAILED_METADATA_KEY_SET) ||
     !isTimestamp(failedAt) ||
     failedAt < base.retentionStartedAt
   ) {
@@ -117,7 +126,7 @@ const decodeCompletedMetadata = (
 ): LegacyStorageCleanupMetadata => {
   const completedAt = base.record.completedAt
   if (
-    !hasOnlyKeys(base.record, [...BASE_METADATA_KEYS, 'completedAt']) ||
+    !hasOnlyKeys(base.record, COMPLETED_METADATA_KEY_SET) ||
     !isTimestamp(completedAt) ||
     completedAt < base.retentionStartedAt
   ) {
