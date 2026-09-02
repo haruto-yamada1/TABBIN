@@ -54,6 +54,16 @@ const domainCollections = (
   state: IndexedDbSavedTabsMutableState,
 ): DomainCollection[] => state.collections.filter(isDomainCollection)
 
+const compareDomainCollectionOrder = (
+  left: Pick<DomainCollection, 'id' | 'sortOrder'>,
+  right: Pick<DomainCollection, 'id' | 'sortOrder'>,
+): number => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id)
+
+const orderedDomainCollections = (
+  state: IndexedDbSavedTabsMutableState,
+): DomainCollection[] =>
+  domainCollections(state).toSorted(compareDomainCollectionOrder)
+
 const customCollections = (
   state: IndexedDbSavedTabsMutableState,
 ): CustomCollection[] => state.collections.filter(isCustomCollection)
@@ -213,12 +223,13 @@ const createCustomProjectRepository = (
 const createParentCategoryRepository = (
   state: IndexedDbSavedTabsMutableState,
 ): SavedTabsUseCasesDeps['parentCategoryRepository'] => {
-  const findAll = async () =>
-    state.groups
+  const findAll = async () => {
+    const collections = orderedDomainCollections(state)
+    return state.groups
       .toSorted((left, right) => left.sortOrder - right.sortOrder)
       .map((group) =>
         createParentCategory({
-          collections: domainCollections(state)
+          collections: collections
             .filter(({ groupId }) => groupId === group.id)
             .map((collection) => ({
               domain: collection.definition.domain,
@@ -228,6 +239,53 @@ const createParentCategoryRepository = (
           name: group.name,
         }),
       )
+  }
+
+  // Persistence v2 has no category-local collection rank. Encode the
+  // ParentCategory.collections order in the domain collection ranks while
+  // retaining the existing rank values as stable slots.
+  const syncDomainCollectionOrder = (
+    categories: readonly ParentCategory[],
+  ): void => {
+    const currentCollections = orderedDomainCollections(state)
+    const currentIds = new Set(currentCollections.map(({ id }) => id))
+    const orderedIds: string[] = []
+    const seenIds = new Set<string>()
+    for (const category of categories) {
+      for (const { id } of category.collections) {
+        if (currentIds.has(id) && !seenIds.has(id)) {
+          seenIds.add(id)
+          orderedIds.push(id)
+        }
+      }
+    }
+    for (const { id } of currentCollections) {
+      if (!seenIds.has(id)) {
+        seenIds.add(id)
+        orderedIds.push(id)
+      }
+    }
+
+    const sortOrders = currentCollections.map(({ sortOrder }) => sortOrder)
+    const nextSortOrderById = new Map(
+      orderedIds.map((id, index) => [id, sortOrders[index]]),
+    )
+    const timestamp = Date.now()
+    state.collections = state.collections.map((collection) => {
+      if (collection.definition.type !== 'domain') {
+        return collection
+      }
+      const nextSortOrder = nextSortOrderById.get(collection.id)
+      if (
+        nextSortOrder === undefined ||
+        nextSortOrder === collection.sortOrder
+      ) {
+        return collection
+      }
+      return { ...collection, sortOrder: nextSortOrder, updatedAt: timestamp }
+    })
+  }
+
   const saveAll = async (
     categories: readonly ParentCategory[],
   ): Promise<void> => {
@@ -263,6 +321,7 @@ const createParentCategoryRepository = (
         updatedAt: now,
       }
     })
+    syncDomainCollectionOrder(categories)
   }
   return {
     findAll,
