@@ -229,12 +229,16 @@ const createParentCategoryRepository = (
       .toSorted((left, right) => left.sortOrder - right.sortOrder)
       .map((group) =>
         createParentCategory({
-          collections: collections
-            .filter(({ groupId }) => groupId === group.id)
-            .map((collection) => ({
-              domain: collection.definition.domain,
-              id: collection.id,
-            })),
+          collections: collections.flatMap((collection) =>
+            collection.groupId === group.id
+              ? [
+                  {
+                    domain: collection.definition.domain,
+                    id: collection.id,
+                  },
+                ]
+              : [],
+          ),
           id: group.id,
           name: group.name,
         }),
