@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
+  runLegacyStorageCleanup: vi.fn(),
   runPersistenceMigration: vi.fn(),
   setupExpiredTabsCheckAlarm: vi.fn(),
   createContextMenus: vi.fn(),
@@ -26,6 +27,11 @@ vi.mock('wxt/utils/define-background', () => ({
 vi.mock('@/app/composition/createMigrationPreflightController', () => ({
   getMigrationPreflightController: () => ({
     run: mocked.runPersistenceMigration,
+  }),
+}))
+vi.mock('@/app/composition/createLegacyStorageCleanupController', () => ({
+  getLegacyStorageCleanupController: () => ({
+    run: mocked.runLegacyStorageCleanup,
   }),
 }))
 vi.mock('@/lib/background/alarm-notification', () => ({
@@ -189,6 +195,7 @@ const loadBackground = async (
     vi.stubEnv('DEV', options.dev)
   }
   mocked.openSavedTabsPage.mockResolvedValue(123)
+  mocked.runLegacyStorageCleanup.mockResolvedValue({ status: 'retained' })
   mocked.runPersistenceMigration.mockResolvedValue({
     migrationId: 'persistence-v2-production',
     persistenceGeneration: 2,
@@ -250,6 +257,15 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     )
     expect(mocked.setupMessageListener).toHaveBeenCalledTimes(1)
     expect(mocked.runPersistenceMigration).toHaveBeenCalledOnce()
+    expect(mocked.runLegacyStorageCleanup).toHaveBeenCalledOnce()
+    const cleanupOrder =
+      mocked.runLegacyStorageCleanup.mock.invocationCallOrder[0]
+    const migrationOrder =
+      mocked.runPersistenceMigration.mock.invocationCallOrder[0]
+    if (cleanupOrder === undefined || migrationOrder === undefined) {
+      throw new Error('Expected both persistence maintenance calls.')
+    }
+    expect(cleanupOrder).toBeGreaterThan(migrationOrder)
     expect(mocked.getParentCategories).not.toHaveBeenCalled()
     expect(mocked.migrateParentCategoriesToDomainNames).not.toHaveBeenCalled()
     await triggerInstalled(harness, 'install')
@@ -319,6 +335,23 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
         recordCount: 0,
       },
     )
+  })
+  it('legacy cleanup failureを型付きで記録し他のstartup maintenanceを継続する', async () => {
+    await loadBackground({
+      clearAfterImport: false,
+      setupMocks: () => {
+        mocked.runLegacyStorageCleanup.mockResolvedValueOnce({
+          errorCode: 'LEGACY_STORAGE_CLEANUP_TARGET_UNHEALTHY',
+          status: 'failed',
+        })
+      },
+    })
+
+    expect(mocked.logger.warn).toHaveBeenCalledWith(
+      'background_legacy_storage_cleanup_failed',
+      { errorCode: 'LEGACY_STORAGE_CLEANUP_TARGET_UNHEALTHY' },
+    )
+    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
   })
   it.each([
     [
