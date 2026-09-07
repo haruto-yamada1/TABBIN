@@ -163,7 +163,7 @@ describe('SortableUrlItem additional', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Example Tab' })
+    const link = screen.getByRole('link', { name: 'Example Tab' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'copy',
@@ -183,7 +183,7 @@ describe('SortableUrlItem additional', () => {
   it('Provider 外では外部 drop 判定でも messaging port 通知を no-op にする', () => {
     renderWithMessagingPort(<SortableUrlItem {...createProps()} />)
 
-    const link = screen.getByRole('button', { name: 'Example Tab' })
+    const link = screen.getByRole('link', { name: 'Example Tab' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'copy',
@@ -208,7 +208,7 @@ describe('SortableUrlItem additional', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Example Tab' })
+    const link = screen.getByRole('link', { name: 'Example Tab' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'link',
@@ -266,7 +266,7 @@ describe('SortableUrlItem additional', () => {
       />,
     )
 
-    const link = screen.getByRole('button', { name: 'Example Tab' })
+    const link = screen.getByRole('link', { name: 'Example Tab' })
     expect(link.textContent).not.toContain('2026/06/02')
   })
 })

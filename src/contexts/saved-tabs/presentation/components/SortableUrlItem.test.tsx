@@ -113,11 +113,18 @@ describe('SortableUrlItem', () => {
     const listItem = screen.getByTestId('sortable-url-item')
     expect(listItem).toHaveClass('min-w-0')
 
-    const openButton = screen.getByRole('button', {
+    const openLink = screen.getByRole('link', {
       name: /Very long saved tab title/,
     })
-    expect(openButton).toHaveClass('w-full')
-    expect(openButton).toHaveClass('min-w-0')
+    expect(openLink).toHaveClass('w-full')
+    expect(openLink).toHaveClass('min-w-0')
+    expect(openLink).toHaveAttribute(
+      'href',
+      'https://example.com/really/long/path/that/should/not/stretch/the/card',
+    )
+    expect(openLink).toHaveAttribute('target', '_blank')
+    expect(openLink).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.getAllByRole('button')).toHaveLength(1)
 
     const textColumn = screen.getByTestId('url-text-column')
     expect(textColumn).toHaveClass('min-w-0')
@@ -128,7 +135,7 @@ describe('SortableUrlItem', () => {
     expect(screen.getByText('2026/06/02 12:34')).toBeTruthy()
     expect(screen.getByTestId('time-remaining')).toBeTruthy()
 
-    await user.click(openButton)
+    await user.click(openLink)
     expect(handleOpenTab).toHaveBeenCalledWith(
       'https://example.com/really/long/path/that/should/not/stretch/the/card',
     )
@@ -138,5 +145,86 @@ describe('SortableUrlItem', () => {
       'group-1',
       'https://example.com/really/long/path/that/should/not/stretch/the/card',
     )
+  })
+
+  it('通常クリックとEnterだけをTABBIN処理し標準リンク操作へ委譲する', async () => {
+    const user = userEvent.setup()
+    const handleOpenTab = vi.fn()
+    const url = 'https://example.com/path'
+
+    render(
+      <SortableUrlItem
+        {...{
+          url,
+          title: 'Example Tab',
+          id: url,
+          groupId: 'group-1',
+          handleDeleteUrl: vi.fn(),
+          handleOpenTab,
+          handleUpdateUrls: vi.fn(),
+          settings: defaultSettings,
+        }}
+      />,
+    )
+
+    const link = screen.getByRole('link', { name: 'Example Tab' })
+    const managedClick = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    })
+    link.dispatchEvent(managedClick)
+
+    expect(managedClick.defaultPrevented).toBe(true)
+    expect(handleOpenTab).toHaveBeenCalledTimes(1)
+
+    for (const init of [
+      { button: 1 },
+      { button: 0, ctrlKey: true },
+      { button: 0, metaKey: true },
+      { button: 0, shiftKey: true },
+      { button: 0, altKey: true },
+    ]) {
+      const delegatedClick = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        ...init,
+      })
+      link.dispatchEvent(delegatedClick)
+      expect(delegatedClick.defaultPrevented).toBe(false)
+    }
+    expect(handleOpenTab).toHaveBeenCalledTimes(1)
+
+    const contextMenu = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    })
+    link.dispatchEvent(contextMenu)
+    expect(contextMenu.defaultPrevented).toBe(false)
+
+    link.focus()
+    await user.keyboard('{Enter}')
+    expect(handleOpenTab).toHaveBeenCalledTimes(2)
+  })
+
+  it('許可されないprotocolのURLはリンクとして描画しない', () => {
+    const unsafeUrl = ['java', 'script:alert(1)'].join('')
+
+    render(
+      <SortableUrlItem
+        url={unsafeUrl}
+        title='Unsafe URL'
+        id={unsafeUrl}
+        groupId='group-1'
+        handleDeleteUrl={vi.fn()}
+        handleOpenTab={vi.fn()}
+        handleUpdateUrls={vi.fn()}
+        settings={defaultSettings}
+      />,
+    )
+
+    expect(screen.queryByRole('link', { name: 'Unsafe URL' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Unsafe URL' })).toBeNull()
   })
 })

@@ -6,7 +6,10 @@ import {
   isUrlExcludedByPatterns,
   isValidUrl,
   normalizeUrlCandidate,
+  toSafeSavedUrlHref,
 } from './url-filter'
+
+const unsafeUrl = ['java', 'script:alert(1)'].join('')
 
 describe('url-filter', () => {
   it('URL 候補を正規化し、不正値と空文字を除外する', () => {
@@ -57,5 +60,19 @@ describe('url-filter', () => {
       { id: 'file', url: 'file:///tmp/example.txt' },
       { id: 'about', url: 'about:blank' },
     ])
+  })
+
+  it('anchor navigation向けにはhttp/httpsだけを安全なhrefへ変換する', () => {
+    expect(toSafeSavedUrlHref(' https://example.com/path ')).toBe(
+      'https://example.com/path',
+    )
+    expect(toSafeSavedUrlHref('http://example.com')).toBe('http://example.com/')
+    expect(toSafeSavedUrlHref(unsafeUrl)).toBeNull()
+    expect(
+      toSafeSavedUrlHref('data:text/html,<script>alert(1)</script>'),
+    ).toBeNull()
+    expect(toSafeSavedUrlHref('file:///tmp/example.txt')).toBeNull()
+    expect(toSafeSavedUrlHref('not a url')).toBeNull()
+    expect(toSafeSavedUrlHref(undefined)).toBeNull()
   })
 })

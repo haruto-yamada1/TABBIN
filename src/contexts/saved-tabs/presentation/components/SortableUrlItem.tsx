@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import type { SortableUrlItemProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { toSafeSavedUrlHref } from '@/lib/url-filter'
 import { TimeRemaining } from '@/utils/datetime'
 import { formatFixedDatetime as formatDatetime } from '@/utils/localDateTime'
 
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
+import { isManagedLinkActivation } from './shared/linkActivation'
 
 const ButtonContent = ({
   title,
@@ -187,9 +189,27 @@ export const SortableUrlItem = ({
     [handleDragStart, url],
   )
 
-  const handleOpenTabClick = useCallback(() => {
-    handleOpenTab(url)
-  }, [handleOpenTab, url])
+  const handleOpenTabClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!isManagedLinkActivation(event)) {
+        return
+      }
+
+      event.preventDefault()
+      handleOpenTab(url)
+    },
+    [handleOpenTab, url],
+  )
+
+  const safeHref = toSafeSavedUrlHref(url)
+  const buttonContent = (
+    <ButtonContent
+      title={title}
+      savedAt={savedAt}
+      autoDeletePeriod={autoDeletePeriod}
+      settings={settings}
+    />
+  )
 
   const handleDeleteConfirm = useCallback(() => {
     handleDeleteUrl(groupId, url)
@@ -223,23 +243,30 @@ export const SortableUrlItem = ({
           <GripVertical size={16} aria-hidden='true' />
         </div>
         <div className='relative min-w-0 flex-1 overflow-hidden'>
-          <Button
-            type='button'
-            variant='ghost'
-            size='sm'
-            draggable
-            onDragStart={handleItemDragStart}
-            onDragEnd={handleDragEnd}
-            onClick={handleOpenTabClick}
-            className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
-          >
-            <ButtonContent
-              title={title}
-              savedAt={savedAt}
-              autoDeletePeriod={autoDeletePeriod}
-              settings={settings}
-            />
-          </Button>
+          {safeHref ? (
+            <Button
+              asChild
+              variant='ghost'
+              size='sm'
+              draggable
+              onDragStart={handleItemDragStart}
+              onDragEnd={handleDragEnd}
+              className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
+            >
+              <a
+                href={safeHref}
+                target='_blank'
+                rel='noopener noreferrer'
+                onClick={handleOpenTabClick}
+              >
+                {buttonContent}
+              </a>
+            </Button>
+          ) : (
+            <span className='ml-2 flex w-full min-w-0 items-center justify-start gap-1 overflow-hidden px-1 py-2 pr-8 text-foreground'>
+              {buttonContent}
+            </span>
+          )}
           <Button
             variant='ghost'
             size='icon'
