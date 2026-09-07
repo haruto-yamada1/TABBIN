@@ -153,7 +153,7 @@ describe('ProjectUrlItem additional', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Doc' })
+    const link = screen.getByRole('link', { name: 'Doc' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'copy',

@@ -11,12 +11,14 @@ import type {
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { toSafeSavedUrlHref } from '@/lib/url-filter'
 
 import {
   getCategoryDisplayName,
   getCategoryLevel,
 } from './projectUrlItemHelpers'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
+import { isManagedLinkActivation } from './shared/linkActivation'
 
 const MAX_URL_PREVIEW_LENGTH = 30
 
@@ -45,6 +47,24 @@ type ProjectUrlItemProps = {
   parentType?: string
   settings: UserSettingsDto
 }
+
+const ProjectUrlContent = ({ item }: Pick<ProjectUrlItemProps, 'item'>) => (
+  <>
+    {/* サブカテゴリ付きのURLの場合はChevronRightを表示 */}
+    {item.category?.includes('/') && (
+      <ChevronRight size={14} className='mr-1 inline-block text-primary' />
+    )}
+    <span className='min-w-0 flex-1 truncate' data-testid='project-url-title'>
+      {item.title || item.url}
+    </span>
+    {/* カテゴリ階層の視覚的な表示をシンプル化 */}
+    {item.category?.includes('/') && (
+      <Badge variant='outline' className='ml-2 shrink-0 text-xs'>
+        {getCategoryDisplayName(item.category)}
+      </Badge>
+    )}
+  </>
+)
 
 // eslint-disable-next-line eslint/complexity
 const ProjectUrlItemComponent = ({
@@ -182,9 +202,19 @@ const ProjectUrlItemComponent = ({
   const categoryLevel = getCategoryLevel(item.category)
   const isInSubcategory = categoryLevel > 0
 
-  const handleUrlClick = useCallback(() => {
-    handleOpenUrl(item.url)
-  }, [handleOpenUrl, item.url])
+  const handleUrlClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!isManagedLinkActivation(event)) {
+        return
+      }
+
+      event.preventDefault()
+      handleOpenUrl(item.url)
+    },
+    [handleOpenUrl, item.url],
+  )
+
+  const safeHref = toSafeSavedUrlHref(originalUrl)
 
   const handleDeleteButtonClick = useCallback(
     (e: React.MouseEvent) => {
@@ -235,36 +265,30 @@ const ProjectUrlItemComponent = ({
         </div>
         {/* タイトル＋バッジ部 */}
         <div className='flex min-w-0 flex-1 items-center'>
-          <Button
-            type='button'
-            variant='ghost'
-            size='sm'
-            draggable
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onClick={handleUrlClick}
-            className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
-          >
-            {/* サブカテゴリ付きのURLの場合はChevronRightを表示 */}
-            {item.category?.includes('/') && (
-              <ChevronRight
-                size={14}
-                className='mr-1 inline-block text-primary'
-              />
-            )}
-            <span
-              className='min-w-0 flex-1 truncate'
-              data-testid='project-url-title'
+          {safeHref ? (
+            <Button
+              asChild
+              variant='ghost'
+              size='sm'
+              draggable
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
             >
-              {item.title || item.url}
+              <a
+                href={safeHref}
+                target='_blank'
+                rel='noopener noreferrer'
+                onClick={handleUrlClick}
+              >
+                <ProjectUrlContent item={item} />
+              </a>
+            </Button>
+          ) : (
+            <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
+              <ProjectUrlContent item={item} />
             </span>
-            {/* カテゴリ階層の視覚的な表示をシンプル化 */}
-            {item.category?.includes('/') && (
-              <Badge variant='outline' className='ml-2 shrink-0 text-xs'>
-                {getCategoryDisplayName(item.category)}
-              </Badge>
-            )}
-          </Button>
+          )}
         </div>
         {/* ボタン群 */}
         <div
