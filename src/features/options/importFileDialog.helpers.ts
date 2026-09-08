@@ -1,24 +1,13 @@
 import type { Dispatch } from 'react'
 
-import type { LegacyBackupAdvisory } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
+import type { ImportPreview } from '@/features/options/lib/import-export'
 
-type PreviewData = {
-  version: string
-  timestamp: string
-  categoriesCount: number
-  domainsCount: number
-  formatKind: 'current-v2' | 'legacy'
-  projectsCount: number
-  hasAiChat: boolean
-  hasAnalytics: boolean
-  legacyBackupAdvisory?: LegacyBackupAdvisory
-}
+type PreviewData = ImportPreview
 
 type ImportDialogState = {
   isOpen: boolean
   step: 'select' | 'preview'
   previewData: PreviewData | null
-  mergeData: boolean
 }
 
 type ImportDialogAction =
@@ -26,13 +15,11 @@ type ImportDialogAction =
   | { type: 'CLOSE' }
   | { type: 'RESET' }
   | { type: 'SET_PREVIEW'; preview: PreviewData }
-  | { type: 'SET_MERGE'; mergeData: boolean }
 
 const initialImportDialogState: ImportDialogState = {
   isOpen: false,
   step: 'select',
   previewData: null,
-  mergeData: true,
 }
 
 const importDialogReducer = (
@@ -52,14 +39,9 @@ const importDialogReducer = (
     case 'SET_PREVIEW': {
       return {
         ...state,
-        mergeData:
-          action.preview.formatKind === 'current-v2' ? false : state.mergeData,
         previewData: action.preview,
         step: 'preview',
       }
-    }
-    case 'SET_MERGE': {
-      return { ...state, mergeData: action.mergeData }
     }
     default: {
       return state

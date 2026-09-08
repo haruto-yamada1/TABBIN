@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -14,15 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { formatLocalizedDate } from '@/features/i18n/lib/date-format'
 import {
   getImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
-import { getCurrentUtcDateOnly } from '@/features/options/lib/import-export/currentImportDate'
 import {
   BACKUP_MAX_SERIALIZED_SIZE_LABEL,
   validateBackupSerializedBytes,
@@ -38,47 +34,22 @@ import {
 import type { PreviewData } from './importFileDialog.helpers'
 
 type ImportSelectStepProps = {
-  mergeData: boolean
-  onMergeChange: (mergeData: boolean) => void
   isDragActive: boolean
   getRootProps: () => React.HTMLAttributes<HTMLDivElement>
   getInputProps: () => React.InputHTMLAttributes<HTMLInputElement>
 }
 
 const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
-  mergeData,
-  onMergeChange,
   isDragActive,
   getRootProps,
   getInputProps,
 }) => {
   const { t } = useI18n()
-  const handleMergeCheckedChange = useCallback(
-    (checked: boolean | 'indeterminate') => {
-      onMergeChange(checked === true)
-    },
-    [onMergeChange],
-  )
 
   return (
     <>
-      <div className='mb-4 flex items-center gap-x-2'>
-        <Checkbox
-          id='merge-data'
-          checked={mergeData}
-          onCheckedChange={handleMergeCheckedChange}
-        />
-        <Label htmlFor='merge-data' className='cursor-pointer'>
-          {t('options.importExport.merge')}
-        </Label>
-      </div>
-
       <div className='mb-4 text-sm text-muted-foreground'>
-        <p>
-          {mergeData
-            ? t('options.importExport.mergeDescription')
-            : t('options.importExport.replaceDescription')}
-        </p>
+        <p>{t('options.importExport.replaceDescription')}</p>
       </div>
 
       <div
@@ -107,18 +78,12 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
 
 type ImportPreviewStepProps = {
   previewData: PreviewData
-  mergeData: boolean
 }
 
 const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
   previewData,
-  mergeData,
 }) => {
-  const { language, t } = useI18n()
-  const legacyBackupAdvisory = previewData.legacyBackupAdvisory
-  const cutoffDate = legacyBackupAdvisory
-    ? formatLocalizedDate(language, legacyBackupAdvisory.cutoffDate)
-    : undefined
+  const { t } = useI18n()
 
   return (
     <div className='space-y-4'>
@@ -169,34 +134,11 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
         </div>
       </div>
 
-      {legacyBackupAdvisory ? (
-        <Alert className='border-amber-500/60 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-50'>
-          <AlertCircle className='size-4' />
-          <AlertTitle>
-            {t('options.importExport.legacyPreviewTitle')}
-          </AlertTitle>
-          <AlertDescription className='space-y-1'>
-            <p>
-              {t('options.importExport.legacyPreviewWarning', undefined, {
-                cutoffDate: cutoffDate ?? '',
-              })}
-            </p>
-            <p>{t('options.importExport.legacyPreviewAction')}</p>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <Alert variant={mergeData ? 'default' : 'destructive'} className='my-4'>
+      <Alert variant='destructive' className='my-4'>
         <AlertCircle className='size-4' />
-        <AlertTitle>
-          {mergeData
-            ? t('options.importExport.mergeLabel')
-            : t('options.importExport.replaceLabel')}
-        </AlertTitle>
+        <AlertTitle>{t('options.importExport.replaceLabel')}</AlertTitle>
         <AlertDescription>
-          {mergeData
-            ? t('options.importExport.mergeWarning')
-            : t('options.importExport.replaceWarning')}
+          {t('options.importExport.replaceWarning')}
         </AlertDescription>
       </Alert>
     </div>
@@ -255,8 +197,8 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             return
           }
 
-          const result = getImportPreview(content)
-          if (result.success && result.preview) {
+          const result = getImportPreview(content, t)
+          if (result.success) {
             dispatchImportDialog({
               type: 'SET_PREVIEW',
               preview: result.preview,
@@ -316,13 +258,6 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     resetImportFileInput(fileInputRef.current)
   }, [])
 
-  const handleSetMerge = useCallback(
-    (mergeData: boolean) => {
-      dispatchImportDialog({ type: 'SET_MERGE', mergeData })
-    },
-    [dispatchImportDialog],
-  )
-
   const handleResetAndBack = useCallback(() => {
     dispatchImportDialog({ type: 'RESET' })
     resetFileInput()
@@ -342,14 +277,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             return
           }
 
-          const result = await importSettings(
-            content,
-            importDialog.mergeData,
-            t,
-            {
-              importDate: getCurrentUtcDateOnly(),
-            },
-          )
+          const result = await importSettings(content, t)
           if (result.success) {
             toast.success(result.message)
             dispatchImportDialog({ type: 'CLOSE' })
@@ -383,7 +311,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       toast.error(t('options.importExport.importError'))
       setIsImporting(false)
     }
-  }, [importDialog.mergeData, onImportSuccess, t])
+  }, [onImportSuccess, t])
 
   return (
     <>
@@ -434,8 +362,6 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             <div className='pr-4'>
               {importDialog.step === 'select' && (
                 <ImportSelectStep
-                  mergeData={importDialog.mergeData}
-                  onMergeChange={handleSetMerge}
                   isDragActive={isDragActive}
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}
@@ -443,10 +369,7 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               )}
 
               {importDialog.step === 'preview' && importDialog.previewData && (
-                <ImportPreviewStep
-                  previewData={importDialog.previewData}
-                  mergeData={importDialog.mergeData}
-                />
+                <ImportPreviewStep previewData={importDialog.previewData} />
               )}
             </div>
           </ScrollArea>

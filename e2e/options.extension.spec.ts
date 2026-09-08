@@ -18,16 +18,6 @@ import {
 
 const now = Date.now()
 
-const requireValue = <Value>(
-  value: Value | null | undefined,
-  message: string,
-): Value => {
-  if (value === null || value === undefined) {
-    throw new Error(message)
-  }
-  return value
-}
-
 const createSeedWithUrls = () =>
   createBaseSeed({
     savedTabs: [
@@ -114,93 +104,6 @@ const createLegacyCategoryDriftSeed = () =>
       },
     ],
   })
-
-const createLegacyBackup = () => {
-  const activeAiSystemPrompt = {
-    createdAt: now - 1,
-    id: 'legacy-active-prompt',
-    name: 'Legacy active prompt',
-    template: 'Legacy prompt template',
-    updatedAt: now,
-  }
-  const legacyUrl = {
-    id: 'url-legacy',
-    savedAt: now,
-    title: 'Legacy Home',
-    url: 'https://legacy.example/',
-  }
-  const orphanLegacyUrl = {
-    id: 'url-legacy-orphan',
-    savedAt: now - 1,
-    title: 'Legacy Orphan',
-    url: 'https://orphan.legacy.example/',
-  }
-
-  return {
-    customProjectOrder: ['project-legacy'],
-    customProjects: [
-      {
-        categories: [],
-        createdAt: now - 1,
-        id: 'project-legacy',
-        name: 'Legacy Project',
-        projectKeywords: {
-          domainKeywords: [],
-          titleKeywords: [],
-          urlKeywords: [],
-        },
-        updatedAt: now,
-        urls: [
-          {
-            savedAt: legacyUrl.savedAt,
-            title: legacyUrl.title,
-            url: legacyUrl.url,
-          },
-        ],
-      },
-    ],
-    parentCategories: [],
-    savedTabs: [
-      {
-        categoryKeywords: [
-          { categoryName: 'news', keywords: [] },
-          { categoryName: 'docs', keywords: [] },
-        ],
-        domain: 'legacy.example',
-        id: 'group-legacy',
-        savedAt: now,
-        subCategories: ['news', 'docs'],
-        subCategoryOrder: ['news'],
-        subCategoryOrderWithUncategorized: ['__uncategorized', 'news'],
-        urlIds: [legacyUrl.id],
-        urls: [
-          {
-            savedAt: legacyUrl.savedAt,
-            subCategory: 'news',
-            title: legacyUrl.title,
-            url: legacyUrl.url,
-          },
-        ],
-        urlSubCategories: { [legacyUrl.id]: 'news' },
-      },
-    ],
-    timestamp: new Date(now).toISOString(),
-    urls: [legacyUrl, orphanLegacyUrl],
-    userSettings: {
-      ...defaultUserSettings,
-      activeAiSystemPrompt,
-      activeAiSystemPromptId: activeAiSystemPrompt.id,
-      aiChatEnabled: false,
-      aiProvider: 'none',
-      aiSystemPrompts: [activeAiSystemPrompt],
-      autoDeletePeriod: 'never',
-      clickBehavior: 'saveCurrentTab',
-      openUrlInBackground: false,
-      removeTabAfterOpen: true,
-    },
-    version: '1.2.4',
-  }
-}
 
 const emptyPersistenceV2Seed = {
   categories: [],
@@ -304,7 +207,7 @@ test.describe('extension options', () => {
     await expect(recoveryAlert).toBeVisible()
   })
 
-  test('blocked preflight修復後に旧形式importをIndexedDBへ保存できる', async ({
+  test('blocked preflight修復後もlive storage migrationを完了できる', async ({
     extensionId,
     page,
     serviceWorker,
@@ -325,41 +228,25 @@ test.describe('extension options', () => {
         {
           id: 'duplicate-url',
           savedAt: now,
-          title: 'Recovered legacy URL',
+          title: 'Recovered storage URL',
           url: 'https://blocked.example/recovered',
         },
       ],
     )
-    const tmpDir = await mkdtemp(
-      path.join(os.tmpdir(), 'tabbin-import-after-recovery-'),
-    )
-    try {
-      const tmpFilePath = path.join(tmpDir, 'tabbin-backup-legacy.json')
-      await writeFile(tmpFilePath, JSON.stringify(createLegacyBackup()))
 
-      await page.getByRole('button', { name: /import/i }).click()
-      await page
-        .locator('[data-testid="hidden-file-input"]')
-        .setInputFiles(tmpFilePath)
-      await page.getByRole('button', { name: /confirm.*import/i }).click()
-      await expect(
-        page.getByRole('button', { name: /confirm.*import/i }),
-      ).toBeHidden()
-
-      await waitForPersistenceV2Ready(serviceWorker)
-      await expect(recoveryAlert).toBeHidden()
-      await expect
-        .poll(async () => {
-          const snapshot =
-            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
-          return snapshot.urls.some(
-            ({ url }) => url === 'https://legacy.example/',
-          )
-        })
-        .toBe(true)
-    } finally {
-      await rm(tmpDir, { force: true, recursive: true })
-    }
+    await recoveryAlert
+      .getByRole('button', { name: 'Run checks and retry' })
+      .click()
+    await waitForPersistenceV2Ready(serviceWorker)
+    await expect(recoveryAlert).toBeHidden()
+    await expect
+      .poll(async () => {
+        const snapshot = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+        return snapshot.urls.some(
+          ({ url }) => url === 'https://blocked.example/recovered',
+        )
+      })
+      .toBe(true)
   })
 
   test('設定をBackup V2でエクスポートできる', async ({
@@ -437,168 +324,6 @@ test.describe('extension options', () => {
 
       await page.reload()
       await expect(page.getByText('Example Home')).toBeVisible()
-    } finally {
-      await rm(tmpDir, { force: true, recursive: true })
-    }
-  })
-
-  test('旧形式を import して URL を開き、再保存後に reload できる', async ({
-    extensionContext,
-    extensionId,
-    page,
-    serviceWorker,
-  }) => {
-    await seedStorage(serviceWorker, createBaseSeed())
-    await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
-    await waitForPersistenceV2Ready(serviceWorker)
-
-    const tmpDir = await mkdtemp(
-      path.join(os.tmpdir(), 'tabbin-import-legacy-'),
-    )
-    try {
-      const tmpFilePath = path.join(tmpDir, 'tabbin-backup-legacy.json')
-      await writeFile(tmpFilePath, JSON.stringify(createLegacyBackup()))
-
-      await page.getByRole('button', { name: /import/i }).click()
-      await page
-        .locator('[data-testid="hidden-file-input"]')
-        .setInputFiles(tmpFilePath)
-      await expect(
-        page.getByRole('button', { name: /confirm.*import/i }),
-      ).toBeVisible()
-      await page.getByRole('button', { name: /confirm.*import/i }).click()
-      await expect(
-        page.getByRole('button', { name: /confirm.*import/i }),
-      ).toBeHidden()
-
-      await page.goto(
-        getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
-      )
-      const legacyUrlButton = page.getByRole('button', {
-        exact: true,
-        name: 'Legacy Home',
-      })
-      await expect(legacyUrlButton).toBeVisible()
-      await expect
-        .poll(async () => {
-          const snapshot =
-            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
-          return {
-            memberships: snapshot.memberships.length,
-            revision: snapshot.revision,
-            urls: snapshot.urls.length,
-          }
-        })
-        .toEqual({ memberships: 2, revision: 1, urls: 2 })
-
-      const openedPagePromise = extensionContext.waitForEvent('page')
-      await legacyUrlButton.click()
-      const openedPage = await openedPagePromise
-      await expect
-        .poll(async () => {
-          const snapshot =
-            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
-          return {
-            memberships: snapshot.memberships.length,
-            revision: snapshot.revision,
-            urls: snapshot.urls.length,
-          }
-        })
-        .toEqual({ memberships: 0, revision: 2, urls: 1 })
-
-      await openedPage.bringToFront()
-      const openedPageClosed = openedPage.waitForEvent('close')
-      const browser = requireValue(
-        extensionContext.browser(),
-        'Extension browser is unavailable.',
-      )
-      const browserCdp = await browser.newBrowserCDPSession()
-      try {
-        const { targetInfos } = await browserCdp.send('Target.getTargets', {
-          filter: [{ type: 'tab' }],
-        })
-        const target = requireValue(
-          targetInfos.find(
-            ({ type, url }) =>
-              type === 'tab' && url === 'https://legacy.example/',
-          ),
-          'Opened legacy URL tab target was not found.',
-        )
-        await browserCdp.send('Extensions.triggerAction', {
-          id: extensionId,
-          targetId: target.targetId,
-        })
-      } finally {
-        await browserCdp.detach()
-      }
-      await openedPageClosed
-
-      await expect
-        .poll(async () => {
-          const snapshot =
-            await readPersistenceV2SavedTabsSnapshot(serviceWorker)
-          return {
-            memberships: snapshot.memberships.length,
-            revision: snapshot.revision,
-            urls: snapshot.urls.length,
-          }
-        })
-        .toEqual({ memberships: 2, revision: 3, urls: 2 })
-      const savedSnapshot =
-        await readPersistenceV2SavedTabsSnapshot(serviceWorker)
-      const resavedUrl = requireValue(
-        savedSnapshot.urls.find(
-          (record) =>
-            (record as { normalizedUrl?: unknown }).normalizedUrl ===
-            'https://legacy.example/',
-        ) as { normalizedUrl: string; title: string } | undefined,
-        'Resaved legacy URL was not found.',
-      )
-      expect(resavedUrl).toEqual(
-        expect.objectContaining({ normalizedUrl: 'https://legacy.example/' }),
-      )
-      expect(resavedUrl.title).toEqual(expect.any(String))
-      expect(resavedUrl.title.length).toBeGreaterThan(0)
-
-      await page.reload()
-      await expect(
-        page.getByRole('button', {
-          exact: true,
-          name: resavedUrl.title,
-        }),
-      ).toBeVisible()
-      const reloaded = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
-      expect(reloaded).toEqual(
-        expect.objectContaining({
-          memberships: expect.arrayContaining([
-            expect.objectContaining({ urlId: expect.any(String) }),
-          ]),
-          revision: 3,
-          urls: expect.arrayContaining([
-            expect.objectContaining({
-              normalizedUrl: 'https://legacy.example/',
-            }),
-          ]),
-        }),
-      )
-
-      await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
-      const downloadPromise = page.waitForEvent('download')
-      await page.getByRole('button', { name: /export/i }).click()
-      const download = await downloadPromise
-      const downloadPath = await download.path()
-      expect(downloadPath).toBeTruthy()
-      const exported = BackupEnvelopeV2Schema.parse(
-        JSON.parse(await readFile(downloadPath as string, 'utf8')),
-      )
-      expect(exported.schemaVersion).toBe(2)
-      expect(exported.data.userSettings).not.toHaveProperty('aiChatEnabled')
-      expect(exported.data.userSettings).not.toHaveProperty('aiProvider')
-      expect(exported.data.savedTabs.urls).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ url: 'https://legacy.example/' }),
-        ]),
-      )
     } finally {
       await rm(tmpDir, { force: true, recursive: true })
     }

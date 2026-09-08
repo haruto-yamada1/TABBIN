@@ -432,7 +432,6 @@ describe('PersistenceBootstrap architecture policy', () => {
     const backupCompositions = [
       'src/app/composition/optionsBackupRecovery.ts',
       'src/app/composition/optionsBackupV2Export.ts',
-      'src/app/composition/optionsLegacyBackupMerge.ts',
     ].map(readRepositoryFile)
 
     for (const contract of [

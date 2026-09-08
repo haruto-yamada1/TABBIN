@@ -67,9 +67,8 @@ control state.
 The concrete runtime contract and canonical mapper live in
 `src/features/options/lib/import-export/v2/BackupV2Schema.ts` and
 `BackupMapper.ts`. The current Options export entry point is composed in
-`src/app/composition/optionsBackupV2Export.ts`; the old schema-less
-`exportSettings` remains a compatibility boundary and is not called by the
-production Options export button.
+`src/app/composition/optionsBackupV2Export.ts`. Schema-less backup export is
+not part of the production or test support surface.
 
 ## Consistent and deterministic export
 
@@ -109,19 +108,16 @@ Unknown JSON is classified before version-specific parsing:
 ```text
 unknown JSON
   -> object with positive integer schemaVersion: versioned
-  -> object without schemaVersion: legacy candidate
+  -> object without schemaVersion: UNSUPPORTED_LEGACY_BACKUP
   -> malformed object or invalid schemaVersion: INVALID_SCHEMA
 ```
 
-Legacy classification is routing information only. The versioned pipeline does
-not parse, migrate, or accept pre-IndexedDB data.
-
-`BackupV2Inspector.ts` owns strict current, future, and legacy inspection.
-Current V2 is fully validated before it is accepted, a future positive integer
-version preserves `UNSUPPORTED_FUTURE_SCHEMA`, and a malformed versioned
-envelope is never retried as legacy. The temporary production mutation boundary
-is `productionImportGate.ts`, which runs before installed-data migration or any
-storage read/write.
+`BackupV2Inspector.ts` owns strict versioned inspection. Current V2 is fully
+validated before it is accepted, a future positive integer version preserves
+`UNSUPPORTED_FUTURE_SCHEMA`, and schema-less or malformed input is never
+retried through a compatibility parser. The production mutation boundary is
+`productionImportGate.ts`, which normalizes schema failures before any storage
+read/write.
 
 ## Sequential migration registry
 
@@ -155,12 +151,19 @@ step and makes the failure boundary deterministic.
 
 The public failure codes are:
 
+- `UNSUPPORTED_LEGACY_BACKUP`: the input has no public `schemaVersion`.
 - `UNSUPPORTED_FUTURE_SCHEMA`: `schemaVersion` is greater than the caller's
   current version.
 - `UNSUPPORTED_SCHEMA_VERSION`: the version is older than the supported range
   or has no registered step.
 - `INVALID_SCHEMA`: envelope detection, step input validation, step output
   validation, or final current validation failed.
+
+The Options import boundary exposes the smaller user-facing typed contract
+`UNSUPPORTED_LEGACY_BACKUP`, `UNSUPPORTED_FUTURE_SCHEMA`, and
+`INVALID_BACKUP`. It maps malformed JSON, malformed current envelopes, and
+unsupported old versioned schemas to `INVALID_BACKUP` without including
+payload content. This boundary is current Backup V2 only.
 
 A future version is never best-effort parsed as current. Error messages carry
 only safe version diagnostics and never include backup payloads, Zod issues, URL
@@ -197,64 +200,31 @@ To add one supported version:
 Do not rewrite old schemas to match the new shape. Do not add application-semver
 branches or direct old-to-current shortcuts.
 
-## Pre-IndexedDB compatibility lifecycle
+## Completed pre-IndexedDB backup cutoff
 
-Schema-less backups with the legacy `version` field are not members of the
-versioned registry. #730 owns a dedicated temporary legacy importer and maps a
-validated legacy backup to current logical backup data before current-schema
-validation.
-
-The target support policy is:
-
-- legacy pre-IndexedDB backup import is available through `2026-09-30`;
-- #734 removes the legacy parser, mapper, detector branch, fixtures, deadline
-  constants, and temporary UI branch from `2026-10-01`;
-- the parent policy still requires at least 30 days after the production notice
-  release. The notice must reach the Chrome Web Store by `2026-09-01`; a later
-  release postpones the cutoff consistently across #724, #730, #731, #734,
-  docs, i18n, constants, and tests.
-
-The central dates and notice calculation are defined only in
-`compatibility/legacyBackupPolicy.ts`:
-
-| Policy value                  | Date / rule  |
-| ----------------------------- | ------------ |
-| Last supported import date    | `2026-09-30` |
-| Cutoff date                   | `2026-10-01` |
-| Latest on-time notice release | `2026-09-01` |
-| Minimum notice                | 30 days      |
-
-Legacy preview metadata carries a content-free advisory with
-`requiresReExport: true`, `lastSupportedDate`, and `cutoffDate`. Notice rendering
-and translations belong to #731, not this persistence contract.
+Schema-less pre-IndexedDB backups are outside the public versioned registry.
+The temporary parser, mapper, merge composition, fixtures, date policy, preview
+advisory, and deadline copy were removed by #734. Production import supports
+current Backup V2 only and rejects schema-less input with
+`UNSUPPORTED_LEGACY_BACKUP` before persistence mutation.
 
 The live installed-data `chrome.storage.local` to IndexedDB migration has a
-separate lifecycle and is not deleted by the backup cutoff.
+separate lifecycle. Its DTO, mapper, bootstrap/recovery control state, and
+per-user cleanup remain active for existing and dormant users; the backup
+format cutoff does not disable or delete them.
 
-## Production import rollout gate
+## Production import boundary
 
-Current Backup V2 overwrite and a valid legacy overwrite before the cutoff now
-route through the recovery-backed `ImportBackupV2UseCase`. The use case must
-persist a consistent logical recovery snapshot before opening the replacement
-transaction; capture, capacity, retention, or persistence failure blocks the
-overwrite. Current V2 merge remains fail-closed with
-`CURRENT_V2_MERGE_UNAVAILABLE`; a valid legacy merge before the cutoff continues
-through the temporary merge route. Versioned input is inspected before routing
-so future and invalid schemas retain their typed schema errors.
-
-An allowed legacy merge is converted by `LegacyBackupAdapter` and committed as
-strict IndexedDB `put` mutations through `IndexedDbPersistenceUnitOfWork`.
-Existing logical records are not cleared, and the actual persistence operation
-gate must authorize the `indexeddb` route. The merge never falls back to
-`chrome.storage.local` domain writes after IndexedDB cutover; user settings
-remain the separately owned cross-engine write.
+Current Backup V2 imports route through the recovery-backed
+`ImportBackupV2UseCase`. The use case must persist a consistent logical
+recovery snapshot before opening the replacement transaction; capture,
+capacity, retention, or persistence failure blocks the overwrite.
 
 `ImportBackupV2UseCase.ts` owns the production overwrite transaction and
 readback contract, including the unavoidable separate settings write. Recovery
 data is local-only, is strictly parsed before restore, and is never included in
 the public backup, diagnostics, logs, or change-event payload. Legacy, future,
-expired-legacy, and invalid versioned inputs are classified before mutation;
-the compatibility parser remains isolated under `import-export/legacy/`.
+and invalid inputs are classified before mutation.
 
 `PreImportRecoverySnapshotService` holds the pre-restore logical state and
 settings in memory before replacement. A settings-write or target-readback
@@ -270,17 +240,18 @@ revision, scopes, and failed notification stage.
 - Every supported older version has exactly one sequential step.
 - Every step performs input validation and output validation.
 - Current input performs validation but no migration.
+- Schema-less input is rejected with `UNSUPPORTED_LEGACY_BACKUP`.
 - Future input is rejected with `UNSUPPORTED_FUTURE_SCHEMA`.
 - Unsupported old input is rejected with `UNSUPPORTED_SCHEMA_VERSION`.
 - Invalid data is rejected with `INVALID_SCHEMA`.
-- Legacy detection does not import or migrate legacy data.
+- Options import normalizes invalid data to `INVALID_BACKUP`.
+- Production import has no legacy parser, mapper, merge, or preview branch.
 - Every production overwrite enters the recovery-backed use case before
   mutation.
 - A restore failure after replacement either verifies compensation or returns
   `RECOVERY_COMPENSATION_FAILED`; it does not silently leave a mixed state.
 - Recovery notification failure retains committed revision and scopes as typed
   partial success.
-- Current V2 merge remains fail-closed until its own rollout contract exists.
 - Settings are documented as a separate cross-engine write.
 - Logical resource validation precedes serialized-byte validation.
 - Golden fixtures cover each supported version, current, future, and invalid

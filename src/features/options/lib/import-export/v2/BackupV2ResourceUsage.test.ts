@@ -285,6 +285,70 @@ describe('collectBackupV2ResourceUsage', () => {
     })
   })
 
+  it('handles base64 padding, invalid image fallbacks, primitive messages, and favicons', () => {
+    const favIconUrl = `https://example.test/${'f'.repeat(100)}`
+    const snapshot = createLogicalSnapshot([
+      'plain message',
+      {
+        attachments: [
+          { content: 'data:image/png;base64,YQ==', kind: 'image' },
+          { content: 'data:image/png;base64,YWI=', kind: 'image' },
+          { content: 'data:image/png;base64,A', kind: 'image' },
+          { content: 'not-base64', kind: 'image' },
+        ],
+      },
+    ])
+    const data = BackupMapper.toBackupData(
+      {
+        ...snapshot,
+        savedTabs: {
+          ...snapshot.savedTabs,
+          urls: snapshot.savedTabs.urls.map((url) => ({
+            ...url,
+            favIconUrl,
+          })),
+        },
+      },
+      userSettings,
+    )
+
+    const usage = collectBackupV2ResourceUsage(data, 100)
+
+    expect(usage.attachments).toBe(4)
+    expect(usage.attachmentAggregateBytes).toBe(
+      1 + 2 + utf8Bytes('data:image/png;base64,A') + utf8Bytes('not-base64'),
+    )
+    expect(usage.urlBytes).toBe(utf8Bytes(favIconUrl))
+  })
+
+  it('fails closed when a tool trace input cannot be serialized', () => {
+    const data = BackupMapper.toBackupData(
+      createLogicalSnapshot([{ content: 'safe' }]),
+      userSettings,
+    )
+    const value = data.messages[0]?.value
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new TypeError('Expected a message record')
+    }
+    const toolTrace = {
+      input: null,
+      state: 'input-available',
+      title: 'tool',
+      toolCallId: 'tool-1',
+      toolName: 'search',
+      type: 'dynamic-tool',
+    }
+    Reflect.set(toolTrace, 'input', undefined)
+    Reflect.set(value, 'toolTraces', [toolTrace])
+
+    expect(() => collectBackupV2ResourceUsage(data, 100)).toThrow(
+      expect.objectContaining<Partial<BackupResourceLimitError>>({
+        code: 'INVALID_BACKUP',
+        diagnostic: expect.objectContaining({ resource: 'toolTraceBytes' }),
+      }),
+    )
+  })
+
   it('reports logical overflow before simultaneous serialized overflow', () => {
     const data = BackupMapper.toBackupData(
       createLogicalSnapshot([

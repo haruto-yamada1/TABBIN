@@ -19,7 +19,6 @@ const LEGACY_SAVED_TABS_STORAGE_TYPES = new Set([
 ])
 
 const legacyMigrationImportAllowlist = new Set([
-  'src/app/composition/optionsLegacyBackupMerge.ts',
   'src/contexts/saved-tabs/application/dto/LegacyChromeStorageDto.ts',
   'src/contexts/saved-tabs/application/mappers/LegacyStorageToPersistenceV2Mapper.ts',
   'src/contexts/saved-tabs/application/ports/MigrationPreflightPort.ts',
@@ -27,9 +26,6 @@ const legacyMigrationImportAllowlist = new Set([
   'src/contexts/saved-tabs/application/services/MigrationPreflightService.ts',
   'src/contexts/saved-tabs/application/services/PersistenceEmergencyBackupCodecService.ts',
   'src/contexts/saved-tabs/application/services/PersistenceV2MigrationService.ts',
-  'src/features/options/lib/import-export/productionImportGate.ts',
-  'src/features/options/lib/import-export/schemas.ts',
-  'src/features/options/lib/import-export/v2/BackupV2Inspector.ts',
 ])
 
 const legacyShapeAllowlist = new Set([
@@ -51,8 +47,7 @@ const forbiddenNormalIndexedDbRuntimeDependency =
   /(?:createIndexedDbCompatibilitySession|createIndexedDbCompatibilityPersistenceAdapters|createSessionBackedSavedTabsUseCases|IndexedDbCompatibilityPersistenceAdapters|LegacyChromeStorageDto|LegacyCompatibilityStorageRecord|LegacyStorageToPersistenceV2Mapper|PersistenceV2CompatibilitySessionService|PersistenceV2LegacyCompatibilityMapper|SessionBackedSavedTabsUseCases)/
 
 const isLegacyMigrationImportBoundary = (path: string): boolean =>
-  legacyMigrationImportAllowlist.has(path) ||
-  path.startsWith('src/features/options/lib/import-export/legacy/')
+  legacyMigrationImportAllowlist.has(path)
 
 const isProductionSource = (path: string): boolean =>
   /\.tsx?$/.test(path) &&
