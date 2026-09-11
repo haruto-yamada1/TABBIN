@@ -23,10 +23,12 @@ describe('detectBackupFormat', () => {
     ).toEqual({ kind: 'versioned', schemaVersion: 2 })
   })
 
-  it('classifies an object without schemaVersion as legacy', () => {
-    expect(detectBackupFormat({ version: '2.0.0' })).toEqual({
-      kind: 'legacy',
-    })
+  it('rejects a schema-less backup with a typed legacy classification', () => {
+    expect(() => detectBackupFormat({ version: '2.0.0' })).toThrow(
+      expect.objectContaining<Partial<BackupSchemaError>>({
+        code: 'UNSUPPORTED_LEGACY_BACKUP',
+      }),
+    )
   })
 
   it.each([null, [], 'backup', { schemaVersion: 0 }, { schemaVersion: 1.5 }])(

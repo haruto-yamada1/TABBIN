@@ -71,7 +71,6 @@ const CURRENT_WRITER_IDS = [
   'AI-HISTORY-SAVE',
   'ANALYTICS-VIEWS',
   'ANALYTICS-UNDO',
-  'IMPORT-MERGE',
   'IMPORT-OVERWRITE',
   'DDD-URLS',
   'DDD-TAB-GROUPS',
@@ -325,7 +324,7 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 40 rows, found 39')
+    ).toThrow('Writer ID baseline mismatch: expected 39 rows, found 38')
   })
 
   test.each([

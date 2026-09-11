@@ -474,11 +474,13 @@ describe('createBackupMigrationPipeline', () => {
     })
   })
 
-  it('returns the dedicated legacy classification without migration', () => {
+  it('rejects schema-less legacy input without migration', () => {
     const { migrateV2ToV3, migrateV3ToV4, pipeline } = createTestPipeline()
 
-    expect(pipeline.migrateToCurrent({ version: '2.0.0' })).toEqual({
-      kind: 'legacy',
+    expect(
+      captureSchemaError(() => pipeline.migrateToCurrent({ version: '2.0.0' })),
+    ).toMatchObject({
+      code: 'UNSUPPORTED_LEGACY_BACKUP',
     })
     expect(migrateV2ToV3).not.toHaveBeenCalled()
     expect(migrateV3ToV4).not.toHaveBeenCalled()

@@ -175,15 +175,12 @@ describe('optionsBackupV2Export composition', () => {
       },
       schemaVersion: 2,
     })
-    expect(
-      assertProductionImportAllowed(JSON.stringify(backup), {
-        importDate: '2026-08-12',
-        importMode: 'overwrite',
-      }),
-    ).toMatchObject({
-      inspection: { preview: { formatKind: 'current-v2' } },
-      kind: 'v2-overwrite',
-    })
+    expect(assertProductionImportAllowed(JSON.stringify(backup))).toMatchObject(
+      {
+        inspection: { preview: { schemaVersion: 2 } },
+        kind: 'v2-overwrite',
+      },
+    )
     expect(recovery.reportUnavailable).not.toHaveBeenCalled()
   })
 })

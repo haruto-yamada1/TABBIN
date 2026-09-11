@@ -1,25 +1,14 @@
 import { importBackupV2WithRecovery } from '@/app/composition/optionsBackupRecovery'
-import { mergeLegacyBackupIntoIndexedDb } from '@/app/composition/optionsLegacyBackupMerge'
 import { logger } from '@/lib/logging/logger'
 import { assertBackupSerializedBytes } from '@/lib/persistence/backupResourcePolicy'
-import {
-  BackupSchemaError,
-  detectBackupFormat,
-} from '@/lib/persistence/backupSchema'
 import { formatLocaleDateTime } from '@/utils/localDateTime'
 
-import type { LegacyBackupAdvisory } from './compatibility/legacyBackupPolicy'
-import { getCurrentUtcDateOnly } from './currentImportDate'
-import { LegacyBackupImportError } from './legacy/LegacyBackupAdapter'
-import { assertProductionImportAllowed } from './productionImportGate'
-import type { ProductionImportGateOptions } from './productionImportGate'
-import { inspectBackupV2 } from './v2/BackupV2Inspector'
+import {
+  assertProductionImportAllowed,
+  ProductionBackupImportError,
+} from './productionImportGate'
 
-type ImportFailureStage =
-  | 'compatibility'
-  | 'format-detection'
-  | 'legacy-merge'
-  | 'v2-overwrite'
+type ImportFailureStage = 'format-detection' | 'v2-overwrite'
 
 type ImportFailureDiagnostic = {
   readonly errorCode: string
@@ -30,7 +19,7 @@ type ImportFailureDiagnostic = {
 type ImportResult =
   | { readonly message: string; readonly success: true }
   | {
-      readonly diagnostic?: ImportFailureDiagnostic
+      readonly diagnostic: ImportFailureDiagnostic
       readonly message: string
       readonly success: false
     }
@@ -42,9 +31,7 @@ type Translate = (
 ) => string
 
 const IMPORT_FAILURE_ACTIONS = {
-  compatibility: 'compatibility',
   'format-detection': 'formatDetection',
-  'legacy-merge': 'legacyMerge',
   'v2-overwrite': 'v2Overwrite',
 } as const satisfies Readonly<Record<ImportFailureStage, string>>
 
@@ -52,10 +39,7 @@ const SAFE_ERROR_CODE_PATTERN = /^[A-Z0-9][A-Z0-9_:-]{0,127}$/u
 
 const readSafeErrorCode = (error: unknown): string => {
   try {
-    if (error instanceof BackupSchemaError) {
-      return error.code
-    }
-    if (error instanceof LegacyBackupImportError) {
+    if (error instanceof ProductionBackupImportError) {
       return error.code
     }
     if (typeof error === 'object' && error !== null) {
@@ -72,33 +56,46 @@ const readSafeErrorCode = (error: unknown): string => {
   return 'UNKNOWN_IMPORT_ERROR'
 }
 
-const readLegacyBackupImportError = (
-  error: unknown,
-):
-  | {
-      readonly code: LegacyBackupImportError['code']
-      readonly issueCodes: readonly string[]
-    }
-  | undefined => {
-  try {
-    return error instanceof LegacyBackupImportError
-      ? { code: error.code, issueCodes: [...error.issueCodes] }
-      : undefined
-  } catch {
-    return undefined
-  }
-}
-
 const createImportFailureDiagnostic = (
   error: unknown,
   stage: ImportFailureStage,
-): ImportFailureDiagnostic => {
-  const legacyError = readLegacyBackupImportError(error)
-  return {
-    errorCode: legacyError?.code ?? readSafeErrorCode(error),
-    issueCodes: legacyError?.issueCodes ?? [],
-    stage: legacyError ? 'compatibility' : stage,
+): ImportFailureDiagnostic => ({
+  errorCode: readSafeErrorCode(error),
+  issueCodes: [],
+  stage,
+})
+
+const getKnownImportErrorMessage = (
+  error: ProductionBackupImportError,
+  translate?: Translate,
+): string => {
+  if (error.code === 'UNSUPPORTED_LEGACY_BACKUP') {
+    return translate
+      ? translate('options.importExport.unsupportedLegacyBackup')
+      : 'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。'
   }
+  if (error.code === 'UNSUPPORTED_FUTURE_SCHEMA') {
+    return translate
+      ? translate('options.importExport.unsupportedFutureBackup')
+      : 'このバックアップは新しいバージョンで作成されているため、現在のバージョンではインポートできません。'
+  }
+  return translate
+    ? translate('options.importExport.importFormatError')
+    : 'インポートされたデータの形式が正しくありません'
+}
+
+const getImportFailureMessage = (
+  error: unknown,
+  diagnostic: ImportFailureDiagnostic,
+  translate?: Translate,
+): string => {
+  if (error instanceof ProductionBackupImportError) {
+    return getKnownImportErrorMessage(error, translate)
+  }
+  const baseMessage = translate
+    ? translate('options.importExport.importError')
+    : 'データのインポート中にエラーが発生しました'
+  return `${baseMessage} (${diagnostic.stage}: ${diagnostic.errorCode})`
 }
 
 const downloadAsJson = (data: unknown, filename: string): void => {
@@ -122,38 +119,11 @@ const downloadAsJson = (data: unknown, filename: string): void => {
 
 const importSettings = async (
   jsonData: string,
-  mergeData = true,
   translate?: Translate,
-  options: Partial<ProductionImportGateOptions> = {},
 ): Promise<ImportResult> => {
   let stage: ImportFailureStage = 'format-detection'
   try {
-    const gateResult = assertProductionImportAllowed(jsonData, {
-      importDate: options.importDate ?? getCurrentUtcDateOnly(),
-      importMode: mergeData ? 'merge' : 'overwrite',
-    })
-    if (!gateResult) {
-      return {
-        success: false,
-        message: translate
-          ? translate('options.importExport.importFormatError')
-          : 'インポートされたデータの形式が正しくありません',
-      }
-    }
-    if (gateResult.kind === 'legacy-merge') {
-      stage = 'legacy-merge'
-      const mergeResult = await mergeLegacyBackupIntoIndexedDb(gateResult)
-      return {
-        success: true,
-        message: translate
-          ? translate('options.importExport.mergeSuccess', undefined, {
-              categories: String(mergeResult.addedEntityCounts.groups),
-              domains: String(mergeResult.addedEntityCounts.collections),
-              unresolved: '',
-            })
-          : `データをマージしました (${mergeResult.addedEntityCounts.groups}個のカテゴリ、${mergeResult.addedEntityCounts.collections}個のドメインを追加)`,
-      }
-    }
+    const gateResult = assertProductionImportAllowed(jsonData)
 
     stage = 'v2-overwrite'
     await importBackupV2WithRecovery(gateResult.inspection)
@@ -181,66 +151,42 @@ const importSettings = async (
         action: IMPORT_FAILURE_ACTIONS[diagnostic.stage],
       },
     )
-    const baseMessage = translate
-      ? translate('options.importExport.importError')
-      : 'データのインポート中にエラーが発生しました'
     return {
       diagnostic,
       success: false,
-      message: `${baseMessage} (${diagnostic.stage}: ${diagnostic.errorCode})`,
+      message: getImportFailureMessage(error, diagnostic, translate),
     }
   }
 }
 
+type ImportPreview = {
+  readonly categoriesCount: number
+  readonly domainsCount: number
+  readonly hasAiChat: boolean
+  readonly hasAnalytics: boolean
+  readonly projectsCount: number
+  readonly timestamp: string
+  readonly version: string
+}
+
+type ImportPreviewResult =
+  | {
+      readonly message: string
+      readonly preview: ImportPreview
+      readonly success: true
+    }
+  | {
+      readonly diagnostic: ImportFailureDiagnostic
+      readonly message: string
+      readonly success: false
+    }
+
 const getImportPreview = (
   jsonData: string,
-): {
-  success: boolean
-  message: string
-  preview?: {
-    version: string
-    timestamp: string
-    categoriesCount: number
-    domainsCount: number
-    formatKind: 'current-v2' | 'legacy'
-    projectsCount: number
-    hasAiChat: boolean
-    hasAnalytics: boolean
-    legacyBackupAdvisory?: LegacyBackupAdvisory
-  }
-} => {
+  translate?: Translate,
+): ImportPreviewResult => {
   try {
-    const parsed: unknown = JSON.parse(jsonData)
-    if (detectBackupFormat(parsed).kind === 'versioned') {
-      const inspection = inspectBackupV2(parsed, {
-        importDate: getCurrentUtcDateOnly(),
-      })
-      const domainCollections = inspection.data.savedTabs.collections.filter(
-        (collection) => collection.definition.type === 'domain',
-      ).length
-      const customCollections =
-        inspection.data.savedTabs.collections.length - domainCollections
-      return {
-        success: true,
-        message: 'データの解析に成功しました',
-        preview: {
-          version: inspection.preview.appVersion,
-          timestamp: inspection.preview.exportedAt,
-          categoriesCount: inspection.preview.entityCounts.categories,
-          domainsCount: domainCollections,
-          formatKind: 'current-v2',
-          projectsCount: customCollections,
-          hasAiChat: inspection.preview.entityCounts.conversations > 0,
-          hasAnalytics: inspection.preview.entityCounts.analyticsViews > 0,
-        },
-      }
-    }
-    const inspection = inspectBackupV2(parsed, {
-      importDate: getCurrentUtcDateOnly(),
-    })
-    if (inspection.preview.formatKind !== 'legacy') {
-      throw new BackupSchemaError('INVALID_SCHEMA')
-    }
+    const { inspection } = assertProductionImportAllowed(jsonData)
     const domainCollections = inspection.data.savedTabs.collections.filter(
       (collection) => collection.definition.type === 'domain',
     ).length
@@ -252,26 +198,19 @@ const getImportPreview = (
       preview: {
         version: inspection.preview.appVersion,
         timestamp: inspection.preview.exportedAt,
-        categoriesCount: inspection.preview.entityCounts.groups,
+        categoriesCount: inspection.preview.entityCounts.categories,
         domainsCount: domainCollections,
-        formatKind: 'legacy',
         projectsCount: customCollections,
         hasAiChat: inspection.preview.entityCounts.conversations > 0,
         hasAnalytics: inspection.preview.entityCounts.analyticsViews > 0,
-        legacyBackupAdvisory: inspection.preview.advisory,
       },
     }
   } catch (error) {
-    if (error instanceof BackupSchemaError) {
-      return {
-        success: false,
-        message: 'インポートされたデータの形式が正しくありません',
-      }
-    }
-    console.error('プレビュー解析エラー:', error)
+    const diagnostic = createImportFailureDiagnostic(error, 'format-detection')
     return {
+      diagnostic,
       success: false,
-      message: 'データの解析中にエラーが発生しました',
+      message: getImportFailureMessage(error, diagnostic, translate),
     }
   }
 }
@@ -280,6 +219,8 @@ export { downloadAsJson, getImportPreview, importSettings }
 export type {
   ImportFailureDiagnostic,
   ImportFailureStage,
+  ImportPreview,
+  ImportPreviewResult,
   ImportResult,
   Translate,
 }

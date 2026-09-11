@@ -1,72 +1,43 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   assertProductionImportAllowed: vi.fn(),
   importBackupV2WithRecovery: vi.fn(),
   loggerError: vi.fn(),
-  mergeLegacyBackupIntoIndexedDb: vi.fn(),
 }))
 
 vi.mock('@/app/composition/optionsBackupRecovery', () => ({
   importBackupV2WithRecovery: mocks.importBackupV2WithRecovery,
 }))
-
-vi.mock('@/app/composition/optionsLegacyBackupMerge', () => ({
-  mergeLegacyBackupIntoIndexedDb: mocks.mergeLegacyBackupIntoIndexedDb,
-}))
 vi.mock('@/lib/logging/logger', () => ({
   logger: { error: mocks.loggerError },
 }))
-
-vi.mock('./productionImportGate', () => ({
+vi.mock('./productionImportGate', async (importOriginal) => ({
+  ...(await importOriginal()),
   assertProductionImportAllowed: mocks.assertProductionImportAllowed,
 }))
 
-import { importSettings } from './flows'
-import { LegacyBackupImportError } from './legacy/LegacyBackupAdapter'
+import { downloadAsJson, getImportPreview, importSettings } from './flows'
+import { ProductionBackupImportError } from './productionImportGate'
 
 describe('production import flow', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mocks.assertProductionImportAllowed.mockReset()
+    mocks.importBackupV2WithRecovery.mockReset().mockResolvedValue(undefined)
+    mocks.loggerError.mockReset()
   })
 
-  it('rejects an unrecognized backup without invoking a persistence writer', async () => {
-    mocks.assertProductionImportAllowed.mockReturnValue(undefined)
-
-    await expect(importSettings('invalid')).resolves.toEqual({
-      message: 'インポートされたデータの形式が正しくありません',
-      success: false,
-    })
-    expect(mocks.mergeLegacyBackupIntoIndexedDb).not.toHaveBeenCalled()
-    expect(mocks.importBackupV2WithRecovery).not.toHaveBeenCalled()
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
-  it('routes a supported legacy merge through the IndexedDB merge boundary', async () => {
-    const gateResult = {
-      inspection: {},
-      kind: 'legacy-merge',
-      serializedBytes: 1,
-      userSettingsPatch: {},
-    }
-    mocks.assertProductionImportAllowed.mockReturnValue(gateResult)
-    mocks.mergeLegacyBackupIntoIndexedDb.mockResolvedValue({
-      addedEntityCounts: { collections: 2, groups: 1 },
-    })
-
-    await expect(importSettings('{}')).resolves.toMatchObject({
-      success: true,
-    })
-    expect(
-      mocks.mergeLegacyBackupIntoIndexedDb,
-    ).toHaveBeenCalledExactlyOnceWith(gateResult)
-    expect(mocks.importBackupV2WithRecovery).not.toHaveBeenCalled()
-  })
-
-  it('routes a current overwrite through recovery-backed Backup V2 import', async () => {
+  it('routes a current backup through recovery-backed overwrite', async () => {
     const inspection = {
       preview: {
-        appVersion: '1.2.3',
-        exportedAt: '2026-08-08T00:00:00.000Z',
+        appVersion: '2.0.16',
+        exportedAt: '2026-09-01T00:00:00.000Z',
       },
     }
     mocks.assertProductionImportAllowed.mockReturnValue({
@@ -75,49 +46,64 @@ describe('production import flow', () => {
     })
     mocks.importBackupV2WithRecovery.mockResolvedValue(undefined)
 
-    await expect(importSettings('{}', false)).resolves.toMatchObject({
+    await expect(importSettings('{}')).resolves.toMatchObject({
       success: true,
     })
     expect(mocks.importBackupV2WithRecovery).toHaveBeenCalledExactlyOnceWith(
       inspection,
     )
-    expect(mocks.mergeLegacyBackupIntoIndexedDb).not.toHaveBeenCalled()
   })
 
-  it('returns a privacy-safe typed diagnostic for blocked legacy compatibility', async () => {
-    const error = new LegacyBackupImportError('LEGACY_MIGRATION_BLOCKED', [
-      'LEGACY_URL_REFERENCE_CONFLICT',
-    ])
+  it('returns a localized typed diagnostic for unsupported legacy input', async () => {
     mocks.assertProductionImportAllowed.mockImplementation(() => {
-      throw error
+      throw new ProductionBackupImportError('UNSUPPORTED_LEGACY_BACKUP')
     })
+    const translate = vi.fn((key: string) =>
+      key === 'options.importExport.unsupportedLegacyBackup'
+        ? 'Only current backups are supported.'
+        : key,
+    )
 
-    await expect(importSettings('{}')).resolves.toEqual({
+    await expect(importSettings('{}', translate)).resolves.toEqual({
       diagnostic: {
-        errorCode: 'LEGACY_MIGRATION_BLOCKED',
-        issueCodes: ['LEGACY_URL_REFERENCE_CONFLICT'],
-        stage: 'compatibility',
+        errorCode: 'UNSUPPORTED_LEGACY_BACKUP',
+        issueCodes: [],
+        stage: 'format-detection',
       },
-      message:
-        'データのインポート中にエラーが発生しました (compatibility: LEGACY_MIGRATION_BLOCKED)',
+      message: 'Only current backups are supported.',
       success: false,
     })
+    expect(mocks.importBackupV2WithRecovery).not.toHaveBeenCalled()
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'options_backup_import_failed',
-      { code: 'LEGACY_MIGRATION_BLOCKED' },
-      { action: 'compatibility' },
+      { code: 'UNSUPPORTED_LEGACY_BACKUP' },
+      { action: 'formatDetection' },
     )
   })
 
+  it('uses the invalid-format message for malformed input', async () => {
+    mocks.assertProductionImportAllowed.mockImplementation(() => {
+      throw new ProductionBackupImportError('INVALID_BACKUP')
+    })
+    const translate = vi.fn((key: string) =>
+      key === 'options.importExport.importFormatError'
+        ? 'Invalid backup.'
+        : key,
+    )
+
+    await expect(importSettings('{}', translate)).resolves.toMatchObject({
+      diagnostic: { errorCode: 'INVALID_BACKUP' },
+      message: 'Invalid backup.',
+      success: false,
+    })
+  })
+
   it('reports the failing write stage without exposing error text', async () => {
-    const gateResult = {
-      inspection: {},
-      kind: 'legacy-merge',
-      serializedBytes: 1,
-      userSettingsPatch: {},
-    }
-    mocks.assertProductionImportAllowed.mockReturnValue(gateResult)
-    mocks.mergeLegacyBackupIntoIndexedDb.mockRejectedValue(
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection: { preview: {} },
+      kind: 'v2-overwrite',
+    })
+    mocks.importBackupV2WithRecovery.mockRejectedValue(
       new Error('private URL from a low-level failure'),
     )
 
@@ -125,14 +111,14 @@ describe('production import flow', () => {
       diagnostic: {
         errorCode: 'UNKNOWN_IMPORT_ERROR',
         issueCodes: [],
-        stage: 'legacy-merge',
+        stage: 'v2-overwrite',
       },
       success: false,
     })
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'options_backup_import_failed',
       { code: 'UNKNOWN_IMPORT_ERROR' },
-      { action: 'legacyMerge' },
+      { action: 'v2Overwrite' },
     )
   })
 
@@ -155,14 +141,170 @@ describe('production import flow', () => {
       success: false,
     })
     expect(mocks.loggerError).toHaveBeenCalledOnce()
-    expect(mocks.loggerError.mock.calls[0]?.[0]).toBe(
-      'options_backup_import_failed',
+  })
+
+  it('uses a translated success message for current Backup V2', async () => {
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection: {
+        preview: {
+          appVersion: '2.0.16',
+          exportedAt: '2026-09-01T00:00:00.000Z',
+        },
+      },
+      kind: 'v2-overwrite',
+    })
+    const translate = vi.fn(() => 'Translated success')
+
+    await expect(importSettings('{}', translate)).resolves.toEqual({
+      message: 'Translated success',
+      success: true,
+    })
+    expect(translate).toHaveBeenCalledWith(
+      'options.importExport.replaceSuccess',
+      undefined,
+      expect.objectContaining({ version: '2.0.16' }),
     )
-    expect(mocks.loggerError.mock.calls[0]?.[1]).toEqual({
-      code: 'UNKNOWN_IMPORT_ERROR',
+  })
+
+  it.each([
+    [
+      'UNSUPPORTED_LEGACY_BACKUP',
+      'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。',
+    ],
+    [
+      'UNSUPPORTED_FUTURE_SCHEMA',
+      'このバックアップは新しいバージョンで作成されているため、現在のバージョンではインポートできません。',
+    ],
+    ['INVALID_BACKUP', 'インポートされたデータの形式が正しくありません'],
+  ] as const)(
+    'uses the safe fallback message for %s',
+    async (code, message) => {
+      mocks.assertProductionImportAllowed.mockImplementation(() => {
+        throw new ProductionBackupImportError(code)
+      })
+
+      await expect(importSettings('{}')).resolves.toMatchObject({ message })
+    },
+  )
+
+  it('preserves a safe typed writer error code', async () => {
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection: { preview: {} },
+      kind: 'v2-overwrite',
     })
-    expect(mocks.loggerError.mock.calls[0]?.[2]).toEqual({
-      action: 'formatDetection',
+    mocks.importBackupV2WithRecovery.mockRejectedValue({
+      code: 'RECOVERY_WRITE_BLOCKED',
     })
+
+    await expect(importSettings('{}')).resolves.toMatchObject({
+      diagnostic: {
+        errorCode: 'RECOVERY_WRITE_BLOCKED',
+        stage: 'v2-overwrite',
+      },
+    })
+  })
+
+  it('normalizes an unknown failure with the translated generic message', async () => {
+    mocks.assertProductionImportAllowed.mockImplementation(() => {
+      throw new Error('private failure')
+    })
+    const translate = vi.fn((key: string) =>
+      key === 'options.importExport.importError' ? 'Import failed.' : key,
+    )
+
+    await expect(importSettings('{}', translate)).resolves.toMatchObject({
+      diagnostic: {
+        errorCode: 'UNKNOWN_IMPORT_ERROR',
+        stage: 'format-detection',
+      },
+      message: 'Import failed. (format-detection: UNKNOWN_IMPORT_ERROR)',
+      success: false,
+    })
+  })
+
+  it('builds a current Backup V2 preview without legacy metadata', () => {
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection: {
+        data: {
+          savedTabs: {
+            collections: [
+              { definition: { domain: 'example.com', type: 'domain' } },
+              { definition: { type: 'custom' } },
+            ],
+          },
+        },
+        preview: {
+          appVersion: '2.0.16',
+          entityCounts: {
+            analyticsViews: 1,
+            categories: 2,
+            conversations: 1,
+          },
+          exportedAt: '2026-09-01T00:00:00.000Z',
+        },
+      },
+      kind: 'v2-overwrite',
+    })
+
+    expect(getImportPreview('{}')).toEqual({
+      message: 'データの解析に成功しました',
+      preview: {
+        categoriesCount: 2,
+        domainsCount: 1,
+        hasAiChat: true,
+        hasAnalytics: true,
+        projectsCount: 1,
+        timestamp: '2026-09-01T00:00:00.000Z',
+        version: '2.0.16',
+      },
+      success: true,
+    })
+  })
+
+  it('returns a translated typed preview rejection', () => {
+    mocks.assertProductionImportAllowed.mockImplementation(() => {
+      throw new ProductionBackupImportError('UNSUPPORTED_FUTURE_SCHEMA')
+    })
+    const translate = vi.fn((key: string) =>
+      key === 'options.importExport.unsupportedFutureBackup'
+        ? 'Unsupported future backup.'
+        : key,
+    )
+
+    expect(getImportPreview('{}', translate)).toEqual({
+      diagnostic: {
+        errorCode: 'UNSUPPORTED_FUTURE_SCHEMA',
+        issueCodes: [],
+        stage: 'format-detection',
+      },
+      message: 'Unsupported future backup.',
+      success: false,
+    })
+  })
+
+  it('downloads compact JSON and cleans up the temporary URL', () => {
+    const createObjectUrl = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:backup')
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL')
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      (callback: FrameRequestCallback): number => {
+        callback(0)
+        return 1
+      },
+    )
+
+    downloadAsJson({ backup: true }, 'backup.json')
+
+    const anchor = click.mock.instances[0] as HTMLAnchorElement | undefined
+    expect(createObjectUrl).toHaveBeenCalledOnce()
+    expect(anchor?.download).toBe('backup.json')
+    expect(anchor?.href).toBe('blob:backup')
+    expect(anchor?.isConnected).toBe(false)
+    expect(revokeObjectUrl).toHaveBeenCalledExactlyOnceWith('blob:backup')
   })
 })

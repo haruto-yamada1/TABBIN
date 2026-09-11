@@ -28,9 +28,7 @@ const hasExpectedSchemaVersion = (
 ): boolean => {
   try {
     const format = detectBackupFormat(input)
-    return (
-      format.kind === 'versioned' && format.schemaVersion === expectedVersion
-    )
+    return format.schemaVersion === expectedVersion
   } catch {
     return false
   }
@@ -63,13 +61,11 @@ export const defineBackupMigrationStep = <TFrom, TTo>({
   toVersion,
 })
 
-export type BackupMigrationResult<TCurrent> =
-  | { readonly kind: 'legacy' }
-  | {
-      readonly backup: TCurrent
-      readonly kind: 'current'
-      readonly sourceVersion: number
-    }
+export type BackupMigrationResult<TCurrent> = {
+  readonly backup: TCurrent
+  readonly kind: 'current'
+  readonly sourceVersion: number
+}
 
 type CreateBackupMigrationPipelineOptions<TCurrent> = {
   readonly currentSchema: z.ZodType<TCurrent>
@@ -157,10 +153,6 @@ export const createBackupMigrationPipeline = <TCurrent>({
   return {
     migrateToCurrent: (input) => {
       const format = detectBackupFormat(input)
-      if (format.kind === 'legacy') {
-        return { kind: 'legacy' }
-      }
-
       const sourceVersion = format.schemaVersion
       if (sourceVersion > currentVersion) {
         throw new BackupSchemaError('UNSUPPORTED_FUTURE_SCHEMA', {

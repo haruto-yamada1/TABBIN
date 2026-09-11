@@ -32,7 +32,6 @@ const inspection = inspectBackupV2(
     new URL('fixtures/backup-v2-current.json', import.meta.url),
     'utf8',
   ),
-  { importDate: '2026-07-29' },
 )
 
 const logicalSnapshot = BackupMapper.toLogicalSnapshot(inspection.data, 12)

@@ -31,7 +31,6 @@ vi.mock('@/features/options/lib/import-export', () => ({
       timestamp: '2026-02-16T00:00:00.000Z',
       categoriesCount: 1,
       domainsCount: 1,
-      formatKind: 'legacy',
       projectsCount: 0,
       hasAiChat: false,
       hasAnalytics: false,
@@ -68,9 +67,9 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.scopeTitle': 'Backup scope',
         'options.importExport.compatibilityTitle': 'Backup format',
         'options.importExport.compatibilityWarning':
-          'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
+          'Only the current backup format can be imported.',
         'options.importExport.compatibilityAction':
-          'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
+          'Backups created with older versions are not supported.',
         'options.importExport.export': 'Export settings and tab data',
         'options.importExport.exporting': 'Exporting...',
         'options.importExport.exportError': 'An error occurred while exporting',
@@ -82,14 +81,6 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'The imported data format is invalid',
         'options.importExport.importing': 'Importing...',
         'options.importExport.invalidJson': 'Please select a JSON file',
-        'options.importExport.merge': 'Merge with existing data (recommended)',
-        'options.importExport.mergeDescription':
-          'Keeps existing data while adding and updating new data.',
-        'options.importExport.mergeLabel': 'Note',
-        'options.importExport.mergeWarning':
-          'During merge, items with the same ID are updated.',
-        'options.importExport.mergeSuccess':
-          'Merged {{categories}} categories and {{domains}} domains{{unresolved}}',
         'options.importExport.replaceDescription':
           'Warning: all existing data will be replaced.',
         'options.importExport.replaceLabel': 'Warning',
@@ -110,11 +101,8 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.previewDomains': 'Domains: {{count}}',
         'options.importExport.previewProjects': 'Projects: {{count}}',
         'options.importExport.previewAiChat': 'AI Chat History: {{hasAiChat}}',
-        'options.importExport.legacyPreviewTitle': 'Legacy backup',
-        'options.importExport.legacyPreviewWarning':
-          'This legacy backup can no longer be imported on or after {{cutoffDate}}.',
-        'options.importExport.legacyPreviewAction':
-          'After importing, export a new-format backup again.',
+        'options.importExport.unsupportedLegacyBackup':
+          'This backup format is not supported. Only the current backup format can be imported.',
         'options.importExport.autoBackup':
           'Create a recovery backup before importing',
         'options.importExport.autoBackupDescription':
@@ -314,18 +302,16 @@ describe('ImportExportSettingsコンポーネント', () => {
     ).toBeTruthy()
   })
 
-  it('旧backup期限と再エクスポート案内を常設表示する', () => {
+  it('current backup formatだけをサポートする説明を常設表示する', () => {
     render(<ImportExportSettings />)
 
     expect(screen.getByText('Backup format')).toBeTruthy()
     expect(
-      screen.getByText(
-        'Backups created with older versions can no longer be imported on or after October 1, 2026.',
-      ),
+      screen.getByText('Only the current backup format can be imported.'),
     ).toBeTruthy()
     expect(
       screen.getByText(
-        'Import any required backups by September 30, 2026, then export them again in the new format.',
+        'Backups created with older versions are not supported.',
       ),
     ).toBeTruthy()
   })
@@ -469,7 +455,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     )
   })
 
-  it('マージ設定を切り替えるとインポート時に mergeData=false を渡す', async () => {
+  it('import UIはcurrent Backup V2のoverwriteだけを案内する', async () => {
     const user = userEvent.setup()
     vi.mocked(importSettings).mockResolvedValue({
       success: true,
@@ -482,15 +468,10 @@ describe('ImportExportSettingsコンポーネント', () => {
       screen.getByRole('button', { name: 'Import settings and tab data' }),
     )
 
-    await user.click(
-      screen.getByRole('checkbox', {
-        name: 'Merge with existing data (recommended)',
-      }),
-    )
-
     expect(
       screen.getByText('Warning: all existing data will be replaced.'),
     ).toBeTruthy()
+    expect(screen.queryByRole('checkbox')).toBeNull()
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
     // eslint-disable-next-line testing-library/prefer-user-event
@@ -513,14 +494,12 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
-        false,
         expect.any(Function),
-        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
   })
 
-  it('current Backup V2 は自動的に overwrite mode でインポートする', async () => {
+  it('current Backup V2をoverwrite modeでインポートする', async () => {
     const user = userEvent.setup()
     vi.mocked(getImportPreview).mockReturnValueOnce({
       success: true,
@@ -528,7 +507,6 @@ describe('ImportExportSettingsコンポーネント', () => {
       preview: {
         categoriesCount: 0,
         domainsCount: 0,
-        formatKind: 'current-v2',
         hasAiChat: false,
         hasAnalytics: false,
         projectsCount: 0,
@@ -561,9 +539,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
-        false,
         expect.any(Function),
-        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
   })
@@ -616,9 +592,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
-        true,
         expect.any(Function),
-        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
   })
@@ -736,7 +710,10 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     await waitFor(() => {
       expect(readAsText).toHaveBeenCalledWith(file)
-      expect(getImportPreview).toHaveBeenCalledWith(readerContent)
+      expect(getImportPreview).toHaveBeenCalledWith(
+        readerContent,
+        expect.any(Function),
+      )
     })
     expect(toast.error).not.toHaveBeenCalledWith(
       'options.importExport.fileTooLarge',
@@ -769,6 +746,11 @@ describe('ImportExportSettingsコンポーネント', () => {
 
   it('プレビュー解析が失敗した場合はプレビューの失敗メッセージを表示する', async () => {
     vi.mocked(getImportPreview).mockReturnValueOnce({
+      diagnostic: {
+        errorCode: 'INVALID_BACKUP',
+        issueCodes: [],
+        stage: 'format-detection',
+      },
       success: false,
       message: 'Preview failed',
     })
@@ -824,7 +806,6 @@ describe('ImportExportSettingsコンポーネント', () => {
       preview: {
         categoriesCount: 1,
         domainsCount: 1,
-        formatKind: 'legacy',
         hasAiChat: true,
         hasAnalytics: true,
         projectsCount: 1,
@@ -851,46 +832,38 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(screen.queryByText('Legacy backup')).toBeNull()
   })
 
-  it('legacy backup preview に期限 warning を表示する', async () => {
-    const user = userEvent.setup()
+  it('legacy backupをimport可能なpreviewとして表示しない', async () => {
     vi.mocked(getImportPreview).mockReturnValueOnce({
-      success: true,
-      message: 'ok',
-      preview: {
-        categoriesCount: 1,
-        domainsCount: 1,
-        formatKind: 'legacy',
-        hasAiChat: false,
-        hasAnalytics: false,
-        legacyBackupAdvisory: {
-          cutoffDate: '2026-10-01',
-          lastSupportedDate: '2026-09-30',
-          requiresReExport: true,
-        },
-        projectsCount: 0,
-        timestamp: '2026-02-16T00:00:00.000Z',
-        version: '1.0.0',
+      diagnostic: {
+        errorCode: 'UNSUPPORTED_LEGACY_BACKUP',
+        issueCodes: [],
+        stage: 'format-detection',
       },
+      message:
+        'This backup format is not supported. Only the current backup format can be imported.',
+      success: false,
     })
 
     const { container } = render(<ImportExportSettings />)
 
-    await user.upload(
-      getHiddenFileInput(container),
-      new File(['dummy'], 'legacy-backup.json', {
-        type: 'application/json',
-      }),
-    )
+    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'legacy-backup.json', {
+            type: 'application/json',
+          }),
+        ],
+      },
+    })
 
-    expect(await screen.findByText('Legacy backup')).toBeTruthy()
-    expect(
-      screen.getByText(
-        'This legacy backup can no longer be imported on or after October 1, 2026.',
-      ),
-    ).toBeTruthy()
-    expect(
-      screen.getByText('After importing, export a new-format backup again.'),
-    ).toBeTruthy()
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'This backup format is not supported. Only the current backup format can be imported.',
+      )
+    })
+    expect(screen.queryByRole('button', { name: 'Confirm Import' })).toBeNull()
   })
 
   it('JSON ファイルを正常にインポートして background に通知する', async () => {
@@ -923,9 +896,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
-        true,
         expect.any(Function),
-        { importDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
       )
     })
 
@@ -938,6 +909,11 @@ describe('ImportExportSettingsコンポーネント', () => {
   it('インポート結果が失敗時は importSettings の失敗メッセージを表示する', async () => {
     const user = userEvent.setup()
     vi.mocked(importSettings).mockResolvedValue({
+      diagnostic: {
+        errorCode: 'INVALID_BACKUP',
+        issueCodes: [],
+        stage: 'format-detection',
+      },
       success: false,
       message: 'Validation error',
     })

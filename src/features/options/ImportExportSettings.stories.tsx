@@ -47,7 +47,7 @@ export const OpenedImportDialog: Story = {
     const canvas = within(canvasElement)
     await userEvent.click(
       canvas.getByRole('button', {
-        name: /設定とタブデータをインポート/i,
+        name: /Import settings and tab data|設定とタブデータをインポート/i,
       }),
     )
   },

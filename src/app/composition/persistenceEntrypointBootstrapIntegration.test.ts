@@ -5,7 +5,6 @@ import {
   getPersistenceBootstrapRuntime,
   resetPersistenceBootstrapRuntimeForTesting,
 } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
-import { exportSettings } from '@/features/options/lib/import-export/legacy/LegacyImportExportFlows.fixture'
 import { removeUrlRecordsFromStorage } from '@/lib/background/url-storage'
 
 type StorageState = Record<string, unknown>
@@ -99,22 +98,6 @@ describe('production entrypoint persistence readiness', () => {
     const { ready, storage } = setupRuntime(events)
 
     await expect(removeUrlRecordsFromStorage(['missing-url'])).resolves.toBe(0)
-
-    expect(ready).toHaveBeenCalled()
-    expect(storage.local.get).toHaveBeenCalled()
-    expect(events.indexOf('ready')).toBeLessThan(events.indexOf('domain-get'))
-  })
-
-  it('options-first export enters PersistenceBootstrap before domain storage reads', async () => {
-    const events: string[] = []
-    const { ready, storage } = setupRuntime(events)
-
-    await expect(exportSettings()).resolves.toMatchObject({
-      customProjects: [],
-      parentCategories: [],
-      savedTabs: [],
-      urls: [],
-    })
 
     expect(ready).toHaveBeenCalled()
     expect(storage.local.get).toHaveBeenCalled()
