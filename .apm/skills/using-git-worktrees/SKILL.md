@@ -15,7 +15,8 @@ git worktree は同一リポジトリを共有する隔離 workspace を作り�
 
 ## ディレクトリ選択プロセス
 
-次の優先順位に従う:
+ユーザーが場所や既存 checkout の利用を指定した場合はその指定を優先する。
+それ以外は次の優先順位に従う:
 
 ### 1. 既存ディレクトリの確認
 
@@ -35,18 +36,11 @@ grep -i "worktree.*director" CLAUDE.md 2>/dev/null
 
 **設定があれば:** 質問せずそれを使う。
 
-### 3. ユーザーに確認
+### 3. 既定の場所を使う
 
-ディレクトリも CLAUDE.md の設定もない場合:
-
-```
-worktree ディレクトリが見つかりません。どこに作成しますか？
-
-1. .worktrees/（プロジェクトローカル、非表示）
-2. ~/.config/worktrees/<project-name>/（グローバル）
-
-どちらにしますか？
-```
+ディレクトリも既存設定もない場合は、プロジェクト内の `.worktrees/` を選び、
+下記の ignore 検証を行う。ユーザー指定の場所が使えない、権限がない、
+既存作業と衝突する場合は、その問題を解消してから作成する。
 
 ## 安全検証
 
@@ -61,10 +55,9 @@ git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/d
 
 **ignore されていない場合:**
 
-Jesse のルール「壊れているものは即修正」に従い:
 1. 適切な行を .gitignore に追加
-2. 変更を commit
-3. worktree 作成を続行
+2. ignore が有効になったことを確認して worktree 作成を続行
+3. commit はリポジトリの許可境界と完了ゲートを満たす場合だけ行う
 
 **なぜ重要:** worktree 内容の誤 commit を防ぐ。
 
@@ -129,7 +122,7 @@ pytest
 go test ./...
 ```
 
-**テスト失敗:** 失敗を報告し、続行するか調査するか確認。
+**テスト失敗:** 原因を調べ、既存不具合・環境・今回の変更を区別する。許可範囲内で解消し、判断や権限が不足する場合だけ確認する。
 
 **テスト通過:** 準備完了と報告。
 
@@ -143,15 +136,15 @@ Ready to implement <feature-name>
 
 ## クイックリファレンス
 
-| 状況 | アクション |
-|-----------|--------|
-| `.worktrees/` 存在 | 使う（ignore 検証） |
-| `worktrees/` 存在 | 使う（ignore 検証） |
-| 両方存在 | `.worktrees/` を使う |
-| どちらもなし | CLAUDE.md 確認 → ユーザーに確認 |
-| ディレクトリ未 ignore | .gitignore 追加 + commit |
-| baseline テスト失敗 | 失敗報告 + 確認 |
-| package.json/Cargo.toml なし | 依存インストール省略 |
+| 状況                         | アクション                               |
+| ---------------------------- | ---------------------------------------- |
+| `.worktrees/` 存在           | 使う（ignore 検証）                      |
+| `worktrees/` 存在            | 使う（ignore 検証）                      |
+| 両方存在                     | `.worktrees/` を使う                     |
+| どちらもなし                 | 既存設定を確認し、未指定なら .worktrees/ |
+| ディレクトリ未 ignore        | .gitignore 追加 + ignore 再確認          |
+| baseline テスト失敗          | 原因調査。必要な判断だけ確認             |
+| package.json/Cargo.toml なし | 依存インストール省略                     |
 
 ## よくある間違い
 
@@ -163,12 +156,12 @@ Ready to implement <feature-name>
 ### ディレクトリ場所の仮定
 
 - **問題:** 不整合、プロジェクト慣習違反
-- **修正:** 優先順位に従う: 既存 > CLAUDE.md > 確認
+- **修正:** 優先順位に従う: ユーザー指定 > 既存ディレクトリ > 既存設定 > .worktrees/
 
 ### 失敗テストのまま続行
 
 - **問題:** 新バグと既存問題の区別不可
-- **修正:** 失敗を報告し、明示的許可を得る
+- **修正:** 原因を調べて既存不具合と今回の変更を区別する。許可範囲内で解消し、必要な判断だけ確認する
 
 ### セットアップコマンドのハードコード
 
@@ -194,14 +187,16 @@ Ready to implement auth feature
 ## 危険信号
 
 **Never:**
+
 - ignore 未検証で worktree 作成（プロジェクトローカル）
 - baseline テスト検証の省略
-- 確認なしで失敗テストのまま続行
-- 曖昧なときにディレクトリ場所を仮定
+- 失敗テストを未調査のまま成功と扱う
+- ユーザー指定や既存設定を無視して場所を選ぶ
 - CLAUDE.md 確認の省略
 
 **Always:**
-- ディレクトリ優先順位: 既存 > CLAUDE.md > 確認
+
+- ディレクトリ優先順位: ユーザー指定 > 既存ディレクトリ > 既存設定 > .worktrees/
 - プロジェクトローカルでは ignore 検証
 - プロジェクトセットアップの自動検出と実行
 - クリーンなテスト baseline の検証
@@ -209,10 +204,12 @@ Ready to implement auth feature
 ## 連携
 
 **呼び出し元:**
-- **brainstorming**（フェーズ 4）— 設計承認後、実装に続く場合 MUST
-- **subagent-driven-development** — タスク実行前 MUST
-- **executing-plans** — タスク実行前 MUST
+
+- **brainstorming** — 実装まで依頼され、隔離が必要になった場合
+- **subagent-driven-development** — 担当作業の隔離が必要な場合
+- **executing-plans** — 計画の実行に隔離が必要な場合
 - 隔離 workspace が必要な任意の skill
 
 **ペア:**
-- **finishing-a-development-branch** — 作業完了後のクリーンアップ MUST
+
+- **finishing-a-development-branch** — 依頼された統合・保持・cleanupを処理する。作業完了だけでworktreeを削除しない

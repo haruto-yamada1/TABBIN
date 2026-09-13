@@ -15,11 +15,13 @@ code-reviewer サブエージェントを dispatch し、問題が連鎖する�
 ## レビューを依頼するタイミング
 
 **必須:**
-- subagent-driven development の各タスク後
+
+- subagent-driven development の medium 以上の変更単位後（同 skill のリスク表に従う）
 - 大きな機能完了後
 - main への merge 前
 
 **任意だが有用:**
+
 - 行き詰まったとき（新鮮な視点）
 - リファクタ前（ベースライン確認）
 - 複雑な bug 修正後
@@ -38,6 +40,7 @@ HEAD_SHA=$(git rev-parse HEAD)
 Task tool で code-reviewer タイプを使い、`code-reviewer.md` のテンプレートを埋める。
 
 **プレースホルダー:**
+
 - `{WHAT_WAS_IMPLEMENTED}` - 今作った内容
 - `{PLAN_OR_REQUIREMENTS}` - あるべき振る舞い
 - `{BASE_SHA}` - 開始 commit
@@ -45,6 +48,7 @@ Task tool で code-reviewer タイプを使い、`code-reviewer.md` のテンプ
 - `{DESCRIPTION}` - 短い要約
 
 **3. フィードバックに対応:**
+
 - Critical issue は即修正
 - Important issue は進む前に修正
 - Minor issue は後回しメモ
@@ -81,27 +85,32 @@ You: [Fix progress indicators]
 ## ワークフロー連携
 
 **Subagent-Driven Development:**
-- 各タスク後にレビュー
+
+- リスク表に応じた変更単位でレビュー。low は main の確認と deterministic gate を使う
 - 問題が複合化する前に捕捉
 - 次タスクへ進む前に修正
 
 **Executing Plans:**
-- 各バッチ（3 タスク）後にレビュー
+
+- 計画で指定されたレビュー境界または意味のある変更単位でレビュー
 - フィードバックを反映して続行
 
 **アドホック開発:**
+
 - merge 前にレビュー
 - 行き詰まったときにレビュー
 
 ## レッドフラグ
 
 **絶対にやらない:**
-- 「単純だから」レビューを省略
+
+- リスク表やユーザーが指定した必須レビューを省略
 - Critical issue を無視
 - Important issue 未修正のまま進む
 - 妥当な技術的フィードバックと議論
 
 **reviewer が誤っている場合:**
+
 - 技術的理由で push back
 - 動作を示す code/test を提示
 - 必要なら clarification を依頼

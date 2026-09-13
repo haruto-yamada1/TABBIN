@@ -136,7 +136,7 @@ try {
   for (const rel of touchedPaths) {
     const abs = path.resolve(projectDir, rel)
     try {
-      execFileSync('bunx', ['oxfmt', '--check', abs], {
+      execFileSync('bunx', ['oxfmt', '--check', '--no-error-on-unmatched-pattern', abs], {
         cwd: projectDir,
         stdio: 'pipe',
       })

@@ -1,129 +1,51 @@
 ---
 name: create-skill
 disable-model-invocation: true
-description: AI エージェント向けの skill を作成・編集します。新しい skill の執筆、既存 skill の改善、deploy 前の skill 検証、SKILL.md 構造についての質問時に使います。Codex / Claude Code / Cursor など各クライアントの skill 仕様に合わせて生成します（旧 writing-skills の TDD 執筆手法を統合済み）。
----
-# AI エージェント向け skill の作成
-
-AI エージェント向けの effective skill 作成手順です。skill は markdown file で、agent に specific task の実行方法を教えます。例: team standard による PR review、好みの format での commit message 生成、database schema query、任意の specialized workflow など。
-
-## 開始前: 要件の収集
-
-skill 作成前に、ユーザーから次の essential information を収集します:
-
-1. **Purpose and scope**: この skill が支援すべき specific task または workflow は何か
-2. **Target location**: どのクライアント向けか、personal か project か（Codex: ~/.agents/skills/ または .apm/skills/、Claude Code: ~/.claude/skills/、Cursor: ~/.cursor/skills/ と .cursor/skills/）
-3. **Trigger scenarios**: agent がいつ自動的にこの skill を適用すべきか
-4. **Key domain knowledge**: agent が既知でない specialized information は何か
-5. **Output format preferences**: 特定 template、format、style が必要か
-6. **Existing patterns**: 従う existing example や convention はあるか
-
-### ユーザーからの verbatim text
-
-ユーザーが skill 内で使う exact wording を含める場合、respect し `SKILL.md` に **verbatim** で使う（同じ語、同じ順）。paraphrase、soften、expand しない。依頼されていない heading や commentary を周囲に追加しない。
-
-### コンテキストからの推測
-
-会話 context がある場合、議論内容から skill を推測できます。会話で出た workflow、pattern、domain knowledge に基づいて skill を作成できます。
-
-### 追加情報の収集
-
-clarification が必要な場合、AskQuestion tool が使えれば使用:
-
-```
-Example AskQuestion usage:
-- "Where should this skill be stored?" with options like ["Personal (Codex: ~/.agents/skills/, Claude: ~/.claude/skills/, Cursor: ~/.cursor/skills/)", "Project (.apm/skills/ via APM, or .cursor/skills/)"]
-- "Should this skill include executable scripts?" with options like ["Yes", "No"]
-```
-
-AskQuestion tool が使えない場合、会話で質問します。
-
+description: エージェント用 skill の新規作成・改善・検証、SKILL.md の構造確認に使います。
 ---
 
-## Skill File Structure
+# エージェント用 skill の作成・改善
 
-### Directory Layout
+skill は特定の仕事に必要な知識・判断基準・手順を提供します。モデルが既にできる一般的な作業の説明を重ねず、プロジェクト固有の契約と失敗しやすい境界を明確にします。
 
-skill は `SKILL.md` を含む directory として保存:
+## 進め方
 
-```
-skill-name/
-├── SKILL.md              # Required - main instructions
-├── reference.md          # Optional - detailed documentation
-├── examples.md           # Optional - usage examples
-└── scripts/              # Optional - utility scripts
-    ├── validate.py
-    └── helper.sh
-```
+1. **範囲を決める。** 会話と既存設定から目的、対象クライアント、保存場所、発火条件、成果物を確認します。判断できる項目は質問し直さず、結果を左右する不足情報だけ確認します。
+2. **既存の原本を探す。** TABBIN では `.apm/skills/<name>/` を編集し、配布先を直接編集しません。同じ知識を持つ skill や参照資料を再利用します。
+3. **検証を選ぶ。** 意味のある判断・手順変更は旧版と新版のシナリオ評価、軽微な誤字・整理・リンク修正は frontmatter・参照・同期検査を使います。詳細は [skill-authoring-tdd.md](skill-authoring-tdd.md) を参照します。
+4. **入口を短く書く。** 発火条件、必要な判断、手順、完了条件を `SKILL.md` に置きます。詳細な例・チェックリスト・資料は参照ファイルに分け、必要時だけ読みます。
+5. **まとめて検証・同期する。** 関連する skill はまとめて編集・検証できます。変更の検証結果を確認して `bun run apm:sync` と `bun run apm:check` を実行します。
 
-### Storage Locations
+ユーザーが正確な文言を指定した箇所はそのまま使います。既存の許可範囲内の編集について、手順上の区切りだけを理由に再承認を求めません。
 
-| Type | Path | Scope |
-|------|------|-------|
-| Personal (Codex) | ~/.agents/skills/skill-name/ | Available across all your projects |
-| Personal (Claude Code) | ~/.claude/skills/skill-name/ | Available across all your projects |
-| Personal (Cursor) | ~/.cursor/skills/skill-name/ | Available across all your projects |
-| Project (TABBIN / APM) | .apm/skills/skill-name/ | APM で全クライアントへ配布。source of truth |
-| Project (Cursor 単体) | .cursor/skills/skill-name/ | Shared with anyone using the repository |
-
-**IMPORTANT**: TABBIN では skill の source of truth を `.apm/skills/` に置き、`bun run apm:sync` で各クライアントへ配布します。クライアント固有の配布先へ直接編集せず原則 `.apm/skills/` を更新してください。Cursor の `~/.cursor/skills-cursor/` は Cursor internal built-in skill 用で system が自動管理するため使わないでください。
-
-### SKILL.md Structure
-
-すべての skill に YAML frontmatter と markdown body 付き `SKILL.md` が必要:
+## 形式と配置
 
 ```markdown
 ---
 name: your-skill-name
-description: Brief description of what this skill does and when to use it
+description: この skill が必要になる具体的な依頼・症状。
 disable-model-invocation: true
 ---
 
-# Your Skill Name
+# Skill 名
 
-## Instructions
-Clear, step-by-step guidance for the agent.
-
-## Examples
-Concrete examples of using this skill.
+目的、必要な判断、実行手順、完了条件。
 ```
 
-default `disable-model-invocation: true` で、明示的に name 指定時のみ load。ambient context から agent が auto-invoke すべき場合のみ omit。
+- `name` は 64 文字以内の小文字英数字・ハイフン、`description` は空でない 1024 文字以内とします。
+- description は短い発火条件にし、本文の手順を詰め込みません。
+- 明示呼び出し用は `disable-model-invocation: true`。自動適用が必要な skill では省略します。
+- `SKILL.md` は 500 行未満を上限とし、通常は短い入口に留めます。参照は入口から直接リンクします。
+- TABBIN 以外で作成する場合は、対象クライアントの現在の仕様と既存配置を確認します。
 
-### Required Metadata Fields
+品質ゲートと commit / push / PR の許可境界は、[repository-guidelines](../../../.apm/instructions/repository-guidelines.instructions.md) に従います。
 
-| Field | Requirements | Purpose |
-|-------|--------------|---------|
-| `name` | Max 64 chars, lowercase letters/numbers/hyphens only | Unique identifier for the skill |
-| `description` | Max 1024 chars, non-empty | Helps agent decide when to apply the skill |
+## 必要時の参照
 
----
-
-
-## 詳細参照
-
-次の内容は `authoring-patterns.md` に分離した。SKILL.md は入口なので、必要時に参照する。
-
-- Description の書き方と例
-- Core Authoring Principles（concise / 500 行以下 / progressive disclosure / degrees of freedom）
-- Common Patterns（template / examples / workflow / conditional / feedback loop）
-- Utility Scripts
-- Anti-Patterns to Avoid
-- Skill Creation Workflow（discovery / design / implementation / verification）
-- Complete Example
-
-詳細は [authoring-patterns.md](authoring-patterns.md) を参照。
-
-## skill 執筆の TDD（旧 writing-skills 統合）
-
-**Skill の執筆はプロセス文書への TDD 適用です。** RED（baseline）→ GREEN（skill 執筆）→ REFACTOR（loophole 塞ぎ）。規律 skill は 3+ の複合 pressure を使う。各 skill を書いたら STOP し deploy checklist を完了してから次へ。詳細（手順・チェックリスト・アンチパターン・STOP 規則・finalize checklist）は [skill-authoring-tdd.md](skill-authoring-tdd.md) に分割済み（500 行制限のため）。
-
-### 参照ファイル（旧 writing-skills から統合）
-
-- [anthropic-best-practices.md](anthropic-best-practices.md) — Anthropic 公式 skill 執筆 best practice の完全版。
-- [testing-skills-with-subagents.md](testing-skills-with-subagents.md) — pressure scenario の書き方、pressure タイプ、体系的 hole 塞ぎ、meta-testing の完全方法論。
-- [persuasion-principles.md](persuasion-principles.md) — 規律 skill で rationalization を防ぐ説得原則。
-- [graphviz-conventions.dot](graphviz-conventions.dot) / [render-graphs.js](render-graphs.js) — skill 内 flowchart の graphviz 規約と描画補助。
-- [examples/](examples/) — 執筆例。
-
-> これらは progressive disclosure による参照資料です。SKILL.md から直接 link し、deeply nested な参照は避けてください。
+- [skill-authoring-tdd.md](skill-authoring-tdd.md): 変更に応じた評価と検証チェックリスト。
+- [authoring-patterns.md](authoring-patterns.md): description、構成、例、スクリプトの書き方。
+- [testing-skills-with-subagents.md](testing-skills-with-subagents.md): 独立評価が必要な場合のシナリオ設計。検証範囲は本 skill の変更別方針で決めます。
+- [anthropic-best-practices.md](anthropic-best-practices.md): Claude 向けの執筆資料。対象クライアントの現在の仕様を優先します。
+- [persuasion-principles.md](persuasion-principles.md): 規律違反が実際に観測された場合の補助資料。
+- [graphviz-conventions.dot](graphviz-conventions.dot) / [render-graphs.js](render-graphs.js): 判断の分岐を図示する場合。
+- [examples/](examples/): 執筆例。
