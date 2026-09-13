@@ -12,11 +12,11 @@ URL がなければ検証済み変更の publish から開始します。明確�
 
 ## 最初に mode を決める
 
-| 入力と状態 | mode |
-| --- | --- |
-| GitHub Issue URL がある | Issue mode |
-| Issue URL はなく、未 publish の変更がある | Publish-only mode |
-| どちらもない | 状態を証拠付きで報告して停止 |
+| 入力と状態                                | mode                         |
+| ----------------------------------------- | ---------------------------- |
+| GitHub Issue URL がある                   | Issue mode                   |
+| Issue URL はなく、未 publish の変更がある | Publish-only mode            |
+| どちらもない                              | 状態を証拠付きで報告して停止 |
 
 Issue URL がある場合、ローカル変更がまだなくても停止してはいけません。
 
@@ -78,15 +78,20 @@ blocker 報告には、試した command、exit status、error の要約、取�
 behavior を確認します。挙動変更では `test-driven-development` に従い RED を確認します。
 UI / browser flow は必要に応じて Storybook、browser、Playwright で実動確認します。
 
-TABBIN では次を必須とします。
+TABBIN の必須ゲートは `.apm/instructions/repository-guidelines.instructions.md`
+を source of truth とします。commit 前に品質ゲートを実行し、自明でないコード変更では
+coverage も検証します。同じ差分・環境の成功証拠は再利用できます。
 
 ```bash
 bun run test:coverage
 bun run quality:check
 ```
 
-coverage は 100% を確認します。失敗は suppression せず原因を修正し、同じ command を
-再実行します。`release:check` は clean tree gate のため、publish 用 commit 後に実行します。
+coverage は `vitest.ci.config.ts` の global / per-glob threshold を確認します。
+失敗は suppression せず原因を修正し、同じ command を
+再実行します。release-sensitive な変更では、リポジトリ規約どおり commit 前に
+`bun run release:check` の成功を確認します。clean tree の制約がある場合は、
+同じ変更内容を持つ隔離した検証環境で証拠を取得し、検証した内容と公開対象を照合します。
 
 `.apm/**` を変更した場合は publish 前に次を実行し、source と tracked / runtime 生成物の
 同期を必須条件にします。
