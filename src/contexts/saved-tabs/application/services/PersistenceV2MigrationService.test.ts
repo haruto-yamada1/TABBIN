@@ -120,10 +120,54 @@ const createService = ({
     rawReader,
     target,
   })
-  return { service, target }
+  return { fingerprint, preflightRepository, service, target }
 }
 
 describe('PersistenceV2MigrationService', () => {
+  it('reads the independent preflight approval and source fingerprint concurrently before preparing the target', async () => {
+    const { fingerprint, preflightRepository, service, target } =
+      createService()
+    const approval = await preflightRepository.read()
+    const pendingApproval = Promise.withResolvers<
+      StoredMigrationPreflight | undefined
+    >()
+    vi.mocked(preflightRepository.read).mockReturnValue(pendingApproval.promise)
+
+    const migration = service.migrate('migration-1')
+
+    try {
+      await vi.waitFor(() => {
+        expect(fingerprint.create).toHaveBeenCalledOnce()
+      })
+      expect(target.prepare).not.toHaveBeenCalled()
+    } finally {
+      pendingApproval.resolve(approval)
+      await migration
+    }
+  })
+
+  it('waits for each target batch and stops subsequent writes when a commit fails', async () => {
+    const { service, target } = createService()
+    const firstBatch = Promise.withResolvers<undefined>()
+    vi.mocked(target.writeBatch).mockReturnValueOnce(firstBatch.promise)
+    const migration = service
+      .migrate('migration-1')
+      .catch((error: unknown) => error)
+
+    await vi.waitFor(() => {
+      expect(target.writeBatch).toHaveBeenCalledOnce()
+    })
+    expect(target.markWritten).not.toHaveBeenCalled()
+    firstBatch.reject(new Error('batch commit failed'))
+    await expect(migration).resolves.toMatchObject({
+      code: 'MIGRATION_TARGET_WRITE_FAILED',
+    })
+
+    expect(target.writeBatch).toHaveBeenCalledOnce()
+    expect(target.markWritten).not.toHaveBeenCalled()
+    expect(service.readReport('migration-1')).toBeUndefined()
+  })
+
   it('maps before writing, replaces the target in bounded batches, and emits only a safe aggregate report', async () => {
     const source = createValidSource()
     const { service, target } = createService({ source })

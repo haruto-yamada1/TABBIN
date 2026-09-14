@@ -454,9 +454,10 @@ export const mergeLegacyCompatibilityStorageRecord = (
 ): PersistenceV2Snapshot => {
   const projectIds = record.customProjects.map(({ id }) => id)
   const knownProjectIds = new Set(projectIds)
+  const orderedProjectIds = new Set(record.customProjectOrder)
   const normalizedProjectOrder = [
     ...record.customProjectOrder.filter((id) => knownProjectIds.has(id)),
-    ...projectIds.filter((id) => !record.customProjectOrder.includes(id)),
+    ...projectIds.filter((id) => !orderedProjectIds.has(id)),
   ]
   const analysis = mapLegacyStorageToPersistenceV2(
     toRawSnapshot({

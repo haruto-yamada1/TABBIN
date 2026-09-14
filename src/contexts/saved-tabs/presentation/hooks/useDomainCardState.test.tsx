@@ -2,6 +2,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { savedTabsDefaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
@@ -61,7 +63,7 @@ type UseDomainCardStateParams = Parameters<typeof useDomainCardState>[0]
 const buildPageData = () => ({
   tabGroups: [] as readonly TabGroup[],
   parentCategories: [],
-  userSettings: {},
+  userSettings: savedTabsDefaultUserSettings,
 })
 
 /**
@@ -146,6 +148,43 @@ describe('useDomainCardState', () => {
         },
       },
     } as unknown as typeof chrome
+  })
+
+  it('差し替え前の親カテゴリ query の遅い結果を破棄する', async () => {
+    type PageData = Awaited<ReturnType<GetSavedTabsPageDataQuery>>
+    const older = Promise.withResolvers<PageData>()
+    const newer = Promise.withResolvers<PageData>()
+    const { params } = createUseDomainCardStateParams({ group: createGroup() })
+    const { result, rerender } = renderHook(
+      ({ query }) =>
+        useDomainCardState({ ...params, getSavedTabsPageDataQuery: query }),
+      {
+        initialProps: {
+          query: vi
+            .fn<GetSavedTabsPageDataQuery>()
+            .mockReturnValue(older.promise),
+        },
+      },
+    )
+    rerender({
+      query: vi.fn<GetSavedTabsPageDataQuery>().mockReturnValue(newer.promise),
+    })
+    const pageData = (id: string): PageData => ({
+      parentCategories: [{ id, name: id, collections: [] }],
+      tabGroups: [],
+      userSettings: savedTabsDefaultUserSettings,
+    })
+    await act(async () => {
+      newer.resolve(pageData('newer'))
+      await newer.promise
+    })
+    await act(async () => {
+      older.resolve(pageData('older'))
+      await older.promise
+    })
+    expect(
+      result.current.parentCategories.categories.map(({ id }) => id),
+    ).toEqual(['newer'])
   })
 
   it('helper は legacy URL とカテゴリ順序を安全に処理する', () => {
@@ -380,7 +419,7 @@ describe('useDomainCardState', () => {
     getSavedTabsPageDataQuery.mockResolvedValue({
       tabGroups: [group, otherGroup].map(toTabGroupFromViewModel),
       parentCategories: [],
-      userSettings: {},
+      userSettings: savedTabsDefaultUserSettings,
     })
 
     const { result } = renderHook(() => useDomainCardState(params))
@@ -566,7 +605,7 @@ describe('useDomainCardState', () => {
     getSavedTabsPageDataQuery.mockResolvedValue({
       tabGroups: [group],
       parentCategories: [],
-      userSettings: {},
+      userSettings: savedTabsDefaultUserSettings,
     })
     categoryAssignmentPort.saveTabGroups
       .mockRejectedValueOnce(new Error('write failed'))

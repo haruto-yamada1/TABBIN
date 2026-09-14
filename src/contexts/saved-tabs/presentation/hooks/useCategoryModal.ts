@@ -267,22 +267,32 @@ export const useCategoryModal = ({
 
   // --- カテゴリリスト初期ロード ---
   useEffect(() => {
+    let cancelled = false
     const loadCategories = async () => {
       try {
         const fromRepo = (
           await getSavedTabsPageDataQuery()
         ).parentCategories.map(toStorageParentCategory)
+        if (cancelled) {
+          return
+        }
         setCategoryData({
           categories: fromRepo,
           domainCategories: buildDomainCategoriesMap(tabGroups, fromRepo),
           selectedCategoryId: fromRepo.length > 0 ? fromRepo[0].id : null,
         })
       } catch (error) {
+        if (cancelled) {
+          return
+        }
         console.error('カテゴリの取得に失敗しました', error)
         toast.error(t('savedTabs.categoryModal.loadError'))
       }
     }
     void loadCategories()
+    return () => {
+      cancelled = true
+    }
   }, [getSavedTabsPageDataQuery, t, tabGroups])
 
   // --- 選択カテゴリ変更時のドメイン選択更新 ---

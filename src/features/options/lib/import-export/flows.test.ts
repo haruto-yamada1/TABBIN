@@ -282,7 +282,7 @@ describe('production import flow', () => {
     })
   })
 
-  it('downloads compact JSON and cleans up the temporary URL', () => {
+  it('downloads compact JSON and cleans up the temporary URL', async () => {
     const createObjectUrl = vi
       .spyOn(URL, 'createObjectURL')
       .mockReturnValue('blob:backup')
@@ -298,7 +298,7 @@ describe('production import flow', () => {
       },
     )
 
-    downloadAsJson({ backup: true }, 'backup.json')
+    await downloadAsJson({ backup: true }, 'backup.json')
 
     const anchor = click.mock.instances[0] as HTMLAnchorElement | undefined
     expect(createObjectUrl).toHaveBeenCalledOnce()
@@ -306,5 +306,25 @@ describe('production import flow', () => {
     expect(anchor?.href).toBe('blob:backup')
     expect(anchor?.isConnected).toBe(false)
     expect(revokeObjectUrl).toHaveBeenCalledExactlyOnceWith('blob:backup')
+  })
+
+  it('releases the temporary URL and anchor when starting a download fails', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:failed-backup')
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL')
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {
+        throw new Error('download unavailable')
+      })
+
+    await expect(downloadAsJson({}, 'backup.json')).rejects.toThrow(
+      'download unavailable',
+    )
+
+    const anchor = click.mock.instances[0] as HTMLAnchorElement
+    expect(anchor.isConnected).toBe(false)
+    expect(revokeObjectUrl).toHaveBeenCalledExactlyOnceWith(
+      'blob:failed-backup',
+    )
   })
 })

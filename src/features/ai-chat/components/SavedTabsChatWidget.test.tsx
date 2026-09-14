@@ -878,9 +878,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
           // eslint-disable-line
           handlePortMessage = listener
@@ -1310,9 +1312,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
           // eslint-disable-line
           handlePortMessage = listener
@@ -1456,9 +1460,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       postMessage: vi.fn(),
@@ -1491,6 +1497,12 @@ describe('SavedTabsChatWidget', () => {
     await user.click(screen.getByRole('button', { name: 'New conversation' }))
 
     expect(port.disconnect).toHaveBeenCalled()
+    expect(port.onMessage.removeListener).toHaveBeenCalledExactlyOnceWith(
+      port.onMessage.addListener.mock.calls[0]?.[0],
+    )
+    expect(port.onDisconnect.removeListener).toHaveBeenCalledExactlyOnceWith(
+      port.onDisconnect.addListener.mock.calls[0]?.[0],
+    )
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
   })
 
@@ -1502,9 +1514,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
           // eslint-disable-line
           handlePortMessage = listener
@@ -1661,9 +1675,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
           // eslint-disable-line
           handlePortMessage = listener
@@ -1761,9 +1777,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
           // eslint-disable-line
           handlePortMessage = listener
@@ -1877,9 +1895,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       postMessage: vi.fn(),
@@ -2060,9 +2080,11 @@ describe('SavedTabsChatWidget', () => {
     const port = {
       disconnect: vi.fn(),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn(),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
           // eslint-disable-line
           handlePortMessage = listener

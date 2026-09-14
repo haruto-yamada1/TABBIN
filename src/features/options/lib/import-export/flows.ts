@@ -98,23 +98,35 @@ const getImportFailureMessage = (
   return `${baseMessage} (${diagnostic.stage}: ${diagnostic.errorCode})`
 }
 
-const downloadAsJson = (data: unknown, filename: string): void => {
+const downloadAsJson = async (
+  data: unknown,
+  filename: string,
+): Promise<void> => {
   const json = JSON.stringify(data)
   const blob = new Blob([json], {
     type: 'application/json',
   })
   assertBackupSerializedBytes(blob.size)
-  const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  document.body.append(anchor)
-  anchor.click()
+  const url = URL.createObjectURL(blob)
+  try {
+    anchor.href = url
+    anchor.download = filename
+    document.body.append(anchor)
+    anchor.click()
 
-  requestAnimationFrame(() => {
-    anchor.remove()
-    URL.revokeObjectURL(url)
-  })
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        resolve()
+      })
+    })
+  } finally {
+    try {
+      anchor.remove()
+    } finally {
+      URL.revokeObjectURL(url)
+    }
+  }
 }
 
 const importSettings = async (

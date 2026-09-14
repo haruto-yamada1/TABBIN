@@ -105,22 +105,17 @@ const useSavedTabsPage = (input: SavedTabsPageProps): SavedTabsPageState => {
       : {}),
     useCases: contextValue.useCases,
   })
-  const refreshRef = useRef(controller.refresh)
-  if (refreshRef.current !== controller.refresh) {
-    refreshRef.current = controller.refresh
-  }
-  const hasInitialData = Boolean(
-    input.initialTabGroups ?? input.initialCustomProjects,
-  )
-  const hasInitialDataRef = useRef(hasInitialData)
-  if (hasInitialDataRef.current !== hasInitialData) {
-    hasInitialDataRef.current = hasInitialData
-  }
+  const initialLoadRef = useRef({
+    hasInitialData: Boolean(
+      input.initialTabGroups ?? input.initialCustomProjects,
+    ),
+    refresh: controller.refresh,
+  })
   useEffect(() => {
-    if (hasInitialDataRef.current) {
+    if (initialLoadRef.current.hasInitialData) {
       return
     }
-    void refreshRef.current()
+    void initialLoadRef.current.refresh()
     // 初回 mount 時に 1 回だけ走ればよいため、
     // ここでは依存配列を空にして再実行を抑止する。
   }, [])

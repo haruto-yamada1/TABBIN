@@ -11,14 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -29,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { DeleteConversationDialog } from '@/features/ai-chat/components/DeleteConversationDialog'
 import { SYSTEM_PROMPT_SELECTOR_EMPTY_VALUE } from '@/features/ai-chat/components/savedTabsChat/prompts'
 import { SavedTabsChatHeaderTooltipButton } from '@/features/ai-chat/components/SavedTabsChatHeaderTooltipButton'
 import { SavedTabsChatHistoryItemCard } from '@/features/ai-chat/components/SavedTabsChatHistoryItemCard'
@@ -228,35 +221,12 @@ const ChatHistoryDropdown = ({
         </PopoverContent>
       </Popover>
 
-      <Dialog
+      <DeleteConversationDialog
         open={pendingDeleteHistoryItem !== null}
         onOpenChange={handleDialogOpenChange}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('aiChat.deleteTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('aiChat.deleteDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={handleCancelDelete}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              type='button'
-              variant='destructive'
-              onClick={handleConfirmDelete}
-            >
-              {t('common.delete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </>
   )
 }

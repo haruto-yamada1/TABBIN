@@ -5,7 +5,14 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { Toaster } from '@/components/ui/sonner'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
@@ -76,25 +83,10 @@ const useSavedTabsAppView = ({
   const hasResolvedInitialViewModeRef = useRef(!initialViewMode)
   const previousInitialViewModeRef = useRef(initialViewMode)
 
-  if (previousInitialViewModeRef.current !== initialViewMode) {
-    previousInitialViewModeRef.current = initialViewMode
-    hasResolvedInitialViewModeRef.current = !initialViewMode
-  }
-
-  // BrowserTabPort の `resolveActive` から参照される最新 settings。
-  // settings オブジェクト全体が変わってもタブを開く度に最新値を見るため、
-  // 関数クロージャからは ref を読む。
-  const settingsRef = useRef(settings)
-  settingsRef.current = settings
-
-  // `SavedTabsPage` 側で組み立てた `BrowserTabPort` の `resolveActive` を
-  // 最新 settings から毎回評価する関数で上書きする。`BrowserTabPort` は
-  // `open()` 呼び出し時に `resolveActive?.()` を都度評価するため、
-  // use-case / port を作り直さずに `openUrlInBackground` を反映できる。
-  // 関数 ref の中身だけ差し替えるため ref 自体は安定。
-  useEffect(() => {
-    resolveActiveRef.current = () => !settingsRef.current.openUrlInBackground
-  }, [resolveActiveRef])
+  // コミット済みの設定だけを BrowserTabPort へ公開する。
+  useLayoutEffect(() => {
+    resolveActiveRef.current = () => !settings.openUrlInBackground
+  }, [resolveActiveRef, settings.openUrlInBackground])
 
   // presentation 層の controller は composition root である
   // `SavedTabsPage` 側で組み立てて props 注入する。`SavedTabsApp` 側では
@@ -394,6 +386,10 @@ const useSavedTabsAppView = ({
   ])
 
   useEffect(() => {
+    if (previousInitialViewModeRef.current !== initialViewMode) {
+      previousInitialViewModeRef.current = initialViewMode
+      hasResolvedInitialViewModeRef.current = !initialViewMode
+    }
     if (
       shouldWaitForInitialViewMode({
         hasResolvedInitialViewMode: hasResolvedInitialViewModeRef.current,

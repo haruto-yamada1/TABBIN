@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import {
   PromptInputSelect,
@@ -179,7 +179,80 @@ const SelectorMessage = ({
   )
 }
 
-// eslint-disable-next-line eslint/complexity
+const useModelSelectorOpen = ({
+  fetchOnOpen,
+  hasError,
+  onFetchModels,
+}: {
+  fetchOnOpen: boolean
+  hasError: boolean
+  onFetchModels: () => void
+}) => {
+  const [openState, setOpenState] = useState({ hasError, isOpen: false })
+  if (hasError !== openState.hasError) {
+    setOpenState({ hasError, isOpen: hasError ? false : openState.isOpen })
+  }
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setOpenState({ hasError, isOpen })
+      if (isOpen && fetchOnOpen) {
+        onFetchModels()
+      }
+    },
+    [fetchOnOpen, hasError, onFetchModels],
+  )
+  return { handleOpenChange, isOpen: openState.isOpen }
+}
+
+type ModelSelectProps = Parameters<typeof ModelOptions>[0] & {
+  selectedModel: string | undefined
+  isOpen: boolean
+  handleOpenChange: (open: boolean) => void
+  handleValueChange: (value: string) => void
+  isTriggerDisabled: boolean
+  hideFetchButton: boolean
+  isCompactLayout: boolean
+}
+
+const ModelSelect = ({
+  selectedModel,
+  isOpen,
+  handleOpenChange,
+  handleValueChange,
+  isTriggerDisabled,
+  hideFetchButton,
+  isCompactLayout,
+  isLoading,
+  selectableModels,
+  t,
+}: ModelSelectProps) => (
+  <PromptInputSelect
+    open={isOpen}
+    onOpenChange={handleOpenChange}
+    onValueChange={handleValueChange}
+    {...(selectedModel !== undefined ? { defaultValue: selectedModel } : {})}
+    key={selectedModel || 'no-model-selected'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
+  >
+    <PromptInputSelectTrigger
+      aria-label={selectedModel || t('aiChat.ollama.selectModel')} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
+      disabled={isTriggerDisabled}
+      className={cn(
+        'w-full border border-input bg-background px-3 py-2 text-sm shadow-sm',
+        !hideFetchButton && !isCompactLayout && 'sm:w-[220px]',
+      )}
+    >
+      <PromptInputSelectValue placeholder={t('aiChat.ollama.selectModel')} />
+    </PromptInputSelectTrigger>
+    <PromptInputSelectContent>
+      <ModelOptions
+        isLoading={isLoading}
+        selectableModels={selectableModels}
+        t={t}
+      />
+    </PromptInputSelectContent>
+  </PromptInputSelect>
+)
+
 const OllamaModelSelector = ({
   behavior,
   errorMessage,
@@ -208,33 +281,18 @@ const OllamaModelSelector = ({
     () => getSelectableModels(models, selectedModel),
     [models, selectedModel],
   )
-  const [isOpen, setIsOpen] = useState(false)
   const hasError = Boolean(errorMessage || ollamaError) // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error message should fall through
-  const previousHasErrorRef = useRef(hasError)
+  const { handleOpenChange, isOpen } = useModelSelectorOpen({
+    fetchOnOpen,
+    hasError,
+    onFetchModels,
+  })
   const isTriggerDisabled = getTriggerDisabled({
     fetchOnOpen,
     isLoading,
     isSaving,
     selectableModels,
   })
-
-  if (hasError !== previousHasErrorRef.current) {
-    previousHasErrorRef.current = hasError
-    if (hasError && isOpen) {
-      setIsOpen(false)
-    }
-  }
-
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      setIsOpen(nextOpen)
-
-      if (nextOpen && fetchOnOpen) {
-        onFetchModels()
-      }
-    },
-    [fetchOnOpen, onFetchModels],
-  )
 
   const handleValueChange = useCallback(
     (nextValue: string) => {
@@ -263,35 +321,18 @@ const OllamaModelSelector = ({
           t={t}
         />
 
-        <PromptInputSelect
-          open={isOpen}
-          onOpenChange={handleOpenChange}
-          onValueChange={handleValueChange}
-          {...(selectedModel !== undefined
-            ? { defaultValue: selectedModel }
-            : {})}
-          key={selectedModel || 'no-model-selected'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
-        >
-          <PromptInputSelectTrigger
-            aria-label={selectedModel || t('aiChat.ollama.selectModel')} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
-            disabled={isTriggerDisabled}
-            className={cn(
-              'w-full border border-input bg-background px-3 py-2 text-sm shadow-sm',
-              !hideFetchButton && !isCompactLayout && 'sm:w-[220px]',
-            )}
-          >
-            <PromptInputSelectValue
-              placeholder={t('aiChat.ollama.selectModel')}
-            />
-          </PromptInputSelectTrigger>
-          <PromptInputSelectContent>
-            <ModelOptions
-              isLoading={isLoading}
-              selectableModels={selectableModels}
-              t={t}
-            />
-          </PromptInputSelectContent>
-        </PromptInputSelect>
+        <ModelSelect
+          selectedModel={selectedModel}
+          isOpen={isOpen}
+          handleOpenChange={handleOpenChange}
+          handleValueChange={handleValueChange}
+          isTriggerDisabled={isTriggerDisabled}
+          hideFetchButton={hideFetchButton}
+          isCompactLayout={isCompactLayout}
+          isLoading={isLoading}
+          selectableModels={selectableModels}
+          t={t}
+        />
       </div>
 
       <SelectorMessage

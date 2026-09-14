@@ -404,6 +404,7 @@ const AddDomainSection = ({
                 onClick={onAddDomain}
                 className='cursor-pointer'
                 data-testid='add-domain-button'
+                aria-label={t('savedTabs.categoryManagement.addDomainTooltip')}
                 disabled={!activeSelectedDomain || isProcessing}
               >
                 <Plus size={18} />

@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 type SubCategoryRenameSectionProps = {
   renameInputRef: React.RefObject<HTMLInputElement | null>
@@ -26,6 +27,7 @@ export const SubCategoryRenameSection = ({
   renameLabel,
   renameHint,
 }: SubCategoryRenameSectionProps) => {
+  const { t } = useI18n()
   const handleCompleteClick = useCallback(() => {
     void onCompleteRename()
   }, [onCompleteRename])
@@ -63,6 +65,7 @@ export const SubCategoryRenameSection = ({
         />
         <div className='flex shrink-0'>
           <Button
+            aria-label={t('common.save')}
             type='button'
             onClick={handleCompleteClick}
             variant='secondary'
@@ -72,6 +75,7 @@ export const SubCategoryRenameSection = ({
             <Check size={16} />
           </Button>
           <Button
+            aria-label={t('common.cancel')}
             type='button'
             onClick={onCancelRename}
             variant='ghost'
