@@ -39,11 +39,9 @@ const useChatSidebarResize = ({ mode }: { mode: ChatSidebarMode }) => {
     const handleWindowResize = () => {
       setViewportWidth(window.innerWidth)
       if (mode === 'floating') {
-        setSidebarWidth((currentWidth) => {
-          const nextWidth = clampSidebarWidth(currentWidth)
-          sidebarWidthRef.current = nextWidth
-          return nextWidth
-        })
+        const nextWidth = clampSidebarWidth(sidebarWidthRef.current)
+        sidebarWidthRef.current = nextWidth
+        setSidebarWidth(nextWidth)
       }
     }
 

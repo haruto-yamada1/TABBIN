@@ -137,6 +137,89 @@ const buildCategoryOrderFromSaved = (
   }
   return filteredOrder
 }
+
+const persistCategoryOrder = async ({
+  saveQueue,
+  categoryAssignmentPort,
+  getSavedTabsPageDataQuery,
+  groupId,
+  regularOrder,
+  allOrder,
+  signal,
+}: {
+  saveQueue: { current: Promise<void> | null }
+  categoryAssignmentPort: CategoryAssignmentPort | undefined
+  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery | undefined
+  groupId: string
+  regularOrder: string[]
+  allOrder: string[]
+  signal?: AbortSignal
+}) => {
+  // 自動保存と手動保存で同じキューを使い、読み取りから書き込み完了まで
+  // 次の保存を開始させない。失敗は操作内で扱い、後続の保存を継続する。
+  const pending = (saveQueue.current ?? Promise.resolve()).then(async () => {
+    if (
+      !categoryAssignmentPort ||
+      !getSavedTabsPageDataQuery ||
+      signal?.aborted
+    ) {
+      return
+    }
+    try {
+      const { tabGroups } = await getSavedTabsPageDataQuery()
+      if (signal?.aborted) {
+        return
+      }
+      const updatedTabs = toPresentationTabGroups(tabGroups).map((tab) =>
+        tab.id === groupId
+          ? {
+              ...tab,
+              subCategoryOrder: regularOrder,
+              subCategoryOrderWithUncategorized: allOrder,
+            }
+          : tab,
+      )
+      await categoryAssignmentPort.saveTabGroups(
+        updatedTabs.map(toTabGroupFromViewModel),
+      )
+    } catch (error) {
+      if (!signal?.aborted) {
+        console.error('カテゴリ順序の更新に失敗しました:', error)
+      }
+    }
+  })
+  saveQueue.current = pending
+  await pending
+}
+
+const useDomainCardCollapse = (isReorderMode: boolean) => {
+  const [userCollapsedState, setUserCollapsedState] = useState(false)
+  const [isDraggingGlobal, setIsDraggingGlobal] = useState(false)
+  const isCollapsed = isDraggingGlobal || isReorderMode || userCollapsedState
+  const dndMonitorHandlers = useMemo(
+    () => ({
+      onDragCancel: () => {
+        setIsDraggingGlobal(false)
+      },
+      onDragEnd: () => {
+        setIsDraggingGlobal(false)
+      },
+      onDragStart: () => {
+        setIsDraggingGlobal(true)
+      },
+    }),
+    [],
+  )
+  return {
+    collapse: {
+      isCollapsed,
+      setIsCollapsed: setUserCollapsedState,
+      setUserCollapsedState,
+      userCollapsedState,
+    },
+    dndMonitorHandlers,
+  }
+}
 /**
  * SortableDomainCard の状態ロジックを管理するカスタムフック
  * @param params フックの引数
@@ -155,10 +238,10 @@ export const useDomainCardState = ({
   assignDomainToCategoryUseCase,
 }: UseDomainCardStateParams) => {
   const { t } = useI18n()
+  const categoryOrderSaveQueue = useRef<Promise<void> | null>(null)
   // --- 基本状態 ---
   const [showKeywordModal, setShowKeywordModal] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [userCollapsedState, setUserCollapsedState] = useState(false)
+  const { collapse, dndMonitorHandlers } = useDomainCardCollapse(isReorderMode)
   const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>(
     'default',
   )
@@ -170,9 +253,6 @@ export const useDomainCardState = ({
   const [isCategoryReorderMode, setIsCategoryReorderMode] = useState(false)
   const [, setOriginalCategoryOrder] = useState<string[]>([])
   const [tempCategoryOrder, setTempCategoryOrder] = useState<string[]>([])
-
-  // --- グローバルドラッグ状態 ---
-  const [isDraggingGlobal, setIsDraggingGlobal] = useState<boolean>(false)
 
   // --- カテゴリ別URL整理（useMemo最適化）---
   const categorizedUrls = useMemo(() => {
@@ -268,45 +348,24 @@ export const useDomainCardState = ({
     }
   }
 
-  // --- カテゴリ順序の更新を保存する関数 ---
-  const saveCategoryOrder = useCallback(
+  const handleUpdateCategoryOrder = useCallback(
     async (updatedOrder: string[], updatedAllOrder: string[]) => {
-      if (!categoryAssignmentPort || !getSavedTabsPageDataQuery) {
-        return
-      }
-      try {
-        const { tabGroups: savedTabs } = await getSavedTabsPageDataQuery()
-        const updatedTabs = toPresentationTabGroups(savedTabs).map((tab) => {
-          if (tab.id === group.id) {
-            const updatedTab = {
-              ...tab,
-              subCategoryOrder: updatedOrder,
-              subCategoryOrderWithUncategorized: updatedAllOrder,
-            }
-            return updatedTab
-          }
-          return tab
-        })
-        await categoryAssignmentPort.saveTabGroups(
-          updatedTabs.map(toTabGroupFromViewModel),
-        )
-      } catch (error) {
-        console.error('カテゴリ順序の更新に失敗しました:', error)
-      }
+      setAllCategoryIds(updatedAllOrder)
+      await persistCategoryOrder({
+        saveQueue: categoryOrderSaveQueue,
+        categoryAssignmentPort,
+        getSavedTabsPageDataQuery,
+        groupId: group.id,
+        regularOrder: updatedOrder,
+        allOrder: updatedAllOrder,
+      })
     },
     [categoryAssignmentPort, getSavedTabsPageDataQuery, group.id],
   )
 
-  const handleUpdateCategoryOrder = useCallback(
-    async (updatedOrder: string[], updatedAllOrder: string[]) => {
-      setAllCategoryIds(updatedAllOrder)
-      await saveCategoryOrder(updatedOrder, updatedAllOrder)
-    },
-    [saveCategoryOrder],
-  )
-
   // --- 新規カテゴリ順序の自動保存 ---
   useEffect(() => {
+    const controller = new AbortController()
     if (
       allCategoryIds.length > 0 &&
       !group.subCategoryOrderWithUncategorized &&
@@ -315,12 +374,25 @@ export const useDomainCardState = ({
       const regularOrder = allCategoryIds.filter(
         (id) => id !== '__uncategorized',
       )
-      void saveCategoryOrder(regularOrder, allCategoryIds)
+      void persistCategoryOrder({
+        saveQueue: categoryOrderSaveQueue,
+        categoryAssignmentPort,
+        getSavedTabsPageDataQuery,
+        groupId: group.id,
+        regularOrder,
+        allOrder: allCategoryIds,
+        signal: controller.signal,
+      })
+    }
+    return () => {
+      controller.abort()
     }
   }, [
     allCategoryIds,
+    categoryAssignmentPort,
+    getSavedTabsPageDataQuery,
+    group.id,
     group.subCategoryOrderWithUncategorized,
-    saveCategoryOrder,
   ])
 
   // --- タブ変更の監視 ---
@@ -389,8 +461,9 @@ export const useDomainCardState = ({
     if (!isCategoryReorderMode) {
       return
     }
+    const subCategories = new Set(group.subCategories)
     const updatedCategoryOrder = tempCategoryOrder.filter(
-      (id) => id !== '__uncategorized' && group.subCategories?.includes(id),
+      (id) => id !== '__uncategorized' && subCategories.has(id),
     )
     await handleUpdateCategoryOrder(updatedCategoryOrder, tempCategoryOrder)
     setAllCategoryIds(tempCategoryOrder)
@@ -480,6 +553,7 @@ export const useDomainCardState = ({
 
   // --- 親カテゴリ読み込み ---
   useEffect(() => {
+    let cancelled = false
     const loadParentCategories = async () => {
       if (!getSavedTabsPageDataQuery) {
         return
@@ -488,12 +562,21 @@ export const useDomainCardState = ({
         const fromQuery = (
           await getSavedTabsPageDataQuery()
         ).parentCategories.map(toStorageParentCategory)
+        if (cancelled) {
+          return
+        }
         setParentCategories(fromQuery)
       } catch (error) {
+        if (cancelled) {
+          return
+        }
         console.error('親カテゴリの読み込みに失敗しました:', error)
       }
     }
     void loadParentCategories()
+    return () => {
+      cancelled = true
+    }
   }, [getSavedTabsPageDataQuery])
 
   // --- 親カテゴリ作成ハンドラ ---
@@ -539,48 +622,6 @@ export const useDomainCardState = ({
     [],
   )
 
-  // --- グローバルドラッグ監視コールバック ---
-  const dndMonitorHandlers = useMemo(
-    () => ({
-      onDragCancel: () => {
-        setIsDraggingGlobal(false)
-        if (!isReorderMode) {
-          setIsCollapsed(false)
-        }
-      },
-      onDragEnd: () => {
-        setIsDraggingGlobal(false)
-        if (!isReorderMode) {
-          setIsCollapsed(false)
-        }
-      },
-      onDragStart: () => {
-        setIsDraggingGlobal(true)
-      },
-    }),
-    [isReorderMode],
-  )
-
-  // --- ドラッグ・並び替えモード時の折りたたみ制御 ---
-  const [prevCollapseSync, setPrevCollapseSync] = useState<{
-    isDraggingGlobal: boolean
-    isReorderMode: boolean
-    userCollapsedState: boolean
-  } | null>(null)
-
-  if (
-    !prevCollapseSync ||
-    prevCollapseSync.isDraggingGlobal !== isDraggingGlobal ||
-    prevCollapseSync.isReorderMode !== isReorderMode ||
-    prevCollapseSync.userCollapsedState !== userCollapsedState
-  ) {
-    setPrevCollapseSync({ isDraggingGlobal, isReorderMode, userCollapsedState })
-    if (isDraggingGlobal || isReorderMode) {
-      setIsCollapsed(true)
-    } else {
-      setIsCollapsed(userCollapsedState)
-    }
-  }
   return {
     /** カテゴリ操作 */
     categoryActions: {
@@ -597,12 +638,7 @@ export const useDomainCardState = ({
       tempCategoryOrder,
     },
     /** 折りたたみ関連 */
-    collapse: {
-      isCollapsed,
-      setIsCollapsed,
-      setUserCollapsedState,
-      userCollapsedState,
-    },
+    collapse,
     /** 計算済みデータ */
     computed: {
       categorizedUrls,

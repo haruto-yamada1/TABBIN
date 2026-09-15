@@ -223,20 +223,36 @@ const useChatStreamHandlers = ({
     requestGeneration: number
   }) => {
     try {
-      const streamPort = await connectRuntimePort(AI_CHAT_STREAM_PORT_NAME)
-      if (!streamPort) {
+      const runtimePort = await connectRuntimePort(AI_CHAT_STREAM_PORT_NAME)
+      if (!runtimePort) {
         return false
       }
 
       if (!isCurrentRequest(requestGeneration)) {
-        streamPort.disconnect()
+        runtimePort.disconnect()
         return false
       }
 
-      activePortRef.current = streamPort
       let isFinished = false
-
-      streamPort.onMessage.addListener((message: unknown) => {
+      let isDisposed = false
+      const removeListeners = () => {
+        if (isDisposed) {
+          return
+        }
+        isDisposed = true
+        runtimePort.onMessage.removeListener(handleMessage)
+        runtimePort.onDisconnect.removeListener(handleDisconnect)
+      }
+      const streamPort = {
+        disconnect: () => {
+          removeListeners()
+          runtimePort.disconnect()
+        },
+      }
+      const handleMessage = (message: unknown) => {
+        if (isDisposed) {
+          return
+        }
         isFinished =
           handleIncomingStreamMessage({
             assistantMessageId,
@@ -244,24 +260,33 @@ const useChatStreamHandlers = ({
             requestGeneration,
             streamPort,
           }) || isFinished
-      })
+      }
 
-      streamPort.onDisconnect.addListener(() => {
+      const handleDisconnect = () => {
+        removeListeners()
         handleStreamDisconnect(
           assistantMessageId,
           requestGeneration,
           streamPort,
           isFinished,
         )
-      })
+      }
 
-      streamPort.postMessage({
-        history,
-        prompt: nextPrompt,
-        type: 'run',
-        ...(attachments.length > 0 ? { attachments } : {}),
-        // eslint-disable-next-line unicorn/require-post-message-target-origin
-      })
+      activePortRef.current = streamPort
+      try {
+        runtimePort.onMessage.addListener(handleMessage)
+        runtimePort.onDisconnect.addListener(handleDisconnect)
+        runtimePort.postMessage({
+          history,
+          prompt: nextPrompt,
+          type: 'run',
+          ...(attachments.length > 0 ? { attachments } : {}),
+          // eslint-disable-next-line unicorn/require-post-message-target-origin
+        })
+      } catch (error) {
+        disconnectStreamPort(streamPort)
+        throw error
+      }
       return true
     } catch {
       return false

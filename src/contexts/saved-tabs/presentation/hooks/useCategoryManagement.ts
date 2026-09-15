@@ -148,8 +148,11 @@ const useCategoryManagement = (
     reorderDomainsInCategoryUseCase,
   } = params
   const { t } = useI18n()
-  const [categories, setCategories] = useState<ParentCategory[]>([])
-  const [categoryOrder, setCategoryOrder] = useState<string[]>([])
+  const [categoryState, setCategoryState] = useState<{
+    categories: ParentCategory[]
+    categoryOrder: string[]
+  }>({ categories: [], categoryOrder: [] })
+  const { categories, categoryOrder } = categoryState
   const [isCategoryReorderMode, setIsCategoryReorderMode] = useState(false)
   const [originalCategoryOrder, setOriginalCategoryOrder] = useState<string[]>(
     [],
@@ -157,16 +160,26 @@ const useCategoryManagement = (
   const [tempCategoryOrder, setTempCategoryOrder] = useState<string[]>([])
   const setCategoriesWithOrder: Dispatch<SetStateAction<ParentCategory[]>> =
     useCallback((nextCategories) => {
-      setCategories((previousCategories) => {
+      setCategoryState((previous) => {
         const resolvedCategories = resolveStateValue(
           nextCategories,
-          previousCategories,
+          previous.categories,
         )
-
-        setCategoryOrder(resolvedCategories.map((category) => category.id))
-        return resolvedCategories
+        return {
+          categories: resolvedCategories,
+          categoryOrder: resolvedCategories.map((category) => category.id),
+        }
       })
     }, [])
+  const setCategoryOrder: Dispatch<SetStateAction<string[]>> = useCallback(
+    (nextOrder) => {
+      setCategoryState((previous) => ({
+        ...previous,
+        categoryOrder: resolveStateValue(nextOrder, previous.categoryOrder),
+      }))
+    },
+    [],
+  )
 
   /**
    * 子カテゴリ（サブカテゴリ）を削除する。
@@ -263,6 +276,7 @@ const useCategoryManagement = (
     isCategoryReorderMode,
     reorderParentCategoriesUseCase,
     setCategoriesWithOrder,
+    setCategoryOrder,
     t,
     tempCategoryOrder,
   ])

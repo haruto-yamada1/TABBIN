@@ -21,9 +21,11 @@ type RuntimePort = {
   disconnect: () => void
   onDisconnect: {
     addListener: (listener: () => void) => void
+    removeListener: (listener: () => void) => void
   }
   onMessage: {
     addListener: (listener: (message: unknown) => void) => void
+    removeListener: (listener: (message: unknown) => void) => void
   }
   postMessage: (message: unknown) => void
 }
@@ -37,14 +39,16 @@ let browserApiPromise: Promise<BrowserApi | null> | null = null
 const hasFunctionProperty = (value: object, property: string): boolean =>
   typeof Reflect.get(value, property) === 'function'
 
-const hasAddListener = (value: unknown): boolean =>
-  isObjectLike(value) && hasFunctionProperty(value, 'addListener')
+const hasEventListeners = (value: unknown): boolean =>
+  isObjectLike(value) &&
+  hasFunctionProperty(value, 'addListener') &&
+  hasFunctionProperty(value, 'removeListener')
 
 const isRuntimePort = (value: unknown): value is RuntimePort =>
   isObjectLike(value) &&
   hasFunctionProperty(value, 'disconnect') &&
-  hasAddListener(Reflect.get(value, 'onDisconnect')) &&
-  hasAddListener(Reflect.get(value, 'onMessage')) &&
+  hasEventListeners(Reflect.get(value, 'onDisconnect')) &&
+  hasEventListeners(Reflect.get(value, 'onMessage')) &&
   hasFunctionProperty(value, 'postMessage')
 
 const getGlobalBrowserApi = (): BrowserApi | null => {

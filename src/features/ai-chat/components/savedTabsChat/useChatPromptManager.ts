@@ -34,16 +34,29 @@ const useChatPromptManager = ({
   onSettingsChange: (nextSettings: UserSettings) => void
 }) => {
   const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false)
-  const [promptDrafts, setPromptDrafts] = useState<AiSystemPromptPreset[]>([])
-  const [selectedPromptIdInModal, setSelectedPromptIdInModal] = useState('')
-  const [draftActivePromptId, setDraftActivePromptId] = useState('')
+  const [draftState, setDraftState] = useState<{
+    promptDrafts: AiSystemPromptPreset[]
+    selectedPromptIdInModal: string
+    draftActivePromptId: string
+  }>({
+    promptDrafts: [],
+    selectedPromptIdInModal: '',
+    draftActivePromptId: '',
+  })
+  const { promptDrafts, selectedPromptIdInModal, draftActivePromptId } =
+    draftState
+  const setSelectedPromptIdInModal = (id: string) => {
+    setDraftState((current) => ({ ...current, selectedPromptIdInModal: id }))
+  }
   const [promptManagerError, setPromptManagerError] = useState('')
   const [isSavingPrompts, setIsSavingPrompts] = useState(false)
 
   const handleOpenSystemPromptManager = () => {
-    setPromptDrafts(resolvedSettings.aiSystemPrompts ?? [])
-    setSelectedPromptIdInModal(activeSystemPrompt.id)
-    setDraftActivePromptId(resolvedSettings.activeAiSystemPromptId ?? '')
+    setDraftState({
+      promptDrafts: resolvedSettings.aiSystemPrompts ?? [],
+      selectedPromptIdInModal: activeSystemPrompt.id,
+      draftActivePromptId: resolvedSettings.activeAiSystemPromptId ?? '',
+    })
     setPromptManagerError('')
     setIsPromptManagerOpen(true)
   }
@@ -51,9 +64,11 @@ const useChatPromptManager = ({
   const handleCancelSystemPromptManager = () => {
     setIsPromptManagerOpen(false)
     setPromptManagerError('')
-    setPromptDrafts([])
-    setSelectedPromptIdInModal('')
-    setDraftActivePromptId('')
+    setDraftState({
+      promptDrafts: [],
+      selectedPromptIdInModal: '',
+      draftActivePromptId: '',
+    })
   }
 
   const handlePromptManagerOpenChange = (nextOpen: boolean) => {
@@ -69,38 +84,45 @@ const useChatPromptManager = ({
     update: (prompt: AiSystemPromptPreset) => AiSystemPromptPreset,
   ) => {
     setPromptManagerError('')
-    setPromptDrafts((currentPrompts) =>
-      currentPrompts.map((prompt) =>
-        prompt.id === selectedPromptIdInModal ? update(prompt) : prompt,
+    setDraftState((current) => ({
+      ...current,
+      promptDrafts: current.promptDrafts.map((prompt) =>
+        prompt.id === current.selectedPromptIdInModal ? update(prompt) : prompt,
       ),
-    )
+    }))
   }
 
   const handleChangePromptName = (value: string) => {
+    const updatedAt = Date.now()
     updateSelectedPromptDraft((prompt) => ({
       ...prompt,
       name: value,
-      updatedAt: Date.now(),
+      updatedAt,
     }))
   }
 
   const handleChangePromptTemplate = (value: string) => {
+    const updatedAt = Date.now()
     updateSelectedPromptDraft((prompt) => ({
       ...prompt,
       template: value,
-      updatedAt: Date.now(),
+      updatedAt,
     }))
   }
 
   const handleCreatePrompt = () => {
     setPromptManagerError('')
-    setPromptDrafts((currentPrompts) => {
+    const id = createSystemPromptId()
+    const now = Date.now()
+    setDraftState((current) => {
+      const currentPrompts = current.promptDrafts
       if (currentPrompts.length >= MAX_AI_SYSTEM_PROMPT_PRESETS) {
-        return currentPrompts
+        return current
       }
 
       const nextPrompt = createAiSystemPromptPreset({
-        id: createSystemPromptId(),
+        id,
+        now,
         language,
         name: getUniquePromptName(
           currentPrompts,
@@ -110,28 +132,34 @@ const useChatPromptManager = ({
         template: '',
       })
 
-      setSelectedPromptIdInModal(nextPrompt.id)
-
-      return [...currentPrompts, nextPrompt]
+      return {
+        ...current,
+        selectedPromptIdInModal: nextPrompt.id,
+        promptDrafts: [...currentPrompts, nextPrompt],
+      }
     })
   }
 
   const handleDuplicatePrompt = () => {
     setPromptManagerError('')
-    setPromptDrafts((currentPrompts) => {
+    const id = createSystemPromptId()
+    const now = Date.now()
+    setDraftState((current) => {
+      const currentPrompts = current.promptDrafts
       const selectedPrompt = getSelectedPrompt(
         currentPrompts,
-        selectedPromptIdInModal,
+        current.selectedPromptIdInModal,
       )
       if (
         !selectedPrompt ||
         currentPrompts.length >= MAX_AI_SYSTEM_PROMPT_PRESETS
       ) {
-        return currentPrompts
+        return current
       }
 
       const nextPrompt = createAiSystemPromptPreset({
-        id: createSystemPromptId(),
+        id,
+        now,
         language,
         name: getUniquePromptName(
           currentPrompts,
@@ -142,42 +170,47 @@ const useChatPromptManager = ({
         template: selectedPrompt.template,
       })
 
-      setSelectedPromptIdInModal(nextPrompt.id)
-
-      return [...currentPrompts, nextPrompt]
+      return {
+        ...current,
+        selectedPromptIdInModal: nextPrompt.id,
+        promptDrafts: [...currentPrompts, nextPrompt],
+      }
     })
   }
 
   const handleDeletePrompt = () => {
     setPromptManagerError('')
-    setPromptDrafts((currentPrompts) => {
+    setDraftState((current) => {
+      const currentPrompts = current.promptDrafts
       if (currentPrompts.length <= 1) {
-        return currentPrompts
+        return current
       }
 
       const selectedIndex = currentPrompts.findIndex(
-        (prompt) => prompt.id === selectedPromptIdInModal,
+        (prompt) => prompt.id === current.selectedPromptIdInModal,
       )
       if (selectedIndex === -1) {
-        return currentPrompts
+        return current
       }
 
       const nextPrompts = currentPrompts.filter(
-        (prompt) => prompt.id !== selectedPromptIdInModal,
+        (prompt) => prompt.id !== current.selectedPromptIdInModal,
       )
       const fallbackIndex =
         selectedIndex >= nextPrompts.length ? selectedIndex - 1 : selectedIndex
       const fallbackPrompt = nextPrompts.at(fallbackIndex)
 
-      if (fallbackPrompt) {
-        setSelectedPromptIdInModal(fallbackPrompt.id)
-
-        if (draftActivePromptId === selectedPromptIdInModal) {
-          setDraftActivePromptId(fallbackPrompt.id)
-        }
+      if (!fallbackPrompt) {
+        return current
       }
-
-      return nextPrompts
+      return {
+        promptDrafts: nextPrompts,
+        selectedPromptIdInModal: fallbackPrompt.id,
+        draftActivePromptId:
+          current.draftActivePromptId === current.selectedPromptIdInModal
+            ? fallbackPrompt.id
+            : current.draftActivePromptId,
+      }
     })
   }
 

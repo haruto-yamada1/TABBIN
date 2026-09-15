@@ -2,18 +2,11 @@ import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ConversationHistoryErrorNotice } from '@/features/ai-chat/components/ConversationHistoryErrorNotice'
 import { ConversationPreviewTooltip } from '@/features/ai-chat/components/ConversationPreviewTooltip'
+import { DeleteConversationDialog } from '@/features/ai-chat/components/DeleteConversationDialog'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
@@ -237,37 +230,14 @@ export const AiChatRoute = () => {
         </main>
       </div>
 
-      <Dialog
+      <DeleteConversationDialog
         open={pendingDeleteHistoryItem !== null}
         onOpenChange={createPendingDeleteHistoryOpenChangeHandler(
           setPendingDeleteHistoryItem,
         )}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('aiChat.deleteTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('aiChat.deleteDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={handleCancelDelete}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              type='button'
-              variant='destructive'
-              onClick={handleConfirmDelete}
-            >
-              {t('common.delete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

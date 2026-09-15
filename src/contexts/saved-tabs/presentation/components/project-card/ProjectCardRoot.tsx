@@ -1,14 +1,8 @@
-import { useDroppable } from '@dnd-kit/core'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Spinner } from '@/components/ui/spinner'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
-import { useDragHandlers } from '@/contexts/saved-tabs/presentation/components/DragHandlersContext'
 import { CardCollapseControl } from '@/contexts/saved-tabs/presentation/components/shared/CardCollapseControl'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import { CardGroupTitle } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupTitle'
@@ -18,9 +12,11 @@ import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSort
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
+import { ProjectCardBody } from './ProjectCardBody'
 import { ProjectCardContext } from './ProjectCardContext'
 import type { ProjectCardContextType } from './ProjectCardContext'
 import { ProjectManagementModal } from './ProjectManagementModal'
+import { useProjectCardDragDrop } from './useProjectCardDragDrop'
 
 const BULK_OPEN_THRESHOLD = 10
 
@@ -74,14 +70,44 @@ type ProjectCardRootProps = {
   children: React.ReactNode
 }
 
+const getProjectUrlCount = (
+  project: ProjectCardRootProps['project'],
+  loadedUrlCount: number,
+) => project.urls?.length ?? project.memberships?.length ?? loadedUrlCount
+
+const ProjectCardManagementModal = ({
+  isOpen,
+  onClose,
+  project,
+  handlers,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  project: ProjectCardRootProps['project']
+  handlers: ProjectCardRootProps['handlers']
+}) => (
+  <ProjectManagementModal
+    isOpen={isOpen}
+    onClose={onClose}
+    project={project}
+    {...(handlers.handleRenameProject !== undefined
+      ? { onRenameProject: handlers.handleRenameProject }
+      : {})}
+    {...(handlers.handleUpdateProjectKeywords !== undefined
+      ? { onUpdateProjectKeywords: handlers.handleUpdateProjectKeywords }
+      : {})}
+    {...(handlers.handleDeleteProject !== undefined
+      ? { onDeleteProject: handlers.handleDeleteProject }
+      : {})}
+  />
+)
+
 /**
  * ProjectCard の複合コンポーネントルート
  * Card + useSortable + useDroppable + useCustomProjectCard + DndContext を提供する
  * @param props ProjectCardRootProps
  */
-// eslint-disable-next-line eslint/complexity
 export const ProjectCardRoot = ({
-  // eslint-disable-line eslint/max-lines-per-function
   project,
   settings,
   isDropTarget = false,
@@ -124,92 +150,17 @@ export const ProjectCardRoot = ({
     [sortedProjectUrls],
   )
 
-  // プロジェクト全体をドラッグ可能にするためのsortable設定
   const {
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
     attributes,
     listeners,
-  } = useSortable({
-    data: {
-      name: project.name,
-      projectId: project.id,
-      type: 'project',
-    },
-    id: project.id,
-  })
-
-  const DRAGGING_OPACITY = 0.5
-
-  const style: CSSProperties = useMemo(
-    () => ({
-      containIntrinsicSize: '360px',
-      contentVisibility: 'auto',
-      opacity: isDragging ? DRAGGING_OPACITY : 1,
-      transform: CSS.Transform.toString(transform),
-      transition,
-    }),
-    [isDragging, transform, transition],
-  )
-
-  // このプロジェクトをドロップターゲットとして設定
-  const { setNodeRef: setProjectDroppableRef, isOver: isProjectOver } =
-    useDroppable({
-      data: {
-        projectId: project.id,
-        type: 'project',
-      },
-      id: `project-${project.id}`,
-    })
-
-  const {
-    setNodeRef: setProjectHeaderDroppableRef,
-    isOver: isProjectHeaderOver,
-  } = useDroppable({
-    data: {
-      projectId: project.id,
-      type: 'project-header',
-    },
-    id: `project-header-${project.id}`,
-  })
-
-  // 未分類URLエリア用のドロップ領域
-  const { setNodeRef: setUncategorizedDropRef, isOver: isUncategorizedOver } =
-    useDroppable({
-      data: {
-        isDropArea: true,
-        projectId: project.id,
-        type: 'uncategorized',
-      },
-      id: `uncategorized-${project.id}`,
-    })
-
-  // 両方のrefを組み合わせる
-  const setCombinedRefs = useCallback(
-    (node: HTMLElement | null) => {
-      setNodeRef(node)
-      setProjectDroppableRef(node)
-    },
-    [setNodeRef, setProjectDroppableRef],
-  )
-
-  // ドラッグハンドラの登録
-  const { registerHandlers, unregisterHandlers } = useDragHandlers()
-
-  useEffect(() => {
-    registerHandlers(project.id, {
-      clearDragState: dnd.resetDnD,
-      handleCategoryDragEnd: dnd.handleCategoryDragEnd,
-      handleDragOver: dnd.handleDragOver,
-      handleDragStart: dnd.handleDragStart,
-      handleUrlDragEnd: dnd.handleUrlDragEnd,
-    })
-    return () => {
-      unregisterHandlers(project.id)
-    }
-  }, [project.id, registerHandlers, unregisterHandlers, dnd])
+    style,
+    setCombinedRefs,
+    setProjectHeaderDroppableRef,
+    setUncategorizedDropRef,
+    isUncategorizedOver,
+    isProjectOver,
+    isProjectHeaderOver,
+  } = useProjectCardDragDrop(project, dnd)
 
   // 別プロジェクトからドラッグされているかを判定
   const isExternalItemOver =
@@ -218,10 +169,7 @@ export const ProjectCardRoot = ({
   const isCollapsed =
     isProjectReorderMode || isCrossProjectUrlDragActive || userCollapsedState
 
-  const projectUrlCount =
-    project.urls?.length ??
-    project.memberships?.length ??
-    sortedProjectUrls.length
+  const projectUrlCount = getProjectUrlCount(project, sortedProjectUrls.length)
 
   const handleOpenAllUrls = useCallback(() => {
     if (projectUrlCount === 0) {
@@ -325,9 +273,11 @@ export const ProjectCardRoot = ({
             />
           </div>
           <CardGroupActions
-            {...(projectUrlCount > 0 ? { onOpenAll: handleOpenAllUrls } : {})}
             {...(projectUrlCount > 0
-              ? { onDeleteAll: handleDeleteAllUrls }
+              ? {
+                  onOpenAll: handleOpenAllUrls,
+                  onDeleteAll: handleDeleteAllUrls,
+                }
               : {})}
             onManage={handleOpenManagement}
             onConfirmOpenAll={projectUrlCount >= BULK_OPEN_THRESHOLD}
@@ -340,48 +290,21 @@ export const ProjectCardRoot = ({
         </CardHeader>
         <CardContent className='overflow-x-hidden'>
           {!isCollapsed && (
-            <>
+            <ProjectCardBody
+              isLoading={urls.isLoadingUrls}
+              isEmpty={urls.projectUrls.length === 0}
+              isExternalItemOver={isExternalItemOver}
+            >
               {children}
-
-              {/* ローディング状態 */}
-              {urls.isLoadingUrls && (
-                <div className='flex justify-center py-4 text-muted-foreground'>
-                  <Spinner className='size-5' />
-                </div>
-              )}
-
-              {/* プロジェクトが空の場合 */}
-              {urls.projectUrls.length === 0 &&
-                !isExternalItemOver &&
-                !urls.isLoadingUrls && (
-                  <div
-                    className='py-4 text-center text-muted-foreground'
-                    data-testid='project-empty-state'
-                  >
-                    {t('savedTabs.project.emptyTitle')}
-                    <br />
-                    {t('savedTabs.project.emptyDescription')}
-                    <br />
-                    {t('savedTabs.project.emptyDragHint')}
-                  </div>
-                )}
-            </>
+            </ProjectCardBody>
           )}
         </CardContent>
       </Card>
-      <ProjectManagementModal
+      <ProjectCardManagementModal
         isOpen={isManagementModalOpen}
         onClose={handleCloseManagement}
         project={project}
-        {...(handlers.handleRenameProject !== undefined
-          ? { onRenameProject: handlers.handleRenameProject }
-          : {})}
-        {...(handlers.handleUpdateProjectKeywords !== undefined
-          ? { onUpdateProjectKeywords: handlers.handleUpdateProjectKeywords }
-          : {})}
-        {...(handlers.handleDeleteProject !== undefined
-          ? { onDeleteProject: handlers.handleDeleteProject }
-          : {})}
+        handlers={handlers}
       />
     </ProjectCardContext>
   )

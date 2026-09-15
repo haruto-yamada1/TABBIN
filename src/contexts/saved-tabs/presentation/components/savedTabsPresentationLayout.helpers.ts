@@ -74,11 +74,6 @@ export const useSavedTabsLeftPaneWidth = (): {
 } => {
   const leftPaneRef = useRef<HTMLDivElement | null>(null)
   const widthRef = useRef<number | null>(null)
-  // widthRef.current === null can't use ??: intentional identity check
-  // eslint-disable-next-line typescript/prefer-nullish-coalescing -- intentional === null check
-  if (widthRef.current === null) {
-    widthRef.current = getViewportWidthSnapshot()
-  }
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   const attachLeftPaneRef = useCallback((node: HTMLDivElement | null) => {
     leftPaneRef.current = node

@@ -31,22 +31,16 @@ export const useSettings = () => {
   const settingsRef = useRef(settings)
   const persistedSettingsRef = useRef(settings)
   const setSettings = (nextSettings: React.SetStateAction<UserSettings>) => {
+    const resolvedSettings =
+      typeof nextSettings === 'function'
+        ? nextSettings(settingsRef.current)
+        : nextSettings
+    settingsRef.current = resolvedSettings
     setSettingsState((prev) => ({
       ...prev,
-      settings: (() => {
-        const resolvedSettings =
-          typeof nextSettings === 'function'
-            ? nextSettings(prev.settings)
-            : nextSettings
-        settingsRef.current = resolvedSettings
-        return resolvedSettings
-      })(),
+      settings: resolvedSettings,
     }))
   }
-
-  useEffect(() => {
-    settingsRef.current = settings
-  }, [settings])
 
   const retrySaveSettings = async (
     failedSettings: UserSettings,
@@ -104,6 +98,7 @@ export const useSettings = () => {
         })
       } catch (error) {
         console.error('設定の読み込みエラー:', error)
+        settingsRef.current = defaultSettings
         setSettingsState({
           isLoading: false,
           settings: defaultSettings,

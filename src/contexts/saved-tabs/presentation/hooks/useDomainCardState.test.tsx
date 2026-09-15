@@ -2,9 +2,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { savedTabsDefaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
+import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import { toPresentationTabGroups } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import {
@@ -61,7 +64,7 @@ type UseDomainCardStateParams = Parameters<typeof useDomainCardState>[0]
 const buildPageData = () => ({
   tabGroups: [] as readonly TabGroup[],
   parentCategories: [],
-  userSettings: {},
+  userSettings: savedTabsDefaultUserSettings,
 })
 
 /**
@@ -146,6 +149,43 @@ describe('useDomainCardState', () => {
         },
       },
     } as unknown as typeof chrome
+  })
+
+  it('差し替え前の親カテゴリ query の遅い結果を破棄する', async () => {
+    type PageData = Awaited<ReturnType<GetSavedTabsPageDataQuery>>
+    const older = Promise.withResolvers<PageData>()
+    const newer = Promise.withResolvers<PageData>()
+    const { params } = createUseDomainCardStateParams({ group: createGroup() })
+    const { result, rerender } = renderHook(
+      ({ query }) =>
+        useDomainCardState({ ...params, getSavedTabsPageDataQuery: query }),
+      {
+        initialProps: {
+          query: vi
+            .fn<GetSavedTabsPageDataQuery>()
+            .mockReturnValue(older.promise),
+        },
+      },
+    )
+    rerender({
+      query: vi.fn<GetSavedTabsPageDataQuery>().mockReturnValue(newer.promise),
+    })
+    const pageData = (id: string): PageData => ({
+      parentCategories: [{ id, name: id, collections: [] }],
+      tabGroups: [],
+      userSettings: savedTabsDefaultUserSettings,
+    })
+    await act(async () => {
+      newer.resolve(pageData('newer'))
+      await newer.promise
+    })
+    await act(async () => {
+      older.resolve(pageData('older'))
+      await older.promise
+    })
+    expect(
+      result.current.parentCategories.categories.map(({ id }) => id),
+    ).toEqual(['newer'])
   })
 
   it('helper は legacy URL とカテゴリ順序を安全に処理する', () => {
@@ -380,7 +420,7 @@ describe('useDomainCardState', () => {
     getSavedTabsPageDataQuery.mockResolvedValue({
       tabGroups: [group, otherGroup].map(toTabGroupFromViewModel),
       parentCategories: [],
-      userSettings: {},
+      userSettings: savedTabsDefaultUserSettings,
     })
 
     const { result } = renderHook(() => useDomainCardState(params))
@@ -430,6 +470,85 @@ describe('useDomainCardState', () => {
     expect(result.current.categoryReorder.isCategoryReorderMode).toBe(false)
     expect(toast.info).toHaveBeenCalled()
   })
+
+  it.each(['success', 'failure'] as const)(
+    '先行自動保存が%sでも手動保存のqueryとwriteを待機させ最新順序を再読込できる',
+    async (outcome) => {
+      const group: TabGroup = {
+        ...createGroup(),
+        urls: [
+          ...(createGroup().urls ?? []),
+          { title: 'Uncategorized', url: 'https://example.com/other' },
+        ],
+      }
+      let persistedGroups = [toTabGroupFromViewModel(group)]
+      const firstWrite = Promise.withResolvers<undefined>()
+      const { params, categoryAssignmentPort, getSavedTabsPageDataQuery } =
+        createUseDomainCardStateParams({ group })
+      getSavedTabsPageDataQuery.mockImplementation(async () => ({
+        ...buildPageData(),
+        tabGroups: persistedGroups,
+      }))
+      categoryAssignmentPort.saveTabGroups
+        .mockImplementation(async (groups: typeof persistedGroups) => {
+          persistedGroups = groups
+        })
+        .mockImplementationOnce(async (groups: typeof persistedGroups) => {
+          await firstWrite.promise
+          persistedGroups = groups
+        })
+
+      const { result, unmount } = renderHook(() => useDomainCardState(params))
+      await waitFor(() => {
+        expect(categoryAssignmentPort.saveTabGroups).toHaveBeenCalledOnce()
+      })
+      const readsBeforeManualSave = getSavedTabsPageDataQuery.mock.calls.length
+      act(() => {
+        result.current.categoryReorder.handleCategoryDragEnd({
+          active: { id: 'tech' },
+          over: { id: 'news' },
+        })
+      })
+      let manualSave: Promise<void> | undefined
+      act(() => {
+        manualSave =
+          result.current.categoryReorder.handleConfirmCategoryReorder()
+      })
+      try {
+        await act(async () => {
+          await Promise.resolve()
+        })
+        expect(categoryAssignmentPort.saveTabGroups).toHaveBeenCalledOnce()
+        expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(
+          readsBeforeManualSave,
+        )
+      } finally {
+        await act(async () => {
+          if (outcome === 'failure') {
+            firstWrite.reject(new Error('first write failed'))
+          } else {
+            firstWrite.resolve(undefined)
+          }
+          await manualSave
+        })
+      }
+
+      unmount()
+      const reloadedGroup = toPresentationTabGroups(persistedGroups)[0]
+      if (!reloadedGroup) {
+        throw new Error('Saved group missing after reload')
+      }
+      // 未分類は projection のカテゴリ行ではなく、表示時に補われる。
+      expect(reloadedGroup.subCategoryOrder).toStrictEqual(['tech', 'news'])
+      const reloaded = renderHook(() =>
+        useDomainCardState({ ...params, group: reloadedGroup }),
+      )
+      expect(
+        reloaded.result.current.categoryReorder.allCategoryIds,
+      ).toStrictEqual(['tech', 'news', '__uncategorized'])
+      reloaded.unmount()
+    },
+  )
 
   it('保存済みカテゴリ順は存在するカテゴリと未分類だけに正規化する', async () => {
     const group: TabGroup = {
@@ -566,7 +685,7 @@ describe('useDomainCardState', () => {
     getSavedTabsPageDataQuery.mockResolvedValue({
       tabGroups: [group],
       parentCategories: [],
-      userSettings: {},
+      userSettings: savedTabsDefaultUserSettings,
     })
     categoryAssignmentPort.saveTabGroups
       .mockRejectedValueOnce(new Error('write failed'))

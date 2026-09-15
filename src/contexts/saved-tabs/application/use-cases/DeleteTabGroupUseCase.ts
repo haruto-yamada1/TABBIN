@@ -81,10 +81,6 @@ export const createDeleteTabGroupUseCase = (
     })
     const removedUrlRecordIds = unreferenced.map((record) => record.id)
 
-    const removedUrlRecords = allUrlRecords.filter((record) =>
-      removedUrlRecordIds.includes(record.id),
-    )
-
     await deps.tabGroupRepository.removeByIds([targetGroup.id])
     if (removedUrlRecordIds.length > 0) {
       await deps.urlRecordRepository.removeByIds(removedUrlRecordIds)
@@ -92,7 +88,7 @@ export const createDeleteTabGroupUseCase = (
 
     const snapshot: OpenedUrlsRestoreSnapshot = {
       savedTabs: [toSavedTabsTabGroupDto(targetGroup)],
-      urlRecords: removedUrlRecords.map(toSavedTabsUrlRecordDto),
+      urlRecords: unreferenced.map(toSavedTabsUrlRecordDto),
     }
 
     return {

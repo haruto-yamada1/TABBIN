@@ -347,7 +347,109 @@ const renderChatConversationMessage = ({
   )
 }
 
-// eslint-disable-next-line eslint/complexity
+const ChatConversation = ({
+  messages,
+  platform,
+  isConfigured,
+  isCompactLayout,
+}: {
+  messages: ChatMessage[]
+  platform: OllamaErrorPlatform
+  isConfigured: boolean
+  isCompactLayout: boolean
+}) => {
+  const { t } = useI18n()
+  return (
+    <Conversation className='min-h-0 flex-1'>
+      {messages.length === 0 && !isConfigured ? (
+        <ConversationEmptyState
+          data-testid='empty-state-root'
+          description=''
+          title={t('aiChat.emptySelectModel')}
+        />
+      ) : (
+        <>
+          <ConversationContent
+            className={cn(isCompactLayout && 'gap-5 p-3')}
+            scrollClassName='overscroll-contain overflow-y-auto'
+          >
+            {messages.map((message) => (
+              <div key={message.id}>
+                {renderChatConversationMessage({ message, platform, t })}
+              </div>
+            ))}
+          </ConversationContent>
+          <ConversationScrollButton
+            aria-label={t('aiChat.scrollLatest')}
+            className='bottom-3'
+          />
+        </>
+      )}
+    </Conversation>
+  )
+}
+
+const ChatPanelError = ({
+  message,
+  ollamaError,
+  platform,
+}: {
+  message: string
+  ollamaError: OllamaErrorDetails | undefined
+  platform: OllamaErrorPlatform
+}) => {
+  if (ollamaError) {
+    return (
+      <OllamaErrorNotice
+        className='shrink-0 text-sm text-destructive'
+        error={ollamaError}
+        platform={platform}
+      />
+    )
+  }
+  return message ? (
+    <p className='shrink-0 text-sm wrap-break-word whitespace-pre-line text-destructive'>
+      {message}
+    </p>
+  ) : null
+}
+
+const ChatPanelShell = ({
+  children,
+  layout,
+  onResizeStart,
+}: Pick<SavedTabsChatPanelProps, 'layout' | 'onResizeStart'> & {
+  children: ReactNode
+}) => {
+  const { t } = useI18n()
+  if (layout.mode === 'page') {
+    return <div className='flex h-full min-h-0 flex-1'>{children}</div>
+  }
+  return (
+    <div
+      className='sticky top-0 z-50 flex h-screen max-w-[calc(100vw-24px)] shrink-0 self-start overflow-hidden overscroll-none'
+      data-testid='chat-shell'
+    >
+      <Button
+        aria-label={t('aiChat.resizeAria')}
+        className={`relative min-h-0 w-4 shrink-0 cursor-col-resize touch-none self-stretch rounded-none border-0 bg-transparent ${
+          layout.isResizing ? 'bg-primary/10' : 'bg-transparent'
+        }`}
+        onPointerDown={onResizeStart}
+        size='unstyled'
+        type='button'
+        variant='ghost'
+      >
+        <span
+          aria-hidden='true'
+          className='absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/80'
+        />
+      </Button>
+      {children}
+    </div>
+  )
+}
+
 const SavedTabsChatPanel = ({
   activeSystemPromptId,
   chatErrorMessage,
@@ -424,16 +526,12 @@ const SavedTabsChatPanel = ({
       status.isSubmitting,
     ],
   )
-  const { cardStyle, isCompactLayout, isResizing, mode } = layout
+  const { cardStyle, isCompactLayout, mode } = layout
   const { isConfigured, isOpen } = status
   if (!isOpen) {
     return null
   }
 
-  const renderedMessages = messages.map((message) => ({
-    id: message.id,
-    view: renderChatConversationMessage({ message, platform, t }),
-  }))
   const introContent =
     messages.length === 0 && isConfigured
       ? renderChatPromptIntro({ isCompactLayout, onSelectSuggestion, t })
@@ -446,22 +544,6 @@ const SavedTabsChatPanel = ({
     mode === 'page'
       ? 'flex h-full min-h-0 flex-1 flex-col rounded-[1.5rem] border-border shadow-lg'
       : 'flex h-full min-h-0 flex-col rounded-none border-border border-y-0 border-r-0 border-l shadow-2xl'
-  let chatErrorContent: ReactNode = null
-  if (chatOllamaError) {
-    chatErrorContent = (
-      <OllamaErrorNotice
-        className='shrink-0 text-sm text-destructive'
-        error={chatOllamaError}
-        platform={platform}
-      />
-    )
-  } else if (chatErrorMessage) {
-    chatErrorContent = (
-      <p className='shrink-0 text-sm wrap-break-word whitespace-pre-line text-destructive'>
-        {chatErrorMessage}
-      </p>
-    )
-  }
 
   const card = (
     <Card
@@ -495,36 +577,22 @@ const SavedTabsChatPanel = ({
           isCompactLayout ? 'gap-2 p-2' : 'gap-3 p-3',
         )}
       >
-        <Conversation className='min-h-0 flex-1'>
-          {messages.length === 0 && !isConfigured ? (
-            <ConversationEmptyState
-              data-testid='empty-state-root'
-              description=''
-              title={t('aiChat.emptySelectModel')}
-            />
-          ) : (
-            <>
-              <ConversationContent
-                className={cn(isCompactLayout && 'gap-5 p-3')}
-                scrollClassName='overscroll-contain overflow-y-auto'
-              >
-                {renderedMessages.map((message) => (
-                  <div key={message.id}>{message.view}</div>
-                ))}
-              </ConversationContent>
-              <ConversationScrollButton
-                aria-label={t('aiChat.scrollLatest')}
-                className='bottom-3'
-              />
-            </>
-          )}
-        </Conversation>
+        <ChatConversation
+          messages={messages}
+          platform={platform}
+          isConfigured={isConfigured}
+          isCompactLayout={isCompactLayout}
+        />
         <div
           className='mt-auto shrink-0 gap-y-3'
           data-testid='ai-chat-bottom-dock'
         >
           {introContent}
-          {chatErrorContent}
+          <ChatPanelError
+            message={chatErrorMessage}
+            ollamaError={chatOllamaError}
+            platform={platform}
+          />
           {chatDataScopeNotice}
           <SavedTabsChatComposer
             input={input}
@@ -546,32 +614,10 @@ const SavedTabsChatPanel = ({
     </Card>
   )
 
-  if (mode === 'page') {
-    return <div className='flex h-full min-h-0 flex-1'>{card}</div>
-  }
-
   return (
-    <div
-      className='sticky top-0 z-50 flex h-screen max-w-[calc(100vw-24px)] shrink-0 self-start overflow-hidden overscroll-none'
-      data-testid='chat-shell'
-    >
-      <Button
-        aria-label={t('aiChat.resizeAria')}
-        className={`relative min-h-0 w-4 shrink-0 cursor-col-resize touch-none self-stretch rounded-none border-0 bg-transparent ${
-          isResizing ? 'bg-primary/10' : 'bg-transparent'
-        }`}
-        onPointerDown={onResizeStart}
-        size='unstyled'
-        type='button'
-        variant='ghost'
-      >
-        <span
-          aria-hidden='true'
-          className='absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/80'
-        />
-      </Button>
+    <ChatPanelShell layout={layout} onResizeStart={onResizeStart}>
       {card}
-    </div>
+    </ChatPanelShell>
   )
 }
 
