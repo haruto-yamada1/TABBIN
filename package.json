@@ -16,6 +16,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
+    "size:report": "bun tools/scripts/report-artifact-size.ts",
     "release:check": "git diff --exit-code && bun run quality:check && bun run build && bun run build:firefox && bun run verify:production-logging && bun run verify:app-version && bun run verify:persistence-release-compatibility && bun run verify:production-network-policy && bun run verify:firefox-artifact && bun run verify:firefox-source && git diff --exit-code",
     "release:zip": "bun run release:check && bun run zip && bun run zip:firefox && bun run release:provenance",
     "compile": "tsgo --noEmit",
