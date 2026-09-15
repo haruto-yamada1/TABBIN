@@ -7,6 +7,7 @@ import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/applicatio
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import { toPresentationTabGroups } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import {
@@ -469,6 +470,85 @@ describe('useDomainCardState', () => {
     expect(result.current.categoryReorder.isCategoryReorderMode).toBe(false)
     expect(toast.info).toHaveBeenCalled()
   })
+
+  it.each(['success', 'failure'] as const)(
+    '先行自動保存が%sでも手動保存のqueryとwriteを待機させ最新順序を再読込できる',
+    async (outcome) => {
+      const group: TabGroup = {
+        ...createGroup(),
+        urls: [
+          ...(createGroup().urls ?? []),
+          { title: 'Uncategorized', url: 'https://example.com/other' },
+        ],
+      }
+      let persistedGroups = [toTabGroupFromViewModel(group)]
+      const firstWrite = Promise.withResolvers<undefined>()
+      const { params, categoryAssignmentPort, getSavedTabsPageDataQuery } =
+        createUseDomainCardStateParams({ group })
+      getSavedTabsPageDataQuery.mockImplementation(async () => ({
+        ...buildPageData(),
+        tabGroups: persistedGroups,
+      }))
+      categoryAssignmentPort.saveTabGroups
+        .mockImplementation(async (groups: typeof persistedGroups) => {
+          persistedGroups = groups
+        })
+        .mockImplementationOnce(async (groups: typeof persistedGroups) => {
+          await firstWrite.promise
+          persistedGroups = groups
+        })
+
+      const { result, unmount } = renderHook(() => useDomainCardState(params))
+      await waitFor(() => {
+        expect(categoryAssignmentPort.saveTabGroups).toHaveBeenCalledOnce()
+      })
+      const readsBeforeManualSave = getSavedTabsPageDataQuery.mock.calls.length
+      act(() => {
+        result.current.categoryReorder.handleCategoryDragEnd({
+          active: { id: 'tech' },
+          over: { id: 'news' },
+        })
+      })
+      let manualSave: Promise<void> | undefined
+      act(() => {
+        manualSave =
+          result.current.categoryReorder.handleConfirmCategoryReorder()
+      })
+      try {
+        await act(async () => {
+          await Promise.resolve()
+        })
+        expect(categoryAssignmentPort.saveTabGroups).toHaveBeenCalledOnce()
+        expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(
+          readsBeforeManualSave,
+        )
+      } finally {
+        await act(async () => {
+          if (outcome === 'failure') {
+            firstWrite.reject(new Error('first write failed'))
+          } else {
+            firstWrite.resolve(undefined)
+          }
+          await manualSave
+        })
+      }
+
+      unmount()
+      const reloadedGroup = toPresentationTabGroups(persistedGroups)[0]
+      if (!reloadedGroup) {
+        throw new Error('Saved group missing after reload')
+      }
+      // 未分類は projection のカテゴリ行ではなく、表示時に補われる。
+      expect(reloadedGroup.subCategoryOrder).toStrictEqual(['tech', 'news'])
+      const reloaded = renderHook(() =>
+        useDomainCardState({ ...params, group: reloadedGroup }),
+      )
+      expect(
+        reloaded.result.current.categoryReorder.allCategoryIds,
+      ).toStrictEqual(['tech', 'news', '__uncategorized'])
+      reloaded.unmount()
+    },
+  )
 
   it('保存済みカテゴリ順は存在するカテゴリと未分類だけに正規化する', async () => {
     const group: TabGroup = {

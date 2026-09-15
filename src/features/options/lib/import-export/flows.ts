@@ -116,9 +116,7 @@ const downloadAsJson = async (
     anchor.click()
 
     await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        resolve()
-      })
+      setTimeout(resolve, 0)
     })
   } finally {
     try {

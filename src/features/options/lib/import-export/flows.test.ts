@@ -308,6 +308,39 @@ describe('production import flow', () => {
     expect(revokeObjectUrl).toHaveBeenCalledExactlyOnceWith('blob:backup')
   })
 
+  it('finishes and revokes the URL even when animation frames are paused', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    let resumeFrame: FrameRequestCallback | undefined
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      resumeFrame = callback
+      return 1
+    })
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:hidden-backup')
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL')
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    let completed = false
+    const download = downloadAsJson({}, 'backup.json').then(() => {
+      completed = true
+    })
+    try {
+      expect(revokeObjectUrl).not.toHaveBeenCalled()
+      await vi.runAllTimersAsync()
+      expect(completed).toBe(true)
+      expect(revokeObjectUrl).toHaveBeenCalledExactlyOnceWith(
+        'blob:hidden-backup',
+      )
+      expect((click.mock.instances[0] as HTMLAnchorElement).isConnected).toBe(
+        false,
+      )
+    } finally {
+      resumeFrame?.(0)
+      await download
+      vi.useRealTimers()
+    }
+  })
+
   it('releases the temporary URL and anchor when starting a download fails', async () => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:failed-backup')
     const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL')

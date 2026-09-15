@@ -139,6 +139,7 @@ const buildCategoryOrderFromSaved = (
 }
 
 const persistCategoryOrder = async ({
+  saveQueue,
   categoryAssignmentPort,
   getSavedTabsPageDataQuery,
   groupId,
@@ -146,6 +147,7 @@ const persistCategoryOrder = async ({
   allOrder,
   signal,
 }: {
+  saveQueue: { current: Promise<void> | null }
   categoryAssignmentPort: CategoryAssignmentPort | undefined
   getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery | undefined
   groupId: string
@@ -153,31 +155,41 @@ const persistCategoryOrder = async ({
   allOrder: string[]
   signal?: AbortSignal
 }) => {
-  if (!categoryAssignmentPort || !getSavedTabsPageDataQuery) {
-    return
-  }
-  try {
-    const { tabGroups } = await getSavedTabsPageDataQuery()
-    if (signal?.aborted) {
+  // 自動保存と手動保存で同じキューを使い、読み取りから書き込み完了まで
+  // 次の保存を開始させない。失敗は操作内で扱い、後続の保存を継続する。
+  const pending = (saveQueue.current ?? Promise.resolve()).then(async () => {
+    if (
+      !categoryAssignmentPort ||
+      !getSavedTabsPageDataQuery ||
+      signal?.aborted
+    ) {
       return
     }
-    const updatedTabs = toPresentationTabGroups(tabGroups).map((tab) =>
-      tab.id === groupId
-        ? {
-            ...tab,
-            subCategoryOrder: regularOrder,
-            subCategoryOrderWithUncategorized: allOrder,
-          }
-        : tab,
-    )
-    await categoryAssignmentPort.saveTabGroups(
-      updatedTabs.map(toTabGroupFromViewModel),
-    )
-  } catch (error) {
-    if (!signal?.aborted) {
-      console.error('カテゴリ順序の更新に失敗しました:', error)
+    try {
+      const { tabGroups } = await getSavedTabsPageDataQuery()
+      if (signal?.aborted) {
+        return
+      }
+      const updatedTabs = toPresentationTabGroups(tabGroups).map((tab) =>
+        tab.id === groupId
+          ? {
+              ...tab,
+              subCategoryOrder: regularOrder,
+              subCategoryOrderWithUncategorized: allOrder,
+            }
+          : tab,
+      )
+      await categoryAssignmentPort.saveTabGroups(
+        updatedTabs.map(toTabGroupFromViewModel),
+      )
+    } catch (error) {
+      if (!signal?.aborted) {
+        console.error('カテゴリ順序の更新に失敗しました:', error)
+      }
     }
-  }
+  })
+  saveQueue.current = pending
+  await pending
 }
 
 const useDomainCardCollapse = (isReorderMode: boolean) => {
@@ -226,6 +238,7 @@ export const useDomainCardState = ({
   assignDomainToCategoryUseCase,
 }: UseDomainCardStateParams) => {
   const { t } = useI18n()
+  const categoryOrderSaveQueue = useRef<Promise<void> | null>(null)
   // --- 基本状態 ---
   const [showKeywordModal, setShowKeywordModal] = useState(false)
   const { collapse, dndMonitorHandlers } = useDomainCardCollapse(isReorderMode)
@@ -339,6 +352,7 @@ export const useDomainCardState = ({
     async (updatedOrder: string[], updatedAllOrder: string[]) => {
       setAllCategoryIds(updatedAllOrder)
       await persistCategoryOrder({
+        saveQueue: categoryOrderSaveQueue,
         categoryAssignmentPort,
         getSavedTabsPageDataQuery,
         groupId: group.id,
@@ -361,6 +375,7 @@ export const useDomainCardState = ({
         (id) => id !== '__uncategorized',
       )
       void persistCategoryOrder({
+        saveQueue: categoryOrderSaveQueue,
         categoryAssignmentPort,
         getSavedTabsPageDataQuery,
         groupId: group.id,
