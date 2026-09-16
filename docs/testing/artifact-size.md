@@ -38,6 +38,10 @@ lockfile による ZIP と report JSON を生成し、`--baseline` にその JSO
   manifest、HTML、CSS、画像、隠しファイルも含む。
 - **javascriptBytes**: 全 `.js` の合計。共有チャンクも 1 回だけ数える。
 - **assetCount**: ファイル数。増減は情報表示のみで、size regression の判定に使わない。
+- **chunkGroupCount**: `chunks` のキー数（JavaScript の正規化後のグループ数）。
+  baseline / current / delta を `assetCount` と同じ表に情報表示する。
+  同名に正規化される複数ファイルを 1 group と数えるため、JavaScript の実ファイル数とは異なる。
+  asset 数だけが増えた場合と group 数も増えた場合を総容量と合わせて確認する。
 - **Entry scripts**: `background.js` と HTML が直接参照するスクリプトのサイズ。
   import 先の依存を含まず、ページの初期ロード全体の計測ではない。
 - **Feature chunks**: `*Route*` / `*ChatWidget*` を名前で抽出した表。

@@ -194,6 +194,53 @@ describe('artifact size schemas', () => {
 })
 
 describe('artifact size Markdown comparison', () => {
+  it('separates informational chunk group counts from all assets and byte totals', () => {
+    const baseline = createReport()
+    const current = createReport(
+      {
+        assetCount: 11,
+        chunks: {
+          'chunks/OptionsRoute.js': 500,
+          'chunks/other.js': 100,
+          'chunks/split.js': 100,
+        },
+      },
+      { assetCount: 11 },
+    )
+    const result = renderSizeReport(current, baseline, policy)
+
+    expect(result).toContain(
+      '| chrome | chunkGroupCount | 2 | 3 | +1 | informational |',
+    )
+    expect(result).toContain(
+      '| firefox | chunkGroupCount | 2 | 2 | 0 | informational |',
+    )
+    for (const browser of ['chrome', 'firefox']) {
+      expect(result).toContain(
+        `| ${browser} | assetCount | 10 | 11 | +1 | informational |`,
+      )
+      expect(result).toContain(
+        `| ${browser} | javascriptBytes | 3,000 B | 3,000 B | 0 B | 0.00% | unchanged |`,
+      )
+    }
+    expect(result).toContain('正規化後のグループ数')
+  })
+
+  it('shows removed and empty chunk groups as informational counts', () => {
+    const result = renderSizeReport(
+      createReport({ chunks: {} }, { chunks: { 'chunks/retained.js': 700 } }),
+      createReport({}, { chunks: {} }),
+      policy,
+    )
+
+    expect(result).toContain(
+      '| chrome | chunkGroupCount | 2 | 0 | -2 | informational |',
+    )
+    expect(result).toContain(
+      '| firefox | chunkGroupCount | 0 | 1 | +1 | informational |',
+    )
+  })
+
   it('shows both browsers, metadata, total deltas and informational file count', () => {
     const baseline = { ...createReport(), revision: 'baseline-revision' }
     const result = renderSizeReport(

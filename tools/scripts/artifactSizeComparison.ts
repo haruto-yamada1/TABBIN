@@ -191,20 +191,27 @@ const browserTotals = (
   )
 }
 
-const assetCounts = (current: SizeReport, baseline: SizeReport): string =>
+const artifactCounts = (current: SizeReport, baseline: SizeReport): string =>
   table(
     ['Browser', 'Metric', 'Baseline', 'Current', 'Delta', 'Status'],
-    (['chrome', 'firefox'] as const).map((browser) => {
-      const before = baseline.browsers[browser].assetCount
-      const after = current.browsers[browser].assetCount
-      return [
+    (['chrome', 'firefox'] as const).flatMap((browser) => {
+      const previous = baseline.browsers[browser]
+      const next = current.browsers[browser]
+      const counts = {
+        assetCount: [previous.assetCount, next.assetCount],
+        chunkGroupCount: [
+          Object.keys(previous.chunks).length,
+          Object.keys(next.chunks).length,
+        ],
+      }
+      return Object.entries(counts).map(([metric, [before, after]]) => [
         browser,
-        'assetCount',
+        metric,
         formatNumber(before),
         formatNumber(after),
         formatDelta(after - before),
         'informational',
-      ]
+      ])
     }),
   )
 
@@ -267,7 +274,8 @@ export const renderSizeReport = (
     'Entries は entry ファイル単体で、依存先の bytes を含みません。options / saved-tabs / ai-chat は小さな redirect entry の場合があるため、Feature Route / Widget chunks と併せて確認してください。',
     '## Browser totals',
     browserTotals(current, baseline, policy),
-    assetCounts(current, baseline),
+    'assetCount は全ファイル数、chunkGroupCount は JavaScript の正規化後のグループ数です。同名に正規化される複数ファイルは 1 group と数えるため、JavaScript の実ファイル数とは異なります。件数の増減は情報表示のみです。',
+    artifactCounts(current, baseline),
     ...(['chrome', 'firefox'] as const).map((browser) =>
       browserDetails(
         browser,
