@@ -10,7 +10,7 @@ import { importBackupV2WithRecovery } from '@/app/composition/optionsBackupRecov
 import { getImportPreview, importSettings } from './flows'
 
 const currentV2 = {
-  appVersion: '2.0.16',
+  appVersion: '2.0.17',
   data: {
     analyticsViews: [],
     conversations: [],
@@ -118,7 +118,7 @@ describe('current Backup V2 production import boundary', () => {
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-09-01T00:00:00.000Z',
-        version: '2.0.16',
+        version: '2.0.17',
       },
     })
   })
