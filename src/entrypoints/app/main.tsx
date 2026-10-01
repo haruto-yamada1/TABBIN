@@ -1,7 +1,5 @@
-import { getMigrationPreflightController } from '@/app/composition/createMigrationPreflightController'
-import type { MigrationPreflightControllerResult } from '@/app/composition/createMigrationPreflightController'
-import { createMigrationPreflightRecoveryDiagnostic } from '@/app/composition/createMigrationPreflightRecoveryDiagnostic'
 import { getPersistenceRecoveryController } from '@/app/composition/createPersistenceRecoveryController'
+import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
 import { PersistenceRecoveryNotice } from '@/app/composition/PersistenceRecoveryNotice'
 import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
 import { ThemeProvider } from '@/components/ThemeProvider'
@@ -13,56 +11,13 @@ import { mountToElement } from '@/lib/react/render-root'
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
 
-const reportMigrationRecoveryOutcome = (
-  outcome: MigrationPreflightControllerResult,
-): void => {
-  const recovery = getPersistenceRecoveryController()
-  switch (outcome.status) {
-    case 'indexeddb': {
-      return
-    }
-    case 'blocked':
-    case 'stale': {
-      recovery.reportUnavailable(
-        outcome.status === 'blocked'
-          ? 'PERSISTENCE_PREFLIGHT_BLOCKED'
-          : 'PERSISTENCE_PREFLIGHT_STALE',
-        createMigrationPreflightRecoveryDiagnostic(outcome),
-      )
-      return
-    }
-    case 'failed': {
-      recovery.reportUnavailable(outcome.errorCode, outcome.diagnostic)
-      return
-    }
-    case 'read-only-emergency': {
-      recovery.reportUnavailable('PERSISTENCE_READ_ONLY')
-      return
-    }
-    case 'not-run': {
-      recovery.reportUnavailable('PERSISTENCE_PREFLIGHT_STALE')
-      return
-    }
-    case 'cutover-pending':
-    case 'legacy':
-    case 'migrating':
-    case 'verifying': {
-      recovery.reportUnavailable('PERSISTENCE_RECOVERY_REQUIRED')
-      return
-    }
-    default: {
-      return outcome satisfies never
-    }
-  }
-}
-
-const runMigrationPreflight = async (): Promise<void> => {
+const initializePersistence = async (): Promise<void> => {
   try {
-    reportMigrationRecoveryOutcome(
-      await getMigrationPreflightController().run(),
-    )
+    await getPersistenceBootstrapRuntime().bootstrap.ready()
   } catch {
-    // Recovery UI owns actionable migration failures after the app mounts.
+    getPersistenceRecoveryController().reportUnavailable(
+      'PERSISTENCE_RECOVERY_REQUIRED',
+    )
   }
 }
 
@@ -87,7 +42,7 @@ const mountApp = (): void => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  void runMigrationPreflight().then(mountApp)
+  void initializePersistence().then(mountApp)
 })
 
 export { AppPage }

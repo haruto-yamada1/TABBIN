@@ -5,10 +5,7 @@
 
 import { defineBackground } from 'wxt/utils/define-background'
 
-import { getLegacyStorageCleanupController } from '@/app/composition/createLegacyStorageCleanupController'
-import type { LegacyStorageCleanupControllerResult } from '@/app/composition/createLegacyStorageCleanupController'
-import { getMigrationPreflightController } from '@/app/composition/createMigrationPreflightController'
-import type { MigrationPreflightControllerResult } from '@/app/composition/createMigrationPreflightController'
+import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
 import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
 // 分離したモジュールをインポート
 import { createContextMenus } from '@/lib/background/context-menu'
@@ -19,95 +16,6 @@ import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
 
 const MANIFEST_V2 = 2
-
-const reportUnexpectedPersistenceMigrationOutcome = (_outcome: never): void => {
-  logger.warn('background_persistence_migration_invalid', {
-    errorCode: 'PERSISTENCE_INVALID_TRANSITION',
-  })
-}
-
-const reportUnexpectedLegacyStorageCleanupOutcome = (_outcome: never): void => {
-  logger.warn('background_legacy_storage_cleanup_invalid', {
-    errorCode: 'LEGACY_STORAGE_CLEANUP_METADATA_INVALID',
-  })
-}
-
-const reportLegacyStorageCleanupOutcome = (
-  outcome: LegacyStorageCleanupControllerResult,
-): void => {
-  switch (outcome.status) {
-    case 'completed': {
-      logger.debug('background_legacy_storage_cleanup_completed')
-      break
-    }
-    case 'retained': {
-      logger.debug('background_legacy_storage_cleanup_retained')
-      break
-    }
-    case 'skipped': {
-      logger.debug('background_legacy_storage_cleanup_skipped')
-      break
-    }
-    case 'failed': {
-      logger.warn('background_legacy_storage_cleanup_failed', {
-        errorCode: outcome.errorCode,
-      })
-      break
-    }
-    default: {
-      reportUnexpectedLegacyStorageCleanupOutcome(outcome)
-    }
-  }
-}
-
-const reportPersistenceMigrationOutcome = (
-  outcome: MigrationPreflightControllerResult,
-): void => {
-  switch (outcome.status) {
-    case 'indexeddb': {
-      logger.debug('background_persistence_migration_completed')
-      break
-    }
-    case 'blocked': {
-      logger.warn('background_persistence_migration_blocked', {
-        errorCode: outcome.issueCodes[0] ?? 'PERSISTENCE_PREFLIGHT_BLOCKED',
-        recordCount: outcome.issueCodes.length,
-      })
-      break
-    }
-    case 'not-run':
-    case 'stale': {
-      logger.warn('background_persistence_migration_stale', {
-        errorCode: 'PERSISTENCE_PREFLIGHT_STALE',
-      })
-      break
-    }
-    case 'failed': {
-      logger.warn('background_persistence_migration_failed', {
-        errorCode: outcome.errorCode,
-      })
-      break
-    }
-    case 'read-only-emergency': {
-      logger.warn('background_persistence_migration_read_only', {
-        errorCode: 'PERSISTENCE_READ_ONLY',
-      })
-      break
-    }
-    case 'cutover-pending':
-    case 'legacy':
-    case 'migrating':
-    case 'verifying': {
-      logger.warn('background_persistence_migration_incomplete', {
-        errorCode: 'PERSISTENCE_MIGRATION_INCOMPLETE',
-      })
-      break
-    }
-    default: {
-      reportUnexpectedPersistenceMigrationOutcome(outcome)
-    }
-  }
-}
 
 export default defineBackground(() => {
   // eslint-disable-line import/no-default-export
@@ -174,17 +82,19 @@ export default defineBackground(() => {
   } catch (error) {
     logger.error('background_context_menu_initialization_failed', error)
   }
-  // バックグラウンド初期化時にpreflight済みのPersistence v2 migrationを
-  // 一度だけ開始または再開する。bootstrap/control-state coordinationが
-  // concurrent contextを直列化し、verification前のcutoverを防ぐ。
+  // IndexedDBのschemaとintegrityを確認してから定期処理を開始する。
   void (async () => {
     try {
-      logger.debug('background_persistence_migration_started')
-      const outcome = await getMigrationPreflightController().run()
-      reportPersistenceMigrationOutcome(outcome)
-      reportLegacyStorageCleanupOutcome(
-        await getLegacyStorageCleanupController().run(),
-      )
+      const runtime = getPersistenceBootstrapRuntime()
+      await runtime.bootstrap.ready()
+      const recovery = runtime.recovery.getSnapshot()
+      if (recovery.status === 'unavailable') {
+        logger.warn('background_persistence_unavailable', {
+          errorCode: recovery.errorCode,
+        })
+      } else {
+        logger.debug('background_persistence_ready')
+      }
 
       // 期限切れタブのチェック用アラームを設定
       setupExpiredTabsCheckAlarm()

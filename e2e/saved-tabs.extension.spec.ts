@@ -1,65 +1,50 @@
 import {
+  createCustomCollectionFixture,
+  createExamplePersistenceFixture,
+  createMembershipFixture,
+} from '@/test/fixtures/persistenceBrowserFixtures'
+
+import {
   createBaseSeed,
   defaultUserSettings,
   expect,
   getExtensionUrl,
   readPersistenceV2Store,
-  seedStorage,
+  seedSavedTabsFixture,
   test,
   waitForPersistenceV2Ready,
 } from './helpers/extension'
 
 const now = Date.now()
 
-const createSeedWithUrls = () =>
-  createBaseSeed({
-    savedTabs: [
-      {
-        domain: 'example.com',
-        id: 'group-example',
-        urlIds: ['url-example'],
-      },
-    ],
-    urls: [
-      {
-        id: 'url-example',
-        savedAt: now,
-        title: 'Example Home',
-        url: 'https://example.com/',
-      },
-    ],
+const createSeedWithUrls = () => ({
+  persistence: createExamplePersistenceFixture(now),
+  storage: createBaseSeed({
     userSettings: { ...defaultUserSettings, clickBehavior: 'saveCurrentTab' },
-  })
+  }),
+})
 
 const createCustomProjectSeed = () => {
   const base = createSeedWithUrls()
   return {
     ...base,
-    customProjects: [
-      {
-        id: 'project-1',
-        name: 'Test Project',
-        urlIds: ['url-example'],
-        categories: [],
-        createdAt: now,
-        updatedAt: now,
-        urls: [
-          {
-            id: 'url-example',
-            savedAt: now,
-            title: 'Example Home',
-            url: 'https://example.com/',
-          },
-        ],
-      },
-    ],
-    customProjectOrder: ['project-1'],
-    viewMode: 'custom',
+    persistence: {
+      ...base.persistence,
+      collections: [
+        ...base.persistence.collections,
+        createCustomCollectionFixture('project-1', 'Test Project', now, 1024),
+      ],
+      memberships: [
+        ...base.persistence.memberships,
+        createMembershipFixture('project-1', 'url-example', now),
+      ],
+    },
+    storage: { ...base.storage, viewMode: 'custom' },
   }
 }
 
 const readSavedTabCounts = async (
-  serviceWorker: Parameters<typeof seedStorage>[0],
+  serviceWorker: Parameters<typeof seedSavedTabsFixture>[0],
 ) => {
   const [memberships, urls] = await Promise.all([
     readPersistenceV2Store(serviceWorker, 'collectionMemberships'),
@@ -84,7 +69,7 @@ test.describe('extension saved-tabs', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createSeedWithUrls())
+    await seedSavedTabsFixture(serviceWorker, createSeedWithUrls())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
@@ -100,7 +85,7 @@ test.describe('extension saved-tabs', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createSeedWithUrls())
+    await seedSavedTabsFixture(serviceWorker, createSeedWithUrls())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
@@ -124,7 +109,7 @@ test.describe('extension saved-tabs', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createCustomProjectSeed())
+    await seedSavedTabsFixture(serviceWorker, createCustomProjectSeed())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=custom'),
@@ -155,7 +140,7 @@ test.describe('extension saved-tabs', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createSeedWithUrls())
+    await seedSavedTabsFixture(serviceWorker, createSeedWithUrls())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
@@ -183,7 +168,7 @@ test.describe('extension saved-tabs', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createSeedWithUrls())
+    await seedSavedTabsFixture(serviceWorker, createSeedWithUrls())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),

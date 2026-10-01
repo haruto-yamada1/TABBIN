@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type {
   PersistenceBootstrapPort,
-  PersistenceControlStateRepositoryPort,
   PersistenceCoordinationPort,
   PersistenceOperationGatePort,
   PersistenceRecoveryReporterPort,
@@ -115,20 +114,8 @@ describe('optionsBackupV2Export composition', () => {
   })
 
   it('exports Backup V2 through the real gate while IndexedDB is read-only', async () => {
-    const state = {
-      migrationId: 'migration-1',
-      persistenceGeneration: 2,
-      readSource: 'indexeddb',
-      status: 'read-only-emergency',
-    } as const
     const bootstrap: PersistenceBootstrapPort = {
-      migrate: vi.fn(async () => undefined),
-      readState: vi.fn(async () => state),
       ready: vi.fn(async () => undefined),
-    }
-    const controlStateRepository: PersistenceControlStateRepositoryPort = {
-      read: vi.fn(async () => state),
-      transition: vi.fn(),
     }
     const coordination: PersistenceCoordinationPort = {
       runExclusive: async (operation) => operation(),
@@ -139,12 +126,11 @@ describe('optionsBackupV2Export composition', () => {
     }
     const operationGate = new PersistenceOperationGateService({
       bootstrap,
-      controlStateRepository,
       coordination,
       recovery,
     })
     const connectionManager = new IndexedDbConnectionManager({
-      databaseName: 'read-only-backup-v2-export',
+      databaseName: 'indexeddb-only-backup-v2-export',
       indexedDb: new IDBFactory(),
     })
 

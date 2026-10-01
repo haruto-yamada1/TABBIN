@@ -1,38 +1,34 @@
 import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
-  runLegacyStorageCleanup: vi.fn(),
-  runPersistenceMigration: vi.fn(),
+  ready: vi.fn(async () => {}),
   setupExpiredTabsCheckAlarm: vi.fn(),
   createContextMenus: vi.fn(),
   handleExtensionActionClick: vi.fn(),
   setupMessageListener: vi.fn(),
   openSavedTabsPage: vi.fn(),
   handleTabCreated: vi.fn(),
-  getParentCategories: vi.fn(),
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
   },
-  migrateParentCategoriesToDomainNames: vi.fn(),
 }))
+vi.mock(
+  '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime',
+  () => ({
+    getPersistenceBootstrapRuntime: () => ({
+      bootstrap: { ready: mocked.ready },
+      recovery: { getSnapshot: () => ({ status: 'available' }) },
+    }),
+  }),
+)
 vi.mock('wxt/utils/define-background', () => ({
   defineBackground: (setup: () => void) => {
     setup()
     return {}
   },
-}))
-vi.mock('@/app/composition/createMigrationPreflightController', () => ({
-  getMigrationPreflightController: () => ({
-    run: mocked.runPersistenceMigration,
-  }),
-}))
-vi.mock('@/app/composition/createLegacyStorageCleanupController', () => ({
-  getLegacyStorageCleanupController: () => ({
-    run: mocked.runLegacyStorageCleanup,
-  }),
 }))
 vi.mock('@/lib/background/alarm-notification', () => ({
   setupExpiredTabsCheckAlarm: mocked.setupExpiredTabsCheckAlarm,
@@ -54,13 +50,6 @@ vi.mock('@/lib/background/url-storage', () => ({
 }))
 vi.mock('@/lib/logging/logger', () => ({
   logger: mocked.logger,
-}))
-vi.mock('@/lib/storage/categories', () => ({
-  getParentCategories: mocked.getParentCategories,
-}))
-vi.mock('@/lib/storage/migration', () => ({
-  migrateParentCategoriesToDomainNames:
-    mocked.migrateParentCategoriesToDomainNames,
 }))
 type InstalledListener = (details: {
   reason: 'install' | 'update' | 'chrome_update'
@@ -198,14 +187,7 @@ const loadBackground = async (
     vi.stubEnv('DEV', options.dev)
   }
   mocked.openSavedTabsPage.mockResolvedValue(123)
-  mocked.runLegacyStorageCleanup.mockResolvedValue({ status: 'retained' })
-  mocked.runPersistenceMigration.mockResolvedValue({
-    migrationId: 'persistence-v2-production',
-    persistenceGeneration: 2,
-    status: 'indexeddb',
-  })
-  mocked.getParentCategories.mockResolvedValue([])
-  mocked.migrateParentCategoriesToDomainNames.mockResolvedValue(undefined)
+  mocked.ready.mockResolvedValue(undefined)
   mocked.createContextMenus.mockImplementation(() => {})
   mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {})
   mocked.setupMessageListener.mockImplementation(() => {})
@@ -249,6 +231,18 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 describe('バックグラウンドのライフサイクル時の自動オープン挙動', () => {
+  it('IndexedDB readiness を旧storageやmigration stateなしで待ってからalarmを設定する', async () => {
+    const harness = await loadBackground({ clearAfterImport: false })
+
+    expect(mocked.ready).toHaveBeenCalledOnce()
+    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
+    expect(
+      mocked.setupExpiredTabsCheckAlarm.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
+    expect(harness.storageGet).not.toHaveBeenCalled()
+    expect(harness.storageSet).not.toHaveBeenCalled()
+  })
+
   it('Firefox MV2のbrowserActionを登録してメッセージ初期化を完了する', async () => {
     const harness = await loadBackground({
       clearAfterImport: false,
@@ -276,18 +270,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       mocked.handleTabCreated,
     )
     expect(mocked.setupMessageListener).toHaveBeenCalledTimes(1)
-    expect(mocked.runPersistenceMigration).toHaveBeenCalledOnce()
-    expect(mocked.runLegacyStorageCleanup).toHaveBeenCalledOnce()
-    const cleanupOrder =
-      mocked.runLegacyStorageCleanup.mock.invocationCallOrder[0]
-    const migrationOrder =
-      mocked.runPersistenceMigration.mock.invocationCallOrder[0]
-    if (cleanupOrder === undefined || migrationOrder === undefined) {
-      throw new Error('Expected both persistence maintenance calls.')
-    }
-    expect(cleanupOrder).toBeGreaterThan(migrationOrder)
-    expect(mocked.getParentCategories).not.toHaveBeenCalled()
-    expect(mocked.migrateParentCategoriesToDomainNames).not.toHaveBeenCalled()
+    expect(mocked.ready).toHaveBeenCalledOnce()
     await triggerInstalled(harness, 'install')
     expect(mocked.openSavedTabsPage).toHaveBeenCalledTimes(1)
     expect(harness.tabsCreate).not.toHaveBeenCalled()
@@ -296,140 +279,6 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       changelogShown: true,
     })
   })
-
-  it('preflight blocked を migration completed として報告しない', async () => {
-    await loadBackground({
-      clearAfterImport: false,
-      setupMocks: () => {
-        mocked.runPersistenceMigration.mockResolvedValueOnce({
-          checkedAt: 1,
-          diagnostic: {
-            capacityStatus: 'blocked',
-            collisionCount: 1,
-            entityCounts: { urls: 2 },
-            issueCodes: ['DUPLICATE_URL_ID'],
-            preflightVersion: 1,
-            sourceFingerprintVersion: 1,
-          },
-          issueCodes: ['DUPLICATE_URL_ID'],
-          status: 'blocked',
-        })
-      },
-    })
-
-    expect(mocked.logger.debug).not.toHaveBeenCalledWith(
-      'background_persistence_migration_completed',
-    )
-    expect(mocked.logger.warn).toHaveBeenCalledWith(
-      'background_persistence_migration_blocked',
-      {
-        errorCode: 'DUPLICATE_URL_ID',
-        recordCount: 1,
-      },
-    )
-    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
-  })
-
-  it('issue code が空の blocked preflight は型付き fallback を記録する', async () => {
-    await loadBackground({
-      clearAfterImport: false,
-      setupMocks: () => {
-        mocked.runPersistenceMigration.mockResolvedValueOnce({
-          checkedAt: 1,
-          diagnostic: {
-            capacityStatus: 'blocked',
-            collisionCount: 0,
-            entityCounts: {},
-            issueCodes: [],
-            preflightVersion: 1,
-            sourceFingerprintVersion: 1,
-          },
-          issueCodes: [],
-          status: 'blocked',
-        })
-      },
-    })
-
-    expect(mocked.logger.warn).toHaveBeenCalledWith(
-      'background_persistence_migration_blocked',
-      {
-        errorCode: 'PERSISTENCE_PREFLIGHT_BLOCKED',
-        recordCount: 0,
-      },
-    )
-  })
-
-  it('legacy cleanup failureを型付きで記録し他のstartup maintenanceを継続する', async () => {
-    await loadBackground({
-      clearAfterImport: false,
-      setupMocks: () => {
-        mocked.runLegacyStorageCleanup.mockResolvedValueOnce({
-          errorCode: 'LEGACY_STORAGE_CLEANUP_TARGET_UNHEALTHY',
-          status: 'failed',
-        })
-      },
-    })
-
-    expect(mocked.logger.warn).toHaveBeenCalledWith(
-      'background_legacy_storage_cleanup_failed',
-      { errorCode: 'LEGACY_STORAGE_CLEANUP_TARGET_UNHEALTHY' },
-    )
-    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
-  })
-
-  it.each([
-    [
-      'stale',
-      {
-        checkedAt: 1,
-        diagnostic: {
-          capacityStatus: 'blocked',
-          collisionCount: 0,
-          entityCounts: {},
-          issueCodes: [],
-          preflightVersion: 1,
-          sourceFingerprintVersion: 1,
-        },
-        status: 'stale',
-      },
-      'background_persistence_migration_stale',
-    ],
-    [
-      'failed',
-      {
-        errorCode: 'PERSISTENCE_MIGRATION_FAILED',
-        migrationId: 'persistence-v2-production',
-        status: 'failed',
-      },
-      'background_persistence_migration_failed',
-    ],
-    [
-      'read-only emergency',
-      {
-        migrationId: 'persistence-v2-production',
-        persistenceGeneration: 2,
-        readSource: 'indexeddb',
-        status: 'read-only-emergency',
-      },
-      'background_persistence_migration_read_only',
-    ],
-  ] as const)(
-    '%s outcome を migration completed として報告しない',
-    async (_label, outcome, event) => {
-      await loadBackground({
-        clearAfterImport: false,
-        setupMocks: () => {
-          mocked.runPersistenceMigration.mockResolvedValueOnce(outcome)
-        },
-      })
-
-      expect(mocked.logger.debug).not.toHaveBeenCalledWith(
-        'background_persistence_migration_completed',
-      )
-      expect(mocked.logger.warn).toHaveBeenCalledWith(event, expect.anything())
-      expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
-    },
-  )
 
   it('更新時は最初に changelog を開き、その後 saved-tabs を開く', async () => {
     const harness = await loadBackground({
@@ -491,11 +340,9 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     const harness = await loadBackground()
     await triggerInstalled(harness, 'chrome_update')
 
-    // chrome_update ではUI起動は行わない（マイグレーションはIIFEで実行済み）
+    // chrome_update ではUI起動は行わない
     expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
     expect(harness.tabsCreate).not.toHaveBeenCalled()
-    // onInstalledリスナー経由ではマイグレーションを実行しない
-    expect(mocked.migrateParentCategoriesToDomainNames).not.toHaveBeenCalled()
   })
 
   it('インストール時の自動オープンフローのエラーを捕捉する', async () => {
@@ -522,17 +369,18 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     )
   })
 
-  it('バックグラウンド初期化 IIFE 内のマイグレーションエラーを捕捉する', async () => {
-    mocked.runPersistenceMigration.mockRejectedValueOnce(
-      new Error('migration failed'),
-    )
+  it('IndexedDB readiness failureを捕捉してalarm処理を開始しない', async () => {
     await loadBackground({
       clearAfterImport: false,
+      setupMocks: () => {
+        mocked.ready.mockRejectedValueOnce(new Error('database unavailable'))
+      },
     })
     expect(mocked.logger.error).toHaveBeenCalledWith(
       'background_initialization_failed',
       expect.any(Error),
     )
+    expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
   })
 
   it('バックグラウンドセットアップ中のコンテキストメニュー初期化エラーを処理する', async () => {

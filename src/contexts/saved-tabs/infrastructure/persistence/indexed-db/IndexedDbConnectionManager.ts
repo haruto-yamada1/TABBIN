@@ -51,7 +51,7 @@ export class IndexedDbConnectionManager {
 
   private readonly databaseName: string
   private readonly databaseVersion: number
-  private readonly indexedDb: IDBFactory
+  private readonly indexedDb: IDBFactory | undefined
   private readonly onBlocked:
     | ((upgrade: IndexedDbBlockedUpgrade) => void)
     | undefined
@@ -63,18 +63,10 @@ export class IndexedDbConnectionManager {
   >
 
   constructor(options: IndexedDbConnectionManagerOptions = {}) {
-    const indexedDb: unknown = options.indexedDb ?? globalThis.indexedDB
-    if (!isIndexedDbFactory(indexedDb)) {
-      throw new IndexedDbConnectionError(
-        'OPEN_FAILED',
-        'IndexedDB is not available in this extension context.',
-      )
-    }
-
     this.databaseName = options.databaseName ?? PERSISTENCE_DATABASE_NAME
     this.databaseVersion =
       options.databaseVersion ?? PERSISTENCE_DATABASE_VERSION
-    this.indexedDb = indexedDb
+    this.indexedDb = options.indexedDb
     this.onBlocked = options.onBlocked
     this.onVersionChange = options.onVersionChange
     this.upgrade =
@@ -92,12 +84,17 @@ export class IndexedDbConnectionManager {
       return this.opening
     }
 
+    const indexedDb: unknown = this.indexedDb ?? globalThis.indexedDB
+    if (!isIndexedDbFactory(indexedDb)) {
+      throw new IndexedDbConnectionError(
+        'OPEN_FAILED',
+        'IndexedDB is not available in this extension context.',
+      )
+    }
+
     const generation = this.generation
     const opening = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = this.indexedDb.open(
-        this.databaseName,
-        this.databaseVersion,
-      )
+      const request = indexedDb.open(this.databaseName, this.databaseVersion)
       let upgradeError: unknown
 
       request.addEventListener('blocked', (event) => {

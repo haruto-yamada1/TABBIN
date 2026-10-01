@@ -7,9 +7,6 @@ import type {
   PersistenceRecoveryControllerPort,
   PersistenceRecoveryState,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
-import { MIGRATION_SOURCE_KEYS } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
-import type { RawLegacyStorageSnapshot } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
-import { deserializePersistenceEmergencyBackup } from '@/contexts/saved-tabs/application/services/PersistenceEmergencyBackupCodecService'
 
 import { PersistenceRecoveryNotice } from './PersistenceRecoveryNotice'
 
@@ -18,15 +15,20 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     t: (_key: string, fallback?: string) => fallback ?? '',
   }),
 }))
+vi.mock('./createPersistenceRecoveryController', () => {
+  const state = { status: 'available' }
+  return {
+    getPersistenceRecoveryController: () => ({
+      getSnapshot: () => state,
+      subscribe: () => () => undefined,
+    }),
+  }
+})
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
-
-const rawLegacyStorage = Object.fromEntries(
-  MIGRATION_SOURCE_KEYS.map((key) => [key, { status: 'missing' }]),
-) as RawLegacyStorageSnapshot
 
 class FakeRecoveryController implements PersistenceRecoveryControllerPort {
   private readonly listeners = new Set<() => void>()
@@ -41,14 +43,6 @@ class FakeRecoveryController implements PersistenceRecoveryControllerPort {
     this.emit()
   }
 
-  readonly createEmergencyBackup = vi.fn(async () => ({
-    createdAt: 123,
-    format: 'tabbin-legacy-emergency-backup' as const,
-    rawLegacyStorage,
-    version: 1 as const,
-    warning: 'contains-private-user-data' as const,
-  }))
-
   readonly getSnapshot = (): PersistenceRecoveryState => this.state
 
   readonly reportUnavailable = (
@@ -59,10 +53,6 @@ class FakeRecoveryController implements PersistenceRecoveryControllerPort {
   }
 
   readonly retry = vi.fn(async (): Promise<void> => {
-    this.clear()
-  })
-
-  readonly rerunPreflightAndRetry = vi.fn(async (): Promise<void> => {
     this.clear()
   })
 
@@ -78,6 +68,12 @@ class FakeRecoveryController implements PersistenceRecoveryControllerPort {
   }
 }
 
+const unavailable = (): FakeRecoveryController =>
+  new FakeRecoveryController({
+    status: 'unavailable',
+    errorCode: 'PERSISTENCE_RECOVERY_REQUIRED',
+  })
+
 describe('PersistenceRecoveryNotice', () => {
   it('does not render while persistence is available', () => {
     render(
@@ -89,149 +85,86 @@ describe('PersistenceRecoveryNotice', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('shows preserved-data guidance and provides a working retry action', async () => {
+  it('uses the production recovery controller by default', () => {
+    render(<PersistenceRecoveryNotice />)
+
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('explains the database failure and provides only retry and error-code copy actions', async () => {
     const user = userEvent.setup()
-    const recovery = new FakeRecoveryController({
-      status: 'unavailable',
-      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
-    })
+    const recovery = unavailable()
     render(<PersistenceRecoveryNotice recovery={recovery} />)
 
     expect(screen.getByRole('alert')).toBeTruthy()
     expect(
-      screen.getByText(/Your previous data has not been deleted/),
+      screen.getByText(
+        'Database could not be opened. Existing data has not been deleted.',
+      ),
     ).toBeTruthy()
+    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(
+      screen.queryByRole('button', { name: 'Back up current data' }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Run checks and retry' }),
+    ).toBeNull()
 
     await user.click(screen.getByRole('button', { name: 'Retry' }))
 
-    await waitFor(() => expect(recovery.retry).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(recovery.retry).toHaveBeenCalledOnce())
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
   })
 
-  it('downloads an explicitly private raw backup and exposes only safe diagnostic fields', async () => {
+  it('copies only the safe error code', async () => {
     const user = userEvent.setup()
-    const recovery = new FakeRecoveryController({
-      status: 'unavailable',
-      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
-      diagnostic: {
-        errorCode: 'MIGRATION_SOURCE_BLOCKED',
-        issueCodes: ['LEGACY_URL_REFERENCE_CONFLICT'],
-        migrationId: 'migration-1',
-        sourceBytes: 1234,
-        sourceEntityCounts: { urls: 2 },
-        stage: 'source-map',
-      },
-    })
-    recovery.createEmergencyBackup.mockResolvedValue({
-      createdAt: 123,
-      format: 'tabbin-legacy-emergency-backup',
-      rawLegacyStorage: {
-        ...rawLegacyStorage,
-        urls: { status: 'present', value: undefined },
-      },
-      version: 1,
-      warning: 'contains-private-user-data',
-    })
-    const createObjectUrl = vi
-      .spyOn(URL, 'createObjectURL')
-      .mockReturnValue('blob:backup')
-    const revokeObjectUrl = vi
-      .spyOn(URL, 'revokeObjectURL')
-      .mockImplementation(() => undefined)
-    const click = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => undefined)
+    render(<PersistenceRecoveryNotice recovery={unavailable()} />)
 
-    render(<PersistenceRecoveryNotice recovery={recovery} />)
+    await user.click(screen.getByRole('button', { name: 'Copy error code' }))
 
-    expect(
-      screen.getByText(/contains private URLs, titles, notes, and AI content/i),
-    ).toBeTruthy()
-    expect(screen.getByText(/MIGRATION_SOURCE_BLOCKED/)).toBeTruthy()
-    expect(screen.queryByText(/private\.example/)).toBeNull()
-
-    await user.click(screen.getByRole('button', { name: 'Copy diagnostics' }))
-    await expect(navigator.clipboard.readText()).resolves.toContain(
-      'MIGRATION_SOURCE_BLOCKED',
+    await expect(navigator.clipboard.readText()).resolves.toBe(
+      'PERSISTENCE_RECOVERY_REQUIRED',
     )
-
-    await user.click(
-      screen.getByRole('button', { name: 'Back up current data' }),
-    )
-
-    await waitFor(() =>
-      expect(recovery.createEmergencyBackup).toHaveBeenCalledTimes(1),
-    )
-    expect(createObjectUrl).toHaveBeenCalledTimes(1)
-    const blob = createObjectUrl.mock.calls[0]?.[0]
-    expect(blob).toBeInstanceOf(Blob)
-    const restored = deserializePersistenceEmergencyBackup(
-      await (blob as Blob).text(),
-    )
-    expect(restored.rawLegacyStorage.urls).toEqual({
-      status: 'present',
-      value: undefined,
-    })
-    expect(Object.hasOwn(restored.rawLegacyStorage.urls, 'value')).toBe(true)
-    expect(click).toHaveBeenCalledTimes(1)
-    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:backup')
   })
 
-  it.each([
-    {
-      action: 'Back up current data',
-      reject: (recovery: FakeRecoveryController) => {
-        recovery.createEmergencyBackup.mockRejectedValue(
-          new Error('private backup failure'),
-        )
-      },
-    },
-    {
-      action: 'Copy diagnostics',
-      reject: () => {
-        vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(
-          new Error('private clipboard failure'),
-        )
-      },
-    },
-  ])(
-    'shows a raw-free local error when $action fails',
-    async ({ action, reject }) => {
-      const user = userEvent.setup()
-      const recovery = new FakeRecoveryController({
-        status: 'unavailable',
-        errorCode: 'PERSISTENCE_MIGRATION_FAILED',
-      })
-      reject(recovery)
-      render(<PersistenceRecoveryNotice recovery={recovery} />)
-
-      await user.click(screen.getByRole('button', { name: action }))
-
-      await waitFor(() =>
-        expect(
-          screen.getByText('The action could not be completed. Try again.'),
-        ).toBeTruthy(),
-      )
-      expect(screen.queryByText(/private .* failure/)).toBeNull()
-      expect(screen.getByRole('button', { name: action })).not.toBeDisabled()
-    },
-  )
-
-  it('reruns preflight before retrying the failed migration', async () => {
+  it('shows a local copy failure without displaying private exception text', async () => {
     const user = userEvent.setup()
-    const recovery = new FakeRecoveryController({
-      status: 'unavailable',
-      errorCode: 'PERSISTENCE_PREFLIGHT_STALE',
-    })
-    render(<PersistenceRecoveryNotice recovery={recovery} />)
-
-    await user.click(
-      screen.getByRole('button', { name: 'Run checks and retry' }),
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(
+      new Error('private clipboard failure'),
     )
+    render(<PersistenceRecoveryNotice recovery={unavailable()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Copy error code' }))
 
     await waitFor(() =>
-      expect(recovery.rerunPreflightAndRetry).toHaveBeenCalledTimes(1),
+      expect(
+        screen.getByText('The action could not be completed. Try again.'),
+      ).toBeTruthy(),
     )
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    expect(screen.queryByText(/private clipboard failure/)).toBeNull()
+  })
+
+  it('prevents duplicate retries and retains the notice when the database retry fails', async () => {
+    const user = userEvent.setup()
+    const recovery = unavailable()
+    let rejectRetry: ((error: Error) => void) | undefined
+    recovery.retry.mockImplementationOnce(
+      async () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectRetry = reject
+        }),
+    )
+    render(<PersistenceRecoveryNotice recovery={recovery} />)
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDisabled()
+    rejectRetry?.(new Error('private database failure'))
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Retry' })).not.toBeDisabled(),
+    )
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.queryByText(/private database failure/)).toBeNull()
+    expect(recovery.retry).toHaveBeenCalledOnce()
   })
 })

@@ -5,6 +5,7 @@ import type { ChromeApiLike as ChromeApiLikeBase } from '@/contexts/saved-tabs/i
 import { createChromeBrowserWindowAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserWindowAdapter'
 import { createChromeMessagingAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter'
 import type { ChromeApiLike as ChromeMessagingApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeMessagingAdapter'
+import { createChromeStorageChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeStorageChangeAdapter'
 import { createSonnerNotificationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter'
 import { createSystemClock } from '@/contexts/saved-tabs/infrastructure/browser/SystemClockAdapter'
 import { createSystemIdGenerator } from '@/contexts/saved-tabs/infrastructure/browser/SystemIdGeneratorAdapter'
@@ -12,7 +13,9 @@ import { createChromeUserSettingsRepository } from '@/contexts/saved-tabs/infras
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 
-import type { CreateSavedTabsUseCasesDepsOptions } from './createSavedTabsUseCasesDeps'
+export type CreateSavedTabsUseCasesDepsOptions = {
+  readonly resolveActive?: () => boolean
+}
 
 type ChromeLike = ChromeApiLikeBase & {
   readonly tabs?: {
@@ -71,7 +74,17 @@ export const createIndexedDbSavedTabsExternalDeps = (
       getApi: getChromeMessagingApi,
     }),
     notificationPort: createSonnerNotificationAdapter(),
-    storageChangePort,
+    storageChangePort: {
+      subscribe: (listener) => {
+        const unsubscribeDomain = storageChangePort.subscribe(listener)
+        const unsubscribeSettings =
+          createChromeStorageChangeAdapter().subscribe(listener)
+        return () => {
+          unsubscribeDomain()
+          unsubscribeSettings()
+        }
+      },
+    },
     userSettingsRepository: createChromeUserSettingsRepository(settingsPort),
   }
 }

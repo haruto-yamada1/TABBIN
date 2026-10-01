@@ -6,17 +6,6 @@ export type PersistenceV2ProjectKeywordSettings = {
 
 export type PersistenceTimestampProvenance = 'exact' | 'legacy-fallback'
 
-export type PersistenceTimestampQualityCount = {
-  readonly exactCount: number
-  readonly legacyFallbackCount: number
-}
-
-export type PersistenceTimestampMigrationSummary = {
-  readonly membershipAddedAt: PersistenceTimestampQualityCount
-  readonly urlFirstSavedAt: PersistenceTimestampQualityCount
-  readonly urlLastSavedAt: PersistenceTimestampQualityCount
-}
-
 export type PersistenceV2CollectionDefinition =
   | {
       readonly domain: string

@@ -6,8 +6,8 @@ Issue #722 で Chrome / Firefox の runtime 差分を早期検出するための
 
 ## Phase 分け
 
-Phase 1〜3に加え、Issue #729-B でtesting-only complete policyを使うPersistence v2
-migration smokeを追加した。productionのcutover policyはこのsmokeから変更しない。
+Phase 1〜3に加え、Issue #861 で IndexedDB を直接起動する fresh / restart smoke を
+用意する。Chrome Storage からの旧データ移行は現行 runtime の対象外とする。
 
 ### Phase 1 — Firefox build + manifest validation
 
@@ -80,23 +80,36 @@ Phase 2 helper が取り出した UUID を使い、TABBIN の「options 画面�
 - storage contract は extension page 上で `chrome.storage.local` を経由して `set / get / clear` の round-trip を `page.evaluate` で呼び出し、`{ kind: 'ok', value: 'written' }` を assert する。`chrome.storage.local` は TABBIN が production で使う polyfill alias と同一の code path。
 - 既知の runtime smoke は Phase 2 と同様に dev / Unbranded build または AMO 署名済み XPI が必要(Phase 2 注意欄と同条件)。CI では `FIREFOX_EXTENSION_SMOKE=1` gate で skip 設計。
 
-### Phase 4 — Persistence v2 migration / restart smoke
+### Phase 4 — IndexedDB fresh / restart smoke
 
-`tools/scripts/firefox-persistence-migration-smoke.ts`は専用profileへlegacy fixtureをseedし、
-testing-onlyの`createCompletePersistenceBootstrapServiceForTesting`でpreflight / migration /
-verification / cutoverを実行する。次に同じprofileでFirefoxを再起動し、IndexedDBからSaved
-Tabs projectionを再読込する。
+`tools/scripts/firefox-persistence-indexeddb-smoke.ts` は geckodriver で一時 XPI を
+install し、`e2e/support/firefox-persistence-indexeddb-harness.ts` を拡張 origin 上で
+実行する。production の `createPersistenceBootstrapRuntime` と
+`createIndexedDbSavedTabsUseCases`、snapshot reader、Backup V2 exporter を使う。
 
-再起動後はtesting-onlyのroute-aware compositionへproduction
-`createIndexedDbSavedTabsUseCases`を注入し、Saved Tabs readとURL追加を実行する。migration
-source keyのChrome Storage snapshotが不変であること、強制IndexedDB failureでもlegacy
-callbackが0回であること、Backup V2 schema / notes / URLが保持されることをassertする。
+fresh phase は Chrome Storage の read / write API が例外を投げる状態で bootstrap と
+空の IndexedDB projection を検証する。次に旧 failed control state、blocked preflight、
+旧 savedTabs / urls を Chrome Storage に置き、native IndexedDB に domain collection、
+custom project、category、URL、AI conversation / message、analytics view を保存する。
 
-`tools/scripts/firefox-persistence-migration-smoke.ts`はgeckodriverで一時XPIをinstallし、同じ
-profileを閉じて再起動する。起動可能なFirefox / geckodriverがない場合は
-`FIREFOX_MIGRATION_SMOKE_UNSUPPORTED_EXECUTABLE`を持つ明示的errorで失敗する。必要なら
-`FIREFOX_EXECUTABLE_PATH`へDeveloper Edition / Unbranded Firefox、`GECKODRIVER_PATH`へ
-geckodriverを指定する。
+Firefox process を終了し、同じ profile を再起動して verify phase を実行する。
+IndexedDB の既存 rows を読み、custom project への URL 追加を行う。旧 Chrome Storage
+snapshot が不変であり、Backup V2 の URL / notes / AI data / analytics view が保持される
+ことを assert する。強制 IndexedDB open failure では gate 内の write callback が 0 回で
+recovery が unavailable となり、接続の復旧後は retry で available に戻ることも検証する。
+
+起動可能な Firefox / geckodriver がない場合は
+`FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE` を持つ明示的 error で失敗する。
+必要なら `FIREFOX_EXECUTABLE_PATH` へ Developer Edition / Unbranded Firefox、
+`GECKODRIVER_PATH` へ geckodriver を指定する。
+
+Chrome の artifact update 検証には `tools/scripts/production-artifact-upgrade-smoke.ts`
+を使う。変更前の IndexedDB 対応 artifact に native rows を保存し、同じ profile と
+extension ID のまま現行 artifact へ更新して再起動する。全 IndexedDB store の snapshot
+一致と Saved Tabs / custom project の実表示、Backup V2 export、旧 failed metadata の
+不変性を検証する。変更前 artifact の source ref / commit hash は build 時に記録し、
+`TABBIN_PREVIOUS_ARTIFACT_LABEL` に渡す。開発中は両 artifact の manifest version が同じ
+場合もあるため、version の差は pass 条件にしない。
 
 ## Acceptance criteria の対応
 
@@ -109,7 +122,7 @@ Issue #722 の受け入れ条件に対する Phase 1 + 2 + 3 の対応と残課�
 - [x] storage read / write の最低限の contract を検証する — Phase 3b の `chrome.storage.local` round-trip smoke
 - [x] options または saved tabs の主要画面を開けることを検証する — Phase 3b の title render assertion
 - [x] Chrome 専用 API 利用が混入した場合の検出方法がある — Phase 3a verifier が `chrome-extension://` literal と chrome-only API を CI 常時 enforce
-- [x] legacy → IndexedDB migration後のrestart / read / write / Backup V2を検証する — Phase 4のnon-skippable migration smoke
+- [x] IndexedDB の fresh / restart / read / write / recovery / Backup V2 を検証する — Phase 4 の non-skippable smoke。Chrome Storage の旧 control / preflight metadata が現在の起動を妨げないことも検証する
 - [~] CI / nightly / release gate の実行タイミングが決定されている — Phase 1 / 3a は CI / release:check で常時、Phase 2 / 3b は workflow_dispatch で manual gate。nightly cron 自動実行は follow-up issue で整備
 
 ## follow-up 候補
@@ -151,24 +164,33 @@ FIREFOX_EXTENSION_SMOKE=1 bun run test:firefox:smoke
 CI で manual 実行する場合は `Actions` タブから `CI` workflow を
 `Run workflow` で dispatch する。`firefox-extension-smoke` job が走る。
 
-### Phase 4 Firefox Persistence v2 migration smoke (manual gate)
+### Phase 4 Firefox IndexedDB smoke (manual gate)
 
 ```bash
 export GECKODRIVER_PATH=/path/to/geckodriver
 export FIREFOX_EXECUTABLE_PATH=/path/to/firefox
-bun run test:firefox:migration-smoke
+bun run test:firefox:indexeddb-smoke
 ```
 
-このcommandはFirefox artifactとtesting-only browser harnessをbuildしてから、WebDriverで
-legacy fixture / preflight / migration / restart / read / write / Backup V2を実行する。skipや
-`|| true`でunsupported環境を成功扱いにしない。
+この command は Firefox artifact と browser harness を build してから、WebDriver で
+fresh / native IndexedDB fixture / restart / read / write / recovery / Backup V2 を実行する。
+skip や `|| true` で unsupported 環境を成功扱いにしない。
+
+Chrome の更新 smoke は、別々に build した変更前 / 現行 artifact を指定する。
+
+```bash
+TABBIN_PREVIOUS_ARTIFACT_DIR=/path/to/previous/.output/chrome-mv3 \
+TABBIN_CURRENT_ARTIFACT_DIR=/path/to/current/.output/chrome-mv3 \
+TABBIN_PREVIOUS_ARTIFACT_LABEL=origin/develop@COMMIT_HASH \
+bun run test:production-artifact-upgrade
+```
 
 ## 注意点
 
 - Chrome E2E をそのまま Firefox へ全複製しない。browser 差分の risk が高い flow
-  (startup, storage API, persistence migration) を優先して smoke 化する。
+  (startup, storage API, IndexedDB lifecycle) を優先して smoke 化する。
 - Firefox startup / UI smoke は Playwright firefox と profile に unpacked extension
-  を copy して動かす。Persistence v2 migration smokeは署名不要のtemporary XPIを
+  を copy して動かす。IndexedDB smoke は署名不要の temporary XPI を
   geckodriverでinstallし、同じprofileを実際にrestartする。CI実行はworkflow_dispatch
   gateに置く。
 - Phase 1 verifier は build された manifest.json と artifact file が前提。build

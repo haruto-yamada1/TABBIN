@@ -51,8 +51,8 @@ const REQUIRED_WRITER_COLUMNS = [
   'RMW',
   'Queue/lock',
   'Cache',
-  'Preflight barrier',
-  'Migration barrier',
+  'Capacity policy',
+  'Readiness / recovery gate',
   'Change notification',
   'v2 target',
 ] as const
@@ -62,41 +62,16 @@ const CURRENT_WRITER_IDS = [
   'UI-COLOR-RESET',
   'UI-ROUTE-CLEANUP',
   'RELEASE-CONTROL',
-  'PERSISTENCE-CONTROL-STATE',
-  'LEGACY-DOMAIN-CLEANUP',
   'SETTINGS-REPAIR',
   'SETTINGS-SAVE',
   'SETTINGS-AUTO-DELETE',
-  'AI-HISTORY-REPAIR',
-  'AI-HISTORY-SAVE',
-  'ANALYTICS-VIEWS',
-  'ANALYTICS-UNDO',
-  'IMPORT-OVERWRITE',
-  'DDD-URLS',
-  'DDD-TAB-GROUPS',
-  'DDD-CUSTOM-PROJECTS',
-  'DDD-CUSTOM-ORDER-UNDO',
-  'DDD-PARENT-CATEGORIES',
-  'DDD-DOMAIN-SETTINGS',
-  'DDD-DOMAIN-MAPPINGS',
   'DDD-USER-SETTINGS',
-  'LEGACY-PARENT-CATEGORIES',
-  'LEGACY-DOMAIN-CATEGORIES',
-  'PARENT-CATEGORY-MIGRATION',
-  'SAVE-TABS-FACADE',
-  'HOSTNAME-MIGRATION',
-  'URL-MIGRATION',
-  'PROJECTS-REPAIR',
-  'PROJECTS-WRITE',
-  'PROJECTS-DOMAIN-SYNC',
-  'SAVED-TABS-WRITE',
-  'SAVED-TABS-AUTO',
-  'SAVED-TABS-DELETE-UNDO',
-  'URLS-WRITE',
-  'URLS-CLEANUP-DEDUPE',
-  'BACKGROUND-URL-REMOVE',
-  'EXPIRED-TABS-CLEANUP',
-  'TAB-TIMESTAMP-UPDATE',
+  'AI-SELECTION',
+  'IMPORT-OVERWRITE',
+  'PERSISTENCE-V2-SAVED-TABS',
+  'PERSISTENCE-V2-AI-HISTORY',
+  'PERSISTENCE-V2-ANALYTICS',
+  'PERSISTENCE-V2-RECOVERY',
 ] as const
 
 const DEFAULT_MUTATION_FILE = 'src/lib/storage/listed.ts'
@@ -241,7 +216,7 @@ describe('verifyStorageWriterInventory', () => {
   })
 
   test.each([
-    'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+    'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
   ])(
     'discovers and maps the real repository alias writer %s',
     (relativePath) => {
@@ -272,7 +247,7 @@ describe('verifyStorageWriterInventory', () => {
   )
 
   test('does not classify the app repository composition as a writer after settings-port separation', () => {
-    const relativePath = 'src/app/composition/createSavedTabsRepositories.ts'
+    const relativePath = 'src/app/composition/createSavedTabsUseCases.ts'
     const sourceCode = readFileSync(
       path.join(process.cwd(), relativePath),
       'utf8',
@@ -324,7 +299,7 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 39 rows, found 38')
+    ).toThrow('Writer ID baseline mismatch: expected 14 rows, found 13')
   })
 
   test.each([
@@ -985,5 +960,45 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
         sourceRoots: ['src'],
       }),
     ).not.toThrow()
+  })
+})
+describe('IndexedDB writer detection', () => {
+  test('tracks objectStore aliases and direct calls while ignoring Maps and shadowed aliases', () => {
+    expect(
+      containsStorageMutationBoundary(
+        "const store = transaction.objectStore('urls'); store.put(url)",
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        "transaction.objectStore('urls').delete(id)",
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        'function write(store: IDBObjectStore) { store.add(record) }',
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        'function write({ snapshots }: { snapshots: IDBObjectStore }) { snapshots.clear() }',
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        'const store = new Map(); store.delete(id)',
+        'src/not-a-writer.ts',
+      ),
+    ).toBe(false)
+    expect(
+      containsStorageMutationBoundary(
+        "const store = transaction.objectStore('urls'); function f(store: Map<string, string>) { store.delete(id) }",
+        'src/not-a-writer.ts',
+      ),
+    ).toBe(false)
   })
 })

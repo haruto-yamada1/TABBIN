@@ -317,7 +317,7 @@ jobs:
           FIREFOX_EXTENSION_SMOKE: '1'
 
       - name: Run Firefox Persistence v2 migration smoke
-        run: bun run test:firefox:migration-smoke
+        run: bun run test:firefox:indexeddb-smoke
         env:
           FIREFOX_EXECUTABLE_PATH: ${{ steps.firefox-executable.outputs.path }}
           GECKODRIVER_PATH: /tmp/geckodriver

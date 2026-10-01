@@ -1,6 +1,5 @@
 import { vi } from 'vitest'
 
-import type { CustomProject } from '@/contexts/saved-tabs/public-api'
 import type { UserSettings } from '@/types/storage'
 
 type StorageStore = Record<string, unknown>
@@ -104,8 +103,15 @@ const buildFullUserSettings = (
 })
 
 const buildCustomProject = (
-  override: Partial<CustomProject> = {},
-): CustomProject => ({
+  override: Partial<{
+    id: string
+    name: string
+    categories: string[]
+    createdAt: number
+    updatedAt: number
+    urlIds: string[]
+  }> = {},
+) => ({
   id: 'project-1',
   name: 'Project 1',
   projectKeywords: {

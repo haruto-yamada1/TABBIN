@@ -13,7 +13,7 @@ const inventoryDocumentPath = resolve(
   'docs/architecture/current-storage-writer-inventory.md',
 )
 
-type ContractSource = 'document' | 'handoff' | `issue:${number}`
+type ContractSource = 'document' | 'verification'
 
 type PersistenceHandoffContract = {
   readonly id: string
@@ -22,6 +22,8 @@ type PersistenceHandoffContract = {
   readonly mutation: RegExp
 }
 
+// Issue #861 retires Legacy migration ownership and Chrome URL-cache handoff
+// claims. Keep mutation-tested protection for the supported runtime guarantees.
 const persistenceHandoffContracts: readonly PersistenceHandoffContract[] = [
   {
     id: 'inventory.relative-link',
@@ -31,201 +33,83 @@ const persistenceHandoffContracts: readonly PersistenceHandoffContract[] = [
     mutation: /current-storage-writer-inventory\.md/,
   },
   {
-    id: 'current.module-local-cross-context-caveat',
-    source: 'handoff',
+    id: 'runtime.indexeddb-only-domain-authority',
+    source: 'document',
+    pattern: /IndexedDB the only domain-data source/i,
+    mutation: /only domain-data source/i,
+  },
+  {
+    id: 'runtime.storage-independent-startup',
+    source: 'document',
     pattern:
-      /module-local queues do not serialize writers in different extension contexts/i,
-    mutation: /do not serialize/i,
+      /without consulting legacy Chrome Storage records or migration state/i,
+    mutation:
+      /without consulting legacy Chrome Storage records or migration state/i,
   },
   {
-    id: 'current.two-context-lost-update',
-    source: 'handoff',
+    id: 'runtime.no-dormant-user-restoration',
+    source: 'document',
     pattern:
-      /deterministically reproduces a two-context read-modify-write lost update/i,
-    mutation: /two-context read-modify-write lost update/i,
+      /data remaining only in old Chrome Storage domain keys is not migrated or restored automatically/i,
+    mutation: /is not migrated or restored automatically/i,
   },
   {
-    id: 'current.restart-reloads-durable-storage',
-    source: 'handoff',
-    pattern: /recreated module reloads durable storage.*module globals/i,
-    mutation: /recreated module reloads durable storage/i,
+    id: 'runtime.schema-upgrades-remain-supported',
+    source: 'document',
+    pattern: /database schema upgrades/i,
+    mutation: /database schema upgrades/i,
   },
   {
-    id: 'url-cache.urls-only-scope',
-    source: 'handoff',
-    pattern: /For `urls` only/i,
-    mutation: /`urls` only/i,
-  },
-  {
-    id: 'url-cache.own-local-scope',
-    source: 'handoff',
-    pattern: /own local `chrome\.storage\.onChanged` event/i,
-    mutation: /own local/i,
-  },
-  {
-    id: 'url-cache.lazy-initial-registration',
-    source: 'handoff',
-    pattern: /lazily subscribes/i,
-    mutation: /lazily/i,
-  },
-  {
-    id: 'url-cache.api-transition-reregistration',
-    source: 'handoff',
-    pattern: /re-registers its listener.*API object changes/i,
-    mutation: /re-registers/i,
-  },
-  {
-    id: 'url-cache.api-unavailable-bypass',
-    source: 'handoff',
-    pattern: /bypasses the cache when the API is unavailable/i,
-    mutation: /API is unavailable/i,
-  },
-  {
-    id: 'url-cache.generation-advance',
-    source: 'handoff',
+    id: 'backup.current-format-only',
+    source: 'document',
     pattern:
-      /Invalidation or a storage API transition advances the cache generation/i,
-    mutation: /cache generation/i,
+      /Backup compatibility remains limited to the current Backup V2 format/i,
+    mutation: /limited to the current Backup V2 format/i,
   },
   {
-    id: 'url-cache.in-flight-api-identity-guard',
-    source: 'handoff',
+    id: 'native.aggregate-transaction-boundaries',
+    source: 'verification',
+    pattern: /use-case-sized, multi-store IndexedDB transactions/i,
+    mutation: /use-case-sized, multi-store IndexedDB transactions/i,
+  },
+  {
+    id: 'native.revision-guards',
+    source: 'verification',
+    pattern: /revision checks/i,
+    mutation: /revision checks/i,
+  },
+  {
+    id: 'native.decoding-and-integrity-admission',
+    source: 'verification',
+    pattern: /record decoding, logical projection, and integrity admission/i,
+    mutation: /integrity admission/i,
+  },
+  {
+    id: 'backup.shared-resource-safety-and-recovery',
+    source: 'verification',
     pattern:
-      /resolved read is cached only when.*generation.*registered API identity.*unchanged/i,
-    mutation: /registered API identity/i,
+      /Backup V2 schema, resource metrics, JSON safety, and overwrite recovery/i,
+    mutation: /overwrite recovery/i,
   },
   {
-    id: 'url-cache.no-general-concurrency-guarantee',
-    source: 'handoff',
+    id: 'notifications.safe-metadata-only',
+    source: 'verification',
+    pattern: /Post-commit notifications carry safe metadata only/i,
+    mutation: /safe metadata only/i,
+  },
+  {
+    id: 'notifications.restart-convergence',
+    source: 'verification',
     pattern:
-      /does not provide cross-context transactional read-modify-write.*general writers/i,
-    mutation: /general writers/i,
+      /missed, duplicate, or out-of-order events and restarts converge by reading current records/i,
+    mutation: /restarts converge/i,
   },
   {
-    id: '726.physical-schema',
-    source: 'issue:726',
-    pattern: /physical schema/i,
-    mutation: /physical schema/i,
-  },
-  {
-    id: '726.connection-lifecycle',
-    source: 'issue:726',
-    pattern: /connection lifecycle/i,
-    mutation: /connection lifecycle/i,
-  },
-  {
-    id: '726.use-case-transaction-boundaries',
-    source: 'issue:726',
-    pattern: /use-case transaction boundaries/i,
-    mutation: /use-case transaction/i,
-  },
-  {
-    id: '726.cross-context-write-serialization',
-    source: 'issue:726',
-    pattern: /cross-context write serialization/i,
-    mutation: /write serialization/i,
-  },
-  {
-    id: '727.persistence-bootstrap-readiness',
-    source: 'issue:727',
-    pattern: /PersistenceBootstrap readiness barrier/i,
-    mutation: /PersistenceBootstrap/i,
-  },
-  {
-    id: '727.cross-context-migration-coordination',
-    source: 'issue:727',
-    pattern: /cross-context migration coordination/i,
-    mutation: /migration coordination/i,
-  },
-  {
-    id: '727.all-domain-paths-use-barrier',
-    source: 'issue:727',
-    pattern: /Every domain read\/write participates in this barrier/i,
-    mutation: /Every domain read\/write/i,
-  },
-  {
-    id: '728.raw-legacy-snapshot',
-    source: 'issue:728',
-    pattern: /raw legacy snapshot parsing/i,
-    mutation: /raw legacy snapshot/i,
-  },
-  {
-    id: '728.pure-v2-mapping',
-    source: 'issue:728',
-    pattern: /pure v2 mapping/i,
-    mutation: /pure v2/i,
-  },
-  {
-    id: '728.transactional-target-writes',
-    source: 'issue:728',
-    pattern: /transactional target writes/i,
-    mutation: /transactional target/i,
-  },
-  {
-    id: '728.read-back-integrity',
-    source: 'issue:728',
-    pattern: /read-back integrity verification/i,
-    mutation: /read-back integrity/i,
-  },
-  {
-    id: '728.restart-and-retry',
-    source: 'issue:728',
-    pattern: /restart.*retry behavior/i,
-    mutation: /retry behavior/i,
-  },
-  {
-    id: '738.read-only-preflight',
-    source: 'issue:738',
-    pattern: /read-only preflight/i,
-    mutation: /read-only preflight/i,
-  },
-  {
-    id: '738.source-fingerprints',
-    source: 'issue:738',
-    pattern: /source fingerprints/i,
-    mutation: /source fingerprints/i,
-  },
-  {
-    id: '738.normal-write-staleness',
-    source: 'issue:738',
-    pattern: /normal-write staleness invalidation/i,
-    mutation: /normal-write staleness/i,
-  },
-  {
-    id: '738.raw-non-repairing-reader',
-    source: 'issue:738',
-    pattern: /raw non-repairing reader/i,
-    mutation: /raw non-repairing/i,
-  },
-  {
-    id: '739.post-commit-notification-invalidation',
-    source: 'issue:739',
-    pattern: /post-commit cross-context change notification and invalidation/i,
-    mutation: /post-commit/i,
-  },
-  {
-    id: '739.on-changed-consumer-migration',
-    source: 'issue:739',
-    pattern: /`chrome\.storage\.onChanged` consumer migration/i,
-    mutation: /`chrome\.storage\.onChanged`/i,
-  },
-  {
-    id: '739.invalidate-and-requery',
-    source: 'issue:739',
-    pattern: /invalidate and re-query current persistence state/i,
-    mutation: /invalidate and re-query/i,
-  },
-  {
-    id: '739.missed-duplicate-out-of-order',
-    source: 'issue:739',
-    pattern: /Missed.*duplicate.*out-of-order events/i,
-    mutation: /out-of-order events/i,
-  },
-  {
-    id: '739.restart-convergence',
-    source: 'issue:739',
-    pattern: /restarts.*converge.*current state/i,
-    mutation: /restarts/i,
+    id: 'verification.chrome-firefox-install-update',
+    source: 'verification',
+    pattern:
+      /New-install and already-migrated restart\/update smoke tests exercise Chrome and Firefox/i,
+    mutation: /smoke tests exercise Chrome and Firefox/i,
   },
 ]
 
@@ -235,7 +119,7 @@ const tolerateMarkdownWrapping = (pattern: RegExp): RegExp =>
   new RegExp(pattern.source.replaceAll(' ', String.raw`\s+`), pattern.flags)
 
 const extractHandoffSection = (document: string): string | undefined => {
-  const heading = '## Handoff and review gates'
+  const heading = '## Current ownership and verification'
   const start = document.indexOf(heading)
   if (start < 0) {
     return undefined
@@ -246,26 +130,6 @@ const extractHandoffSection = (document: string): string | undefined => {
   return nextHeading < 0 ? remaining : remaining.slice(0, nextHeading)
 }
 
-const extractIssueBullet = (
-  handoffSection: string,
-  issueNumber: number,
-): string | undefined => {
-  const lines = handoffSection.split('\n')
-  const start = lines.findIndex((line) => line.startsWith(`- #${issueNumber} `))
-  if (start < 0) {
-    return undefined
-  }
-
-  let end = start + 1
-  for (const line of lines.slice(end)) {
-    if (line.trim() === '' || line.startsWith('- #')) {
-      break
-    }
-    end += 1
-  }
-  return lines.slice(start, end).join('\n')
-}
-
 const resolveContractSource = (
   document: string,
   contractSource: ContractSource,
@@ -274,13 +138,7 @@ const resolveContractSource = (
     return document
   }
 
-  const handoffSection = extractHandoffSection(document)
-  if (contractSource === 'handoff' || !handoffSection) {
-    return handoffSection
-  }
-
-  const issueNumber = Number(contractSource.slice('issue:'.length))
-  return extractIssueBullet(handoffSection, issueNumber)
+  return extractHandoffSection(document)
 }
 
 const removeContractConcept = (
@@ -328,12 +186,14 @@ describe('Persistence Model v2 architecture contract', () => {
       '## URL identity policy',
       '## Ordering policy',
       '## Timestamp semantics',
-      '## Current to v2 mapping',
+      '## Historical Chrome Storage to v2 mapping',
       '## Storage Placement Matrix',
       '## Incognito data boundary',
       '## JSON-safe persistence boundary',
       '## Backup V2 resource and round-trip envelope',
-      '## Migration recoverability',
+      '## Historical migration recoverability',
+      '## IndexedDB readiness and recovery',
+      '## Current ownership and verification',
       '## Invariants for #712',
       '## Query and projection boundary',
     ]) {
@@ -341,24 +201,22 @@ describe('Persistence Model v2 architecture contract', () => {
     }
   })
 
-  it('decides placement for every Issue #725 data class', () => {
+  it('decides current placement for every domain, settings and UI data class', () => {
     for (const dataClass of [
-      '`urls`',
-      '`savedTabs`',
-      '`customProjects`',
+      'Saved URLs',
+      'Saved tabs / custom projects',
+      'Parent categories',
       '`userSettings`',
-      '`aiChatConversations`',
+      'AI conversation history',
       '`activeAiChatConversationId`',
-      '`savedAnalyticsViews`',
+      'Analytics views',
       '`viewMode`',
       '`seenVersion` / `changelogShown`',
-      'migration control state',
-      'notice dismissals',
-      'recovery snapshots',
+      'Recovery snapshots',
     ]) {
-      expect(modelDocument).toContain(dataClass)
+      expect(modelDocument.toLowerCase()).toContain(dataClass.toLowerCase())
     }
-    expect(modelDocument).toContain('tabbin:noticeDismissals:v1')
+    expect(modelDocument).toContain('`storage` permission')
     expect(modelDocument).not.toContain('要決定')
   })
 
@@ -405,16 +263,16 @@ describe('Persistence Model v2 architecture contract', () => {
       /Chrome shares `chrome\.storage\.local` between regular and incognito processes/i,
       /Firefox requires user opt-in for private browsing access/i,
       /"incognito": "not_allowed"/i,
-      /PersistenceBootstrap state, migration lock, migration ownership, source snapshot, target database identity, and cleanup eligibility are normal-context-only/i,
+      /Database identity, readiness, operation coordination, and recovery are normal-context-only/i,
       /Backup V2 exports and imports normal-context data only/i,
       /Analytics and AI saved-URL context builders consume normal-context data only/i,
-      /MIGRATION_COORDINATION_UNAVAILABLE/i,
+      /normal-context guard rejects unsupported private contexts before any/i,
     ]) {
       expect(normalizedModelDocument).toMatch(contract)
     }
   })
 
-  it('hands current concurrency limitations to the owning v2 issues', () => {
+  it('protects supported transactions, integrity and restart convergence in the current contract', () => {
     expect(collectPersistenceHandoffContractFailures(modelDocument)).toEqual([])
     expect(existsSync(inventoryDocumentPath)).toBe(true)
   })
@@ -437,11 +295,16 @@ describe('Persistence Model v2 architecture contract', () => {
     }
   })
 
-  it('protects #739 restart convergence independently', () => {
-    const withoutRestartConvergence = modelDocument.replace(/or restarts/i, '')
+  it('protects current post-commit restart convergence independently', () => {
+    const withoutRestartConvergence = modelDocument.replace(
+      /restarts\s+converge/i,
+      '',
+    )
     expect(
       collectPersistenceHandoffContractFailures(withoutRestartConvergence),
-    ).toContain('missing persistence handoff contract: 739.restart-convergence')
+    ).toContain(
+      'missing persistence handoff contract: notifications.restart-convergence',
+    )
   })
 
   it('uses camelCase for the shared persistence utility filename', () => {

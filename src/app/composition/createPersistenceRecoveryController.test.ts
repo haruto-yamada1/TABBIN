@@ -1,186 +1,36 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { MigrationPreflightServicePort } from '@/contexts/saved-tabs/application/ports/MigrationPreflightPort'
-import type {
-  PersistenceBootstrapPort,
-  PersistenceBootstrapRecoveryControllerPort,
-  PersistenceControlState,
-} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
-import { MIGRATION_SOURCE_KEYS } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
-import type { RawLegacyStorageSnapshot } from '@/contexts/saved-tabs/application/ports/RawLegacyStorageReaderPort'
+import type { PersistenceRecoveryControllerPort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 
-import { createPersistenceRecoveryController } from './createPersistenceRecoveryController'
+import { getPersistenceRecoveryController } from './createPersistenceRecoveryController'
 
-const rawLegacyStorage = Object.fromEntries(
-  MIGRATION_SOURCE_KEYS.map((key) => [key, { status: 'missing' }]),
-) as RawLegacyStorageSnapshot
+const mocked = vi.hoisted(() => ({ getRuntime: vi.fn() }))
+vi.mock(
+  '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime',
+  () => ({ getPersistenceBootstrapRuntime: mocked.getRuntime }),
+)
 
-const createBootstrapRecovery = (
-  calls: string[],
-): PersistenceBootstrapRecoveryControllerPort => ({
-  clear: vi.fn(),
-  getSnapshot: () => ({ status: 'available' }),
-  reportUnavailable: vi.fn(),
-  retry: vi.fn(async () => {
-    calls.push('retry')
-  }),
-  subscribe: () => () => undefined,
-})
+describe('getPersistenceRecoveryController', () => {
+  it('shares the IndexedDB runtime recovery state and retry action without migration services', async () => {
+    const recovery: PersistenceRecoveryControllerPort = {
+      clear: vi.fn(),
+      getSnapshot: () => ({
+        status: 'unavailable',
+        errorCode: 'PERSISTENCE_RECOVERY_REQUIRED',
+      }),
+      reportUnavailable: vi.fn(),
+      retry: vi.fn(async () => {}),
+      subscribe: vi.fn(() => () => {}),
+    }
+    mocked.getRuntime.mockReturnValue({ recovery })
 
-const createBootstrap = (
-  calls: string[],
-  state: PersistenceControlState = { status: 'legacy' },
-): Pick<PersistenceBootstrapPort, 'migrate' | 'readState'> => ({
-  migrate: vi.fn(async () => {
-    calls.push('migrate')
-  }),
-  readState: vi.fn(async () => state),
-})
-
-const createPreflight = (
-  status: Awaited<ReturnType<MigrationPreflightServicePort['run']>>,
-  calls: string[],
-): MigrationPreflightServicePort => ({
-  createCurrentDataBackup: vi.fn(async () => rawLegacyStorage),
-  readHealthySourceFingerprint: vi.fn(async () => 'fingerprint'),
-  readStatus: vi.fn(async () => status),
-  run: vi.fn(async () => {
-    calls.push('preflight')
-    return status
-  }),
-})
-
-describe('createPersistenceRecoveryController', () => {
-  it('creates the versioned emergency envelope through the raw preflight reader', async () => {
-    const calls: string[] = []
-    const preflight = createPreflight({ status: 'not-run' }, calls)
-    const controller = createPersistenceRecoveryController({
-      bootstrap: createBootstrap(calls),
-      bootstrapRecovery: createBootstrapRecovery(calls),
-      now: () => 123,
-      preflight,
+    const controller = getPersistenceRecoveryController()
+    expect(controller).toBe(recovery)
+    await controller.retry()
+    expect(recovery.retry).toHaveBeenCalledOnce()
+    expect(controller.getSnapshot()).toEqual({
+      status: 'unavailable',
+      errorCode: 'PERSISTENCE_RECOVERY_REQUIRED',
     })
-
-    await expect(controller.createEmergencyBackup()).resolves.toEqual({
-      createdAt: 123,
-      format: 'tabbin-legacy-emergency-backup',
-      rawLegacyStorage,
-      version: 1,
-      warning: 'contains-private-user-data',
-    })
-    expect(preflight.createCurrentDataBackup).toHaveBeenCalledTimes(1)
-  })
-
-  it('reruns preflight before retrying bootstrap', async () => {
-    const calls: string[] = []
-    const bootstrap = createBootstrap(calls)
-    const controller = createPersistenceRecoveryController({
-      bootstrap,
-      bootstrapRecovery: createBootstrapRecovery(calls),
-      now: () => 123,
-      preflight: createPreflight(
-        {
-          checkedAt: 1,
-          diagnostic: {
-            capacityStatus: 'ready',
-            collisionCount: 0,
-            entityCounts: {},
-            issueCodes: [],
-            preflightVersion: 1,
-            sourceFingerprintVersion: 1,
-          },
-          status: 'healthy',
-        },
-        calls,
-      ),
-    })
-
-    await controller.rerunPreflightAndRetry()
-
-    expect(calls).toEqual(['preflight', 'migrate', 'retry'])
-    expect(bootstrap.migrate).toHaveBeenCalledWith('persistence-v2-production')
-  })
-
-  it('does not retry bootstrap when the repeated preflight is blocked', async () => {
-    const calls: string[] = []
-    const bootstrapRecovery = createBootstrapRecovery(calls)
-    const controller = createPersistenceRecoveryController({
-      bootstrap: createBootstrap(calls),
-      bootstrapRecovery,
-      now: () => 123,
-      preflight: createPreflight(
-        {
-          checkedAt: 1,
-          diagnostic: {
-            capacityStatus: 'blocked',
-            collisionCount: 0,
-            entityCounts: {},
-            issueCodes: ['MIGRATION_SOURCE_INVALID_TYPE'],
-            preflightVersion: 1,
-            sourceFingerprintVersion: 1,
-          },
-          issueCodes: ['MIGRATION_SOURCE_INVALID_TYPE'],
-          status: 'blocked',
-        },
-        calls,
-      ),
-    })
-
-    await expect(controller.rerunPreflightAndRetry()).rejects.toMatchObject({
-      code: 'PERSISTENCE_PREFLIGHT_BLOCKED',
-    })
-    expect(calls).toEqual(['preflight'])
-    expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
-      'PERSISTENCE_PREFLIGHT_BLOCKED',
-      {
-        errorCode: 'MIGRATION_SOURCE_BLOCKED',
-        issueCodes: ['MIGRATION_SOURCE_INVALID_TYPE'],
-        migrationId: 'persistence-v2-production',
-        sourceBytes: 0,
-        sourceEntityCounts: {},
-        stage: 'preflight',
-      },
-    )
-  })
-
-  it('keeps a repeated stale preflight distinct from blocked', async () => {
-    const calls: string[] = []
-    const bootstrapRecovery = createBootstrapRecovery(calls)
-    const controller = createPersistenceRecoveryController({
-      bootstrap: createBootstrap(calls),
-      bootstrapRecovery,
-      now: () => 123,
-      preflight: createPreflight(
-        {
-          checkedAt: 1,
-          diagnostic: {
-            capacityStatus: 'blocked',
-            collisionCount: 0,
-            entityCounts: {},
-            issueCodes: [],
-            preflightVersion: 1,
-            sourceFingerprintVersion: 1,
-          },
-          status: 'stale',
-        },
-        calls,
-      ),
-    })
-
-    await expect(controller.rerunPreflightAndRetry()).rejects.toMatchObject({
-      code: 'PERSISTENCE_PREFLIGHT_STALE',
-    })
-    expect(calls).toEqual(['preflight'])
-    expect(bootstrapRecovery.reportUnavailable).toHaveBeenCalledWith(
-      'PERSISTENCE_PREFLIGHT_STALE',
-      {
-        errorCode: 'MIGRATION_SOURCE_CHANGED',
-        issueCodes: [],
-        migrationId: 'persistence-v2-production',
-        sourceBytes: 0,
-        sourceEntityCounts: {},
-        stage: 'preflight',
-      },
-    )
   })
 })

@@ -788,11 +788,6 @@ export const createNativeSavedTabsPersistenceAdapters = (
         }
       },
     },
-    migrationPort: {
-      migrateDomainStorageToHostname: async () => {},
-      migrateParentCategoriesToDomainNames: async () => {},
-      migrateToUrlsStorage: async () => {},
-    },
     parentCategoryRepository,
     removeSubCategoryFromTabGroupPort: {
       removeSubCategoryFromTabGroup: async (groupId, categoryName) => {

@@ -24,25 +24,18 @@ const storageMocks = vi.hoisted(() => {
 
   return {
     dataPlane,
-    getAnalyticsViewsDataPlane: vi.fn<() => typeof dataPlane | null>(
-      () => dataPlane,
-    ),
+    getAnalyticsViewsDataPlane: vi.fn<() => typeof dataPlane>(() => dataPlane),
     reset: () => {
       for (const key of Object.keys(state)) {
         delete state[key]
       }
     },
     state,
-    warnMissingChromeStorage: vi.fn(),
   }
 })
 
 vi.mock('@/app/composition/analyticsViewsDataPlane', () => ({
   getAnalyticsViewsDataPlane: storageMocks.getAnalyticsViewsDataPlane,
-}))
-
-vi.mock('@/lib/browser/chrome-storage', () => ({
-  warnMissingChromeStorage: storageMocks.warnMissingChromeStorage,
 }))
 
 const baseQuery: AnalyticsQuery = {
@@ -180,19 +173,13 @@ describe('analytics storage', () => {
     await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual([])
   })
 
-  it('Chrome storage がない場合は読み込みと保存を警告だけで終える', async () => {
-    storageMocks.getAnalyticsViewsDataPlane.mockReturnValueOnce(null)
-    await expect(loadSavedAnalyticsViews()).resolves.toStrictEqual([])
+  it('IndexedDB failureを空のビューや保存成功へ置き換えず呼び出し元へ返す', async () => {
+    const failure = new Error('database unavailable')
+    storageMocks.dataPlane.readValues.mockRejectedValueOnce(failure)
+    await expect(loadSavedAnalyticsViews()).rejects.toBe(failure)
 
-    storageMocks.getAnalyticsViewsDataPlane.mockReturnValueOnce(null)
-    await expect(saveSavedAnalyticsViews([])).resolves.toBeUndefined()
-
-    expect(storageMocks.warnMissingChromeStorage).toHaveBeenCalledWith(
-      '分析ビューの読み込み',
-    )
-    expect(storageMocks.warnMissingChromeStorage).toHaveBeenCalledWith(
-      '分析ビューの保存',
-    )
+    storageMocks.dataPlane.replaceValues.mockRejectedValueOnce(failure)
+    await expect(saveSavedAnalyticsViews([])).rejects.toBe(failure)
   })
 
   it('分析ビュー一覧を保存する', async () => {

@@ -3,25 +3,33 @@
 Analytics timestamp and query semantics are defined in
 [analytics-metrics.md](./analytics-metrics.md).
 
-Status: reviewed target contract for Issue #725  
+Status: current IndexedDB-only contract after Issue #861
 Parent: Issue #724
 
-This document is authoritative for the logical Persistence Model v2 consumed
-by #712, #726, #728, #730, and #738. The TypeScript proposal is in
+This document is authoritative for the logical Persistence Model v2 and its
+current storage placement. The TypeScript model is in
 `src/contexts/saved-tabs/domain/entities/PersistenceModelV2.ts`; executable URL
 identity examples are in `urlIdentityCorpus.ts`.
 
-This contract does not create IndexedDB stores, migrate current data, or switch
-the runtime source of truth. Those changes remain separate Issues and PRs.
-The implemented #728 conversion and verification rules are documented in
-[`legacy-persistence-v2-migration.md`](legacy-persistence-v2-migration.md).
+Issue #861 makes IndexedDB the only domain-data source for saved tabs, projects,
+categories, AI conversation history, and analytics views. New installations and
+already migrated profiles initialize the same database without consulting
+legacy Chrome Storage records or migration state. The previous dormant-user
+automatic migration guarantee is retired: data remaining only in old Chrome
+Storage domain keys is not migrated or restored automatically. Existing
+IndexedDB records, database schema upgrades, integrity checks, and Backup V2
+recovery remain supported. No legacy-key cleanup or whole-storage deletion runs.
 
-The quota, eviction, permission, capacity-preflight, typed failure, and recovery
+The historical #728 conversion rules remain in
+[`legacy-persistence-v2-migration.md`](legacy-persistence-v2-migration.md) for
+interpretation of previously migrated records; they are not an active runtime
+path. Backup compatibility remains limited to the current Backup V2 format.
+
+The quota, eviction, permission, capacity admission, typed failure, and recovery
 boundary is defined by
-[`docs/security/persistence-durability.md`](../security/persistence-durability.md)
-and the executable contract in `src/lib/persistence/capacity.ts`. IndexedDB and
-migration implementations must consume that boundary rather than reclassifying
-storage failures locally.
+[`persistence-durability.md`](../security/persistence-durability.md)
+and the executable contract in `src/lib/persistence/capacity.ts`. IndexedDB
+and Backup V2 adapters consume this shared boundary.
 
 ## Aggregate boundary
 
@@ -32,8 +40,8 @@ The normalized saved-tabs aggregate consists of `Url`, `Collection`,
   depend on Chrome Storage or IndexedDB.
 - Domain and Custom are `Collection.definition` variants, not separate storage
   aggregates.
-- Settings, AI conversations, analytics views, release controls, migration
-  controls, and recovery snapshots retain their own context ownership. The
+- Settings, AI conversations, analytics views, release controls, UI state,
+  and recovery snapshots retain their own context ownership. The
   Storage Placement Matrix decides their engine and authority without making
   them saved-tabs domain entities.
 - Shared JSON serialization rules live in `src/lib/persistence/jsonValue.ts`.
@@ -207,9 +215,9 @@ refactor.
 - #726 must not create or rely on a `normalizedUrl` unique index until #712 and
   #738 prove that the source can satisfy this policy.
 
-### Deterministic title conflict resolution
+### Historical migration title conflict resolution
 
-Migration builds title candidates in this stable order:
+The retired #728 Chrome Storage migration built title candidates in this stable order:
 
 1. current canonical `urls` records;
 2. embedded `savedTabs.urls` records;
@@ -286,17 +294,22 @@ Required relations:
 - `Membership.addedAt <= Membership.updatedAt`.
 - Collection membership activity does not update `Collection.updatedAt`.
 
-A missing legacy timestamp is not replaced with migration time. It produces
-`MISSING_TIMESTAMP_PROVENANCE`; the #728 mapper uses the explicitly reviewed
-sentinel `0`. Legacy AI messages use their conversation's source `createdAt`
-because the message shape has no historical timestamp. Message order is not
+The retired #728 mapper reported `MISSING_TIMESTAMP_PROVENANCE` for absent
+legacy timestamps and used the reviewed sentinel `0`. These historical values
+remain valid in existing IndexedDB records. Historically migrated AI messages
+use their conversation's source `createdAt` because the old message shape had
+no timestamp. Message order is not
 encoded into that timestamp. Each conversation value carries an ordered
 `messageIds` list; writers preserve the message array order there and keep an
 existing message record's `createdAt` unchanged when conversation metadata is
 updated. Markerless Persistence v2 records from an older build use the
 deterministic `(createdAt, id)` order only as a compatibility fallback.
 
-## Current to v2 mapping
+## Historical Chrome Storage to v2 mapping
+
+This table describes the retired conversion and the provenance of existing
+IndexedDB records. It does not authorize reading or migrating old Chrome
+Storage keys in the current runtime.
 
 | Current concept / field                       | V2 destination                 | Disposition                                             |
 | --------------------------------------------- | ------------------------------ | ------------------------------------------------------- |
@@ -330,41 +343,35 @@ The v2 persisted model does not contain `TabGroup.urls`, `TabGroup.urlIds`,
 
 ## Storage Placement Matrix
 
-The matrix records logical data, not only currently centralized constants. The
-current implementation evidence is the
-[current storage writer inventory](./current-storage-writer-inventory.md). #711
-remains authoritative for writer/context inventory and may discover additional
-entrypoints; new rows must be classified before #726 is finalized.
+Current implementation evidence is maintained in the
+[current storage writer inventory](./current-storage-writer-inventory.md).
+Logical aliases such as saved tabs and custom projects are UI concepts backed
+by normalized IndexedDB records.
 
-| Current data / key                                                | Logical responsibility                        | Target storage                               | Authoritative source                         | Backup V2                                    | Change notification                               | Legacy cleanup                                                 | Retention                                           |
-| ----------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------- | -------------------------------------------- | -------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------- |
-| `urls`                                                            | canonical saved URL data                      | IndexedDB                                    | v2 `Url` store                               | Yes, logical URLs                            | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Persistent while referenced; orphan policy by #712  |
-| `savedTabs`                                                       | legacy domain collections and relations       | IndexedDB                                    | v2 Collection/Membership/Category            | Yes, logical mapping                         | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
-| `customProjects`                                                  | legacy custom collections and relations       | IndexedDB                                    | v2 Collection/Membership/Category            | Yes, logical mapping                         | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
-| `parentCategories`                                                | legacy group metadata and duplicated relation | IndexedDB                                    | v2 CollectionGroup plus `Collection.groupId` | Yes, logical groups                          | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
-| `customProjectOrder`                                              | custom collection ordering                    | IndexedDB                                    | `Collection.sortOrder`                       | Yes, logical order                           | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only after cutover                 |
-| `domainCategoryMappings`                                          | legacy duplicated parent relation             | IndexedDB                                    | `Collection.groupId`                         | No raw key; logical relation is backed up    | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only                               |
-| `domainCategorySettings`                                          | legacy domain category configuration          | IndexedDB                                    | CollectionCategory/keywords                  | No raw key; logical categories are backed up | #739 saved-tabs change protocol                   | Yes after verified cutover                                     | Migration source only                               |
-| `urlsMigrationCompleted` / `domainHostnameMigrationCompleted`     | legacy migration flags                        | `chrome.storage.local` until legacy cleanup  | legacy bootstrap code                        | No                                           | Internal bootstrap event                          | Remove with owning legacy migrator                             | Until corresponding legacy path is removed          |
-| `userSettings`                                                    | small user configuration and prompt presets   | `chrome.storage.local`                       | `userSettings` schema                        | Yes, field policy                            | Existing settings `chrome.storage.onChanged` path | Keep                                                           | Persistent                                          |
-| `aiChatConversations`                                             | large user-authored conversation content      | IndexedDB                                    | AI conversation repository                   | Yes through JSON-safe projection             | #739 AI-history scope                             | Remove chrome key after verified migration                     | Persistent subject to user deletion and #719 limits |
-| `activeAiChatConversationId`                                      | per-device current selection                  | `chrome.storage.local`                       | selection control key                        | No; import selects a valid default           | #739 selection scope or local settings event      | Keep                                                           | Persistent until referenced conversation disappears |
-| `savedAnalyticsViews`                                             | user-defined analytics projections            | IndexedDB                                    | analytics view repository                    | Yes                                          | #739 analytics scope                              | Remove chrome key after verified migration                     | Persistent until user deletion                      |
-| `tab-manager-theme`                                               | legacy UI preference                          | `chrome.storage.local` under `userSettings`  | `userSettings` theme field                   | Yes through settings                         | Settings change event                             | Remove standalone legacy key after migration                   | Persistent                                          |
-| `viewMode`                                                        | legacy saved-tabs route preference            | None; URL route is authoritative             | saved-tabs router                            | No                                           | No                                                | Remove on route bootstrap                                      | Until the first v2 route bootstrap                  |
-| `seenVersion` / `changelogShown`                                  | release display control                       | `chrome.storage.local`                       | background release control                   | No                                           | No cross-context domain event                     | Keep                                                           | Persistent, overwritten per release policy          |
-| migration control state                                           | trusted migration barrier and phase           | `chrome.storage.local`                       | one control-plane record defined by #727     | No                                           | Internal barrier event                            | Keep by compatibility policy                                   | Through cutover and forward-fix window              |
-| `tabbin:noticeDismissals:v1` (notice dismissals)                  | versioned migration-notice UX control         | `chrome.storage.local` dedicated control key | notice control record                        | No                                           | Settings/control event                            | Retain in the versioned key; future key migration owns removal | Not read after the key version is retired           |
-| recovery snapshots                                                | overwrite-import recovery data                | IndexedDB                                    | recovery repository from #740                | No (internal backup artifact)                | #739 recovery lifecycle event                     | TTL cleanup by #740                                            | Bounded TTL and count from #740                     |
-| `tabbin-ai-chat-sidebar-width` / `tabbin-extension-sidebar-width` | local layout preference                       | local UI storage                             | owning UI component                          | No                                           | No                                                | Keep outside migration                                         | Persistent per device; safe to reset                |
+| Logical data / key                                                | Responsibility                                | Storage                          | Authoritative source                   | Backup V2                          | Change notification                 | Cleanup                                 | Retention                                       |
+| ----------------------------------------------------------------- | --------------------------------------------- | -------------------------------- | -------------------------------------- | ---------------------------------- | ----------------------------------- | --------------------------------------- | ----------------------------------------------- |
+| Saved URLs                                                        | Canonical saved URL data                      | IndexedDB                        | Url store                              | Yes                                | saved-tabs post-commit protocol     | Unreferenced-URL policy                 | Until user deletion or configured expiry        |
+| Saved tabs / custom projects                                      | Collections, membership, categories, ordering | IndexedDB                        | Collection/Membership/Category stores  | Yes                                | saved-tabs post-commit protocol     | Domain transaction                      | Until user deletion                             |
+| Parent categories                                                 | Group metadata and collection assignment      | IndexedDB                        | CollectionGroup and Collection.groupId | Yes                                | saved-tabs post-commit protocol     | Domain transaction                      | Until user deletion                             |
+| AI conversation history                                           | Conversations, messages, attachments, traces  | IndexedDB                        | AI conversation repository             | Yes, JSON-safe projection          | AI-history post-commit scope        | Conversation deletion                   | Until user deletion, subject to resource limits |
+| Saved analytics views                                             | User-defined analytics queries                | IndexedDB                        | Analytics view repository              | Yes                                | analytics post-commit scope         | View deletion                           | Until user deletion                             |
+| `userSettings`                                                    | Configuration and prompt presets              | `chrome.storage.local`           | Settings schema                        | Yes, field policy                  | Settings `chrome.storage.onChanged` | None on database startup                | Persistent                                      |
+| `activeAiChatConversationId`                                      | Current conversation selection                | `chrome.storage.local`           | Selection control key                  | No; import chooses a valid default | Selection storage event             | Selection repair                        | Until selected conversation disappears          |
+| `tab-manager-theme`                                               | UI theme preference                           | `chrome.storage.local`           | ThemeProvider key                      | No                                 | Theme UI state                      | User reset only                         | Persistent                                      |
+| `viewMode`                                                        | Retired route preference                      | None; URL route is authoritative | Saved-tabs router                      | No                                 | None                                | Explicit key removal on route bootstrap | Until route bootstrap                           |
+| `seenVersion` / `changelogShown`                                  | Release-display controls                      | `chrome.storage.local`           | Background release control             | No                                 | None                                | Overwritten per release                 | Persistent                                      |
+| Recovery snapshots                                                | Before-overwrite restore data                 | IndexedDB                        | Recovery snapshot repository           | No; internal artifact              | recovery post-commit scope          | TTL/count cleanup                       | At most 2 snapshots for 7 days                  |
+| `tabbin-ai-chat-sidebar-width` / `tabbin-extension-sidebar-width` | Layout preferences                            | Local UI storage                 | Owning component                       | No                                 | None                                | User reset only                         | Per device                                      |
 
-Notice dismissals use the dedicated `tabbin:noticeDismissals:v1` record in
-`chrome.storage.local`, rather than `userSettings` or the IndexedDB domain
-model. This control-plane UI state is read alongside the authoritative migration
-status, is not included in Backup V2, and is scoped by versioned notice IDs.
+Retired Chrome Storage domain keys, migration flags,
+`tabbin:persistenceControlState:v2`, `tabbin:migrationPreflight:v1`, and the
+old migration notice-dismissal record are not consulted by domain startup or
+operations. Residual values are left in place; there is no migration-dependent
+cleanup, fallback, or dual write. Settings and release/UI state remain supported,
+and the `storage` permission stays required.
 
-No raw current key is a second authority after its logical cutover. Backup V2
-contains the logical model, not both legacy and v2 representations.
+Backup V2 contains the logical IndexedDB model and the supported settings
+projection. It does not duplicate old Chrome Storage domain representations.
 
 ## Incognito data boundary
 
@@ -409,23 +416,19 @@ documentation.
 
 ### Normal-only scope
 
-- PersistenceBootstrap state, migration lock, migration ownership, source
-  snapshot, target database identity, and cleanup eligibility are
+- Database identity, readiness, operation coordination, and recovery are
   normal-context-only.
-- Persistence v2 has one normal-context IndexedDB database identity. It does not
-  create a private database, private migration marker, or private bootstrap
-  state.
-- Migration coordination is acquired and verified only for the normal context.
-  If an unsupported private context reaches bootstrap in a development or
-  side-loaded build, it fails closed with `MIGRATION_COORDINATION_UNAVAILABLE`;
-  it must not read, write, cut over, or clean up either persistence source.
+- Persistence v2 has one normal-context IndexedDB database. It does not create
+  a private database or private bootstrap state.
+- The normal-context guard rejects unsupported private contexts before any
+  persistent domain operation. Web Locks coordinate only supported contexts.
 - Backup V2 exports and imports normal-context data only. There is no private
   backup envelope or implicit merge into a normal backup.
 - Analytics and AI saved-URL context builders consume normal-context data only.
   They must not infer inclusion merely because a storage engine exposes a
   record.
-- Migration notices, dismissal state, settings, recovery snapshots, and legacy
-  cleanup all use the normal-context control plane.
+- Settings, release/UI state, and recovery snapshots use normal-context
+  storage boundaries.
 
 Supporting private browsing later requires a dedicated product decision and
 separate migration, backup, analytics, AI, cleanup, and browser-compatibility
@@ -551,11 +554,9 @@ chart datum, or tool input/output.
 - `INVALID_BACKUP` identifies a non-finite, negative, fractional, or otherwise
   unsafe usage metric and remains distinct from a valid over-limit backup.
 
-The current pre-IndexedDB importer uses the shared serialized-byte preflight
-instead of the former UI-local 10 MiB constant. Its mixed legacy shapes remain
-the compatibility importer's responsibility; #730 collects the complete Backup
-V2 resource metrics after format detection rather than guessing them from mixed
-legacy representations. AI data is not silently excluded to make a limit pass.
+The current importer accepts Backup V2 only and validates all supported
+resource classes. Pre-IndexedDB backups are rejected before persistence is
+mutated. AI data is not silently excluded to make a limit pass.
 
 ### Benchmark and recovery capacity
 
@@ -576,7 +577,11 @@ than assuming every snapshot reaches 128 MiB. The hard policy still bounds two
 retained payloads at 256 MiB before IndexedDB overhead. Recovery snapshot failure
 blocks overwrite import; no snapshot is silently skipped.
 
-## Migration recoverability
+## Historical migration recoverability
+
+The following source-field analysis documents previously migrated data. The
+Chrome Storage reader/mapper and its preflight are retired by Issue #861; these
+entries do not describe a supported migration path.
 
 | V2 field                            | Current source                                     | Recoverability                                                                  |
 | ----------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -642,11 +647,11 @@ input, write storage, or repair the snapshot. It returns a deterministic
 `StorageIntegrityReport`; `isHealthy` is true only when the typed `issues` list
 is empty.
 
-Operational reads and migration/import admission use the issue severity rather
+Operational reads and Backup V2 import admission use the issue severity rather
 than `isHealthy` as their blocking boundary. An `error` finding rejects the
 snapshot. A warning-only snapshot remains readable and preserves its records
 for explicit review; in particular, an `ORPHAN_URL` warning must not make a
-target that was accepted during migration unreadable after cutover.
+record accepted by an older migration unreadable after an update.
 
 Every code in `PERSISTENCE_V2_INVARIANT_CODES` has an exhaustive severity and
 repairability entry in `PERSISTENCE_V2_INVARIANT_POLICY`. The v2 checker emits
@@ -673,8 +678,8 @@ review. An invalid active-chat selection can produce the non-destructive
 `ORPHAN_URL` never produces an automatic deletion operation. The plan's
 `destructive` flag is derived from its operations, and executing those
 operations remains a caller-owned step after review and backup. Callers must
-re-run `checkPersistenceIntegrity` after any repair and must not cut over or
-clean up legacy storage while an `error` finding remains.
+re-run `checkPersistenceIntegrity` after any repair. An `error` finding blocks
+normal domain access; it does not authorize deleting data.
 
 ## Query and projection boundary
 
@@ -699,123 +704,50 @@ Recently saved, this week, frequent URLs, expiring soon, and duplicates are
 derived views. They are queries/read models, not persisted Collections, unless a
 later product requirement explicitly turns one into user-owned data.
 
-## PersistenceBootstrap control plane
+## IndexedDB readiness and recovery
 
-Issue #727 defines one readiness entry and one authoritative control-plane
-record at `tabbin:persistenceControlState:v2` in `chrome.storage.local`. An
-absent record means `legacy`; IndexedDB database or object-store presence never
-implies cutover. The runtime decoder accepts only the explicit states `legacy`,
-`migrating`, `verifying`, `cutover-pending`, `indexeddb`, `failed`, and
-`read-only-emergency`, and every mutation uses a typed transition command.
+`PersistenceBootstrap.ready()` opens the normal-context IndexedDB database and
+runs its supported schema upgrade. It reads neither Chrome Storage domain data
+nor Chrome migration/control records. Database absence initializes an empty
+database; existing stores and records are preserved.
 
-Normal persistence reads and writes acquire the stable cross-context Web Lock
-in shared mode, call `PersistenceBootstrap.ready()`, re-read the control state
-while still holding the lock, and execute only against the authorized route.
-Migration and restart recovery acquire that lock in exclusive mode. Missing or
-rejected Web Locks fail closed as `PERSISTENCE_COORDINATION_UNAVAILABLE`; there
-is no lockless production fallback. A module Promise is only a same-context
-single-flight optimization and never owns correctness.
+Readiness does not scan the complete domain snapshot. Snapshot readers retain
+record decoding and blocking integrity checks, while recovery snapshots stay
+accessible even when current domain records are damaged. Database failures are
+reported through the typed persistence recovery path; retry closes and reopens
+the connection. Recovery never falls back to legacy Chrome Storage.
 
-The legacy/indexeddb route is only for migrated domain data. Persistent
-settings such as `userSettings`, UI theme, release display controls, and the
-control record keep dedicated raw settings/control ports and remain available
-after an IndexedDB cutover; they are not misclassified as legacy domain reads.
-Both `createSavedTabsRepositories` and `createSavedTabsUseCasesDeps` inject the
-gated port only into migrated domain repositories and inject a separate raw
-port into `UserSettingsRepository`.
+Normal reads and writes retain the stable cross-context Web Lock in shared
+mode. The existing lock name is preserved so overlapping extension contexts
+continue to coordinate. Missing or rejected Web Locks fail closed as
+`PERSISTENCE_COORDINATION_UNAVAILABLE`; there is no lockless production
+fallback. A module Promise is only a same-context single-flight optimization.
 
-Before the control record is read, the Chrome adapter restricts
-`storage.local` to `TRUSTED_CONTEXTS`. When `setAccessLevel` is unavailable, it
-may continue only after the runtime manifest proves that no content script is
-declared; an uninspectable or content-script-enabled manifest fails closed.
-This is a whole-storage-area capability, so the no-content-script manifest
-invariant remains security-sensitive.
+Settings use dedicated Chrome Storage ports and remain available independently
+of domain database readiness. The trusted-context access restriction and
+no-content-script manifest invariant remain security-sensitive.
 
-`cutover-pending` is the only state that recovery may finalize without running
-verification again. `failed` authorizes no normal operation; a persisted
-migration ID may be retried only while the exclusive barrier is held, either by
-restart readiness recovery or an explicit migration retry.
-Every typed gate failure is also published to the app-level recovery controller.
-The extension app renders a persistent recovery notice that states legacy data
-was not deleted and exposes an explicit retry action; retry success clears the
-notice, while another typed failure replaces the visible recovery state.
-`read-only-emergency` permits only reads from its declared source. An IndexedDB
-emergency-read state must retain its migration ID and persistence generation;
-the decoder rejects an IndexedDB source without that identity or generation.
-Only a typed exit transition with the same migration ID restores the IndexedDB
-state. The emergency operation matrix, forward-fix policy, and release
-compatibility procedure are defined in
-[`persistence-v2-emergency.md`](../runbooks/persistence-v2-emergency.md). The
-bootstrap port has no legacy-delete capability. Raw legacy parsing, mapping,
-transactional copy, and semantic verification remain owned by #728. The #727
-lifecycle boundary requires the approved preflight source fingerprint and a
-fresh current-source fingerprint, compares them under exclusive ownership
-before any migration write, and persists `PERSISTENCE_PREFLIGHT_STALE` on a
-mismatch. #738 remains responsible for producing the read-only preflight
-fingerprint and invalidating its result after normal source writes.
+The legacy router, migration lifecycle, raw reader/mapper, source preflight,
+migration emergency backup, and migration-dependent cleanup are retired.
+Current Backup V2 overwrite import keeps its before-overwrite recovery snapshot,
+transactional replacement, integrity validation, and bounded recovery storage.
+Schema migration inside IndexedDB and explicit integrity repair remain supported.
 
-Issue `#738` stores that approval separately as
-`tabbin:migrationPreflight:v1`. The
-record contains only versioned issue codes, entity counts, collision count,
-capacity status, timestamps, and the SHA-256 source fingerprint; it contains no
-URL, title, notes, AI message, attachment, or other raw user content. Snapshot
-and recheck use the #727 exclusive Web Lock, while pure analysis and
-`navigator.storage.estimate()` run outside it. The production capacity policy
-uses the measured dry-target/source ratio plus a 1 MiB minimum reserve and 20%
-target reserve. `not-run`, `blocked`, and `stale` authorize no migration;
-`readHealthySourceFingerprint()` exposes an approval only after a current
-fingerprint match. The app notice keeps legacy data unchanged and offers safe
-diagnostic copy, local raw backup, and retry. No diagnostic is sent externally.
+## Current ownership and verification
 
-The control record contains no user data. It is excluded from Backup V2 and is
-not a #739 domain change event. #739 continues to notify consumers only after a
-committed domain mutation; bootstrap state transitions are internal barrier
-events.
-
-## Handoff and review gates
-
-#711 establishes current-state evidence, not v2 concurrency guarantees. Current
-module-local queues do not serialize writers in different extension contexts.
-The #711 regression suite
-deterministically reproduces a two-context read-modify-write lost update. It
-also proves that a recreated module reloads durable storage instead of depending
-on module globals.
-
-For `urls` only, each module context now lazily subscribes to its own local
-`chrome.storage.onChanged` event, removes and re-registers its listener when the
-available API object changes, and bypasses the cache when the API is unavailable.
-Invalidation or a storage API transition advances the cache generation. A
-resolved read is cached only when that generation and the registered API
-identity are unchanged.
-This closes that cache-coherence gap but does not provide cross-context
-transactional read-modify-write, migration readiness, or preflight-fingerprint
-guarantees for general writers.
-
-- #711 owns the linked complete writer/context/implicit-writer inventory. A
-  newly found logical data class must be added to the matrix before schema
-  finalization.
-- #712 owns the pure checker and issue severity/repairability.
-- #726 owns v2 physical schema and connection lifecycle, use-case transaction
-  boundaries, and cross-context write serialization. Use-case-sized multi-store
-  mutations must not be split into independent repository transactions.
-- #727 owns the PersistenceBootstrap readiness barrier and cross-context
-  migration coordination. Every domain read/write participates in this barrier;
-  a module-global Promise is not a correctness boundary.
-- #728 owns raw legacy snapshot parsing, pure v2 mapping, transactional target
-  writes, read-back integrity verification, restart, and retry behavior.
-- #719 defines the executable supported Backup V2 envelope and typed failures.
-  #730 collects metrics and calls `validateBackupResourceUsage` for both export
-  and import. Every matrix row marked Backup V2 = Yes participates in
-  `import(export(x))` invariants.
-- #738 owns read-only preflight, source fingerprints, and normal-write staleness
-  invalidation. Its identity, timestamp, reference, capacity, and JSON-safety
-  analysis must use a raw non-repairing reader without mutating the source.
-- #739 owns post-commit cross-context change notification and invalidation,
-  current `chrome.storage.onChanged` consumer migration, and re-query
-  convergence. Consumers invalidate and re-query current persistence state.
-  Missed, duplicate, out-of-order events or restarts must converge by reading
-  that current state.
-
-Model review is complete for #725 when this document, the TypeScript proposal,
-the executable corpus, the JSON-safe guard, and the policy tests agree. This is
-not authorization to release #726/#728/#729 as one combined cutover.
+- Domain writes use use-case-sized, multi-store IndexedDB transactions and
+  revision checks; repository transactions must not split one aggregate mutation.
+- Snapshot/query adapters own record decoding, logical projection, and integrity
+  admission. Presentation, analytics, and AI consume these projections.
+- Backup V2 schema, resource metrics, JSON safety, and overwrite recovery are
+  shared contracts. Every data class included in Backup V2 participates in
+  export/import invariants.
+- Post-commit notifications carry safe metadata only. Consumers invalidate and
+  re-query persistence state; missed, duplicate, or out-of-order events and
+  restarts converge by reading current records.
+- The writer inventory covers current Chrome settings/UI mutations and
+  IndexedDB domain/replacement/recovery boundaries. New writers require matching
+  inventory entries and verifier coverage.
+- New-install and already-migrated restart/update smoke tests exercise Chrome
+  and Firefox. Dormant-user Chrome Storage migration is outside the product
+  contract established by Issue #861.

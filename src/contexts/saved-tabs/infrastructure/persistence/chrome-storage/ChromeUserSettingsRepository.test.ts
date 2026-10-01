@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 
-import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
 import { createChromeUserSettingsRepository } from './ChromeUserSettingsRepository'
-import { USER_SETTINGS_KEY } from './savedTabsStorageKeys'
+import {
+  USER_SETTINGS_KEY,
+  UserSettingsRepositoryUnavailableError,
+} from './ChromeUserSettingsStorage'
 
 const createPort = (value: unknown) => ({
   get: vi.fn(async (key: string) => ({ [key]: value })),
@@ -58,7 +60,7 @@ describe('ChromeUserSettingsRepository', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
     expect(() => createChromeUserSettingsRepository(null)).toThrow(
-      SavedTabsRepositoryUnavailableError,
+      UserSettingsRepositoryUnavailableError,
     )
   })
 

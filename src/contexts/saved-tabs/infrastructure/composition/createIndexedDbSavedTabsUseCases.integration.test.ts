@@ -15,8 +15,6 @@ import {
 const gate: PersistenceOperationGatePort = {
   runIndexedDbRead: async (operation) => operation(),
   runIndexedDbWrite: async (operation) => operation(),
-  runLegacyRead: async (operation) => operation(),
-  runLegacyWrite: async (operation) => operation(),
 }
 
 describe('createIndexedDbSavedTabsUseCases', () => {
@@ -81,6 +79,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       },
     })
     const useCases = createIndexedDbSavedTabsUseCases({
+      operationGate: gate,
       connectionManager: manager,
     })
 
@@ -164,6 +163,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     })
 
     const useCases = createIndexedDbSavedTabsUseCases({
+      operationGate: gate,
       connectionManager: manager,
     })
     const before = await useCases.getSavedTabsPageData()
@@ -182,6 +182,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       indexedDb,
     })
     const reloadedUseCases = createIndexedDbSavedTabsUseCases({
+      operationGate: gate,
       connectionManager: reloadedManager,
     })
     const after = await reloadedUseCases.getSavedTabsPageData()
@@ -359,6 +360,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       },
     })
     const useCases = createIndexedDbSavedTabsUseCases({
+      operationGate: gate,
       connectionManager: manager,
     })
 
@@ -427,6 +429,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       indexedDb,
     })
     const useCases = createIndexedDbSavedTabsUseCases({
+      operationGate: gate,
       connectionManager: manager,
     })
 
@@ -532,6 +535,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     })
     const snapshotReader = new IndexedDbPersistenceSnapshotReader(manager, gate)
     const useCases = createIndexedDbSavedTabsUseCases({
+      operationGate: gate,
       connectionManager: manager,
     })
 
@@ -548,6 +552,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     expect(afterProjectRemoval.savedTabs.urls).toHaveLength(2)
 
     const runtime = createNativeIndexedDbSavedTabsRuntime({
+      operationGate: gate,
       connectionManager: manager,
     })
     const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
@@ -645,6 +650,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       },
     })
     const useCases = createIndexedDbSavedTabsUseCases({
+      operationGate: gate,
       connectionManager: manager,
     })
 
@@ -658,6 +664,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     })
 
     const runtime = createNativeIndexedDbSavedTabsRuntime({
+      operationGate: gate,
       connectionManager: manager,
     })
     const snapshotReader = new IndexedDbPersistenceSnapshotReader(manager, gate)
@@ -712,6 +719,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     })
     const snapshotReader = new IndexedDbPersistenceSnapshotReader(manager, gate)
     const runtime = createNativeIndexedDbSavedTabsRuntime({
+      operationGate: gate,
       connectionManager: manager,
     })
     const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({

@@ -68,10 +68,7 @@ export type OptionsBackupRecoveryRuntimeDeps = {
     operationGate: PersistenceOperationGatePort,
   ) => ImportBackupV2UseCaseDeps['snapshotReader']
   readonly estimateStorage: PersistenceStorageEstimatePort
-  readonly getBootstrap: () => Pick<
-    PersistenceBootstrapPort,
-    'ready' | 'readState'
-  >
+  readonly getBootstrap: () => Pick<PersistenceBootstrapPort, 'ready'>
   readonly getOperationGate: () => PersistenceOperationGatePort
   readonly idGenerator: IdGeneratorPort
   readonly readUserSettings: ImportBackupV2UseCaseDeps['readUserSettings']
@@ -206,16 +203,6 @@ const createRuntime = (
     listRecoverySnapshots: async () => {
       const bootstrap = deps.getBootstrap()
       await bootstrap.ready()
-      const state = await bootstrap.readState()
-      // Recovery snapshots belong to the IndexedDB data plane. A blocked
-      // legacy migration has no authorized IndexedDB snapshot list to read.
-      if (
-        state.status === 'legacy' ||
-        (state.status === 'read-only-emergency' &&
-          state.readSource === 'legacy')
-      ) {
-        return []
-      }
       return recoveryService.listAvailable()
     },
     restoreRecoverySnapshot: async (id) =>

@@ -14,23 +14,6 @@
 
 export { normalizeDomainString } from './domain/value-objects/DomainName'
 
-export { mapLegacyStorageToPersistenceV2 } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
-export type { LegacyMigrationIssueCode } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
-export type {
-  RawLegacyStorageSnapshot,
-  RawLegacyStorageValue,
-} from './application/ports/RawLegacyStorageReaderPort'
-export type {
-  CustomProject,
-  DomainCategorySettings,
-  DomainParentCategoryMapping,
-  LegacyChromeStorageDto,
-  ParentCategory,
-  ProjectKeywordSettings,
-  SubCategoryKeyword,
-  TabGroup,
-  UrlRecord,
-} from './application/dto/LegacyChromeStorageDto'
 export type { ClockPort } from './application/ports/ClockPort'
 export type { IdGeneratorPort } from './application/ports/IdGeneratorPort'
 export type {
