@@ -44,127 +44,40 @@ const createMockOnChanged = (): MockOnChanged => {
 describe('createChromeStorageChangeAdapter', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
-  it('chrome.storage.onChanged の listener を register / unregister する', () => {
+  it('listener を register / unregister する', () => {
     const onChanged = createMockOnChanged()
     const adapter = createChromeStorageChangeAdapter({
       getOnChanged: () => onChanged,
     })
-
     const unsubscribe = adapter.subscribe(() => {})
 
     expect(onChanged.addListener).toHaveBeenCalledTimes(1)
-
     unsubscribe()
-
     expect(onChanged.removeListener).toHaveBeenCalledTimes(1)
   })
 
-  it('chrome.storage.StorageChange を port DTO に変換して listener へ渡す', () => {
+  it('旧 Chrome Storage の domain change は settings listener に伝播しない', () => {
     const onChanged = createMockOnChanged()
     const adapter = createChromeStorageChangeAdapter({
       getOnChanged: () => onChanged,
     })
     const listener = vi.fn()
-
     adapter.subscribe(listener)
+
     onChanged.emit(
       {
         savedTabs: {
-          newValue: [
-            {
-              id: 'group-1',
-              domain: 'example.com',
-              urlIds: [],
-            },
-          ],
-          oldValue: [],
+          newValue: [{ id: 'legacy-group', domain: 'example.com' }],
         },
-        parentCategories: {
-          newValue: [
-            {
-              id: 'parent-1',
-              name: 'Work',
-              domains: [],
-              domainNames: [],
-            },
-          ],
-          oldValue: [],
-        },
-      },
-      'local',
-    )
-
-    expect(listener).toHaveBeenCalledTimes(1)
-    expect(listener).toHaveBeenCalledWith([
-      {
-        key: 'savedTabs',
-        kind: 'parsed',
-        oldValue: [],
-        payload: [
-          expect.objectContaining({
-            collection: expect.objectContaining({
-              definition: { domain: 'example.com', type: 'domain' },
-              id: 'group-1',
-            }),
-            collectionCategories: [],
-            id: 'group-1',
-            memberships: [],
-          }),
-        ],
-      },
-      {
-        key: 'parentCategories',
-        kind: 'parsed',
-        oldValue: [],
-        payload: [
-          {
-            id: 'parent-1',
-            name: 'Work',
-            collections: [],
-          },
-        ],
-      },
-    ])
-  })
-
-  it('saved-tabs 対象外の storage キーは除外する', () => {
-    const onChanged = createMockOnChanged()
-    const adapter = createChromeStorageChangeAdapter({
-      getOnChanged: () => onChanged,
-    })
-    const listener = vi.fn()
-
-    adapter.subscribe(listener)
-    onChanged.emit(
-      {
-        // port 仕様にないキー
-        someExtensionKey: { newValue: 1, oldValue: 0 },
-        // port 仕様のキー
-        savedTabs: { newValue: [], oldValue: [] },
-      },
-      'local',
-    )
-
-    expect(listener).toHaveBeenCalledTimes(1)
-    expect(listener).toHaveBeenCalledWith([
-      { key: 'savedTabs', kind: 'parsed', oldValue: [], payload: [] },
-    ])
-  })
-
-  it('areaName が一致しない変更は listener へ伝播しない', () => {
-    const onChanged = createMockOnChanged()
-    const adapter = createChromeStorageChangeAdapter(
-      { getOnChanged: () => onChanged },
-      { areaName: 'sync' },
-    )
-    const listener = vi.fn()
-
-    adapter.subscribe(listener)
-    onChanged.emit(
-      {
-        savedTabs: { newValue: [], oldValue: [] },
+        urls: { newValue: [{ id: 'legacy-url', url: 'https://example.com' }] },
+        parentCategories: { newValue: [] },
+        customProjects: { newValue: [] },
+        customProjectOrder: { newValue: [] },
+        aiChatConversations: { newValue: [] },
+        savedAnalyticsViews: { newValue: [] },
       },
       'local',
     )
@@ -172,299 +85,180 @@ describe('createChromeStorageChangeAdapter', () => {
     expect(listener).not.toHaveBeenCalled()
   })
 
-  it('chrome API がない環境では no-op の unsubscribe を返す', () => {
-    const adapter = createChromeStorageChangeAdapter({
-      getOnChanged: () => null,
-    })
+  it('settings と旧 domain change が同時に届いても settings のみ通知する', () => {
+    const onChanged = createMockOnChanged()
     const listener = vi.fn()
-
-    const unsubscribe = adapter.subscribe(listener)
-    expect(unsubscribe).toBeTypeOf('function')
-
-    // 解除呼び出しも例外を投げない
-    expect(() => unsubscribe()).not.toThrow()
-    expect(listener).not.toHaveBeenCalled()
-  })
-
-  it('deps 未指定でも globalThis.chrome.storage.onChanged 経由で listener を解決する', () => {
-    const onChanged = createMockOnChanged()
-    const previousChrome = (globalThis as { chrome?: unknown }).chrome
-    ;(globalThis as { chrome?: unknown }).chrome = {
-      storage: { onChanged },
-    }
-    try {
-      const adapter = createChromeStorageChangeAdapter()
-      const listener = vi.fn()
-
-      adapter.subscribe(listener)
-      onChanged.emit(
-        { customProjectOrder: { newValue: ['a'], oldValue: [] } },
-        'local',
-      )
-
-      expect(listener).toHaveBeenCalledWith([
-        {
-          key: 'customProjectOrder',
-          kind: 'parsed',
-          oldValue: [],
-          payload: ['a'],
-        },
-      ])
-    } finally {
-      ;(globalThis as { chrome?: unknown }).chrome = previousChrome
-    }
-  })
-
-  it('deps 未指定で globalThis.chrome も無い場合は no-op で動く', () => {
-    const previousChrome = (globalThis as { chrome?: unknown }).chrome
-    delete (globalThis as { chrome?: unknown }).chrome
-    try {
-      const adapter = createChromeStorageChangeAdapter()
-      const listener = vi.fn()
-
-      const unsubscribe = adapter.subscribe(listener)
-
-      expect(unsubscribe).toBeTypeOf('function')
-      expect(listener).not.toHaveBeenCalled()
-    } finally {
-      ;(globalThis as { chrome?: unknown }).chrome = previousChrome
-    }
-  })
-
-  it('getApi から chrome.storage.onChanged 経由で listener を解決する', () => {
-    const onChanged = createMockOnChanged()
-    const api: ChromeApiLike = {
-      storage: { onChanged },
-    }
-    const adapter = createChromeStorageChangeAdapter({ getApi: () => api })
-    const listener = vi.fn()
-
-    adapter.subscribe(listener)
-    onChanged.emit({ customProjects: { newValue: [], oldValue: [] } }, 'local')
-
-    expect(listener).toHaveBeenCalledWith([
-      { key: 'customProjects', kind: 'parsed', oldValue: [], payload: [] },
-    ])
-  })
-
-  it('issue #530: urls は payload を持たず noPayload として emit する', () => {
-    const onChanged = createMockOnChanged()
-    const adapter = createChromeStorageChangeAdapter({
+    createChromeStorageChangeAdapter({
       getOnChanged: () => onChanged,
-    })
-    const listener = vi.fn()
+    }).subscribe(listener)
 
-    adapter.subscribe(listener)
     onChanged.emit(
       {
-        urls: {
-          newValue: [{ id: 'url-1' }],
-          oldValue: [],
-        },
-      },
-      'local',
-    )
-
-    expect(listener).toHaveBeenCalledTimes(1)
-    expect(listener).toHaveBeenCalledWith([
-      {
-        key: 'urls',
-        kind: 'noPayload',
-        oldValue: [],
-        newValue: [{ id: 'url-1' }],
-      },
-    ])
-  })
-
-  it('issue #530: savedTabs の壊れた要素はスキップし valid な payload だけを流す', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const onChanged = createMockOnChanged()
-    const adapter = createChromeStorageChangeAdapter({
-      getOnChanged: () => onChanged,
-    })
-    const listener = vi.fn()
-
-    adapter.subscribe(listener)
-    onChanged.emit(
-      {
-        savedTabs: {
-          newValue: [
-            { id: 'group-1', domain: 'example.com' },
-            // domain 欠損はスキップ
-            { id: 'broken' },
-          ],
-          oldValue: [],
-        },
-      },
-      'local',
-    )
-
-    expect(listener).toHaveBeenCalledTimes(1)
-    expect(listener).toHaveBeenCalledWith([
-      {
-        key: 'savedTabs',
-        kind: 'parsed',
-        oldValue: [],
-        payload: [
-          expect.objectContaining({
-            collection: expect.objectContaining({
-              definition: { domain: 'example.com', type: 'domain' },
-              id: 'group-1',
-            }),
-            collectionCategories: [],
-            id: 'group-1',
-            memberships: [],
-          }),
-        ],
-      },
-    ])
-    expect(warnSpy).toHaveBeenCalled()
-  })
-
-  it('issue #530 review P1: customProjects の legacy データに default を入れて payload 化する', () => {
-    const onChanged = createMockOnChanged()
-    const adapter = createChromeStorageChangeAdapter({
-      getOnChanged: () => onChanged,
-    })
-    const listener = vi.fn()
-
-    adapter.subscribe(listener)
-    onChanged.emit(
-      {
-        customProjects: {
-          newValue: [
-            // legacy: categories / createdAt / updatedAt 無し
-            { id: 'legacy-1', name: 'Legacy' },
-            // 有効データ
-            {
-              categories: ['research'],
-              createdAt: 1,
-              id: 'project-1',
-              name: 'Q4',
-              updatedAt: 2,
-              urlIds: ['url-1'],
-            },
-          ],
-          oldValue: [],
-        },
-      },
-      'local',
-    )
-
-    expect(listener).toHaveBeenCalledTimes(1)
-    expect(listener).toHaveBeenCalledWith([
-      {
-        key: 'customProjects',
-        kind: 'parsed',
-        oldValue: [],
-        payload: [
-          expect.objectContaining({
-            collection: expect.objectContaining({ id: 'legacy-1' }),
-            collectionCategories: [],
-            createdAt: 0,
-            id: 'legacy-1',
-            memberships: [],
-            name: 'Legacy',
-            updatedAt: 0,
-          }),
-          expect.objectContaining({
-            collection: expect.objectContaining({ id: 'project-1' }),
-            collectionCategories: [
-              expect.objectContaining({ name: 'research' }),
-            ],
-            createdAt: 1,
-            id: 'project-1',
-            memberships: [expect.objectContaining({ urlId: 'url-1' })],
-            name: 'Q4',
-            updatedAt: 2,
-          }),
-        ],
-      },
-    ])
-  })
-
-  it('issue #530: userSettings は partial 適用としてパースされる', () => {
-    const onChanged = createMockOnChanged()
-    const adapter = createChromeStorageChangeAdapter({
-      getOnChanged: () => onChanged,
-    })
-    const listener = vi.fn()
-
-    adapter.subscribe(listener)
-    onChanged.emit(
-      {
+        savedTabs: { newValue: [] },
         userSettings: {
-          newValue: {
-            removeTabAfterOpen: true,
-          },
-          oldValue: {},
+          oldValue: { language: 'ja' },
+          newValue: { language: 'en', removeTabAfterOpen: true },
         },
+        someExtensionKey: { newValue: 1 },
       },
       'local',
     )
 
-    expect(listener).toHaveBeenCalledTimes(1)
-    expect(listener).toHaveBeenCalledWith([
+    expect(listener).toHaveBeenCalledExactlyOnceWith([
       {
         key: 'userSettings',
         kind: 'parsed',
-        oldValue: {},
-        payload: [{ removeTabAfterOpen: true }],
+        oldValue: { language: 'ja' },
+        payload: [{ language: 'en', removeTabAfterOpen: true }],
       },
     ])
   })
 
-  it('issue #530: 配列以外の newValue は payload を空配列として emit する', () => {
+  it('表示・保存動作・AI 設定の全 field を保持する', () => {
     const onChanged = createMockOnChanged()
-    const adapter = createChromeStorageChangeAdapter({
-      getOnChanged: () => onChanged,
-    })
     const listener = vi.fn()
+    createChromeStorageChangeAdapter({
+      getOnChanged: () => onChanged,
+    }).subscribe(listener)
+    const settings = {
+      language: 'ja',
+      removeTabAfterOpen: true,
+      removeTabAfterExternalDrop: false,
+      excludePatterns: ['example.com'],
+      enableCategories: true,
+      autoDeletePeriod: '7days',
+      showSavedTime: true,
+      clickBehavior: 'saveCurrentTab',
+      excludePinnedTabs: false,
+      openUrlInBackground: true,
+      openAllInNewWindow: false,
+      confirmDeleteAll: true,
+      confirmDeleteEach: false,
+      fontSizePercent: 120,
+      colors: { primary: '#fff' },
+      ollamaModel: 'local-model',
+      aiSystemPrompts: [
+        {
+          id: 'prompt-1',
+          name: 'Default',
+          template: 'Summarize',
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ],
+      activeAiSystemPromptId: 'prompt-1',
+    }
 
-    adapter.subscribe(listener)
-    onChanged.emit(
+    onChanged.emit({ userSettings: { newValue: settings } }, 'local')
+
+    expect(listener).toHaveBeenCalledExactlyOnceWith([
       {
-        savedTabs: { newValue: { invalid: true }, oldValue: [] },
-        parentCategories: { newValue: null, oldValue: [] },
+        key: 'userSettings',
+        kind: 'parsed',
+        oldValue: undefined,
+        payload: [settings],
       },
-      'local',
-    )
+    ])
+  })
+
+  it.each([undefined, null, [], { removeTabAfterOpen: 'invalid' }])(
+    '不正 settings は空 payload として通知する: %j',
+    (newValue) => {
+      const onChanged = createMockOnChanged()
+      const listener = vi.fn()
+      createChromeStorageChangeAdapter({
+        getOnChanged: () => onChanged,
+      }).subscribe(listener)
+
+      onChanged.emit({ userSettings: { newValue } }, 'local')
+
+      expect(listener).toHaveBeenCalledExactlyOnceWith([
+        {
+          key: 'userSettings',
+          kind: 'parsed',
+          oldValue: undefined,
+          payload: [],
+        },
+      ])
+    },
+  )
+
+  it('areaName が一致した変更だけ通知する', () => {
+    const onChanged = createMockOnChanged()
+    const listener = vi.fn()
+    createChromeStorageChangeAdapter(
+      { getOnChanged: () => onChanged },
+      { areaName: 'sync' },
+    ).subscribe(listener)
+
+    onChanged.emit({ userSettings: { newValue: {} } }, 'local')
+    expect(listener).not.toHaveBeenCalled()
+    onChanged.emit({ userSettings: { newValue: {} } }, 'sync')
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('deps 未指定で globalThis.chrome から listener を解決する', () => {
+    const onChanged = createMockOnChanged()
+    vi.stubGlobal('chrome', { storage: { onChanged } })
+    const listener = vi.fn()
+    createChromeStorageChangeAdapter().subscribe(listener)
+
+    onChanged.emit({ userSettings: { newValue: { language: 'ja' } } }, 'local')
 
     expect(listener).toHaveBeenCalledTimes(1)
-    expect(listener).toHaveBeenCalledWith([
-      { key: 'savedTabs', kind: 'parsed', oldValue: [], payload: [] },
-      { key: 'parentCategories', kind: 'parsed', oldValue: [], payload: [] },
-    ])
   })
 
-  it('getApi が undefined を返す環境では no-op の unsubscribe を返す', () => {
-    const adapter = createChromeStorageChangeAdapter({
-      getApi: () => undefined,
-    })
+  it('getOnChanged は getApi より優先される', () => {
+    const onChanged = createMockOnChanged()
+    const getApi = vi.fn()
+    createChromeStorageChangeAdapter({
+      getOnChanged: () => onChanged,
+      getApi,
+    }).subscribe(() => {})
+
+    expect(onChanged.addListener).toHaveBeenCalledTimes(1)
+    expect(getApi).not.toHaveBeenCalled()
+  })
+
+  it('getApi から listener を解決する', () => {
+    const onChanged = createMockOnChanged()
+    const api: ChromeApiLike = { storage: { onChanged } }
     const listener = vi.fn()
+    createChromeStorageChangeAdapter({ getApi: () => api }).subscribe(listener)
 
-    const unsubscribe = adapter.subscribe(listener)
+    onChanged.emit({ userSettings: { newValue: {} } }, 'local')
 
-    expect(unsubscribe).toBeTypeOf('function')
+    expect(listener).toHaveBeenCalledTimes(1)
+  })
+
+  it('chrome API がない環境では no-op unsubscribe を返す', () => {
+    vi.stubGlobal('chrome', undefined)
+    const listener = vi.fn()
+    for (const adapter of [
+      createChromeStorageChangeAdapter(),
+      createChromeStorageChangeAdapter({ getApi: () => undefined }),
+      createChromeStorageChangeAdapter({ getApi: () => ({}) }),
+      createChromeStorageChangeAdapter({ getOnChanged: () => null }),
+    ]) {
+      expect(() => adapter.subscribe(listener)()).not.toThrow()
+    }
     expect(listener).not.toHaveBeenCalled()
   })
 
-  it('複数回 subscribe しても listener は独立して解除できる', () => {
+  it('複数 subscribe を独立して解除できる', () => {
     const onChanged = createMockOnChanged()
     const adapter = createChromeStorageChangeAdapter({
       getOnChanged: () => onChanged,
     })
     const listenerA = vi.fn()
     const listenerB = vi.fn()
-
     const unsubscribeA = adapter.subscribe(listenerA)
     adapter.subscribe(listenerB)
-    onChanged.emit({ savedTabs: { newValue: [1], oldValue: [] } }, 'local')
-    expect(listenerA).toHaveBeenCalledTimes(1)
-    expect(listenerB).toHaveBeenCalledTimes(1)
 
+    onChanged.emit({ userSettings: { newValue: {} } }, 'local')
     unsubscribeA()
-    onChanged.emit({ savedTabs: { newValue: [2], oldValue: [1] } }, 'local')
+    onChanged.emit({ userSettings: { newValue: {} } }, 'local')
+
     expect(listenerA).toHaveBeenCalledTimes(1)
     expect(listenerB).toHaveBeenCalledTimes(2)
   })

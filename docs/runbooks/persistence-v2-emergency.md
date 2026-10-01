@@ -1,137 +1,94 @@
-# Persistence v2 緊急対応 runbook
+# Persistence v2 障害復旧 runbook
 
-## 適用範囲と不変条件
+Issue #861 以降、保存 URL、Collection、Membership、Category、Group、AI 会話履歴、
+Analytics Views の正規保存先は IndexedDB のみです。設定・UI 状態の正規保存先である
+Chrome Storage は維持します。
 
-この runbook は、Issue #729 の cutover release が一度でも配布された後の
-Persistence v2 障害に適用する。cutover 後は、アプリケーションのバージョンと
-永続化データの世代を別々に扱う。
+旧 Chrome Storage ドメインデータの migration、migration control state、
+`read-only-emergency` transition、Legacy emergency backup は廃止しました。
+旧フラグを手動編集して復旧する操作や、旧 Chrome Storage ドメインキーへの fallback、
+dual-write、全 storage の clear は行いません。未移行ユーザーの旧ドメインデータは
+自動復元しません。
 
-- アプリケーション rollback は、互換性を証明した Persistence v2 runtime への
-  切り戻しだけを意味する。
-- データ rollback は、Backup V2 または recovery snapshot を明示的に復元する操作を
-  意味し、通常のアプリケーション rollback には含めない。
-- pre-IDB runtime への downgrade、legacy storage への fallback、dual-write は禁止する。
-- cutover 後 30 日間の legacy data 保持は recovery evidence であり、rollback source
-  ではない。
-- 過去の git tag はコードの位置を示すだけで、その artifact が現在の IndexedDB
-  generation を安全に読み書きできる証明にはならない。
+## 基本方針
 
-原則は **forward-fix** である。古い git tag や Store 上の旧 artifact を「安全な
-rollback」と推測して配布してはならない。
+- 既存 IndexedDB データの保全を優先し、DB を削除・初期化してエラーを隠さない。
+- DB の open / schema upgrade 失敗時は通常操作を fail closed とし、型付きエラーと
+  retry を提示する。retry は接続を開き直し、データの clear や Legacy 復元を行わない。
+- record decode / integrity check / revision guard を緩和しない。Integrity error は
+  原因調査の対象であり、未検証の自動 repair や破損レコードの読み飛ばしを追加しない。
+- `PERSISTENCE_COORDINATION_UNAVAILABLE` では lock の保護を迂回しない。
+- 復旧は現在の IndexedDB schema を読む **forward-fix** を基本とする。
+- 未解決の DB 障害中に Backup V2 import や recovery snapshot restore を試して
+  上書きによる復旧を推測しない。正常に読み取れるデータと recovery artifact を先に保全する。
 
-pre-IDB artifact は v2 marker を読む処理自体を持たないため、startup guard を
-retroactive に追加できない。現在の v2 runtime は generation が欠落・不正な control
-state を fail closed にするが、旧 artifact の再配布防止は release verifier と
-checklist を必須の保護境界とする。
+## 障害別の確認
 
-## 障害時の操作マトリクス
+| 障害                             | 現行の境界と確認                                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| DB open failure                  | readiness が操作を拒否する。接続を開き直す retry 後も失敗する場合、ブラウザの保存領域・権限と例外種別を確認する |
+| Schema upgrade failure           | upgrade transaction の abort と以前のデータ保全を確認し、forward patch で同じ upgrade を検証する                |
+| Version change / blocked upgrade | 旧接続を閉じる lifecycle と別タブの接続を確認する。データ削除や DB version の downgrade はしない                |
+| Decode / integrity failure       | 匿名化 fixture で再現し、record validation と参照関係を検査する。空データへの置換で成功にしない                 |
+| Revision conflict                | 最新 snapshot を再読み込みして操作を再判断する。旧 revision を無視して commit しない                            |
+| Backup import / restore failure  | 変更前の recovery snapshot、DB transaction の atomicity、設定書き込みと rollback の証拠を確認する               |
 
-`read-only-emergency` は、既存データを保持しながら追加破損を止めるための
-fail-closed 状態である。
+runtime に全体の編集を停止する旧 control-plane emergency mode はありません。
+DB open failure による操作拒否、個々の snapshot integrity admission、transaction の
+revision guard をそれぞれ確認します。運用記録を廃止済み state transition と混同しません。
 
-| 操作                                 | 許可 | 備考                                                           |
-| ------------------------------------ | ---- | -------------------------------------------------------------- |
-| 既存 URL、カテゴリ、notes の読み取り | 可   | control state が宣言した source だけを読む                     |
-| Backup V2 export                     | 可   | settings の正規化 repair を行わず、永続化 write を発生させない |
-| URL 保存、削除、並べ替え             | 不可 | IndexedDB write gate が拒否する                                |
-| カテゴリ、notes の変更               | 不可 | IndexedDB write gate が拒否する                                |
-| Backup V2 / legacy backup の import  | 不可 | settings-only import も拒否する                                |
-| restore、repair、cleanup、migration  | 不可 | emergency 中はデータ形状を変更しない                           |
+## Backup V2 と recovery snapshot
 
-export が失敗した場合も write-disable を解除しない。原因を記録し、読み取り専用の
-診断または forward patch で export path を回復する。
+正常に読み取れる IndexedDB からは現行 Backup V2 を export して保全します。
+export は `readUserSettingsWithoutRepair` を使い、設定の repair write を発生させません。
+読めない DB や不正な snapshot の export は失敗として扱い、検査を省略して出力しません。
 
-利用者へは、データを失ったと誤認させず、次の意味を明示する。
+明示された Backup V2 import / restore では、既存の schema validation、resource limit、
+JSON-safe boundary、overwrite 前 snapshot capture、transactional replacement を維持します。
+internal recovery snapshot は IndexedDB に保存し、最大 2 件・7 日間の既存 retention を
+変更しません。設定や UI 状態の Chrome Storage をドメインデータと一緒に消去しません。
 
-> データ保護のため、一時的に編集を停止しています。保存済みデータの閲覧と
-> バックアップは利用できます。
-
-## `read-only-emergency` の開始と解除
-
-1. 現在の control state、`migrationId`、`persistenceGeneration`、artifact version を
-   記録する。
-2. typed control-plane transition で `read-only-emergency` に入る。IndexedDB source
-   では `migrationId` と `persistenceGeneration: 2` を保持する。
-3. `chrome.storage.local` の control record を手動編集しない。
-4. write refusal と Backup V2 export success を確認する。
-5. forward patch を配布し、migration / integrity / query / mutation fixture を確認する。
-6. 入場時と同じ `migrationId` を指定した typed transition だけで emergency を解除する。
-7. 解除後に control state と通常 write の smoke test を再確認する。
-
-`migrationId` が一致しない、generation が判定できない、または互換性 metadata が
-欠落する場合は解除せず fail closed とする。
+Backup V2 には非公開の URL、タイトル、notes、AI の内容が含まれます。保管・共有は
+必要な範囲に限定し、Issue / PR / 公開ログに実データを添付しません。診断には安全な
+エラーコードと件数、browser / app / DB version を使います。
 
 ## インシデント対応手順
 
-### 1. 障害を分類する
+1. open、upgrade、read、write、integrity、backup のどの境界で失敗したかを分類する。
+   配布 app version、source commit、IndexedDB database version を記録する。
+2. 既存データと生成 artifact の `persistence-release.json` を保全する。読み取り可能なら
+   write を伴わない Backup V2 export を取得する。DB や Chrome Storage は clear しない。
+3. 匿名化した production-shaped fixture で失敗を再現し、最小の原因を特定する。
+4. 現在の schema のまま forward-fix を実装し、schema upgrade、integrity admission、
+   query、mutation、revision guard、Backup V2 round trip、overwrite recovery を検証する。
+5. 下記 rollback metadata と `bun run release:check` を確認して修正版を配布する。
+   emergency を理由に release gate や個別の公開承認を省略しない。
+6. retry、既存 IndexedDB プロファイルの restart/update、Chrome / Firefox smoke test、
+   保存・編集・削除と Backup V2 export を確認し、復旧結果を incident log に記録する。
 
-次を分けて記録する。
+## Rollback compatibility の判定
 
-- read failure / write failure / integrity failure / migration failure
-- 影響する persistence generation と IndexedDB database version
-- query path、mutation path、settings path、backup path のどれか
-- 破損が確認済みか、破損の可能性だけか
-
-### 2. write-disable を判断する
-
-継続 write が原因の拡大、既存データの上書き、または integrity 判断を困難にする
-可能性があれば、直ちに `read-only-emergency` へ移行する。迷う場合は write-disable
-を選ぶ。
-
-### 3. 現在の generation を保全する
-
-control state と build artifact の `persistence-release.json` を保存し、write を伴わない
-Backup V2 export を取得する。pre-IDB storage へコピーして世代を戻す操作はしない。
-
-### 4. 障害範囲を特定する
-
-該当する migration、schema upgrade、query、mutation、serializer、integrity check の
-最小範囲を特定する。Store 配布 version と source commit も記録する。
-
-### 5. forward patch を作成する
-
-現在の generation を読み取れる runtime 上で修正する。legacy fallback、dual-write、
-未検証の自動 repair を追加しない。
-
-### 6. fixtures と互換性を検証する
-
-実データを匿名化した fixture または同等の migration / integrity fixture で、読み取り、
-write refusal、export、修正後 mutation を検証する。下記 checklist と verifier も通す。
-
-### 7. 修正版をリリースする
-
-通常の `bun run release:check` と Store 手順を実行する。emergency を理由に
-compatibility metadata や品質 gate を省略しない。
-
-### 8. write-enable する
-
-修正版の適用、control state、integrity check、Backup V2 export を確認してから、
-一致する `migrationId` で emergency を解除する。解除時刻と確認結果を incident log
-に残す。
-
-## rollback compatibility の判定
-
-配布済み artifact と rollback candidate の両方から、次を確認する。
+pre-IDB artifact への rollback は認めません。現在の IndexedDB データを読めない旧版への
+退避や、Chrome Storage へコピーして世代を戻す操作は復旧方法ではありません。
+`git tag` だけで互換性を判断せず、配布 artifact と candidate の metadata を比較します。
 
 1. `persistenceGeneration` が同一である。
-2. candidate version が配布済み artifact の `minimumCompatibleAppVersion` 以上である。
+2. candidate version が配布 artifact の `minimumCompatibleAppVersion` 以上である。
 3. `databaseVersion` が同一である。DB downgrade を伴う candidate は拒否する。
-4. 配布済み upgrade に `destructiveSchemaChange` がない。
+4. 配布 upgrade に `destructiveSchemaChange` がない。
 5. deployed artifact の `databaseDowngradeCompatible` が `true` である。
 6. deployed artifact の `queryWriteContractCompatible` が `true` である。
 
-配布 artifact または candidate の metadata が欠落・不正な場合、判定は失敗する。
-現在の runtime と同じ generation / DB version で、minimum version 以降の artifact だけが
-v2-compatible rollback candidate になり得る。pre-IDB artifact、generation の異なる
-artifact、DB version を戻す artifact は incompatible である。
+metadata の欠落・不正、世代・DB version の不一致は fail closed とし、forward-fix を選びます。
+これらの条件を満たしても、candidate が既存データを読める fixture の検証を省略しません。
 
-build source の自己整合性は次で検証する。
+source の自己整合性は次で検証します。
 
 ```bash
 bun run verify:persistence-release-compatibility
 ```
 
-2 つの生成済み artifact を比較する場合は、信頼できる現在の source line から実行する。
+生成 artifact の比較は、信頼できる現在の source line から実行します。
 
 ```bash
 bun run verify:persistence-release-compatibility -- \
@@ -139,22 +96,14 @@ bun run verify:persistence-release-compatibility -- \
   --candidate-dir <candidate-unpacked-extension>
 ```
 
-この verifier は manifest version と `persistence-release.json` の
-`minimumCompatibleAppVersion`、`destructiveSchemaChange`、
-`queryWriteContractCompatible` を fail-closed で評価する。
+## DB upgrade / release checklist
 
-## DB upgrade / downgrade compatibility checklist
+- [ ] persistence generation、IndexedDB database version、upgrade path を記録した
+- [ ] 既存 IndexedDB データの保全と destructive schema change の有無を検証した
+- [ ] `minimumCompatibleAppVersion` と query/write contract compatibility を確認した
+- [ ] decode / integrity / revision / export / import / recovery fixture が通った
+- [ ] Chrome / Firefox の新規・既存 IndexedDB profile で restart/update を確認した
+- [ ] rollback candidate を metadata と fixture で評価し、不適合なら forward-fix とした
+- [ ] release gate と Store 公開手順を実行した
 
-schema または persistence contract を変更する release ごとに、PR と release log に
-以下を記録する。
-
-- [ ] persistence generation を維持するか、意図的に上げるか
-- [ ] IndexedDB `databaseVersion` と upgrade path
-- [ ] destructive schema change の有無と recovery strategy
-- [ ] 新しい `minimumCompatibleAppVersion`
-- [ ] 旧 query / write contract との互換性
-- [ ] migration / integrity / export fixtures の結果
-- [ ] downgrade compatibility の判定結果と候補 version
-- [ ] incompatible の場合に `read-only-emergency` と forward-fix を使うこと
-
-この checklist を満たさない artifact は Store にアップロードしない。
+この checklist を満たさない artifact は Store にアップロードしません。

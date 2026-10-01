@@ -4,10 +4,6 @@ import type {
   AiChatConversationMessage,
 } from '@/features/ai-chat/types'
 import { getMessage } from '@/features/i18n/lib/language'
-import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
-
-const AI_CHAT_CONVERSATIONS_KEY = 'aiChatConversations'
-const ACTIVE_AI_CHAT_CONVERSATION_ID_KEY = 'activeAiChatConversationId'
 
 export type ConversationHistoryState = {
   activeConversationId: string
@@ -140,11 +136,6 @@ const loadConversationHistory = async (
   interruptedMessage = DEFAULT_INTERRUPTED_RESPONSE_MESSAGE,
 ): Promise<ConversationHistoryState> => {
   const dataPlane = getAiConversationHistoryDataPlane()
-  if (!dataPlane) {
-    warnMissingChromeStorage('AIチャット履歴の読み込み')
-    return createDefaultConversationHistory(defaultTitle)
-  }
-
   const stored = await dataPlane.read()
   const rawConversations = stored.conversations
   const conversations: AiChatConversation[] = Array.isArray(rawConversations)
@@ -193,11 +184,6 @@ const saveConversationHistory = async ({
   conversations,
 }: ConversationHistoryState): Promise<void> => {
   const dataPlane = getAiConversationHistoryDataPlane()
-  if (!dataPlane) {
-    warnMissingChromeStorage('AIチャット履歴の保存')
-    return
-  }
-
   await dataPlane.replace({
     activeConversationId,
     conversations,
@@ -205,8 +191,6 @@ const saveConversationHistory = async ({
 }
 
 export {
-  ACTIVE_AI_CHAT_CONVERSATION_ID_KEY,
-  AI_CHAT_CONVERSATIONS_KEY,
   buildConversationTitle,
   createConversationRecord,
   loadConversationHistory,

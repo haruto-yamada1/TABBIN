@@ -119,7 +119,6 @@ const useSavedTabsAppView = ({
     getSavedTabsQuery: savedTabsUseCases.getSavedTabs,
     repairTabGroupParentCategoryIdsUseCase:
       savedTabsUseCases.repairTabGroupParentCategoryIds,
-    migrationPort: deps.migrationPort,
     onCategoriesLoaded: categoryState.setCategories,
     onSettingsLoaded: setSettings,
   })

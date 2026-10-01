@@ -6,11 +6,13 @@ import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type {
-  CustomProject as LegacyCustomProject,
-  ParentCategory as LegacyParentCategory,
-  TabGroup as LegacyTabGroup,
-} from '@/contexts/saved-tabs/application/dto/LegacyChromeStorageDto'
+import type { SavedTabsUiFixtureApi } from '@/app/composition/testing/SavedTabsAppFixtures'
+import {
+  toAppTabGroupFixture,
+  toAppParentCategoryFixture,
+  toAppCustomProjectFixture,
+} from '@/app/composition/testing/SavedTabsAppFixtures'
+import type { SavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { createSavedTabsTabGroupDto as createCurrentTabGroup } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 import { toSavedTabsTabGroupViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
@@ -22,59 +24,9 @@ import type {
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
-const toLegacyTabGroupFixture = (group: TabGroup): LegacyTabGroup => {
-  const { memberships = [], ...rest } = group
-  const urlSubCategories = Object.fromEntries(
-    memberships.flatMap(({ category, urlId }) =>
-      category ? [[urlId, category]] : [],
-    ),
-  )
-  return {
-    ...rest,
-    ...(memberships.length > 0
-      ? { urlIds: memberships.map(({ urlId }) => urlId) }
-      : {}),
-    ...(Object.keys(urlSubCategories).length > 0 ? { urlSubCategories } : {}),
-  }
-}
-
-const toLegacyParentCategoryFixture = (
-  category: ParentCategory,
-): LegacyParentCategory => ({
-  domainNames: category.collections.map(({ domain }) => domain),
-  domains: category.collections.map(({ id }) => id),
-  id: category.id,
-  name: category.name,
-})
-
-const toLegacyCustomProjectFixture = (
-  project: CustomProject,
-): LegacyCustomProject => {
-  const memberships = project.memberships ?? []
-  return {
-    categories: [...project.categories],
-    createdAt: project.createdAt,
-    id: project.id,
-    name: project.name,
-    updatedAt: project.updatedAt,
-    urlIds: memberships.map(({ urlId }) => urlId),
-    urlMetadata: Object.fromEntries(
-      memberships.flatMap(({ category, notes, urlId }) =>
-        category !== undefined || notes !== undefined
-          ? [
-              [
-                urlId,
-                {
-                  ...(category !== undefined ? { category } : {}),
-                  ...(notes !== undefined ? { notes } : {}),
-                },
-              ],
-            ]
-          : [],
-      ),
-    ),
-  }
-}
+const repositoryFixtures = vi.hoisted(() => ({
+  current: {} as SavedTabsUiFixtureApi,
+}))
 
 const commandServiceMock = vi.hoisted(() => {
   const addCategoryToProject = vi.fn()
@@ -383,16 +335,8 @@ vi.mock('@/contexts/saved-tabs/presentation/lib/uncategorized-display', () => ({
 }))
 
 vi.mock('./SavedTabsApp', async () => {
-  // 旧 `SavedTabsApp` は use-case / controller / deps を内部で組み立てていたが、
-  // issue #493 の composition root 集約によりそれらは props 注入になった。
-  // 既存テストは props を渡さず `render(<SavedTabsApp />)` する形なので、
-  // ここで production と同じ `createSavedTabsUseCasesDeps()` を使った
-  // composition を補完するラッパに差し替える。
-  // テスト本体では `globalThis.chrome` が beforeEach で mock されているため、
-  // chrome-storage ベースの deps も同じ経路で chrome とやり取りする。
-  // `BrowserTabPort` の `resolveActive` は `SavedTabsApp` 側が ref.current を
-  // 動的に書き換えるため、ref-based な resolveActive を持つ port を
-  // composition 時に渡す必要がある。
+  // UI tests inject current domain repositories. Native persistence is verified
+  // separately by savedTabsFlowRegression.test.ts using real IndexedDB stores.
   const actual =
     await vi.importActual<typeof import('./SavedTabsApp')>('./SavedTabsApp')
   const controllerMod = await vi.importActual<
@@ -402,8 +346,8 @@ vi.mock('./SavedTabsApp', async () => {
     typeof import('@/contexts/saved-tabs/application/createSavedTabsUseCases')
   >('@/contexts/saved-tabs/application/createSavedTabsUseCases')
   const depsMod = await vi.importActual<
-    typeof import('@/app/composition/createSavedTabsUseCases')
-  >('@/app/composition/createSavedTabsUseCases')
+    typeof import('@/app/composition/testing/SavedTabsAppFixtures')
+  >('@/app/composition/testing/SavedTabsAppFixtures')
 
   const TestSavedTabsApp = (
     props: React.ComponentProps<typeof actual.SavedTabsApp>,
@@ -414,7 +358,9 @@ vi.mock('./SavedTabsApp', async () => {
     //    1 度 deps を組み立ててから browserTabPort だけ差し替える。
     const baseDeps = useMemo(
       () =>
-        depsMod.createSavedTabsUseCasesDeps({
+        depsMod.createSavedTabsUiTestDeps({
+          getFixture: () => repositoryFixtures.current,
+          customProjectsCommandService: commandServiceMock,
           resolveActive: () => resolveActiveRef.current(),
         }),
       [resolveActiveRef],
@@ -464,29 +410,6 @@ vi.mock('@/contexts/saved-tabs/presentation/services/modeSyncService', () => ({
   syncStorageChanges: vi.fn(),
 }))
 
-vi.mock('@/lib/storage/categories', () => ({
-  saveParentCategories: vi.fn(),
-}))
-
-vi.mock('@/lib/storage/projects', () => ({
-  getCustomProjects: vi.fn(async () => mocked.projectState.customProjects),
-  getProjectUrls: mocked.getProjectUrls,
-  moveUrlBetweenCustomProjects: vi.fn(),
-  removeUrlFromAllCustomProjects: vi.fn(),
-  removeUrlIdsFromAllCustomProjects:
-    commandServiceMock.removeUrlIdsFromAllCustomProjects,
-  removeUrlsFromAllCustomProjects:
-    commandServiceMock.removeUrlsFromAllCustomProjects,
-}))
-
-vi.mock('@/lib/storage/tabs', () => ({
-  addSubCategoryToGroup: vi.fn(),
-
-  getTabGroupUrls: vi.fn(async () => []),
-  removeUrlIdsFromTabGroup: vi.fn(),
-  removeUrlsFromTabGroup: vi.fn(),
-}))
-
 import { createPrepareTabGroupDeletionUseCase } from '@/contexts/saved-tabs/application/use-cases/PrepareTabGroupDeletionUseCase'
 import { createPrepareTabGroupsDeletionUseCase } from '@/contexts/saved-tabs/application/use-cases/PrepareTabGroupsDeletionUseCase'
 import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
@@ -503,9 +426,9 @@ const _legacyRemoveUrlFromAll = vi.fn(async (): Promise<void> => undefined)
 const _legacyRemoveUrlIdsFromAll = vi.fn(async (): Promise<void> => undefined)
 const _legacyRemoveUrlsFromAll = vi.fn(async (): Promise<void> => undefined)
 
-// chrome.storage.local.get 風の mock を生成する。同期実装でモック interface の
+// injected repository.get 風の mock を生成する。同期実装でモック interface の
 // シグネチャに合わせるため async だが await は不要。
-const createStorageGetMock = (
+const createRepositoryReadMock = (
   values: Record<string, unknown>,
 ): ReturnType<typeof vi.fn> =>
   // eslint-disable-next-line typescript/require-await -- mock interface 同期実装
@@ -533,11 +456,9 @@ const getLastCallFirstArg = <T,>(spy: MockSpy): T => {
   return lastCall[0] as T
 }
 
-import {
-  getTabGroupUrls,
-  removeUrlIdsFromTabGroup,
-  removeUrlsFromTabGroup,
-} from '@/lib/storage/tabs'
+const getTabGroupUrls = vi.fn(async (): Promise<UrlRecord[]> => [])
+const removeUrlIdsFromTabGroup = vi.fn()
+const removeUrlsFromTabGroup = vi.fn()
 
 import { SavedTabsApp as ImportedSavedTabsApp } from './SavedTabsApp'
 // `vi.mock` により `SavedTabsApp` は in-memory deps を補完するラッパへ
@@ -566,13 +487,13 @@ import {
   notifyDeleteFailure,
 } from './savedTabsApp.helpers'
 
-// chrome.storage.local の production code 経由の読み取りを補完するため、
+// injected repository の production code 経由の読み取りを補完するため、
 // テスト用カスタムプロジェクトの完全なスナップショットを構築する。
 // `getProjectUrls` / ドメイン search 経路で `urls` / `customProjects` /
 // `customProjectOrder` / `parentCategories` / `userSettings` を必要とする
 // pre-existing テスト (issue #510 範囲外) を成立させるために beforeEach
-// で chrome mock に注入する。`ChromeUrlRecordRepository` は `URLS_KEY`
-// = `'urls'`、`ChromeCustomProjectRepository` は `CUSTOM_PROJECTS_KEY` =
+// で chrome mock に注入する。`current UrlRecordRepository` は `URLS_KEY`
+// = `'urls'`、`current CustomProjectRepository` は `CUSTOM_PROJECTS_KEY` =
 // `'customProjects'` で参照するため、キーは storage schema 準拠。
 const buildTestStorageSnapshot = () => {
   const allUrlRecords: UrlRecord[] = [
@@ -627,14 +548,14 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroupsWithUrls = []
     mocked.tabDataState.isLoading = false
     const testSnapshot = buildTestStorageSnapshot()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => testSnapshot),
-          set: vi.fn(),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => testSnapshot),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -648,7 +569,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
   })
 
   afterEach(() => {
@@ -1326,16 +1247,16 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroupsWithUrls = mocked.tabDataState.tabGroups
 
     const addListener = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             savedTabs: mocked.tabDataState.tabGroups,
           })),
-          set: vi.fn(),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener,
           removeListener: vi.fn(),
         },
@@ -1349,7 +1270,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       // eslint-disable-line
@@ -1369,7 +1290,7 @@ describe('SavedTabsApp custom search', () => {
     await act(async () => {
       listener(
         {
-          settings: {
+          userSettings: {
             newValue: {
               enableCategories: false,
             },
@@ -1422,25 +1343,25 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key: string) => {
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key: string) => {
             if (key === 'parentCategories') {
               return {
-                parentCategories: [toLegacyParentCategoryFixture(category)],
+                parentCategories: [toAppParentCategoryFixture(category)],
               }
             }
             if (key === 'savedTabs') {
-              return { savedTabs: [toLegacyTabGroupFixture(group)] }
+              return { savedTabs: [toAppTabGroupFixture(group)] }
             }
             return {}
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -1454,7 +1375,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -1463,7 +1384,7 @@ describe('SavedTabsApp custom search', () => {
     })
 
     expect(_legacySaveParentCategories).not.toHaveBeenCalled()
-    expect(chromeSetMock).not.toHaveBeenCalled()
+    expect(repositoryWriteMock).not.toHaveBeenCalled()
   })
 
   it('ドメイン全削除ではカスタムプロジェクト同期を URL ごとではなく一括で実行する', async () => {
@@ -1501,21 +1422,21 @@ describe('SavedTabsApp custom search', () => {
       },
     ]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
             customProjects: customProjectsSnapshot.map(
-              toLegacyCustomProjectFixture,
+              toAppCustomProjectFixture,
             ),
-            savedTabs: [toLegacyTabGroupFixture(group)],
+            savedTabs: [toAppTabGroupFixture(group)],
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -1529,7 +1450,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     vi.mocked(getTabGroupUrls).mockResolvedValue([
       { url: 'https://example.com/a', title: 'A', id: 'url-a', savedAt: 1 },
@@ -1583,8 +1504,8 @@ describe('SavedTabsApp custom search', () => {
     // CustomProject / ParentCategory / customProjectOrder すべて
     // repository 経由で個別に書き戻される（issue #487）。
     // customProjectOrder は chromeCustomProjectRepository.saveOrder
-    // 経由で chrome.storage.local.set に到達する。
-    expect(chromeSetMock).toHaveBeenLastCalledWith({
+    // 経由で injected repository.set に到達する。
+    expect(repositoryWriteMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
@@ -1636,19 +1557,19 @@ describe('SavedTabsApp custom search', () => {
         updatedAt: 2,
       },
     ]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
             customProjects: customProjectsSnapshot,
             savedTabs: [group],
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -1656,7 +1577,7 @@ describe('SavedTabsApp custom search', () => {
       tabs: { create: vi.fn() },
       windows: { create: vi.fn() },
       runtime: { getURL: vi.fn() },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     vi.mocked(getTabGroupUrls).mockResolvedValue([
       { url: 'https://example.com/a', title: 'A', id: 'url-a', savedAt: 1 },
@@ -1727,11 +1648,11 @@ describe('SavedTabsApp custom search', () => {
         savedAt: 2,
       },
     ]
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key: string) => {
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key: string) => {
             if (key === 'savedTabs') {
               return { savedTabs: [group] }
             }
@@ -1740,9 +1661,9 @@ describe('SavedTabsApp custom search', () => {
             }
             return {}
           }),
-          set: vi.fn(),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -1756,7 +1677,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -1793,15 +1714,15 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = []
     mocked.tabDataState.tabGroupsWithUrls = []
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [] })),
-          set: chromeSetMock,
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [] })),
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -1815,7 +1736,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -1947,12 +1868,12 @@ describe('SavedTabsApp custom search', () => {
       },
     ]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key: string | string[]) => {
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key: string | string[]) => {
             const keys = Array.isArray(key) ? key : [key]
             const result: Record<string, unknown> = {}
             for (const k of keys) {
@@ -1960,19 +1881,19 @@ describe('SavedTabsApp custom search', () => {
                 result.customProjectOrder = ['project-1']
               } else if (k === 'customProjects') {
                 result.customProjects = customProjectsSnapshot.map(
-                  toLegacyCustomProjectFixture,
+                  toAppCustomProjectFixture,
                 )
               } else if (k === 'savedTabs') {
-                result.savedTabs = [toLegacyTabGroupFixture(group)]
+                result.savedTabs = [toAppTabGroupFixture(group)]
               } else if (k === 'urls') {
                 result.urls = [urlRecord]
               }
             }
             return result
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -1986,7 +1907,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2000,7 +1921,7 @@ describe('SavedTabsApp custom search', () => {
 
     // 単体 URL 削除は use-case 経由で実行され、
     // グループに 1 件しか URL が無いため、削除後はグループ自体が消える。
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
     expect(toast.info).toHaveBeenCalledWith(
@@ -2024,9 +1945,9 @@ describe('SavedTabsApp custom search', () => {
     // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
     // CustomProject / customProjectOrder すべて repository 経由で
     // 個別に書き戻される（issue #487）。customProjectOrder は
-    // chromeCustomProjectRepository.saveOrder 経由で chrome.storage.local
+    // chromeCustomProjectRepository.saveOrder 経由で injected repository
     // に到達する。
-    expect(chromeSetMock).toHaveBeenLastCalledWith({
+    expect(repositoryWriteMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
@@ -2056,21 +1977,21 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             customProjectOrder: ['project-1'],
             customProjects: customProjectsSnapshot.map(
-              toLegacyCustomProjectFixture,
+              toAppCustomProjectFixture,
             ),
-            savedTabs: [toLegacyTabGroupFixture(group)],
+            savedTabs: [toAppTabGroupFixture(group)],
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -2084,7 +2005,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2101,8 +2022,8 @@ describe('SavedTabsApp custom search', () => {
     // TabGroup / CustomProject / customProjectOrder すべて
     // repository 経由で書き戻される（issue #487）。
     // customProjectOrder は chromeCustomProjectRepository.saveOrder
-    // 経由で chrome.storage.local.set に到達する。
-    expect(chromeSetMock).toHaveBeenLastCalledWith({
+    // 経由で injected repository.set に到達する。
+    expect(repositoryWriteMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
@@ -2159,12 +2080,12 @@ describe('SavedTabsApp custom search', () => {
       },
     ]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key: string | string[]) => {
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key: string | string[]) => {
             const keys = Array.isArray(key) ? key : [key]
             const result: Record<string, unknown> = {}
             for (const k of keys) {
@@ -2172,10 +2093,10 @@ describe('SavedTabsApp custom search', () => {
                 result.customProjectOrder = ['project-1']
               } else if (k === 'customProjects') {
                 result.customProjects = customProjectsSnapshot.map(
-                  toLegacyCustomProjectFixture,
+                  toAppCustomProjectFixture,
                 )
               } else if (k === 'savedTabs') {
-                result.savedTabs = [group1, group2].map(toLegacyTabGroupFixture)
+                result.savedTabs = [group1, group2].map(toAppTabGroupFixture)
               } else if (k === 'urls') {
                 result.urls = [
                   {
@@ -2201,9 +2122,9 @@ describe('SavedTabsApp custom search', () => {
             }
             return result
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -2217,7 +2138,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2238,8 +2159,8 @@ describe('SavedTabsApp custom search', () => {
     // SavedTabsUseCases.openAllSavedUrls の mock 経由に切り替わったため、
     // 旧 `chrome.tabs.create` 直叩きではなく storage の更新有無で
     // 削除フローを確認する。
-    expect(chromeSetMock).toHaveBeenCalledWith({
-      savedTabs: [toLegacyTabGroupFixture(group2)],
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
+      savedTabs: [toAppTabGroupFixture(group2)],
     })
     expect(toast.info).toHaveBeenCalledWith(
       '開いた2件のタブを保存データから削除しました',
@@ -2262,9 +2183,9 @@ describe('SavedTabsApp custom search', () => {
     // 復元は RestoreOpenedUrlsSnapshotUseCase 経由になり、TabGroup /
     // CustomProject / customProjectOrder すべて repository 経由で
     // 個別に書き戻される（issue #487）。customProjectOrder は
-    // chromeCustomProjectRepository.saveOrder 経由で chrome.storage.local
+    // chromeCustomProjectRepository.saveOrder 経由で injected repository
     // に到達する。
-    expect(chromeSetMock).toHaveBeenLastCalledWith({
+    expect(repositoryWriteMock).toHaveBeenLastCalledWith({
       customProjectOrder: ['project-1'],
     })
     expect(mocked.projectState.setCustomProjects).toHaveBeenCalledWith(
@@ -2333,16 +2254,16 @@ describe('SavedTabsApp custom search', () => {
       url: 'https://partial.example.com/remove',
     }
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key: string) => {
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key: string) => {
             if (key === 'savedTabs') {
               return {
                 savedTabs: [groupWithoutIds, unchangedGroup, partialGroup].map(
-                  toLegacyTabGroupFixture,
+                  toAppTabGroupFixture,
                 ),
               }
             }
@@ -2351,9 +2272,9 @@ describe('SavedTabsApp custom search', () => {
             }
             return {}
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -2367,7 +2288,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2380,38 +2301,41 @@ describe('SavedTabsApp custom search', () => {
     }
 
     await domainProps.handleOpenAllTabs([])
-    expect(chromeSetMock).not.toHaveBeenCalled()
+    expect(repositoryWriteMock).not.toHaveBeenCalled()
 
     // URL ID 未解決（storage の urls キーに存在しない）のときは
     // use-case 側で削除対象 0 件となり storage 更新されない。
     await domainProps.handleOpenAllTabs([
       { title: 'Missing ID', url: 'https://missing.example.com/a' },
     ])
-    expect(chromeSetMock).not.toHaveBeenCalled()
+    expect(repositoryWriteMock).not.toHaveBeenCalled()
 
     await domainProps.handleOpenAllTabs([
       { title: 'Remove', url: 'https://partial.example.com/remove' },
     ])
 
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [
-        toLegacyTabGroupFixture(groupWithoutIds),
-        toLegacyTabGroupFixture(unchangedGroup),
-        expect.objectContaining({ id: 'group-partial', urlIds: ['url-stay'] }),
+        toAppTabGroupFixture(groupWithoutIds),
+        toAppTabGroupFixture(unchangedGroup),
+        expect.objectContaining({
+          id: 'group-partial',
+          memberships: [expect.objectContaining({ urlId: 'url-stay' })],
+        }),
       ],
     })
   })
 
   it('custom mode props はURL open/delete/move handlers を実行する', async () => {
     const chromeTabsCreateMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [] })),
-          set: vi.fn(),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [] })),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -2425,7 +2349,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp />)
 
@@ -2531,12 +2455,12 @@ describe('SavedTabsApp custom search', () => {
         updatedAt: 2,
       },
     ]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key?: string) => {
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key?: string) => {
             if (key === 'urls') {
               return {
                 urls: [
@@ -2552,16 +2476,14 @@ describe('SavedTabsApp custom search', () => {
             return {
               customProjectOrder: ['project-1'],
               customProjects: customProjectsSnapshot.map(
-                toLegacyCustomProjectFixture,
+                toAppCustomProjectFixture,
               ),
-              savedTabs: [groupWithIds, legacyGroup].map(
-                toLegacyTabGroupFixture,
-              ),
+              savedTabs: [groupWithIds, legacyGroup].map(toAppTabGroupFixture),
             }
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -2575,7 +2497,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
     vi.mocked(
       commandServiceMock.removeUrlIdsFromAllCustomProjects,
     ).mockRejectedValueOnce(new Error('sync failed'))
@@ -2615,7 +2537,7 @@ describe('SavedTabsApp custom search', () => {
     ).toHaveBeenCalledWith(['url-a', 'legacy-url-id'], {
       throwOnError: true,
     })
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
   })
@@ -2677,8 +2599,8 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
     // 1 回目（snapshot 取得時）は urls を空配列で返し、2 回目以降で
     // 例外を投げる。ただし use-case は Promise.all で 4 リポジトリを
     // 叩くため順序が安定しない。urls を空配列で返しつつ、
@@ -2687,13 +2609,13 @@ describe('SavedTabsApp custom search', () => {
     // 用意するため、グループを `urlIds: ['legacy-url-id']` に変え、
     // helper は `commandServiceMock.removeUrlIdsFromAllCustomProjects` 経由にする。
     // 別ルート: `loadTabGroupUrlsUseCase` を `vi.spyOn` して失敗させる。
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [group] })),
-          set: chromeSetMock,
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [group] })),
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -2707,7 +2629,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2728,7 +2650,7 @@ describe('SavedTabsApp custom search', () => {
     // 新実装では URL 解決失敗は use-case 内で処理されるため、
     // 旧形式の `console.error` ログは出ない。代わりに snapshot 復元と
     // `notifyDeleteFailure` 経由で toast 通知される（既存テストで検証済）。
-    expect(chromeSetMock).toHaveBeenCalledWith({ savedTabs: [] })
+    expect(repositoryWriteMock).toHaveBeenCalledWith({ savedTabs: [] })
 
     consoleError.mockRestore()
   })
@@ -2751,17 +2673,17 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [group1, group2]
     mocked.tabDataState.tabGroupsWithUrls = [group1, group2]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
-            savedTabs: [group1, group2].map(toLegacyTabGroupFixture),
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
+            savedTabs: [group1, group2].map(toAppTabGroupFixture),
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -2775,7 +2697,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -2808,8 +2730,8 @@ describe('SavedTabsApp custom search', () => {
     )?.[0] as typeof domainProps
     await domainProps.handleConfirmUncategorizedReorder()
 
-    expect(chromeSetMock).toHaveBeenCalledWith({
-      savedTabs: [group2, group1].map(toLegacyTabGroupFixture),
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
+      savedTabs: [group2, group1].map(toAppTabGroupFixture),
     })
     await waitFor(() => {
       expect(
@@ -2844,14 +2766,14 @@ describe('SavedTabsApp custom search', () => {
   it('storage change listener は mode sync service に委譲し解除される', async () => {
     const addListener = vi.fn()
     const removeListener = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [] })),
-          set: vi.fn(),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [] })),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener,
           removeListener,
         },
@@ -2865,7 +2787,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     const { unmount } = render(<SavedTabsApp />)
     const listener = addListener.mock.calls[0]?.[0] as (
@@ -2875,9 +2797,9 @@ describe('SavedTabsApp custom search', () => {
 
     listener(
       {
-        savedTabs: {
-          newValue: [],
-          oldValue: [],
+        userSettings: {
+          newValue: {},
+          oldValue: {},
         },
       },
       'local',
@@ -2888,10 +2810,10 @@ describe('SavedTabsApp custom search', () => {
       expect.objectContaining({
         changes: [
           {
-            key: 'savedTabs',
+            key: 'userSettings',
             kind: 'parsed',
-            oldValue: [],
-            payload: [],
+            oldValue: {},
+            payload: [{}],
           },
         ],
       }),
@@ -2984,28 +2906,26 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key: string | string[]) => {
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key: string | string[]) => {
             const keys = Array.isArray(key) ? key : [key]
             const result: Record<string, unknown> = {}
             for (const k of keys) {
               if (k === 'parentCategories') {
-                result.parentCategories = [
-                  toLegacyParentCategoryFixture(category),
-                ]
+                result.parentCategories = [toAppParentCategoryFixture(category)]
               } else if (k === 'savedTabs') {
-                result.savedTabs = [toLegacyTabGroupFixture(group)]
+                result.savedTabs = [toAppTabGroupFixture(group)]
               }
             }
             return result
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3019,7 +2939,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -3027,22 +2947,21 @@ describe('SavedTabsApp custom search', () => {
     // savedTabs がそれぞれ repository.saveAll で個別に更新される。
     // `saveParentCategories` ヘルパは issue 範囲外なので呼ばれない。
     await waitFor(() => {
-      expect(chromeSetMock).toHaveBeenLastCalledWith({
+      expect(repositoryWriteMock).toHaveBeenLastCalledWith({
         parentCategories: [
           expect.objectContaining({
-            domainNames: ['example.com'],
-            domains: ['group-1'],
+            collections: [{ domain: 'example.com', id: 'group-1' }],
             id: 'category-1',
           }),
         ],
       })
     })
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [
         expect.objectContaining({
           id: 'group-1',
-          parentCategoryId: 'category-1',
-          urlIds: ['url-a'],
+          collection: expect.objectContaining({ groupId: 'category-1' }),
+          memberships: [expect.objectContaining({ urlId: 'url-a' })],
         }),
       ],
     })
@@ -3084,16 +3003,16 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => {
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => {
             throw new Error('sync read failed')
           }),
-          set: vi.fn(),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3107,7 +3026,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -3254,16 +3173,16 @@ describe('SavedTabsApp custom search', () => {
 
     const addListener = vi.fn()
     const windowsCreateMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
-            savedTabs: [toLegacyTabGroupFixture(group)],
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
+            savedTabs: [toAppTabGroupFixture(group)],
           })),
-          set: vi.fn(),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener,
           removeListener: vi.fn(),
         },
@@ -3277,7 +3196,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       // eslint-disable-line
@@ -3298,7 +3217,7 @@ describe('SavedTabsApp custom search', () => {
     await act(async () => {
       listener(
         {
-          settings: {
+          userSettings: {
             newValue: {
               openAllInNewWindow: true,
             },
@@ -3361,19 +3280,19 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [target, other]
     mocked.tabDataState.tabGroupsWithUrls = [target, other]
 
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
-            savedTabs: [target, other].map(toLegacyTabGroupFixture),
+            savedTabs: [target, other].map(toAppTabGroupFixture),
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3387,7 +3306,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -3401,10 +3320,10 @@ describe('SavedTabsApp custom search', () => {
 
     // DeleteTabGroupUseCase 経由で savedTabs から対象グループだけ
     // 取り除かれて保存される。use-case 内の `saveAll` 呼び出しが
-    // chrome.storage.local.set にそのまま伝搬する。
-    expect(chromeSetMock).toHaveBeenCalledWith(
+    // injected repository.set にそのまま伝搬する。
+    expect(repositoryWriteMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        savedTabs: [toLegacyTabGroupFixture(other)],
+        savedTabs: [toAppTabGroupFixture(other)],
       }),
     )
     // 削除前処理は `PrepareTabGroupDeletionUseCase` 経由で走る
@@ -3448,19 +3367,19 @@ describe('SavedTabsApp custom search', () => {
       domain: 'other.example.com',
       memberships: ['url-shared'].map((urlId) => ({ urlId })),
     }
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
-            savedTabs: [target, other].map(toLegacyTabGroupFixture),
+            savedTabs: [target, other].map(toAppTabGroupFixture),
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3474,7 +3393,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
@@ -3502,9 +3421,9 @@ describe('SavedTabsApp custom search', () => {
     })
     // savedTabs は other だけが残る。url-shared の TabGroup 内
     // 参照は他グループ側 (`group-other`) に維持される。
-    expect(chromeSetMock).toHaveBeenCalledWith(
+    expect(repositoryWriteMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        savedTabs: [toLegacyTabGroupFixture(other)],
+        savedTabs: [toAppTabGroupFixture(other)],
       }),
     )
   })
@@ -3520,28 +3439,28 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
 
-    // 1 回目の chromeSetMock は `tabGroupRepository.saveAll` (DeleteTabGroupUseCase)、
+    // 1 回目の repositoryWriteMock は `tabGroupRepository.saveAll` (DeleteTabGroupUseCase)、
     // 2 回目は `parentCategoryRepository.saveAll` (removeDomainFromParentCategories)、
     // 3 回目以降が `RestoreOpenedUrlsSnapshotUseCase` 経由の Undo 復元。Undo
     // 復元で失敗させて `保存データを復元できませんでした` を toast.error に
     // 出させるため、3 回目以降を reject する。
-    const chromeSetMock = vi
+    const repositoryWriteMock = vi
       .fn()
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('restore failed'))
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
             savedTabs: [group],
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3555,7 +3474,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -3641,19 +3560,17 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
-            savedTabs: mocked.tabDataState.tabGroups.map(
-              toLegacyTabGroupFixture,
-            ),
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
+            savedTabs: mocked.tabDataState.tabGroups.map(toAppTabGroupFixture),
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3667,7 +3584,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -3726,7 +3643,7 @@ describe('SavedTabsApp custom search', () => {
       -1,
     )?.[0] as typeof domainProps
 
-    chromeSetMock.mockRejectedValueOnce(new Error('order failed'))
+    repositoryWriteMock.mockRejectedValueOnce(new Error('order failed'))
     await domainProps.handleConfirmUncategorizedReorder()
 
     expect(toast.error).toHaveBeenCalledWith('ドメイン順序の更新に失敗しました')
@@ -3737,14 +3654,14 @@ describe('SavedTabsApp custom search', () => {
       .fn()
       .mockRejectedValueOnce(new Error('single open failed'))
       .mockRejectedValueOnce(new Error('bulk open failed'))
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [] })),
-          set: vi.fn(),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [] })),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3758,7 +3675,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp />)
 
@@ -3795,14 +3712,14 @@ describe('SavedTabsApp custom search', () => {
     mocked.tabDataState.tabGroups = storedGroups
     mocked.tabDataState.tabGroupsWithUrls = storedGroups
 
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: storedGroups })),
-          set: vi.fn(),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: storedGroups })),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3816,7 +3733,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -3881,20 +3798,20 @@ describe('SavedTabsApp custom search', () => {
       },
     ]
     const chromeTabsCreateMock = vi.fn()
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: createStorageGetMock({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: createRepositoryReadMock({
             customProjectOrder: [],
             customProjects: [],
-            savedTabs: [toLegacyTabGroupFixture(group)],
+            savedTabs: [toAppTabGroupFixture(group)],
             urls: urlRecords,
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -3908,7 +3825,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp />)
 
@@ -3924,22 +3841,22 @@ describe('SavedTabsApp custom search', () => {
       active: false,
       url: 'https://example.com/remove',
     })
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [
         expect.objectContaining({
           id: 'group-1',
-          urlIds: ['url-keep'],
+          memberships: [expect.objectContaining({ urlId: 'url-keep' })],
         }),
       ],
     })
     // OpenSavedUrlUseCase 経由でも urlSubCategories key 自体が消えていることを
     // 確認する（mapper の merge で削除対象 URL ID の subCategory が落ちる）。
-    const savedTabsCall = chromeSetMock.mock.calls.find(
+    const savedTabsCall = repositoryWriteMock.mock.calls.find(
       ([arg]) =>
         arg !== null &&
         typeof arg === 'object' &&
         'savedTabs' in (arg as Record<string, unknown>),
-    ) as [{ savedTabs: LegacyTabGroup[] }] | undefined
+    ) as [{ savedTabs: SavedTabsTabGroupDto[] }] | undefined
     expect(savedTabsCall?.[0].savedTabs[0]).not.toHaveProperty(
       'urlSubCategories',
     )
@@ -3951,16 +3868,16 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewMode = 'custom'
     mocked.projectState.viewModeRef = { current: 'custom' }
     const chromeTabsCreateMock = vi.fn()
-    const chromeSetMock = vi.fn()
+    const repositoryWriteMock = vi.fn()
     const addListener = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [] })),
-          set: chromeSetMock,
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [] })),
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener,
           removeListener: vi.fn(),
         },
@@ -3974,7 +3891,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
       // eslint-disable-line
@@ -3995,7 +3912,7 @@ describe('SavedTabsApp custom search', () => {
     await act(async () => {
       listener(
         {
-          settings: {
+          userSettings: {
             newValue: {
               removeTabAfterOpen: false,
             },
@@ -4016,7 +3933,7 @@ describe('SavedTabsApp custom search', () => {
       active: true,
       url: 'https://example.com/keep',
     })
-    expect(chromeSetMock).not.toHaveBeenCalled()
+    expect(repositoryWriteMock).not.toHaveBeenCalled()
   })
 
   it('開いた後の自動削除でカスタム同期に失敗しても保存更新を続ける', async () => {
@@ -4053,22 +3970,22 @@ describe('SavedTabsApp custom search', () => {
         memberships: ['url-remove'].map((urlId) => ({ urlId })),
       },
     ]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: createStorageGetMock({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: createRepositoryReadMock({
             customProjectOrder: [],
             customProjects: customProjectsSnapshot.map(
-              toLegacyCustomProjectFixture,
+              toAppCustomProjectFixture,
             ),
-            savedTabs: [toLegacyTabGroupFixture(group)],
+            savedTabs: [toAppTabGroupFixture(group)],
             urls: urlRecords,
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4082,7 +3999,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
     vi.mocked(
       commandServiceMock.removeUrlIdsFromAllCustomProjects,
     ).mockRejectedValueOnce(new Error('custom sync failed'))
@@ -4102,7 +4019,7 @@ describe('SavedTabsApp custom search', () => {
     // savedTabs は空配列で書き込まれる。CustomProject は use-case 経由で
     // URL ID 削除されるので、`commandServiceMock.removeUrlIdsFromAllCustomProjects` (旧経路) は
     // 失敗しても無関係。
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
   })
@@ -4122,15 +4039,15 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [group] })),
-          set: chromeSetMock,
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [group] })),
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4144,7 +4061,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
     vi.mocked(getTabGroupUrls).mockRejectedValueOnce(
       new Error('legacy urls failed'),
     )
@@ -4159,7 +4076,7 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroup('group-1')
 
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
     expect(
@@ -4180,14 +4097,14 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [group]
     mocked.tabDataState.tabGroupsWithUrls = [group]
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
+    const fixtureApi = repositoryFixtures
     // 旧 `getTabGroupUrls` 直叩きの代わりに、
-    // `loadTabGroupUrlsUseCase` → `ChromeUrlRecordRepository.findAll` → `URLS_KEY` 経由で
+    // `loadTabGroupUrlsUseCase` → `current UrlRecordRepository.findAll` → `URLS_KEY` 経由で
     // URL レコードを取得するため、chrome.storage に URLS_KEY を返すよう設定。
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key?: string) => {
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key?: string) => {
             if (key === 'urls') {
               return {
                 urls: [
@@ -4200,11 +4117,11 @@ describe('SavedTabsApp custom search', () => {
                 ],
               }
             }
-            return { savedTabs: [toLegacyTabGroupFixture(group)] }
+            return { savedTabs: [toAppTabGroupFixture(group)] }
           }),
-          set: vi.fn(),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4218,7 +4135,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -4258,12 +4175,12 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'domain' }
     mocked.tabDataState.tabGroups = [groupWithIds, legacyGroup]
     mocked.tabDataState.tabGroupsWithUrls = [groupWithIds, legacyGroup]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async (key?: string) => {
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async (key?: string) => {
             if (key === 'urls') {
               return {
                 urls: [
@@ -4277,14 +4194,12 @@ describe('SavedTabsApp custom search', () => {
               }
             }
             return {
-              savedTabs: [groupWithIds, legacyGroup].map(
-                toLegacyTabGroupFixture,
-              ),
+              savedTabs: [groupWithIds, legacyGroup].map(toAppTabGroupFixture),
             }
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4298,7 +4213,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
     vi.mocked(
       commandServiceMock.removeUrlIdsFromAllCustomProjects,
     ).mockRejectedValueOnce(new Error('sync failed'))
@@ -4313,7 +4228,7 @@ describe('SavedTabsApp custom search', () => {
 
     await domainProps.handleDeleteGroups(['group-1', 'group-2'])
 
-    expect(chromeSetMock).toHaveBeenCalledWith({
+    expect(repositoryWriteMock).toHaveBeenCalledWith({
       savedTabs: [],
     })
     expect(
@@ -4365,16 +4280,16 @@ describe('SavedTabsApp custom search', () => {
     mocked.categoryState.categories = []
     mocked.tabDataState.tabGroups = [group1, group2]
     mocked.tabDataState.tabGroupsWithUrls = [group1, group2]
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
-            savedTabs: [group1, group2].map(toLegacyTabGroupFixture),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
+            savedTabs: [group1, group2].map(toAppTabGroupFixture),
           })),
-          set: vi.fn(),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4388,7 +4303,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -4479,12 +4394,12 @@ describe('SavedTabsApp custom search', () => {
     ]
     mocked.tabDataState.tabGroups = [group1, group2]
     mocked.tabDataState.tabGroupsWithUrls = [group1, group2]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({
             customProjectOrder: [],
             customProjects: [],
             parentCategories: [
@@ -4499,11 +4414,11 @@ describe('SavedTabsApp custom search', () => {
                 name: 'Category',
               },
             ],
-            savedTabs: [group1, group2].map(toLegacyTabGroupFixture),
+            savedTabs: [group1, group2].map(toAppTabGroupFixture),
           })),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4517,7 +4432,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
@@ -4533,10 +4448,10 @@ describe('SavedTabsApp custom search', () => {
     // `deps.parentCategoryRepository.saveAll` (presentation 層) を直接
     // 呼び出し、`parentCategories` 配列から `domains: ['group-1', 'group-2']`
     // を除外して `domains: ['keep']` へフィルタした値が
-    // `chrome.storage.local.set` に渡されることを確認する。
+    // `injected repository.set` に渡されることを確認する。
     // `syncCategoryAssignments` use-effect が同じキーを再 set するため、
     // 最後に見つかった `parentCategories` set 呼び出しを検証する。
-    const parentCategoriesSetCall = [...chromeSetMock.mock.calls]
+    const parentCategoriesSetCall = [...repositoryWriteMock.mock.calls]
       .toReversed()
       .find((call) =>
         Boolean(
@@ -4546,8 +4461,7 @@ describe('SavedTabsApp custom search', () => {
       )?.[0] as { parentCategories?: unknown } | undefined
     expect(parentCategoriesSetCall?.parentCategories).toStrictEqual([
       expect.objectContaining({
-        domainNames: ['keep.example.com'],
-        domains: ['keep'],
+        collections: [{ domain: 'keep.example.com', id: 'keep' }],
         id: 'category-1',
       }),
     ])
@@ -4572,14 +4486,14 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewMode = 'custom'
     mocked.projectState.viewModeRef = { current: 'custom' }
     const chromeTabsCreateMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [], urls: [] })),
-          set: vi.fn(),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [], urls: [] })),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4593,7 +4507,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp />)
 
@@ -4649,20 +4563,20 @@ describe('SavedTabsApp custom search', () => {
       },
     ]
     const customProjectsSnapshot: CustomProject[] = []
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: createStorageGetMock({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: createRepositoryReadMock({
             customProjectOrder: [],
             customProjects: customProjectsSnapshot,
-            savedTabs: [toLegacyTabGroupFixture(group)],
+            savedTabs: [toAppTabGroupFixture(group)],
             urls: urlRecords,
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4676,7 +4590,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp />)
 
@@ -4707,10 +4621,10 @@ describe('SavedTabsApp custom search', () => {
       | undefined
     await undoOptions?.action?.onClick?.()
 
-    // chrome.storage.local.set が savedTabs / customProjects の元データを書き戻す
-    expect(chromeSetMock).toHaveBeenCalledWith(
+    // injected repository.set が savedTabs / customProjects の元データを書き戻す
+    expect(repositoryWriteMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        savedTabs: [toLegacyTabGroupFixture(group)],
+        savedTabs: [toAppTabGroupFixture(group)],
       }),
     )
   })
@@ -4753,20 +4667,20 @@ describe('SavedTabsApp custom search', () => {
         url: 'https://example.com/shared',
       },
     ]
-    const chromeSetMock = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: createStorageGetMock({
+    const repositoryWriteMock = vi.fn()
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: createRepositoryReadMock({
             customProjectOrder: [],
             customProjects: [],
             savedTabs: [group1, group2],
             urls: urlRecords,
           }),
-          set: chromeSetMock,
+          write: repositoryWriteMock,
         },
-        onChanged: {
+        changes: {
           addListener: vi.fn(),
           removeListener: vi.fn(),
         },
@@ -4780,7 +4694,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp />)
 
@@ -4810,14 +4724,14 @@ describe('SavedTabsApp custom search', () => {
     mocked.projectState.viewModeRef = { current: 'custom' }
     const chromeTabsCreateMock = vi.fn()
     const addListener = vi.fn()
-    const chromeGlobal = globalThis as unknown as { chrome: typeof chrome }
-    chromeGlobal.chrome = {
-      storage: {
-        local: {
-          get: vi.fn(async () => ({ savedTabs: [], urls: [] })),
-          set: vi.fn(),
+    const fixtureApi = repositoryFixtures
+    fixtureApi.current = {
+      repositories: {
+        data: {
+          read: vi.fn(async () => ({ savedTabs: [], urls: [] })),
+          write: vi.fn(),
         },
-        onChanged: {
+        changes: {
           addListener,
           removeListener: vi.fn(),
         },
@@ -4831,7 +4745,7 @@ describe('SavedTabsApp custom search', () => {
       runtime: {
         getURL: vi.fn(),
       },
-    } as unknown as typeof chrome
+    } as SavedTabsUiFixtureApi
 
     // 初期 settings は openUrlInBackground=true（defaultSettings 由来）。
     // 設定変更を syncStorageChanges 経由で false に切り替えてから再度開く。
@@ -4864,7 +4778,7 @@ describe('SavedTabsApp custom search', () => {
     await act(async () => {
       listener(
         {
-          settings: { newValue: { openUrlInBackground: false } },
+          userSettings: { newValue: { openUrlInBackground: false } },
         },
         'local',
       )

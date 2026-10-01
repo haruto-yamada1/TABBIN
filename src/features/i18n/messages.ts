@@ -543,10 +543,10 @@ const messages = {
     'options.persistenceRecovery.backup': 'Back up current data',
     'options.persistenceRecovery.backupPrivacy':
       'The emergency backup contains private URLs, titles, notes, and AI content. Store it securely.',
-    'options.persistenceRecovery.copyDiagnostic': 'Copy diagnostics',
+    'options.persistenceRecovery.copyDiagnostic': 'Copy error code',
     'options.persistenceRecovery.description':
-      'The update could not be completed. Your previous data has not been deleted.',
-    'options.persistenceRecovery.diagnostic': 'Safe migration diagnostics',
+      'Database could not be opened. Existing data has not been deleted.',
+    'options.persistenceRecovery.diagnostic': 'Error code',
     'options.persistenceRecovery.diskWriteFailed':
       'Writing data to browser storage failed.',
     'options.persistenceRecovery.preflightFailed':
@@ -1446,10 +1446,10 @@ const messages = {
     'options.persistenceRecovery.backup': '現在のデータをバックアップ',
     'options.persistenceRecovery.backupPrivacy':
       '緊急バックアップには非公開のURL、タイトル、メモ、AIの内容が含まれます。安全な場所に保管してください。',
-    'options.persistenceRecovery.copyDiagnostic': '診断情報をコピー',
+    'options.persistenceRecovery.copyDiagnostic': 'エラーコードをコピー',
     'options.persistenceRecovery.description':
-      'データの更新を完了できませんでした。以前のデータは削除されていません。',
-    'options.persistenceRecovery.diagnostic': '安全な移行診断情報',
+      'データベースを開けませんでした。既存のデータは削除されていません。',
+    'options.persistenceRecovery.diagnostic': 'エラーコード',
     'options.persistenceRecovery.diskWriteFailed':
       'ブラウザの保存領域への書き込みに失敗しました。',
     'options.persistenceRecovery.preflightFailed':

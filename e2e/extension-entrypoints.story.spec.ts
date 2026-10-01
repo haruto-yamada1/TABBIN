@@ -38,14 +38,7 @@ const createBaseSettings = () => ({
 })
 
 const createBaseSeed = () => ({
-  customProjectOrder: [],
-  customProjects: [],
-  domainCategoryMappings: [],
-  domainCategorySettings: [],
-  parentCategories: [],
-  savedTabs: [],
   'tab-manager-theme': 'system',
-  urls: [],
   userSettings: createBaseSettings(),
   viewMode: 'domain',
 })
@@ -245,15 +238,7 @@ test.describe('extension entrypoint stories', () => {
     await expect(
       page.getByRole('heading', { name: 'Analytics canvas' }),
     ).toBeVisible()
-    await expect(
-      readStorage(serviceWorker, 'tabbin:persistenceControlState:v2'),
-    ).resolves.toEqual({
-      'tabbin:persistenceControlState:v2': {
-        migrationId: 'persistence-v2-production',
-        persistenceGeneration: 2,
-        status: 'indexeddb',
-      },
-    })
+    await waitForPersistenceV2Ready(serviceWorker)
     await seedPersistenceV2SavedTabs(serviceWorker, createAnalyticsSeed())
     const seededUrlIds = await page.evaluate(async () => {
       const database = await new Promise<IDBDatabase>((resolve, reject) => {

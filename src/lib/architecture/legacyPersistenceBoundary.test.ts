@@ -18,19 +18,8 @@ const LEGACY_SAVED_TABS_STORAGE_TYPES = new Set([
   'UrlRecord',
 ])
 
-const legacyMigrationImportAllowlist = new Set([
-  'src/contexts/saved-tabs/application/dto/LegacyChromeStorageDto.ts',
-  'src/contexts/saved-tabs/application/mappers/LegacyStorageToPersistenceV2Mapper.ts',
-  'src/contexts/saved-tabs/application/ports/MigrationPreflightPort.ts',
-  'src/contexts/saved-tabs/application/ports/PersistenceRecoveryPort.ts',
-  'src/contexts/saved-tabs/application/services/MigrationPreflightService.ts',
-  'src/contexts/saved-tabs/application/services/PersistenceEmergencyBackupCodecService.ts',
-  'src/contexts/saved-tabs/application/services/PersistenceV2MigrationService.ts',
-])
-
-const legacyShapeAllowlist = new Set([
-  'src/contexts/saved-tabs/application/dto/LegacyChromeStorageDto.ts',
-])
+// Issue #861 retires the migration-only import and legacy-shape allowlists.
+// Current production layers have no exceptional Chrome domain boundary.
 
 const normalIndexedDbRuntimePaths = [
   'src/app/composition/backgroundSavedTabsIndexedDbDataPlane.ts',
@@ -38,16 +27,12 @@ const normalIndexedDbRuntimePaths = [
   'src/app/composition/createSavedTabsUseCases.ts',
   'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
   'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsUseCases.ts',
-  'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
   'src/contexts/saved-tabs/infrastructure/composition/IndexedDbSavedTabsSessionService.ts',
   'src/contexts/saved-tabs/infrastructure/composition/NativeSavedTabsPersistenceAdapters.ts',
 ] as const
 
 const forbiddenNormalIndexedDbRuntimeDependency =
   /(?:createIndexedDbCompatibilitySession|createIndexedDbCompatibilityPersistenceAdapters|createSessionBackedSavedTabsUseCases|IndexedDbCompatibilityPersistenceAdapters|LegacyChromeStorageDto|LegacyCompatibilityStorageRecord|LegacyStorageToPersistenceV2Mapper|PersistenceV2CompatibilitySessionService|PersistenceV2LegacyCompatibilityMapper|SessionBackedSavedTabsUseCases)/
-
-const isLegacyMigrationImportBoundary = (path: string): boolean =>
-  legacyMigrationImportAllowlist.has(path)
 
 const isProductionSource = (path: string): boolean =>
   /\.tsx?$/.test(path) &&
@@ -91,7 +76,8 @@ const isCurrentProductionLayer = (path: string): boolean =>
   path.startsWith('src/features/ai-chat/') ||
   path.startsWith('src/features/analytics/') ||
   path.startsWith('src/features/options/') ||
-  path.startsWith('src/lib/background/')
+  path.startsWith('src/lib/background/') ||
+  path.startsWith('src/app/composition/')
 
 const importedNames = (node: ts.ImportDeclaration): readonly string[] => {
   const bindings = node.importClause?.namedBindings
@@ -132,7 +118,11 @@ const legacyImportReason = (
   ) {
     return `legacy migration DTO module: ${modulePath}`
   }
-  if (modulePath.includes('/infrastructure/persistence/chrome-storage/')) {
+  if (
+    modulePath.includes('/infrastructure/persistence/chrome-storage/') &&
+    !modulePath.endsWith('/ChromeUserSettingsRepository') &&
+    !modulePath.endsWith('/ChromeStorageLocalPort')
+  ) {
     return `Chrome domain persistence module: ${modulePath}`
   }
   if (modulePath.includes('/features/options/lib/import-export/legacy/')) {
@@ -301,7 +291,7 @@ const objectProperty = (
         (ts.isStringLiteral(property.name) && property.name.text === name)),
   )
 
-describe('Issue #729-B legacy persistence boundary', () => {
+describe('Issue #861 IndexedDB-only persistence boundary', () => {
   it('shared current storage types do not declare legacy saved-tabs shapes', () => {
     const storageTypesPath = resolve(repoRoot, 'src/types/storage.ts')
     const sourceFile = parseSourceFile(storageTypesPath)
@@ -323,10 +313,7 @@ describe('Issue #729-B legacy persistence boundary', () => {
     const violations: string[] = []
     for (const absolutePath of collectSourceFiles(sourceRoot)) {
       const repositoryPath = toRepositoryPath(absolutePath)
-      if (
-        !isCurrentProductionLayer(repositoryPath) ||
-        isLegacyMigrationImportBoundary(repositoryPath)
-      ) {
+      if (!isCurrentProductionLayer(repositoryPath)) {
         continue
       }
       const sourceFile = parseSourceFile(absolutePath)
@@ -350,38 +337,32 @@ describe('Issue #729-B legacy persistence boundary', () => {
     expect(violations).toStrictEqual([])
   })
 
-  it('production route-aware composition injects legacy and IndexedDB bundles', () => {
-    const compositionPath = resolve(
-      repoRoot,
-      'src/app/composition/createSavedTabsUseCases.ts',
+  it('production composition injects only the native IndexedDB connection and operation gate', () => {
+    const sourceFile = parseSourceFile(
+      resolve(repoRoot, 'src/app/composition/createSavedTabsUseCases.ts'),
     )
-    const sourceFile = parseSourceFile(compositionPath)
-    const body = findNamedFunctionBody(
-      sourceFile,
-      'createProductionSavedTabsUseCases',
-    )
-    expect(body, 'createProductionSavedTabsUseCases must exist').toBeDefined()
-    if (!body) {
-      return
+    for (const [entryPoint, nativeFactory] of [
+      ['createSavedTabsUseCases', 'createIndexedDbSavedTabsUseCases'],
+      [
+        'createSavedTabsPresentationComposition',
+        'createNativeIndexedDbSavedTabsRuntime',
+      ],
+    ] as const) {
+      const body = findNamedFunctionBody(sourceFile, entryPoint)
+      expect(body).toBeDefined()
+      if (!body) {
+        throw new Error(`${entryPoint} must exist`)
+      }
+      const options = findCallObjectArgument(body, nativeFactory)
+      expect(options).toBeDefined()
+      if (!options) {
+        throw new Error(`${nativeFactory} must be called`)
+      }
+      expect(objectProperty(options, 'connectionManager')).toBeDefined()
+      expect(objectProperty(options, 'operationGate')).toBeDefined()
+      expect(objectProperty(options, 'legacy')).toBeUndefined()
+      expect(objectProperty(options, 'router')).toBeUndefined()
     }
-    const routeAwareOptions = findCallObjectArgument(
-      body,
-      'createRouteAwareSavedTabsUseCases',
-    )
-    expect(
-      routeAwareOptions,
-      'route-aware options must be an object literal',
-    ).toBeDefined()
-    if (!routeAwareOptions) {
-      return
-    }
-
-    expect(objectProperty(routeAwareOptions, 'legacy')).toBeDefined()
-    expect(
-      objectProperty(routeAwareOptions, 'indexeddb'),
-      'production must inject a real IndexedDB SavedTabsUseCases bundle',
-    ).toBeDefined()
-    expect(objectProperty(routeAwareOptions, 'router')).toBeDefined()
   })
 
   it('normal production IndexedDB paths do not import migration compatibility modules', () => {
@@ -432,52 +413,31 @@ describe('Issue #729-B legacy persistence boundary', () => {
     expect(violations).toStrictEqual([])
   })
 
-  it('IndexedDB callbacks do not call Chrome domain storage or the legacy callback', () => {
-    const routeAwarePath = resolve(
-      repoRoot,
-      'src/contexts/saved-tabs/application/services/RouteAwareSavedTabsUseCasesService.ts',
-    )
-    const sourceFile = parseSourceFile(routeAwarePath)
-    const forbidden =
-      /(?:chrome-storage|getChromeStorageLocal|getPersistenceStorageLocal|createSelectedLegacy|legacy\s*\()/
-
-    for (const functionName of ['routeRead', 'routeWrite']) {
-      const body = findNamedFunctionBody(sourceFile, functionName)
-      expect(body, `${functionName} must exist`).toBeDefined()
-      if (!body) {
-        continue
-      }
-      const routerMethod = functionName === 'routeRead' ? 'read' : 'write'
-      let operation: ts.ObjectLiteralExpression | undefined
-      const visit = (node: ts.Node): void => {
-        if (
-          ts.isCallExpression(node) &&
-          ts.isPropertyAccessExpression(node.expression) &&
-          node.expression.name.text === routerMethod &&
-          node.arguments[0] &&
-          ts.isObjectLiteralExpression(node.arguments[0])
-        ) {
-          operation = node.arguments[0]
-          return
-        }
-        ts.forEachChild(node, visit)
-      }
-      visit(body)
-      expect(
-        operation,
-        `${functionName} must pass an operation object`,
-      ).toBeDefined()
-      if (!operation) {
-        continue
-      }
-      const indexeddb = objectProperty(operation, 'indexeddb')
-      expect(
-        indexeddb,
-        `${functionName} must declare an indexeddb callback`,
-      ).toBeDefined()
-      const indexeddbSource = indexeddb?.initializer.getText(sourceFile) ?? ''
-      expect(indexeddbSource).not.toMatch(forbidden)
+  it('IndexedDB domain compositions do not import Chrome Storage or retired route factories', () => {
+    for (const path of [
+      'src/app/composition/createSavedTabsUseCases.ts',
+      'src/app/composition/backgroundSavedTabsDataPlane.ts',
+      'src/app/composition/analyticsViewsDataPlane.ts',
+      'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsUseCases.ts',
+    ]) {
+      const source = readFileSync(resolve(repoRoot, path), 'utf8')
+      expect(source).not.toMatch(
+        /getChromeStorageLocal|chrome\.storage\.local|PersistenceDataPlaneRouter|createLegacy|createRouteAware|legacyStorage/,
+      )
     }
+    const aiHistory = readFileSync(
+      resolve(
+        repoRoot,
+        'src/app/composition/aiConversationHistoryDataPlane.ts',
+      ),
+      'utf8',
+    )
+    expect(aiHistory).toContain(
+      "const ACTIVE_CONVERSATION_ID_KEY = 'activeAiChatConversationId'",
+    )
+    expect(aiHistory).not.toMatch(
+      /aiChatConversations|createLegacy|createRouteAware|PersistenceDataPlaneRouter/,
+    )
   })
 
   it('current domain/application/presentation shapes do not expose legacy dual fields', () => {
@@ -491,10 +451,6 @@ describe('Issue #729-B legacy persistence boundary', () => {
     ]
     const violations = shapeRoots
       .flatMap((path) => collectSourceFiles(resolve(repoRoot, path)))
-      .filter(
-        (absolutePath) =>
-          !legacyShapeAllowlist.has(toRepositoryPath(absolutePath)),
-      )
       .flatMap(collectShapeViolations)
       .toSorted((left, right) =>
         `${left.path}:${left.declaration}:${left.reason}`.localeCompare(

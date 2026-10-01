@@ -1,8 +1,3 @@
-import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
-import type {
-  PersistenceDataPlaneRouterPort,
-  PersistenceOperationGatePort,
-} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceV2SnapshotReaderPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type {
   PersistenceJsonRecord,
@@ -14,56 +9,12 @@ import { createNotifyingPersistenceV2UnitOfWork } from '@/contexts/saved-tabs/in
 import { getPersistenceBootstrapRuntime } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
-import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 import { logger } from '@/lib/logging/logger'
 import { isJsonValue } from '@/lib/persistence/jsonValue'
-
-const SAVED_ANALYTICS_VIEWS_KEY = 'savedAnalyticsViews'
 
 type AnalyticsViewsDataPlane = {
   readonly readValues: () => Promise<readonly unknown[]>
   readonly replaceValues: (values: readonly unknown[]) => Promise<void>
-}
-
-type AnalyticsViewsLegacyStorage = {
-  readonly get: (key: string) => Promise<Record<string, unknown>>
-  readonly set: (values: Record<string, unknown>) => Promise<void>
-}
-
-type CreateRouteAwareAnalyticsViewsDataPlaneOptions = {
-  readonly indexeddb: AnalyticsViewsDataPlane
-  readonly legacy: AnalyticsViewsDataPlane
-  readonly router: PersistenceDataPlaneRouterPort
-}
-
-const createRouteAwareAnalyticsViewsDataPlane = ({
-  indexeddb,
-  legacy,
-  router,
-}: CreateRouteAwareAnalyticsViewsDataPlaneOptions): AnalyticsViewsDataPlane => ({
-  readValues: async () =>
-    router.read({
-      indexeddb: indexeddb.readValues,
-      legacy: legacy.readValues,
-    }),
-  replaceValues: async (values) =>
-    router.write({
-      indexeddb: async () => indexeddb.replaceValues(values),
-      legacy: async () => legacy.replaceValues(values),
-    }),
-})
-
-const selectedIndexedDbGate: PersistenceOperationGatePort = {
-  runIndexedDbRead: async (operation) => operation(),
-  runIndexedDbWrite: async (operation) => operation(),
-  // eslint-disable-next-line typescript/require-await -- the outer router selected IndexedDB
-  runLegacyRead: async () => {
-    throw new PersistenceUnavailableError('PERSISTENCE_ROUTE_MISMATCH')
-  },
-  // eslint-disable-next-line typescript/require-await -- the outer router selected IndexedDB
-  runLegacyWrite: async () => {
-    throw new PersistenceUnavailableError('PERSISTENCE_ROUTE_MISMATCH')
-  },
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -85,21 +36,6 @@ const toPersistenceRecord = (value: unknown): PersistenceJsonRecord => {
     value,
   }
 }
-
-const createLegacyAnalyticsViewsDataPlane = (
-  getChromeStorageLocal: () => AnalyticsViewsLegacyStorage,
-): AnalyticsViewsDataPlane => ({
-  readValues: async () => {
-    const storageLocal = getChromeStorageLocal()
-    const stored = await storageLocal.get(SAVED_ANALYTICS_VIEWS_KEY)
-    const value = stored[SAVED_ANALYTICS_VIEWS_KEY]
-    return Array.isArray(value) ? value.map((item: unknown) => item) : []
-  },
-  replaceValues: async (values) => {
-    const storageLocal = getChromeStorageLocal()
-    await storageLocal.set({ [SAVED_ANALYTICS_VIEWS_KEY]: [...values] })
-  },
-})
 
 const createIndexedDbAnalyticsViewsDataPlane = ({
   reader,
@@ -152,14 +88,9 @@ const createIndexedDbAnalyticsViewsDataPlane = ({
 
 const createProductionIndexedDbDataPlane = (): AnalyticsViewsDataPlane => {
   const runtime = getPersistenceBootstrapRuntime()
-  if (!runtime.connectionManager) {
-    throw new PersistenceUnavailableError(
-      'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
-    )
-  }
   const reader = new IndexedDbPersistenceSnapshotReader(
     runtime.connectionManager,
-    selectedIndexedDbGate,
+    runtime.operationGate,
   )
   const unitOfWork = createNotifyingPersistenceV2UnitOfWork({
     changePort: createBroadcastChannelPersistenceChangeAdapter(),
@@ -169,44 +100,26 @@ const createProductionIndexedDbDataPlane = (): AnalyticsViewsDataPlane => {
     },
     unitOfWork: new IndexedDbPersistenceUnitOfWork(
       runtime.connectionManager,
-      selectedIndexedDbGate,
+      runtime.operationGate,
     ),
   })
   return createIndexedDbAnalyticsViewsDataPlane({ reader, unitOfWork })
 }
 
-let productionDataPlane: AnalyticsViewsDataPlane | null | undefined
-let productionIndexedDbDataPlane: AnalyticsViewsDataPlane | undefined
+let productionDataPlane: AnalyticsViewsDataPlane | undefined
 
-const getProductionIndexedDbDataPlane = (): AnalyticsViewsDataPlane => {
-  productionIndexedDbDataPlane ??= createProductionIndexedDbDataPlane()
-  return productionIndexedDbDataPlane
+const getAnalyticsViewsDataPlane = (): AnalyticsViewsDataPlane => {
+  productionDataPlane ??= createProductionIndexedDbDataPlane()
+  return productionDataPlane
 }
 
-const getAnalyticsViewsDataPlane = (): AnalyticsViewsDataPlane | null => {
-  if (productionDataPlane !== undefined) {
-    return productionDataPlane
-  }
-  const storage = getChromeStorageLocal()
-  productionDataPlane = storage
-    ? createRouteAwareAnalyticsViewsDataPlane({
-        indexeddb: {
-          readValues: async () =>
-            getProductionIndexedDbDataPlane().readValues(),
-          replaceValues: async (values) =>
-            getProductionIndexedDbDataPlane().replaceValues(values),
-        },
-        legacy: createLegacyAnalyticsViewsDataPlane(() => storage),
-        router: getPersistenceBootstrapRuntime().dataPlaneRouter,
-      })
-    : null
-  return productionDataPlane
+const resetAnalyticsViewsDataPlaneForTesting = (): void => {
+  productionDataPlane = undefined
 }
 
 export type { AnalyticsViewsDataPlane }
 export {
   createIndexedDbAnalyticsViewsDataPlane,
-  createLegacyAnalyticsViewsDataPlane,
-  createRouteAwareAnalyticsViewsDataPlane,
   getAnalyticsViewsDataPlane,
+  resetAnalyticsViewsDataPlaneForTesting,
 }

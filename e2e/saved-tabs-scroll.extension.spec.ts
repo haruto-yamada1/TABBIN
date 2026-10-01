@@ -1,8 +1,14 @@
 import {
+  createDomainCollectionFixture,
+  createMembershipFixture,
+  createUrlFixture,
+} from '@/test/fixtures/persistenceBrowserFixtures'
+
+import {
   createBaseSeed,
   expect,
   getExtensionUrl,
-  seedStorage,
+  seedSavedTabsFixture,
   test,
   waitForPersistenceV2Ready,
 } from './helpers/extension'
@@ -12,50 +18,67 @@ test('domain parent navigation uses the section position while its header is sti
   page,
   serviceWorker,
 }, testInfo) => {
-  const urls = Array.from({ length: 40 }, (_, index) => ({
-    id: `scroll-url-${index}`,
-    savedAt: Date.now(),
-    title: `Scroll regression tab ${index + 1}`,
-    url: `https://scroll.example.com/${index}`,
-  }))
-  await seedStorage(
-    serviceWorker,
-    createBaseSeed({
-      savedTabs: [
+  const now = Date.now()
+  const urls = Array.from({ length: 40 }, (_, index) =>
+    createUrlFixture(
+      `scroll-url-${index}`,
+      `https://scroll.example.com/${index}`,
+      `Scroll regression tab ${index + 1}`,
+      now,
+    ),
+  )
+  await seedSavedTabsFixture(serviceWorker, {
+    storage: createBaseSeed(),
+    persistence: {
+      categories: [],
+      collections: [
         {
-          id: 'categorized-domain',
-          domain: 'parent.example.com',
-          parentCategoryId: 'parent-category',
-          urlIds: ['parent-url'],
+          ...createDomainCollectionFixture(
+            'categorized-domain',
+            'parent.example.com',
+            now,
+          ),
+          groupId: 'parent-category',
         },
-        {
-          id: 'uncategorized-domain',
-          domain: 'scroll.example.com',
-          urlIds: urls.map(({ id }) => id),
-        },
+        createDomainCollectionFixture(
+          'uncategorized-domain',
+          'scroll.example.com',
+          now,
+          1024,
+        ),
       ],
       urls: [
-        {
-          id: 'parent-url',
-          savedAt: Date.now(),
-          title: 'Previous parent category tab',
-          url: 'https://parent.example.com/',
-        },
+        createUrlFixture(
+          'parent-url',
+          'https://parent.example.com/',
+          'Previous parent category tab',
+          now,
+        ),
         ...urls,
       ],
-      parentCategories: [
+      groups: [
         {
+          createdAt: now,
           id: 'parent-category',
           name: 'Previous parent category',
-          domains: ['categorized-domain'],
           domainNames: ['parent.example.com'],
+          sortOrder: 0,
+          updatedAt: now,
         },
       ],
-      domainCategoryMappings: [
-        { domain: 'parent.example.com', categoryId: 'parent-category' },
+      memberships: [
+        createMembershipFixture('categorized-domain', 'parent-url', now),
+        ...urls.map(({ id }, index) =>
+          createMembershipFixture(
+            'uncategorized-domain',
+            id,
+            now,
+            index * 1024,
+          ),
+        ),
       ],
-    }),
-  )
+    },
+  })
   await page.goto(
     getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
   )

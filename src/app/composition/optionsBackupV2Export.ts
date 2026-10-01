@@ -10,8 +10,6 @@ import type {
 } from '@/features/options/lib/import-export/v2/ExportBackupV2UseCase'
 import { readUserSettingsWithoutRepair } from '@/lib/storage/settings'
 
-import { getMigrationPreflightController } from './createMigrationPreflightController'
-
 export type OptionsBackupV2ExportRuntime = {
   readonly exportBackupV2: ExportBackupV2UseCase
 }
@@ -45,7 +43,7 @@ const defaultDeps: OptionsBackupV2ExportRuntimeDeps = {
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   now: () => new Date(),
   preparePersistence: async () => {
-    await getMigrationPreflightController().run()
+    await getPersistenceBootstrapRuntime().bootstrap.ready()
   },
   readUserSettings: readUserSettingsWithoutRepair,
 }

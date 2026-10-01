@@ -1,40 +1,8 @@
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import type {
-  PersistenceDataPlaneOperation,
-  PersistenceDataPlaneRouterPort,
-  PersistenceRoute,
-} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceLogicalSnapshot } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 
-import type { AiConversationHistoryDataPlane } from './aiConversationHistoryDataPlane'
-import {
-  createIndexedDbAiConversationHistoryDataPlane,
-  createLegacyAiConversationHistoryDataPlane,
-  createRouteAwareAiConversationHistoryDataPlane,
-} from './aiConversationHistoryDataPlane'
-
-const createRouter = (
-  route: PersistenceRoute,
-): PersistenceDataPlaneRouterPort => ({
-  read: async <Result>(operation: PersistenceDataPlaneOperation<Result>) =>
-    operation[route](),
-  write: async <Result>(operation: PersistenceDataPlaneOperation<Result>) =>
-    operation[route](),
-})
-
-const createPlane = (label: string) => {
-  const read = vi.fn(async () => ({
-    activeConversationId: label,
-    conversations: [{ id: label }],
-  }))
-  const replace = vi.fn(async () => {})
-  return {
-    plane: { read, replace } satisfies AiConversationHistoryDataPlane,
-    read,
-    replace,
-  }
-}
+import { createIndexedDbAiConversationHistoryDataPlane } from './aiConversationHistoryDataPlane'
 
 const emptySavedTabs = {
   categories: [],
@@ -70,32 +38,6 @@ const createSnapshot = (): PersistenceLogicalSnapshot => ({
 })
 
 describe('aiConversationHistoryDataPlane', () => {
-  it.each(['indexeddb', 'legacy'] satisfies PersistenceRoute[])(
-    '%s routeだけでreadとreplaceを完結する',
-    async (route) => {
-      const indexeddb = createPlane('indexeddb')
-      const legacy = createPlane('legacy')
-      const dataPlane = createRouteAwareAiConversationHistoryDataPlane({
-        indexeddb: indexeddb.plane,
-        legacy: legacy.plane,
-        router: createRouter(route),
-      })
-
-      await expect(dataPlane.read()).resolves.toMatchObject({
-        activeConversationId: route,
-      })
-      const next = { activeConversationId: 'next', conversations: [] }
-      await dataPlane.replace(next)
-
-      const selected = route === 'indexeddb' ? indexeddb : legacy
-      const unselected = route === 'indexeddb' ? legacy : indexeddb
-      expect(selected.read).toHaveBeenCalledOnce()
-      expect(selected.replace).toHaveBeenCalledWith(next)
-      expect(unselected.read).not.toHaveBeenCalled()
-      expect(unselected.replace).not.toHaveBeenCalled()
-    },
-  )
-
   it('IndexedDB recordsとChrome selectionから会話を復元する', async () => {
     const dataPlane = createIndexedDbAiConversationHistoryDataPlane({
       reader: { readConsistentSnapshot: async () => createSnapshot() },
@@ -491,30 +433,5 @@ describe('aiConversationHistoryDataPlane', () => {
       }),
     ).rejects.toThrow('IDs must be unique')
     expect(commit).not.toHaveBeenCalled()
-  })
-
-  it('legacy historyを同じ二つのChrome keyでround-tripする', async () => {
-    const state: Record<string, unknown> = { aiChatConversations: 'invalid' }
-    const storage = {
-      get: vi.fn(async (keys: string | readonly string[]) => {
-        const selected = typeof keys === 'string' ? [keys] : keys
-        return Object.fromEntries(selected.map((key) => [key, state[key]]))
-      }),
-      set: vi.fn(async (values: Record<string, unknown>) => {
-        Object.assign(state, values)
-      }),
-    }
-    const dataPlane = createLegacyAiConversationHistoryDataPlane(() => storage)
-
-    await expect(dataPlane.read()).resolves.toEqual({
-      activeConversationId: undefined,
-      conversations: [],
-    })
-    const next = {
-      activeConversationId: 'conversation-1',
-      conversations: [{ id: 'conversation-1' }],
-    }
-    await dataPlane.replace(next)
-    await expect(dataPlane.read()).resolves.toEqual(next)
   })
 })

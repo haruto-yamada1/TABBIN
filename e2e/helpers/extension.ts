@@ -102,14 +102,7 @@ export const defaultUserSettings = {
 }
 
 export const createBaseSeed = (overrides?: Record<string, unknown>) => ({
-  customProjectOrder: [],
-  customProjects: [],
-  domainCategoryMappings: [],
-  domainCategorySettings: [],
-  parentCategories: [],
-  savedTabs: [],
   'tab-manager-theme': 'system',
-  urls: [],
   userSettings: { ...defaultUserSettings },
   viewMode: 'domain',
   ...overrides,
@@ -128,7 +121,7 @@ export const seedStorage = async (
   }, seed)
 }
 
-type PersistenceV2SavedTabsSeed = {
+export type PersistenceV2SavedTabsSeed = {
   categories: readonly Record<string, unknown>[]
   collections: readonly Record<string, unknown>[]
   groups: readonly Record<string, unknown>[]
@@ -140,6 +133,7 @@ export const seedPersistenceV2SavedTabs = async (
   serviceWorker: Worker,
   seed: PersistenceV2SavedTabsSeed,
 ) => {
+  await waitForPersistenceV2Ready(serviceWorker)
   await serviceWorker.evaluate(async (value) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open('tabbin-persistence-v2', 1)
@@ -197,6 +191,17 @@ export const seedPersistenceV2SavedTabs = async (
       database.close()
     }
   }, seed)
+}
+
+export const seedSavedTabsFixture = async (
+  serviceWorker: Worker,
+  seed: {
+    storage: Record<string, unknown>
+    persistence: PersistenceV2SavedTabsSeed
+  },
+) => {
+  await seedStorage(serviceWorker, seed.storage)
+  await seedPersistenceV2SavedTabs(serviceWorker, seed.persistence)
 }
 
 export const readStorage = async <T>(
@@ -328,21 +333,13 @@ export const waitForPersistenceV2Ready = async (
 ): Promise<void> => {
   await expect
     .poll(async () => {
-      const state = await readStorage<
-        Record<string, { issueCodes?: string[]; status?: string }>
-      >(serviceWorker, [
-        'tabbin:migrationPreflight:v1',
-        'tabbin:persistenceControlState:v2',
-      ])
-      return {
-        control: state['tabbin:persistenceControlState:v2']?.status,
-        issueCodes: state['tabbin:migrationPreflight:v1']?.issueCodes,
-        preflight: state['tabbin:migrationPreflight:v1']?.status,
-      }
+      return serviceWorker.evaluate(async () => {
+        const databases = await indexedDB.databases()
+        return databases.some(
+          ({ name, version }) =>
+            name === 'tabbin-persistence-v2' && version === 1,
+        )
+      })
     })
-    .toEqual({
-      control: 'indexeddb',
-      issueCodes: undefined,
-      preflight: 'healthy',
-    })
+    .toBe(true)
 }

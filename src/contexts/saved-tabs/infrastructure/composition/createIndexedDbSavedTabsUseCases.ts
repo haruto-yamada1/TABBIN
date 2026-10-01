@@ -1,5 +1,4 @@
 import { createSavedTabsUseCases as createApplicationSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { IndexedDbSavedTabsDataPlaneDeps } from '@/contexts/saved-tabs/application/IndexedDbSavedTabsDataPlaneDeps'
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
@@ -13,33 +12,14 @@ import { IndexedDbSavedTabsQueryAdapter } from '@/contexts/saved-tabs/infrastruc
 import { logger } from '@/lib/logging/logger'
 
 import { createIndexedDbSavedTabsExternalDeps } from './createIndexedDbSavedTabsExternalDeps'
+import type { CreateSavedTabsUseCasesDepsOptions } from './createIndexedDbSavedTabsExternalDeps'
 import { createNotifyingPersistenceV2UnitOfWork } from './createNotifyingPersistenceV2UnitOfWork'
-import type { CreateSavedTabsUseCasesDepsOptions } from './createSavedTabsUseCasesDeps'
 import { IndexedDbSavedTabsSessionService } from './IndexedDbSavedTabsSessionService'
 import { createNativeSavedTabsPersistenceAdapters } from './NativeSavedTabsPersistenceAdapters'
 
-const createAlreadySelectedIndexedDbOperationGate =
-  (): PersistenceOperationGatePort => ({
-    runIndexedDbRead: async (operation) => {
-      const result = await operation()
-      return result
-    },
-    runIndexedDbWrite: async (operation) => {
-      const result = await operation()
-      return result
-    },
-    runLegacyRead: async () => {
-      await Promise.resolve()
-      throw new PersistenceUnavailableError('PERSISTENCE_ROUTE_MISMATCH')
-    },
-    runLegacyWrite: async () => {
-      await Promise.resolve()
-      throw new PersistenceUnavailableError('PERSISTENCE_ROUTE_MISMATCH')
-    },
-  })
-
 export type CreateIndexedDbSavedTabsUseCasesOptions = {
   readonly connectionManager: IndexedDbConnectionManager
+  readonly operationGate: PersistenceOperationGatePort
   readonly presentationOptions?: CreateSavedTabsUseCasesDepsOptions
 }
 
@@ -50,9 +30,9 @@ export type NativeIndexedDbSavedTabsRuntime = {
 
 export const createNativeIndexedDbSavedTabsRuntime = ({
   connectionManager,
+  operationGate: gate,
   presentationOptions = {},
 }: CreateIndexedDbSavedTabsUseCasesOptions): NativeIndexedDbSavedTabsRuntime => {
-  const gate = createAlreadySelectedIndexedDbOperationGate()
   const snapshotReader = new IndexedDbPersistenceSnapshotReader(
     connectionManager,
     gate,
@@ -83,23 +63,6 @@ export const createNativeIndexedDbSavedTabsRuntime = ({
     }),
   }
 }
-
-export const createUnavailableIndexedDbSavedTabsUseCases =
-  (): SavedTabsUseCases => {
-    const unavailable = new Proxy(
-      {},
-      {
-        get: () => async () => {
-          await Promise.resolve()
-          throw new PersistenceUnavailableError(
-            'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
-          )
-        },
-      },
-    )
-    // eslint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- fail-closed proxy implements the complete operation table uniformly
-    return unavailable as SavedTabsUseCases
-  }
 
 export const createIndexedDbSavedTabsUseCases = (
   options: CreateIndexedDbSavedTabsUseCasesOptions,

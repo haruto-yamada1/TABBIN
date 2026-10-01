@@ -64,23 +64,29 @@ pages. Tab data stays local and is never transmitted off-device.
 
 ### `storage`
 
-Purpose: persist `savedTabs`, `urls`, `userSettings`, `customProjects`, and
-persistence migration control state through `chrome.storage.local`.
+Purpose: persist `userSettings`, active AI conversation selection, theme, and
+release-display state through `chrome.storage.local`. Domain data uses
+IndexedDB directly; this permission remains necessary for settings and UI
+state.
 
 Primary usage sites:
 
 - `src/lib/browser/chrome-storage.ts` — shared storage wrapper.
-- `src/lib/storage/tabs.ts`, `src/lib/storage/settings.ts`,
-  `src/lib/storage/projects.ts` — domain storage records.
-- `src/lib/background/url-storage.ts` — URL record storage and removal.
-- `src/lib/background/expired-tabs.ts` — expiration state.
-- `src/lib/background/ai-chat.ts` — chat history persistence.
-- `src/entrypoints/background.ts` — storage change wiring.
-- `src/app/composition/createSavedTabsRepositories.ts` — repository composition.
+- `src/lib/storage/settings.ts` — user settings and normalization.
+- `src/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository.ts`
+  — settings repository; no domain-data storage capability.
+- `src/components/ThemeProvider.tsx` — theme preference.
+- `src/app/composition/aiConversationHistoryDataPlane.ts` — active conversation
+  selection; conversation content is stored in IndexedDB.
+- `src/entrypoints/background.ts` — release-display state and settings change
+  wiring.
 
 Review notes: `storage` is the local persistence boundary. It does not grant
-network access. The `unlimitedStorage` durability decision and the migration
-control-plane storage access boundary are documented in
+network access. Legacy Chrome Storage domain repositories, migration state,
+preflight, and cleanup are removed under Issue #861. Existing IndexedDB records
+and Backup V2 recovery remain supported; unmigrated Chrome Storage domain data
+is not automatically restored. The `unlimitedStorage` durability decision and
+the trusted settings-storage access boundary are documented in
 [`persistence-durability.md`](persistence-durability.md) and
 [`messaging-trust-boundary.md`](messaging-trust-boundary.md).
 

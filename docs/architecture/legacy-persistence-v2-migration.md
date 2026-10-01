@@ -1,16 +1,21 @@
-# Legacy Chrome Storage to Persistence v2 migration
+# Legacy Chrome Storage to Persistence v2 migration (historical)
 
 The exact versus legacy-fallback timestamp policy used by migration reports and
 Analytics is defined in [analytics-metrics.md](./analytics-metrics.md).
 
-Status: implemented migration capability for Issue #728
+Status: retired by Issue #861; historical design for Issue #728
 Parent: Issue #724
 
-This document is authoritative for converting the legacy
-`chrome.storage.local` snapshot into the Persistence v2 stores. Runtime
-source-of-truth selection and automatic cutover remain owned by Issue #729.
-Composing the lifecycle does not start migration: only an explicit
-`PersistenceBootstrap.migrate(migrationId)` request may enter it.
+Issue [#861](https://github.com/haruto-yamada1/TABBIN/issues/861) retired this
+on-device migration, including its readers, mappers, preflight and control-state
+lifecycle. The descriptions below record the previous implementation; they are
+not the current runtime contract or supported recovery procedure.
+
+Current domain persistence is IndexedDB-only. See
+[persistence-model-v2.md](./persistence-model-v2.md) and the
+[compatibility release note](../releases/indexeddb-only-persistence.md).
+Existing IndexedDB data and schema upgrades remain supported. Old Chrome
+Storage domain data is not automatically restored into an empty database.
 
 ## Source boundary
 

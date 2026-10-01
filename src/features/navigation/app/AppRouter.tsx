@@ -11,7 +11,6 @@ import {
 
 import { createSavedTabsPresentationComposition } from '@/app/composition/createSavedTabsUseCases'
 import { LazySavedTabsRoute } from '@/app/composition/LazySavedTabsRoute'
-import { PersistenceMigrationNotice } from '@/app/composition/PersistenceMigrationNotice'
 import {
   getSavedTabsEntryRoute,
   getSavedTabsHrefForMode,
@@ -119,16 +118,13 @@ const SavedTabsRoutePage = () => {
   }
 
   return (
-    <>
-      <PersistenceMigrationNotice />
-      <Suspense fallback={null}>
-        <LazySavedTabsRoute
-          createDeps={createSavedTabsPresentationComposition}
-          search={routerLocation.search}
-          onViewModeNavigate={handleViewModeNavigate}
-        />
-      </Suspense>
-    </>
+    <Suspense fallback={null}>
+      <LazySavedTabsRoute
+        createDeps={createSavedTabsPresentationComposition}
+        search={routerLocation.search}
+        onViewModeNavigate={handleViewModeNavigate}
+      />
+    </Suspense>
   )
 }
 

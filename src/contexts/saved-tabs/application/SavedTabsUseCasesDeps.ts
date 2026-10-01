@@ -14,7 +14,6 @@ import type { ClockPort } from './ports/ClockPort'
 import type { CustomProjectsCommandService } from './ports/CustomProjectsCommandService'
 import type { IdGeneratorPort } from './ports/IdGeneratorPort'
 import type { MessagingPort } from './ports/MessagingPort'
-import type { MigrationPort } from './ports/MigrationPort'
 import type { NotificationPort } from './ports/NotificationPort'
 import type { RemoveSubCategoryFromTabGroupPort } from './ports/RemoveSubCategoryFromTabGroupPort'
 import type { SavedTabsTabGroupReadPort } from './ports/SavedTabsTabGroupReadPort'
@@ -34,7 +33,6 @@ export type SavedTabsUseCasesDeps = {
   readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
   readonly domainCategorySettingsRepository: DomainCategorySettingsRepository
   readonly messagingPort: MessagingPort
-  readonly migrationPort: MigrationPort
   readonly notificationPort: NotificationPort
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly removeSubCategoryFromTabGroupPort: RemoveSubCategoryFromTabGroupPort

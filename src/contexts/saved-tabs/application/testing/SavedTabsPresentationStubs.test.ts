@@ -37,12 +37,6 @@ describe('createSavedTabsPresentationPortsStub', () => {
         url: 'https://example.com',
       }),
     ).resolves.toBeUndefined()
-    await expect(
-      ports.migrationPort.migrateParentCategoriesToDomainNames(),
-    ).resolves.toBeUndefined()
-    await expect(
-      ports.migrationPort.migrateToUrlsStorage(),
-    ).resolves.toBeUndefined()
     expect(ports.storageChangePort.subscribe(() => undefined)()).toBeUndefined()
   })
 
