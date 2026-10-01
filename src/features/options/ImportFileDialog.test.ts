@@ -53,12 +53,12 @@ describe('shouldCloseImportDialog', () => {
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-08-12T00:00:00.000Z',
-        version: '2.0.16',
+        version: '2.0.17',
       },
     })
 
     expect(state.step).toBe('preview')
-    expect(state.previewData?.version).toBe('2.0.16')
+    expect(state.previewData?.version).toBe('2.0.17')
   })
 
   it('resetImportFileInput は input がある場合だけ value を空にする', () => {
