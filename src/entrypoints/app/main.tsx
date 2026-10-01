@@ -3,6 +3,7 @@ import type { MigrationPreflightControllerResult } from '@/app/composition/creat
 import { createMigrationPreflightRecoveryDiagnostic } from '@/app/composition/createMigrationPreflightRecoveryDiagnostic'
 import { getPersistenceRecoveryController } from '@/app/composition/createPersistenceRecoveryController'
 import { PersistenceRecoveryNotice } from '@/app/composition/PersistenceRecoveryNotice'
+import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { I18nProvider } from '@/features/i18n/context/I18nProvider'
@@ -81,6 +82,7 @@ const mountApp = (): void => {
       <AppPage />
     </ThemeProvider>,
     'Failed to find the app container',
+    { onExport: exportRenderRecoveryBackup },
   )
 }
 

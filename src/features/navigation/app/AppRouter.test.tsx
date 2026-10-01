@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 
 const routeModuleLoads = vi.hoisted(() => ({
   aiChat: 0,
+  failingFeature: '',
 }))
 
 vi.mock('@/hooks/useMobile', () => ({
@@ -73,12 +74,22 @@ vi.mock('@/contexts/saved-tabs/presentation/routes/SavedTabsRoute', () => ({
 vi.mock('@/features/ai-chat/routes/AiChatRoute', () => {
   routeModuleLoads.aiChat += 1
   return {
-    AiChatRoute: () => <div>ai-chat-route</div>,
+    AiChatRoute: () => {
+      if (routeModuleLoads.failingFeature === 'ai-chat') {
+        throw new Error('private conversation')
+      }
+      return <div>ai-chat-route</div>
+    },
   }
 })
 
 vi.mock('@/features/analytics/routes/AnalyticsRoute', () => ({
-  AnalyticsRoute: () => <div>analytics-route</div>,
+  AnalyticsRoute: () => {
+    if (routeModuleLoads.failingFeature === 'analytics') {
+      throw new Error('private tab URL')
+    }
+    return <div>analytics-route</div>
+  },
 }))
 
 vi.mock('@/features/periodic-execution/routes/PeriodicExecutionRoute', () => ({
@@ -100,12 +111,14 @@ describe('AppRouter', () => {
     // The lazy route-module load counter is module-level and accumulates
     // across tests; reset it so load-count assertions are order-independent.
     routeModuleLoads.aiChat = 0
+    routeModuleLoads.failingFeature = ''
     window.history.replaceState({}, '', '/')
   })
 
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   it('saved-tabs 初期表示では ai-chat route module を読み込まない', async () => {
@@ -184,6 +197,35 @@ describe('AppRouter', () => {
 
     await expect(screen.findByText('analytics-route')).resolves.toBeTruthy()
   })
+
+  it.each(['analytics', 'ai-chat'])(
+    '%s failure preserves sidebar navigation and allows revisiting the feature',
+    async (feature) => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const user = userEvent.setup()
+      routeModuleLoads.failingFeature = feature
+      render(<AppRouter initialEntries={[`/${feature}`]} />)
+
+      expect(await screen.findByRole('alert')).toBeTruthy()
+      expect(screen.queryByText(/private/)).toBeNull()
+      const optionsLink = screen.getAllByRole('link', { name: 'オプション' })[0]
+      if (!optionsLink) {
+        throw new Error('Options navigation missing')
+      }
+      await user.click(optionsLink)
+      expect(await screen.findByText('options-route')).toBeTruthy()
+
+      routeModuleLoads.failingFeature = ''
+      const label = feature === 'analytics' ? '分析' : 'チャット'
+      const featureLink = screen.getAllByRole('link', { name: label })[0]
+      if (!featureLink) {
+        throw new Error('Feature navigation missing')
+      }
+      await user.click(featureLink)
+      expect(await screen.findByText(`${feature}-route`)).toBeTruthy()
+      expect(screen.queryByRole('alert')).toBeNull()
+    },
+  )
 
   it('options route を開ける', async () => {
     render(<AppRouter initialEntries={['/options']} />)
