@@ -100,7 +100,7 @@ const getString = (
   return typeof value === 'string' ? value : undefined
 }
 
-const findInstallUuid = (parsed: unknown): string | undefined => {
+export const findInstallUuid = (parsed: unknown): string | undefined => {
   if (!isRecord(parsed)) {
     return undefined
   }
@@ -110,8 +110,7 @@ const findInstallUuid = (parsed: unknown): string | undefined => {
     if (!isRecord(entry)) {
       continue
     }
-    const addonPath = getString(entry, 'path')
-    if (addonPath === undefined || !addonPath.includes('firefox-mv2')) {
+    if (getString(entry, 'id') !== FIREFOX_SMOKE_EXTENSION_ID) {
       continue
     }
     // `moz-extension://` origin uses Firefox's installation-specific
@@ -213,7 +212,12 @@ export const test = base.extend<FirefoxExtensionSmokeFixtures>({
       await page.close()
     })
   },
-  firefoxExtensionUuid: async ({ firefoxExtensionProfile }, runFixture) => {
+  firefoxExtensionUuid: async (
+    { firefoxExtensionProfile, firefoxExtensionContext },
+    runFixture,
+  ) => {
+    // The UUID is written by the running browser, not by profile preparation.
+    void firefoxExtensionContext
     ensureSmokeEnabled()
     const uuid = await resolveFirefoxExtensionUuid(firefoxExtensionProfile)
     await runFixture(uuid)

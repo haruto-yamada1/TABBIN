@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   CustomProject,
@@ -1001,7 +1001,9 @@ describe('urls storage', () => {
         url: 'https://example.com',
       },
     ])
+    assert.isDefined(state.savedTabs?.[0])
     expect(state.savedTabs?.[0].urlIds).toStrictEqual(['new-id'])
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].urlIds).toStrictEqual(['new-id'])
   })
 

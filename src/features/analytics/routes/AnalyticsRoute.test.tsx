@@ -626,7 +626,7 @@ vi.mock('@/components/ui/tooltip', () => ({
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 
-const records: AiSavedUrlRecord[] = [
+const records: [AiSavedUrlRecord, AiSavedUrlRecord] = [
   {
     id: '1',
     url: 'https://docs.example.com/a',

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { ProjectDragHandlers } from '@/contexts/saved-tabs/presentation/components/DragHandlersContext'
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
@@ -64,6 +64,7 @@ vi.mock('@dnd-kit/sortable', () => ({
   arrayMove: vi.fn((items: string[], from: number, to: number) => {
     const next = [...items]
     const [moved] = next.splice(from, 1)
+    assert.isDefined(moved)
     next.splice(to, 0, moved)
     return next
   }),

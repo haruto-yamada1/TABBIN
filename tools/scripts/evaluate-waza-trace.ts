@@ -59,6 +59,9 @@ const parseArgs = (argv: readonly string[]): CLIOptions | null => {
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
+    if (arg === undefined) {
+      throw new Error('Missing command-line argument')
+    }
     switch (arg) {
       case '--results': {
         resultsPath = argv[++i]

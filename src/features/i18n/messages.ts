@@ -469,10 +469,10 @@ const messages = {
     'options.importExport.back': 'Back',
     'options.importExport.cancel': 'Cancel',
     'options.importExport.compatibilityAction':
-      'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
+      'Backups created with older versions are not supported.',
     'options.importExport.compatibilityTitle': 'Backup format',
     'options.importExport.compatibilityWarning':
-      'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
+      'Only the current backup format can be imported.',
     'options.importExport.confirmImport': 'Confirm Import',
     'options.importExport.dialogDescription':
       'Restore settings and tab data from a previously exported backup file.',
@@ -494,21 +494,6 @@ const messages = {
       'The imported data format is invalid',
     'options.importExport.importing': 'Importing...',
     'options.importExport.invalidJson': 'Please select a JSON file',
-    'options.importExport.legacyPreviewAction':
-      'After importing, export a new-format backup again.',
-    'options.importExport.legacyPreviewTitle': 'Legacy backup',
-    'options.importExport.legacyPreviewWarning':
-      'This legacy backup can no longer be imported on or after {{cutoffDate}}.',
-    'options.importExport.merge': 'Merge with existing data (recommended)',
-    'options.importExport.mergeDescription':
-      'Keep existing data and add or update new data.',
-    'options.importExport.mergeLabel': 'Note',
-    'options.importExport.mergeSuccess':
-      'Merged data (added {{categories}} categories and {{domains}} domains){{unresolved}}',
-    'options.importExport.mergeWarning':
-      'When merging, data with the same ID is updated.',
-    'options.importExport.placeholderUrlTitle':
-      'Recovered data (missing original URL)',
     'options.importExport.previewAiChat': 'AI Chat History: {{hasAiChat}}',
     'options.importExport.previewAnalytics':
       'Analytics Views: {{hasAnalytics}}',
@@ -546,6 +531,10 @@ const messages = {
       'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
     'options.importExport.scopeTitle': 'Backup scope',
     'options.importExport.selectFile': 'Click to choose a file',
+    'options.importExport.unsupportedFutureBackup':
+      'This backup was created with a newer version and cannot be imported by this version.',
+    'options.importExport.unsupportedLegacyBackup':
+      'This backup format is not supported. Only the current backup format can be imported.',
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
@@ -571,11 +560,9 @@ const messages = {
     'options.persistenceRecovery.title': 'Storage recovery required',
     'persistenceMigrationNotice.dismiss': 'Dismiss migration notice',
     'persistenceMigrationNotice.importExportLink': 'Open Import / Export',
-    'persistenceMigrationNotice.message':
-      'Import any required backups by {{lastSupportedDate}}, then export them again in the new format.',
     'persistenceMigrationNotice.title': 'Data storage was updated',
     'persistenceMigrationNotice.warning':
-      'Backups created with older versions can no longer be imported on or after {{cutoffDate}}.',
+      'Backups created with older versions are no longer supported.',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
     'options.previewFontSizeCustomization': '(preview) Font size',
@@ -1388,10 +1375,10 @@ const messages = {
     'options.importExport.back': '戻る',
     'options.importExport.cancel': 'キャンセル',
     'options.importExport.compatibilityAction':
-      '必要なバックアップは{{lastSupportedDate}}までにインポートし、新しい形式で再度エクスポートしてください。',
+      '旧形式のバックアップはサポートされていません。',
     'options.importExport.compatibilityTitle': 'バックアップ形式について',
     'options.importExport.compatibilityWarning':
-      '以前のバージョンで作成したバックアップは、{{cutoffDate}}以降インポートできなくなります。',
+      '現在のバックアップ形式のみインポートできます。',
     'options.importExport.confirmImport': 'インポートを実行',
     'options.importExport.dialogDescription':
       '以前にエクスポートしたバックアップファイルから設定とタブデータを復元します。',
@@ -1411,20 +1398,6 @@ const messages = {
       'インポートされたデータの形式が正しくありません',
     'options.importExport.importing': 'インポート中...',
     'options.importExport.invalidJson': 'JSONファイルを選択してください',
-    'options.importExport.legacyPreviewAction':
-      'インポート後、新しい形式でバックアップを再作成してください。',
-    'options.importExport.legacyPreviewTitle': '旧形式のバックアップです',
-    'options.importExport.legacyPreviewWarning':
-      '{{cutoffDate}}以降、この形式はインポートできなくなります。',
-    'options.importExport.merge': '既存データとマージする（推奨）',
-    'options.importExport.mergeDescription':
-      '既存のデータを保持しつつ、新しいデータを追加・更新します。',
-    'options.importExport.mergeLabel': '注意',
-    'options.importExport.mergeSuccess':
-      'データをマージしました（{{categories}}個のカテゴリと{{domains}}個のドメインを追加）{{unresolved}}',
-    'options.importExport.mergeWarning':
-      'マージの際、同じIDのデータは更新されます。',
-    'options.importExport.placeholderUrlTitle': '復元データ（元URL欠損）',
     'options.importExport.previewAiChat': 'AIチャット履歴: {{hasAiChat}}',
     'options.importExport.previewAiChatLabel': 'AIチャット履歴',
     'options.importExport.previewAnalytics': '分析ビュー: {{hasAnalytics}}',
@@ -1461,6 +1434,10 @@ const messages = {
       'バックアップには、保存済みURL、カテゴリ、カスタムプロジェクト、分析データ、AIチャット履歴、AI設定が含まれます。',
     'options.importExport.scopeTitle': 'バックアップ対象',
     'options.importExport.selectFile': 'クリックしてファイルを選択',
+    'options.importExport.unsupportedFutureBackup':
+      'このバックアップは新しいバージョンで作成されているため、現在のバージョンではインポートできません。',
+    'options.importExport.unsupportedLegacyBackup':
+      'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。',
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
@@ -1486,11 +1463,9 @@ const messages = {
     'options.persistenceRecovery.title': '保存領域の復旧が必要です',
     'persistenceMigrationNotice.dismiss': '移行に関するお知らせを閉じる',
     'persistenceMigrationNotice.importExportLink': 'Import / Export を開く',
-    'persistenceMigrationNotice.message':
-      '必要なバックアップは{{lastSupportedDate}}までにインポートし、新しい形式で再度エクスポートしてください。',
     'persistenceMigrationNotice.title': 'データの保存方式を更新しました。',
     'persistenceMigrationNotice.warning':
-      '以前のバージョンで作成したバックアップは、{{cutoffDate}}以降インポートできなくなります。',
+      '旧形式のバックアップは現在インポートできません。',
     'options.previewColorCustomization': '(preview)カラーカスタマイズ',
     'options.previewColorCustomizationReset': 'リセット',
     'options.previewFontSizeCustomization': '(preview)フォントサイズ',

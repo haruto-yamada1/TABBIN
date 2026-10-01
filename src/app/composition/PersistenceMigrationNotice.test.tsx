@@ -13,11 +13,9 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
       ({
         'persistenceMigrationNotice.dismiss': 'Dismiss migration notice',
         'persistenceMigrationNotice.importExportLink': 'Open Import / Export',
-        'persistenceMigrationNotice.message':
-          'Import required backups by September 30, 2026, then export them again in the new format.',
         'persistenceMigrationNotice.title': 'Data storage was updated',
         'persistenceMigrationNotice.warning':
-          'Backups created with older versions can no longer be imported on or after October 1, 2026.',
+          'Backups created with older versions are no longer supported.',
       })[key] ?? key,
   }),
 }))
@@ -45,8 +43,12 @@ describe('PersistenceMigrationNotice', () => {
 
     render(<PersistenceMigrationNotice controller={controller} />)
 
-    expect((await screen.findByRole('alert')).textContent).toContain(
-      'Backups created with older versions can no longer be imported on or after October 1, 2026.',
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain(
+      'Backups created with older versions are no longer supported.',
+    )
+    expect(alert.textContent).not.toContain(
+      'persistenceMigrationNotice.message',
     )
     expect(screen.getByRole('alert').getAttribute('aria-live')).toBeNull()
     expect(

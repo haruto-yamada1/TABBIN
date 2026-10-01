@@ -1,17 +1,6 @@
-import { useCallback } from 'react'
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
+import { ActionConfirmDialog } from './shared/ActionConfirmDialog'
 import { OpenAllTabsConfirmDialog } from './shared/OpenAllTabsConfirmDialog'
 
 type CategoryBulkConfirmDialogsProps = {
@@ -35,10 +24,6 @@ export const CustomProjectCategoryBulkConfirmDialogs = ({
 }: CategoryBulkConfirmDialogsProps) => {
   const { t } = useI18n()
 
-  const handleConfirmDeleteAll = useCallback(() => {
-    onConfirmDeleteAll()
-  }, [onConfirmDeleteAll])
-
   return (
     <>
       <OpenAllTabsConfirmDialog
@@ -53,32 +38,22 @@ export const CustomProjectCategoryBulkConfirmDialogs = ({
         onConfirm={onConfirmOpenAll}
       />
 
-      <AlertDialog
+      <ActionConfirmDialog
         open={isDeleteAllConfirmOpen}
         onOpenChange={setIsDeleteAllConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.deleteAllConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.projectCategory.deleteAllWarning', undefined, {
-                categoryName: categoryDisplayName,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={handleConfirmDeleteAll}
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t('savedTabs.deleteAllConfirmTitle')}
+        description={t(
+          'savedTabs.projectCategory.deleteAllWarning',
+          undefined,
+          {
+            categoryName: categoryDisplayName,
+          },
+        )}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.delete')}
+        variant='destructive'
+        onConfirm={onConfirmDeleteAll}
+      />
     </>
   )
 }

@@ -1,13 +1,4 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { ActionConfirmDialog } from './ActionConfirmDialog'
 
 type OpenAllTabsConfirmDialogProps = {
   open: boolean
@@ -20,24 +11,8 @@ type OpenAllTabsConfirmDialogProps = {
 }
 
 export const OpenAllTabsConfirmDialog = ({
-  open,
-  title,
-  description,
-  cancelLabel,
   openLabel,
-  onOpenChange,
-  onConfirm,
+  ...props
 }: OpenAllTabsConfirmDialogProps) => (
-  <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>{title}</AlertDialogTitle>
-        <AlertDialogDescription>{description}</AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
-        <AlertDialogAction onClick={onConfirm}>{openLabel}</AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
+  <ActionConfirmDialog {...props} confirmLabel={openLabel} />
 )

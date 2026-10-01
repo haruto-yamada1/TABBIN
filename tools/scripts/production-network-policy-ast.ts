@@ -34,8 +34,12 @@ export const cloneAliasScopes = (
 
 export const mergeAliasScopeStates = (
   states: readonly AliasScope[][],
-): AliasScope[] =>
-  states[0].map((scope, scopeIndex) => {
+): AliasScope[] => {
+  const firstState = states[0]
+  if (firstState === undefined) {
+    throw new Error('At least one alias scope state is required')
+  }
+  return firstState.map((scope, scopeIndex) => {
     const names = new Set(
       states.flatMap((state) => [
         ...(state[scopeIndex]?.bindings.keys() ?? []),
@@ -57,6 +61,7 @@ export const mergeAliasScopeStates = (
       type: scope.type,
     }
   })
+}
 
 type NetworkAstTraversalContext = {
   cloneScopes: (scopes: readonly AliasScope[]) => AliasScope[]

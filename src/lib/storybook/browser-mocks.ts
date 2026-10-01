@@ -36,14 +36,14 @@ class StorybookMediaRecorder extends EventTarget {
     this.stream = stream
   }
 
-  addEventListener(type: string, listener: MediaRecorderListener) {
+  override addEventListener(type: string, listener: MediaRecorderListener) {
     if (!this.listeners.has(type)) {
       this.listeners.set(type, new Set())
     }
     this.listeners.get(type)?.add(listener)
   }
 
-  removeEventListener(type: string, listener: MediaRecorderListener) {
+  override removeEventListener(type: string, listener: MediaRecorderListener) {
     this.listeners.get(type)?.delete(listener)
   }
 

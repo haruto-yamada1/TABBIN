@@ -167,13 +167,13 @@ export const handleSaveCurrentTab = async (): Promise<
 
   // タブをフィルタリング（固定タブを除外）
   const filteredTabs = await filterTabsByUserSettings(activeTabs)
-  if (filteredTabs.length === 0) {
+  const activeTab = filteredTabs[0]
+  if (!activeTab) {
     console.log(
       '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
     )
     return []
   }
-  const activeTab = filteredTabs[0]
   console.log(`現在のタブを保存: ${redactUrlForLog(activeTab.url)}`)
 
   // タブを保存
@@ -209,12 +209,13 @@ export const handleSaveSameDomainTabs = async (): Promise<
     active: true,
     currentWindow: true,
   })
-  if (currentTabs.length === 0 || !currentTabs[0].url) {
+  const currentTab = currentTabs[0]
+  if (!currentTab?.url) {
     return []
   }
   try {
     // 現在のタブからドメインを取得
-    const url = new URL(currentTabs[0].url)
+    const url = new URL(currentTab.url)
     const currentDomain = url.hostname
     console.log(`現在のドメイン: ${currentDomain}`)
 

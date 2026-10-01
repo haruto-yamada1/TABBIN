@@ -78,8 +78,19 @@ const createCurrentDateTimeOutput = (now = new Date()) => {
     ),
   )
 
-  const localDate = `${parts.year}-${parts.month}-${parts.day}`
-  const localTime = `${parts.hour}:${parts.minute}:${parts.second}`
+  const { year, month, day, hour, minute, second } = parts
+  if (
+    year === undefined ||
+    month === undefined ||
+    day === undefined ||
+    hour === undefined ||
+    minute === undefined ||
+    second === undefined
+  ) {
+    throw new Error('Date formatter did not provide all date and time parts')
+  }
+  const localDate = `${year}-${month}-${day}`
+  const localTime = `${hour}:${minute}:${second}`
 
   return {
     iso8601: now.toISOString(),

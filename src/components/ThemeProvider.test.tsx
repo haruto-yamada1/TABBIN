@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type * as React from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 vi.mock('@/lib/browser/chrome-storage', () => ({
   getChromeStorageLocal: vi.fn(),
@@ -179,6 +179,7 @@ describe('ThemeProvider', () => {
     expect(storageOnChangedMock.addListener).toHaveBeenCalledTimes(3)
 
     const themeChangeListener = storageListeners[0]
+    assert.isDefined(themeChangeListener)
     expect(themeChangeListener).toStrictEqual(expect.any(Function))
 
     act(() => {
@@ -286,6 +287,7 @@ describe('ThemeProvider', () => {
     )
 
     const initialColorListener = storageListeners[1]
+    assert.isDefined(initialColorListener)
     act(() => {
       initialColorListener(
         {
@@ -320,6 +322,7 @@ describe('ThemeProvider', () => {
     })
 
     const userColorListener = storageListeners[1]
+    assert.isDefined(userColorListener)
     act(() => {
       userColorListener(
         {
@@ -382,6 +385,7 @@ describe('ThemeProvider', () => {
     })
 
     const userSettingsListener = storageListeners[1]
+    assert.isDefined(userSettingsListener)
 
     act(() => {
       userSettingsListener(

@@ -41,6 +41,7 @@ describe('SavedTabsResponsiveLayoutContext', () => {
 
     expect(screen.getByTestId('probe').textContent).toBe('true')
   })
+
   it('isCompactLayout=false を渡しても hook の値として反映される', () => {
     let captured: ReturnType<typeof useSavedTabsResponsiveLayout> | undefined
 

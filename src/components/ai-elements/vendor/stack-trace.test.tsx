@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   StackTrace,
@@ -147,6 +147,7 @@ describe('StackTraceCopyButton', () => {
         (b) => b.querySelector('svg') && b.getAttribute('type') !== 'button',
       ) ?? copyButtons[0]
 
+    assert.isDefined(copyButton)
     fireEvent.click(copyButton)
 
     await waitFor(() => {
@@ -168,7 +169,9 @@ describe('StackTraceCopyButton', () => {
     )
 
     const buttons = screen.getAllByRole('button')
-    fireEvent.click(buttons[0])
+    const firstButton = buttons[0]
+    assert.isDefined(firstButton)
+    fireEvent.click(firstButton)
 
     await waitFor(() => {
       expect(onCopy).toHaveBeenCalled()

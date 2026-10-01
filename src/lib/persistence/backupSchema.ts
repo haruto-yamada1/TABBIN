@@ -7,6 +7,7 @@ export type BackupEnvelope<TData, TVersion extends number = number> = {
 
 export const BACKUP_SCHEMA_ERROR_CODES = [
   'INVALID_SCHEMA',
+  'UNSUPPORTED_LEGACY_BACKUP',
   'UNSUPPORTED_FUTURE_SCHEMA',
   'UNSUPPORTED_SCHEMA_VERSION',
 ] as const
@@ -17,6 +18,7 @@ const BACKUP_SCHEMA_ERROR_MESSAGES: Readonly<
   Record<BackupSchemaErrorCode, string>
 > = {
   INVALID_SCHEMA: 'Backup schema is invalid',
+  UNSUPPORTED_LEGACY_BACKUP: 'Legacy backup format is unsupported',
   UNSUPPORTED_FUTURE_SCHEMA: 'Backup schema is newer than supported',
   UNSUPPORTED_SCHEMA_VERSION: 'Backup schema version is unsupported',
 }
@@ -41,9 +43,10 @@ export class BackupSchemaError extends Error {
   }
 }
 
-export type BackupFormatDetection =
-  | { readonly kind: 'legacy' }
-  | { readonly kind: 'versioned'; readonly schemaVersion: number }
+export type BackupFormatDetection = {
+  readonly kind: 'versioned'
+  readonly schemaVersion: number
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -53,7 +56,7 @@ export const detectBackupFormat = (input: unknown): BackupFormatDetection => {
     throw new BackupSchemaError('INVALID_SCHEMA')
   }
   if (!Object.hasOwn(input, 'schemaVersion')) {
-    return { kind: 'legacy' }
+    throw new BackupSchemaError('UNSUPPORTED_LEGACY_BACKUP')
   }
 
   const schemaVersion = input.schemaVersion

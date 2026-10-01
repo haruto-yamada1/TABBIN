@@ -59,8 +59,10 @@ const canonicalizeJsonValue = (value: JsonValue): JsonValue => {
   }
 
   const canonical: Record<string, JsonValue> = {}
-  for (const key of Object.keys(value).toSorted(compareCodePointStrings)) {
-    canonical[key] = canonicalizeJsonValue(value[key])
+  for (const [key, entry] of Object.entries(value).toSorted(([left], [right]) =>
+    compareCodePointStrings(left, right),
+  )) {
+    canonical[key] = canonicalizeJsonValue(entry)
   }
   return canonical satisfies JsonObject
 }

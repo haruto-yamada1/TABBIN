@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
 
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
@@ -126,6 +126,7 @@ describe('DeleteSavedUrlUseCase', () => {
     expect(result.removedTabGroupId).toBeNull()
     expect(result.snapshot).not.toBeNull()
     const remaining = await repos.tabGroupRepository.findAll()
+    assert.isDefined(remaining[0])
     expect(remaining[0].memberships.map(({ urlId }) => urlId)).toStrictEqual([
       'url-2',
     ])
@@ -202,6 +203,7 @@ describe('DeleteSavedUrlUseCase', () => {
     expect(result.snapshot?.customProjects).toContainEqual(project)
     await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
     const remainingProjects = await repos.customProjectRepository.findAll()
+    assert.isDefined(remainingProjects[0])
     expect(
       remainingProjects[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual([])
@@ -273,6 +275,7 @@ describe('DeleteSavedUrlUseCase', () => {
     expect(result.removedUrlRecordId).toBeNull()
     expect(result.snapshot).toBeNull()
     const remainingTabGroups = await repos.tabGroupRepository.findAll()
+    assert.isDefined(remainingTabGroups[0])
     expect(
       remainingTabGroups[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-2'])

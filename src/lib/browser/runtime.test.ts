@@ -131,8 +131,8 @@ describe('sendRuntimeMessage', () => {
   it('browser.runtime.connect がある場合は Port API を使う', async () => {
     const browserConnect = vi.fn().mockReturnValue({
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn() },
-      onMessage: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
       postMessage: vi.fn(),
     })
     globalWithApis.browser = {
@@ -152,8 +152,8 @@ describe('sendRuntimeMessage', () => {
   it('browser.runtime.connect がない場合は chrome.runtime.connect にフォールバックする', async () => {
     const chromeConnect = vi.fn().mockReturnValue({
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn() },
-      onMessage: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
       postMessage: vi.fn(),
     })
     globalWithApis.chrome = {
@@ -173,8 +173,8 @@ describe('sendRuntimeMessage', () => {
   it('polyfill runtime.connect が返せる場合はその Port を使う', async () => {
     const polyfillPort = {
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn() },
-      onMessage: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
       postMessage: vi.fn(),
     }
     polyfillConnectMock.mockReturnValue(polyfillPort)

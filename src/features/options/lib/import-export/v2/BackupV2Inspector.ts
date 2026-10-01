@@ -1,6 +1,3 @@
-import { LEGACY_BACKUP_ADVISORY } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
-import { convertLegacyBackup } from '@/features/options/lib/import-export/legacy/LegacyBackupAdapter'
-import type { LegacyBackupWarning } from '@/features/options/lib/import-export/legacy/LegacyBackupAdapter'
 import { createBackupMigrationPipeline } from '@/lib/persistence/backupMigrationPipeline'
 import { BackupSchemaError } from '@/lib/persistence/backupSchema'
 
@@ -21,31 +18,16 @@ export type BackupPreviewEntityCounts = {
   readonly urls: number
 }
 
-type BackupPreviewBase = {
+export type BackupV2Preview = {
   readonly appVersion: string
   readonly entityCounts: BackupPreviewEntityCounts
   readonly exportedAt: string
-  readonly warnings: readonly LegacyBackupWarning[]
+  readonly schemaVersion: 2
 }
-
-export type BackupV2Preview =
-  | (BackupPreviewBase & {
-      readonly formatKind: 'current-v2'
-      readonly schemaVersion: 2
-    })
-  | (BackupPreviewBase & {
-      readonly advisory: typeof LEGACY_BACKUP_ADVISORY
-      readonly formatKind: 'legacy'
-      readonly schemaVersion: null
-    })
 
 export type BackupV2Inspection = {
   readonly data: BackupDataV2
   readonly preview: BackupV2Preview
-}
-
-export type InspectBackupV2Options = {
-  readonly importDate: string
 }
 
 const migrationPipeline = createBackupMigrationPipeline<BackupEnvelopeV2>({
@@ -78,39 +60,19 @@ const countEntities = (data: BackupDataV2): BackupPreviewEntityCounts => ({
   urls: data.savedTabs.urls.length,
 })
 
-export const inspectBackupV2 = (
-  input: unknown,
-  { importDate }: InspectBackupV2Options,
-): BackupV2Inspection => {
-  const parsedInput = parseUnknownInput(input)
-  const migrationResult = migrationPipeline.migrateToCurrent(parsedInput)
+export const inspectBackupV2 = (input: unknown): BackupV2Inspection => {
+  const migrationResult = migrationPipeline.migrateToCurrent(
+    parseUnknownInput(input),
+  )
+  const { backup } = migrationResult
 
-  if (migrationResult.kind === 'current') {
-    const { backup } = migrationResult
-    return {
-      data: backup.data,
-      preview: {
-        appVersion: backup.appVersion,
-        entityCounts: countEntities(backup.data),
-        exportedAt: backup.exportedAt,
-        formatKind: 'current-v2',
-        schemaVersion: BACKUP_V2_SCHEMA_VERSION,
-        warnings: [],
-      },
-    }
-  }
-
-  const legacy = convertLegacyBackup(parsedInput, importDate)
   return {
-    data: legacy.data,
+    data: backup.data,
     preview: {
-      advisory: LEGACY_BACKUP_ADVISORY,
-      appVersion: legacy.appVersion,
-      entityCounts: countEntities(legacy.data),
-      exportedAt: legacy.exportedAt,
-      formatKind: 'legacy',
-      schemaVersion: null,
-      warnings: legacy.warnings,
+      appVersion: backup.appVersion,
+      entityCounts: countEntities(backup.data),
+      exportedAt: backup.exportedAt,
+      schemaVersion: BACKUP_V2_SCHEMA_VERSION,
     },
   }
 }

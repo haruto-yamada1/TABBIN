@@ -292,11 +292,13 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
 
     try {
       await this.options.target.prepare(migrationId)
+      // Later batches can reference earlier rows and must not start after a
+      // failed commit. Chain each write onto the preceding commit explicitly.
       await createWriteBatches(target, this.batchSize).reduce(
-        async (previous, plan) => {
-          await previous
-          return this.options.target.writeBatch(migrationId, plan)
-        },
+        async (previous, plan) =>
+          previous.then(async () =>
+            this.options.target.writeBatch(migrationId, plan),
+          ),
         Promise.resolve(),
       )
       await this.options.target.markWritten(migrationId)
@@ -377,9 +379,10 @@ export class PersistenceV2MigrationService implements PersistenceMigrationRecove
         { analysis, cause: error },
       )
     }
-    const approvedFingerprint =
-      await this.readPreflightSourceFingerprint(migrationId)
-    const currentFingerprint = await this.options.fingerprint.create(source)
+    const [approvedFingerprint, currentFingerprint] = await Promise.all([
+      this.readPreflightSourceFingerprint(migrationId),
+      this.options.fingerprint.create(source),
+    ])
     if (currentFingerprint !== approvedFingerprint) {
       throw this.createFailure(
         migrationId,

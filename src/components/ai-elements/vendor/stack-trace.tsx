@@ -76,9 +76,9 @@ const parseStackFrame = (line: string): StackFrame => {
   if (withParensMatch) {
     const [, functionName, filePath, lineNum, colNum] = withParensMatch
     const isInternal =
-      filePath.includes('node_modules') ||
-      filePath.startsWith('node:') ||
-      filePath.includes('internal/')
+      (filePath?.includes('node_modules') ?? false) ||
+      (filePath?.startsWith('node:') ?? false) ||
+      (filePath?.includes('internal/') ?? false)
     return {
       columnNumber: colNum ? Number.parseInt(colNum, 10) : null,
       filePath: filePath ?? null,
@@ -121,7 +121,8 @@ const parseStackFrame = (line: string): StackFrame => {
 const parseStackTrace = (trace: string): ParsedStackTrace => {
   const lines = trace.split('\n').filter((line) => line.trim())
 
-  if (lines.length === 0) {
+  const first = lines[0]
+  if (first === undefined) {
     return {
       errorMessage: trace,
       errorType: null,
@@ -130,7 +131,7 @@ const parseStackTrace = (trace: string): ParsedStackTrace => {
     }
   }
 
-  const firstLine = lines[0].trim()
+  const firstLine = first.trim()
   let errorType: string | null = null
   let errorMessage = firstLine
 
@@ -138,7 +139,7 @@ const parseStackTrace = (trace: string): ParsedStackTrace => {
   const errorMatch = ERROR_TYPE_REGEX.exec(firstLine)
   if (errorMatch) {
     const [, type, msg] = errorMatch
-    errorType = type
+    errorType = type ?? null
     errorMessage = msg || ''
   }
 

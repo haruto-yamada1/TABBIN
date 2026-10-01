@@ -5,6 +5,8 @@
 
 import { defineBackground } from 'wxt/utils/define-background'
 
+import { getLegacyStorageCleanupController } from '@/app/composition/createLegacyStorageCleanupController'
+import type { LegacyStorageCleanupControllerResult } from '@/app/composition/createLegacyStorageCleanupController'
 import { getMigrationPreflightController } from '@/app/composition/createMigrationPreflightController'
 import type { MigrationPreflightControllerResult } from '@/app/composition/createMigrationPreflightController'
 import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
@@ -16,10 +18,46 @@ import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
 import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
 
+const MANIFEST_V2 = 2
+
 const reportUnexpectedPersistenceMigrationOutcome = (_outcome: never): void => {
   logger.warn('background_persistence_migration_invalid', {
     errorCode: 'PERSISTENCE_INVALID_TRANSITION',
   })
+}
+
+const reportUnexpectedLegacyStorageCleanupOutcome = (_outcome: never): void => {
+  logger.warn('background_legacy_storage_cleanup_invalid', {
+    errorCode: 'LEGACY_STORAGE_CLEANUP_METADATA_INVALID',
+  })
+}
+
+const reportLegacyStorageCleanupOutcome = (
+  outcome: LegacyStorageCleanupControllerResult,
+): void => {
+  switch (outcome.status) {
+    case 'completed': {
+      logger.debug('background_legacy_storage_cleanup_completed')
+      break
+    }
+    case 'retained': {
+      logger.debug('background_legacy_storage_cleanup_retained')
+      break
+    }
+    case 'skipped': {
+      logger.debug('background_legacy_storage_cleanup_skipped')
+      break
+    }
+    case 'failed': {
+      logger.warn('background_legacy_storage_cleanup_failed', {
+        errorCode: outcome.errorCode,
+      })
+      break
+    }
+    default: {
+      reportUnexpectedLegacyStorageCleanupOutcome(outcome)
+    }
+  }
 }
 
 const reportPersistenceMigrationOutcome = (
@@ -144,6 +182,9 @@ export default defineBackground(() => {
       logger.debug('background_persistence_migration_started')
       const outcome = await getMigrationPreflightController().run()
       reportPersistenceMigrationOutcome(outcome)
+      reportLegacyStorageCleanupOutcome(
+        await getLegacyStorageCleanupController().run(),
+      )
 
       // 期限切れタブのチェック用アラームを設定
       setupExpiredTabsCheckAlarm()
@@ -153,8 +194,12 @@ export default defineBackground(() => {
   })()
 
   // ブラウザアクション（拡張機能アイコン）クリック時の処理
+  const toolbarAction =
+    chrome.runtime.getManifest().manifest_version === MANIFEST_V2
+      ? chrome.browserAction
+      : chrome.action
   // eslint-disable-next-line typescript/no-misused-promises
-  chrome.action.onClicked.addListener(handleExtensionActionClick)
+  toolbarAction.onClicked.addListener(handleExtensionActionClick)
 
   // メッセージリスナーを設定
   setupMessageListener()

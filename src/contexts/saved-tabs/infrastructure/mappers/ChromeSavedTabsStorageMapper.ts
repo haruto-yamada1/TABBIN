@@ -325,6 +325,7 @@ const copySavedTabRichFields = (
   )
   const categoryNames = orderedCategories.map(({ name }) => name)
   if (categoryNames.length > 0) {
+    const categoryNameSet = new Set(categoryNames)
     base.subCategories = categoryNames
     base.subCategoryOrder = categoryNames
     const originalOrder = original?.subCategoryOrderWithUncategorized
@@ -335,7 +336,7 @@ const copySavedTabRichFields = (
       ? (originalOrder ?? []).flatMap((name) =>
           name === '__uncategorized' ||
           name === 'uncategorized' ||
-          categoryNames.includes(name)
+          categoryNameSet.has(name)
             ? [name]
             : [],
         )

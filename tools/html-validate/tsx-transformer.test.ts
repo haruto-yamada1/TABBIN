@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 
 import transformer from './tsx-transformer.mjs'
 
@@ -15,6 +15,7 @@ function transform(source: string, filename = 'fixture.tsx'): string {
     offset: 0,
   })
 
+  assert.isDefined(result)
   return result.data
 }
 

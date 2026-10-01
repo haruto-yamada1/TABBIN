@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -162,9 +168,7 @@ export const useCategoryKeywordModal = ({
   const { t } = useI18n()
   // --- サブカテゴリ選択状態 ---
   const [activeCategory, setActiveCategory] = useState<string>(
-    group.subCategories && group.subCategories.length > 0
-      ? group.subCategories[0]
-      : '',
+    group.subCategories?.[0] ?? '',
   )
 
   // --- キーワード・リネーム状態 ---
@@ -241,18 +245,26 @@ export const useCategoryKeywordModal = ({
   // 以下の値 (group, onUpdateParentCategories, getSavedTabsPageDataQuery, t) は
   // 呼び出しごとに新しい参照になるケース (テストモック / i18n オブジェクト等) でも
   // loadParentCategories の再生成で useEffect が無限ループしないように ref 経由で
-  // 読み取る。`selectedParentCategory` も同様に最新値参照用 ref を使うことで
-  // コールバック本体を安定化し、`useEffect` の依存に入れても再実行を避ける。
+  // 読み取る。コミット後に ref を同期してコールバック本体を安定化し、
+  // `useEffect` の依存に入れても再実行を避ける。
   const groupRef = useRef(group)
-  groupRef.current = group
   const onUpdateParentCategoriesRef = useRef(onUpdateParentCategories)
-  onUpdateParentCategoriesRef.current = onUpdateParentCategories
   const getSavedTabsPageDataQueryRef = useRef(getSavedTabsPageDataQuery)
-  getSavedTabsPageDataQueryRef.current = getSavedTabsPageDataQuery
   const tRef = useRef(t)
-  tRef.current = t
-  const selectedParentCategoryRef = useRef(selectedParentCategory)
-  selectedParentCategoryRef.current = selectedParentCategory
+  const storageChangePortRef = useRef(storageChangePort)
+  useLayoutEffect(() => {
+    groupRef.current = group
+    onUpdateParentCategoriesRef.current = onUpdateParentCategories
+    getSavedTabsPageDataQueryRef.current = getSavedTabsPageDataQuery
+    tRef.current = t
+    storageChangePortRef.current = storageChangePort
+  }, [
+    group,
+    onUpdateParentCategories,
+    getSavedTabsPageDataQuery,
+    t,
+    storageChangePort,
+  ])
 
   const loadParentCategories = useCallback(async () => {
     try {
@@ -286,8 +298,6 @@ export const useCategoryKeywordModal = ({
   // useEffect が無限ループしないように、`storageChangePort` のみ ref 経由で
   // 参照し、`loadParentCategories` は上記で安定化済み (deps 空) なので
   // クリーンアップ用の参照だけ保持する。
-  const storageChangePortRef = useRef(storageChangePort)
-  storageChangePortRef.current = storageChangePort
   useEffect(() => {
     if (!isOpen) {
       return undefined
@@ -501,14 +511,10 @@ export const useCategoryKeywordModal = ({
       // eslint-disable-next-line typescript/no-confusing-void-expression
       await onDeleteCategory(group.id, categoryToDelete) // eslint-disable-line typescript/await-thenable
       if (group.subCategories && group.subCategories.length > 1) {
-        const updatedSubCategories = group.subCategories.filter(
+        const nextCategory = group.subCategories.find(
           (cat: string) => cat !== categoryToDelete,
         )
-        if (updatedSubCategories.length > 0) {
-          setActiveCategory(updatedSubCategories[0])
-        } else {
-          setActiveCategory('')
-        }
+        setActiveCategory(nextCategory ?? '')
       } else {
         setActiveCategory('')
       }

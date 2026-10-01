@@ -1,14 +1,6 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
+import { ActionConfirmDialog } from './ActionConfirmDialog'
 
 type DeleteUrlConfirmDialogProps = {
   isOpen: boolean
@@ -24,23 +16,15 @@ export const DeleteUrlConfirmDialog = ({
   const { t } = useI18n()
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {t('savedTabs.url.deleteConfirmTitle')}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {t('savedTabs.url.deleteConfirmDescription')}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-          <AlertDialogAction variant='destructive' onClick={onConfirm}>
-            {t('common.delete')}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ActionConfirmDialog
+      open={isOpen}
+      onOpenChange={onOpenChange}
+      onConfirm={onConfirm}
+      title={t('savedTabs.url.deleteConfirmTitle')}
+      description={t('savedTabs.url.deleteConfirmDescription')}
+      cancelLabel={t('common.cancel')}
+      confirmLabel={t('common.delete')}
+      variant='destructive'
+    />
   )
 }

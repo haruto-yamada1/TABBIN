@@ -205,8 +205,12 @@ describe('ProjectUrlItem', () => {
     const actionBar = screen.getByTestId('project-url-action-bar')
     expect(actionBar?.className).toContain('group-focus-within:opacity-100')
 
-    const link = screen.getByRole('button', { name: item.url })
+    const link = screen.getByRole('link', { name: item.url })
     expect(link.className).toContain('min-w-0')
+    expect(link).toHaveAttribute('href', item.url)
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.getAllByRole('button')).toHaveLength(1)
     const titleLabel = screen.getByTestId('project-url-title')
     expect(titleLabel?.className).toContain('min-w-0')
     expect(titleLabel?.className).toContain('truncate')
@@ -235,6 +239,82 @@ describe('ProjectUrlItem', () => {
         }),
       }),
     )
+  })
+
+  it('通常クリックとEnterだけをTABBIN処理し標準リンク操作へ委譲する', async () => {
+    const user = userEvent.setup()
+    const handleOpenUrl = vi.fn()
+    const item = {
+      url: 'https://example.com/path',
+      title: 'Example',
+    }
+
+    render(
+      <ProjectUrlItem
+        {...createProps({
+          item,
+          handleOpenUrl,
+        })}
+      />,
+    )
+
+    const link = screen.getByRole('link', { name: 'Example' })
+    const managedClick = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    })
+    link.dispatchEvent(managedClick)
+
+    expect(managedClick.defaultPrevented).toBe(true)
+    expect(handleOpenUrl).toHaveBeenCalledTimes(1)
+
+    for (const init of [
+      { button: 1 },
+      { button: 0, ctrlKey: true },
+      { button: 0, metaKey: true },
+      { button: 0, shiftKey: true },
+      { button: 0, altKey: true },
+    ]) {
+      const delegatedClick = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        ...init,
+      })
+      link.dispatchEvent(delegatedClick)
+      expect(delegatedClick.defaultPrevented).toBe(false)
+    }
+    expect(handleOpenUrl).toHaveBeenCalledTimes(1)
+
+    const contextMenu = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    })
+    link.dispatchEvent(contextMenu)
+    expect(contextMenu.defaultPrevented).toBe(false)
+
+    link.focus()
+    await user.keyboard('{Enter}')
+    expect(handleOpenUrl).toHaveBeenCalledTimes(2)
+  })
+
+  it('許可されないprotocolのURLはリンクとして描画しない', () => {
+    const unsafeUrl = ['java', 'script:alert(1)'].join('')
+
+    render(
+      <ProjectUrlItem
+        {...createProps({
+          item: {
+            url: unsafeUrl,
+            title: 'Unsafe URL',
+          },
+        })}
+      />,
+    )
+
+    expect(screen.queryByRole('link', { name: 'Unsafe URL' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Unsafe URL' })).toBeNull()
   })
 
   it('サブカテゴリ付きURLを描画し確認ダイアログ経由で削除する', async () => {
@@ -279,7 +359,7 @@ describe('ProjectUrlItem', () => {
     expect(listItem?.getAttribute('data-in-uncategorized')).toBe('true')
 
     expect(screen.getByText('Child')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Doc/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Doc/ })).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'タブを削除' }))
     const confirmButton = await screen.findByRole('button', {
@@ -316,7 +396,7 @@ describe('ProjectUrlItem', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Doc' })
+    const link = screen.getByRole('link', { name: 'Doc' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'link',
@@ -353,7 +433,7 @@ describe('ProjectUrlItem', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Doc' })
+    const link = screen.getByRole('link', { name: 'Doc' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'none',
@@ -385,7 +465,7 @@ describe('ProjectUrlItem', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Doc' })
+    const link = screen.getByRole('link', { name: 'Doc' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'link',
@@ -416,7 +496,7 @@ describe('ProjectUrlItem', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Doc' })
+    const link = screen.getByRole('link', { name: 'Doc' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'copy',
@@ -445,7 +525,7 @@ describe('ProjectUrlItem', () => {
       send: sendMessageMock,
     })
 
-    const link = screen.getByRole('button', { name: 'Doc' })
+    const link = screen.getByRole('link', { name: 'Doc' })
     const dataTransfer = {
       setData: vi.fn(),
       dropEffect: 'none',

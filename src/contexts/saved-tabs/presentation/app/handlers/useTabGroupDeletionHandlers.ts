@@ -181,8 +181,9 @@ export const useTabGroupDeletionHandlers = ({
         })
         const savedTabs = getSnapshotSavedTabs(deleteSnapshot)
 
+        const deletedGroupIds = new Set(ids)
         const groupsToDelete = savedTabs.filter((group) =>
-          ids.includes(group.id),
+          deletedGroupIds.has(group.id),
         )
         if (groupsToDelete.length === 0) {
           return

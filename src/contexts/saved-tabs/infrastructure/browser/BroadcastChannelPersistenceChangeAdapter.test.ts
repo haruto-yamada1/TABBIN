@@ -1,4 +1,12 @@
-import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
+import {
+  assert,
+  afterEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from 'vitest'
 
 import type {
   PersistenceChangeEvent,
@@ -530,7 +538,9 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
 
     const unsubscribe = adapter.subscribe(listener)
     const subscriptionChannel = channels[0]
+    assert.isDefined(subscriptionChannel)
     const [nativeListener] = subscriptionChannel.listeners
+    assert.isDefined(nativeListener)
     nativeListener(new Event('message'))
     nativeListener(new MessageEvent('message', { data: EVENT }))
     await adapter.publish(EVENT)
@@ -542,6 +552,7 @@ describe('BroadcastChannelPersistenceChangeAdapter', () => {
     ])
     expect(listener).toHaveBeenCalledOnce()
     expect(listener).toHaveBeenCalledWith(EVENT)
+    assert.isDefined(channels[1])
     expect(channels[1].postMessage).toHaveBeenCalledWith(EVENT)
     expect(channels[1].close).toHaveBeenCalledOnce()
     expect(subscriptionChannel.removeEventListener).toHaveBeenCalledOnce()

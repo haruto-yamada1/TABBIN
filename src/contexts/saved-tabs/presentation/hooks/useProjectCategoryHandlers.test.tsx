@@ -1,8 +1,7 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { toCustomProjectFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { useProjectCategoryHandlers } from './useProjectCategoryHandlers'
@@ -21,40 +20,22 @@ describe('useProjectCategoryHandlers', () => {
       name: 'Project',
       updatedAt: 2,
     }
-    const getCustomProjectRaws = vi
-      .fn()
-      .mockResolvedValue([toCustomProjectFromViewModel(initialProject)])
     const reorderCustomProjectUrls = vi.fn().mockResolvedValue(undefined)
-    const setViewMode = vi.fn()
     const refs = {
-      getCustomProjectOrderQueryRef: {
-        current: vi.fn().mockResolvedValue([]),
-      },
-      getCustomProjectRawsQueryRef: {
-        current: getCustomProjectRaws,
-      },
       reorderCustomProjectUrlsUseCaseRef: {
         current: reorderCustomProjectUrls,
       },
     } as never
     const { result } = renderHook(() => {
-      const [projects, setProjects] = useState<CustomProject[]>([])
+      const [projects, setProjects] = useState<CustomProject[]>([
+        initialProject,
+      ])
       const handlers = useProjectCategoryHandlers({
-        initialViewMode: 'custom',
         refs,
         setCustomProjects: setProjects,
-        setViewMode,
         t: (key) => key,
       })
       return { ...handlers, projects }
-    })
-
-    await waitFor(() => {
-      expect(result.current.projects[0]?.memberships).toStrictEqual([
-        { urlId: 'url-orphan' },
-        { urlId: 'url-a' },
-        { urlId: 'url-b' },
-      ])
     })
 
     await act(async () => {
@@ -91,7 +72,6 @@ describe('useProjectCategoryHandlers', () => {
         },
       ],
     })
-    expect(getCustomProjectRaws).toHaveBeenCalledOnce()
     expect(
       result.current.projects[0]?.memberships?.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-b', 'url-a', 'url-orphan'])

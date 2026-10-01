@@ -165,15 +165,13 @@ const buildSavedTabsInsightRecords = ({
   parentCategories,
   savedTabs,
   urls,
-}: SavedTabsCompatibilityState): SavedTabsInsightRecord[] =>
-  urls
+}: SavedTabsCompatibilityState): SavedTabsInsightRecord[] => {
+  const groupsByUrlId = indexCollectionsByUrlId(savedTabs)
+  const projectsByUrlId = indexCollectionsByUrlId(customProjects)
+  return urls
     .map((record) => {
-      const matchingGroups = savedTabs.filter((group) =>
-        (group.urlIds ?? []).includes(record.id),
-      )
-      const matchingProjects = customProjects.filter((project) =>
-        (project.urlIds ?? []).includes(record.id),
-      )
+      const matchingGroups = groupsByUrlId.get(record.id) ?? []
+      const matchingProjects = projectsByUrlId.get(record.id) ?? []
       return {
         domain: toHostname(record.url),
         id: record.id,
@@ -202,7 +200,8 @@ const buildSavedTabsInsightRecords = ({
         url: record.url,
       }
     })
-    .sort((left, right) => right.savedAt - left.savedAt)
+    .toSorted((left, right) => right.savedAt - left.savedAt)
+}
 
 const buildSavedTabsAnalyticsRecords = (
   state: SavedTabsCompatibilityState,
@@ -227,23 +226,24 @@ const buildSavedTabsAnalyticsRecords = (
           metric: 'last-saved',
           timestampAccuracy: 'legacy-fallback',
         },
-        ...matchingGroups.map((group) => ({
-          ...record,
-          collectionType: 'domain' as const,
-          eventId: `legacy:domain:${group.id}:${record.id}`,
-          metric: 'membership-added' as const,
-          parentCategories: getParentCategoriesForGroup(
-            group,
-            state.parentCategories,
-          ),
-          projectCategories: [],
-          savedInProjects: [],
-          savedInTabGroups: [group.domain],
-          subCategories: group.urlSubCategories?.[record.id]
-            ? [group.urlSubCategories[record.id]]
-            : [],
-          timestampAccuracy: 'legacy-fallback' as const,
-        })),
+        ...matchingGroups.map((group) => {
+          const subCategory = group.urlSubCategories?.[record.id]
+          return {
+            ...record,
+            collectionType: 'domain' as const,
+            eventId: `legacy:domain:${group.id}:${record.id}`,
+            metric: 'membership-added' as const,
+            parentCategories: getParentCategoriesForGroup(
+              group,
+              state.parentCategories,
+            ),
+            projectCategories: [],
+            savedInProjects: [],
+            savedInTabGroups: [group.domain],
+            subCategories: subCategory ? [subCategory] : [],
+            timestampAccuracy: 'legacy-fallback' as const,
+          }
+        }),
         ...matchingProjects.map((project) => ({
           ...record,
           collectionType: 'custom' as const,
@@ -412,12 +412,13 @@ const saveTabs = async (
     customProjects.push(uncategorized)
     customProjectOrder.push(uncategorized.id)
   }
+  const orderedProjectIds = new Set(customProjectOrder)
   const orderedProjects = [
     ...customProjectOrder.flatMap((projectId) => {
       const project = customProjects.find(({ id }) => id === projectId)
       return project ? [project] : []
     }),
-    ...customProjects.filter(({ id }) => !customProjectOrder.includes(id)),
+    ...customProjects.filter(({ id }) => !orderedProjectIds.has(id)),
   ].filter(({ id }) => id !== uncategorized.id)
   const projectMatches = (
     project: CustomProject,
@@ -571,6 +572,7 @@ const removeExpiredUrls = async (
       removedGroupIds.add(group.id)
       return []
     }
+    const retainedUrlIds = new Set(urlIds)
     return [
       {
         ...group,
@@ -579,7 +581,7 @@ const removeExpiredUrls = async (
           ? {
               urlSubCategories: Object.fromEntries(
                 Object.entries(group.urlSubCategories).filter(([urlId]) =>
-                  urlIds.includes(urlId),
+                  retainedUrlIds.has(urlId),
                 ),
               ),
             }

@@ -9,6 +9,7 @@ import path from 'node:path'
 const FIREFOX_MIGRATION_SMOKE_UNSUPPORTED_EXECUTABLE =
   'FIREFOX_MIGRATION_SMOKE_UNSUPPORTED_EXECUTABLE'
 const EXTENSION_ID = 'tabbin@local'
+const SMOKE_PAGE = 'firefox-persistence-v2-migration-smoke.html'
 const DRIVER_START_TIMEOUT_MS = 15_000
 const EXTENSION_UUID_TIMEOUT_MS = 10_000
 const WEBDRIVER_SCRIPT_TIMEOUT_MS = 60_000
@@ -144,6 +145,9 @@ const createSmokeAddon = async (temporaryRoot: string): Promise<string> => {
     throw new Error('Firefox artifact manifest must be an object.')
   }
   const manifest = parsedManifest
+  // The harness owns the migration lifecycle for its synthetic legacy seed.
+  // Production startup would independently migrate the same database first.
+  delete manifest.background
   const browserSpecificSettings = isRecord(manifest.browser_specific_settings)
     ? manifest.browser_specific_settings
     : {}
@@ -155,6 +159,11 @@ const createSmokeAddon = async (temporaryRoot: string): Promise<string> => {
     gecko: { ...gecko, id: EXTENSION_ID },
   }
   await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`, 'utf8')
+  await writeFile(
+    path.join(addonDir, SMOKE_PAGE),
+    '<!doctype html><meta charset="utf-8"><title>Firefox persistence migration smoke</title>',
+    'utf8',
+  )
 
   const zip = spawnSync('zip', ['-qr', xpiPath, '.'], {
     cwd: addonDir,
@@ -339,7 +348,7 @@ const runHarnessPhase = async (
 ): Promise<SmokeResult> => {
   const uuid = await resolveExtensionUuid(session.profileDir)
   await sessionCommand(session, '/url', {
-    url: `moz-extension://${uuid}/options.html`,
+    url: `moz-extension://${uuid}/${SMOKE_PAGE}`,
   })
   await sessionCommand(session, '/timeouts', {
     script: WEBDRIVER_SCRIPT_TIMEOUT_MS,

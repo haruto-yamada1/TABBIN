@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocks = vi.hoisted(() => ({
   getChromeStorageLocal: vi.fn(),
@@ -417,6 +417,7 @@ describe('settings storage', () => {
 
     const settings = await getUserSettings()
     expect(settings.aiSystemPrompts).toHaveLength(1)
+    assert.isDefined(settings.aiSystemPrompts?.[0])
     expect(settings.aiSystemPrompts?.[0].id).toBe('valid')
   })
 

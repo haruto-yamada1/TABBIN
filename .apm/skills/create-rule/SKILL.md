@@ -3,6 +3,7 @@ name: create-rule
 disable-model-invocation: true
 description: 永続的な AI ガイダンス（rule / instruction）を作成します。Codex (AGENTS.md / .apm/instructions/)、Claude Code (CLAUDE.md / .claude/rules/)、Cursor (.cursor/rules/*.mdc) など、利用中クライアントの rule 仕様に合わせて file を生成します。コーディング標準、プロジェクト規約、file-specific パターンの追加時に使います。
 ---
+
 # AI エージェント向け rule / instruction の作成
 
 `.cursor/rules/` に project rule を作成し、AI agent へ永続的な context を提供します。
@@ -11,11 +12,11 @@ description: 永続的な AI ガイダンス（rule / instruction）を作成し
 
 永続 AI ガイダンス（rule / instruction）の仕様はクライアントごとに異なります。利用中のクライアントに合わせて file を生成します。本 skill の詳細例は Cursor 形式（`.cursor/rules/*.mdc`）を基本に書かれていますが、Codex / Claude Code では下記の対応先を使います。
 
-| クライアント | rule / instruction の場所 | 形式 |
-| --- | --- | --- |
-| Codex | `AGENTS.md` および `.apm/instructions/*.instructions.md` | markdown（APM が AGENTS.md へ compile） |
-| Claude Code | `CLAUDE.md` および `.claude/rules/*` | markdown |
-| Cursor | `.cursor/rules/*.mdc` | YAML frontmatter + markdown |
+| クライアント | rule / instruction の場所                                | 形式                                    |
+| ------------ | -------------------------------------------------------- | --------------------------------------- |
+| Codex        | `AGENTS.md` および `.apm/instructions/*.instructions.md` | markdown（APM が AGENTS.md へ compile） |
+| Claude Code  | `CLAUDE.md` および `.claude/rules/*`                     | markdown                                |
+| Cursor       | `.cursor/rules/*.mdc`                                    | YAML frontmatter + markdown             |
 
 TABBIN では instruction の source of truth は `.apm/instructions/` であり、`bun run apm:sync` で各クライアントの AGENTS.md / CLAUDE.md 等へ配布します。クライアント固有の path へ直接編集せず、原則 `.apm/instructions/` を更新して同期してください。
 
@@ -33,12 +34,15 @@ rule 作成前に次を決めます:
 
 会話に context がある場合、議論内容から rule を推測できます。会話が distinct な topic や pattern を複数扱う場合、複数 rule を作成して構いません。context ですでに答えが分かっている redundant な質問は避けます。
 
-### 必須の質問
+### 不足情報がある場合の質問
 
-ユーザーが scope を指定していない場合、次を尋ねます:
+既存 rule の scope や applyTo / glob、会話から範囲を判断できる場合は、その範囲を維持して進めます。
+適用範囲を決める情報が不足する場合だけ、次を尋ねます:
+
 - 「この rule は常に適用しますか、特定 file 作業時のみですか？」
 
-特定 file に言及があり、具体的 pattern が未指定の場合、次を尋ねます:
+特定 file に言及があっても、対象から既存 pattern を特定できない場合だけ、次を尋ねます:
+
 - 「どの file pattern に適用しますか？」（例: `**/*.ts`、`backend/**/*.py`）
 
 file pattern の明確化は重要です。
@@ -74,11 +78,11 @@ Your rule content here...
 
 ### Frontmatter Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `description` | string | rule の内容（rule picker に表示） |
-| `globs` | string | file pattern — 一致 file を開いているときに適用 |
-| `alwaysApply` | boolean | true の場合、すべての session に適用 |
+| Field         | Type    | Description                                     |
+| ------------- | ------- | ----------------------------------------------- |
+| `description` | string  | rule の内容（rule picker に表示）               |
+| `globs`       | string  | file pattern — 一致 file を開いているときに適用 |
+| `alwaysApply` | boolean | true の場合、すべての session に適用            |
 
 ---
 
@@ -136,15 +140,15 @@ alwaysApply: false
 \`\`\`typescript
 // ❌ BAD
 try {
-  await fetchData();
+await fetchData();
 } catch (e) {}
 
 // ✅ GOOD
 try {
-  await fetchData();
+await fetchData();
 } catch (e) {
-  logger.error('Failed to fetch', { error: e });
-  throw new DataFetchError('Unable to retrieve data', { cause: e });
+logger.error('Failed to fetch', { error: e });
+throw new DataFetchError('Unable to retrieve data', { cause: e });
 }
 \`\`\`
 ```

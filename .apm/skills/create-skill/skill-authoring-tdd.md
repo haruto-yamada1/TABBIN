@@ -1,84 +1,56 @@
-# skill 執筆の TDD 詳細（旧 writing-skills 統合）
+# Skill の変更に応じた評価と検証
 
-この文書は `create-skill` SKILL.md から分割した skill 執筆の TDD 詳細です。SKILL.md には要約とこの file への link だけを置き、500 行制限を守ります。
+この資料は `create-skill` の検証手順です。意味のある行動変更にはシナリオ評価を使い、挙動を変えない軽微な修正には既存の構造検査を使います。検証の目的は、指示の文言ではなくエージェントの判断と成果物を確かめることです。
 
-## skill 執筆の TDD
+## 検証方法を選ぶ
 
-**Skill の執筆は、プロセス文書への TDD 適用そのものです。** test case（subagent 付き pressure scenario）を書き、失敗を観察（baseline 行動）、skill（文書）を書き、pass を観察（compliance）、refactor（loophole を塞ぐ）。skill なしで agent が失敗するのを見ていなければ、skill が正しいことを教えているか分かりません。
+| 変更                                             | 検証                                                                               |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 新規 skill、発火条件・判断・手順・権限境界の変更 | baseline と新版を同じ代表シナリオで評価し、構造検査を行う                          |
+| 意味を維持する誤字・表現・レイアウト・リンク修正 | 意味と参照先を確認し、frontmatter・format・参照・同期を検査する                    |
+| 内容の移動・分割                                 | 参照と入口からの到達性を確認する。読み込み順や判断が変わる場合はシナリオ評価も行う |
+| 実行スクリプトの挙動変更                         | 変更した契約の回帰テストと、skill から正しく実行できることを確認する               |
 
-### RED-GREEN-REFACTOR
+軽微な修正に文言一致だけのテストを追加しません。関連する複数 skill は同じ評価で連携を確認でき、各 skill ごとの一律 STOP や個別承認は不要です。検証をまとめる場合も、どの変更を確認したかは区別して記録します。
 
-| TDD 概念 | skill 執筆 |
-| --- | --- |
-| Test case | subagent 付き pressure scenario |
-| Production code | skill 文書（SKILL.md） |
-| RED（test fail） | skill なしで agent がルール違反（baseline） |
-| GREEN（test pass） | skill ありで compliance |
-| REFACTOR | compliance を維持しつつ loophole を塞ぐ |
+## 意味のある変更のシナリオ評価
 
-1. **RED**: skill なしで pressure scenario を実行し、agent の選択・rationalization・違反を誘発した pressure を verbatim 記録する。
-2. **GREEN**: その rationalization に対処する最小の skill を書く。仮説ケースの余計な内容は足さない。同じ scenario を skill ありで compliance を検証する。
-3. **REFACTOR**: 新たな rationalization が出たら明示的な counter を追加し、bulletproof まで再テストする。
+1. **期待する行動を先に定義する。** 実際の依頼、入力、既存状態、許可範囲、期待する成果物を指定します。発火する場面と発火しない近接場面を含め、変更に関係する失敗・境界ケースを選びます。
+2. **baseline を確認する。** 既存 skill の改善では旧版、新規 skill では skill なしで同じシナリオを評価します。旧版が適切に動いたケースも記録し、改善の根拠に架空の失敗を使いません。
+3. **最小の変更を書く。** 観測した問題や新しい要件に対処します。仮想的な言い訳への反論を大量に追加せず、判断に必要な条件を明確にします。
+4. **新版を評価する。** 同じシナリオで行動と成果物を比較します。期待した判断、必要な検証、許可境界の維持を確認し、実際に評価した範囲だけを報告します。
+5. **必要な修正を行う。** 新たな問題が出た場合に対応するシナリオを再実行します。結果が十分なら、表現の微調整だけのために同じ評価を繰り返しません。
 
-規律 skill（何かを「してはいけない」系）では 3+ の複合 pressure（time / sunk cost / authority / exhaustion）を使う。
+独立した agent 評価は、複雑な判断や自己評価の偏りを避ける価値がある場合に使います。単純な構造検査のために subagent を必須にしません。
+時間制約や権限の衝突を扱う skill では、実務に対応する pressure を選びます。全変更に固定数の複合 pressure を課しません。
+評価を実行できない場合は、机上確認と実行結果を区別して制約を報告します。
 
-### 圧縮された執筆チェックリスト
+### 評価の記録例
 
-**RED:**
-- [ ] pressure scenario 作成（規律 skill は 3+ 複合 pressure）
-- [ ] skill なしで baseline を verbatim 記録
-- [ ] rationalization / 失敗パターン特定
+| シナリオ                    | 期待する行動                   | 旧版                 | 新版                             |
+| --------------------------- | ------------------------------ | -------------------- | -------------------------------- |
+| 既存の許可範囲内の設定編集  | 原本を編集し、該当検査まで進む | 観測した判断を記録   | 同じ条件での判断と検査結果を記録 |
+| push を依頼されていない作業 | ローカル編集・検証で終える     | 許可境界の扱いを記録 | 同じ境界を維持することを記録     |
 
-**GREEN:**
-- [ ] 名前は英字・数字・ハイフンのみ
-- [ ] frontmatter は name と description（max 1024 chars）
-- [ ] description は "Use when..." 開始、具体 trigger / symptom、三人称、検索 keyword 含む
-- [ ] 核心原則付き clear overview
-- [ ] RED の baseline 失敗に対処
-- [ ] 優れた 1 例（多言語不可）
-- [ ] skill ありで compliance 検証
+必要な証跡は作業の記録やハーネスに残し、skill 本文へ個別セッションの履歴を蓄積しません。
 
-**REFACTOR:**
-- [ ] testing から新 rationalization 特定、明示 counter 追加
-- [ ] rationalization table / red flags list 作成
-- [ ] bulletproof まで再テスト
+## 構造と同期のチェックリスト
 
-### アンチパターン
+- [ ] 名前と description が有効で、発火条件が具体的か。
+- [ ] 現在の依頼・対象クライアント・保存先と一致しているか。
+- [ ] 入口は短く、用語と参照が一貫しているか。
+- [ ] ローカルの参照先が存在し、必要な詳細へ入口から直接到達できるか。
+- [ ] 既存の許可境界や source of truth と矛盾していないか。
+- [ ] スクリプトを含む場合、必要な依存と実行方法が明確で、該当する動作確認が済んでいるか。
+- [ ] 変更に応じた検証を完了し、失敗・未実行を明示したか。
+- [ ] 原本を format し、`bun run apm:sync` と `bun run apm:check` で配布先の一致を確認したか。
 
-- ナラティブ例（"In session 2025-... we found..."）— 特定すぎて再利用不可。
-- 多言語 dilution（example-js.js / example-py.py / example-go.go）— 保守負担だけ増える。
-- Flowchart 内にコード（copy-paste 不可、読みにくい）。
-- 汎用 label（helper1 / step3 / pattern4）— label は意味を持つべき。
-- 未テスト skill の batch deploy — 未テスト code の deploy と同じ。
+品質・coverage ゲートと公開操作の許可境界は、[repository-guidelines](../../../.apm/instructions/repository-guidelines.instructions.md) に従います。
 
-### STOP: 次 skill へ進む前
+## 避けること
 
-skill を書いたら STOP し、deploy checklist を完了してから次へ。各 skill で RED→GREEN→REFACTOR を必須とし、"batch の方が効率" で test を skip しない。
-
----
-
-## Summary Checklist
-
-skill finalize 前に verify:
-
-### Core Quality
-- [ ] Description is specific and includes key terms
-- [ ] Description includes both WHAT and WHEN
-- [ ] Written in third person
-- [ ] SKILL.md body is under 500 lines
-- [ ] Consistent terminology throughout
-- [ ] Examples are concrete, not abstract
-
-### Structure
-- [ ] File references are one level deep
-- [ ] Progressive disclosure used appropriately
-- [ ] Workflows have clear steps
-- [ ] No time-sensitive information
-
-### If Including Scripts
-- [ ] Scripts solve problems rather than punt
-- [ ] Required packages are documented
-- [ ] Error handling is explicit and helpful
-- [ ] No Windows-style paths
-
----
+- 一般論や同じ禁止の言い換えで入口を長くする。
+- 文言の完全一致を、期待する行動の証拠とみなす。
+- 観測していない baseline の失敗や、新版の成功を報告する。
+- 軽微な修正にも複合 pressure や個別承認を一律に要求する。
+- 古い参照資料の汎用手順で、現在の依頼・クライアント仕様・許可範囲を上書きする。

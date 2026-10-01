@@ -43,23 +43,22 @@ describe('shouldCloseImportDialog', () => {
     ).toBe(initialImportDialogState)
   })
 
-  it('current Backup V2 の preview では未対応の merge を解除する', () => {
+  it('current Backup V2 の previewへ遷移する', () => {
     const state = importDialogReducer(initialImportDialogState, {
       type: 'SET_PREVIEW',
       preview: {
         categoriesCount: 0,
         domainsCount: 0,
-        formatKind: 'current-v2',
         hasAiChat: false,
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-08-12T00:00:00.000Z',
-        version: '2.0.16',
+        version: '2.0.17',
       },
     })
 
-    expect(state.mergeData).toBe(false)
     expect(state.step).toBe('preview')
+    expect(state.previewData?.version).toBe('2.0.17')
   })
 
   it('resetImportFileInput は input がある場合だけ value を空にする', () => {

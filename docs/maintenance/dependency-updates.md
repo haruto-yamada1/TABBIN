@@ -8,7 +8,7 @@ CI success や vulnerability warning がないことだけを安全性の保証�
 - `bun` と `github-actions` の version / lockfile update と PR 作成
 - Dependency Dashboard で pending、approval、vulnerability、abandonment を可視化
 - 通常 update は月曜 06:00 前（Asia/Tokyo）、npm release から14日待機
-- major と `@typescript/native-preview` は Dashboard 承認後に PR 作成
+- major と `@typescript/native` は Dashboard 承認後に PR 作成
 - `rangeStrategy: pin` の初回 exact-version migration は専用 group として承認する
 - automerge は patch、minor、major、security、Actions のすべてで禁止
 
@@ -17,6 +17,25 @@ breaking change に伴う application migration と実動作確認は人間ま�
 `update-pr-branches.yml` は Renovate PR を更新しない。
 
 ## Review checklist
+
+### TypeScript / test tool compatibility (2026-09-22)
+
+- 型検査は `@typescript/native`（`npm:typescript@^7.0.2`）の安定版を使う。
+  `compile` は alias 内の CLI を明示して、TypeScript 6 の `tsc` と混同しない。
+- `typescript@6.0.3` は Compiler API を使う AST 検査、HTML 検査、lint のために併用する。
+  TypeScript 7 のルート export は従来の Compiler API を提供しない。
+  公式の `@typescript/typescript6` alias は Bun 1.3.14 で内部 alias が自己参照に解決されたため、
+  API package を直接指定する。`@typescript/native-preview` は削除済み。
+- Storybook 10.6 の Vitest addon の peer range は Vitest 3 / 4。
+  Vitest 関連 package は対応範囲の最新 4.1.11 に揃え、5 系は addon の対応後に移行する。
+- Node / Bun の runtime contract は維持し、`@types/node` は Node 24 系の最新版に揃える。
+- Oxlint 1.79 以降で `react/react-compiler` が個別 rule に分割されたため、
+  従来の native compiler rule の無効設定を各 rule に移す。
+  既存の `react-hooks-compiler/*`（公式 ESLint plugin）の error 設定は維持する。
+  新しい style rule は個別 const 宣言と arrow / function 宣言という既存規約に合わせる。
+
+参照: [TypeScript 7 の併用方針](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-60)、
+[Oxlint の rule 分割](https://github.com/oxc-project/oxc/pull/25500)。
 
 ### CI
 
@@ -107,7 +126,18 @@ package も追加していない。
   upstream 修正版 1.1.18 / 5.0.9 へ更新した。
 
 `defu`、`lodash-es`、`node-forge`、`postcss`、`rollup`、`shell-quote`、
-`tmp`、`undici` は引き続き同じ互換世代の修正版を top-level `overrides` で固定する。
+`tmp` は引き続き同じ互換世代の修正版を top-level `overrides` で固定する。
+
+### Publish audit refresh (2026-10-01)
+
+- `fast-uri` は authority / host 正規化の advisory に対応する `3.1.8` に固定する。
+  `ajv` の `^3.0.1` の範囲内で更新する。
+- `undici` の一律 7 系 override は削除する。AI SDK と `cheerio` は修正版 `7.29.1`、
+  `jsdom` は要求する 8 系の `8.11.2` を lockfile に解決し、それぞれの親の互換範囲を守る。
+  audit ignore、runtime version、lifecycle script の許可は変更しない。
+
+参照: [fast-uri の host 正規化修正](https://github.com/advisories/GHSA-hrr3-gc8f-f4qj)、
+[undici の TLS 検証修正](https://github.com/advisories/GHSA-w293-vg96-wgc3)。
 
 ## Vulnerability response
 

@@ -204,6 +204,68 @@ describe('PersistenceBootstrapService', () => {
     })
   })
 
+  it('joins the same migration completed by another startup context while waiting for the lock', async () => {
+    const repository = new FakeControlStateRepository({ status: 'legacy' })
+    const lifecycle = createLifecycle()
+    const coordination = new SerialPersistenceCoordinator()
+    const createContext = () =>
+      createCompletePersistenceBootstrapServiceForTesting({
+        access: createAccess(),
+        controlStateRepository: repository,
+        coordination,
+        migrationLifecycle: lifecycle,
+      })
+    const background = createContext()
+    const options = createContext()
+
+    // Both startup controllers decide to migrate before either acquires the
+    // exclusive lock. The second must use the state committed by the first.
+    await expect(
+      Promise.all([background.readState(), options.readState()]),
+    ).resolves.toEqual([{ status: 'legacy' }, { status: 'legacy' }])
+    await expect(
+      Promise.all([
+        background.migrate('migration-1'),
+        options.migrate('migration-1'),
+      ]),
+    ).resolves.toEqual([undefined, undefined])
+
+    expect(lifecycle.migrate).toHaveBeenCalledTimes(1)
+    expect(lifecycle.verify).toHaveBeenCalledTimes(1)
+    expect(repository.transition).toHaveBeenCalledTimes(4)
+    expect(repository.state).toEqual({
+      status: 'indexeddb',
+      migrationId: 'migration-1',
+      persistenceGeneration: 2,
+    })
+  })
+
+  it('does not join a matching migration while emergency read-only mode is active', async () => {
+    const state: PersistenceControlState = {
+      status: 'read-only-emergency',
+      readSource: 'indexeddb',
+      migrationId: 'migration-1',
+      persistenceGeneration: 2,
+    }
+    const repository = new FakeControlStateRepository(state)
+    const lifecycle = createLifecycle()
+    const service = createCompletePersistenceBootstrapServiceForTesting({
+      access: createAccess(),
+      controlStateRepository: repository,
+      coordination: new SerialPersistenceCoordinator(),
+      migrationLifecycle: lifecycle,
+    })
+
+    await expectUnavailableCode(
+      service.migrate('migration-1'),
+      'PERSISTENCE_ROUTE_MISMATCH',
+    )
+    expect(repository.state).toEqual(state)
+    expect(repository.transition).not.toHaveBeenCalled()
+    expect(lifecycle.migrate).not.toHaveBeenCalled()
+    expect(lifecycle.verify).not.toHaveBeenCalled()
+  })
+
   it('resumes verification after an MV3 service-worker restart', async () => {
     const repository = new FakeControlStateRepository({
       status: 'verifying',

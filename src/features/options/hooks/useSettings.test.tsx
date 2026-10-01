@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { useSettings } from './useSettings'
 
@@ -105,6 +105,39 @@ describe('useSettingsフック', () => {
       '設定の読み込みエラー:',
       expect.any(Error),
     )
+  })
+
+  it('読み込み失敗後の保存は画面に戻したデフォルト設定を使う', async () => {
+    using consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const pending =
+      Promise.withResolvers<Awaited<ReturnType<typeof getUserSettings>>>()
+    vi.mocked(getUserSettings).mockReturnValue(pending.promise)
+    vi.mocked(saveUserSettings).mockResolvedValue(undefined)
+    const { result } = renderHook(() => useSettings())
+
+    act(() => {
+      result.current.setSettings({ ...defaultSettings, showSavedTime: true })
+    })
+    await act(async () => {
+      pending.reject(new Error('load failed'))
+      await pending.promise.catch(() => undefined)
+    })
+    expect(result.current.settings).toStrictEqual(defaultSettings)
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '設定の読み込みエラー:',
+      expect.any(Error),
+    )
+
+    await act(async () => {
+      await result.current.updateSetting('openUrlInBackground', false)
+    })
+    expect(saveUserSettings).toHaveBeenCalledExactlyOnceWith({
+      ...defaultSettings,
+      openUrlInBackground: false,
+    })
   })
 
   it('updateSetting はローカル状態を更新し設定を永続化する', async () => {
@@ -244,7 +277,9 @@ describe('useSettingsフック', () => {
     }
 
     act(() => {
-      listeners[0](
+      const listener = listeners[0]
+      assert.isDefined(listener)
+      listener(
         {
           userSettings: {
             oldValue: defaultSettings,
@@ -258,7 +293,9 @@ describe('useSettingsフック', () => {
     expect(result.current.settings).toStrictEqual(updatedSettings)
 
     act(() => {
-      listeners[0](
+      const listener = listeners[0]
+      assert.isDefined(listener)
+      listener(
         {
           userSettings: {
             oldValue: updatedSettings,

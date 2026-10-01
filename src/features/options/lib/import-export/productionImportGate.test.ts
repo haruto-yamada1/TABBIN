@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-import type { BackupSchemaError } from '@/lib/persistence/backupSchema'
-
-import type { LegacyBackupImportError } from './legacy/LegacyBackupAdapter'
-import { assertProductionImportAllowed } from './productionImportGate'
+import {
+  assertProductionImportAllowed,
+  PRODUCTION_BACKUP_IMPORT_ERROR_CODES,
+} from './productionImportGate'
 import type { ProductionBackupImportError } from './productionImportGate'
 
 const readFixture = (name: string): string =>
@@ -23,70 +23,62 @@ const captureError = (action: () => unknown): Error => {
 }
 
 describe('assertProductionImportAllowed', () => {
-  it('strictly validates current V2 and routes overwrite through recovery', () => {
-    const allowed = assertProductionImportAllowed(
-      readFixture('backup-v2-current.json'),
-      {
-        importDate: '2026-07-28',
-        importMode: 'overwrite',
-      },
-    )
+  it('exposes the cutoff import error contract', () => {
+    expect(PRODUCTION_BACKUP_IMPORT_ERROR_CODES).toEqual([
+      'UNSUPPORTED_LEGACY_BACKUP',
+      'UNSUPPORTED_FUTURE_SCHEMA',
+      'INVALID_BACKUP',
+    ])
+  })
 
-    expect(allowed).toMatchObject({
+  it('strictly validates current V2 for recovery-backed overwrite', () => {
+    expect(
+      assertProductionImportAllowed(readFixture('backup-v2-current.json')),
+    ).toMatchObject({
       inspection: {
-        preview: { formatKind: 'current-v2' },
+        preview: { schemaVersion: 2 },
       },
       kind: 'v2-overwrite',
     })
   })
 
-  it('keeps current V2 merge fail-closed because it has no merge contract', () => {
+  it('preserves the typed future-schema rejection', () => {
     const error = captureError(() =>
-      assertProductionImportAllowed(readFixture('backup-v2-current.json'), {
-        importDate: '2026-07-28',
-        importMode: 'merge',
-      }),
+      assertProductionImportAllowed(readFixture('backup-v2-future.json')),
     )
 
     expect(error).toMatchObject<Partial<ProductionBackupImportError>>({
-      code: 'CURRENT_V2_MERGE_UNAVAILABLE',
-      name: 'ProductionBackupImportError',
-    })
-    expect(JSON.stringify(error)).not.toContain('userSettings')
-  })
-
-  it('preserves the typed future-schema rejection', () => {
-    const error = captureError(() =>
-      assertProductionImportAllowed(readFixture('backup-v2-future.json'), {
-        importDate: '2026-07-28',
-        importMode: 'overwrite',
-      }),
-    )
-
-    expect(error).toMatchObject<Partial<BackupSchemaError>>({
       code: 'UNSUPPORTED_FUTURE_SCHEMA',
       currentVersion: 2,
-      name: 'BackupSchemaError',
+      name: 'ProductionBackupImportError',
       receivedVersion: 3,
     })
   })
 
-  it('rejects malformed versioned input before legacy handling', () => {
+  it('rejects malformed current input without exposing the payload', () => {
     const error = captureError(() =>
       assertProductionImportAllowed(
         JSON.stringify({ schemaVersion: 2, privatePayload: 'secret' }),
-        { importDate: '2026-07-28', importMode: 'overwrite' },
       ),
     )
 
-    expect(error).toMatchObject<Partial<BackupSchemaError>>({
-      code: 'INVALID_SCHEMA',
-      name: 'BackupSchemaError',
+    expect(error).toMatchObject<Partial<ProductionBackupImportError>>({
+      code: 'INVALID_BACKUP',
+      name: 'ProductionBackupImportError',
     })
     expect(JSON.stringify(error)).not.toContain('secret')
   })
 
-  it('rejects malformed legacy-shaped input before compatibility parsing', () => {
+  it('rejects malformed JSON with a typed invalid-backup classification', () => {
+    expect(() => assertProductionImportAllowed('{malformed-json')).toThrow(
+      expect.objectContaining<Partial<ProductionBackupImportError>>({
+        code: 'INVALID_BACKUP',
+        name: 'ProductionBackupImportError',
+      }),
+    )
+  })
+
+  it('rejects a schema-less legacy backup without parsing or migrating it', () => {
     const error = captureError(() =>
       assertProductionImportAllowed(
         JSON.stringify({
@@ -97,192 +89,13 @@ describe('assertProductionImportAllowed', () => {
           userSettings: {},
           version: '1.0.0',
         }),
-        { importDate: '2026-09-30', importMode: 'merge' },
       ),
     )
 
-    expect(error).toMatchObject<Partial<BackupSchemaError>>({
-      code: 'INVALID_SCHEMA',
-      name: 'BackupSchemaError',
+    expect(error).toMatchObject<Partial<ProductionBackupImportError>>({
+      code: 'UNSUPPORTED_LEGACY_BACKUP',
+      name: 'ProductionBackupImportError',
     })
     expect(JSON.stringify(error)).not.toContain('secret')
-  })
-
-  it('allows legacy through the last date and rejects it at the cutoff', () => {
-    const legacy = readFixture('legacy-tab-group-url-ids.json')
-
-    const allowed = assertProductionImportAllowed(legacy, {
-      importDate: '2026-09-30',
-      importMode: 'merge',
-    })
-    expect(allowed).toMatchObject({
-      inspection: {
-        preview: { formatKind: 'legacy' },
-      },
-      kind: 'legacy-merge',
-      serializedBytes: new TextEncoder().encode(legacy).byteLength,
-      userSettingsPatch: expect.any(Object),
-    })
-
-    const error = captureError(() =>
-      assertProductionImportAllowed(legacy, {
-        importDate: '2026-10-01',
-        importMode: 'merge',
-      }),
-    )
-    expect(error).toMatchObject<Partial<LegacyBackupImportError>>({
-      code: 'LEGACY_IMPORT_CUTOFF_REACHED',
-      name: 'LegacyBackupImportError',
-    })
-  })
-
-  it('accepts official 1.2.4 settings without forwarding retired AI provider fields', () => {
-    const allowed = assertProductionImportAllowed(
-      readFixture('legacy-v1.2.4-user-settings.json'),
-      {
-        importDate: '2026-09-30',
-        importMode: 'merge',
-      },
-    )
-    if (allowed?.kind !== 'legacy-merge') {
-      throw new TypeError('Expected legacy merge import')
-    }
-
-    expect(allowed.userSettingsPatch).toMatchObject({
-      activeAiSystemPromptId: 'default-system-prompt',
-      clickBehavior: 'saveSameDomainTabs',
-    })
-    expect(allowed.userSettingsPatch).not.toHaveProperty('aiChatEnabled')
-    expect(allowed.userSettingsPatch).not.toHaveProperty('aiProvider')
-  })
-
-  it('accepts the legacy exporter runtime prompt without forwarding it to settings', () => {
-    const legacy: unknown = JSON.parse(
-      readFixture('legacy-tab-group-url-ids.json'),
-    )
-    if (typeof legacy !== 'object' || legacy === null) {
-      throw new TypeError('Expected legacy backup fixture')
-    }
-    const userSettings = Reflect.get(legacy, 'userSettings')
-    if (typeof userSettings !== 'object' || userSettings === null) {
-      throw new TypeError('Expected legacy user settings fixture')
-    }
-    const activeAiSystemPrompt = {
-      createdAt: 1,
-      id: 'legacy-active-prompt',
-      name: 'Legacy active prompt',
-      template: 'Legacy prompt template',
-      updatedAt: 2,
-    }
-    Object.assign(userSettings, {
-      activeAiSystemPrompt,
-      activeAiSystemPromptId: activeAiSystemPrompt.id,
-      aiSystemPrompts: [activeAiSystemPrompt],
-    })
-
-    const allowed = assertProductionImportAllowed(JSON.stringify(legacy), {
-      importDate: '2026-09-30',
-      importMode: 'merge',
-    })
-    if (allowed?.kind !== 'legacy-merge') {
-      throw new TypeError('Expected legacy merge import')
-    }
-
-    expect(allowed.userSettingsPatch).toMatchObject({
-      activeAiSystemPromptId: activeAiSystemPrompt.id,
-      aiSystemPrompts: [activeAiSystemPrompt],
-    })
-    expect(allowed.userSettingsPatch).not.toHaveProperty('activeAiSystemPrompt')
-  })
-
-  it('accepts schema-less backups containing versioned analytics queries', () => {
-    const legacy: unknown = JSON.parse(
-      readFixture('legacy-tab-group-url-ids.json'),
-    )
-    if (typeof legacy !== 'object' || legacy === null) {
-      throw new TypeError('Expected legacy backup fixture')
-    }
-    Object.assign(legacy, {
-      savedAnalyticsViews: [
-        {
-          createdAt: 1,
-          id: 'view-v2-query',
-          name: 'Collection activity',
-          query: {
-            chartType: 'bar',
-            collectionType: 'domain',
-            compareBy: 'none',
-            filters: {
-              excludedDomains: [],
-              excludedParentCategories: [],
-              excludedProjectCategories: [],
-              excludedProjects: [],
-              excludedSubCategories: [],
-              includedDomains: [],
-              includedParentCategories: [],
-              includedProjectCategories: [],
-              includedProjects: [],
-              includedSubCategories: [],
-            },
-            groupBy: 'collection',
-            limit: 10,
-            metric: 'membership-added',
-            mode: 'both',
-            normalize: false,
-            schemaVersion: 2,
-            sort: 'value-desc',
-            stacked: false,
-            timeBucket: 'day',
-            timeRange: '30d',
-          },
-          updatedAt: 2,
-        },
-      ],
-    })
-
-    expect(
-      assertProductionImportAllowed(JSON.stringify(legacy), {
-        importDate: '2026-09-30',
-        importMode: 'merge',
-      }),
-    ).toMatchObject({
-      inspection: { preview: { formatKind: 'legacy' } },
-      kind: 'legacy-merge',
-    })
-  })
-
-  it('routes a supported legacy overwrite through normalized recovery', () => {
-    const allowed = assertProductionImportAllowed(
-      readFixture('legacy-tab-group-url-ids.json'),
-      {
-        importDate: '2026-09-30',
-        importMode: 'overwrite',
-      },
-    )
-
-    expect(allowed).toMatchObject({
-      inspection: {
-        preview: { formatKind: 'legacy' },
-      },
-      kind: 'v2-overwrite',
-    })
-  })
-
-  it('does not accept an omitted import date', () => {
-    const legacy = readFixture('legacy-tab-group-url-ids.json')
-    const callWithoutDate = assertProductionImportAllowed as (
-      input: string,
-    ) => void
-
-    expect(() => callWithoutDate(legacy)).toThrow('Import date is required')
-  })
-
-  it('leaves malformed JSON to the existing legacy format-error path', () => {
-    expect(() =>
-      assertProductionImportAllowed('{malformed-json', {
-        importDate: '2026-07-28',
-        importMode: 'overwrite',
-      }),
-    ).not.toThrow()
   })
 })

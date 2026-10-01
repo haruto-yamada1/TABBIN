@@ -16,7 +16,6 @@ generator 配置、seed 再現手順、regression fixture 昇格基準をまと�
 | `Url.firstSavedAt <= Url.lastSavedAt`（fallback 後も成立）                                             | 同上                                                                                              |
 | 同一 URL の複数 collection 所属で `Membership.addedAt` が `Url.lastSavedAt` へ不正同期されない（#732） | 同上                                                                                              |
 | `import(export(v2))` が canonicalized logical snapshot を保持する（Backup V2 round trip）              | `src/features/options/lib/import-export/v2/BackupMapper.property.test.ts`                         |
-| pre-IDB legacy backup 変換の決定性と Backup V2 schema 適合（#730）                                     | `src/features/options/lib/import-export/legacy/LegacyBackupAdapter.property.test.ts`              |
 
 ## Generator 配置
 
@@ -31,7 +30,7 @@ generator 配置、seed 再現手順、regression fixture 昇格基準をまと�
   `CustomProject.urlIds` / `urls` / `urlMetadata`、`ParentCategory.domains` /
   `domainNames`、`parentCategoryId`、`DomainParentCategoryMapping`）の
   well-formed generator と malformed / partially corrupted raw generator
-- `backupArbitrary.ts` — canonical user settings と pre-IDB backup envelope
+- `backupArbitrary.ts` — Backup V2 round-trip 用の canonical user settings
 - `fastCheckParameters.ts` — 全 property test 共通の seed / numRuns 制御
 
 current production type（Persistence Model v2）を legacy arbitrary の型として
@@ -86,10 +85,9 @@ fixture として追加する。
   Backup V2 round trip）は常に PR gate に含める。「重いから migration test
   全体を nightly だけ」にはしない
 
-## #734 cleanup 対象の識別
+## Legacy backup cutoff
 
-`src/features/options/lib/import-export/legacy/LegacyBackupAdapter.property.test.ts`
-は pre-IDB legacy backup importer（2026-09-30 までの temporary compatibility
-scope）を対象にする。#734 の cutoff release で legacy importer とともに削除し、
-archived historical fixture と current Backup V2 test を分離する。ファイル先頭の
-コメントでも同じ旨を明示している。
+#734 で pre-IDB backup importer とその arbitrary / property test は production
+support surface から削除した。Backup V2 の round-trip invariant は
+`BackupMapper.property.test.ts` が継続して検証する。live installed-data migration
+の arbitrary と property test は別 contract であり、backup cutoff の削除対象ではない。

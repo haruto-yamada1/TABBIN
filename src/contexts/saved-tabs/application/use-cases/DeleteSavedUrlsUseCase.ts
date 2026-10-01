@@ -170,8 +170,9 @@ export const createDeleteSavedUrlsUseCase = (
       await deps.urlRecordRepository.removeByIds(urlRecordsToDelete)
     }
 
+    const removedUrlRecordIdSet = new Set(urlRecordsToDelete)
     const removedUrlRecords = previousUrlRecords.filter((record) =>
-      urlRecordsToDelete.includes(record.id),
+      removedUrlRecordIdSet.has(record.id),
     )
 
     if (urlRecordsToDelete.length === 0 && !isGroupEmpty) {

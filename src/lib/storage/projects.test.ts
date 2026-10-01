@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   CustomProject,
@@ -615,6 +615,131 @@ describe('projects storage', () => {
     ])
     expect(state.savedTabs?.[0]?.urlIds).toHaveLength(2)
     expect(state.savedTabs?.[1]?.urlIds).toHaveLength(1)
+  })
+
+  it.each([true, false])(
+    'saveUrlsToCustomProjects は一致=%s の複数 URL とドメイン参照を一括で保存する',
+    async (matched) => {
+      const project = createProject({
+        id: matched ? 'matched-project' : 'custom-uncategorized',
+        projectKeywords: {
+          titleKeywords: [],
+          urlKeywords: [],
+          domainKeywords: matched ? ['example.com'] : [],
+        },
+      })
+      const state: StorageState = {
+        customProjectOrder: [project.id],
+        customProjects: [project],
+        savedTabs: [
+          {
+            id: 'existing-domain',
+            domain: 'https://example.com',
+            urlIds: ['existing'],
+          },
+        ],
+        urls: [],
+      }
+      const storage = createChromeStorageLocal(state)
+      globalThis.chrome = {
+        storage: { local: storage },
+      } as unknown as typeof chrome
+      const { saveUrlsToCustomProjects } = await loadModule()
+
+      await saveUrlsToCustomProjects([
+        { title: 'First', url: 'https://example.com/first' },
+        { title: 'Second', url: 'https://example.com/second' },
+      ])
+
+      expect(state.customProjects?.[0]?.urlIds).toEqual(
+        state.urls?.map(({ id }) => id),
+      )
+      expect(state.savedTabs).toEqual([
+        {
+          id: 'existing-domain',
+          domain: 'https://example.com',
+          urlIds: ['existing', ...state.urls!.map(({ id }) => id)],
+        },
+      ])
+      expect(
+        storage.set.mock.calls.filter(([value]) => 'savedTabs' in value),
+      ).toHaveLength(1)
+      expect(
+        storage.set.mock.calls.filter(([value]) => 'customProjects' in value),
+      ).toHaveLength(1)
+      expect(
+        storage.set.mock.calls.filter(([value]) => 'urls' in value),
+      ).toHaveLength(1)
+    },
+  )
+
+  it('saveUrlsToCustomProjects はドメイン保存失敗時に所属を書かず次の保存で再試行できる', async () => {
+    const state: StorageState = {
+      customProjectOrder: ['matched-project'],
+      customProjects: [
+        createProject({
+          id: 'matched-project',
+          projectKeywords: {
+            titleKeywords: [],
+            urlKeywords: [],
+            domainKeywords: ['example.com'],
+          },
+        }),
+      ],
+      savedTabs: [],
+      urls: [],
+    }
+    let rejectDomainWrite = true
+    const storage = {
+      get: vi.fn(async (keys?: string | string[]) => {
+        const snapshot = structuredClone(state)
+        if (!keys) {
+          return snapshot
+        }
+        return Object.fromEntries(
+          (Array.isArray(keys) ? keys : [keys]).map((key) => [
+            key,
+            snapshot[key as keyof StorageState],
+          ]),
+        )
+      }),
+      set: vi.fn(async (value: Record<string, unknown>) => {
+        if ('savedTabs' in value && rejectDomainWrite) {
+          rejectDomainWrite = false
+          throw new Error('domain commit failed')
+        }
+        Object.assign(state, structuredClone(value))
+      }),
+    }
+    globalThis.chrome = {
+      storage: { local: storage },
+    } as unknown as typeof chrome
+    const { saveUrlsToCustomProjects } = await loadModule()
+    const items = [
+      { title: 'First', url: 'https://example.com/first' },
+      { title: 'Second', url: 'https://example.com/second' },
+    ]
+
+    await expect(saveUrlsToCustomProjects(items)).rejects.toThrow(
+      'domain commit failed',
+    )
+
+    expect(state.customProjects?.[0]?.urlIds).toEqual([])
+    expect(state.savedTabs).toEqual([])
+    expect(
+      storage.set.mock.calls.filter(([value]) => 'customProjects' in value),
+    ).toHaveLength(0)
+    expect(state.urls).toHaveLength(2)
+
+    await saveUrlsToCustomProjects(items)
+
+    expect(state.customProjects?.[0]?.urlIds).toEqual(
+      state.urls?.map(({ id }) => id),
+    )
+    expect(state.savedTabs).toEqual([
+      expect.objectContaining({ urlIds: state.urls?.map(({ id }) => id) }),
+    ])
+    expect(state.urls).toHaveLength(2)
   })
 
   it('saveUrlsToCustomProjects は異なる保存イベントが同時に走っても全URLと参照を保持する', async () => {
@@ -1864,6 +1989,7 @@ describe('projects storage', () => {
         },
       ],
     }
+    assert.isDefined(state.customProjects?.[0])
     delete state.customProjects?.[0].urlIds
     const storage = createChromeStorageLocal(state)
     globalThis.chrome = {
@@ -2405,6 +2531,7 @@ describe('projects storage', () => {
         },
       }),
     )
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].urlMetadata?.['url-1']).not.toHaveProperty(
       'category',
     )
@@ -2419,6 +2546,7 @@ describe('projects storage', () => {
         }),
       ],
     }
+    assert.isDefined(state.customProjects?.[0])
     delete state.customProjects?.[0].categoryOrder
     globalThis.chrome = {
       storage: {
@@ -2474,6 +2602,7 @@ describe('projects storage', () => {
         }),
       ],
     }
+    assert.isDefined(state.customProjects?.[0])
     delete state.customProjects?.[0].categoryOrder
     delete state.customProjects?.[0].urlMetadata
     globalThis.chrome = {
@@ -2491,6 +2620,7 @@ describe('projects storage', () => {
         categories: [],
       }),
     )
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].categoryOrder).toBeUndefined()
     expect(state.customProjects?.[0].urlMetadata).toBeUndefined()
   })
@@ -2586,11 +2716,13 @@ describe('projects storage', () => {
     const { reorderProjectUrls, setUrlCategory } = await loadModule()
 
     await setUrlCategory('target', 'https://example.test/same', 'same')
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].urlMetadata?.['url-1']).toHaveProperty(
       'category',
       'same',
     )
     await setUrlCategory('target', 'https://example.test/same', undefined)
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].urlMetadata?.['url-1']).not.toHaveProperty(
       'category',
     )
@@ -2835,6 +2967,7 @@ describe('projects storage', () => {
         id: 'target',
       }),
     ]
+    assert.isDefined(state.customProjects[1])
     delete state.customProjects[1].urlIds
     state.urls = []
 

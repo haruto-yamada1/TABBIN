@@ -64,6 +64,7 @@ import {
   asyncNoopSetCustomProjectUrlCategory,
   asyncNoopUpdateCustomProjectCategoryOrder,
   asyncNoopUpdateCustomProjectKeywords,
+  toRawStorageCustomProject,
 } from './projectManagementDefaults'
 import { useProjectCategoryHandlers } from './useProjectCategoryHandlers'
 import { useProjectCrudHandlers } from './useProjectCrudHandlers'
@@ -194,12 +195,68 @@ const useProjectManagement = (
     t,
   })
   const categoryHandlers = useProjectCategoryHandlers({
-    initialViewMode,
     refs,
     setCustomProjects,
-    setViewMode,
     t,
   })
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadProjects = async () => {
+      try {
+        console.log(
+          '初回ロード: ビューモードとカスタムプロジェクトを取得します',
+        )
+        const mode = initialViewMode ?? 'domain'
+        setViewMode(mode)
+        console.log(`ビューモード: ${mode}`)
+
+        const [raws, order] = await Promise.all([
+          refs.getCustomProjectRawsQueryRef.current(),
+          refs.getCustomProjectOrderQueryRef.current(),
+        ])
+        const projectsAsCust = raws.map(toRawStorageCustomProject)
+        const orderKeys = [...order]
+        const orderKeySet = new Set(orderKeys)
+        const projectsById = new Map(
+          projectsAsCust.toReversed().map((project) => [project.id, project]),
+        )
+        const ordered =
+          orderKeys.length > 0
+            ? [
+                ...orderKeys
+                  .map((id) => projectsById.get(id))
+                  .filter(
+                    (project): project is CustomProject =>
+                      project !== undefined,
+                  ),
+                ...projectsAsCust.filter(
+                  (project) => !orderKeySet.has(project.id),
+                ),
+              ]
+            : projectsAsCust
+        console.log(`カスタムプロジェクト数: ${ordered.length}`)
+
+        if (isActive) {
+          setCustomProjects(ordered)
+        }
+        console.log('初回ロード完了')
+      } catch (error) {
+        console.error('ビューモードの読み込みエラー:', error)
+      }
+    }
+    void loadProjects()
+    return () => {
+      isActive = false
+    }
+  }, [
+    initialViewMode,
+    refs.getCustomProjectOrderQueryRef,
+    refs.getCustomProjectRawsQueryRef,
+    setCustomProjects,
+    setViewMode,
+  ])
 
   return {
     customProjects,

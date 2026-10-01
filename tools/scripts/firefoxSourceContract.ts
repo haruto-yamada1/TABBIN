@@ -75,8 +75,7 @@ const collectChromeExtensionLiteralViolations = (
   }
   const violations: FirefoxSourceViolation[] = []
   const lines = source.split('\n')
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index]
+  for (const [index, line] of lines.entries()) {
     if (!line.includes('chrome-extension://')) {
       continue
     }
@@ -127,8 +126,7 @@ const collectChromeOnlyApiViolations = (
   }
   const violations: FirefoxSourceViolation[] = []
   const lines = source.split('\n')
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index]
+  for (const [index, line] of lines.entries()) {
     for (const api of CHROME_ONLY_API_NAMES) {
       const needle = `chrome.${api}`
       let from = 0

@@ -28,9 +28,7 @@ const hasExpectedSchemaVersion = (
 ): boolean => {
   try {
     const format = detectBackupFormat(input)
-    return (
-      format.kind === 'versioned' && format.schemaVersion === expectedVersion
-    )
+    return format.schemaVersion === expectedVersion
   } catch {
     return false
   }
@@ -63,13 +61,11 @@ export const defineBackupMigrationStep = <TFrom, TTo>({
   toVersion,
 })
 
-export type BackupMigrationResult<TCurrent> =
-  | { readonly kind: 'legacy' }
-  | {
-      readonly backup: TCurrent
-      readonly kind: 'current'
-      readonly sourceVersion: number
-    }
+export type BackupMigrationResult<TCurrent> = {
+  readonly backup: TCurrent
+  readonly kind: 'current'
+  readonly sourceVersion: number
+}
 
 type CreateBackupMigrationPipelineOptions<TCurrent> = {
   readonly currentSchema: z.ZodType<TCurrent>
@@ -91,13 +87,14 @@ const assertValidRegistry = (
     )
   }
 
-  if (migrations.size === 0) {
-    return []
-  }
-
   const sortedEntries = [...migrations.entries()].toSorted(
     ([leftVersion], [rightVersion]) => leftVersion - rightVersion,
   )
+
+  const firstEntry = sortedEntries[0]
+  if (!firstEntry) {
+    return []
+  }
 
   for (const [registeredVersion, step] of sortedEntries) {
     if (registeredVersion !== step.fromVersion) {
@@ -117,7 +114,6 @@ const assertValidRegistry = (
     }
   }
 
-  const firstEntry = sortedEntries[0]
   const [minimumVersion] = firstEntry
   for (let version = minimumVersion; version < currentVersion; version += 1) {
     if (!migrations.has(version)) {
@@ -157,10 +153,6 @@ export const createBackupMigrationPipeline = <TCurrent>({
   return {
     migrateToCurrent: (input) => {
       const format = detectBackupFormat(input)
-      if (format.kind === 'legacy') {
-        return { kind: 'legacy' }
-      }
-
       const sourceVersion = format.schemaVersion
       if (sourceVersion > currentVersion) {
         throw new BackupSchemaError('UNSUPPORTED_FUTURE_SCHEMA', {

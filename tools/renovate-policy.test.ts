@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 
 type RenovatePackageRule = {
   automerge?: boolean
@@ -8,6 +8,7 @@ type RenovatePackageRule = {
   description?: string
   groupName?: string | null
   matchDatasources?: string[]
+  matchDepNames?: string[]
   matchManagers?: string[]
   matchPackageNames?: string[]
   matchUpdateTypes?: string[]
@@ -144,20 +145,19 @@ describe('Renovate dependency update policy', () => {
     )
   })
 
-  it('waits for npm releases and isolates the TypeScript native preview', () => {
+  it('waits for npm releases and isolates the TypeScript native compiler alias', () => {
     const config = JSON.parse(
       readRepositoryFile('.github/renovate.json'),
     ) as RenovateConfig
     const npmRule = config.packageRules.find((rule) =>
       rule.matchDatasources?.includes('npm'),
     )
-    const previewRule = config.packageRules.find(
-      (rule) =>
-        rule.description === 'Handle TypeScript native preview separately',
+    const nativeRule = config.packageRules.find((rule) =>
+      rule.matchDepNames?.includes('@typescript/native'),
     )
 
     expect(npmRule?.minimumReleaseAge).toBe('14 days')
-    expect(previewRule).toMatchObject({
+    expect(nativeRule).toMatchObject({
       schedule: ['before 6am on the first day of the month'],
       dependencyDashboardApproval: true,
       groupName: null,
@@ -183,11 +183,14 @@ describe('Renovate dependency update policy', () => {
       scripts: Record<string, string>
     }
     const policy = readRepositoryFile('docs/maintenance/dependency-updates.md')
+    const auditScript = packageJson.scripts['security:audit']
+    assert.isDefined(auditScript)
     const ignoredAdvisories = [
-      ...packageJson.scripts['security:audit'].matchAll(
-        /--ignore (GHSA-[\w-]+)/g,
-      ),
-    ].map(([, advisory]) => advisory)
+      ...auditScript.matchAll(/--ignore (GHSA-[\w-]+)/g),
+    ].map(([, advisory]) => {
+      assert.isDefined(advisory)
+      return advisory
+    })
 
     const requiredPolicyMarkers =
       ignoredAdvisories.length === 0
@@ -261,6 +264,7 @@ describe('Renovate dependency update policy', () => {
 
     expect(externalActionReferences.length).toBeGreaterThan(0)
     for (const [, action, reference] of externalActionReferences) {
+      assert.isDefined(action)
       expect(reference, `${action} must use a full commit SHA`).toMatch(
         /^[0-9a-f]{40}$/,
       )

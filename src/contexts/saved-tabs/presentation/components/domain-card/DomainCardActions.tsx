@@ -11,13 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { CategoryKeywordModal } from '@/contexts/saved-tabs/presentation/components/CategoryKeywordModal'
-import {
-  SavedTabsResponsiveLabel,
-  SavedTabsResponsiveTooltipContent,
-} from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import { CardActionButton } from '@/contexts/saved-tabs/presentation/components/shared/CardActionButton'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import { handleSaveKeywords } from '@/contexts/saved-tabs/presentation/lib/category-keywords'
@@ -153,67 +148,31 @@ export const DomainCardActions = () => {
     <>
       <div className='flex shrink-0 items-center gap-2'>
         {/* 子カテゴリ管理 */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='secondary'
-              size='sm'
-              onClick={handleKeywordToggle}
-              className='flex cursor-pointer items-center gap-1'
-              aria-label={manageSubcategoriesLabel}
-            >
-              <Settings size={14} />
-              <SavedTabsResponsiveLabel>
-                {t('savedTabs.manageSubcategories')}
-              </SavedTabsResponsiveLabel>
-            </Button>
-          </TooltipTrigger>
-          <SavedTabsResponsiveTooltipContent side='top'>
-            {manageSubcategoriesLabel}
-          </SavedTabsResponsiveTooltipContent>
-        </Tooltip>
+        <CardActionButton
+          icon={Settings}
+          label={t('savedTabs.manageSubcategories')}
+          accessibleLabel={manageSubcategoriesLabel}
+          tooltip={manageSubcategoriesLabel}
+          onClick={handleKeywordToggle}
+        />
 
         {/* すべて開く */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='secondary'
-              size='sm'
-              onClick={handleOpenAllClick}
-              className='flex cursor-pointer items-center gap-1'
-              aria-label={openAllTabsLabel}
-            >
-              <ExternalLink size={14} />
-              <SavedTabsResponsiveLabel>
-                {t('savedTabs.openAll')}
-              </SavedTabsResponsiveLabel>
-            </Button>
-          </TooltipTrigger>
-          <SavedTabsResponsiveTooltipContent side='top'>
-            {openAllTabsLabel}
-          </SavedTabsResponsiveTooltipContent>
-        </Tooltip>
+        <CardActionButton
+          icon={ExternalLink}
+          label={t('savedTabs.openAll')}
+          accessibleLabel={openAllTabsLabel}
+          tooltip={openAllTabsLabel}
+          onClick={handleOpenAllClick}
+        />
 
         {/* グループ削除 */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='secondary'
-              size='sm'
-              onClick={handleDeleteClick}
-              className='flex cursor-pointer items-center gap-1'
-              aria-label={deleteAllTabsLabel}
-            >
-              <Trash size={14} />
-              <SavedTabsResponsiveLabel>
-                {t('savedTabs.deleteAll')}
-              </SavedTabsResponsiveLabel>
-            </Button>
-          </TooltipTrigger>
-          <SavedTabsResponsiveTooltipContent side='top'>
-            {deleteAllTabsLabel}
-          </SavedTabsResponsiveTooltipContent>
-        </Tooltip>
+        <CardActionButton
+          icon={Trash}
+          label={t('savedTabs.deleteAll')}
+          accessibleLabel={deleteAllTabsLabel}
+          tooltip={deleteAllTabsLabel}
+          onClick={handleDeleteClick}
+        />
 
         {/* キーワードモーダル */}
         {keywordModal.showKeywordModal &&

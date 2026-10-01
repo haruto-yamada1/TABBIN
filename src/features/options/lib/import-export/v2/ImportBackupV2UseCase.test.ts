@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { LEGACY_BACKUP_ADVISORY } from '@/features/options/lib/import-export/compatibility/legacyBackupPolicy'
 import { BACKUP_RESOURCE_LIMITS } from '@/lib/persistence/backupResourcePolicy'
 import type { UserSettings } from '@/types/storage'
 
@@ -141,33 +140,21 @@ const countSnapshotEntities = (snapshot: PersistenceLogicalSnapshot) => ({
   urls: snapshot.savedTabs.urls.length,
 })
 
-const createInspection = (
-  formatKind: 'current-v2' | 'legacy' = 'current-v2',
-): BackupV2Inspection => {
+const createInspection = (): BackupV2Inspection => {
   const snapshot = createSnapshot()
   const data = BackupMapper.toBackupData(snapshot, createUserSettings())
   const previewBase = {
     appVersion: '2.0.0',
     entityCounts: countSnapshotEntities(snapshot),
     exportedAt: '2026-07-28T00:00:00.000Z',
-    warnings: [],
   }
 
   return {
     data,
-    preview:
-      formatKind === 'current-v2'
-        ? {
-            ...previewBase,
-            formatKind,
-            schemaVersion: 2,
-          }
-        : {
-            ...previewBase,
-            advisory: LEGACY_BACKUP_ADVISORY,
-            formatKind,
-            schemaVersion: null,
-          },
+    preview: {
+      ...previewBase,
+      schemaVersion: 2,
+    },
   }
 }
 
@@ -265,33 +252,30 @@ const captureImportError = async (
 }
 
 describe('createImportBackupV2UseCase', () => {
-  it.each(['current-v2', 'legacy'] as const)(
-    'imports a normalized %s inspection and verifies readback',
-    async (formatKind) => {
-      const events: string[] = []
-      const deps = createDeps(events)
-      const inspection = createInspection(formatKind)
+  it('imports a normalized current inspection and verifies readback', async () => {
+    const events: string[] = []
+    const deps = createDeps(events)
+    const inspection = createInspection()
 
-      const result = await createImportBackupV2UseCase(deps)(inspection)
+    const result = await createImportBackupV2UseCase(deps)(inspection)
 
-      expect(result).toEqual({
-        entityCounts: inspection.preview.entityCounts,
-        revision: 77,
-      })
-      expect(events).toEqual([
-        'capture',
-        'replace',
-        'write-settings',
-        'read-snapshot',
-        'read-settings',
-      ])
-      expect(deps.replacement.replaceAll).toHaveBeenCalledOnce()
-      expect(deps.replacement.replaceAll).toHaveBeenCalledWith(
-        expect.not.objectContaining({ revision: expect.anything() }),
-      )
-      expect(deps.recovery?.restore).not.toHaveBeenCalled()
-    },
-  )
+    expect(result).toEqual({
+      entityCounts: inspection.preview.entityCounts,
+      revision: 77,
+    })
+    expect(events).toEqual([
+      'capture',
+      'replace',
+      'write-settings',
+      'read-snapshot',
+      'read-settings',
+    ])
+    expect(deps.replacement.replaceAll).toHaveBeenCalledOnce()
+    expect(deps.replacement.replaceAll).toHaveBeenCalledWith(
+      expect.not.objectContaining({ revision: expect.anything() }),
+    )
+    expect(deps.recovery?.restore).not.toHaveBeenCalled()
+  })
 
   it('imports a warning-only Backup V2 snapshot and verifies readback', async () => {
     const events: string[] = []

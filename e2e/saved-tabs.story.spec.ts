@@ -133,11 +133,15 @@ test.describe('saved-tabs stories', () => {
 
     await page.getByPlaceholder('検索').fill('')
 
-    const openedPagePromise = extensionContext.waitForEvent('page')
-    await page
-      .getByRole('button', { exact: true, name: 'Example Home' })
-      .click()
-    const openedPage = await openedPagePromise
+    const savedLink = page.getByRole('link', {
+      exact: true,
+      name: 'Example Home',
+    })
+    await expect(savedLink).toHaveAttribute('href', 'https://example.com/')
+    const [openedPage] = await Promise.all([
+      extensionContext.waitForEvent('page'),
+      savedLink.click(),
+    ])
     await openedPage.waitForLoadState()
 
     expect(openedPage.url()).toBe('https://example.com/')

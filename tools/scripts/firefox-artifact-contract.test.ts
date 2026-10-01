@@ -14,7 +14,7 @@ const createCompliantManifest = (): Record<string, unknown> => ({
   manifest_version: 2,
   name: '__MSG_extensionName__',
   description: '__MSG_extensionDescription__',
-  version: '2.0.16',
+  version: '2.0.17',
   default_locale: 'ja',
   icons: {
     '16': 'icon/16.png',

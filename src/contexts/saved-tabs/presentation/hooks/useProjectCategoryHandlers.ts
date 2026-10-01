@@ -1,8 +1,7 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
-import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 import { toRawStorageCustomProject } from './projectManagementDefaults'
@@ -11,8 +10,6 @@ import type { ProjectManagementRefs } from './useProjectManagementRefs'
 type ProjectCategoryHandlerDeps = {
   refs: ProjectManagementRefs
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
-  setViewMode: Dispatch<SetStateAction<ViewMode>>
-  initialViewMode: ViewMode | undefined
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
 }
 
@@ -97,8 +94,6 @@ const renameProjectCategoryState = (
 const useProjectCategoryHandlers = ({
   refs,
   setCustomProjects,
-  setViewMode,
-  initialViewMode,
   t,
 }: ProjectCategoryHandlerDeps) => {
   const handleAddCategory = useCallback(
@@ -322,62 +317,6 @@ const useProjectCategoryHandlers = ({
     },
     [refs.renameCustomProjectCategoryUseCaseRef, setCustomProjects, t],
   )
-
-  useEffect(() => {
-    let isActive = true
-
-    const loadProjects = async () => {
-      try {
-        console.log(
-          '初回ロード: ビューモードとカスタムプロジェクトを取得します',
-        )
-        const mode = initialViewMode ?? 'domain'
-        setViewMode(mode)
-        console.log(`ビューモード: ${mode}`)
-
-        const [raws, order] = await Promise.all([
-          refs.getCustomProjectRawsQueryRef.current(),
-          refs.getCustomProjectOrderQueryRef.current(),
-        ])
-        const projectsAsCust = raws.map(toRawStorageCustomProject)
-        const orderKeys = [...order]
-        const ordered =
-          orderKeys.length > 0
-            ? [
-                ...orderKeys
-                  .map((id) =>
-                    projectsAsCust.find((project) => project.id === id),
-                  )
-                  .filter(
-                    (project): project is CustomProject =>
-                      project !== undefined,
-                  ),
-                ...projectsAsCust.filter(
-                  (project) => !orderKeys.includes(project.id),
-                ),
-              ]
-            : projectsAsCust
-        console.log(`カスタムプロジェクト数: ${ordered.length}`)
-
-        if (isActive) {
-          setCustomProjects(ordered)
-        }
-        console.log('初回ロード完了')
-      } catch (error) {
-        console.error('ビューモードの読み込みエラー:', error)
-      }
-    }
-    void loadProjects()
-    return () => {
-      isActive = false
-    }
-  }, [
-    initialViewMode,
-    refs.getCustomProjectOrderQueryRef,
-    refs.getCustomProjectRawsQueryRef,
-    setCustomProjects,
-    setViewMode,
-  ])
 
   return {
     handleAddCategory,

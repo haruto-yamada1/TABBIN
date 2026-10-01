@@ -11,7 +11,7 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, assert, describe, expect, it, vi } from 'vitest'
 
 import {
   buildDeploymentCommands,
@@ -88,7 +88,9 @@ describe('buildDeploymentCommands', () => {
       },
     ])
 
-    expect(buildDeploymentCommands(false)[0].args).not.toContain('--frozen')
+    const firstCommand = buildDeploymentCommands(false)[0]
+    assert.isDefined(firstCommand)
+    expect(firstCommand.args).not.toContain('--frozen')
   })
 })
 
@@ -643,6 +645,7 @@ describe('syncAgentConfig', () => {
       command: 'apm',
       cwd: projectRoot,
     })
+    assert.isDefined(calls[1])
     expect(calls[1].args).toContain('--dry-run')
     expect(calls[1].args).toContain('--frozen')
     expect(calls[1].args).not.toContain('--target')
@@ -702,6 +705,8 @@ describe('syncAgentConfig', () => {
     const result = syncAgentConfig({ projectRoot, runner })
 
     expect(calls).toHaveLength(11)
+    assert.isDefined(calls[2])
+    assert.isDefined(calls[8])
     expect(calls[2].args).toContain('--frozen')
     expect(calls[8].args).toContain('--frozen')
     expect(calls[10]).toEqual({

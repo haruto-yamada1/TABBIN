@@ -286,12 +286,19 @@ describe('IndexedDbPersistenceMigrationTarget', () => {
         urls: [{ id: 'url-1' }],
       },
     })
+    await expectTargetErrorCode(
+      target.readVerifiedSnapshot('migration-1'),
+      'MIGRATION_TARGET_STATE_INVALID',
+    )
 
     await target.markVerified('migration-1')
     await target.markVerified('migration-1')
     await expect(target.readSnapshot('migration-1')).resolves.toStrictEqual(
       written,
     )
+    await expect(
+      target.readVerifiedSnapshot('migration-1'),
+    ).resolves.toStrictEqual(written)
     await expectTargetErrorCode(
       target.writeBatch('migration-1', { urls: { put: [createUrl('late')] } }),
       'MIGRATION_TARGET_STATE_INVALID',
@@ -344,6 +351,10 @@ describe('IndexedDbPersistenceMigrationTarget', () => {
       )
       await expectTargetErrorCode(
         target.readSnapshot(migrationId),
+        'MIGRATION_ID_INVALID',
+      )
+      await expectTargetErrorCode(
+        target.readVerifiedSnapshot(migrationId),
         'MIGRATION_ID_INVALID',
       )
       await expectTargetErrorCode(

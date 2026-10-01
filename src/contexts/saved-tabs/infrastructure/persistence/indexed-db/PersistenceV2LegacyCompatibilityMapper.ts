@@ -252,15 +252,13 @@ export const projectPersistenceV2ToLegacyCompatibilityStorage = (
     savedTabs: domainCollections.map((collection) =>
       projectDomainCollection(snapshot, collection),
     ),
-    urls: snapshot.urls.map(
-      (url): UrlRecord => ({
-        ...(url.favIconUrl ? { favIconUrl: url.favIconUrl } : {}),
-        id: url.id,
-        savedAt: url.firstSavedAt,
-        title: url.title,
-        url: url.url,
-      }),
-    ),
+    urls: snapshot.urls.map((url): UrlRecord => ({
+      ...(url.favIconUrl ? { favIconUrl: url.favIconUrl } : {}),
+      id: url.id,
+      savedAt: url.firstSavedAt,
+      title: url.title,
+      url: url.url,
+    })),
   }
 }
 
@@ -454,9 +452,10 @@ export const mergeLegacyCompatibilityStorageRecord = (
 ): PersistenceV2Snapshot => {
   const projectIds = record.customProjects.map(({ id }) => id)
   const knownProjectIds = new Set(projectIds)
+  const orderedProjectIds = new Set(record.customProjectOrder)
   const normalizedProjectOrder = [
     ...record.customProjectOrder.filter((id) => knownProjectIds.has(id)),
-    ...projectIds.filter((id) => !record.customProjectOrder.includes(id)),
+    ...projectIds.filter((id) => !orderedProjectIds.has(id)),
   ]
   const analysis = mapLegacyStorageToPersistenceV2(
     toRawSnapshot({

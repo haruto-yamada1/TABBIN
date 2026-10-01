@@ -53,22 +53,18 @@ const backupFuture = parseFixture('backup-future.json')
 const backupInvalid = parseFixture('backup-invalid.json')
 
 const createTestPipeline = () => {
-  const migrateV2ToV3 = vi.fn(
-    (input: BackupV2): BackupV3 => ({
-      appVersion: input.appVersion,
-      data: { collection: { name: input.data.name } },
-      exportedAt: input.exportedAt,
-      schemaVersion: 3,
-    }),
-  )
-  const migrateV3ToV4 = vi.fn(
-    (input: BackupV3): BackupV4 => ({
-      appVersion: input.appVersion,
-      data: { collections: [input.data.collection] },
-      exportedAt: input.exportedAt,
-      schemaVersion: 4,
-    }),
-  )
+  const migrateV2ToV3 = vi.fn((input: BackupV2): BackupV3 => ({
+    appVersion: input.appVersion,
+    data: { collection: { name: input.data.name } },
+    exportedAt: input.exportedAt,
+    schemaVersion: 3,
+  }))
+  const migrateV3ToV4 = vi.fn((input: BackupV3): BackupV4 => ({
+    appVersion: input.appVersion,
+    data: { collections: [input.data.collection] },
+    exportedAt: input.exportedAt,
+    schemaVersion: 4,
+  }))
   const v2ToV3 = defineBackupMigrationStep({
     fromVersion: 2,
     inputSchema: backupV2Schema,
@@ -474,11 +470,13 @@ describe('createBackupMigrationPipeline', () => {
     })
   })
 
-  it('returns the dedicated legacy classification without migration', () => {
+  it('rejects schema-less legacy input without migration', () => {
     const { migrateV2ToV3, migrateV3ToV4, pipeline } = createTestPipeline()
 
-    expect(pipeline.migrateToCurrent({ version: '2.0.0' })).toEqual({
-      kind: 'legacy',
+    expect(
+      captureSchemaError(() => pipeline.migrateToCurrent({ version: '2.0.0' })),
+    ).toMatchObject({
+      code: 'UNSUPPORTED_LEGACY_BACKUP',
     })
     expect(migrateV2ToV3).not.toHaveBeenCalled()
     expect(migrateV3ToV4).not.toHaveBeenCalled()

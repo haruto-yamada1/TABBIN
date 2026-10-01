@@ -542,6 +542,9 @@ const mergeMembershipMetadata = (
     return false
   }
   const membership = state.memberships[index]
+  if (!membership) {
+    throw new Error('Indexed membership was not found')
+  }
   if (
     (membership.categoryId &&
       input.categoryId &&
@@ -1180,13 +1183,14 @@ const createDuplicateDomainMergePlans = (
   }
   const plans = new Map<string, DuplicateDomainMergePlan>()
   for (const [domain, matches] of entriesByDomain) {
+    const canonical = matches[0]
     if (
+      !canonical ||
       matches.length < 2 ||
       !canMergeDuplicateDomainEntries(matches, relations)
     ) {
       continue
     }
-    const canonical = matches[0]
     plans.set(domain, {
       collectionId: canonical.input.collectionId,
       collectionIndex: canonical.collectionIndex,

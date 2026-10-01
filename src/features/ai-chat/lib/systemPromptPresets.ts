@@ -167,9 +167,19 @@ const normalizeAiSystemPromptSettings = (
 }
 
 const getActiveAiSystemPrompt = (
-  settings: Pick<UserSettings, 'activeAiSystemPromptId' | 'aiSystemPrompts'>,
+  settings: Pick<
+    UserSettings,
+    'activeAiSystemPromptId' | 'aiSystemPrompts' | 'language'
+  >,
 ): AiSystemPromptPreset => {
-  const aiSystemPrompts = normalizePromptPresets(settings.aiSystemPrompts)
+  const language = resolveLanguage(
+    settings.language ?? 'system',
+    getCurrentUiLocale(),
+  )
+  const aiSystemPrompts = normalizePromptPresets(
+    settings.aiSystemPrompts,
+    language,
+  )
   return (
     aiSystemPrompts.find(
       (prompt) => prompt.id === settings.activeAiSystemPromptId,

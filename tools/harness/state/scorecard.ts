@@ -23,7 +23,7 @@ function surfaceAuditCategoryNames() {
     'Source-of-truth Sync',
     'Cost Efficiency',
     'GitHub Integration',
-  ]
+  ] as const
 }
 
 function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
@@ -40,7 +40,10 @@ function buildSurfaceAuditCategories(projectRoot: string): ScorecardRecord[] {
   const agentsMdTokens = existsSync(agentsMdPath)
     ? Math.ceil(readFileSync(agentsMdPath, 'utf8').length / 4)
     : 0
-  const checks: Record<string, { evidence: string; ok: boolean }> = {
+  const checks: Record<
+    ReturnType<typeof surfaceAuditCategoryNames>[number],
+    { evidence: string; ok: boolean }
+  > = {
     'Tool Coverage': {
       ok:
         existsSync(path.join(projectRoot, '.apm/skills/harness-planner')) &&
@@ -226,14 +229,14 @@ type ParsedSkillFrontmatter = {
 
 const parseSkillFrontmatter = (content: string): ParsedSkillFrontmatter => {
   const match = /^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)/.exec(content)
-  if (!match) {
+  const block = match?.[1]
+  if (block === undefined) {
     return { disableModelInvocation: false, frontmatterValid: false }
   }
-  const block = match[1]
   const fields = new Map<string, string>()
   for (const line of block.split('\n')) {
     const kv = /^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/.exec(line)
-    if (kv) {
+    if (kv?.[1] !== undefined && kv[2] !== undefined) {
       fields.set(kv[1], kv[2].trim())
     }
   }
@@ -272,7 +275,7 @@ const collectSkillScriptReferenceFindings = (projectRoot: string): string[] => {
     const content = readFileSync(absolute, 'utf8')
     for (const match of content.matchAll(/bun run ([a-z0-9][a-z0-9:._-]*)/g)) {
       const script = match[1]
-      if (!scripts.has(script)) {
+      if (script !== undefined && !scripts.has(script)) {
         findings.push(
           `${path.relative(projectRoot, absolute)}: 参照する package script \`bun run ${script}\` が package.json にありません。`,
         )

@@ -8,6 +8,8 @@ import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/applicat
 import type { RemoveDomainFromParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveDomainFromParentCategoryUseCase'
 import type { RenameParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameParentCategoryUseCase'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import { SavedTabsScrollControls } from '@/contexts/saved-tabs/presentation/components/SavedTabsScrollControls'
+import { getRelativeScrollTarget } from '@/contexts/saved-tabs/presentation/lib/scroll-controls'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
@@ -33,6 +35,9 @@ vi.mock('@dnd-kit/sortable', () => ({
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
@@ -192,6 +197,7 @@ const uncategorizedGroups: TabGroup[] = [
 describe('DomainModeContainer', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
     vi.clearAllMocks()
     domainModeI18nState.language = 'ja'
   })
@@ -221,6 +227,93 @@ describe('DomainModeContainer', () => {
 
     expect(screen.getByRole('status')).toBeTruthy()
     expect(screen.queryByText('No saved tabs')).toBeNull()
+  })
+
+  it('未分類の途中から上の親カテゴリへ移動すると先頭へ戻り、再クリックで前の親カテゴリへ進む', async () => {
+    const user = userEvent.setup()
+    const scrollContainer = document.createElement('div')
+    let scrollTop = 1500
+    const scrollTo = vi.fn(({ top }: ScrollToOptions) => {
+      scrollTop = top ?? scrollTop
+    })
+    Object.defineProperties(scrollContainer, {
+      scrollHeight: { value: 3000 },
+      clientHeight: { value: 600 },
+      scrollTop: { get: () => scrollTop },
+      scrollTo: { value: scrollTo },
+    })
+    scrollContainer.getBoundingClientRect = () => ({ top: 0 }) as DOMRect
+    document.body.append(scrollContainer)
+    render(
+      <>
+        <section
+          aria-label='Previous parent'
+          data-saved-tabs-scroll-target='parent'
+        />
+        <DomainModeContainer
+          {...createProps()}
+          state={{
+            ...createProps().state,
+            hasVisibleCategoryGroups: true,
+            shouldShowUncategorizedList: true,
+            shouldShowUncategorizedSectionHeader: true,
+          }}
+          uncategorizedForDisplay={uncategorizedGroups}
+          hasContentTabGroupsCount={uncategorizedGroups.length}
+        />
+      </>,
+      { container: scrollContainer },
+    )
+    const header = screen.getByTestId('uncategorized-section-header')
+    const previousParent = screen.getByRole('region', {
+      name: 'Previous parent',
+    })
+    // jsdom has no layout: model the real sticky header separately from the
+    // section's normal-flow position, 800px below the first parent category.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: 800 - scrollTop }) as DOMRect,
+    )
+    previousParent.getBoundingClientRect = () =>
+      ({ top: -scrollTop }) as DOMRect
+    header.getBoundingClientRect = () =>
+      ({ top: Math.max(0, 800 - scrollTop) }) as DOMRect
+    render(
+      <SavedTabsScrollControls
+        scrollContainerRef={{ current: scrollContainer }}
+        viewMode='domain'
+      />,
+    )
+    const previous = screen.getByRole('button', {
+      name: '上の親カテゴリへ移動',
+    })
+
+    await user.click(previous)
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      behavior: 'smooth',
+      top: 704,
+    })
+    await user.click(previous)
+    expect(scrollTo).toHaveBeenLastCalledWith({ behavior: 'smooth', top: 0 })
+    expect(previous).toBeDisabled()
+
+    await user.click(
+      screen.getByRole('button', { name: '下の親カテゴリへ移動' }),
+    )
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      behavior: 'smooth',
+      top: 704,
+    })
+    expect(header).toHaveClass('sticky', 'top-0')
+  })
+
+  it('未分類ヘッダーが非表示なら親カテゴリの移動先を作らない', () => {
+    const { container } = render(<DomainModeContainer {...createProps()} />)
+    container.getBoundingClientRect = () => ({ top: 0 }) as DOMRect
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 300,
+    } as DOMRect)
+
+    expect(getRelativeScrollTarget(container, 'parent', 'next')).toBeNull()
   })
 
   it('未分類ヘッダーに表示中のタブ数とドメイン数を表示する', () => {

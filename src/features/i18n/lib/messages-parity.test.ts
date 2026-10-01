@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { assert, describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { getMessages } from '@/features/i18n/messages'
 
@@ -8,10 +8,10 @@ import { getMessages } from '@/features/i18n/messages'
  */
 
 const extractTokens = (message: string): string[] =>
-  Array.from(
-    message.matchAll(/\{\{(\w+)\}\}/g),
-    ([, token]) => token,
-  ).toSorted()
+  Array.from(message.matchAll(/\{\{(\w+)\}\}/g), ([, token]) => {
+    assert.isDefined(token)
+    return token
+  }).toSorted((left, right) => left.localeCompare(right))
 
 // 意図的に片方にのみ存在させる key がある場合はここに記録する
 const ALLOWED_MISSING_IN_JA = new Set<string>()
@@ -92,5 +92,34 @@ describe('i18n message parity', () => {
     }
 
     expect(mismatches).toEqual([])
+  })
+
+  it('cutoff後のbackup copyをja/enで保持し期限前keyを残さない', () => {
+    const en = getMessages('en') as Record<string, string>
+    const ja = getMessages('ja') as Record<string, string>
+
+    expect(en['options.importExport.compatibilityWarning']).toBe(
+      'Only the current backup format can be imported.',
+    )
+    expect(en['options.importExport.compatibilityAction']).toBe(
+      'Backups created with older versions are not supported.',
+    )
+    expect(ja['options.importExport.compatibilityWarning']).toBe(
+      '現在のバックアップ形式のみインポートできます。',
+    )
+    expect(ja['options.importExport.compatibilityAction']).toBe(
+      '旧形式のバックアップはサポートされていません。',
+    )
+
+    for (const messages of [en, ja]) {
+      const keys = Object.keys(messages)
+      expect(keys.some((key) => key.includes('legacyPreview'))).toBe(false)
+      expect(
+        keys.some((key) => key.startsWith('options.importExport.merge')),
+      ).toBe(false)
+      expect(messages).not.toHaveProperty('persistenceMigrationNotice.message')
+      expect(JSON.stringify(messages)).not.toContain('2026-09-30')
+      expect(JSON.stringify(messages)).not.toContain('2026-10-01')
+    }
   })
 })

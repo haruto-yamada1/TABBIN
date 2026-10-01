@@ -22,8 +22,12 @@ const warnedContexts = new Set<string>()
 const isChromeApi = (value: unknown): value is typeof chrome =>
   isObjectLike(value) && isObjectLike(Reflect.get(value, 'storage'))
 
-const getChromeApi = (): typeof chrome | undefined =>
-  getChromeGlobal(isChromeApi)
+const getChromeApi = (): typeof chrome | undefined => {
+  // Firefox's chrome namespace is callback-only; its browser namespace keeps
+  // the Promise contract used by storage consumers and preserves rejections.
+  const browserValue: unknown = Reflect.get(globalThis, 'browser')
+  return isChromeApi(browserValue) ? browserValue : getChromeGlobal(isChromeApi)
+}
 
 export const getChromeStorage = (): ChromeStorageApi | null =>
   getChromeApi()?.storage ?? null

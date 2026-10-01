@@ -272,11 +272,14 @@ const UncategorizedDomainSection = ({
   )
 
   return (
-    <>
+    <div
+      data-saved-tabs-scroll-target={
+        shouldShowSectionHeader ? 'parent' : undefined
+      }
+    >
       {shouldShowSectionHeader && (
         <div
           className={`sticky top-0 z-50 flex items-center justify-between bg-card ${hasVisibleCategoryGroups ? 'mt-6' : 'mt-2'}`}
-          data-saved-tabs-scroll-target='parent'
           data-testid='uncategorized-section-header'
         >
           <div className='flex min-w-0 items-center gap-3'>
@@ -413,7 +416,7 @@ const UncategorizedDomainSection = ({
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
 
@@ -467,17 +470,14 @@ export const DomainModeContainer = ({
     [categories],
   )
   const handleMoveDomainToCategoryWithTabGroups = useCallback(
-    async (
-      domainId: string,
-      fromCategoryId: string | null,
-      toCategoryId: string,
-    ) =>
-      handleMoveDomainToCategory(
+    (domainId: string, fromCategoryId: string | null, toCategoryId: string) => {
+      void handleMoveDomainToCategory(
         domainId,
         fromCategoryId,
         toCategoryId,
         tabGroups,
-      ),
+      )
+    },
     [handleMoveDomainToCategory, tabGroups],
   )
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
@@ -582,7 +582,6 @@ export const DomainModeContainer = ({
                     handleUpdateUrls={handleUpdateUrls}
                     // eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateDomainsOrder={handleUpdateDomainsOrder}
-                    // eslint-disable-next-line typescript/no-misused-promises
                     handleMoveDomainToCategory={
                       handleMoveDomainToCategoryWithTabGroups
                     }

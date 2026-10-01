@@ -23,6 +23,22 @@ const normalizeUrlCandidate = (
   return normalizedUrl.length > 0 ? normalizedUrl : null
 }
 
+const NAVIGABLE_PROTOCOLS = new Set(['http:', 'https:'])
+
+const toSafeSavedUrlHref = (url: string | null | undefined): string | null => {
+  const normalizedUrl = normalizeUrlCandidate(url)
+  if (!normalizedUrl) {
+    return null
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedUrl)
+    return NAVIGABLE_PROTOCOLS.has(parsedUrl.protocol) ? parsedUrl.href : null
+  } catch {
+    return null
+  }
+}
+
 const isValidUrl = (url: string | null | undefined): boolean => {
   const normalizedUrl = normalizeUrlCandidate(url)
   if (!normalizedUrl) {
@@ -86,4 +102,5 @@ export {
   isUrlExcludedByPatterns,
   isValidUrl,
   normalizeUrlCandidate,
+  toSafeSavedUrlHref,
 }

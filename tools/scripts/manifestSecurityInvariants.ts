@@ -36,6 +36,9 @@ const parseCspDirectives = (
     .filter((section) => section !== '')
   for (const section of sections) {
     const [directive, ...values] = section.split(/\s+/u)
+    if (directive === undefined) {
+      throw new Error(`${label} content_security_policy has no directive`)
+    }
     if (directives.has(directive)) {
       throw new Error(
         `${label} content_security_policy contains duplicate directive ${directive}`,

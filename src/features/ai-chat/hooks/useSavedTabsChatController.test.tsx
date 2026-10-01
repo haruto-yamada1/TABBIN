@@ -186,8 +186,9 @@ describe('useSavedTabsChatController', () => {
     let handlePortMessage: ((message: unknown) => void) | undefined
     const port = {
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener: (message: unknown) => void) => {
           handlePortMessage = listener
         }),
@@ -231,11 +232,13 @@ describe('useSavedTabsChatController', () => {
     const port = {
       disconnect: vi.fn(() => handleDisconnect?.()),
       onDisconnect: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener: () => void) => {
           handleDisconnect = listener
         }),
       },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener: (message: unknown) => void) => {
           handlePortMessage = listener
         }),
@@ -272,8 +275,9 @@ describe('useSavedTabsChatController', () => {
     let handlePortMessage: ((message: unknown) => void) | undefined
     const port = {
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
       onMessage: {
+        removeListener: vi.fn(),
         addListener: vi.fn((listener: (message: unknown) => void) => {
           handlePortMessage = listener
         }),
@@ -337,8 +341,8 @@ describe('useSavedTabsChatController', () => {
     )
     const port = {
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn() },
-      onMessage: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
       postMessage: vi.fn(),
     }
     const { result } = renderHook(() => useSavedTabsChatController())
@@ -369,8 +373,8 @@ describe('useSavedTabsChatController', () => {
     )
     const port = {
       disconnect: vi.fn(),
-      onDisconnect: { addListener: vi.fn() },
-      onMessage: { addListener: vi.fn() },
+      onDisconnect: { addListener: vi.fn(), removeListener: vi.fn() },
+      onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
       postMessage: vi.fn(),
     }
     const { result, unmount } = renderHook(() =>

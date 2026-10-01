@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 
 import type { PersistenceV2CollectionMembership } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
@@ -61,7 +61,9 @@ describe('TabGroup entity', () => {
       ...baseInput,
       memberships: [{ urlId: 'url-1' }],
     })
-    const membership = { ...seed.memberships[0] }
+    const [seedMembership] = seed.memberships
+    assert.isDefined(seedMembership)
+    const membership = { ...seedMembership }
     Reflect.set(membership, 'addedAtProvenance', undefined)
     Reflect.set(membership, 'categoryId', undefined)
     Reflect.set(membership, 'notes', undefined)
@@ -72,9 +74,11 @@ describe('TabGroup entity', () => {
       memberships: [membership],
     })
 
+    const [normalizedMembership] = group.memberships
+    assert.isDefined(normalizedMembership)
     expect(
       ['addedAtProvenance', 'categoryId', 'notes'].map((property) =>
-        Object.hasOwn(group.memberships[0], property),
+        Object.hasOwn(normalizedMembership, property),
       ),
     ).toStrictEqual([false, false, false])
   })

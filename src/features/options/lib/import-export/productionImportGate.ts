@@ -1,125 +1,101 @@
-import {
-  BackupSchemaError,
-  detectBackupFormat,
-} from '@/lib/persistence/backupSchema'
+import { BackupSchemaError } from '@/lib/persistence/backupSchema'
 
-import { isLegacyBackupImportSupported } from './compatibility/legacyBackupPolicy'
-import type { LegacyBackupMergeInput } from './legacy/ImportLegacyBackupMergeUseCase'
-import { LegacyBackupImportError } from './legacy/LegacyBackupAdapter'
-import { LegacyBackupV0Schema } from './legacy/LegacyBackupV0Schema'
 import { inspectBackupV2 } from './v2/BackupV2Inspector'
 import type { BackupV2Inspection } from './v2/BackupV2Inspector'
 
-export type ProductionBackupImportErrorCode = 'CURRENT_V2_MERGE_UNAVAILABLE'
+export const PRODUCTION_BACKUP_IMPORT_ERROR_CODES = [
+  'UNSUPPORTED_LEGACY_BACKUP',
+  'UNSUPPORTED_FUTURE_SCHEMA',
+  'INVALID_BACKUP',
+] as const
+
+export type ProductionBackupImportErrorCode =
+  (typeof PRODUCTION_BACKUP_IMPORT_ERROR_CODES)[number]
+
+const PRODUCTION_BACKUP_IMPORT_ERROR_MESSAGES: Readonly<
+  Record<ProductionBackupImportErrorCode, string>
+> = {
+  INVALID_BACKUP: 'Backup is invalid',
+  UNSUPPORTED_FUTURE_SCHEMA: 'Backup schema is newer than supported',
+  UNSUPPORTED_LEGACY_BACKUP: 'Legacy backup format is unsupported',
+}
 
 export class ProductionBackupImportError extends Error {
   readonly code: ProductionBackupImportErrorCode
+  readonly currentVersion: number | undefined
+  readonly receivedVersion: number | undefined
 
-  constructor(code: ProductionBackupImportErrorCode) {
-    super('Current Backup V2 merge import is unavailable')
+  constructor(
+    code: ProductionBackupImportErrorCode,
+    versions: {
+      readonly currentVersion?: number | undefined
+      readonly receivedVersion?: number | undefined
+    } = {},
+  ) {
+    super(PRODUCTION_BACKUP_IMPORT_ERROR_MESSAGES[code])
     this.name = 'ProductionBackupImportError'
     this.code = code
+    this.currentVersion = versions.currentVersion
+    this.receivedVersion = versions.receivedVersion
   }
 }
 
-export type ProductionImportGateOptions = {
-  readonly importDate: string
-  readonly importMode: 'merge' | 'overwrite'
+export type ProductionImportGateResult = {
+  readonly inspection: BackupV2Inspection
+  readonly kind: 'v2-overwrite'
 }
 
-export type ProductionImportGateResult =
-  | ({ readonly kind: 'legacy-merge' } & LegacyBackupMergeInput)
-  | {
-      readonly inspection: BackupV2Inspection
-      readonly kind: 'v2-overwrite'
-    }
-  | undefined
-
-type JsonParseResult =
-  | { readonly success: false }
-  | { readonly data: unknown; readonly success: true }
-
-const parseJson = (input: string): JsonParseResult => {
+const parseJson = (input: string): unknown => {
   try {
     const parsed: unknown = JSON.parse(input)
-    return { data: parsed, success: true }
+    return parsed
   } catch {
-    return { success: false }
+    throw new ProductionBackupImportError('INVALID_BACKUP')
   }
 }
 
-const isLegacyInspection = (
-  inspection: BackupV2Inspection,
-): inspection is LegacyBackupMergeInput['inspection'] =>
-  inspection.preview.formatKind === 'legacy'
+const normalizeSchemaError = (
+  error: BackupSchemaError,
+): ProductionBackupImportError => {
+  const versions = {
+    currentVersion: error.currentVersion,
+    receivedVersion: error.receivedVersion,
+  }
 
-const textEncoder = new TextEncoder()
+  if (error.code === 'UNSUPPORTED_LEGACY_BACKUP') {
+    return new ProductionBackupImportError(
+      'UNSUPPORTED_LEGACY_BACKUP',
+      versions,
+    )
+  }
+  if (error.code === 'UNSUPPORTED_FUTURE_SCHEMA') {
+    return new ProductionBackupImportError(
+      'UNSUPPORTED_FUTURE_SCHEMA',
+      versions,
+    )
+  }
+  return new ProductionBackupImportError('INVALID_BACKUP', versions)
+}
 
 /**
- * Fail-closed production boundary for backup import.
+ * Fail-closed production boundary for current Backup V2 import.
  *
- * Current V2 and schema-less backups are strictly validated before entering
- * either the recovery-backed overwrite flow or the temporary legacy merge
- * flow. Invalid JSON is left to the existing parser so its user-facing
- * behavior does not change.
+ * Legacy and malformed input is classified before the recovery-backed
+ * overwrite flow receives an inspection. Error diagnostics never include the
+ * imported payload.
  */
 export function assertProductionImportAllowed(
   input: string,
-  options: ProductionImportGateOptions,
-): ProductionImportGateResult
-export function assertProductionImportAllowed(
-  input: string,
-  options?: ProductionImportGateOptions,
 ): ProductionImportGateResult {
-  const importDate = options?.importDate
-  if (typeof importDate !== 'string') {
-    throw new TypeError('Import date is required')
-  }
-  const importMode = options?.importMode
-  if (importMode !== 'merge' && importMode !== 'overwrite') {
-    throw new TypeError('Import mode is required')
-  }
-  const isLegacySupported = isLegacyBackupImportSupported(importDate)
-  const parseResult = parseJson(input)
-  if (!parseResult.success) {
-    return undefined
-  }
-
-  const format = detectBackupFormat(parseResult.data)
-  if (format.kind === 'legacy') {
-    if (!isLegacySupported) {
-      throw new LegacyBackupImportError('LEGACY_IMPORT_CUTOFF_REACHED')
-    }
-    const legacyResult = LegacyBackupV0Schema.safeParse(parseResult.data)
-    if (!legacyResult.success) {
-      throw new BackupSchemaError('INVALID_SCHEMA')
-    }
-    const inspection = inspectBackupV2(parseResult.data, { importDate })
-    if (!isLegacyInspection(inspection)) {
-      throw new BackupSchemaError('INVALID_SCHEMA')
-    }
-    if (importMode === 'overwrite') {
-      return {
-        inspection,
-        kind: 'v2-overwrite',
-      }
-    }
+  try {
     return {
-      inspection,
-      kind: 'legacy-merge',
-      serializedBytes: textEncoder.encode(input).byteLength,
-      userSettingsPatch: legacyResult.data.userSettings,
+      inspection: inspectBackupV2(parseJson(input)),
+      kind: 'v2-overwrite',
     }
-  }
-
-  const inspection = inspectBackupV2(parseResult.data, {
-    importDate,
-  })
-  if (importMode === 'merge') {
-    throw new ProductionBackupImportError('CURRENT_V2_MERGE_UNAVAILABLE')
-  }
-  return {
-    inspection,
-    kind: 'v2-overwrite',
+  } catch (error) {
+    if (error instanceof BackupSchemaError) {
+      throw normalizeSchemaError(error)
+    }
+    throw error
   }
 }

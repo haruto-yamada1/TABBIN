@@ -30,9 +30,11 @@ describe('Backup schema versioning architecture contract', () => {
       '`appVersion`',
       '`schemaVersion`',
       '`databaseVersion`',
+      '`UNSUPPORTED_LEGACY_BACKUP`',
       '`UNSUPPORTED_FUTURE_SCHEMA`',
       '`UNSUPPORTED_SCHEMA_VERSION`',
       '`INVALID_SCHEMA`',
+      '`INVALID_BACKUP`',
     ]) {
       expect(versioningDocument).toContain(contract)
     }
@@ -50,12 +52,18 @@ describe('Backup schema versioning architecture contract', () => {
     }
   })
 
-  it('keeps legacy compatibility in the temporary owning issues', () => {
+  it('documents the completed legacy backup cutoff', () => {
     const versioningDocument = readVersioningDocument()
 
-    for (const contract of ['2026-09-30', '#730', '#734']) {
+    for (const contract of [
+      'current Backup V2 only',
+      '`UNSUPPORTED_LEGACY_BACKUP`',
+      'live installed-data',
+    ]) {
       expect(versioningDocument).toContain(contract)
     }
+    expect(versioningDocument).not.toContain('2026-09-30')
+    expect(versioningDocument).not.toContain('2026-10-01')
   })
 
   it('links the detailed policy from Persistence Model v2', () => {

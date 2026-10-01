@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
 import { toast } from 'sonner'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { useSettings } from './useSettings'
 
@@ -396,7 +396,9 @@ describe('useSettings の追加分岐', () => {
     const before = result.current.settings
 
     act(() => {
-      listeners[0](
+      const listener = listeners[0]
+      assert.isDefined(listener)
+      listener(
         {
           userSettings: {
             oldValue: defaultSettings,
@@ -422,7 +424,9 @@ describe('useSettings の追加分岐', () => {
     const before = result.current.settings
 
     act(() => {
-      listeners[0](
+      const listener = listeners[0]
+      assert.isDefined(listener)
+      listener(
         {
           unrelatedKey: {
             oldValue: false,

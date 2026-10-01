@@ -188,7 +188,11 @@ const attachResultToInvocation = (
   if (toolCallId && callIdToIndex.has(toolCallId)) {
     const idx = callIdToIndex.get(toolCallId)
     if (idx !== undefined) {
-      invocations[idx] = { ...invocations[idx], result }
+      const invocation = invocations[idx]
+      if (invocation === undefined) {
+        throw new Error(`Unknown invocation index for tool call: ${toolCallId}`)
+      }
+      invocations[idx] = { ...invocation, result }
       return
     }
     return

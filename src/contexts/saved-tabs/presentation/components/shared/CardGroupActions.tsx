@@ -1,24 +1,10 @@
 import { ExternalLink, Settings, Trash } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import {
-  SavedTabsResponsiveLabel,
-  SavedTabsResponsiveTooltipContent,
-} from './SavedTabsResponsive'
+import { ActionConfirmDialog } from './ActionConfirmDialog'
+import { CardActionButton } from './CardActionButton'
 
 type CardGroupActionsProps = {
   onOpenAll?: () => void
@@ -41,203 +27,134 @@ type CardGroupActionsProps = {
   deleteAllConfirmDescription?: string
 }
 
-/**
- * 汎用的なカードグループ操作ボタン群
- * すべて開く、すべて削除、管理（オプション）を含む
- */
-// eslint-disable-next-line eslint/complexity
-export const CardGroupActions = ({
-  onOpenAll,
-  onDeleteAll,
+const ManageAction = ({
   onManage,
-  onConfirmOpenAll = false,
-  onConfirmDeleteAll = false,
-  openAllThreshold = 10,
-  openAllCount,
-  itemName,
-  warningMessage,
   manageLabel,
   manageAriaLabel,
   manageTooltip,
+}: CardGroupActionsProps & { onManage: () => void }) => {
+  const { t } = useI18n()
+  const label = manageLabel ?? t('common.manage')
+
+  return (
+    <CardActionButton
+      icon={Settings}
+      label={label}
+      accessibleLabel={manageAriaLabel ?? label}
+      tooltip={manageTooltip ?? label}
+      onClick={onManage}
+    />
+  )
+}
+
+const OpenAllAction = ({
+  onOpenAll,
+  onConfirmOpenAll = false,
+  openAllThreshold = 10,
+  openAllCount,
   openAllAriaLabel,
   openAllTooltip,
   openAllConfirmDescription,
-  deleteAllAriaLabel,
-  deleteAllTooltip,
-  deleteAllConfirmDescription,
-}: CardGroupActionsProps) => {
+}: CardGroupActionsProps & { onOpenAll: () => void }) => {
   const { t } = useI18n()
-  const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
-  const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false)
-  const resolvedManageLabel = manageLabel ?? t('common.manage')
-  const resolvedItemName = itemName ?? t('savedTabs.openAllTabs')
-  const resolvedWarningMessage =
-    warningMessage ?? t('savedTabs.deleteAllDefaultWarning')
-  const resolvedManageAriaLabel = manageAriaLabel ?? resolvedManageLabel
-  const resolvedManageTooltip = manageTooltip ?? resolvedManageLabel
-  const resolvedOpenAllAriaLabel =
-    openAllAriaLabel ?? t('savedTabs.openAllTabs')
-  const resolvedOpenAllTooltip = openAllTooltip ?? t('savedTabs.openAllTabs')
-  const resolvedOpenAllConfirmDescription =
-    openAllConfirmDescription ??
-    t('savedTabs.openAllConfirmDescription', undefined, {
-      count: String(openAllCount ?? openAllThreshold),
-    })
-  const resolvedDeleteAllAriaLabel =
-    deleteAllAriaLabel ?? t('savedTabs.deleteAll')
-  const resolvedDeleteAllTooltip = deleteAllTooltip ?? t('savedTabs.deleteAll')
-  const resolvedDeleteAllConfirmDescription =
-    deleteAllConfirmDescription ?? resolvedWarningMessage
-
-  const handleOpenAllClick = useCallback(() => {
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const handleClick = useCallback(() => {
     if (onConfirmOpenAll) {
-      setIsOpenAllConfirmOpen(true)
+      setIsConfirmOpen(true)
     } else {
-      onOpenAll?.()
+      onOpenAll()
     }
   }, [onConfirmOpenAll, onOpenAll])
 
-  const handleDeleteAllClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      e.preventDefault()
+  return (
+    <>
+      <CardActionButton
+        icon={ExternalLink}
+        label={t('savedTabs.openAll')}
+        accessibleLabel={openAllAriaLabel ?? t('savedTabs.openAllTabs')}
+        tooltip={openAllTooltip ?? t('savedTabs.openAllTabs')}
+        onClick={handleClick}
+      />
+      <ActionConfirmDialog
+        open={isConfirmOpen}
+        onOpenChange={setIsConfirmOpen}
+        title={t('savedTabs.openAllConfirmTitle')}
+        description={
+          openAllConfirmDescription ??
+          t('savedTabs.openAllConfirmDescription', undefined, {
+            count: String(openAllCount ?? openAllThreshold),
+          })
+        }
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.open')}
+        onConfirm={onOpenAll}
+      />
+    </>
+  )
+}
+
+const DeleteAllAction = ({
+  onDeleteAll,
+  onConfirmDeleteAll = false,
+  itemName,
+  warningMessage,
+  deleteAllAriaLabel,
+  deleteAllTooltip,
+  deleteAllConfirmDescription,
+}: CardGroupActionsProps & { onDeleteAll: () => void }) => {
+  const { t } = useI18n()
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      event.preventDefault()
       if (onConfirmDeleteAll) {
-        setIsDeleteAllConfirmOpen(true)
+        setIsConfirmOpen(true)
       } else {
-        onDeleteAll?.()
+        onDeleteAll()
       }
     },
     [onConfirmDeleteAll, onDeleteAll],
   )
 
-  const handleOpenAllConfirm = useCallback(() => {
-    onOpenAll?.()
-  }, [onOpenAll])
-
   return (
     <>
-      <div className='pointer-events-auto ml-2 flex shrink-0 gap-2'>
-        {/* 管理ボタン (オプション) */}
-        {onManage && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={onManage}
-                className='flex cursor-pointer items-center gap-1'
-                aria-label={resolvedManageAriaLabel}
-              >
-                <Settings size={14} />
-                <SavedTabsResponsiveLabel>
-                  {resolvedManageLabel}
-                </SavedTabsResponsiveLabel>
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {resolvedManageTooltip}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
-        )}
-
-        {/* すべて開く */}
-        {onOpenAll && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={handleOpenAllClick}
-                className='flex cursor-pointer items-center gap-1'
-                aria-label={resolvedOpenAllAriaLabel}
-              >
-                <ExternalLink size={14} />
-                <SavedTabsResponsiveLabel>
-                  {t('savedTabs.openAll')}
-                </SavedTabsResponsiveLabel>
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {resolvedOpenAllTooltip}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
-        )}
-
-        {/* すべて削除 */}
-        {onDeleteAll && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant='secondary'
-                size='sm'
-                onClick={handleDeleteAllClick}
-                className='flex cursor-pointer items-center gap-1'
-                aria-label={resolvedDeleteAllAriaLabel}
-              >
-                <Trash size={14} />
-                <SavedTabsResponsiveLabel>
-                  {t('savedTabs.deleteAll')}
-                </SavedTabsResponsiveLabel>
-              </Button>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              {resolvedDeleteAllTooltip}
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
-        )}
-      </div>
-
-      {/* タブを開く確認ダイアログ */}
-      {onOpenAll && (
-        <AlertDialog
-          open={isOpenAllConfirmOpen}
-          onOpenChange={setIsOpenAllConfirmOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {t('savedTabs.openAllConfirmTitle')}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {resolvedOpenAllConfirmDescription}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleOpenAllConfirm}>
-                {t('common.open')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {/* 全削除確認ダイアログ */}
-      {onDeleteAll && (
-        <AlertDialog
-          open={isDeleteAllConfirmOpen}
-          onOpenChange={setIsDeleteAllConfirmOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {t('savedTabs.deleteAllTitle', undefined, {
-                  itemName: resolvedItemName,
-                })}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {resolvedDeleteAllConfirmDescription}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-              <AlertDialogAction variant='destructive' onClick={onDeleteAll}>
-                {t('common.delete')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      <CardActionButton
+        icon={Trash}
+        label={t('savedTabs.deleteAll')}
+        accessibleLabel={deleteAllAriaLabel ?? t('savedTabs.deleteAll')}
+        tooltip={deleteAllTooltip ?? t('savedTabs.deleteAll')}
+        onClick={handleClick}
+      />
+      <ActionConfirmDialog
+        open={isConfirmOpen}
+        onOpenChange={setIsConfirmOpen}
+        title={t('savedTabs.deleteAllTitle', undefined, {
+          itemName: itemName ?? t('savedTabs.openAllTabs'),
+        })}
+        description={
+          deleteAllConfirmDescription ??
+          warningMessage ??
+          t('savedTabs.deleteAllDefaultWarning')
+        }
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.delete')}
+        variant='destructive'
+        onConfirm={onDeleteAll}
+      />
     </>
   )
 }
+
+/** カード操作ごとに表示と確認状態を管理する。 */
+export const CardGroupActions = (props: CardGroupActionsProps) => (
+  <div className='pointer-events-auto ml-2 flex shrink-0 gap-2'>
+    {props.onManage && <ManageAction {...props} onManage={props.onManage} />}
+    {props.onOpenAll && (
+      <OpenAllAction {...props} onOpenAll={props.onOpenAll} />
+    )}
+    {props.onDeleteAll && (
+      <DeleteAllAction {...props} onDeleteAll={props.onDeleteAll} />
+    )}
+  </div>
+)

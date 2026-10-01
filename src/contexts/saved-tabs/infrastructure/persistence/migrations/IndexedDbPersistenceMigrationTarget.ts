@@ -2,6 +2,7 @@ import { PersistenceV2MigrationTargetError } from '@/contexts/saved-tabs/applica
 import type {
   PersistenceV2MigrationTargetErrorCode,
   PersistenceV2MigrationTargetPort,
+  PersistenceV2VerifiedMigrationTargetPort,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2MigrationTargetPort'
 import type { PersistenceLogicalSnapshot } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type { PersistenceV2WritePlan } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
@@ -246,7 +247,11 @@ const toTargetMetadataRecord = (
   value: { migrationId, state },
 })
 
-export class IndexedDbPersistenceMigrationTarget implements PersistenceV2MigrationTargetPort {
+export class IndexedDbPersistenceMigrationTarget
+  implements
+    PersistenceV2MigrationTargetPort,
+    PersistenceV2VerifiedMigrationTargetPort
+{
   private readonly connectionManager: IndexedDbConnectionManager
 
   constructor(connectionManager: IndexedDbConnectionManager) {
@@ -387,6 +392,19 @@ export class IndexedDbPersistenceMigrationTarget implements PersistenceV2Migrati
   }
 
   async readSnapshot(migrationId: string): Promise<PersistenceLogicalSnapshot> {
+    return this.readSnapshotForStates(migrationId, ['written', 'verified'])
+  }
+
+  async readVerifiedSnapshot(
+    migrationId: string,
+  ): Promise<PersistenceLogicalSnapshot> {
+    return this.readSnapshotForStates(migrationId, ['verified'])
+  }
+
+  private async readSnapshotForStates(
+    migrationId: string,
+    allowedStates: readonly MigrationTargetState[],
+  ): Promise<PersistenceLogicalSnapshot> {
     assertMigrationId(migrationId)
     const database = await this.connectionManager
       .open()
@@ -460,10 +478,11 @@ export class IndexedDbPersistenceMigrationTarget implements PersistenceV2Migrati
         'MIGRATION_TARGET_TRANSACTION_FAILED',
       )
     }
-    assertTarget(readIndexedDbRequestResult(requests.target), migrationId, [
-      'written',
-      'verified',
-    ])
+    assertTarget(
+      readIndexedDbRequestResult(requests.target),
+      migrationId,
+      allowedStates,
+    )
 
     try {
       return {
