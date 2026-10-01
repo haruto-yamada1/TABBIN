@@ -18,6 +18,7 @@ describe('ChromeSavedTabsStorageMapper', () => {
         }),
       ).toBeNull()
     })
+
     it('必須フィールドを持つ生データを entity 化する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseTabGroup({
         domain: 'example.com',
@@ -142,6 +143,7 @@ describe('ChromeSavedTabsStorageMapper', () => {
         }),
       ).toBeNull()
     })
+
     it('必須フィールドを持つ生データを entity 化する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseParentCategory({
         domains: ['group-1'],
@@ -187,6 +189,7 @@ describe('ChromeSavedTabsStorageMapper', () => {
         }),
       ).toBeNull()
     })
+
     it('必須フィールドを持つ生データを entity 化する', () => {
       const entity = ChromeSavedTabsStorageMapper.parseCustomProject({
         categories: ['research'],

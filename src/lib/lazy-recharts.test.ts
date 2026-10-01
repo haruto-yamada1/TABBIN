@@ -26,8 +26,9 @@ type LazyPayload = {
 
 describe('lazy recharts exports', () => {
   it('すべての lazy export が recharts の対応コンポーネントを解決する', async () => {
+    const components = { ...lazyRecharts }
     const lazyResults = componentNames.map(async (name) => {
-      const component = lazyRecharts[name] as unknown as {
+      const component = components[name] as unknown as {
         _payload: LazyPayload
       }
 

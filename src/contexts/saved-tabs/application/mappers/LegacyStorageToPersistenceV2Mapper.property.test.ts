@@ -1,5 +1,5 @@
 import * as fc from 'fast-check'
-import { describe, it } from 'vitest'
+import { assert, describe, it } from 'vitest'
 
 import { PERSISTENCE_V2_INVARIANT_CODES } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
@@ -249,6 +249,7 @@ describe('mapLegacyStorageToPersistenceV2 properties', () => {
           return false
         }
         const [url] = shared
+        assert.isDefined(url)
         const memberships = snapshot.memberships.filter(
           (membership) => membership.urlId === url.id,
         )

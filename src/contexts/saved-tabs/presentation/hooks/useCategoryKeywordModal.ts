@@ -168,9 +168,7 @@ export const useCategoryKeywordModal = ({
   const { t } = useI18n()
   // --- サブカテゴリ選択状態 ---
   const [activeCategory, setActiveCategory] = useState<string>(
-    group.subCategories && group.subCategories.length > 0
-      ? group.subCategories[0]
-      : '',
+    group.subCategories?.[0] ?? '',
   )
 
   // --- キーワード・リネーム状態 ---
@@ -513,14 +511,10 @@ export const useCategoryKeywordModal = ({
       // eslint-disable-next-line typescript/no-confusing-void-expression
       await onDeleteCategory(group.id, categoryToDelete) // eslint-disable-line typescript/await-thenable
       if (group.subCategories && group.subCategories.length > 1) {
-        const updatedSubCategories = group.subCategories.filter(
+        const nextCategory = group.subCategories.find(
           (cat: string) => cat !== categoryToDelete,
         )
-        if (updatedSubCategories.length > 0) {
-          setActiveCategory(updatedSubCategories[0])
-        } else {
-          setActiveCategory('')
-        }
+        setActiveCategory(nextCategory ?? '')
       } else {
         setActiveCategory('')
       }

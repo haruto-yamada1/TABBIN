@@ -197,7 +197,7 @@ describe('Header', () => {
         {...createProps({
           searchQuery: 'abc',
           onSearchChange,
-          filteredTabGroups: [createTabGroups()[0]],
+          filteredTabGroups: createTabGroups().slice(0, 1),
         })}
       />,
     )

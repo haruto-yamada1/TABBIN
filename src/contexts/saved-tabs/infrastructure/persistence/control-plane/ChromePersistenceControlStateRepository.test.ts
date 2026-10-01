@@ -64,31 +64,50 @@ describe('ChromePersistenceControlStateRepository', () => {
     })
   })
 
-  it('accepts an unsupported access API only after proving no content scripts exist', async () => {
-    const storage = createStorage()
-    const area = { get: storage.area.get, set: storage.area.set }
-    const repository = new ChromePersistenceControlStateRepository({
-      getManifest: () => ({ permissions: ['storage'] }),
-      getStorageLocal: () => area,
-    })
+  it.each([
+    { contentScripts: undefined },
+    { contentScripts: null },
+    { contentScripts: [] },
+  ])(
+    'accepts a manifest with no content scripts (%j), including Firefox normalization',
+    async ({ contentScripts }) => {
+      const storage = createStorage()
+      const area = { get: storage.area.get, set: storage.area.set }
+      const repository = new ChromePersistenceControlStateRepository({
+        getManifest: () => ({
+          permissions: ['storage'],
+          content_scripts: contentScripts,
+        }),
+        getStorageLocal: () => area,
+      })
 
-    await expect(repository.initialize()).resolves.toBeUndefined()
-  })
+      await expect(repository.initialize()).resolves.toBeUndefined()
+    },
+  )
 
-  it('fails closed when access restriction is unavailable with content scripts', async () => {
-    expect.hasAssertions()
-    const storage = createStorage()
-    const area = { get: storage.area.get, set: storage.area.set }
-    const repository = new ChromePersistenceControlStateRepository({
-      getManifest: () => ({ content_scripts: [{ matches: ['https://*/*'] }] }),
-      getStorageLocal: () => area,
-    })
+  it.each([
+    { contentScripts: [{ matches: ['https://*/*'] }] },
+    { contentScripts: {} },
+    { contentScripts: '' },
+    { contentScripts: false },
+    { contentScripts: 0 },
+  ])(
+    'fails closed when access restriction is unavailable and content_scripts is %j',
+    async ({ contentScripts }) => {
+      expect.hasAssertions()
+      const storage = createStorage()
+      const area = { get: storage.area.get, set: storage.area.set }
+      const repository = new ChromePersistenceControlStateRepository({
+        getManifest: () => ({ content_scripts: contentScripts }),
+        getStorageLocal: () => area,
+      })
 
-    await expectUnavailableCode(
-      repository.initialize(),
-      'PERSISTENCE_CONTROL_STATE_ACCESS_POLICY_FAILED',
-    )
-  })
+      await expectUnavailableCode(
+        repository.initialize(),
+        'PERSISTENCE_CONTROL_STATE_ACCESS_POLICY_FAILED',
+      )
+    },
+  )
 
   it('fails closed when the manifest cannot be inspected', async () => {
     expect.hasAssertions()

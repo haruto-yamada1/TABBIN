@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
@@ -23,6 +23,7 @@ const { dndContextPropsRef, customProjectCardSpy, arrayMoveMock } = vi.hoisted(
     arrayMoveMock: vi.fn((arr: string[], from: number, to: number) => {
       const next = [...arr]
       const [moved] = next.splice(from, 1)
+      assert.isDefined(moved)
       next.splice(to, 0, moved)
       return next
     }),

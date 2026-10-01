@@ -39,7 +39,7 @@ type CategorySectionItemProps = {
   handleDeleteAllTabsInCategory: (
     categoryName: string,
     urls: { url: string }[],
-  ) => void
+  ) => Promise<void>
   settings: UserSettingsDto
   stickyTop: string
   isCategoryReorderMode: boolean
@@ -62,7 +62,7 @@ const CategorySectionItem = ({
 }: CategorySectionItemProps) => {
   const handleDeleteAllTabs = useCallback(
     (deleteUrls: { url: string }[]) => {
-      handleDeleteAllTabsInCategory(categoryName, deleteUrls)
+      void handleDeleteAllTabsInCategory(categoryName, deleteUrls)
     },
     [handleDeleteAllTabsInCategory, categoryName],
   )
@@ -182,7 +182,6 @@ export const DomainCardContent = () => {
                 handleOpenTab={handlers.handleOpenTab}
                 handleUpdateUrls={handlers.handleUpdateUrls}
                 handleOpenAllTabs={handlers.handleOpenAllTabs}
-                // eslint-disable-next-line typescript/no-misused-promises
                 handleDeleteAllTabsInCategory={
                   categoryActions.handleDeleteAllTabsInCategory
                 }

@@ -79,8 +79,8 @@ const b = 'chrome-extension://id-b'
       })
 
       expect(violations).toHaveLength(2)
-      expect(violations[0].line).toBe(1)
-      expect(violations[1].line).toBe(2)
+      expect(violations[0]).toMatchObject({ line: 1 })
+      expect(violations[1]).toMatchObject({ line: 2 })
     })
 
     it('reports the correct 1-indexed column for the literal', () => {
@@ -91,7 +91,7 @@ const b = 'chrome-extension://id-b'
         filePath: 'src/some/file.ts',
       })
 
-      expect(violations[0].column).toBe(21)
+      expect(violations[0]).toMatchObject({ column: 21 })
     })
   })
 
@@ -217,8 +217,10 @@ const c = 'chrome-extension://id-c'
       })
 
       expect(violations).toHaveLength(1)
-      expect(violations[0].line).toBe(3)
-      expect(violations[0].reason).toMatch(/expected 2 occurrence/)
+      expect(violations[0]).toMatchObject({
+        line: 3,
+        reason: expect.stringMatching(/expected 2 occurrence/),
+      })
     })
 
     it('reports the whole file when an allowlisted file drops all literals (let debt shrink)', () => {
@@ -265,6 +267,7 @@ const b = 'chrome-extension://id-b'
       expect(violations).toEqual([])
     })
   })
+
   it('does not throw when there are no violations', () => {
     expect(() =>
       assertFirefoxSourceContract({

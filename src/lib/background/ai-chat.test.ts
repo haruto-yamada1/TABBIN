@@ -491,6 +491,7 @@ describe('runAiChatRequest', () => {
       }),
     ])
   })
+
   it('言語設定が en のとき AI SDK へ英語 description を渡し reasoning も英語タイトルになる', async () => {
     ;(
       globalThis as typeof globalThis & {

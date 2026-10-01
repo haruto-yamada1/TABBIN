@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
 
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
@@ -134,6 +134,7 @@ describe('DeleteSavedUrlsUseCase', () => {
     ])
     expect(result.removedTabGroupIds).toStrictEqual([])
     const remainingTabGroups = await repos.tabGroupRepository.findAll()
+    assert.isDefined(remainingTabGroups[0])
     expect(
       remainingTabGroups[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-3'])
@@ -222,6 +223,7 @@ describe('DeleteSavedUrlsUseCase', () => {
       (await repos.urlRecordRepository.findAll()).map((record) => record.id),
     ).toStrictEqual([])
     const remainingProjects = await repos.customProjectRepository.findAll()
+    assert.isDefined(remainingProjects[0])
     expect(
       remainingProjects[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual([])

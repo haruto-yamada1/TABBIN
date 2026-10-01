@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 
@@ -266,7 +266,9 @@ describe('PeriodicExecutionRoute', () => {
 
     render(createElement(PeriodicExecutionRoute))
 
-    await user.click(screen.getAllByTestId('mock-select-change')[0])
+    const select = screen.getAllByTestId('mock-select-change')[0]
+    assert.isDefined(select)
+    await user.click(select)
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
   })
 
@@ -283,7 +285,9 @@ describe('PeriodicExecutionRoute', () => {
     const user = userEvent.setup()
     render(createElement(PeriodicExecutionRoute))
 
-    await user.click(screen.getAllByTestId('mock-select-change')[0])
+    const select = screen.getAllByTestId('mock-select-change')[0]
+    assert.isDefined(select)
+    await user.click(select)
     expect(mocked.handleSelectAutoDelete).toHaveBeenCalledWith('30days')
 
     await user.click(screen.getByRole('button', { name: 'Apply' }))

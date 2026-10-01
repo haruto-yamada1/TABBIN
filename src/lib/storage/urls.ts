@@ -235,6 +235,9 @@ const createOrUpdateUrlRecordsBatchUnsafe = async (
     }
 
     const existingRecord = records[recordIndex]
+    if (!existingRecord) {
+      throw new Error('Indexed URL record was not found')
+    }
     if (options.preserveExistingOnDuplicate) {
       resolvedRecordByUrl.set(input.url, existingRecord)
       continue

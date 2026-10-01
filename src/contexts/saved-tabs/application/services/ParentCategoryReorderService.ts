@@ -38,8 +38,8 @@ export type BuildReorderedCategoryOrderParams = {
 function moveItem<T>(array: readonly T[], from: number, to: number): T[] {
   const newArray = array.slice()
   const normalizedTo = to < 0 ? newArray.length + to : to
-  const [moved] = newArray.splice(from, 1)
-  newArray.splice(normalizedTo, 0, moved)
+  const moved = newArray.splice(from, 1)
+  newArray.splice(normalizedTo, 0, ...moved)
   return newArray
 }
 

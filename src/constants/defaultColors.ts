@@ -3,8 +3,10 @@
  */
 
 // デフォルトカラー値を取得する関数
-export const getDefaultColor = (key: string): string =>
-  defaultColors[key] || '#ffffff'
+export const getDefaultColor = (key: string): string => {
+  const color = defaultColors[key]
+  return color === '' ? '#ffffff' : (color ?? '#ffffff')
+}
 
 // デフォルトカラー設定
 export const defaultColors: Record<string, string> = {

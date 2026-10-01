@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { useLayoutEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defaultSettings } from '@/lib/storage/settings'
 import type { OllamaErrorDetails } from '@/types/background'
@@ -165,7 +165,9 @@ describe('useOllamaModelSettings', () => {
       await expect(savePromise).resolves.toBe(true)
     })
 
-    const savedSettings = mocked.saveUserSettings.mock.calls[0][0]
+    const saveCall = mocked.saveUserSettings.mock.calls[0]
+    assert.isDefined(saveCall)
+    const savedSettings = saveCall[0]
     expect(savedSettings).toEqual(
       expect.objectContaining({ ollamaModel: 'qwen3:latest' }),
     )
@@ -282,7 +284,9 @@ describe('useOllamaModelSettings', () => {
       )
 
       await act(async () => {
-        await mocked.getRuntimePlatform.mock.results[0].value
+        const platformResult = mocked.getRuntimePlatform.mock.results[0]
+        assert.isDefined(platformResult)
+        await platformResult.value
       })
 
       expect(result.current.platform).toBe(os)

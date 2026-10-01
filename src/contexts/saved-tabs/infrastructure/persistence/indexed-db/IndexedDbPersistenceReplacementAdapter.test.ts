@@ -1,5 +1,5 @@
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { assert, afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceV2ReplacementTarget } from '@/contexts/saved-tabs/application/ports/PersistenceV2ReplacementPort'
@@ -293,22 +293,24 @@ describe('IndexedDbPersistenceReplacementAdapter', () => {
     const originalPut = IDBObjectStore.prototype.put
     const putSpy = vi
       .spyOn(IDBObjectStore.prototype, 'put')
-      .mockImplementation(
-        function putWithInjectedFailure(this: IDBObjectStore, value, key) {
-          if (
-            this.name === PERSISTENCE_STORE_NAMES.messages &&
-            typeof value === 'object' &&
-            value !== null &&
-            'id' in value &&
-            value.id === 'message-next'
-          ) {
-            throw new Error(secret)
-          }
-          return key === undefined
-            ? originalPut.call(this, value)
-            : originalPut.call(this, value, key)
-        },
-      )
+      .mockImplementation(function putWithInjectedFailure(
+        this: IDBObjectStore,
+        value,
+        key,
+      ) {
+        if (
+          this.name === PERSISTENCE_STORE_NAMES.messages &&
+          typeof value === 'object' &&
+          value !== null &&
+          'id' in value &&
+          value.id === 'message-next'
+        ) {
+          throw new Error(secret)
+        }
+        return key === undefined
+          ? originalPut.call(this, value)
+          : originalPut.call(this, value, key)
+      })
 
     const error = await new IndexedDbPersistenceReplacementAdapter(
       manager,
@@ -371,36 +373,52 @@ describe('IndexedDbPersistenceReplacementAdapter', () => {
   it.each([
     {
       code: 'DUPLICATE_ANALYTICS_VIEW_ID',
-      mutate: (target: PersistenceV2ReplacementTarget) => ({
-        ...target,
-        analyticsViews: [...target.analyticsViews, target.analyticsViews[0]],
-      }),
+      mutate: (target: PersistenceV2ReplacementTarget) => {
+        const [first] = target.analyticsViews
+        assert.isDefined(first)
+        return {
+          ...target,
+          analyticsViews: [...target.analyticsViews, first],
+        }
+      },
     },
     {
       code: 'DUPLICATE_CONVERSATION_ID',
-      mutate: (target: PersistenceV2ReplacementTarget) => ({
-        ...target,
-        conversations: [...target.conversations, target.conversations[0]],
-      }),
+      mutate: (target: PersistenceV2ReplacementTarget) => {
+        const [first] = target.conversations
+        assert.isDefined(first)
+        return {
+          ...target,
+          conversations: [...target.conversations, first],
+        }
+      },
     },
     {
       code: 'DUPLICATE_MESSAGE_ID',
-      mutate: (target: PersistenceV2ReplacementTarget) => ({
-        ...target,
-        messages: [...target.messages, target.messages[0]],
-      }),
+      mutate: (target: PersistenceV2ReplacementTarget) => {
+        const [first] = target.messages
+        assert.isDefined(first)
+        return {
+          ...target,
+          messages: [...target.messages, first],
+        }
+      },
     },
     {
       code: 'ORPHAN_MESSAGE_CONVERSATION',
-      mutate: (target: PersistenceV2ReplacementTarget) => ({
-        ...target,
-        messages: [
-          {
-            ...target.messages[0],
-            conversationId: 'missing-private-conversation',
-          },
-        ],
-      }),
+      mutate: (target: PersistenceV2ReplacementTarget) => {
+        const [first] = target.messages
+        assert.isDefined(first)
+        return {
+          ...target,
+          messages: [
+            {
+              ...first,
+              conversationId: 'missing-private-conversation',
+            },
+          ],
+        }
+      },
     },
   ])('$codeをtransaction前にrejectする', async ({ code, mutate }) => {
     const { operationGate, runIndexedDbWrite } = createOperationGateSpy()

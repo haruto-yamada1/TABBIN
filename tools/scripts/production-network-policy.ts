@@ -182,8 +182,7 @@ const resolveIdentifierNetworkReferences = (
   const currentFunctionScopeIndex = scopes.findLastIndex(
     (scope) => scope.type === 'function',
   )
-  for (let index = scopes.length - 1; index >= 0; index -= 1) {
-    const scope = scopes[index]
+  for (const [index, scope] of [...scopes.entries()].toReversed()) {
     if (!scope.bindings.has(name)) {
       continue
     }
@@ -272,6 +271,7 @@ const recordNetworkCallsite = (
     ts.isCallExpression(node) &&
     node.expression.kind === ts.SyntaxKind.ImportKeyword &&
     node.arguments.length === 1 &&
+    node.arguments[0] !== undefined &&
     ts.isStringLiteralLike(node.arguments[0]) &&
     isNetworkClientModule(node.arguments[0].text)
   ) {
@@ -413,8 +413,7 @@ export const collectSourceNetworkCallsites = (
     const currentFunctionScopeIndex = scopes.findLastIndex(
       (scope) => scope.type === 'function',
     )
-    for (let index = scopes.length - 1; index >= 0; index -= 1) {
-      const scope = scopes[index]
+    for (const [index, scope] of [...scopes.entries()].toReversed()) {
       if (scope.bindings.has(name)) {
         if (currentFunctionScopeIndex > index) {
           declareAlias(name, kinds, scopes[currentFunctionScopeIndex])
@@ -445,7 +444,7 @@ export const collectSourceNetworkCallsites = (
     return (
       scopes.findLast(
         (scope) => scope.type === 'function' || scope.type === 'source',
-      ) ?? scopes[0]
+      ) ?? sourceScope
     )
   }
 

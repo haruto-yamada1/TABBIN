@@ -70,12 +70,10 @@ const diffMemberships = (
   const nextKeys = new Set(next.map(membershipKey))
   const deleted = current
     .filter((membership) => !nextKeys.has(membershipKey(membership)))
-    .map(
-      ({ collectionId, urlId }): PersistenceV2MembershipKey => [
-        collectionId,
-        urlId,
-      ],
-    )
+    .map(({ collectionId, urlId }): PersistenceV2MembershipKey => [
+      collectionId,
+      urlId,
+    ])
   const put = next.filter((membership) => {
     const previous = currentByKey.get(membershipKey(membership))
     return previous === undefined || !isSameRecord(previous, membership)

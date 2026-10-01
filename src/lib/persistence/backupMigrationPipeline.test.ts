@@ -53,22 +53,18 @@ const backupFuture = parseFixture('backup-future.json')
 const backupInvalid = parseFixture('backup-invalid.json')
 
 const createTestPipeline = () => {
-  const migrateV2ToV3 = vi.fn(
-    (input: BackupV2): BackupV3 => ({
-      appVersion: input.appVersion,
-      data: { collection: { name: input.data.name } },
-      exportedAt: input.exportedAt,
-      schemaVersion: 3,
-    }),
-  )
-  const migrateV3ToV4 = vi.fn(
-    (input: BackupV3): BackupV4 => ({
-      appVersion: input.appVersion,
-      data: { collections: [input.data.collection] },
-      exportedAt: input.exportedAt,
-      schemaVersion: 4,
-    }),
-  )
+  const migrateV2ToV3 = vi.fn((input: BackupV2): BackupV3 => ({
+    appVersion: input.appVersion,
+    data: { collection: { name: input.data.name } },
+    exportedAt: input.exportedAt,
+    schemaVersion: 3,
+  }))
+  const migrateV3ToV4 = vi.fn((input: BackupV3): BackupV4 => ({
+    appVersion: input.appVersion,
+    data: { collections: [input.data.collection] },
+    exportedAt: input.exportedAt,
+    schemaVersion: 4,
+  }))
   const v2ToV3 = defineBackupMigrationStep({
     fromVersion: 2,
     inputSchema: backupV2Schema,

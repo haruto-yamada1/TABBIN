@@ -334,7 +334,10 @@ describe('PersistenceBootstrap architecture policy', () => {
       ),
       'createProductionSavedTabsUseCases must call createApplicationSavedTabsUseCases',
     )
-    const applicationUseCaseArgument = applicationUseCaseCall.arguments[0]
+    const applicationUseCaseArgument = requireDefined(
+      applicationUseCaseCall.arguments[0],
+      'createApplicationSavedTabsUseCases must receive an argument',
+    )
     expect(
       ts.isIdentifier(applicationUseCaseArgument) &&
         applicationUseCaseArgument.text === 'deps',
@@ -367,7 +370,10 @@ describe('PersistenceBootstrap architecture policy', () => {
         ),
         `${entryPoint} must call createProductionSavedTabsUseCases`,
       )
-      const productionArgument = productionCall.arguments[0]
+      const productionArgument = requireDefined(
+        productionCall.arguments[0],
+        `${entryPoint} must pass an argument`,
+      )
       expect(
         ts.isIdentifier(productionArgument) &&
           productionArgument.text === depsVariableName,

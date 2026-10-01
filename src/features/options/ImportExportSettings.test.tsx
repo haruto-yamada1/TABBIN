@@ -558,7 +558,8 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
   })
 
-  it('dropzone input 経由（onDrop 経路）でファイルを処理する', async () => {
+  it('dropzone input 経由（onDrop 経路）で非同期読み取りを完了してからインポートする', async () => {
+    readerAsync = true
     const user = userEvent.setup()
     vi.mocked(importSettings).mockResolvedValue({
       success: true,
@@ -595,6 +596,40 @@ describe('ImportExportSettingsコンポーネント', () => {
         expect.any(Function),
       )
     })
+  })
+
+  it('複数の JSON ファイルをドロップした場合はどのファイルも読み込まない', async () => {
+    const user = userEvent.setup()
+    using readSpy = vi.spyOn(MockFileReader.prototype, 'readAsText')
+    render(<ImportExportSettings />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Import settings and tab data' }),
+    )
+
+    const files = [
+      new File(['first'], 'first.json', { type: 'application/json' }),
+      new File(['second'], 'second.json', { type: 'application/json' }),
+    ]
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('import-dropzone'), {
+        dataTransfer: {
+          files,
+          items: files.map((file) => ({
+            kind: 'file',
+            type: file.type,
+            getAsFile: () => file,
+          })),
+          types: ['Files'],
+        },
+      })
+    })
+
+    expect(readSpy).not.toHaveBeenCalled()
+    expect(getImportPreview).not.toHaveBeenCalled()
+    expect(importSettings).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Confirm Import' })).toBeNull()
+    expect(screen.getByText('Drag and drop a JSON file')).toBeTruthy()
   })
 
   it('dropzone 上でドラッグ中にドラッグアクティブラベルを表示する', async () => {

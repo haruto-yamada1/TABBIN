@@ -71,6 +71,9 @@ const matchJsxTag = (code: string) => {
   }
 
   const [fullMatch, tagName, attributes, selfClosing] = match
+  if (tagName === undefined || attributes === undefined) {
+    return null
+  }
 
   let type: 'self-closing' | 'closing' | 'opening'
   if (selfClosing) {

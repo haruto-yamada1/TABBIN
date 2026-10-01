@@ -87,13 +87,14 @@ const assertValidRegistry = (
     )
   }
 
-  if (migrations.size === 0) {
-    return []
-  }
-
   const sortedEntries = [...migrations.entries()].toSorted(
     ([leftVersion], [rightVersion]) => leftVersion - rightVersion,
   )
+
+  const firstEntry = sortedEntries[0]
+  if (!firstEntry) {
+    return []
+  }
 
   for (const [registeredVersion, step] of sortedEntries) {
     if (registeredVersion !== step.fromVersion) {
@@ -113,7 +114,6 @@ const assertValidRegistry = (
     }
   }
 
-  const firstEntry = sortedEntries[0]
   const [minimumVersion] = firstEntry
   for (let version = minimumVersion; version < currentVersion; version += 1) {
     if (!migrations.has(version)) {

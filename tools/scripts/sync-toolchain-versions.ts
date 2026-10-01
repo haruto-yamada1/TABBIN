@@ -47,7 +47,7 @@ export const syncToolchainVersions = ({
   }
 
   const nodeMajor = nodeVersionFile.split('.')[0]
-  if (!/^\d+$/.test(nodeMajor)) {
+  if (nodeMajor === undefined || !/^\d+$/.test(nodeMajor)) {
     throw new TypeError(
       `Unable to extract Node major from .node-version: ${nodeVersionFile}`,
     )

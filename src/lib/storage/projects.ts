@@ -311,16 +311,7 @@ const addUrlsToUncategorizedProject = async (
 
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
-  let targetIndex = projects.findIndex(
-    (project) => project.id === CUSTOM_UNCATEGORIZED_PROJECT_ID,
-  )
-  if (targetIndex === -1) {
-    projects.push(buildUncategorizedProject())
-    targetIndex = projects.length - 1
-    await appendUncategorizedProjectToOrder()
-  }
-
-  const targetProject = projects[targetIndex]
+  const targetProject = await findOrCreateUncategorizedProject(projects)
   const targetUrlIds = targetProject.urlIds ?? []
   const urlIdSet = new Set(targetUrlIds)
   const now = Date.now()
@@ -355,7 +346,6 @@ const addUrlsToUncategorizedProject = async (
 
   await addUrlIdsToDomainMode(domainReferences)
   targetProject.updatedAt = Date.now()
-  projects[targetIndex] = targetProject
   await saveCustomProjects(projects)
 }
 
@@ -514,10 +504,10 @@ const addUrlToCustomProject = async (
     await migrateToUrlsStorage()
     const projects = await getCustomProjects()
     const projectIndex = projects.findIndex((p) => p.id === projectId)
-    if (projectIndex === -1) {
+    const project = projects[projectIndex]
+    if (!project) {
       throw new Error(`Project with ID ${projectId} not found`)
     }
-    const project = projects[projectIndex]
 
     // URLレコードを作成または更新
     const urlRecord = await createOrUpdateUrlRecord(url, title)
@@ -643,10 +633,10 @@ const removeUrlFromCustomProject = async (
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-  const project = projects[projectIndex]
 
   // 新形式のみサポート: URLIDsからURLを削除
   if (project.urlIds && project.urlIds.length > 0) {
@@ -708,11 +698,10 @@ const removeUrlsFromCustomProject = async (
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-
-  const project = projects[projectIndex]
   const targetUrlsSet = new Set(urls)
 
   if (project.urlIds && project.urlIds.length > 0) {
@@ -874,9 +863,9 @@ const removeUrlIdsFromAllCustomProjects = async (
 const ensureProjectMetadataEntry = (
   project: CustomProject,
   urlId: string,
-): void => {
+): NonNullable<CustomProject['urlMetadata']>[string] => {
   project.urlMetadata ??= {}
-  project.urlMetadata[urlId] ??= {}
+  return (project.urlMetadata[urlId] ??= {})
 }
 
 const mergeUrlsIntoUncategorized = (
@@ -899,10 +888,11 @@ const mergeUrlsIntoUncategorized = (
     if (!metadata?.notes) {
       continue
     }
-    ensureProjectMetadataEntry(uncategorizedProject, urlId)
-    if (uncategorizedProject.urlMetadata) {
-      uncategorizedProject.urlMetadata[urlId].notes = metadata.notes
-    }
+    const targetMetadata = ensureProjectMetadataEntry(
+      uncategorizedProject,
+      urlId,
+    )
+    targetMetadata.notes = metadata.notes
   }
   uncategorizedProject.updatedAt = Date.now()
 }
@@ -939,11 +929,10 @@ const deleteCustomProject = async (projectId: string): Promise<void> => {
   }
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const projectToDelete = projects[projectIndex]
+  if (!projectToDelete) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-
-  const projectToDelete = projects[projectIndex]
   const remainingProjects = projects.filter(
     (project) => project.id !== projectId,
   )
@@ -970,11 +959,12 @@ const updateCustomProjectName = async (
     throw new Error(`DUPLICATE_PROJECT_NAME:${newName}`)
   }
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
   projects[projectIndex] = {
-    ...projects[projectIndex],
+    ...project,
     name: newName,
     updatedAt: Date.now(),
   }
@@ -986,10 +976,10 @@ const addCategoryToProject = async (
 ): Promise<void> => {
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-  const project = projects[projectIndex]
 
   // カテゴリが既に存在するかチェック
   if (project.categories.includes(categoryName)) {
@@ -1016,10 +1006,10 @@ const removeCategoryFromProject = async (
 ): Promise<void> => {
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-  const project = projects[projectIndex]
 
   // カテゴリを削除
   project.categories = project.categories.filter((cat) => cat !== categoryName)
@@ -1033,9 +1023,9 @@ const removeCategoryFromProject = async (
 
   // このカテゴリに所属するURLのカテゴリをnullに設定（新形式対応）
   if (project.urlMetadata) {
-    for (const [urlId, meta] of Object.entries(project.urlMetadata)) {
+    for (const meta of Object.values(project.urlMetadata)) {
       if (meta.category === categoryName) {
-        delete project.urlMetadata[urlId].category
+        delete meta.category
       }
     }
   }
@@ -1052,10 +1042,10 @@ const setUrlCategory = async (
   await migrateToUrlsStorage()
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-  const project = projects[projectIndex]
 
   // 新形式のみサポート: URLIDsからURLレコードを探してカテゴリを設定
   if (project.urlIds && project.urlIds.length > 0) {
@@ -1066,10 +1056,14 @@ const setUrlCategory = async (
       if (!Object.hasOwn(project.urlMetadata, urlRecord.id)) {
         project.urlMetadata[urlRecord.id] = {}
       }
+      const metadata = project.urlMetadata[urlRecord.id]
+      if (!metadata) {
+        throw new Error('Project URL metadata is missing')
+      }
       if (category === undefined) {
-        delete project.urlMetadata[urlRecord.id].category
+        delete metadata.category
       } else {
-        project.urlMetadata[urlRecord.id].category = category
+        metadata.category = category
       }
     }
   }
@@ -1083,10 +1077,10 @@ const updateCategoryOrder = async (
 ): Promise<void> => {
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-  const project = projects[projectIndex]
   project.categoryOrder = newOrder
   project.updatedAt = Date.now()
   projects[projectIndex] = project
@@ -1098,10 +1092,10 @@ const reorderProjectUrls = async (
 ): Promise<void> => {
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-  const project = projects[projectIndex]
 
   if (project.urlIds && project.urlIds.length > 0 && urls) {
     const urlRecords = await getUrlRecordsByIds(project.urlIds)
@@ -1158,12 +1152,11 @@ const moveUrlBetweenCustomProjects = async (
   const targetIndex = projects.findIndex(
     (project) => project.id === targetProjectId,
   )
-  if (sourceIndex === -1 || targetIndex === -1) {
-    throw new Error('Source or target project not found')
-  }
-
   const sourceProject = projects[sourceIndex]
   const targetProject = projects[targetIndex]
+  if (!sourceProject || !targetProject) {
+    throw new Error('Source or target project not found')
+  }
   if (!(sourceProject.urlIds && sourceProject.urlIds.length > 0)) {
     throw new Error('URL not found in source project')
   }
@@ -1221,10 +1214,10 @@ const renameCategoryInProject = async (
 ): Promise<void> => {
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-  const project = projects[projectIndex]
   if (project.categories.includes(newCategoryName)) {
     throw new Error(
       `Category name ${newCategoryName} already exists in project ${projectId}`,
@@ -1240,9 +1233,9 @@ const renameCategoryInProject = async (
   }
   // URLメタデータのカテゴリ名を更新（新形式対応）
   if (project.urlMetadata) {
-    for (const [urlId, meta] of Object.entries(project.urlMetadata)) {
+    for (const meta of Object.values(project.urlMetadata)) {
       if (meta.category === oldCategoryName) {
-        project.urlMetadata[urlId].category = newCategoryName
+        meta.category = newCategoryName
       }
     }
   }
@@ -1257,11 +1250,10 @@ const updateProjectKeywords = async (
 ): Promise<void> => {
   const projects = await getCustomProjects()
   const projectIndex = projects.findIndex((p) => p.id === projectId)
-  if (projectIndex === -1) {
+  const project = projects[projectIndex]
+  if (!project) {
     throw new Error(`Project with ID ${projectId} not found`)
   }
-
-  const project = projects[projectIndex]
   project.projectKeywords = normalizeProjectKeywords(projectKeywords)
   project.updatedAt = Date.now()
   projects[projectIndex] = project

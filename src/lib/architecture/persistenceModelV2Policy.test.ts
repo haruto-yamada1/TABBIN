@@ -257,11 +257,10 @@ const extractIssueBullet = (
   }
 
   let end = start + 1
-  while (
-    end < lines.length &&
-    lines[end].trim() !== '' &&
-    !lines[end].startsWith('- #')
-  ) {
+  for (const line of lines.slice(end)) {
+    if (line.trim() === '' || line.startsWith('- #')) {
+      break
+    }
     end += 1
   }
   return lines.slice(start, end).join('\n')

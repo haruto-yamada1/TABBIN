@@ -73,10 +73,10 @@ const findSavedTabsPages = (allTabs: chrome.tabs.Tab[]): chrome.tabs.Tab[] =>
 const reuseExistingSavedTabsPage = async (
   savedTabsPages: chrome.tabs.Tab[],
 ): Promise<number | null> => {
-  if (savedTabsPages.length === 0) {
+  const mainTab = savedTabsPages[0]
+  if (!mainTab) {
     return null
   }
-  const mainTab = savedTabsPages[0]
   savedTabsPageId = mainTab.id ?? null
   if (!savedTabsPageId) {
     return null

@@ -741,16 +741,17 @@ const runDomainHostnameMigration = async (): Promise<void> => {
     }>('parentCategories')
     if (Array.isArray(parentCategoriesRes.parentCategories)) {
       await getRequiredPersistenceStorageLocal().set({
-        parentCategories: parentCategoriesRes.parentCategories.map((category) =>
-          Array.isArray(category.domainNames)
-            ? {
-                ...category,
-                // 正規化後に同ドメインになる重複を除去 (CodeRabbit PR #626 review)
-                domainNames: Array.from(
-                  new Set(category.domainNames.map(toHostnameOrKeep)),
-                ),
-              }
-            : category,
+        parentCategories: parentCategoriesRes.parentCategories.map(
+          (category) =>
+            Array.isArray(category.domainNames)
+              ? {
+                  ...category,
+                  // 正規化後に同ドメインになる重複を除去 (CodeRabbit PR #626 review)
+                  domainNames: Array.from(
+                    new Set(category.domainNames.map(toHostnameOrKeep)),
+                  ),
+                }
+              : category,
         ),
       })
     }

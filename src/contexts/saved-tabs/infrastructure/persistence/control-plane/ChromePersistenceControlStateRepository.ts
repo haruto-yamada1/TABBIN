@@ -68,9 +68,13 @@ export class ChromePersistenceControlStateRepository
         'PERSISTENCE_CONTROL_STATE_ACCESS_POLICY_FAILED',
       )
     }
+    // Firefox runtime.getManifest() normalizes an omitted content_scripts
+    // declaration to null. Nonempty declarations and malformed values still
+    // fail closed when trusted-context restrictions are unavailable.
     const contentScripts = manifest.content_scripts
     if (
       contentScripts !== undefined &&
+      contentScripts !== null &&
       (!Array.isArray(contentScripts) || contentScripts.length > 0)
     ) {
       throw new PersistenceUnavailableError(

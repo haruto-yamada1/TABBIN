@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
 
@@ -133,7 +133,9 @@ describe('I18nProvider', () => {
     await waitFor(() => {
       expect(addListener).toHaveBeenCalled()
     })
-    const listener = addListener.mock.calls[0][0] as (
+    const listenerCall = addListener.mock.calls[0]
+    assert.isDefined(listenerCall)
+    const listener = listenerCall[0] as (
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string,
     ) => void

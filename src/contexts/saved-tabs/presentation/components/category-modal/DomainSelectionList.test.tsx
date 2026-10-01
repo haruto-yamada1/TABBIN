@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
@@ -187,8 +187,10 @@ describe('DomainSelectionList', () => {
 
   it('カテゴリ所属ドメインは現在カテゴリ/所属カテゴリラベルを表示する', async () => {
     const tabGroups = createTabGroups(1)
+    const firstGroup = tabGroups[0]
+    assert.isDefined(firstGroup)
     const domainCategories = {
-      [tabGroups[0].id]: { id: 'cat-1', name: 'カテゴリ1' },
+      [firstGroup.id]: { id: 'cat-1', name: 'カテゴリ1' },
     }
 
     setCategoryModalContext({

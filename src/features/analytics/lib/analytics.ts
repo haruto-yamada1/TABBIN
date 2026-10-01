@@ -125,7 +125,13 @@ type AnalyticsMessages = {
   uncategorizedLabel: string
 }
 
-const CHART_COLORS = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5']
+const CHART_COLORS = [
+  'chart-1',
+  'chart-2',
+  'chart-3',
+  'chart-4',
+  'chart-5',
+] as const
 const UNCATEGORIZED_LABEL = 'Uncategorized'
 const DEFAULT_ANALYTICS_MESSAGES: AnalyticsMessages = {
   chartDailySavedTrend: 'Daily saved trend',

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   runLegacyStorageCleanup: vi.fn(),
@@ -77,6 +77,7 @@ type ChromeHarness = {
 }
 const createChromeHarness = (
   initialStorage: Record<string, unknown> = {},
+  manifestVersion: 2 | 3 = 3,
 ): ChromeHarness => {
   const storage = {
     ...initialStorage,
@@ -127,6 +128,7 @@ const createChromeHarness = (
   ).chrome = {
     runtime: {
       getManifest: vi.fn(() => ({
+        manifest_version: manifestVersion,
         version: '9.9.9',
       })),
       getURL: vi.fn((path: string) => `chrome-extension://tabbin/${path}`),
@@ -158,7 +160,7 @@ const createChromeHarness = (
         addListener: tabsOnCreatedAddListener,
       },
     },
-    action: {
+    [manifestVersion === 2 ? 'browserAction' : 'action']: {
       onClicked: {
         addListener: actionAddListener,
       },
@@ -181,6 +183,7 @@ const flushMicrotasks = async (): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 type LoadBackgroundOptions = {
+  manifestVersion?: 2 | 3
   initialStorage?: Record<string, unknown>
   clearAfterImport?: boolean
   setupMocks?: () => void
@@ -207,7 +210,10 @@ const loadBackground = async (
   mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {})
   mocked.setupMessageListener.mockImplementation(() => {})
   options.setupMocks?.()
-  const harness = createChromeHarness(options.initialStorage ?? {})
+  const harness = createChromeHarness(
+    options.initialStorage ?? {},
+    options.manifestVersion,
+  )
   await import('@/entrypoints/background')
   await flushMicrotasks()
 
@@ -243,6 +249,20 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 describe('バックグラウンドのライフサイクル時の自動オープン挙動', () => {
+  it('Firefox MV2のbrowserActionを登録してメッセージ初期化を完了する', async () => {
+    const harness = await loadBackground({
+      clearAfterImport: false,
+      manifestVersion: 2,
+    })
+    expect(harness.actionAddListener).toHaveBeenCalledWith(
+      mocked.handleExtensionActionClick,
+    )
+    expect(mocked.setupMessageListener).toHaveBeenCalledOnce()
+    expect(harness.tabsOnCreatedAddListener).toHaveBeenCalledWith(
+      mocked.handleTabCreated,
+    )
+  })
+
   it('インストール時に helper 経由で saved-tabs を開いてピン留めする', async () => {
     const harness = await loadBackground({
       clearAfterImport: false,
@@ -276,6 +296,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       changelogShown: true,
     })
   })
+
   it('preflight blocked を migration completed として報告しない', async () => {
     await loadBackground({
       clearAfterImport: false,
@@ -308,6 +329,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     )
     expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
   })
+
   it('issue code が空の blocked preflight は型付き fallback を記録する', async () => {
     await loadBackground({
       clearAfterImport: false,
@@ -336,6 +358,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       },
     )
   })
+
   it('legacy cleanup failureを型付きで記録し他のstartup maintenanceを継続する', async () => {
     await loadBackground({
       clearAfterImport: false,
@@ -353,6 +376,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     )
     expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
   })
+
   it.each([
     [
       'stale',
@@ -406,6 +430,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
     },
   )
+
   it('更新時は最初に changelog を開き、その後 saved-tabs を開く', async () => {
     const harness = await loadBackground({
       initialStorage: {
@@ -422,15 +447,18 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       seenVersion: '9.9.9',
       changelogShown: true,
     })
+    assert.isDefined(mocked.openSavedTabsPage.mock.invocationCallOrder[0])
     expect(harness.tabsCreate.mock.invocationCallOrder[0]).toBeLessThan(
       mocked.openSavedTabsPage.mock.invocationCallOrder[0],
     )
   })
+
   it('ブラウザー起動時に saved-tabs を開く', async () => {
     const harness = await loadBackground()
     await triggerStartup(harness)
     expect(mocked.openSavedTabsPage).toHaveBeenCalledTimes(1)
   })
+
   it('changelog が既に表示済みのときだけ seenVersion を更新する', async () => {
     const harness = await loadBackground({
       initialStorage: {
@@ -445,6 +473,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     })
     expect(mocked.openSavedTabsPage).toHaveBeenCalledTimes(1)
   })
+
   it('バージョンが同じでも更新時には saved-tabs を開く', async () => {
     const harness = await loadBackground({
       initialStorage: {
@@ -457,6 +486,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     expect(harness.storageSet).not.toHaveBeenCalled()
     expect(mocked.openSavedTabsPage).toHaveBeenCalledTimes(1)
   })
+
   it('chrome_update の onInstalled リスナーでは何もしない', async () => {
     const harness = await loadBackground()
     await triggerInstalled(harness, 'chrome_update')
@@ -467,6 +497,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     // onInstalledリスナー経由ではマイグレーションを実行しない
     expect(mocked.migrateParentCategoriesToDomainNames).not.toHaveBeenCalled()
   })
+
   it('インストール時の自動オープンフローのエラーを捕捉する', async () => {
     const harness = await loadBackground()
     mocked.openSavedTabsPage.mockRejectedValueOnce(new Error('open failed'))
@@ -480,6 +511,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       changelogShown: true,
     })
   })
+
   it('起動時の自動オープンフローのエラーを捕捉する', async () => {
     const harness = await loadBackground()
     mocked.openSavedTabsPage.mockRejectedValueOnce(new Error('startup failed'))
@@ -489,6 +521,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       expect.any(Error),
     )
   })
+
   it('バックグラウンド初期化 IIFE 内のマイグレーションエラーを捕捉する', async () => {
     mocked.runPersistenceMigration.mockRejectedValueOnce(
       new Error('migration failed'),
@@ -501,6 +534,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       expect.any(Error),
     )
   })
+
   it('バックグラウンドセットアップ中のコンテキストメニュー初期化エラーを処理する', async () => {
     await loadBackground({
       clearAfterImport: false,
@@ -515,6 +549,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       expect.any(Error),
     )
   })
+
   it('バックグラウンド初期化 IIFE のエラーを処理する', async () => {
     await loadBackground({
       clearAfterImport: false,
@@ -530,6 +565,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     )
     expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
   })
+
   it('本番モードでも console globals を上書きしない', async () => {
     const originalLog = console.log
     const originalDebug = console.debug

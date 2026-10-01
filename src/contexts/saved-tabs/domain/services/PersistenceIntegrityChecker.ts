@@ -424,6 +424,9 @@ const hasConflictingMembershipMetadata = (
   memberships: readonly PersistenceV2CollectionMembership[],
 ): boolean => {
   const first = memberships[0]
+  if (!first) {
+    return false
+  }
   return memberships.some(
     (membership) => !hasSameMembershipMetadata(first, membership),
   )

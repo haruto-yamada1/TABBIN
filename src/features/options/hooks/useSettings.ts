@@ -114,12 +114,17 @@ export const useSettings = () => {
       changes: Record<string, StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && Object.hasOwn(changes, 'userSettings')) {
-        if (changes.userSettings.newValue) {
+      const settingsChange = changes.userSettings
+      if (
+        areaName === 'local' &&
+        Object.hasOwn(changes, 'userSettings') &&
+        settingsChange
+      ) {
+        if (settingsChange.newValue) {
           // NewValue は完全な UserSettings オブジェクトであると期待
           const nextSettings = fromStorageChange(
             UserSettingsSchema,
-            changes.userSettings.newValue,
+            settingsChange.newValue,
           )
           persistedSettingsRef.current = nextSettings
           setSettings(nextSettings)

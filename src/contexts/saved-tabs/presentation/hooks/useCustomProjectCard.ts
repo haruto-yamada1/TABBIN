@@ -91,10 +91,14 @@ const reorderUrlsInBucket = (
     return null
   }
   const moved = arrayMove(urlsInTarget, oldIndex, newIndex)
-  let movedIndex = 0
+  const movedIterator = moved.values()
   return projectUrls.map((u) => {
     if (u.category === sourceCategory) {
-      return moved[movedIndex++]
+      const next = movedIterator.next()
+      if (next.done) {
+        throw new Error('Reordered project URLs must preserve bucket size')
+      }
+      return next.value
     }
     return u
   })

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function */
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
 import {
@@ -252,6 +252,7 @@ describe('zod-storage helpers', () => {
         ],
       })
       expect(result.aiSystemPrompts).toHaveLength(1)
+      assert.isDefined(result.aiSystemPrompts?.[0])
       expect(result.aiSystemPrompts?.[0].id).toBe('valid')
     })
 

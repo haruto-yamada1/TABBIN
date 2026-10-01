@@ -14,7 +14,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
@@ -393,7 +393,9 @@ describe('ProjectManagementModal', () => {
     const deleteButtons = screen.getAllByRole('button', {
       name: 'キーワードを削除',
     })
-    await user.click(deleteButtons[0])
+    const firstDeleteButton = deleteButtons[0]
+    assert.isDefined(firstDeleteButton)
+    await user.click(firstDeleteButton)
 
     fireEvent.blur(domainInput)
 

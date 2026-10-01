@@ -28,7 +28,7 @@ const readNestedStringProperty = (
 
 const extractMajor = (versionRange: string): number => {
   const match = /^[\^~\u003E=\u003C]*(\d+)(?:\.|$)/.exec(versionRange)
-  if (!match) {
+  if (match?.[1] === undefined) {
     throw new TypeError(`Unable to extract major version from: ${versionRange}`)
   }
   return Math.trunc(Number(match[1]))
@@ -36,7 +36,7 @@ const extractMajor = (versionRange: string): number => {
 
 const extractPackageManagerVersion = (packageManager: string): string => {
   const match = /^bun@(.+)$/.exec(packageManager)
-  if (!match) {
+  if (match?.[1] === undefined) {
     throw new TypeError(
       `packageManager does not use bun@ prefix: ${packageManager}`,
     )
@@ -58,8 +58,7 @@ type VerifiedResult = {
 
 const collectConfigLines = (lines: string[], startIndex: number): string[] => {
   const collected: string[] = []
-  for (let index = startIndex + 1; index < lines.length; index++) {
-    const candidate = lines[index]
+  for (const candidate of lines.slice(startIndex + 1)) {
     if (
       candidate.includes('node-version:') ||
       candidate.includes('bun-version:') ||
@@ -79,8 +78,7 @@ const findStepConfigLines = (ciWorkflow: string, marker: string): string[] => {
   const sections: string[] = []
   const lines = ciWorkflow.split('\n')
 
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index]
+  for (const [index, line] of lines.entries()) {
     if (!line.includes(marker)) {
       continue
     }

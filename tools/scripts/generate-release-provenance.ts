@@ -88,7 +88,7 @@ export const extractNameAndVersion = (
   resolvedReference: string,
 ): { name: string; version: string } => {
   const match = /^(?:@([^/]+)\/)?([^@]+)@(.+)$/.exec(resolvedReference)
-  if (!match) {
+  if (match?.[2] === undefined || match[3] === undefined) {
     throw new TypeError(
       `Unable to parse package reference: ${resolvedReference}`,
     )

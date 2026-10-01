@@ -138,7 +138,7 @@ const DomainRow = ({
   isLoading,
   t,
 }: DomainRowProps) => {
-  const belongsToCategory = domains.domainCategories[group.id]
+  const belongsToCategory = domains.domainCategories[group.id] ?? null
   const isInCurrentCategory =
     selection.selectedCategoryId !== null &&
     selection.selectedCategoryId !== 'uncategorized' &&
@@ -156,7 +156,7 @@ const DomainRow = ({
     >
       <Checkbox
         id={checkboxId}
-        checked={domains.selectedDomains[group.id]}
+        checked={domains.selectedDomains[group.id] ?? false}
         onCheckedChange={onToggle}
         disabled={disabled}
       />
@@ -293,6 +293,9 @@ export const DomainSelectionList = () => {
       <div style={containerStyle}>
         {rowVirtualizer.getVirtualItems().map((virtualItem) => {
           const group = visibleTabGroups[virtualItem.index]
+          if (!group) {
+            return null
+          }
 
           return (
             <VirtualItemRow

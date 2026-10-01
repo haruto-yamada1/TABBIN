@@ -15,7 +15,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { getAiChatToolDefinitions } from '@/constants/aiChatTools'
 import type { UserSettings } from '@/types/storage'
@@ -774,7 +774,9 @@ describe('SavedTabsChatWidget', () => {
 
     expect(screen.getByRole('combobox', { name: 'Default' })).toBeTruthy()
 
-    storageListeners[0](
+    const settingsListener = storageListeners[0]
+    assert.isDefined(settingsListener)
+    settingsListener(
       {
         userSettings: {
           oldValue: initialSettings,

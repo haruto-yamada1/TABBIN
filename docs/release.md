@@ -52,6 +52,15 @@ forward-fix を使用します。
 
 ## ZIP 生成
 
+Firefox の提出用 sources ZIP は `wxt.config.ts` の `zip.includeSources`
+で収録対象を明示します。`src/`、ビルド設定、`package.json`、`bun.lock`、
+`.node-version`、`.bun-version` と README / privacy 文書を含めます。
+隠し runtime version ファイルのため `zip.dotSources` を有効にし、
+ソース内の隠しファイルと WXT 既定の test / spec / node_modules を除外します。
+coverage、診断 artifact、worktree、個人用設定は提出対象に含めません。
+ビルドに必要な入力を追加した際は allowlist と
+`tools/scripts/wxt-build-contract.test.ts` の再現テストも更新してください。
+
 品質確認とビルドが通ったら、ZIP を作成します。
 
 ```bash

@@ -229,7 +229,7 @@ const useChatPromptManager = ({
     const nextSettings = normalizeAiSystemPromptSettings({
       ...resolvedSettings,
       activeAiSystemPromptId:
-        draftActivePromptId || normalizedPrompts[0]?.id || '',
+        draftActivePromptId || (normalizedPrompts[0]?.id ?? ''),
       aiSystemPrompts: normalizedPrompts,
     })
 

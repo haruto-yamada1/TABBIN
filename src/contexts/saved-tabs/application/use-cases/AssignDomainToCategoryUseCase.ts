@@ -60,7 +60,7 @@ const isMappingsEqual = (
   return a.every(
     (mapping, index) =>
       mapping.domain === b[index]?.domain &&
-      mapping.categoryId === b[index]?.categoryId,
+      mapping.categoryId === b[index].categoryId,
   )
 }
 

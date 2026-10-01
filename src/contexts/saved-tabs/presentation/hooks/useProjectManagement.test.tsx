@@ -102,7 +102,7 @@ const defaultSettings: UserSettingsDto = {
   colors: {},
 }
 
-const projectSnapshot: CustomProject[] = [
+const projectSnapshot: [CustomProject] = [
   {
     id: 'project-1',
     name: 'Project A',

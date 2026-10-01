@@ -470,17 +470,14 @@ export const DomainModeContainer = ({
     [categories],
   )
   const handleMoveDomainToCategoryWithTabGroups = useCallback(
-    async (
-      domainId: string,
-      fromCategoryId: string | null,
-      toCategoryId: string,
-    ) =>
-      handleMoveDomainToCategory(
+    (domainId: string, fromCategoryId: string | null, toCategoryId: string) => {
+      void handleMoveDomainToCategory(
         domainId,
         fromCategoryId,
         toCategoryId,
         tabGroups,
-      ),
+      )
+    },
     [handleMoveDomainToCategory, tabGroups],
   )
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
@@ -585,7 +582,6 @@ export const DomainModeContainer = ({
                     handleUpdateUrls={handleUpdateUrls}
                     // eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateDomainsOrder={handleUpdateDomainsOrder}
-                    // eslint-disable-next-line typescript/no-misused-promises
                     handleMoveDomainToCategory={
                       handleMoveDomainToCategoryWithTabGroups
                     }

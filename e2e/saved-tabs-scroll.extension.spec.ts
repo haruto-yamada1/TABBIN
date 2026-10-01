@@ -63,6 +63,11 @@ test('domain parent navigation uses the section position while its header is sti
 
   const pane = page.getByTestId('saved-tabs-left-pane')
   const header = page.getByTestId('uncategorized-section-header')
+  // content-visibility uses an intrinsic card height until its contents render.
+  // Measure the section only after the preceding card has its real layout.
+  await expect(
+    page.getByText('Previous parent category tab', { exact: true }),
+  ).toBeVisible()
   await expect(header).toBeVisible()
   const sectionTop = await header.evaluate((element) => {
     const container = element.closest('[data-testid="saved-tabs-left-pane"]')
@@ -93,6 +98,9 @@ test('domain parent navigation uses the section position while its header is sti
   await expect
     .poll(async () => pane.evaluate((element) => element.scrollTop))
     .toBeCloseTo(sectionTop - 96, 0)
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Storage recovery required' }),
+  ).toHaveCount(0)
   await page.screenshot({ path: testInfo.outputPath('parent-scroll.png') })
 
   await previous.click()

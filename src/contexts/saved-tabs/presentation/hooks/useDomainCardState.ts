@@ -106,7 +106,9 @@ const buildCategorizedUrls = (
   }
   for (const url of urls ?? []) {
     if (url.subCategory && subCategorySet.has(url.subCategory)) {
-      categorizedUrls[url.subCategory].push(url)
+      const categoryUrls = categorizedUrls[url.subCategory] ?? []
+      categorizedUrls[url.subCategory] = categoryUrls
+      categoryUrls.push(url)
     } else {
       categorizedUrls[uncategorizedCategoryId].push(url)
     }
@@ -271,10 +273,10 @@ export const useDomainCardState = ({
     }
     console.log('使用されているカテゴリ:', [...usedCategories])
     const regularCategories = (group.subCategories ?? []).filter(
-      (categoryName) => categorizedUrls[categoryName].length > 0,
+      (categoryName) => (categorizedUrls[categoryName]?.length ?? 0) > 0,
     )
     console.log('表示すべき通常カテゴリ:', regularCategories)
-    const hasUncategorized = (categorizedUrls.__uncategorized.length || 0) > 0
+    const hasUncategorized = (categorizedUrls.__uncategorized?.length ?? 0) > 0
     if (
       group.subCategoryOrderWithUncategorized &&
       group.subCategoryOrderWithUncategorized.length > 0

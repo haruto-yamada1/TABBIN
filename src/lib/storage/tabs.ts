@@ -186,11 +186,12 @@ const getMigratedTabGroupById = async (
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((group) => group.id === groupId)
-  if (groupIndex === -1) {
+  const group = savedTabs[groupIndex]
+  if (!group) {
     return null
   }
   return {
-    group: savedTabs[groupIndex],
+    group,
     groupIndex,
     savedTabs,
   }
@@ -211,13 +212,13 @@ const addUrlToTabGroup = async (
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
-  if (groupIndex === -1) {
+  const group = savedTabs[groupIndex]
+  if (!group) {
     return
   }
 
   // URLレコードを作成または更新
   const urlRecord = await createOrUpdateUrlRecord(url, title)
-  const group = savedTabs[groupIndex]
 
   // URLIDsが存在しない場合は初期化
   // eslint-disable-next-line typescript/prefer-nullish-coalescing
@@ -367,10 +368,11 @@ const setCategoryKeywords = async (
         (ck: SubCategoryKeyword) => ck.categoryName === categoryName,
       )
       const updatedCategoryKeywords = [...categoryKeywords]
-      if (categoryIndex !== -1) {
+      const existingCategoryKeyword = categoryKeywords[categoryIndex]
+      if (existingCategoryKeyword) {
         // 既存カテゴリの更新
         updatedCategoryKeywords[categoryIndex] = {
-          ...updatedCategoryKeywords[categoryIndex],
+          ...existingCategoryKeyword,
           keywords,
         }
       } else {
@@ -403,12 +405,12 @@ const setCategoryKeywords = async (
   if (existingSetting) {
     // 既存の設定がある場合は更新。触ったレコードの domain を hostname へ書き換え
     existingSetting.domain = group.domain
-    const keywordIndex = existingSetting.categoryKeywords.findIndex(
+    const categoryKeyword = existingSetting.categoryKeywords.find(
       (ck) => ck.categoryName === categoryName,
     )
-    if (keywordIndex !== -1) {
+    if (categoryKeyword) {
       // 既存のキーワード設定を更新
-      existingSetting.categoryKeywords[keywordIndex].keywords = keywords
+      categoryKeyword.keywords = keywords
     } else {
       // 新しいキーワード設定を追加
       existingSetting.categoryKeywords.push({
@@ -532,9 +534,9 @@ const applySubCategoryMapping = (
   groupId: string,
   mapping: Record<string, string>,
 ): void => {
-  const groupIndex = groups.findIndex((group) => group.id === groupId)
-  if (groupIndex !== -1) {
-    groups[groupIndex].urlSubCategories = mapping
+  const group = groups.find((candidate) => candidate.id === groupId)
+  if (group) {
+    group.urlSubCategories = mapping
   }
 } // キーワードに基づいて自動的にURLを分類する（新形式対応）
 const autoCategorizeTabsUnsafe = async (groupId: string): Promise<void> => {
@@ -828,12 +830,12 @@ const removeUrlIdsFromTabGroup = async (
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
-  if (groupIndex === -1) {
+  const group = savedTabs[groupIndex]
+  if (!group) {
     return
   }
 
   const rollbackSavedTabs = structuredClone(savedTabs)
-  const group = savedTabs[groupIndex]
   if (!(group.urlIds && group.urlIds.length > 0)) {
     return
   }
@@ -871,11 +873,11 @@ const removeUrlsFromTabGroup = async (
     savedTabs?: TabGroup[]
   }>('savedTabs')
   const groupIndex = savedTabs.findIndex((g: TabGroup) => g.id === groupId)
-  if (groupIndex === -1) {
+  const group = savedTabs[groupIndex]
+  if (!group) {
     return
   }
   const rollbackSavedTabs = structuredClone(savedTabs)
-  const group = savedTabs[groupIndex]
   const targetUrlsSet = new Set(urls)
 
   // 新形式のみサポート: URLIDsからURLを削除

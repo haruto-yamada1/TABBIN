@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
 
 import type { IndexedDbSavedTabsMutableState } from '@/contexts/saved-tabs/infrastructure/composition/IndexedDbSavedTabsSessionService'
 
@@ -112,6 +112,7 @@ const createDataPlane = (state = createState()) => {
 describe('backgroundSavedTabsIndexedDbDataPlane', () => {
   it('projects URL metrics and membership events without collapsing their timestamps', async () => {
     const state = createState()
+    assert.isDefined(state.urls[0])
     state.urls[0] = {
       ...state.urls[0],
       firstSavedAt: 10,
@@ -119,11 +120,13 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
       lastSavedAt: 30,
       lastSavedAtProvenance: 'exact',
     }
+    assert.isDefined(state.memberships[0])
     state.memberships[0] = {
       ...state.memberships[0],
       addedAt: 20,
       addedAtProvenance: 'legacy-fallback',
     }
+    assert.isDefined(state.memberships[1])
     state.memberships[1] = {
       ...state.memberships[1],
       addedAt: 40,

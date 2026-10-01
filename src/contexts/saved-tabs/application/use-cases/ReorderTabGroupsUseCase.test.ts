@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
 
 import { toSavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
@@ -109,7 +109,9 @@ describe('ReorderTabGroupsUseCase', () => {
     })
 
     expect(repositories.saveAllSpy).toHaveBeenCalledTimes(1)
-    const savedGroups = repositories.saveAllSpy.mock.calls[0][0]
+    const [saveCall] = repositories.saveAllSpy.mock.calls
+    assert.isDefined(saveCall)
+    const [savedGroups] = saveCall
     expect(savedGroups).toHaveLength(1)
     expect(savedGroups[0]).toMatchObject({
       id: 'group-legacy',

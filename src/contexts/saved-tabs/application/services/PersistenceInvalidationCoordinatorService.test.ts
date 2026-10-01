@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 
 import type {
   PersistenceChangeEvent,
@@ -836,7 +836,11 @@ describe('PersistenceInvalidationCoordinator', () => {
         applied.push(revision)
       },
       changePort,
-      query: async () => projections[queryCalls++],
+      query: async () => {
+        const projection = projections[queryCalls++]
+        assert.isDefined(projection)
+        return projection
+      },
       readCurrentRevision: async () => 3,
       relevantScopes: new Set(['collections']),
     })

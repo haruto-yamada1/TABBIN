@@ -17,10 +17,12 @@ const originalChrome = globalWithChrome.chrome
 describe('chrome-storage helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal('browser', undefined)
     globalWithChrome.chrome = undefined
   })
 
   afterEach(() => {
+    vi.unstubAllGlobals()
     globalWithChrome.chrome = originalChrome
   })
 
@@ -78,6 +80,53 @@ describe('chrome-storage helpers', () => {
 
     expect(getChromeStorageLocal()).not.toBeNull()
     expect(getChromeStorageOnChanged()).toBeNull()
+  })
+
+  it('prefers Firefox Promise storage over the callback-only chrome namespace', async () => {
+    const callbackOnlyGet = vi.fn(() => undefined)
+    globalWithChrome.chrome = {
+      storage: { local: { get: callbackOnlyGet } },
+    } as unknown as typeof chrome
+    const onChanged = { addListener: vi.fn(), removeListener: vi.fn() }
+    const local = {
+      get: vi.fn(async () => ({ theme: 'dark' })),
+      set: vi.fn(async () => undefined),
+    }
+    vi.stubGlobal('browser', { storage: { local, onChanged } })
+
+    await expect(getChromeStorageLocal()?.get('theme')).resolves.toEqual({
+      theme: 'dark',
+    })
+    await expect(
+      getChromeStorageLocal()?.set({ theme: 'light' }),
+    ).resolves.toBeUndefined()
+    expect(local.set).toHaveBeenCalledWith({ theme: 'light' })
+    expect(getChromeStorageOnChanged()).toBe(onChanged)
+    expect(callbackOnlyGet).not.toHaveBeenCalled()
+  })
+
+  it('preserves Firefox storage rejections without retrying the chrome namespace', async () => {
+    const failure = new Error('storage access denied')
+    const chromeGet = vi.fn()
+    globalWithChrome.chrome = {
+      storage: { local: { get: chromeGet } },
+    } as unknown as typeof chrome
+    vi.stubGlobal('browser', {
+      storage: { local: { get: vi.fn().mockRejectedValue(failure) } },
+    })
+
+    await expect(getChromeStorageLocal()?.get('theme')).rejects.toBe(failure)
+    expect(chromeGet).not.toHaveBeenCalled()
+  })
+
+  it('keeps Chrome storage when the browser namespace has no storage API', () => {
+    const local = { get: vi.fn(), set: vi.fn() }
+    globalWithChrome.chrome = {
+      storage: { local },
+    } as unknown as typeof chrome
+    vi.stubGlobal('browser', { storage: null })
+
+    expect(getChromeStorageLocal()).toBe(local)
   })
 
   it('warnMissingChromeStorage は同一コンテキストで重複警告しない', () => {

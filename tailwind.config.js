@@ -1,6 +1,7 @@
-/* eslint-disable typescript/no-require-imports, typescript/no-unsafe-call */
+import tailwindcssAnimate from 'tailwindcss-animate'
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
@@ -8,7 +9,7 @@ module.exports = {
     './src/**/*.{ts,tsx}',
   ],
   darkMode: ['class'],
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindcssAnimate],
   theme: {
     container: {
       center: true,

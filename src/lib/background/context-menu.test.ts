@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const mocked = vi.hoisted(() => ({
   handleSaveCurrentTab: vi.fn(),
@@ -89,6 +89,7 @@ describe('createContextMenus関数', () => {
     mocked.handleSaveAllWindowsTabs.mockResolvedValue([])
     mocked.openSavedTabsPage.mockResolvedValue(999)
   })
+
   it('contextMenus API が利用できない場合にエラーをログ出力する', () => {
     createChromeHarness({
       withContextMenus: false,
@@ -98,6 +99,7 @@ describe('createContextMenus関数', () => {
       'chrome.contextMenus APIが利用できません。manifest.jsonのパーミッションを確認してください。',
     )
   })
+
   it('メニュー項目を作成してクリックハンドラをディスパッチする', async () => {
     const harness = createChromeHarness()
     mocked.handleSaveCurrentTab.mockResolvedValueOnce([
@@ -123,21 +125,27 @@ describe('createContextMenus関数', () => {
       type: 'separator',
     })
     expect(harness.listeners).toHaveLength(1)
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'saveCurrentTab',
     } as chrome.contextMenus.OnClickData)
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'saveAllTabs',
     } as chrome.contextMenus.OnClickData)
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'saveSameDomainTabs',
     } as chrome.contextMenus.OnClickData)
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'saveAllWindowsTabs',
     } as chrome.contextMenus.OnClickData)
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'openSavedTabs',
     } as chrome.contextMenus.OnClickData)
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'unknown-menu-id',
     } as chrome.contextMenus.OnClickData)
@@ -147,6 +155,7 @@ describe('createContextMenus関数', () => {
     expect(mocked.handleSaveAllWindowsTabs).toHaveBeenCalledTimes(1)
     expect(mocked.openSavedTabsPage).toHaveBeenCalledTimes(1)
   })
+
   it('runtime.lastError の削除エラーをログ出力して継続する', async () => {
     const harness = createChromeHarness({
       runtimeLastError: {
@@ -161,12 +170,14 @@ describe('createContextMenus関数', () => {
     expect(harness.create).toHaveBeenCalledTimes(6)
     expect(harness.addListener).toHaveBeenCalledTimes(1)
   })
+
   it('クリックハンドラのエラーを捕捉する', async () => {
     const harness = createChromeHarness()
     const error = new Error('save failed')
     mocked.handleSaveCurrentTab.mockRejectedValueOnce(error)
     createContextMenus()
     await flushAsync()
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'saveCurrentTab',
     } as chrome.contextMenus.OnClickData)
@@ -175,18 +186,21 @@ describe('createContextMenus関数', () => {
       error,
     )
   })
+
   it('保存結果が空配列でも保存処理自体は実行される', async () => {
     const harness = createChromeHarness()
     mocked.handleSaveCurrentTab.mockResolvedValueOnce([])
     createContextMenus()
     await flushAsync()
 
+    assert.isDefined(harness.listeners[0])
     await harness.listeners[0]({
       menuItemId: 'saveCurrentTab',
     } as chrome.contextMenus.OnClickData)
 
     expect(mocked.handleSaveCurrentTab).toHaveBeenCalledTimes(1)
   })
+
   it('メニュー削除セットアップ中の例外を捕捉する', () => {
     const error = new Error('removeAll crashed')
     createChromeHarness({
@@ -195,6 +209,7 @@ describe('createContextMenus関数', () => {
     createContextMenus()
     expect(console.error).toHaveBeenCalledWith('メニュー削除中のエラー:', error)
   })
+
   it('メニュー項目作成中の例外を捕捉する', async () => {
     const error = new Error('create crashed')
     createChromeHarness({

@@ -20,32 +20,39 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   }),
 }))
 
-vi.mock('@/features/ai-chat/lib/conversation-history', () => ({
-  buildConversationTitle: (
-    messages: { content: string; role: 'assistant' | 'user' }[],
-  ) => messages[0]?.content || '新しい会話',
-  createConversationRecord: ({
-    id = 'new-conversation',
-    messages = [],
-    now = 10,
-  }: {
-    id?: string
-    messages?: {
-      content: string
-      id: string
-      role: 'assistant' | 'user'
-    }[]
-    now?: number
-  } = {}) => ({
-    createdAt: now,
-    id,
-    messages,
-    title: messages[0]?.content || '新しい会話',
-    updatedAt: now,
-  }),
-  loadConversationHistory: mocked.loadConversationHistory,
-  saveConversationHistory: mocked.saveConversationHistory,
-}))
+vi.mock('@/features/ai-chat/lib/conversation-history', () => {
+  const buildConversationTitle = (messages: { content: string }[]) => {
+    const content = messages[0]?.content
+    if (!content) {
+      return '新しい会話'
+    }
+    return content
+  }
+  return {
+    buildConversationTitle,
+    createConversationRecord: ({
+      id = 'new-conversation',
+      messages = [],
+      now = 10,
+    }: {
+      id?: string
+      messages?: {
+        content: string
+        id: string
+        role: 'assistant' | 'user'
+      }[]
+      now?: number
+    } = {}) => ({
+      createdAt: now,
+      id,
+      messages,
+      title: buildConversationTitle(messages),
+      updatedAt: now,
+    }),
+    loadConversationHistory: mocked.loadConversationHistory,
+    saveConversationHistory: mocked.saveConversationHistory,
+  }
+})
 
 import {
   resolveCurrentConversationId,

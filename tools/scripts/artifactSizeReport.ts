@@ -40,6 +40,9 @@ const collectEntries = (directory: string, assets: Map<string, number>) => {
     const entryPaths = new Set(
       scripts.map((match) => {
         const source = match[1]
+        if (source === undefined) {
+          throw new Error(`Missing entry script source: ${file}`)
+        }
         const resolved = source.startsWith('/')
           ? source.slice(1)
           : path.posix.join(path.posix.dirname(file), source)

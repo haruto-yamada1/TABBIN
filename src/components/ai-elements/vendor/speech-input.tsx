@@ -265,7 +265,7 @@ export const SpeechInput = ({
       i < speechEvent.results.length;
       i += 1
     ) {
-      const result = speechEvent.results[i]
+      const result = speechEvent.results.item(i)
       if (result.isFinal) {
         finalTranscript += result[0]?.transcript ?? ''
       }

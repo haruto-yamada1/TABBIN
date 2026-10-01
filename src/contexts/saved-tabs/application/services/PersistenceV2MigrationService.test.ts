@@ -95,21 +95,19 @@ const createService = ({
     create: vi.fn(async () => currentFingerprint),
   }
   const preflightRepository: MigrationPreflightRepositoryPort = {
-    read: vi.fn(
-      async (): Promise<StoredMigrationPreflight> => ({
-        checkedAt: 1,
-        diagnostic: {
-          capacityStatus: 'ready',
-          collisionCount: 0,
-          entityCounts: {},
-          issueCodes: [],
-          preflightVersion: 1,
-          sourceFingerprintVersion: 1,
-        },
-        sourceFingerprint: preflightFingerprint,
-        status: 'healthy',
-      }),
-    ),
+    read: vi.fn(async (): Promise<StoredMigrationPreflight> => ({
+      checkedAt: 1,
+      diagnostic: {
+        capacityStatus: 'ready',
+        collisionCount: 0,
+        entityCounts: {},
+        issueCodes: [],
+        preflightVersion: 1,
+        sourceFingerprintVersion: 1,
+      },
+      sourceFingerprint: preflightFingerprint,
+      status: 'healthy',
+    })),
     save: vi.fn(async () => undefined),
   }
   const target = createTarget(targetSnapshot)
