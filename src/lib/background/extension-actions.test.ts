@@ -149,6 +149,7 @@ describe('extension-actions モジュール', () => {
       expect(mocked.showNotification).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
+
     it('現在のタブを保存して通知し、閉じて、url/title を返す', async () => {
       const chromeTabs = createChromeTabsHarness()
       const activeTab = tab({
@@ -186,6 +187,7 @@ describe('extension-actions モジュール', () => {
       expect(loggedValues).not.toContain('current.example')
       expect(loggedValues).not.toContain('/path')
     })
+
     it('タブを閉じる処理が失敗した場合はログ出力して継続する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const activeTab = tab({
@@ -208,6 +210,7 @@ describe('extension-actions モジュール', () => {
         error,
       )
     })
+
     it('atomic save failureを成功扱いせず通知とタブcloseを中止する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const activeTab = tab({
@@ -225,6 +228,7 @@ describe('extension-actions モジュール', () => {
       expect(mocked.showNotification).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
+
     it('アクティブタブに id がない場合は fallback タイトルを返してクローズをスキップする', async () => {
       const chromeTabs = createChromeTabsHarness()
       const activeTab = tab({
@@ -287,6 +291,7 @@ describe('extension-actions モジュール', () => {
       expect(mocked.filterTabsByUserSettings).not.toHaveBeenCalled()
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
     })
+
     it('同一ドメインタブを保存して通知し、対象タブのみ閉じる', async () => {
       const chromeTabs = createChromeTabsHarness()
       const active = tab({
@@ -414,6 +419,7 @@ describe('extension-actions モジュール', () => {
         },
       ])
     })
+
     it('閉じられる同一ドメインタブがない場合は fallback タイトルを返して一括クローズをスキップする', async () => {
       const chromeTabs = createChromeTabsHarness()
       const active = tab({
@@ -444,6 +450,7 @@ describe('extension-actions モジュール', () => {
       ])
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
+
     it('同一ドメインタブがすべてフィルタ除外された場合は空を返す', async () => {
       const chromeTabs = createChromeTabsHarness()
       const active = tab({
@@ -460,6 +467,7 @@ describe('extension-actions モジュール', () => {
       expect(mocked.showNotification).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
+
     it('現在タブ URL の解析に失敗した場合はログ出力して空を返す', async () => {
       const chromeTabs = createChromeTabsHarness()
       chromeTabs.query.mockResolvedValueOnce([
@@ -475,6 +483,7 @@ describe('extension-actions モジュール', () => {
         expect.any(Error),
       )
     })
+
     it('同一ドメインフローの一括クローズ失敗時はログ出力して継続する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const active = tab({
@@ -539,6 +548,7 @@ describe('extension-actions モジュール', () => {
       expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
+
     it('全ウィンドウのタブを保存し、一括クローズ対象から saved-tabs ページを除外する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const tabs = [
@@ -609,6 +619,7 @@ describe('extension-actions モジュール', () => {
         },
       ])
     })
+
     it('閉じられる全ウィンドウタブがない場合は fallback タイトルを返して一括クローズをスキップする', async () => {
       const chromeTabs = createChromeTabsHarness()
       const tabs = [
@@ -634,6 +645,7 @@ describe('extension-actions モジュール', () => {
       ])
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
+
     it('全タブ取得に失敗した場合はログ出力して空を返す', async () => {
       const chromeTabs = createChromeTabsHarness()
       const error = new Error('query failed')
@@ -645,6 +657,7 @@ describe('extension-actions モジュール', () => {
         error,
       )
     })
+
     it('全ウィンドウフローの一括クローズ失敗時はログ出力して継続する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const tabs = [
@@ -684,6 +697,7 @@ describe('extension-actions モジュール', () => {
         error,
       )
     })
+
     it('windows.getAll が空の場合は tabs.query にフォールバックする', async () => {
       const chromeTabs = createChromeTabsHarness()
       const tabs = [
@@ -720,6 +734,7 @@ describe('extension-actions モジュール', () => {
       ])
       expect(chromeTabs.query).toHaveBeenCalledWith({})
     })
+
     it('windows.getAll が失敗した場合は tabs.query にフォールバックする', async () => {
       const chromeTabs = createChromeTabsHarness()
       const tabs = [
@@ -744,6 +759,7 @@ describe('extension-actions モジュール', () => {
       ])
       expect(chromeTabs.query).toHaveBeenCalledWith({})
     })
+
     it('windows API が使えない場合は tabs.query で全タブを取得する', async () => {
       const query = vi.fn()
 
@@ -788,6 +804,7 @@ describe('extension-actions モジュール', () => {
       expect(query).toHaveBeenCalledWith({})
       expect(remove).toHaveBeenCalledWith([50, 51])
     })
+
     it('window.tabs が未設定のウィンドウを含んでも保存できる', async () => {
       const chromeTabs = createChromeTabsHarness()
       const tabs = [
@@ -831,6 +848,7 @@ describe('extension-actions モジュール', () => {
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
+
     it('フィルタ済みタブを保存し、saved-tabs ページ/除外 URL を除く対象タブを閉じる', async () => {
       const chromeTabs = createChromeTabsHarness()
       const queriedTabs = [
@@ -895,6 +913,7 @@ describe('extension-actions モジュール', () => {
         },
       ])
     })
+
     it('カスタム同期時に除外パターンと不正URLを再適用する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const queriedTabs = [
@@ -938,6 +957,7 @@ describe('extension-actions モジュール', () => {
         },
       ])
     })
+
     it('保存後に閉じるタブがない場合はログ出力する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const queriedTabs = [
@@ -964,6 +984,7 @@ describe('extension-actions モジュール', () => {
       expect(chromeTabs.remove).not.toHaveBeenCalled()
       expect(console.log).toHaveBeenCalledWith('閉じるべきタブはありません')
     })
+
     it('save-window フローの remove エラーをログ出力する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const queriedTabs = [
@@ -993,6 +1014,7 @@ describe('extension-actions モジュール', () => {
         'remove failed',
       )
     })
+
     it('save-window の remove catch で Error.message をログ出力する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const queriedTabs = [
@@ -1092,6 +1114,7 @@ describe('extension-actions モジュール', () => {
         },
       ])
     })
+
     it('clickBehavior がない場合は saveWindowTabs にフォールバックする', async () => {
       const chromeTabs = createChromeTabsHarness()
       const tabs = [
@@ -1114,6 +1137,7 @@ describe('extension-actions モジュール', () => {
         currentWindow: true,
       })
     })
+
     it('clickBehavior が saveSameDomainTabs の場合は saveSameDomainTabs にディスパッチする', async () => {
       const chromeTabs = createChromeTabsHarness()
       chromeTabs.query.mockResolvedValueOnce([])
@@ -1129,6 +1153,7 @@ describe('extension-actions モジュール', () => {
         currentWindow: true,
       })
     })
+
     it('clickBehavior が saveAllWindowsTabs の場合は saveAllWindowsTabs にディスパッチする', async () => {
       const chromeTabs = createChromeTabsHarness()
       chromeTabs.query.mockResolvedValueOnce([
@@ -1148,6 +1173,7 @@ describe('extension-actions モジュール', () => {
       await expect(handleExtensionActionClick()).resolves.toBeUndefined()
       expect(chromeTabs.query).toHaveBeenCalledWith({})
     })
+
     it('ディスパッチ前に拡張機能アクションのセットアップが失敗した場合はログ出力する', async () => {
       mocked.getUserSettings.mockReset()
       mocked.getUserSettings.mockRejectedValueOnce(new Error('settings failed'))
@@ -1157,6 +1183,7 @@ describe('extension-actions モジュール', () => {
         'settings failed',
       )
     })
+
     it('拡張機能アクション失敗時の非 Error 値をログ出力する', async () => {
       mocked.getUserSettings.mockReset()
       mocked.getUserSettings.mockRejectedValueOnce('settings failed (string)')

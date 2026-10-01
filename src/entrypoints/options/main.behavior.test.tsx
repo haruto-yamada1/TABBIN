@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { OptionsPage } from '@/features/options/routes/OptionsRoute'
 import type { UserSettings } from '@/types/storage'
@@ -401,7 +401,9 @@ describe('options route behavior', () => {
 
     expect(screen.queryByText('Current value')).toBeNull()
 
-    await user.click(screen.getAllByTestId('mock-select-change')[0])
+    const select = screen.getAllByTestId('mock-select-change')[0]
+    assert.isDefined(select)
+    await user.click(select)
     expect(mocked.updateSetting).toHaveBeenCalledWith(
       'clickBehavior',
       'saveWindowTabs',
@@ -480,7 +482,9 @@ describe('options route behavior', () => {
 
     const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
-    await user.click(resetButtons[0])
+    const resetButton = resetButtons[0]
+    assert.isDefined(resetButton)
+    await user.click(resetButton)
     expect(mocked.updateSetting).toHaveBeenCalledWith('fontSizePercent', 100)
 
     const fontSizeSlider = screen.getByLabelText('Font size slider')
@@ -509,11 +513,14 @@ describe('options route behavior', () => {
 
     const resetButtons = screen.getAllByRole('button', { name: 'Reset' })
 
-    await user.click(resetButtons[1])
+    const resetButton = resetButtons[1]
+    assert.isDefined(resetButton)
+    await user.click(resetButton)
     expect(mocked.handleResetColors).toHaveBeenCalledTimes(1)
 
     const colorInput = screen.getByTestId('color-picker-background')
     const hexInput = screen.getAllByPlaceholderText('e.g. #FF5733, #3366CC')[0]
+    assert.isDefined(hexInput)
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.change(colorInput, { target: { value: '#ffffff' } })
     // eslint-disable-next-line testing-library/prefer-user-event
@@ -547,10 +554,11 @@ describe('options route behavior', () => {
     const user = userEvent.setup()
     render(createElement(OptionsPage))
 
-    await user.type(
-      screen.getAllByPlaceholderText('e.g. chrome-extension://')[0],
-      '{Escape}',
-    )
+    const excludePatternInput = screen.getAllByPlaceholderText(
+      'e.g. chrome-extension://',
+    )[0]
+    assert.isDefined(excludePatternInput)
+    await user.type(excludePatternInput, '{Escape}')
 
     expect(mocked.addExcludePattern).not.toHaveBeenCalled()
   })

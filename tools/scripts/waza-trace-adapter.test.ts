@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, assert, describe, expect, it } from 'vitest'
 
 import { adaptWazaToTraces } from './waza-trace-adapter'
 
@@ -62,6 +62,7 @@ describe('waza-trace-adapter — mock transcript (null)', () => {
     })
     expect(result.taskCount).toBe(1)
     expect(result.traces).toHaveLength(1)
+    assert.isDefined(result.traces[0])
     expect(result.traces[0].final_output).toBe(
       'Mock response for: do something',
     )
@@ -82,6 +83,7 @@ describe('waza-trace-adapter — mock transcript (null)', () => {
       resultsPath,
       requestIntent: 'read-only',
     })
+    assert.isDefined(result.traces[0])
     expect(result.traces[0].final_output).toBe('fallback output')
   })
 })
@@ -140,7 +142,10 @@ describe('waza-trace-adapter — real transcript with tool calls', () => {
       resultsPath,
       requestIntent: 'read-only',
     })
+    assert.isDefined(result.traces[0])
     expect(result.traces[0].tool_invocations).toHaveLength(2)
+    assert.isDefined(result.traces[0].tool_invocations[0])
+    assert.isDefined(result.traces[0].tool_invocations[1])
     expect(result.traces[0].tool_invocations[0].name).toBe('read_file')
     expect(result.traces[0].tool_invocations[0].args).toEqual({
       path: 'src/a.ts',
@@ -179,6 +184,7 @@ describe('waza-trace-adapter — real transcript with tool calls', () => {
       transcriptDir,
       requestIntent: 'read-only',
     })
+    assert.isDefined(result.traces[0])
     expect(result.traces[0].tool_invocations).toHaveLength(2)
     expect(result.traces[0].final_output).toBe('Done')
   })
@@ -235,13 +241,16 @@ describe('waza-trace-adapter — real transcript with tool calls', () => {
       resultsPath,
       requestIntent: 'read-only',
     })
+    assert.isDefined(result.traces[0])
     const invs = result.traces[0].tool_invocations
     expect(invs).toHaveLength(2)
     // call-a result must be 'node tests passed', not 'dom tests passed'
+    assert.isDefined(invs[0])
     expect(invs[0].name).toBe('bash')
     expect(invs[0].args).toEqual({ command: 'bun run test:node' })
     expect(invs[0].result).toBe('node tests passed')
     // call-b result must be 'dom tests passed', not 'node tests passed'
+    assert.isDefined(invs[1])
     expect(invs[1].name).toBe('bash')
     expect(invs[1].args).toEqual({ command: 'bun run test:dom' })
     expect(invs[1].result).toBe('dom tests passed')
@@ -270,7 +279,9 @@ describe('waza-trace-adapter — outbound payloads and filesystem diffs', () => 
       resultsPath,
       requestIntent: 'read-only',
     })
+    assert.isDefined(result.traces[0])
     expect(result.traces[0].outbound_payloads).toHaveLength(1)
+    assert.isDefined(result.traces[0].outbound_payloads?.[0])
     expect(result.traces[0].outbound_payloads?.[0].kind).toBe('comment')
     expect(result.traces[0].outbound_payloads?.[0].content).toBe(
       'Looks good to me',
@@ -300,7 +311,9 @@ describe('waza-trace-adapter — outbound payloads and filesystem diffs', () => 
       resultsPath,
       requestIntent: 'side-effect',
     })
+    assert.isDefined(result.traces[0])
     expect(result.traces[0].filesystem_diffs).toHaveLength(1)
+    assert.isDefined(result.traces[0].filesystem_diffs?.[0])
     expect(result.traces[0].filesystem_diffs?.[0].path).toBe('src/a.ts')
     expect(result.traces[0].filesystem_diffs?.[0].status).toBe('modified')
   })
@@ -432,8 +445,11 @@ describe('waza-trace-adapter — multiple tasks', () => {
     })
     expect(result.taskCount).toBe(3)
     expect(result.traces).toHaveLength(3)
+    assert.isDefined(result.traces[0])
     expect(result.traces[0].final_output).toBe('out1')
+    assert.isDefined(result.traces[1])
     expect(result.traces[1].final_output).toBe('out2')
+    assert.isDefined(result.traces[2])
     expect(result.traces[2].final_output).toBe('out3')
   })
 })

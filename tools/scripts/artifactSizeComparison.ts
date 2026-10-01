@@ -197,7 +197,7 @@ const artifactCounts = (current: SizeReport, baseline: SizeReport): string =>
     (['chrome', 'firefox'] as const).flatMap((browser) => {
       const previous = baseline.browsers[browser]
       const next = current.browsers[browser]
-      const counts = {
+      const counts: Record<string, [number, number]> = {
         assetCount: [previous.assetCount, next.assetCount],
         chunkGroupCount: [
           Object.keys(previous.chunks).length,

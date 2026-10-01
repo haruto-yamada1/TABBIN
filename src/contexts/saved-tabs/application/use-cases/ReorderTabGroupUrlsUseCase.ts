@@ -52,13 +52,13 @@ export const createReorderTabGroupUrlsUseCase = (
     const targetIndex = allTabGroups.findIndex(
       (group) => group.id === tabGroupId,
     )
-    if (targetIndex === -1) {
+    const targetGroup = allTabGroups[targetIndex]
+    if (!targetGroup) {
       throw new SavedTabsDomainError(
         '並び替え対象の TabGroup が見つかりません',
         'TAB_GROUP_NOT_FOUND',
       )
     }
-    const targetGroup = allTabGroups[targetIndex]
     const reorderedUrlIds = reorderTabGroupUrlIds({
       group: targetGroup,
       newUrlOrder: command.newUrlOrder,

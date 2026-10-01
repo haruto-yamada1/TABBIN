@@ -41,7 +41,7 @@ const PIE_CHART_COLOR_TOKENS = [
   'chart-3',
   'chart-4',
   'chart-5',
-]
+] as const
 
 const getChartColor = (colorToken: string) => `var(--${colorToken})`
 
@@ -205,7 +205,8 @@ const getPieChartData = (spec: AiChartSpec) =>
   spec.data.map((datum, index) => ({
     ...datum,
     fill: getChartColor(
-      PIE_CHART_COLOR_TOKENS[index % PIE_CHART_COLOR_TOKENS.length],
+      PIE_CHART_COLOR_TOKENS[index % PIE_CHART_COLOR_TOKENS.length] ??
+        PIE_CHART_COLOR_TOKENS[0],
     ),
   }))
 
@@ -543,6 +544,9 @@ const AiChart = ({
 }) => {
   const config = createChartConfig(spec.series)
   const primarySeries = spec.series[0]
+  if (!primarySeries) {
+    return null
+  }
   const categoryKey = spec.categoryKey || spec.xKey || 'label' // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty string keys should fall through
   const shouldShowLegend = spec.showLegend ?? spec.series.length > 1
   const chartContent = renderChartContent({

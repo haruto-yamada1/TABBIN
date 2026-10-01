@@ -1,5 +1,5 @@
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { TabGroup, UrlRecord } from '@/contexts/saved-tabs/public-api'
 
@@ -215,8 +215,10 @@ describe('tabs storage', () => {
     expect(groupWithoutUrlSubCategories.urlIds).toStrictEqual([])
     const mappingGroups = [groupWithoutUrlIds]
     applySubCategoryMapping(mappingGroups, 'missing-group', { 'url-1': 'docs' })
+    assert.isDefined(mappingGroups[0])
     expect(mappingGroups[0].urlSubCategories).toBeUndefined()
     applySubCategoryMapping(mappingGroups, 'legacy-group', { 'url-1': 'docs' })
+    assert.isDefined(mappingGroups[0])
     expect(mappingGroups[0].urlSubCategories).toStrictEqual({ 'url-1': 'docs' })
   })
 
@@ -519,6 +521,7 @@ describe('tabs storage', () => {
         subCategories: [],
       },
     ])
+    assert.isDefined(settings[0])
     expect(settings[0].categoryKeywords).toStrictEqual([
       {
         categoryName: 'docs',
@@ -579,7 +582,9 @@ describe('tabs storage', () => {
     // 既存設定 (schemeful domain) が hostname グループと一致して更新され、
     // 触ったレコードの domain は hostname へ漸進移行される (CodeRabbit PR #626 review)
     expect(settings).toHaveLength(1)
+    assert.isDefined(settings[0])
     expect(settings[0].domain).toBe('example.com')
+    assert.isDefined(settings[0])
     expect(settings[0].categoryKeywords).toStrictEqual([
       {
         categoryName: 'docs',
@@ -624,6 +629,8 @@ describe('tabs storage', () => {
     const { setUrlSubCategory } = await loadTabsModule()
 
     await setUrlSubCategory('group-1', 'https://example.com/reference', 'news')
+
+    assert.isDefined(state.savedTabs[0])
 
     expect(state.savedTabs[0]?.urlSubCategories).toStrictEqual({
       'url-1': 'news',
@@ -1515,8 +1522,10 @@ describe('tabs storage', () => {
       await loadTabsModule()
 
     await addSubCategoryToGroup('legacy-group', 'docs')
+    assert.isDefined(state.savedTabs[0])
     delete state.savedTabs[0].subCategories
     await setCategoryKeywords('legacy-group', 'docs', ['guide'])
+    assert.isDefined(state.savedTabs[0])
     delete state.savedTabs[0].categoryKeywords
     state.savedTabs[0].urlSubCategories = {
       'url-1': 'existing',
@@ -1535,6 +1544,7 @@ describe('tabs storage', () => {
         subCategories: ['docs'],
       },
     ])
+    assert.isDefined(state.savedTabs[0])
     expect(state.savedTabs[0].urlSubCategories).toStrictEqual({
       'url-1': 'existing',
     })

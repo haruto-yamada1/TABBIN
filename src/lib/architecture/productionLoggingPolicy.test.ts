@@ -36,17 +36,6 @@ describe('issue #715: production logging policy', () => {
     expect(override?.rules?.['eslint/no-console']).toBe('error')
   })
 
-  it('production build が legacy direct console を削除する', () => {
-    const configSource = readFileSync(
-      resolve(repoRoot, 'wxt.config.ts'),
-      'utf8',
-    )
-
-    expect(configSource).toContain("env.mode === 'production'")
-    expect(configSource).toContain("drop: ['console', 'debugger']")
-    expect(configSource).toContain("minify: 'esbuild'")
-  })
-
   it('domain / application から logging runtime への依存を禁止する', () => {
     const configSource = readFileSync(
       resolve(repoRoot, '.dependency-cruiser.cjs'),

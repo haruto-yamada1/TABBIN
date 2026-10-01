@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { useSettings } from './useSettings'
 
@@ -277,7 +277,9 @@ describe('useSettingsフック', () => {
     }
 
     act(() => {
-      listeners[0](
+      const listener = listeners[0]
+      assert.isDefined(listener)
+      listener(
         {
           userSettings: {
             oldValue: defaultSettings,
@@ -291,7 +293,9 @@ describe('useSettingsフック', () => {
     expect(result.current.settings).toStrictEqual(updatedSettings)
 
     act(() => {
-      listeners[0](
+      const listener = listeners[0]
+      assert.isDefined(listener)
+      listener(
         {
           userSettings: {
             oldValue: updatedSettings,

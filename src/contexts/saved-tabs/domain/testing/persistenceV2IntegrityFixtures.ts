@@ -1,12 +1,27 @@
 import type {
+  PersistenceV2Collection,
+  PersistenceV2CollectionCategory,
+  PersistenceV2CollectionGroup,
+  PersistenceV2CollectionMembership,
   PersistenceV2Snapshot,
   PersistenceV2Url,
 } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 
 const unsafeRank = Number.MAX_SAFE_INTEGER + 1
 
+type HealthyPersistenceV2Snapshot = {
+  categories: [PersistenceV2CollectionCategory]
+  collections: [PersistenceV2Collection, PersistenceV2Collection]
+  groups: [PersistenceV2CollectionGroup]
+  memberships: [
+    PersistenceV2CollectionMembership,
+    PersistenceV2CollectionMembership,
+  ]
+  urls: [PersistenceV2Url, PersistenceV2Url]
+}
+
 export const createHealthyPersistenceV2Snapshot =
-  (): PersistenceV2Snapshot => ({
+  (): HealthyPersistenceV2Snapshot => ({
     categories: [
       {
         collectionId: 'collection-domain',

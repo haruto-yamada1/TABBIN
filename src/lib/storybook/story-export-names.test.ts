@@ -2,7 +2,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const storyRoots = [
@@ -39,7 +39,11 @@ const getStoryExports = (filePath: string) => {
   const contents = readFileSync(path.join(repoRoot, filePath), 'utf8')
 
   return [...contents.matchAll(/export const (\w+)\s*:\s*Story\b/g)].map(
-    (match) => match[1],
+    (match) => {
+      const name = match[1]
+      assert.isDefined(name)
+      return name
+    },
   )
 }
 

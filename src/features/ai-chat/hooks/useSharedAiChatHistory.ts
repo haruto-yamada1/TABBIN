@@ -72,7 +72,8 @@ const resolveNextActiveConversationId = ({
   nextConversations: AiChatConversation[]
   pendingConversationId: string | null
 }): string => {
-  if (nextConversations.length === 0) {
+  const firstConversation = nextConversations[0]
+  if (!firstConversation) {
     return createConversationRecord().id
   }
 
@@ -80,7 +81,7 @@ const resolveNextActiveConversationId = ({
     activeConversationId === deletedConversationId ||
     currentActiveConversationId === deletedConversationId
   ) {
-    return nextConversations[0].id
+    return firstConversation.id
   }
 
   if (
@@ -370,7 +371,9 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
         })
       : (conversations.find(
           (conversation) => conversation.id === currentConversationId,
-        ) ?? conversations[0])
+        ) ??
+        conversations[0] ??
+        null)
   const historyItems = conversations.map((conversation) => ({
     id: conversation.id,
     isActive: conversation.id === currentConversationId,

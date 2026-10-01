@@ -17,7 +17,12 @@ import {
 const DAY_MS = 24 * 60 * 60 * 1000
 const NOW = Date.UTC(2026, 2, 14, 0, 0, 0)
 
-const records: AiSavedUrlRecord[] = [
+const records: [
+  AiSavedUrlRecord,
+  AiSavedUrlRecord,
+  AiSavedUrlRecord,
+  AiSavedUrlRecord,
+] = [
   {
     id: '1',
     url: 'https://docs.example.com/a',

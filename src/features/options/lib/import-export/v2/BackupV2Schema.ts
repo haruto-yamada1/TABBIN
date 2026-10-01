@@ -65,26 +65,22 @@ export const PersistenceV2UrlSchema: z.ZodType<PersistenceV2Url> = z
     url: z.string(),
   })
   .refine(isJsonValue, { error: 'Expected a JSON-safe saved URL' })
-  .transform(
-    (value): PersistenceV2Url => ({
-      ...(value.favIconUrl !== undefined
-        ? { favIconUrl: value.favIconUrl }
-        : {}),
-      firstSavedAt: value.firstSavedAt,
-      ...(value.firstSavedAtProvenance !== undefined
-        ? { firstSavedAtProvenance: value.firstSavedAtProvenance }
-        : {}),
-      id: value.id,
-      lastSavedAt: value.lastSavedAt,
-      ...(value.lastSavedAtProvenance !== undefined
-        ? { lastSavedAtProvenance: value.lastSavedAtProvenance }
-        : {}),
-      normalizedUrl: value.normalizedUrl,
-      title: value.title,
-      updatedAt: value.updatedAt,
-      url: value.url,
-    }),
-  )
+  .transform((value): PersistenceV2Url => ({
+    ...(value.favIconUrl !== undefined ? { favIconUrl: value.favIconUrl } : {}),
+    firstSavedAt: value.firstSavedAt,
+    ...(value.firstSavedAtProvenance !== undefined
+      ? { firstSavedAtProvenance: value.firstSavedAtProvenance }
+      : {}),
+    id: value.id,
+    lastSavedAt: value.lastSavedAt,
+    ...(value.lastSavedAtProvenance !== undefined
+      ? { lastSavedAtProvenance: value.lastSavedAtProvenance }
+      : {}),
+    normalizedUrl: value.normalizedUrl,
+    title: value.title,
+    updatedAt: value.updatedAt,
+    url: value.url,
+  }))
 
 export const PersistenceV2CollectionSchema: z.ZodType<PersistenceV2Collection> =
   z
@@ -98,17 +94,15 @@ export const PersistenceV2CollectionSchema: z.ZodType<PersistenceV2Collection> =
       updatedAt: BackupV2EpochMillisecondsSchema,
     })
     .refine(isJsonValue, { error: 'Expected a JSON-safe collection' })
-    .transform(
-      (value): PersistenceV2Collection => ({
-        createdAt: value.createdAt,
-        definition: value.definition,
-        ...(value.groupId !== undefined ? { groupId: value.groupId } : {}),
-        id: value.id,
-        name: value.name,
-        sortOrder: value.sortOrder,
-        updatedAt: value.updatedAt,
-      }),
-    )
+    .transform((value): PersistenceV2Collection => ({
+      createdAt: value.createdAt,
+      definition: value.definition,
+      ...(value.groupId !== undefined ? { groupId: value.groupId } : {}),
+      id: value.id,
+      name: value.name,
+      sortOrder: value.sortOrder,
+      updatedAt: value.updatedAt,
+    }))
 
 export const PersistenceV2CollectionMembershipSchema: z.ZodType<PersistenceV2CollectionMembership> =
   z
@@ -123,22 +117,20 @@ export const PersistenceV2CollectionMembershipSchema: z.ZodType<PersistenceV2Col
       urlId: z.string(),
     })
     .refine(isJsonValue, { error: 'Expected a JSON-safe membership' })
-    .transform(
-      (value): PersistenceV2CollectionMembership => ({
-        addedAt: value.addedAt,
-        ...(value.addedAtProvenance !== undefined
-          ? { addedAtProvenance: value.addedAtProvenance }
-          : {}),
-        ...(value.categoryId !== undefined
-          ? { categoryId: value.categoryId }
-          : {}),
-        collectionId: value.collectionId,
-        ...(value.notes !== undefined ? { notes: value.notes } : {}),
-        sortOrder: value.sortOrder,
-        updatedAt: value.updatedAt,
-        urlId: value.urlId,
-      }),
-    )
+    .transform((value): PersistenceV2CollectionMembership => ({
+      addedAt: value.addedAt,
+      ...(value.addedAtProvenance !== undefined
+        ? { addedAtProvenance: value.addedAtProvenance }
+        : {}),
+      ...(value.categoryId !== undefined
+        ? { categoryId: value.categoryId }
+        : {}),
+      collectionId: value.collectionId,
+      ...(value.notes !== undefined ? { notes: value.notes } : {}),
+      sortOrder: value.sortOrder,
+      updatedAt: value.updatedAt,
+      urlId: value.urlId,
+    }))
 
 export const PersistenceV2CollectionCategorySchema: z.ZodType<PersistenceV2CollectionCategory> =
   z.strictObject({

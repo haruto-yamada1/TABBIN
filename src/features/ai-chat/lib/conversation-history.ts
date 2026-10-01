@@ -163,13 +163,18 @@ const loadConversationHistory = async (
     interruptedMessage,
   })
 
+  const firstConversation = normalizedHistory.conversations[0]
+  if (!firstConversation) {
+    throw new Error('Normalized conversation history must not be empty')
+  }
+
   const activeConversationId =
     typeof stored.activeConversationId === 'string' &&
     normalizedHistory.conversations.some(
       (conversation) => conversation.id === stored.activeConversationId,
     )
       ? stored.activeConversationId
-      : normalizedHistory.conversations[0].id
+      : firstConversation.id
   if (normalizedHistory.hasChanges) {
     await dataPlane.replace({
       activeConversationId,

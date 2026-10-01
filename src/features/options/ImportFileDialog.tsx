@@ -1,6 +1,7 @@
 import { AlertCircle, Upload } from 'lucide-react'
 import { useCallback, useReducer, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
+import type { FileRejection } from 'react-dropzone'
 import { toast } from 'sonner'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -236,9 +237,17 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   )
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        processFile(acceptedFiles[0])
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      if (
+        fileRejections.some(({ errors }) =>
+          errors.some(({ code }) => code === 'too-many-files'),
+        )
+      ) {
+        return
+      }
+      const firstFile = acceptedFiles[0]
+      if (firstFile) {
+        processFile(firstFile)
       }
     },
     [processFile],

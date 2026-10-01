@@ -202,8 +202,9 @@ function readOption(name: string) {
 function readOptions(name: string) {
   const values: string[] = []
   for (let index = 0; index < args.length; index += 1) {
-    if (args[index] === name && args[index + 1]) {
-      values.push(args[index + 1])
+    const value = args[index + 1]
+    if (args[index] === name && value) {
+      values.push(value)
     }
   }
   return values

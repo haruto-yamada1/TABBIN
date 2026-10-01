@@ -145,10 +145,13 @@ const assembleGroup = (
   const urlSubCategories =
     urlIds.length > 0 && subCategories.length > 0
       ? Object.fromEntries(
-          urlIds.map((id, position) => [
-            id,
-            subCategories[position % subCategories.length],
-          ]),
+          urlIds.map((id, position) => {
+            const category = subCategories[position % subCategories.length]
+            if (category === undefined) {
+              throw new Error('Subcategory assignment requires a category')
+            }
+            return [id, category]
+          }),
         )
       : undefined
 
@@ -265,13 +268,17 @@ const assembleProject = (
 const assembleWellFormed = (seed: WellFormedSeed): WellFormedLegacyStorage => {
   // Canonical urls must be referenced by an ids/mixed collection;
   // nested-only collections cannot reference them and would orphan them.
+  const groups = seed.groups.map((group) => ({
+    group,
+    urlIds: new Array<string>(),
+  }))
+  const projects = seed.projects.map((project) => ({
+    project,
+    urlIds: new Array<string>(),
+  }))
   const referenceTargets = [
-    ...seed.groups.flatMap((group, index) =>
-      group.mode === 'nested' ? [] : [{ kind: 'group', index } as const],
-    ),
-    ...seed.projects.flatMap((project, index) =>
-      project.mode === 'nested' ? [] : [{ kind: 'project', index } as const],
-    ),
+    ...groups.filter(({ group }) => group.mode !== 'nested'),
+    ...projects.filter(({ project }) => project.mode !== 'nested'),
   ]
   const urls: UrlRecord[] =
     referenceTargets.length === 0
@@ -284,22 +291,19 @@ const assembleWellFormed = (seed: WellFormedSeed): WellFormedLegacyStorage => {
         }))
   const context: AssemblyContext = { urls }
 
-  const groupUrlIds = seed.groups.map((): string[] => [])
-  const projectUrlIds = seed.projects.map((): string[] => [])
   for (const [index, url] of urls.entries()) {
     const target = referenceTargets[index % referenceTargets.length]
-    if (target.kind === 'group') {
-      groupUrlIds[target.index].push(url.id)
-    } else {
-      projectUrlIds[target.index].push(url.id)
+    if (!target) {
+      throw new Error('Canonical URL requires a reference target')
     }
+    target.urlIds.push(url.id)
   }
 
-  const savedTabs = seed.groups.map((group, index) =>
-    assembleGroup(group, index, groupUrlIds[index], context),
+  const savedTabs = groups.map(({ group, urlIds }, index) =>
+    assembleGroup(group, index, urlIds, context),
   )
-  const customProjects = seed.projects.map((project, index) =>
-    assembleProject(project, index, projectUrlIds[index], context),
+  const customProjects = projects.map(({ project, urlIds }, index) =>
+    assembleProject(project, index, urlIds, context),
   )
 
   const parentedGroups = savedTabs.filter(
@@ -383,15 +387,12 @@ export const sharedUrlLegacyStorageArbitrary = fc
     }),
   )
   .map((seed): RawLegacyStorageSnapshot => {
-    const savedTabs: TabGroup[] = Array.from(
-      { length: seed.groupCount },
-      (_, index) => ({
-        domain: `shared-${index}.test`,
-        id: `group-shared-${index}`,
-        savedAt: seed.groupSavedAts[index],
-        urlIds: ['url-shared'],
-      }),
-    )
+    const savedTabs: TabGroup[] = seed.groupSavedAts.map((savedAt, index) => ({
+      domain: `shared-${index}.test`,
+      id: `group-shared-${index}`,
+      savedAt,
+      urlIds: ['url-shared'],
+    }))
     const urls: UrlRecord[] = [
       {
         id: 'url-shared',

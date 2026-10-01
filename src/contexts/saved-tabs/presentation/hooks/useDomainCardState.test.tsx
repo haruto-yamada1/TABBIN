@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { savedTabsDefaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
@@ -385,6 +385,7 @@ describe('useDomainCardState', () => {
     act(() => {
       result.current.sort.setSortOrder('asc')
     })
+    assert.isDefined(result.current.computed.categorizedUrls.news)
     expect(
       result.current.computed.categorizedUrls.news.map((item) => item.title),
     ).toStrictEqual(['Older', 'Newer'])
@@ -392,6 +393,7 @@ describe('useDomainCardState', () => {
     act(() => {
       result.current.sort.setSortOrder('desc')
     })
+    assert.isDefined(result.current.computed.categorizedUrls.news)
     expect(
       result.current.computed.categorizedUrls.news.map((item) => item.title),
     ).toStrictEqual(['Newer', 'Older'])

@@ -48,13 +48,15 @@ const parseDataUrl = (
       dataUrl,
     )
 
-  if (!matched?.groups) {
+  if (!matched?.groups || matched.groups.payload === undefined) {
     return null
   }
 
   return {
-    charset: matched.groups.charset,
-    mediaType: matched.groups.mediaType || 'text/plain',
+    ...(matched.groups.charset !== undefined
+      ? { charset: matched.groups.charset }
+      : {}),
+    mediaType: matched.groups.mediaType ?? 'text/plain',
     payload: matched.groups.payload,
     usesBase64: matched.groups.base64 === ';base64',
   }

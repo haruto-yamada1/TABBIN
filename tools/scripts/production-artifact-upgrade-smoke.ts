@@ -194,10 +194,10 @@ try {
     const { savedTabs = [] } = await chrome.storage.local.get<{
       savedTabs?: Record<string, unknown>[]
     }>('savedTabs')
-    if (savedTabs.length === 0) {
+    const firstGroup = savedTabs[0]
+    if (firstGroup === undefined) {
       throw new Error('Historical category drift requires a domain group.')
     }
-    const firstGroup = savedTabs[0]
     const domain =
       typeof firstGroup.domain === 'string' ? firstGroup.domain : undefined
     if (!domain) {

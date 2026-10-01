@@ -105,12 +105,14 @@ export const ThemeProvider = ({
       changes: Record<string, StorageChange>,
       areaName: string,
     ) => {
+      const change = changes[storageKey]
       if (
         areaName === 'local' &&
         Object.hasOwn(changes, storageKey) &&
-        isTheme(changes[storageKey].newValue)
+        change &&
+        isTheme(change.newValue)
       ) {
-        setThemeState(changes[storageKey].newValue)
+        setThemeState(change.newValue)
       }
     }
     const storageOnChanged = getChromeStorageOnChanged()
@@ -173,9 +175,14 @@ export const ThemeProvider = ({
       changes: Record<string, StorageChange>,
       areaName: string,
     ) => {
-      if (areaName === 'local' && Object.hasOwn(changes, 'userSettings')) {
-        const updated = isPartialUserSettings(changes.userSettings.newValue)
-          ? changes.userSettings.newValue
+      const settingsChange = changes.userSettings
+      if (
+        areaName === 'local' &&
+        Object.hasOwn(changes, 'userSettings') &&
+        settingsChange
+      ) {
+        const updated = isPartialUserSettings(settingsChange.newValue)
+          ? settingsChange.newValue
           : undefined
         const root = window.document.documentElement
         applyUserSettingsToRoot(root, updated, theme === 'user')

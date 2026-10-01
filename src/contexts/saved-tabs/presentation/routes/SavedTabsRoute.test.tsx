@@ -20,7 +20,7 @@ vi.mock('@/contexts/saved-tabs/presentation/pages/SavedTabsPage', () => ({
 
 import { SavedTabsRoute } from './SavedTabsRoute'
 
-const createDeps = vi.fn((_: Parameters<SavedTabsDepsFactory>[0]) => ({
+const createDeps = vi.fn<SavedTabsDepsFactory>(() => ({
   deps: createSavedTabsPresentationPortsStub(),
   useCases: createSavedTabsUseCasesStub(),
 }))

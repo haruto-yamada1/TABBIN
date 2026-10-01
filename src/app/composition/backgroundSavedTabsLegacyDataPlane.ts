@@ -226,23 +226,24 @@ const buildSavedTabsAnalyticsRecords = (
           metric: 'last-saved',
           timestampAccuracy: 'legacy-fallback',
         },
-        ...matchingGroups.map((group) => ({
-          ...record,
-          collectionType: 'domain' as const,
-          eventId: `legacy:domain:${group.id}:${record.id}`,
-          metric: 'membership-added' as const,
-          parentCategories: getParentCategoriesForGroup(
-            group,
-            state.parentCategories,
-          ),
-          projectCategories: [],
-          savedInProjects: [],
-          savedInTabGroups: [group.domain],
-          subCategories: group.urlSubCategories?.[record.id]
-            ? [group.urlSubCategories[record.id]]
-            : [],
-          timestampAccuracy: 'legacy-fallback' as const,
-        })),
+        ...matchingGroups.map((group) => {
+          const subCategory = group.urlSubCategories?.[record.id]
+          return {
+            ...record,
+            collectionType: 'domain' as const,
+            eventId: `legacy:domain:${group.id}:${record.id}`,
+            metric: 'membership-added' as const,
+            parentCategories: getParentCategoriesForGroup(
+              group,
+              state.parentCategories,
+            ),
+            projectCategories: [],
+            savedInProjects: [],
+            savedInTabGroups: [group.domain],
+            subCategories: subCategory ? [subCategory] : [],
+            timestampAccuracy: 'legacy-fallback' as const,
+          }
+        }),
         ...matchingProjects.map((project) => ({
           ...record,
           collectionType: 'custom' as const,

@@ -1173,7 +1173,7 @@ describe('CategoryManagementModal', () => {
         isOpen
         onClose={vi.fn()}
         category={createCategory()}
-        domains={[domains3[0]]}
+        domains={domains3.slice(0, 1)}
         deps={deps}
         useCases={useCases}
       />,

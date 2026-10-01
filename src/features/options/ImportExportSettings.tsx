@@ -72,7 +72,8 @@ export const ImportExportSettings: React.FC = () => {
       const data = await exportBackupV2()
 
       const date = new Date()
-      const formattedDate = date.toISOString().split('T')[0]
+      const isoTimestamp = date.toISOString()
+      const formattedDate = isoTimestamp.slice(0, isoTimestamp.indexOf('T'))
       const filename = `tab-manager-backup-${formattedDate}.json`
 
       await downloadAsJson(data, filename)

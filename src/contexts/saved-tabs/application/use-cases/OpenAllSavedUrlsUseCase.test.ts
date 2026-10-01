@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
 
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
@@ -211,15 +211,15 @@ describe('OpenAllSavedUrlsUseCase', () => {
     expect(result.removedUrlRecordIds).toStrictEqual([])
     expect(result.removedUrlRecords).toStrictEqual([])
     expect(result.snapshot).toBeNull()
+    const remainingTabGroups = await repos.tabGroupRepository.findAll()
+    assert.isDefined(remainingTabGroups[0])
     expect(
-      (await repos.tabGroupRepository.findAll())[0].memberships.map(
-        ({ urlId }) => urlId,
-      ),
+      remainingTabGroups[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-1'])
+    const remainingProjects = await repos.customProjectRepository.findAll()
+    assert.isDefined(remainingProjects[0])
     expect(
-      (await repos.customProjectRepository.findAll())[0].memberships.map(
-        ({ urlId }) => urlId,
-      ),
+      remainingProjects[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-1'])
     expect(
       (await repos.urlRecordRepository.findAll()).map((r) => r.id),
@@ -266,6 +266,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
     })
 
     expect(result.removedUrlRecordIds).toStrictEqual(['url-1'])
+    assert.isDefined(result.removedUrlRecords[0])
     expect(result.removedUrlRecords[0].id).toBe('url-1')
     expect(result.snapshot).not.toBeNull()
     await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
@@ -367,10 +368,12 @@ describe('OpenAllSavedUrlsUseCase', () => {
     expect(result.removedUrlRecordIds).toStrictEqual(['url-1'])
     expect(result.snapshot).not.toBeNull()
     const remainingTabGroups = await repos.tabGroupRepository.findAll()
+    assert.isDefined(remainingTabGroups[0])
     expect(
       remainingTabGroups[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-2'])
     const remainingProjects = await repos.customProjectRepository.findAll()
+    assert.isDefined(remainingProjects[0])
     expect(
       remainingProjects[0].memberships.map(({ urlId }) => urlId),
     ).toStrictEqual(['url-2'])

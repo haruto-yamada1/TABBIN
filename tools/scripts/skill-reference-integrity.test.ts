@@ -39,17 +39,17 @@ const extractSkillReferences = (content: string): string[] => {
   // `$<name>` with at least one hyphen is a skill reference (shell variables
   // cannot contain hyphens, so this avoids false positives).
   const matches = content.matchAll(/\$([a-z][a-z0-9]*(?:-[a-z0-9]+)+)/g)
-  return [...matches].map((match) => match[1])
+  return [...matches].flatMap((match) => match[1] ?? [])
 }
 
 const extractBunRunScripts = (content: string): string[] => {
   const matches = content.matchAll(/bun run ([a-z0-9][a-z0-9:._-]*)/g)
-  return [...matches].map((match) => match[1])
+  return [...matches].flatMap((match) => match[1] ?? [])
 }
 
 const extractPromptReferences = (content: string): string[] => {
   const matches = content.matchAll(/\.apm\/prompts\/([a-z0-9-]+\.prompt\.md)/g)
-  return [...matches].map((match) => match[1])
+  return [...matches].flatMap((match) => match[1] ?? [])
 }
 
 describe('skill reference integrity', () => {

@@ -109,7 +109,7 @@ describe('useTabData', () => {
     const settings = {
       removeTabAfterOpen: true,
     } as UserSettingsDto
-    const savedTabs: TabGroup[] = [
+    const savedTabs: [TabGroup, TabGroup, TabGroup] = [
       {
         id: 'group-by-id',
         domain: 'id.example.com',
@@ -464,7 +464,7 @@ describe('useTabData', () => {
   })
 
   it('setTabGroups と storage からの refresh は state を更新する', async () => {
-    const storedGroups: TabGroup[] = [
+    const storedGroups: [TabGroup] = [
       {
         id: 'stored',
         domain: 'stored.example.com',

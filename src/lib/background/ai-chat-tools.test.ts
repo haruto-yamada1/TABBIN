@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { assert, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
 import type { AnalyticsResult } from '@/features/analytics/lib/analytics'
@@ -37,6 +37,7 @@ const records: AiSavedUrlRecord[] = [
 describe('createAiChatTools', () => {
   it('保存データ分析ツールでチャート仕様を返す', async () => {
     const tools = createAiChatTools(records)
+    assert.isDefined(tools.generateSavedTabsAnalytics)
     const execute = tools.generateSavedTabsAnalytics.execute
     if (!execute) {
       throw new Error('generateSavedTabsAnalytics.execute is not available')
@@ -89,6 +90,7 @@ describe('createAiChatTools', () => {
   })
 
   it('分析toolはAI共用savedAtではなく専用metric eventを使う', async () => {
+    assert.isDefined(records[0])
     const analyticsRecords = [
       {
         ...records[0],
@@ -106,6 +108,7 @@ describe('createAiChatTools', () => {
       },
     ]
     const tools = createAiChatTools(records, 'ja', analyticsRecords)
+    assert.isDefined(tools.generateSavedTabsAnalytics)
     const execute = tools.generateSavedTabsAnalytics.execute
     if (!execute) {
       throw new Error('generateSavedTabsAnalytics.execute is not available')
@@ -175,4 +178,72 @@ describe('createAiChatTools (language-aware descriptions)', () => {
       'List currently saved tabs in order of saved time. page/pageSize/sortDirection are configurable.',
     )
   })
+})
+
+describe('current date and time tool', () => {
+  it('returns complete date, time, and timestamp fields', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    try {
+      const { execute } = createAiChatTools(records).getCurrentDateTime
+      assert.isDefined(execute)
+      const result = await execute(
+        {},
+        {
+          context: {},
+          messages: [],
+          toolCallId: 'current-time',
+        },
+      )
+      expect(result).toEqual({
+        iso8601: new Date(now).toISOString(),
+        localDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        localDateTime: expect.stringMatching(
+          /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/,
+        ),
+        localTime: expect.stringMatching(/^\d{2}:\d{2}:\d{2}$/),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        unixMs: now,
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it.each(['year', 'month', 'day', 'hour', 'minute', 'second'])(
+    'rejects incomplete formatter output when %s is missing',
+    async (missingPart) => {
+      const completeParts: Intl.DateTimeFormatPart[] = [
+        { type: 'year', value: '2026' },
+        { type: 'month', value: '03' },
+        { type: 'day', value: '14' },
+        { type: 'hour', value: '12' },
+        { type: 'minute', value: '30' },
+        { type: 'second', value: '45' },
+      ]
+      const formatter = vi
+        .spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
+        .mockReturnValue(
+          completeParts.filter(({ type }) => type !== missingPart),
+        )
+      try {
+        const { execute } = createAiChatTools(records).getCurrentDateTime
+        assert.isDefined(execute)
+        await expect(
+          execute(
+            {},
+            {
+              context: {},
+              messages: [],
+              toolCallId: 'incomplete-current-time',
+            },
+          ),
+        ).rejects.toThrow(
+          'Date formatter did not provide all date and time parts',
+        )
+      } finally {
+        formatter.mockRestore()
+      }
+    },
+  )
 })

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { toSavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
@@ -81,7 +81,9 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(true)
+    assert.isDefined(result.tabGroups[0])
     expect(result.tabGroups[0].collection.groupId).toBe('cat-by-id')
+    assert.isDefined(repos.tabGroups[0])
     expect(repos.tabGroups[0].collection.groupId).toBe('cat-by-id')
   })
 
@@ -110,6 +112,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(true)
+    assert.isDefined(result.tabGroups[0])
     expect(result.tabGroups[0].collection.groupId).toBe('cat-by-name')
   })
 
@@ -137,6 +140,8 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
       parentCategories: [idCategory],
       tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
+
+    assert.isDefined(result.tabGroups[0])
 
     expect(result.tabGroups[0].collection.groupId).toBe('cat-by-id')
   })
@@ -166,6 +171,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(false)
+    assert.isDefined(result.tabGroups[0])
     expect(result.tabGroups[0].collection.groupId).toBe('cat-existing')
     expect(saveAllSpy).not.toHaveBeenCalled()
   })
@@ -194,6 +200,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     })
 
     expect(result.updated).toBe(false)
+    assert.isDefined(result.tabGroups[0])
     expect(result.tabGroups[0].collection.groupId).toBeUndefined()
     expect(saveAllSpy).not.toHaveBeenCalled()
   })
@@ -218,6 +225,7 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
     const result = await useCase()
 
     expect(result.updated).toBe(true)
+    assert.isDefined(result.tabGroups[0])
     expect(result.tabGroups[0].collection.groupId).toBe('cat-1')
   })
 
@@ -242,6 +250,8 @@ describe('RepairTabGroupParentCategoryIdsUseCase', () => {
       parentCategories: [category],
       tabGroups: [toSavedTabsDisplayTabGroupDto(tabGroup)],
     })
+
+    assert.isDefined(result.tabGroups[0])
 
     expect(result.tabGroups[0].collection.groupId).toBe('cat-1')
   })

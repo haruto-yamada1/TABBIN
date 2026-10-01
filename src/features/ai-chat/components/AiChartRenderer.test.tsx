@@ -11,12 +11,12 @@ const mocked = vi.hoisted(() => ({
 }))
 
 vi.mock('recharts', () => {
-  // eslint-disable-next-line react/display-name
-  const passthrough =
-    (testId: string) =>
-    ({ children }: { children?: React.ReactNode }) => (
+  const passthrough = (testId: string) => {
+    const Passthrough = ({ children }: { children?: React.ReactNode }) => (
       <div data-testid={testId}>{children}</div>
     )
+    return Passthrough
+  }
 
   return {
     Area: passthrough('area'),

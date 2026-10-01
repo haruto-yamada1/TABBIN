@@ -107,6 +107,10 @@ const assembleCollections = (
         updatedAt: category.timestamps[1],
       })
     }
+    const group =
+      seed.groupPick === undefined
+        ? undefined
+        : groups[seed.groupPick % groups.length]
     return {
       createdAt: seed.timestamps[0],
       definition: seed.isDomain
@@ -119,9 +123,7 @@ const assembleCollections = (
             },
             type: 'custom',
           },
-      ...(seed.groupPick === undefined || groups.length === 0
-        ? {}
-        : { groupId: groups[seed.groupPick % groups.length].id }),
+      ...(group ? { groupId: group.id } : {}),
       id,
       name: seed.name,
       sortOrder: seed.sortOrder,
@@ -167,14 +169,11 @@ const assembleMemberships = (
     const collectionCategories = categories.filter(
       (category) => category.collectionId === collection.id,
     )
+    const category =
+      collectionCategories[urlIndex % collectionCategories.length]
     return {
       addedAt: seed.timestamps[0],
-      ...(collectionCategories.length > 0 && urlIndex % 2 === 0
-        ? {
-            categoryId:
-              collectionCategories[urlIndex % collectionCategories.length].id,
-          }
-        : {}),
+      ...(category && urlIndex % 2 === 0 ? { categoryId: category.id } : {}),
       collectionId: collection.id,
       ...(seed.note === undefined ? {} : { notes: seed.note }),
       sortOrder: seed.sortOrder,
@@ -186,6 +185,9 @@ const assembleMemberships = (
   for (const [index, seed] of seeds.entries()) {
     const url = urls[index]
     const primary = collections[index % collections.length]
+    if (!url || !primary) {
+      throw new Error('Membership seed requires a URL and a collection')
+    }
     memberships.push(
       buildMembership(seed.primaryMembership, primary, url, index),
     )
@@ -197,6 +199,9 @@ const assembleMemberships = (
             (seed.extraMembership.offset % (collections.length - 1))) %
             collections.length
         ]
+      if (!secondary) {
+        throw new Error('Secondary membership collection is missing')
+      }
       if (secondary.id !== primary.id) {
         memberships.push(
           buildMembership(seed.extraMembership.seed, secondary, url, index + 1),
@@ -287,10 +292,16 @@ const withFirstCollection = (
 })
 
 const DUPLICATE_MEMBERSHIP_CORRUPTION: SnapshotCorruption = {
-  apply: (snapshot) => ({
-    ...snapshot,
-    memberships: [...snapshot.memberships, snapshot.memberships[0]],
-  }),
+  apply: (snapshot) => {
+    const first = snapshot.memberships[0]
+    if (!first) {
+      throw new Error('Duplicate membership corruption requires a membership')
+    }
+    return {
+      ...snapshot,
+      memberships: [...snapshot.memberships, first],
+    }
+  },
   codes: ['DUPLICATE_MEMBERSHIP'],
   isApplicable: (snapshot) => snapshot.memberships.length > 0,
   name: 'duplicate-membership',
@@ -301,6 +312,9 @@ export const SNAPSHOT_CORRUPTIONS: readonly SnapshotCorruption[] = [
   {
     apply: (snapshot) => {
       const [first] = snapshot.urls
+      if (!first) {
+        throw new Error('URL corruption requires a URL')
+      }
       return {
         ...snapshot,
         urls: [
@@ -320,6 +334,9 @@ export const SNAPSHOT_CORRUPTIONS: readonly SnapshotCorruption[] = [
   {
     apply: (snapshot) => {
       const [first] = snapshot.urls
+      if (!first) {
+        throw new Error('URL corruption requires a URL')
+      }
       return {
         ...snapshot,
         urls: [...snapshot.urls, { ...first, id: 'url-duplicate-normalized' }],
@@ -330,37 +347,49 @@ export const SNAPSHOT_CORRUPTIONS: readonly SnapshotCorruption[] = [
     name: 'duplicate-normalized-url',
   },
   {
-    apply: (snapshot) => ({
-      ...snapshot,
-      memberships: [
-        ...snapshot.memberships,
-        {
-          addedAt: 0,
-          collectionId: snapshot.collections[0].id,
-          sortOrder: 0,
-          updatedAt: 0,
-          urlId: 'url-missing',
-        },
-      ],
-    }),
+    apply: (snapshot) => {
+      const first = snapshot.collections[0]
+      if (!first) {
+        throw new Error('Dangling membership corruption requires a collection')
+      }
+      return {
+        ...snapshot,
+        memberships: [
+          ...snapshot.memberships,
+          {
+            addedAt: 0,
+            collectionId: first.id,
+            sortOrder: 0,
+            updatedAt: 0,
+            urlId: 'url-missing',
+          },
+        ],
+      }
+    },
     codes: ['URL_MISSING'],
     isApplicable: (snapshot) => snapshot.collections.length > 0,
     name: 'dangling-membership-url',
   },
   {
-    apply: (snapshot) => ({
-      ...snapshot,
-      memberships: [
-        ...snapshot.memberships,
-        {
-          addedAt: 0,
-          collectionId: 'collection-missing',
-          sortOrder: 0,
-          updatedAt: 0,
-          urlId: snapshot.urls[0].id,
-        },
-      ],
-    }),
+    apply: (snapshot) => {
+      const first = snapshot.urls[0]
+      if (!first) {
+        throw new Error('Dangling membership corruption requires a URL')
+      }
+      return {
+        ...snapshot,
+        memberships: [
+          ...snapshot.memberships,
+          {
+            addedAt: 0,
+            collectionId: 'collection-missing',
+            sortOrder: 0,
+            updatedAt: 0,
+            urlId: first.id,
+          },
+        ],
+      }
+    },
     codes: ['COLLECTION_MISSING'],
     isApplicable: (snapshot) => snapshot.urls.length > 0,
     name: 'dangling-membership-collection',
@@ -378,6 +407,9 @@ export const SNAPSHOT_CORRUPTIONS: readonly SnapshotCorruption[] = [
   {
     apply: (snapshot) => {
       const category = snapshot.categories[0]
+      if (!category) {
+        throw new Error('Cross-collection corruption requires a category')
+      }
       const foreignCollection = snapshot.collections.find(
         (collection) => collection.id !== category.collectionId,
       )
@@ -407,11 +439,15 @@ export const SNAPSHOT_CORRUPTIONS: readonly SnapshotCorruption[] = [
       }
     },
     codes: ['CATEGORY_COLLECTION_MISMATCH'],
-    isApplicable: (snapshot) =>
-      snapshot.categories.length > 0 &&
-      snapshot.collections.some(
-        (collection) => collection.id !== snapshot.categories[0].collectionId,
-      ),
+    isApplicable: (snapshot) => {
+      const category = snapshot.categories[0]
+      return (
+        category !== undefined &&
+        snapshot.collections.some(
+          (collection) => collection.id !== category.collectionId,
+        )
+      )
+    },
     name: 'cross-collection-category',
   },
   {

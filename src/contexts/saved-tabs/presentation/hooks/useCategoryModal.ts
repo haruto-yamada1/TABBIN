@@ -279,7 +279,7 @@ export const useCategoryModal = ({
         setCategoryData({
           categories: fromRepo,
           domainCategories: buildDomainCategoriesMap(tabGroups, fromRepo),
-          selectedCategoryId: fromRepo.length > 0 ? fromRepo[0].id : null,
+          selectedCategoryId: fromRepo[0]?.id ?? null,
         })
       } catch (error) {
         if (cancelled) {
@@ -346,8 +346,11 @@ export const useCategoryModal = ({
   const handleCreateCategory = useCallback(async () => {
     const result = validateCategoryName(newCategoryName)
     if (!result.success) {
-      const errorMessage =
-        result.error.issues[0]?.message || t('savedTabs.categoryModal.invalid')
+      let errorMessage = result.error.issues[0]?.message
+      if (errorMessage === '') {
+        errorMessage = t('savedTabs.categoryModal.invalid')
+      }
+      errorMessage ??= t('savedTabs.categoryModal.invalid')
       setNameError(errorMessage)
       toast.error(errorMessage)
       return
@@ -402,10 +405,12 @@ export const useCategoryModal = ({
       if (result.success) {
         setNameError(null)
       } else {
-        setNameError(
-          result.error.issues[0]?.message ||
-            t('savedTabs.categoryModal.invalid'),
-        )
+        let errorMessage = result.error.issues[0]?.message
+        if (errorMessage === '') {
+          errorMessage = t('savedTabs.categoryModal.invalid')
+        }
+        errorMessage ??= t('savedTabs.categoryModal.invalid')
+        setNameError(errorMessage)
       }
     },
     [t, validateCategoryName],
@@ -449,9 +454,10 @@ export const useCategoryModal = ({
       )
       setDomainCategories(updatedDomainCategories)
       if (selectedCategoryId === categoryToDelete.id) {
-        setSelectedCategoryId(updatedAll.length > 0 ? updatedAll[0].id : null)
-        if (updatedAll.length > 0) {
-          updateSelectedDomains(updatedAll[0])
+        const firstCategory = updatedAll[0]
+        setSelectedCategoryId(firstCategory?.id ?? null)
+        if (firstCategory) {
+          updateSelectedDomains(firstCategory)
         } else {
           setSelectedDomains({})
         }
@@ -495,7 +501,7 @@ export const useCategoryModal = ({
   // --- ドメイン選択切り替え ---
   const toggleDomainSelection = useCallback(
     (domainId: string) => {
-      const previousChecked = selectedDomains[domainId]
+      const previousChecked = selectedDomains[domainId] ?? false
       const rollbackSelection = () => {
         setSelectedDomains((prev) => ({
           ...prev,

@@ -1,6 +1,6 @@
 /* eslint-disable */
 /* eslint-disable max-lines-per-function, typescript/no-misused-promises */
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   CustomProject,
@@ -1989,6 +1989,7 @@ describe('projects storage', () => {
         },
       ],
     }
+    assert.isDefined(state.customProjects?.[0])
     delete state.customProjects?.[0].urlIds
     const storage = createChromeStorageLocal(state)
     globalThis.chrome = {
@@ -2530,6 +2531,7 @@ describe('projects storage', () => {
         },
       }),
     )
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].urlMetadata?.['url-1']).not.toHaveProperty(
       'category',
     )
@@ -2544,6 +2546,7 @@ describe('projects storage', () => {
         }),
       ],
     }
+    assert.isDefined(state.customProjects?.[0])
     delete state.customProjects?.[0].categoryOrder
     globalThis.chrome = {
       storage: {
@@ -2599,6 +2602,7 @@ describe('projects storage', () => {
         }),
       ],
     }
+    assert.isDefined(state.customProjects?.[0])
     delete state.customProjects?.[0].categoryOrder
     delete state.customProjects?.[0].urlMetadata
     globalThis.chrome = {
@@ -2616,6 +2620,7 @@ describe('projects storage', () => {
         categories: [],
       }),
     )
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].categoryOrder).toBeUndefined()
     expect(state.customProjects?.[0].urlMetadata).toBeUndefined()
   })
@@ -2711,11 +2716,13 @@ describe('projects storage', () => {
     const { reorderProjectUrls, setUrlCategory } = await loadModule()
 
     await setUrlCategory('target', 'https://example.test/same', 'same')
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].urlMetadata?.['url-1']).toHaveProperty(
       'category',
       'same',
     )
     await setUrlCategory('target', 'https://example.test/same', undefined)
+    assert.isDefined(state.customProjects?.[0])
     expect(state.customProjects?.[0].urlMetadata?.['url-1']).not.toHaveProperty(
       'category',
     )
@@ -2960,6 +2967,7 @@ describe('projects storage', () => {
         id: 'target',
       }),
     ]
+    assert.isDefined(state.customProjects[1])
     delete state.customProjects[1].urlIds
     state.urls = []
 

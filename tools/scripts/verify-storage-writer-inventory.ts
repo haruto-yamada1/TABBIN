@@ -131,12 +131,12 @@ const parseMarkdownEntry = (entry: string): string => {
 
 const parseMarkdownEntries = (line: string): readonly string[] => {
   const listEntry = MARKDOWN_LIST_ENTRY.exec(line)
-  if (listEntry) {
+  if (listEntry?.[1] !== undefined) {
     return [parseMarkdownEntry(listEntry[1])]
   }
 
   const tableRow = MARKDOWN_TABLE_ROW.exec(line)
-  if (!tableRow) {
+  if (tableRow?.[1] === undefined) {
     return []
   }
 
@@ -148,7 +148,7 @@ const parseMarkdownTableCells = (
   line: string,
 ): readonly string[] | undefined => {
   const tableRow = MARKDOWN_TABLE_ROW.exec(line)
-  return tableRow?.[1].split('|').map((cell) => cell.trim())
+  return tableRow?.[1]?.split('|').map((cell) => cell.trim())
 }
 
 const extractMutationFileReferences = (
@@ -159,6 +159,7 @@ const extractMutationFileReferences = (
     for (const match of cell.matchAll(INLINE_CODE_SPAN)) {
       const reference = match[1]
       if (
+        reference !== undefined &&
         reference.includes('/') &&
         PRODUCTION_SOURCE_EXTENSION.test(reference)
       ) {
@@ -171,7 +172,7 @@ const extractMutationFileReferences = (
 
 const parseMarkdownFenceOpening = (line: string): MarkdownFence | undefined => {
   const match = MARKDOWN_FENCE_OPENING.exec(line)
-  if (!match) {
+  if (match?.[1] === undefined || match[2] === undefined) {
     return undefined
   }
 
@@ -303,7 +304,7 @@ export const parseStorageWriterInventory = (
 
   for (const line of getVisibleMarkdownLines(markdown)) {
     const heading = MARKDOWN_HEADING.exec(line)
-    if (heading) {
+    if (heading?.[1] !== undefined) {
       section = INVENTORY_SECTION_BY_HEADING[heading[1].trim().toLowerCase()]
       if (section === 'writerTable') {
         inventory.writerTable.found = true

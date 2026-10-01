@@ -15,11 +15,6 @@ import {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
-type ProductionViteConfig = {
-  build: { minify: 'esbuild' }
-  esbuild: { drop: ('console' | 'debugger')[] }
-}
-
 const readPackageVersion = (): string => {
   const packageJsonPath = path.resolve(import.meta.dirname, 'package.json')
   const parsed: unknown = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
@@ -42,6 +37,22 @@ const vitePlugins = tailwindcss()
 export default defineConfig({
   srcDir: 'src',
   publicDir: 'src/public',
+  zip: {
+    dotSources: true,
+    includeSources: [
+      'src',
+      'package.json',
+      'bun.lock',
+      'wxt.config.ts',
+      'tsconfig.json',
+      'tailwind.config.js',
+      '.node-version',
+      '.bun-version',
+      'README.md',
+      'PRIVACY.md',
+    ],
+    excludeSources: ['src/**/.*'],
+  },
   manifest: (env) => ({
     default_locale: 'ja',
     name: '__MSG_extensionName__',
@@ -78,10 +89,18 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react', '@wxt-dev/i18n/module'],
   vite: (env) => {
     const isProduction = env.mode === 'production'
-    const productionConfig: ProductionViteConfig = {
-      build: { minify: 'esbuild' },
-      esbuild: { drop: ['console', 'debugger'] },
-    }
+    const productionConfig = {
+      build: {
+        minify: 'oxc',
+        rolldownOptions: {
+          output: {
+            minify: {
+              compress: { dropConsole: true, dropDebugger: true },
+            },
+          },
+        },
+      },
+    } satisfies WxtViteConfig
 
     return {
       ...(isProduction ? productionConfig : {}),

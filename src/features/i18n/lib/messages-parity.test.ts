@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { assert, describe, expect, it } from 'vitest' // eslint-disable-line
 
 import { getMessages } from '@/features/i18n/messages'
 
@@ -8,10 +8,10 @@ import { getMessages } from '@/features/i18n/messages'
  */
 
 const extractTokens = (message: string): string[] =>
-  Array.from(
-    message.matchAll(/\{\{(\w+)\}\}/g),
-    ([, token]) => token,
-  ).toSorted()
+  Array.from(message.matchAll(/\{\{(\w+)\}\}/g), ([, token]) => {
+    assert.isDefined(token)
+    return token
+  }).toSorted((left, right) => left.localeCompare(right))
 
 // 意図的に片方にのみ存在させる key がある場合はここに記録する
 const ALLOWED_MISSING_IN_JA = new Set<string>()

@@ -197,6 +197,8 @@ test.describe('extension options', () => {
       .filter({ hasText: 'Storage recovery required' })
     await expect(recoveryAlert).toBeVisible()
     await expect(recoveryAlert).toContainText('Storage recovery required')
+    // Wait for the lazy options route and its recovery-snapshot lookup to mount.
+    await expect(page.getByRole('button', { name: /export/i })).toBeVisible()
     await recoveryAlert.getByText('Safe migration diagnostics').click()
     await expect(recoveryAlert).toContainText('MIGRATION_SOURCE_BLOCKED')
     await expect(recoveryAlert).toContainText('DUPLICATE_URL_ID')

@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { UserSettings } from '@/types/storage'
 
@@ -272,19 +272,25 @@ describe('OptionsRoute', () => {
       false,
     )
 
+    const colorInput = screen.getAllByDisplayValue(/^#/)[0]
+    assert.isDefined(colorInput)
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(screen.getAllByDisplayValue(/^#/)[0], {
+    fireEvent.change(colorInput, {
       target: { value: '#123456' },
     })
     expect(optionsRouteMocks.handleColorChange).toHaveBeenCalled()
 
-    await user.click(screen.getAllByText('common.reset')[0])
+    const resetButton0 = screen.getAllByText('common.reset')[0]
+    assert.isDefined(resetButton0)
+    await user.click(resetButton0)
     expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
       'fontSizePercent',
       100,
     )
 
-    await user.click(screen.getAllByText('common.reset')[1])
+    const resetButton1 = screen.getAllByText('common.reset')[1]
+    assert.isDefined(resetButton1)
+    await user.click(resetButton1)
     expect(optionsRouteMocks.handleResetColors).toHaveBeenCalled()
 
     await user.click(screen.getByText('options.contact'))

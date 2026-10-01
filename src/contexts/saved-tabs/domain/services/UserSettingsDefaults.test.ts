@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 
 import {
   defaultUserSettings,
@@ -166,6 +166,7 @@ describe('normalizeUserSettings', () => {
 
     expect(result.normalized.aiSystemPrompts).toBeDefined()
     expect(result.normalized.aiSystemPrompts).toHaveLength(1)
+    assert.isDefined(result.normalized.aiSystemPrompts?.[0])
     expect(result.normalized.aiSystemPrompts?.[0].id).toBe('valid')
   })
 })

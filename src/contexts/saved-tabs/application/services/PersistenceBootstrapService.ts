@@ -30,6 +30,11 @@ export class PersistenceBootstrapService implements PersistenceBootstrapPort {
     await this.ensureAccessPolicy()
     await this.options.coordination.runExclusive(async () => {
       const state = await this.options.controlStateRepository.read()
+      // Another extension context may finish this migration while we wait
+      // for the lock. Only its matching, verified cutover satisfies this call.
+      if (state.status === 'indexeddb' && state.migrationId === migrationId) {
+        return
+      }
       await this.resumeState(state, migrationId)
     })
   }

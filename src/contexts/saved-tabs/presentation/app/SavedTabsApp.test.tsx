@@ -4,7 +4,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type {
   CustomProject as LegacyCustomProject,
@@ -247,6 +247,7 @@ vi.mock('@dnd-kit/sortable', () => ({
   arrayMove: <T,>(items: T[], from: number, to: number) => {
     const nextItems = [...items]
     const [moved] = nextItems.splice(from, 1)
+    assert.isDefined(moved)
     nextItems.splice(to, 0, moved)
     return nextItems
   },

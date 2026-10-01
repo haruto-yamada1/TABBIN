@@ -10,6 +10,7 @@ import {
 } from 'react-router-dom'
 
 import { createSavedTabsPresentationComposition } from '@/app/composition/createSavedTabsUseCases'
+import { LazySavedTabsRoute } from '@/app/composition/LazySavedTabsRoute'
 import { PersistenceMigrationNotice } from '@/app/composition/PersistenceMigrationNotice'
 import {
   getSavedTabsEntryRoute,
@@ -78,14 +79,6 @@ const PeriodicExecutionRoutePage = lazy(async () =>
   ),
 )
 
-const SavedTabsRouteComponent = lazy(async () =>
-  import('@/contexts/saved-tabs/presentation/routes/SavedTabsRoute').then(
-    ({ SavedTabsRoute }) => ({
-      default: SavedTabsRoute,
-    }),
-  ),
-)
-
 const SavedTabsRoutePage = () => {
   const routerLocation = useLocation()
   const navigate = useNavigate()
@@ -129,7 +122,7 @@ const SavedTabsRoutePage = () => {
     <>
       <PersistenceMigrationNotice />
       <Suspense fallback={null}>
-        <SavedTabsRouteComponent
+        <LazySavedTabsRoute
           createDeps={createSavedTabsPresentationComposition}
           search={routerLocation.search}
           onViewModeNavigate={handleViewModeNavigate}

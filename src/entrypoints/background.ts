@@ -18,6 +18,8 @@ import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
 import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
 
+const MANIFEST_V2 = 2
+
 const reportUnexpectedPersistenceMigrationOutcome = (_outcome: never): void => {
   logger.warn('background_persistence_migration_invalid', {
     errorCode: 'PERSISTENCE_INVALID_TRANSITION',
@@ -192,8 +194,12 @@ export default defineBackground(() => {
   })()
 
   // ブラウザアクション（拡張機能アイコン）クリック時の処理
+  const toolbarAction =
+    chrome.runtime.getManifest().manifest_version === MANIFEST_V2
+      ? chrome.browserAction
+      : chrome.action
   // eslint-disable-next-line typescript/no-misused-promises
-  chrome.action.onClicked.addListener(handleExtensionActionClick)
+  toolbarAction.onClicked.addListener(handleExtensionActionClick)
 
   // メッセージリスナーを設定
   setupMessageListener()

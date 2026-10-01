@@ -151,7 +151,7 @@ describe('collectBackupV2ResourceUsage', () => {
       '添付テキスト',
       'data:image/png;base64,aGVsbG8=',
       '短い',
-    ]
+    ] as const
     const values = [
       {
         attachments: [
