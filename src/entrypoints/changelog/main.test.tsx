@@ -76,6 +76,11 @@ describe('changelog bootstrap', () => {
 
     expect(mocked.createRoot).toHaveBeenCalledWith(
       document.querySelector('#app'), // eslint-disable-line testing-library/no-node-access -- createRoot のマウント先要素の検証には DOM ノード参照が必須
+      expect.objectContaining({
+        onCaughtError: expect.any(Function),
+        onUncaughtError: expect.any(Function),
+        onRecoverableError: expect.any(Function),
+      }),
     )
     expect(mocked.renderRoot).toHaveBeenCalledTimes(1)
   })
