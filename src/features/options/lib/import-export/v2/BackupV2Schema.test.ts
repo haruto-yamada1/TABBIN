@@ -156,6 +156,79 @@ const createLogicalSnapshot = (reverse = false): PersistenceLogicalSnapshot => {
 }
 
 describe('Backup V2 schemas', () => {
+  it.each([0, 1, Number.MAX_SAFE_INTEGER])(
+    'round-trips uncategorized insertion position %s through Backup V2',
+    (position) => {
+      const snapshot = createLogicalSnapshot()
+      const sourceCollection = snapshot.savedTabs.collections[0]
+      if (!sourceCollection) {
+        throw new Error('Expected collection fixture')
+      }
+      const collection = {
+        ...sourceCollection,
+        uncategorizedCategoryPosition: position,
+      }
+      const data = BackupMapper.toBackupData(
+        {
+          ...snapshot,
+          savedTabs: { ...snapshot.savedTabs, collections: [collection] },
+        },
+        userSettings,
+      )
+      const envelope = BackupEnvelopeV2Schema.parse({
+        appVersion: '2026.10.3',
+        data,
+        exportedAt: '2026-10-03T00:00:00.000Z',
+        schemaVersion: 2,
+      })
+      const serialized = JSON.stringify(envelope)
+      const parsed: unknown = JSON.parse(serialized)
+      const restored = BackupMapper.toLogicalSnapshot(
+        BackupEnvelopeV2Schema.parse(parsed).data,
+        42,
+      )
+
+      expect(restored.savedTabs.collections).toStrictEqual([collection])
+      expect(restored.savedTabs.categories).toStrictEqual(
+        snapshot.savedTabs.categories,
+      )
+      expect(envelope.schemaVersion).toBe(2)
+    },
+  )
+
+  it.each([
+    -1,
+    0.5,
+    Number.MAX_SAFE_INTEGER + 1,
+    '0',
+    Number.NaN,
+    undefined,
+    -0,
+    Number.POSITIVE_INFINITY,
+    null,
+  ])('rejects invalid uncategorized insertion position %s', (value) => {
+    expect(
+      PersistenceV2CollectionSchema.safeParse({
+        ...createSavedTabs().collections[0],
+        uncategorizedCategoryPosition: value,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('keeps field-absent Backup V2 collections compatible without inventing a position', () => {
+    const snapshot = createLogicalSnapshot()
+    const data = BackupDataV2Schema.parse(
+      BackupMapper.toBackupData(snapshot, userSettings),
+    )
+
+    expect(data.savedTabs.collections).toStrictEqual(
+      snapshot.savedTabs.collections,
+    )
+    expect(data.savedTabs.collections[0]).not.toHaveProperty(
+      'uncategorizedCategoryPosition',
+    )
+  })
+
   it('separates schema and app versions and round-trips JSON', () => {
     const data = BackupMapper.toBackupData(
       createLogicalSnapshot(),

@@ -590,7 +590,14 @@ const findCollectionIssues = (
         }),
       )
     }
-    if (!isValidOrder(collection.sortOrder)) {
+    if (
+      !isValidOrder(collection.sortOrder) ||
+      (Object.hasOwn(collection, 'uncategorizedCategoryPosition') &&
+        (!Number.isSafeInteger(collection.uncategorizedCategoryPosition) ||
+          collection.uncategorizedCategoryPosition === undefined ||
+          collection.uncategorizedCategoryPosition < 0 ||
+          Object.is(collection.uncategorizedCategoryPosition, -0)))
+    ) {
       issues.push(
         createIssue('INVALID_COLLECTION_ORDER', {
           collectionId: collection.id,

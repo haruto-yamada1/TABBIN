@@ -2731,7 +2731,16 @@ describe('SavedTabsApp custom search', () => {
     await domainProps.handleConfirmUncategorizedReorder()
 
     expect(repositoryWriteMock).toHaveBeenCalledWith({
-      savedTabs: [group2, group1].map(toAppTabGroupFixture),
+      savedTabs: [
+        toAppTabGroupFixture(group2),
+        {
+          ...toAppTabGroupFixture(group1),
+          collection: {
+            ...toAppTabGroupFixture(group1).collection,
+            sortOrder: 1,
+          },
+        },
+      ],
     })
     await waitFor(() => {
       expect(

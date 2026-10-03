@@ -11,6 +11,7 @@ import {
   createIndexedDbSavedTabsUseCases,
   createNativeIndexedDbSavedTabsRuntime,
 } from './createIndexedDbSavedTabsUseCases'
+import { createNativeCategoryAssignmentPort } from './NativeSavedTabsPersistenceAdapters'
 
 const gate: PersistenceOperationGatePort = {
   runIndexedDbRead: async (operation) => operation(),
@@ -18,6 +19,141 @@ const gate: PersistenceOperationGatePort = {
 }
 
 describe('createIndexedDbSavedTabsUseCases', () => {
+  it.each([false, true])(
+    'persists domain array order through reorder and presentation saves (categorized=%s)',
+    async (categorized) => {
+      vi.stubGlobal('chrome', {
+        storage: {
+          local: {
+            get: vi.fn(async () => ({})),
+            remove: vi.fn(),
+            set: vi.fn(),
+          },
+        },
+      })
+      const indexedDb = new IDBFactory()
+      const databaseName = `domain-array-order-${String(categorized)}`
+      const manager = new IndexedDbConnectionManager({
+        databaseName,
+        indexedDb,
+      })
+      const groupId = categorized ? 'group-docs' : undefined
+      const collections = [
+        {
+          createdAt: 1,
+          definition: { domain: 'first.example', type: 'domain' as const },
+          ...(groupId ? { groupId } : {}),
+          id: 'domain-first',
+          name: 'first.example',
+          sortOrder: 100,
+          updatedAt: 1,
+        },
+        {
+          createdAt: 1,
+          definition: { domain: 'second.example', type: 'domain' as const },
+          ...(groupId ? { groupId } : {}),
+          id: 'domain-second',
+          name: 'second.example',
+          sortOrder: 200,
+          updatedAt: 1,
+        },
+        {
+          createdAt: 1,
+          definition: {
+            type: 'custom' as const,
+            projectKeywords: {
+              domainKeywords: [],
+              titleKeywords: [],
+              urlKeywords: [],
+            },
+          },
+          id: 'custom-project',
+          name: 'Custom',
+          sortOrder: 777,
+          updatedAt: 1,
+        },
+      ]
+      const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager, gate)
+      await unitOfWork.commit({
+        collections: { put: collections },
+        groups: {
+          put: groupId
+            ? [
+                {
+                  createdAt: 1,
+                  id: groupId,
+                  name: 'Docs',
+                  sortOrder: 0,
+                  updatedAt: 1,
+                },
+              ]
+            : [],
+        },
+      })
+      const native = createNativeIndexedDbSavedTabsRuntime({
+        connectionManager: manager,
+        operationGate: gate,
+      })
+      const useCases = createIndexedDbSavedTabsUseCases({
+        connectionManager: manager,
+        operationGate: gate,
+      })
+      const page = await useCases.getSavedTabsPageData()
+      const reversed = page.tabGroups.toReversed()
+      if (groupId) {
+        await useCases.reorderDomainsInCategory({
+          categoryId: groupId,
+          updatedDomains: reversed,
+        })
+      } else {
+        await useCases.reorderTabGroups({ tabGroups: reversed })
+      }
+      const confirmed = await useCases.getSavedTabsPageData()
+      expect(confirmed.tabGroups.map(({ id }) => id)).toEqual([
+        'domain-second',
+        'domain-first',
+      ])
+      // Category keyword/order saves use presentation DTOs. They must preserve the
+      // confirmed domain order even though that projection carries no rank.
+      const presentationGroups = page.tabGroups.map((group) => ({
+        ...group,
+        collection: { ...group.collection, sortOrder: 0 },
+      }))
+      await native.session.run(async (state) => {
+        await createNativeCategoryAssignmentPort(
+          state,
+          native.deps,
+        ).saveTabGroups(presentationGroups)
+      })
+      manager.close()
+      const restarted = new IndexedDbConnectionManager({
+        databaseName,
+        indexedDb,
+      })
+      const reader = new IndexedDbPersistenceSnapshotReader(restarted, gate)
+      const after = await createIndexedDbSavedTabsUseCases({
+        connectionManager: restarted,
+        operationGate: gate,
+      }).getSavedTabsPageData()
+      expect(after.tabGroups.map(({ id }) => id)).toEqual([
+        'domain-second',
+        'domain-first',
+      ])
+      expect(
+        after.parentCategories.flatMap(({ collections }) =>
+          collections.map(({ id }) => id),
+        ),
+      ).toEqual(categorized ? ['domain-second', 'domain-first'] : [])
+      const snapshot = await reader.readConsistentSnapshot()
+      expect(
+        snapshot.savedTabs.collections.find(
+          ({ id }) => id === 'custom-project',
+        ),
+      ).toEqual(collections[2])
+      restarted.close()
+    },
+  )
+
   afterEach(() => {
     vi.unstubAllGlobals()
   })

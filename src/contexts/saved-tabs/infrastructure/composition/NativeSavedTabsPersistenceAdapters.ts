@@ -15,6 +15,7 @@ import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 import type { IndexedDbSavedTabsMutableState } from './IndexedDbSavedTabsSessionService'
+import { preserveCategoryProjectionMetadata } from './preserveCategoryProjectionMetadata'
 
 type ExternalDeps = Pick<
   SavedTabsUseCasesDeps,
@@ -898,7 +899,7 @@ export const createNativeSavedTabsPersistenceAdapters = (
 
 export const createNativeCategoryAssignmentPort = (
   state: IndexedDbSavedTabsMutableState,
-  _external: Pick<ExternalDeps, 'clock' | 'idGenerator'>,
+  external: Pick<ExternalDeps, 'clock' | 'idGenerator'>,
 ): CategoryAssignmentPort => ({
   saveParentCategories: async (categories) => {
     await createParentCategoryRepository(state).saveAll(
@@ -906,6 +907,8 @@ export const createNativeCategoryAssignmentPort = (
     )
   },
   saveTabGroups: async (groups) => {
-    await createTabGroupRepository(state).saveAll(groups)
+    await createTabGroupRepository(state).saveAll(
+      preserveCategoryProjectionMetadata(state, groups, external),
+    )
   },
 })

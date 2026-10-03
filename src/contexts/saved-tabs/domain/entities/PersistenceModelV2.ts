@@ -36,6 +36,8 @@ export type PersistenceV2Collection = {
   readonly id: string
   readonly name: string
   readonly sortOrder: number
+  /** Insertion index among child categories; absent defaults to the end. */
+  readonly uncategorizedCategoryPosition?: number
   readonly updatedAt: number
 }
 

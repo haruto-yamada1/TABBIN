@@ -96,6 +96,7 @@ type Collection = {
   readonly definition: CollectionDefinition
   readonly groupId?: string
   readonly sortOrder: number
+  readonly uncategorizedCategoryPosition?: number
   readonly createdAt: number
   readonly updatedAt: number
 }
@@ -109,6 +110,18 @@ authoritative parent-group relation.
 `sortOrder` is included because current Domain/Custom UI order is user data.
 `updatedAt` changes only when collection definition or metadata changes; adding
 a URL does not change it.
+
+`uncategorizedCategoryPosition` is an optional non-negative safe-integer
+insertion index among the collection's ordered child categories. It preserves
+the position of the implicit Uncategorized bucket, whose memberships have no
+`categoryId`; it does not create a `CollectionCategory` record. An absent field
+places that bucket last, preserving existing IndexedDB records and Backup V2
+files. An index greater than the current child-category count also appends the
+bucket without inventing categories. Negative, fractional, unsafe, and
+non-number positions are invalid collection ordering; explicitly present
+`undefined` and other non-JSON-safe values remain invalid. The optional record
+field needs no IndexedDB store or index change: database version 1 and Backup V2
+schema version 2 remain unchanged.
 
 ### CollectionMembership
 

@@ -125,6 +125,11 @@ const canonicalizeCollection = (
   id: collection.id,
   name: collection.name,
   sortOrder: collection.sortOrder,
+  ...(collection.uncategorizedCategoryPosition === undefined
+    ? {}
+    : {
+        uncategorizedCategoryPosition: collection.uncategorizedCategoryPosition,
+      }),
   updatedAt: collection.updatedAt,
 })
 

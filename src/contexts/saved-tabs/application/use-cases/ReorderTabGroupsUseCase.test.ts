@@ -69,7 +69,11 @@ describe('ReorderTabGroupsUseCase', () => {
     })
 
     expect(repositories.saveAllSpy).toHaveBeenCalledTimes(1)
-    expect(repositories.saveAllSpy).toHaveBeenCalledWith([third, first, second])
+    expect(repositories.saveAllSpy).toHaveBeenCalledWith([
+      third,
+      { ...first, collection: { ...first.collection, sortOrder: 1 } },
+      { ...second, collection: { ...second.collection, sortOrder: 2 } },
+    ])
     expect(repositories.tabGroups.map((group) => group.id)).toStrictEqual([
       'group-3',
       'group-1',
