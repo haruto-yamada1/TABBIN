@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useMemo } from 'react'
 import type { CSSProperties } from 'react'
 
+import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
@@ -54,9 +55,21 @@ export const DomainCardRoot = ({
 }: DomainCardRootProps) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: group.id })
+  const savedTabs = useSavedTabsUseCases()
+  const categoryPersistence = useMemo(
+    () =>
+      savedTabs
+        ? {
+            categoryAssignmentPort: savedTabs.deps.categoryAssignmentPort,
+            getSavedTabsPageDataQuery: savedTabs.useCases.getSavedTabsPageData,
+          }
+        : {},
+    [savedTabs],
+  )
 
   const state = useDomainCardState({
     group,
+    ...categoryPersistence,
     ...(handleDeleteCategory !== undefined ? { handleDeleteCategory } : {}),
     ...(handlers.handleDeleteUrls !== undefined
       ? { handleDeleteUrls: handlers.handleDeleteUrls }

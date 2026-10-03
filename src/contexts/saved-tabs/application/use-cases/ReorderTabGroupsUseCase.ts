@@ -40,7 +40,12 @@ export const createReorderTabGroupsUseCase = (
 ): ReorderTabGroupsUseCase => {
   return async (command) => {
     await deps.tabGroupRepository.saveAll(
-      command.tabGroups.map(toCreateTabGroupInput).map(createTabGroup),
+      command.tabGroups
+        .map((group, sortOrder) => ({
+          ...toCreateTabGroupInput(group),
+          collection: { ...group.collection, sortOrder },
+        }))
+        .map(createTabGroup),
     )
   }
 }

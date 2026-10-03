@@ -2,7 +2,13 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { savedTabsDefaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 
 import type { DomainCardContextType } from './DomainCardContext'
 
@@ -30,7 +36,7 @@ vi.mock('@dnd-kit/utilities', () => ({
 }))
 
 vi.mock('../../hooks/useDomainCardState', () => ({
-  useDomainCardState: () => useDomainCardStateMock(),
+  useDomainCardState: (params: unknown) => useDomainCardStateMock(params),
 }))
 
 import { useDomainCard } from './DomainCardContext'
@@ -106,6 +112,46 @@ const createState = (): DomainCardContextType['state'] => {
 }
 
 describe('DomainCardRoot', () => {
+  it('injects production category persistence from the saved-tabs context', () => {
+    useSortableMock.mockReturnValue({
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      transform: null,
+      transition: undefined,
+    })
+    useDomainCardStateMock.mockReturnValue(createState())
+    const ports = createSavedTabsPresentationPortsStub()
+    const query = vi.fn(async () => {
+      throw new Error('Not invoked by this wiring test')
+    })
+    const useCases = createSavedTabsUseCasesStub({
+      getSavedTabsPageData: query,
+    })
+    render(
+      <SavedTabsUseCasesProvider value={{ deps: ports, useCases }}>
+        <DomainCardRoot
+          group={{
+            id: 'group-1',
+            domain: 'example.com',
+            subCategories: ['news'],
+          }}
+          settings={savedTabsDefaultUserSettings}
+          handlers={defaultHandlers}
+          reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
+        >
+          <Consumer />
+        </DomainCardRoot>
+      </SavedTabsUseCasesProvider>,
+    )
+    expect(useDomainCardStateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoryAssignmentPort: ports.categoryAssignmentPort,
+        getSavedTabsPageDataQuery: query,
+      }),
+    )
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
