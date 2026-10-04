@@ -125,7 +125,7 @@ package も追加していない。
   attacker-controlled expansion が必要で product path はない。bypass も解消する
   upstream 修正版 1.1.18 / 5.0.9 へ更新した。
 
-`defu`、`lodash-es`、`node-forge`、`postcss`、`rollup`、`shell-quote`、
+`defu`、`lodash-es`、`postcss`、`rollup`、`shell-quote`、
 `tmp` は引き続き同じ互換世代の修正版を top-level `overrides` で固定する。
 
 ### Publish audit refresh (2026-10-01)
@@ -140,6 +140,32 @@ package も追加していない。
 [undici の TLS 検証修正](https://github.com/advisories/GHSA-w293-vg96-wgc3)。
 
 ## Vulnerability response
+
+### node-forge RSA validation backport (2026-10-03)
+
+`web-ext` は WXT 0.21 の Chrome / Firefox 開発ブラウザー起動に必要で、
+`web-ext → @devicefarmer/adbkit → node-forge` が
+[GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) の対象となる。
+公開済み最新版 1.4.0 に修正がないため、
+[上流 PR #1152](https://github.com/digitalbazaar/forge/pull/1152) の修正を含む
+`digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65` に固定する。
+これは未リリースの snapshot (`1.4.1-0`) で、npm の修正版公開を意味しない。
+
+1.4.0 との差分は RSA の nested DigestAlgorithm 要素数検査、回帰テスト、
+changelog、snapshot version のみ。依存と lifecycle script に変更はなく、
+`trustedDependencies` は空のまま維持する。owner は dependency maintenance。
+上流 snapshot にも残る非空 ASN.1 NULL parameters の受理は、
+`patches/node-forge-null-parameters.patch` で拒否する。
+Bun の `patchedDependencies` と lockfile に patch の適用を記録し、
+fresh install で適用と正常署名の互換性を確認する。
+正式版への切替と patch 削除は、下記の検証がすべて成功する版の公開後に行う。
+
+Git dependency は npm advisory の version 照合だけでは検証できないため、
+`security:audit` の先頭で実 RSA 署名の正常系と異常 ASN.1 構造の拒否を検証する。
+OID のみ / OID + 空の NULL は受理し、余分な OCTET STRING / NULL と
+非空の NULL parameters は拒否する。
+未修正 1.4.0 でこの probe が失敗することを確認済み。
+その後の `bun audit --audit-level=high` は維持し、ignore は追加しない。
 
 security update は14日待機を機械的に適用せず urgency を判断する。GitHub vulnerability
 alerts、Renovate vulnerability PR、OSV、`bun audit` の結果を突き合わせる。
