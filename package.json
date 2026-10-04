@@ -21,7 +21,7 @@
     "release:zip": "bun run release:check && bun run zip && bun run zip:firefox && bun run release:provenance",
     "compile": "node node_modules/@typescript/native/bin/tsc --noEmit",
     "secretlint": "secretlint \"**/*\"",
-    "security:audit": "bun audit --audit-level=high",
+    "security:audit": "bun run verify:node-forge-backport && bun audit --audit-level=high",
     "postinstall": "wxt prepare",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
@@ -29,6 +29,7 @@
     "lint:fix": "oxlint --fix .",
     "validate:html": "html-validate --config .htmlvalidate.json --ext tsx,html src",
     "verify:tooling-dependencies": "node tools/scripts/verify-tooling-dependencies.mjs",
+    "verify:node-forge-backport": "bun tools/scripts/verify-node-forge-backport.ts",
     "verify:production-logging": "bun tools/scripts/verify-production-logging.ts",
     "verify:production-network-policy": "bun tools/scripts/verify-production-network-policy.ts",
     "verify:persistence-release-compatibility": "bun tools/scripts/verify-persistence-release-compatibility.ts",
@@ -165,6 +166,7 @@
     "@testing-library/user-event": "^14.6.7",
     "@types/chrome": "^0.3.0",
     "@types/node": "^24.19.0",
+    "@types/node-forge": "^1.3.14",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/webextension-polyfill": "^0.12.6",
@@ -188,6 +190,7 @@
     "jsdom": "^30.1.1",
     "json5": "^2.2.3",
     "knip": "^6.38.0",
+    "node-forge": "github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
     "oxlint-tsgolint": "^7.0.2003",
@@ -213,7 +216,7 @@
     "fast-uri": "3.1.8",
     "js-yaml": "4.3.2",
     "lodash-es": "4.18.1",
-    "node-forge": "1.4.0",
+    "node-forge": "github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65",
     "postcss": "8.5.28",
     "rollup": "4.62.2",
     "shell-quote": "1.10.0",
@@ -225,5 +228,8 @@
     "node": "24.x"
   },
   "packageManager": "bun@1.3.14",
+  "patchedDependencies": {
+    "node-forge@github:digitalbazaar/forge#ceba344": "patches/node-forge-null-parameters.patch"
+  },
   "trustedDependencies": []
 }

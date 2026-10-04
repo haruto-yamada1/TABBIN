@@ -83,6 +83,7 @@
         "@testing-library/user-event": "^14.6.7",
         "@types/chrome": "^0.3.0",
         "@types/node": "^24.19.0",
+        "@types/node-forge": "^1.3.14",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@types/webextension-polyfill": "^0.12.6",
@@ -106,6 +107,7 @@
         "jsdom": "^30.1.1",
         "json5": "^2.2.3",
         "knip": "^6.38.0",
+        "node-forge": "github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65",
         "oxfmt": "^0.70.0",
         "oxlint": "^1.85.0",
         "oxlint-tsgolint": "^7.0.2003",
@@ -126,6 +128,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "node-forge@github:digitalbazaar/forge#ceba344": "patches/node-forge-null-parameters.patch",
+  },
   "overrides": {
     "adm-zip": "0.6.1",
     "browserslist": "4.28.8",
@@ -133,7 +138,7 @@
     "fast-uri": "3.1.8",
     "js-yaml": "4.3.2",
     "lodash-es": "4.18.1",
-    "node-forge": "1.4.0",
+    "node-forge": "github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65",
     "postcss": "8.5.28",
     "rollup": "4.62.2",
     "shell-quote": "1.10.0",
@@ -998,6 +1003,8 @@
     "@types/ms": ["@types/ms@2.1.0", "", {}, "sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA=="],
 
     "@types/node": ["@types/node@24.19.0", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-zY+5tKxXdhGh1PYI0ac+7juvEu4OI6vWtVVoj5i2m42jxAY1U+zHGt6QCyOFwykdP62sM3MJ9stoYYUw5aCWew=="],
+
+    "@types/node-forge": ["@types/node-forge@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-mhVF2BnD4BO+jtOp7z1CdzaK4mbuK0LLQYAvdOLqHTavxFNq4zA1EmYkpnFjP8HOUzedfQkRnp0E2ulSAYSzAw=="],
 
     "@types/normalize-package-data": ["@types/normalize-package-data@2.4.4", "", {}, "sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA=="],
 
@@ -2085,7 +2092,7 @@
 
     "next-themes": ["next-themes@0.4.6", "", { "peerDependencies": { "react": "^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc", "react-dom": "^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc" } }, "sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA=="],
 
-    "node-forge": ["node-forge@1.4.0", "", {}, "sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ=="],
+    "node-forge": ["node-forge@github:digitalbazaar/forge#ceba344", {}, "digitalbazaar-forge-ceba344", "sha512-wQzUb9EXQPFuPFkcj/4B6mxSxkAbkRTgCJ7xEH61S0uBcaeUy3x0y7ppyHDW8xMGwsvkxgMzPaJH0hgWZHs4cQ=="],
 
     "node-releases": ["node-releases@2.0.57", "", {}, "sha512-kQK9LGGFiHtrWiNhZtA7Qbw17AQz+dmsEKODRIVTXA9+e5MS/2gZEBhYJt13GrAz5/IOZKddH/0Z3TP/Zgo+yw=="],
 

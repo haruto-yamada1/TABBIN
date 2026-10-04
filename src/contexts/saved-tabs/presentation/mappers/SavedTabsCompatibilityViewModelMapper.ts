@@ -66,6 +66,15 @@ export const toSavedTabsTabGroupViewModel = (
   group: SavedTabsDisplayTabGroupDto,
 ): SavedTabsTabGroupViewModel => {
   const categories = orderedCategories(group)
+  const childCategoryOrder = categories.map(({ name }) => name)
+  const fullChildCategoryOrder = [...childCategoryOrder]
+  if (group.collection.uncategorizedCategoryPosition !== undefined) {
+    fullChildCategoryOrder.splice(
+      group.collection.uncategorizedCategoryPosition,
+      0,
+      '__uncategorized',
+    )
+  }
   const categoryNameById = new Map(
     categories.map((category) => [category.id, category.name]),
   )
@@ -92,8 +101,8 @@ export const toSavedTabsTabGroupViewModel = (
       : {}),
     savedAt: group.collection.createdAt,
     subCategories: categories.map(({ name }) => name),
-    subCategoryOrder: categories.map(({ name }) => name),
-    subCategoryOrderWithUncategorized: categories.map(({ name }) => name),
+    subCategoryOrder: childCategoryOrder,
+    subCategoryOrderWithUncategorized: fullChildCategoryOrder,
     ...(group.resolvedUrls !== undefined
       ? { urls: group.resolvedUrls.map((url) => ({ ...url })) }
       : {}),
@@ -104,10 +113,27 @@ export const toSavedTabsDisplayTabGroupViewModel = (
   group: SavedTabsDisplayTabGroupDto,
 ): SavedTabsDisplayTabGroupViewModel => toSavedTabsTabGroupViewModel(group)
 
+const getUncategorizedCategoryMetadata = (
+  order: SavedTabsTabGroupViewModel['subCategoryOrderWithUncategorized'],
+): Pick<
+  SavedTabsTabGroupDto['collection'],
+  'uncategorizedCategoryPosition'
+> => {
+  const uncategorizedCategoryPosition = (order ?? []).findIndex(
+    (name) => name === '__uncategorized' || name === 'uncategorized',
+  )
+  return uncategorizedCategoryPosition >= 0
+    ? { uncategorizedCategoryPosition }
+    : {}
+}
+
 export const toTabGroupFromViewModel = (
   view: SavedTabsTabGroupViewModel,
 ): SavedTabsDisplayTabGroupDto => {
   const timestamp = view.savedAt ?? 0
+  const uncategorizedCategoryMetadata = getUncategorizedCategoryMetadata(
+    view.subCategoryOrderWithUncategorized,
+  )
   const categoryNames = [
     ...new Set(
       [
@@ -149,6 +175,7 @@ export const toTabGroupFromViewModel = (
     collection: {
       createdAt: timestamp,
       definition: { domain: view.domain, type: 'domain' },
+      ...uncategorizedCategoryMetadata,
       ...(view.parentCategoryId !== undefined
         ? { groupId: view.parentCategoryId }
         : {}),

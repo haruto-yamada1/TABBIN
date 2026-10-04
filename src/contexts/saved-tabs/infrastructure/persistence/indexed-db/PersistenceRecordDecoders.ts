@@ -72,6 +72,10 @@ export const isPersistenceV2Collection = (
   typeof value.id === 'string' &&
   typeof value.name === 'string' &&
   typeof value.sortOrder === 'number' &&
+  (!Object.hasOwn(value, 'uncategorizedCategoryPosition') ||
+    (typeof value.uncategorizedCategoryPosition === 'number' &&
+      Number.isSafeInteger(value.uncategorizedCategoryPosition) &&
+      value.uncategorizedCategoryPosition >= 0)) &&
   typeof value.updatedAt === 'number'
 
 export const isPersistenceV2Membership = (

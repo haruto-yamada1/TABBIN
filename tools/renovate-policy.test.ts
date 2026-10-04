@@ -171,8 +171,11 @@ describe('Renovate dependency update policy', () => {
     }
     const ciWorkflow = readRepositoryFile('.github/workflows/ci.yml')
 
-    expect(packageJson.scripts['security:audit']).toMatch(
-      /^bun audit --audit-level=high(?: --ignore GHSA-[\w-]+)*$/,
+    expect(packageJson.scripts['security:audit']).toBe(
+      'bun run verify:node-forge-backport && bun audit --audit-level=high',
+    )
+    expect(packageJson.scripts['verify:node-forge-backport']).toBe(
+      'bun tools/scripts/verify-node-forge-backport.ts',
     )
     expect(packageJson.trustedDependencies).toEqual(expect.any(Array))
     expect(ciWorkflow).toContain('run: bun run security:audit')
