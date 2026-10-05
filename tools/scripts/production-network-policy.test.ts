@@ -17,6 +17,46 @@ import {
 } from './production-network-policy'
 
 describe('collectSourceNetworkCallsites', () => {
+  it('keeps type method signature parameters in their own lexical scope', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/signature.ts',
+        'interface Handler { [fetch("type")](fetch: unknown): void }',
+      ),
+    ).toEqual([])
+  })
+
+  it('preserves lexical shadowing and outer aliases after array binding elisions', () => {
+    const source = [
+      'const request = fetch',
+      '{',
+      '  const [, fetch] = [null, () => undefined]',
+      '  fetch("local")',
+      '  request("https://example.com")',
+      '}',
+      'fetch("https://example.com")',
+    ].join('\n')
+    expect(collectSourceNetworkCallsites('src/elisions.ts', source)).toEqual([
+      { kind: 'fetch', line: 5, path: 'src/elisions.ts' },
+      { kind: 'fetch', line: 7, path: 'src/elisions.ts' },
+    ])
+  })
+
+  it('rejects malformed syntax instead of accepting an incomplete network inventory', () => {
+    expect(() =>
+      collectSourceNetworkCallsites('src/invalid.ts', 'const request = ;'),
+    ).toThrow(/Expression expected/)
+  })
+
+  it('preserves source lines with BOM, Unicode, CRLF, and JSX', () => {
+    const source =
+      '\uFEFFconst title = "日本😀";\r\n' +
+      'export const view = <div>{fetch("https://example.com")}</div>'
+    expect(collectSourceNetworkCallsites('src/network.tsx', source)).toEqual([
+      { kind: 'fetch', line: 2, path: 'src/network.tsx' },
+    ])
+  })
+
   it('discovers browser network APIs and explicit network clients from syntax', () => {
     const callsites = collectSourceNetworkCallsites(
       'src/network.ts',

@@ -3,22 +3,22 @@ import path from 'node:path'
 
 import { PRODUCTION_EXTENSION_PERMISSIONS } from '#extension-permissions'
 import { PRODUCTION_OUTBOUND_HOST_PERMISSIONS } from '#production-network-policy'
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 
 import { isHostPermission, readStringArray } from './manifestHelpers.ts'
 import {
   assertExtensionCspMatchesProductionNetworkPolicy,
   assertGeneratedManifestSecurityInvariants,
 } from './manifestSecurityInvariants.ts'
-import { collectPotentialNetworkAliasKinds } from './production-network-policy-aliases'
-import type { PotentialAliasSummary } from './production-network-policy-aliases'
+import { collectPotentialNetworkAliasKinds } from './production-network-policy-aliases.ts'
+import type { PotentialAliasSummary } from './production-network-policy-aliases.ts'
 import {
   NetworkAstTraverser,
   cloneAliasScopes as cloneScopes,
   collectBindingIdentifiers,
   mergeAliasScopeStates as mergeScopeStates,
-} from './production-network-policy-ast'
-import type { AliasScope } from './production-network-policy-ast'
+} from './production-network-policy-ast.ts'
+import type { AliasScope } from './production-network-policy-ast.ts'
 
 export type NetworkCallsiteKind =
   | 'network-client-import'
@@ -145,7 +145,9 @@ const resolveDirectNetworkReferences = (
 
 const getBindingPropertyName = (element: ts.BindingElement): string | null => {
   if (element.propertyName === undefined) {
-    return ts.isIdentifier(element.name) ? element.name.text : null
+    return element.name !== undefined && ts.isIdentifier(element.name)
+      ? element.name.text
+      : null
   }
   return ts.isIdentifier(element.propertyName) ||
     ts.isStringLiteralLike(element.propertyName)
@@ -308,16 +310,7 @@ export const collectSourceNetworkCallsites = (
   relativePath: string,
   sourceText: string,
 ): NetworkCallsite[] => {
-  const scriptKind = relativePath.endsWith('.tsx')
-    ? ts.ScriptKind.TSX
-    : ts.ScriptKind.TS
-  const source = ts.createSourceFile(
-    relativePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-    scriptKind,
-  )
+  const source = ts.parseSourceFile(relativePath, sourceText)
   const callsites: NetworkCallsite[] = []
   const recordedCallsites = new Set<string>()
   const potentialAliasKinds = collectPotentialNetworkAliasKinds(
@@ -471,7 +464,7 @@ export const collectSourceNetworkCallsites = (
       return
     }
     for (const element of node.name.elements) {
-      if (!ts.isIdentifier(element.name)) {
+      if (element.name === undefined || !ts.isIdentifier(element.name)) {
         continue
       }
       const kind = resolveDestructuredNetworkKind(

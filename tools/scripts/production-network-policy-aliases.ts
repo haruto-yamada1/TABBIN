@@ -1,6 +1,6 @@
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 
-import type { NetworkCallsiteKind } from './production-network-policy'
+import type { NetworkCallsiteKind } from './production-network-policy.ts'
 
 type PotentialAliasAssignment = {
   captured: boolean
@@ -32,7 +32,10 @@ export type PotentialAliasSummary = {
   capturedBindings: ReadonlyMap<string, ReadonlySet<NetworkCallsiteKind>>
 }
 
-const collectBindingNames = (name: ts.BindingName): string[] => {
+const collectBindingNames = (name: ts.BindingName | undefined): string[] => {
+  if (name === undefined) {
+    return []
+  }
   if (ts.isIdentifier(name)) {
     return [name.text]
   }
@@ -260,7 +263,7 @@ const assignPendingAliases = (
 }
 
 const registerFunctionParameters = (
-  node: ts.SignatureDeclaration,
+  node: ts.FunctionLike,
   environment: PotentialAliasEnvironment,
 ): void => {
   for (const parameter of node.parameters) {

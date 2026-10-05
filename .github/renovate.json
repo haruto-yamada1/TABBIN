@@ -56,7 +56,6 @@
       "description": "Keep high-impact dependencies out of broad custom groups",
       "matchPackageNames": [
         "typescript",
-        "@typescript/native",
         "react",
         "react-dom",
         "wxt",
@@ -72,7 +71,7 @@
     },
     {
       "description": "Handle TypeScript native compiler separately",
-      "matchDepNames": ["@typescript/native"],
+      "matchDepNames": ["typescript"],
       "schedule": ["before 6am on the first day of the month"],
       "dependencyDashboardApproval": true,
       "groupName": null

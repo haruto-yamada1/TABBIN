@@ -1,6 +1,6 @@
 import path from 'node:path'
 
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 
 const normalizeRepoPath = (filePath: string): string =>
   filePath.split(path.sep).join('/')
@@ -43,7 +43,12 @@ type StorageLexicalScope = {
   readonly type: 'block' | 'function' | 'source'
 }
 
-const collectBindingNames = (name: ts.BindingName): readonly string[] => {
+const collectBindingNames = (
+  name: ts.BindingName | undefined,
+): readonly string[] => {
+  if (name === undefined) {
+    return []
+  }
   if (ts.isIdentifier(name)) {
     return [name.text]
   }
@@ -102,14 +107,20 @@ const isIndexedDbStoreParameter = (
   if (!ts.isTypeLiteralNode(type)) {
     return false
   }
-  return type.members.some(
-    (member) =>
-      ts.isPropertySignature(member) &&
-      member.name.getText(sourceFile) === name &&
-      member.type !== undefined &&
-      ts.isTypeReferenceNode(member.type) &&
-      member.type.typeName.getText(sourceFile) === 'IDBObjectStore',
-  )
+  return type.members.some((member) => {
+    if (
+      !ts.isPropertySignature(member) ||
+      member.name.getText(sourceFile) !== name
+    ) {
+      return false
+    }
+    const memberType = ts.getPropertySignatureType(member)
+    return (
+      memberType !== undefined &&
+      ts.isTypeReferenceNode(memberType) &&
+      memberType.typeName.getText(sourceFile) === 'IDBObjectStore'
+    )
+  })
 }
 
 const recordStorageVariableBinding = (
@@ -298,13 +309,7 @@ export const containsStorageMutationBoundary = (
   sourceCode: string,
   relativePath: string,
 ): boolean => {
-  const sourceFile = ts.createSourceFile(
-    relativePath,
-    sourceCode,
-    ts.ScriptTarget.Latest,
-    true,
-    relativePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  )
+  const sourceFile = ts.parseSourceFile(relativePath, sourceCode)
   const isChromeStorageRepository = isChromeStorageRepositoryPath(relativePath)
   const storageLexicalScopes = collectStorageLexicalScopes(sourceFile)
   const indexedDbScopes = collectStorageLexicalScopes(sourceFile, true)

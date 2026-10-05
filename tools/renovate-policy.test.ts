@@ -145,7 +145,7 @@ describe('Renovate dependency update policy', () => {
     )
   })
 
-  it('waits for npm releases and isolates the TypeScript native compiler alias', () => {
+  it('waits for npm releases and isolates the canonical TypeScript compiler', () => {
     const config = JSON.parse(
       readRepositoryFile('.github/renovate.json'),
     ) as RenovateConfig
@@ -153,7 +153,7 @@ describe('Renovate dependency update policy', () => {
       rule.matchDatasources?.includes('npm'),
     )
     const nativeRule = config.packageRules.find((rule) =>
-      rule.matchDepNames?.includes('@typescript/native'),
+      rule.matchDepNames?.includes('typescript'),
     )
 
     expect(npmRule?.minimumReleaseAge).toBe('14 days')

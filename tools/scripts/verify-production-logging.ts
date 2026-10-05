@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 
 const projectRoot = path.resolve(import.meta.dirname, '../..')
 const sourceRoot = path.join(projectRoot, 'src')
@@ -77,12 +77,7 @@ const collectConsoleFragmentsFromSource = (source: ts.SourceFile): string[] => {
 const collectDirectConsoleFragments = (): string[] => {
   const fragments = new Set<string>()
   for (const file of collectFiles(sourceRoot, isProductionSource)) {
-    const source = ts.createSourceFile(
-      file,
-      readFileSync(file, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true,
-    )
+    const source = ts.parseSourceFile(file, readFileSync(file, 'utf8'))
     for (const fragment of collectConsoleFragmentsFromSource(source)) {
       const trimmed = fragment.trim()
       if (trimmed.length >= MIN_DIAGNOSTIC_FRAGMENT_LENGTH) {
@@ -105,9 +100,7 @@ const readProductionJavaScript = (outputRoot: string) => {
     const code = readFileSync(file, 'utf8')
     bundleParts.push(code)
     directConsoleFragments.push(
-      ...collectConsoleFragmentsFromSource(
-        ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true),
-      ),
+      ...collectConsoleFragmentsFromSource(ts.parseSourceFile(file, code)),
     )
   }
   return {

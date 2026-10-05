@@ -16,7 +16,7 @@
   "jsPlugins": [
     {
       "name": "eslint-react",
-      "specifier": "@eslint-react/eslint-plugin"
+      "specifier": "@tabbin/legacy-tooling/eslint-react"
     },
     {
       "name": "react-hooks-compiler",

@@ -205,6 +205,15 @@ afterEach(() => {
 })
 
 describe('verifyStorageWriterInventory', () => {
+  test('keeps type signature parameters from becoming runtime storage writers', () => {
+    expect(
+      containsStorageMutationBoundary(
+        'interface Handler { [storageLocal.set({})](storageLocal: unknown): void }',
+        'src/signature.ts',
+      ),
+    ).toBe(false)
+  })
+
   test('accepts the authoritative inventory for the real repository', () => {
     expect(() =>
       verifyStorageWriterInventory({

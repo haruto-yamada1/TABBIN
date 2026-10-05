@@ -1,10 +1,10 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
-import { containsStorageMutationBoundary } from './storage-writer-inventory-mutations'
-import { CURRENT_STORAGE_WRITER_IDS } from './storage-writer-inventory-policy'
+import { containsStorageMutationBoundary } from './storage-writer-inventory-mutations.ts'
+import { CURRENT_STORAGE_WRITER_IDS } from './storage-writer-inventory-policy.ts'
 
-export { containsStorageMutationBoundary } from './storage-writer-inventory-mutations'
+export { containsStorageMutationBoundary } from './storage-writer-inventory-mutations.ts'
 
 export type StorageWriterInventoryVerificationOptions = {
   readonly repoRoot: string

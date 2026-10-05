@@ -20,19 +20,9 @@ const sharedExclude = [
   '**/.{idea,git,cache,output,temp}/**',
 ]
 
-// `isolate: false` is retained deliberately for CI speed: a single module
-// registry per thread runs the full suite in ~18s vs ~36s with `isolate: true`.
-// Verified safe under issue #668:
-//   - `isolate: true` passes all 3529 tests (no hidden module dependency).
-//   - `--sequence.shuffle.files` passes under `isolate: false` (no cross-file
-//     order dependency).
-// Defence-in-depth is provided by `src/test/setup-global-state.ts`, which
-// resets `globalThis.chrome`, Web Storage, and stubbed globals after every
-// test so a file that forgets to clean up cannot poison the next.
-// Module-level singleton cache reset strategy is documented in
-// `src/test/setup-global-state.ts` (prefer the owning module's reset
-// helper such as `invalidateUrlCache`, or `vi.resetModules()` + fresh
-// dynamic import for a fully fresh singleton).
+// Vitest 5 inline projects inherit this root config by default. Keep each
+// file's module registry isolated so vi.mock() cannot leak into other files.
+// Global browser/storage state is also reset by setup-global-state.ts.
 const sharedSetupFiles = [
   './src/test/setup-console.ts',
   './src/test/setup-global-state.ts',
@@ -125,7 +115,7 @@ export default defineConfig({
       ],
     },
     pool: 'threads',
-    isolate: false,
+    isolate: true,
     testTimeout: 15000,
     projects: [
       {
