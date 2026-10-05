@@ -8,7 +8,8 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, describe, expect, test } from 'vitest'
+import { API } from 'typescript/unstable/sync'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import {
   containsStorageMutationBoundary,
@@ -215,13 +216,20 @@ describe('verifyStorageWriterInventory', () => {
   })
 
   test('accepts the authoritative inventory for the real repository', () => {
-    expect(() =>
-      verifyStorageWriterInventory({
-        inventoryPath: 'docs/architecture/current-storage-writer-inventory.md',
-        repoRoot: process.cwd(),
-        sourceRoots: ['src'],
-      }),
-    ).not.toThrow()
+    const close = vi.spyOn(API.prototype, 'close')
+    try {
+      expect(() =>
+        verifyStorageWriterInventory({
+          inventoryPath:
+            'docs/architecture/current-storage-writer-inventory.md',
+          repoRoot: process.cwd(),
+          sourceRoots: ['src'],
+        }),
+      ).not.toThrow()
+      expect(close).toHaveBeenCalledOnce()
+    } finally {
+      close.mockRestore()
+    }
   })
 
   test.each([

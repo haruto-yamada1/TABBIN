@@ -21,20 +21,24 @@ export { isPropertySignatureDeclaration as isPropertySignature } from 'typescrip
  * @returns {import('typescript/unstable/ast').SourceFile}
  */
 export function parseSourceFile(filename, sourceText) {
-  const fileName = path.resolve(filename)
+  return withSourceParser((parse) => parse(filename, sourceText))
+}
+
+/**
+ * Own one native process for an invocation; never share it between callers.
+ * @template T
+ * @param {(parse: typeof parseSourceFile) => T} work
+ * @returns {T}
+ */
+export function withSourceParser(work) {
   const configFileName = path.resolve(
     process.cwd(),
     '.tabbin-native-parser',
     'tsconfig.json',
   )
-  // The native file reader strips BOMs. An equivalent whitespace character
-  // preserves every original UTF-16 offset, including first-line columns.
-  const parserText = sourceText.startsWith('\uFEFF')
-    ? ` ${sourceText.slice(1)}`
-    : sourceText
-  const virtualFs = createVirtualFileSystem({
-    [fileName]: parserText,
-    [configFileName]: JSON.stringify({
+  const virtualFs = createVirtualFileSystem({})
+  const createConfig = (fileName) =>
+    JSON.stringify({
       compilerOptions: {
         allowJs: true,
         jsx: 'preserve',
@@ -44,8 +48,7 @@ export function parseSourceFile(filename, sourceText) {
         types: [],
       },
       files: [fileName],
-    }),
-  })
+    })
   const api = new API({
     cwd: process.cwd(),
     fs: {
@@ -60,39 +63,90 @@ export function parseSourceFile(filename, sourceText) {
         },
     },
   })
-  /** @type {import('typescript/unstable/sync').Snapshot | undefined} */
-  let snapshot
-  try {
-    snapshot = api.updateSnapshot({ openProjects: [configFileName] })
-    // Never inherit a cached AST when the same virtual filename is reused.
-    api.clearSourceFileCache()
-    const program = snapshot.getProject(configFileName)?.program
-    const source = program?.getSourceFile(fileName)
-    if (!source || source.text !== parserText) {
-      throw new Error(
-        `Native parser did not return the requested text: ${filename}`,
-      )
+  /** @type {string | undefined} */
+  let previousFile
+  let closed = false
+  /** @type {typeof parseSourceFile} */
+  const parse = (filename, sourceText) => {
+    if (closed) {
+      throw new Error('Native parser session is closed')
     }
-    const diagnostics = program.getSyntacticDiagnostics()
-    if (diagnostics.length > 0) {
-      const message = diagnostics
-        .map((diagnostic) => {
-          const { line, character } = source.getLineAndCharacterOfPosition(
-            diagnostic.pos,
-          )
-          return `${filename}:${line + 1}:${character + 1}: ${diagnostic.text}`
-        })
-        .join('\n')
-      throw new SyntaxError(message, { cause: diagnostics })
+    const fileName = path.resolve(filename)
+    // Preserve the original UTF-16 offsets when the native reader strips BOMs.
+    const parserText = sourceText.startsWith('\uFEFF')
+      ? ` ${sourceText.slice(1)}`
+      : sourceText
+    const sameFile = previousFile === fileName
+    const deleted = previousFile && !sameFile ? [previousFile] : []
+    for (const oldFile of deleted) {
+      virtualFs.removeFile?.(oldFile)
     }
-    return source
-  } finally {
+    virtualFs.writeFile?.(fileName, parserText)
+    virtualFs.writeFile?.(configFileName, createConfig(fileName))
+    const snapshot = api.updateSnapshot({
+      openProjects: [configFileName],
+      fileChanges: {
+        changed: [configFileName, ...(sameFile ? [fileName] : [])],
+        created: sameFile ? [] : [fileName],
+        deleted,
+      },
+    })
+    previousFile = fileName
     try {
-      snapshot?.dispose()
+      return readSnapshotSource({
+        api,
+        snapshot,
+        configFileName,
+        fileName,
+        filename,
+        parserText,
+      })
     } finally {
-      api.close()
+      snapshot.dispose()
     }
   }
+  try {
+    return work(parse)
+  } finally {
+    closed = true
+    api.close()
+  }
+}
+
+/**
+ * @param {{ api: import('typescript/unstable/sync').API; snapshot: import('typescript/unstable/sync').Snapshot; configFileName: string; fileName: string; filename: string; parserText: string }} options
+ * @returns {import('typescript/unstable/ast').SourceFile}
+ */
+function readSnapshotSource({
+  api,
+  snapshot,
+  configFileName,
+  fileName,
+  filename,
+  parserText,
+}) {
+  // Native snapshot updates and the local AST cache require separate invalidation.
+  api.clearSourceFileCache()
+  const program = snapshot.getProject(configFileName)?.program
+  const source = program?.getSourceFile(fileName)
+  if (!source || source.text !== parserText) {
+    throw new Error(
+      `Native parser did not return the requested text: ${filename}`,
+    )
+  }
+  const diagnostics = program.getSyntacticDiagnostics()
+  if (diagnostics.length > 0) {
+    const message = diagnostics
+      .map((diagnostic) => {
+        const { line, character } = source.getLineAndCharacterOfPosition(
+          diagnostic.pos,
+        )
+        return `${filename}:${line + 1}:${character + 1}: ${diagnostic.text}`
+      })
+      .join('\n')
+    throw new SyntaxError(message, { cause: diagnostics })
+  }
+  return source
 }
 
 /**

@@ -18,6 +18,8 @@ export function parseSourceFile(
   filename: string,
   sourceText: string,
 ): SourceFile
+export type SourceParser = typeof parseSourceFile
+export function withSourceParser<T>(work: (parse: SourceParser) => T): T
 export type FunctionLike = Node & FunctionLikeBase
 export function isFunctionLike(node: Node): node is FunctionLike
 export function forEachChild<T>(

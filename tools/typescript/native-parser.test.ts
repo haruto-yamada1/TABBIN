@@ -27,6 +27,59 @@ const requireNode = <T>(value: T | undefined): T => {
 }
 
 describe('native TypeScript parser', () => {
+  it('recovers from a caught syntax error within the same batch', () => {
+    const result = ts.withSourceParser((parse) => {
+      expect(() => parse('invalid.ts', 'const invalid = ;')).toThrow(
+        /Expression expected/,
+      )
+      return parse('recovered.tsx', 'const recovered = <main />')
+    })
+    expect(result.text).toBe('const recovered = <main />')
+    expect(result.scriptKind).toBe(ts.ScriptKind.TSX)
+  })
+
+  it('owns one native API per batch while preserving syntax modes and AST lifetime', () => {
+    const close = vi.spyOn(API.prototype, 'close')
+    try {
+      const sources = ts.withSourceParser((parse) => [
+        parse('first.ts', 'const first: number = 1'),
+        parse('second.tsx', 'const second = <div />'),
+        parse('third.js', 'fetch("third")'),
+      ])
+      expect(sources.map((source) => source.scriptKind)).toEqual([
+        ts.ScriptKind.TS,
+        ts.ScriptKind.TSX,
+        ts.ScriptKind.JS,
+      ])
+      expect(sources.map((source) => source.text)).toEqual([
+        'const first: number = 1',
+        'const second = <div />',
+        'fetch("third")',
+      ])
+      expect(close).toHaveBeenCalledOnce()
+    } finally {
+      close.mockRestore()
+    }
+  })
+
+  it('invalidates same-path ASTs and closes the batch on parser errors', () => {
+    const close = vi.spyOn(API.prototype, 'close')
+    try {
+      expect(() =>
+        ts.withSourceParser((parse) => {
+          const original = parse('same.ts', 'fetch("old")')
+          const updated = parse('same.ts', 'fetch("new")')
+          expect(original.text).toBe('fetch("old")')
+          expect(updated.text).toBe('fetch("new")')
+          parse('same.ts', 'const invalid = ;')
+        }),
+      ).toThrow(/Expression expected/)
+      expect(close).toHaveBeenCalledOnce()
+    } finally {
+      close.mockRestore()
+    }
+  })
+
   it('preserves missing annotations in native property signatures', () => {
     const source = ts.parseSourceFile(
       'property.ts',

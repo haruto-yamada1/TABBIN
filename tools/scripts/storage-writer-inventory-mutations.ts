@@ -308,8 +308,9 @@ const isStorageMutationCall = ({
 export const containsStorageMutationBoundary = (
   sourceCode: string,
   relativePath: string,
+  parse: ts.SourceParser = ts.parseSourceFile,
 ): boolean => {
-  const sourceFile = ts.parseSourceFile(relativePath, sourceCode)
+  const sourceFile = parse(relativePath, sourceCode)
   const isChromeStorageRepository = isChromeStorageRepositoryPath(relativePath)
   const storageLexicalScopes = collectStorageLexicalScopes(sourceFile)
   const indexedDbScopes = collectStorageLexicalScopes(sourceFile, true)
