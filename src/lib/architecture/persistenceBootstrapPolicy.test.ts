@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 import { describe, expect, it } from 'vitest'
 
 const repositoryPath = (path: string): string => resolve(process.cwd(), path)
@@ -15,13 +15,7 @@ const readRepositoryFile = (path: string): string =>
 const parseRepositorySourceFile = (path: string): ts.SourceFile => {
   const source = readRepositoryFile(path)
   const fileName = path.split('/').pop() ?? path
-  return ts.createSourceFile(
-    fileName,
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  )
+  return ts.parseSourceFile(fileName, source)
 }
 
 const calleeIdentifier = (call: ts.CallExpression): string | undefined => {

@@ -1,4 +1,4 @@
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { NetworkCallsiteKind } from './production-network-policy'
@@ -6,15 +6,12 @@ import { collectPotentialNetworkAliasKinds } from './production-network-policy-a
 
 describe('collectPotentialNetworkAliasKinds', () => {
   it('stops evaluating assignments once their alias kinds converge', () => {
-    const source = ts.createSourceFile(
+    const source = ts.parseSourceFile(
       'aliases.ts',
       `
         const first = fetch
         const second = first
       `,
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TS,
     )
     const resolveDirectReferences = vi.fn(
       (node: ts.Node): ReadonlySet<NetworkCallsiteKind> =>

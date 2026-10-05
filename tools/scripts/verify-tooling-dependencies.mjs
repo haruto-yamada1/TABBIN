@@ -1,4 +1,4 @@
-await import('@eslint-react/eslint-plugin')
+await import('@tabbin/legacy-tooling/eslint-react')
 await import('@secretlint/secretlint-rule-preset-recommend')
 
 const { parseSync } = await import('@swc/core')

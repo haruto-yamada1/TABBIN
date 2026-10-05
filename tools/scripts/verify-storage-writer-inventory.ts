@@ -1,10 +1,13 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 
-import { containsStorageMutationBoundary } from './storage-writer-inventory-mutations'
-import { CURRENT_STORAGE_WRITER_IDS } from './storage-writer-inventory-policy'
+import { withSourceParser } from '#typescript-parser'
+import type { SourceParser } from '#typescript-parser'
 
-export { containsStorageMutationBoundary } from './storage-writer-inventory-mutations'
+import { containsStorageMutationBoundary } from './storage-writer-inventory-mutations.ts'
+import { CURRENT_STORAGE_WRITER_IDS } from './storage-writer-inventory-policy.ts'
+
+export { containsStorageMutationBoundary } from './storage-writer-inventory-mutations.ts'
 
 export type StorageWriterInventoryVerificationOptions = {
   readonly repoRoot: string
@@ -334,9 +337,11 @@ const isProductionSourceFile = (fileName: string): boolean =>
 const collectStorageMutationFiles = ({
   directory,
   repoRoot,
+  parse,
 }: {
   readonly directory: string
   readonly repoRoot: string
+  readonly parse: SourceParser
 }): string[] => {
   const mutationFiles: string[] = []
 
@@ -347,6 +352,7 @@ const collectStorageMutationFiles = ({
           ...collectStorageMutationFiles({
             directory: path.join(directory, entry.name),
             repoRoot,
+            parse,
           }),
         )
       }
@@ -365,6 +371,7 @@ const collectStorageMutationFiles = ({
       containsStorageMutationBoundary(
         readFileSync(absolutePath, 'utf8'),
         relativePath,
+        parse,
       )
     ) {
       mutationFiles.push(relativePath)
@@ -547,14 +554,17 @@ const discoverStorageMutationFiles = ({
   StorageWriterInventoryVerificationOptions,
   'repoRoot' | 'sourceRoots'
 >): readonly string[] =>
-  sourceRoots
-    .flatMap((sourceRoot) =>
-      collectStorageMutationFiles({
-        directory: resolveFromRepo(repoRoot, sourceRoot),
-        repoRoot,
-      }),
-    )
-    .toSorted()
+  withSourceParser((parse) =>
+    sourceRoots
+      .flatMap((sourceRoot) =>
+        collectStorageMutationFiles({
+          directory: resolveFromRepo(repoRoot, sourceRoot),
+          repoRoot,
+          parse,
+        }),
+      )
+      .toSorted(),
+  )
 
 export const verifyStorageWriterInventory = ({
   inventoryPath,

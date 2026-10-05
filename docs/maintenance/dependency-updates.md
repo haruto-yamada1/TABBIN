@@ -8,7 +8,7 @@ CI success や vulnerability warning がないことだけを安全性の保証�
 - `bun` と `github-actions` の version / lockfile update と PR 作成
 - Dependency Dashboard で pending、approval、vulnerability、abandonment を可視化
 - 通常 update は月曜 06:00 前（Asia/Tokyo）、npm release から14日待機
-- major と `@typescript/native` は Dashboard 承認後に PR 作成
+- major と TypeScript は Dashboard 承認後に PR 作成
 - `rangeStrategy: pin` の初回 exact-version migration は専用 group として承認する
 - automerge は patch、minor、major、security、Actions のすべてで禁止
 
@@ -18,16 +18,32 @@ breaking change に伴う application migration と実動作確認は人間ま�
 
 ## Review checklist
 
-### TypeScript / test tool compatibility (2026-09-22)
+### TypeScript / test tool compatibility (2026-10-05)
 
-- 型検査は `@typescript/native`（`npm:typescript@^7.0.2`）の安定版を使う。
-  `compile` は alias 内の CLI を明示して、TypeScript 6 の `tsc` と混同しない。
-- `typescript@6.0.3` は Compiler API を使う AST 検査、HTML 検査、lint のために併用する。
-  TypeScript 7 のルート export は従来の Compiler API を提供しない。
-  公式の `@typescript/typescript6` alias は Bun 1.3.14 で内部 alias が自己参照に解決されたため、
-  API package を直接指定する。`@typescript/native-preview` は削除済み。
-- Storybook 10.6 の Vitest addon の peer range は Vitest 3 / 4。
-  Vitest 関連 package は対応範囲の最新 4.1.11 に揃え、5 系は addon の対応後に移行する。
+- ルートの `typescript@7.0.2` を型検査と自前の AST 解析に使う。
+  `compile` は `node node_modules/typescript/bin/tsc --noEmit` を明示する。
+  `@typescript/native` alias は不要になった。
+- 自前の解析は `tools/typescript/native-parser.mjs` の仮想プロジェクトを使う。
+  構文エラーを拒否し、実 filesystem への fallback を許可しない。
+  BOM / Unicode の UTF-16 位置と AST の親子関係を回帰テストで保護する。
+  使用する `unstable/*` API が安定化するまで compiler version を exact pin する。
+  同期 API を使う検証コマンドは、既存 runtime 契約の Node 24 で実行する。
+- 旧 Compiler API を要求する外部 lint / dependency-cruiser は
+  `tools/legacy-tooling` private workspace の `typescript@6.0.3` に隔離する。
+  Bun の isolated linker を `bunfig.toml` で固定し、peer context を混在させない。
+  dependency-cruiser は TypeScript peer を宣言していないため、専用 CLI adapter が
+  同パッケージの import だけを旧 API に解決する。元の CLI、全ルール、
+  type-only dependency の検出、診断、exit code を保持する。
+- Storybook 10.6.1 の Vitest addon の peer range は Vitest 3 / 4 / 5。
+  Vitest 関連 package は 5.0.3 に揃える。
+  Vitest 5 は inline project が root config を既定で継承するため、
+  `isolate: true` を明示してファイル間の module / mock 汚染を防ぐ。
+  `clearMocks` の新しい既定値 `true` は維持する。
+  Storybook の Vitest plugin が preview annotation を自動設定するため、
+  ブラウザー用 `setupFiles` に Vite / WXT の Node 設定を読み込ませない。
+- Motion 14 は公開 upgrade guide 上で breaking change がない。
+  `@streamdown/code` 2 は Shiki 4 と Node 20 以上を要求するため、
+  Node 24 / Shiki 4 の構成で実 plugin の強調表示と再描画を検証する。
 - Node / Bun の runtime contract は維持し、`@types/node` は Node 24 系の最新版に揃える。
 - Oxlint 1.79 以降で `react/react-compiler` が個別 rule に分割されたため、
   従来の native compiler rule の無効設定を各 rule に移す。
@@ -35,7 +51,10 @@ breaking change に伴う application migration と実動作確認は人間ま�
   新しい style rule は個別 const 宣言と arrow / function 宣言という既存規約に合わせる。
 
 参照: [TypeScript 7 の併用方針](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-60)、
-[Oxlint の rule 分割](https://github.com/oxc-project/oxc/pull/25500)。
+[Oxlint の rule 分割](https://github.com/oxc-project/oxc/pull/25500)、
+[Vitest 5 migration guide](https://main.vitest.dev/guide/migration/)、
+[Motion upgrade guide](https://motion.dev/docs/upgrade-guide)、
+[@streamdown/code 2 release](https://github.com/vercel/streamdown/releases/tag/%40streamdown%2Fcode%402.0.0)。
 
 ### CI
 

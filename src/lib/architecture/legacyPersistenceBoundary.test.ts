@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 import { describe, expect, it } from 'vitest'
 
 const repoRoot = resolve(import.meta.dirname, '../../..')
@@ -61,13 +61,7 @@ const toRepositoryPath = (absolutePath: string): string =>
   relative(repoRoot, absolutePath).split(sep).join('/')
 
 const parseSourceFile = (absolutePath: string): ts.SourceFile =>
-  ts.createSourceFile(
-    absolutePath,
-    readFileSync(absolutePath, 'utf8'),
-    ts.ScriptTarget.Latest,
-    true,
-    absolutePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  )
+  ts.parseSourceFile(absolutePath, readFileSync(absolutePath, 'utf8'))
 
 const isCurrentProductionLayer = (path: string): boolean =>
   path.startsWith('src/contexts/saved-tabs/domain/') ||

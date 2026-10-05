@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 
 /** @typedef {import('html-validate').Source} Source */
 /** @typedef {import('html-validate').TransformerResult} TransformerResult */
@@ -73,13 +73,7 @@ const KNOWN_EXTERNAL_INTRINSIC_COMPONENTS = new Map([
  * @returns {TransformerResult}
  */
 function transformer(source) {
-  const sourceFile = ts.createSourceFile(
-    source.filename,
-    source.data,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TSX,
-  )
+  const sourceFile = ts.parseSourceFile(source.filename, source.data)
 
   const componentMap = collectLocalComponents(sourceFile)
   const intrinsicMap = new Map([
@@ -653,13 +647,7 @@ function inferExportedIntrinsicTagName(filename, exportName, seen) {
     return null
   }
 
-  const sourceFile = ts.createSourceFile(
-    filename,
-    data,
-    ts.ScriptTarget.Latest,
-    true,
-    filename.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  )
+  const sourceFile = ts.parseSourceFile(filename, data)
   const exportedNode = getExportedComponentNode(sourceFile, exportName)
 
   if (!exportedNode) {
