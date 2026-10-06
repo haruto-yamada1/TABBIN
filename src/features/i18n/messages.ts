@@ -1,5 +1,8 @@
+import { analyticsHealthMessages } from './analyticsHealthMessages'
+
 const messages = {
   en: {
+    ...analyticsHealthMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
     'aiChat.attachments.defaultName': 'attachment',
@@ -907,6 +910,7 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...analyticsHealthMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
     'aiChat.attachments.defaultName': '添付ファイル',
