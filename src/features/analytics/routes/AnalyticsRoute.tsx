@@ -22,9 +22,11 @@ import type {
   AnalyticsHistoricalDataQuality,
   AnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
+import type { AnalyticsHealth } from '@/features/analytics/lib/analyticsHealth'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
 import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
+import { AnalyticsHealthPanel } from '@/features/analytics/routes/AnalyticsHealthPanel'
 import type {
   AnalyticsChartMessages,
   AnalyticsDeleteUndoSnapshot,
@@ -57,6 +59,7 @@ import {
   runSingleDeleteWhenAllowed,
 } from '@/features/analytics/routes/analyticsRoute.helpers'
 import { AnalyticsSidebar } from '@/features/analytics/routes/AnalyticsSidebar'
+import { useAnalyticsHealth } from '@/features/analytics/routes/useAnalyticsHealth'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
   createSavedAnalyticsView,
@@ -66,10 +69,14 @@ import {
 } from '@/lib/storage/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
 import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
+import { cn } from '@/lib/utils'
 
 const defaultAnalyticsQuery = getDefaultAnalyticsQuery()
 
 const CanvasPane = ({
+  health,
+  isReviewingHealth,
+  onReviewHealth,
   aiChartSpecs,
   deletingUrl,
   drilldownSelection,
@@ -85,6 +92,9 @@ const CanvasPane = ({
   summary,
   t,
 }: {
+  health: AnalyticsHealth | null
+  isReviewingHealth: boolean
+  onReviewHealth: (records: AiSavedUrlRecord[], label: string) => void
   aiChartSpecs: AiChartSpec[]
   deletingUrl: string | null
   drilldownSelection: AnalyticsDrilldownSelection | null
@@ -108,6 +118,9 @@ const CanvasPane = ({
     data-testid='analytics-canvas-pane'
   >
     <div className='min-w-0 p-5'>
+      {health ? (
+        <AnalyticsHealthPanel health={health} onReview={onReviewHealth} />
+      ) : null}
       <div className='flex flex-wrap items-start justify-between gap-3'>
         <div>
           <h2 className='text-lg font-semibold'>
@@ -122,7 +135,10 @@ const CanvasPane = ({
         </div>
       </div>
       <div
-        className='sticky top-0 z-10 min-w-0 bg-card/95 pb-4 backdrop-blur supports-backdrop-filter:bg-card/80'
+        className={cn(
+          'min-w-0 bg-card/95 pb-4 backdrop-blur supports-backdrop-filter:bg-card/80',
+          !isReviewingHealth && 'sticky top-0 z-10',
+        )}
         data-testid='analytics-sticky-chart-panel'
       >
         <Card className='min-w-0 rounded-3xl border-dashed bg-background/70 p-4 shadow-none'>
@@ -211,17 +227,23 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
 const useAnalyticsRouteView = () => {
   const { language, t } = useI18n()
   const [analyticsData, setAnalyticsData] = useState<{
+    loadedAt: number | null
     records: typeof awaitableEmptyRecords
     savedViews: SavedAnalyticsView[]
     settings: typeof defaultSettings
   }>(() => ({
+    loadedAt: null,
     records: awaitableEmptyRecords,
     savedViews: [],
     settings: defaultSettings,
   }))
-  const { records, savedViews, settings } = analyticsData
+  const { records, savedViews, settings, loadedAt } = analyticsData
   const setRecords = (records: typeof awaitableEmptyRecords) => {
-    setAnalyticsData((current) => ({ ...current, records }))
+    setAnalyticsData((current) => ({
+      ...current,
+      records,
+      loadedAt: Date.now(),
+    }))
   }
   const setSavedViews = (savedViews: SavedAnalyticsView[]) => {
     setAnalyticsData((current) => ({ ...current, savedViews }))
@@ -233,8 +255,15 @@ const useAnalyticsRouteView = () => {
   const [viewNameError, setViewNameError] =
     useState<ViewNameValidationError | null>(null)
   const [aiChartSpecs, setAiChartSpecs] = useState<AiChartSpec[]>([])
-  const [drilldownSelection, setDrilldownSelection] =
+  const [chartDrilldownSelection, setChartDrilldownSelection] =
     useState<AnalyticsDrilldownSelection | null>(null)
+  const {
+    health,
+    drilldownSelection,
+    handleReviewHealth,
+    clearHealthReview,
+    isReviewingHealth,
+  } = useAnalyticsHealth(records, loadedAt, chartDrilldownSelection)
   const [deleteTarget, setDeleteTarget] = useState<AiSavedUrlRecord | null>(
     null,
   )
@@ -259,6 +288,7 @@ const useAnalyticsRouteView = () => {
       }
 
       setAnalyticsData({
+        loadedAt: Date.now(),
         records: nextRecords,
         savedViews: nextSavedViews,
         settings: nextSettings,
@@ -305,13 +335,14 @@ const useAnalyticsRouteView = () => {
     (nextQuery: AnalyticsQuery, nextViewName?: string) => {
       setIsUsingAiCharts(false)
       setAiChartSpecs([])
-      setDrilldownSelection(null)
+      setChartDrilldownSelection(null)
+      clearHealthReview()
       setQuery(normalizeAnalyticsRouteQuery(nextQuery))
       if (nextViewName) {
         setViewName(nextViewName)
       }
     },
-    [],
+    [clearHealthReview],
   )
 
   const handleSaveView = useCallback(async () => {
@@ -357,13 +388,15 @@ const useAnalyticsRouteView = () => {
       }
       setIsUsingAiCharts(true)
       setAiChartSpecs(latestAssistantCharts.charts)
-      setDrilldownSelection(null)
+      setChartDrilldownSelection(null)
+      clearHealthReview()
     },
-    [],
+    [clearHealthReview],
   )
 
   const handleChartPointClick = useCallback(
     ({ label, seriesKey, spec }: AiChartPointSelection) => {
+      clearHealthReview()
       const matchingRecords = filteredRecords.filter((record) =>
         matchesDrilldownLabel({
           chartMessages,
@@ -375,14 +408,14 @@ const useAnalyticsRouteView = () => {
         }),
       )
 
-      setDrilldownSelection({
+      setChartDrilldownSelection({
         label,
         matchingRecords,
         ...(seriesKey !== undefined ? { seriesKey } : {}),
         specTitle: spec.title,
       })
     },
-    [filteredRecords, chartMessages, query, t],
+    [filteredRecords, chartMessages, query, t, clearHealthReview],
   )
 
   const refreshRecords = useCallback(async () => {
@@ -393,7 +426,7 @@ const useAnalyticsRouteView = () => {
 
   const rebuildDrilldownSelection = useCallback(
     (nextRecords: AiSavedUrlRecord[]) => {
-      setDrilldownSelection((currentSelection) =>
+      setChartDrilldownSelection((currentSelection) =>
         rebuildAnalyticsDrilldownSelection({
           chartMessages,
           currentSelection,
@@ -666,6 +699,9 @@ const useAnalyticsRouteView = () => {
             />
 
             <CanvasPane
+              health={health}
+              isReviewingHealth={isReviewingHealth}
+              onReviewHealth={handleReviewHealth}
               aiChartSpecs={aiChartSpecs}
               deletingUrl={deletingUrl}
               drilldownSelection={drilldownSelection}

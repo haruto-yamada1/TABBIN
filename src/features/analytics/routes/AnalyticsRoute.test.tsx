@@ -705,6 +705,111 @@ const createAnalyticsQuery = (
 })
 
 describe('AnalyticsRoute', () => {
+  it('shows an explained health overview independent of chart filters', async () => {
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue([
+      {
+        ...records[0],
+        subCategories: [],
+        projectCategories: [],
+        parentCategories: [],
+      },
+      records[1],
+    ])
+    render(<AnalyticsRoute />)
+    const overview = await screen.findByRole('region', {
+      name: 'Saved-tab health',
+    })
+    expect(within(overview).getByText('50%')).toBeInTheDocument()
+    expect(
+      within(overview).getByText(/Viewing history is not tracked/),
+    ).toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.selectOptions(screen.getByLabelText('Metric'), 'last-saved')
+    expect(within(overview).getByText('50%')).toBeInTheDocument()
+    await user.click(
+      within(overview).getByRole('button', {
+        name: 'Review uncategorized tabs',
+      }),
+    )
+    const drilldown = screen.getByTestId('analytics-drilldown-panel')
+    expect(screen.getByTestId('analytics-sticky-chart-panel')).not.toHaveClass(
+      'sticky',
+    )
+    expect(within(drilldown).getByText('Example Docs')).toBeInTheDocument()
+    expect(within(drilldown).queryByText('News Entry')).not.toBeInTheDocument()
+    expect(analyticsRouteMocks.loadRecordsMock).toHaveBeenCalledTimes(1)
+    expect(
+      within(overview).getByRole('link', { name: 'Organize in Saved Tabs' }),
+    ).toHaveAttribute('href', 'app.html#/saved-tabs?mode=domain')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'first-saved')
+    expect(screen.getByTestId('analytics-sticky-chart-panel')).toHaveClass(
+      'sticky',
+    )
+  })
+
+  it('does not award a perfect score to an empty library', async () => {
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue([])
+    render(<AnalyticsRoute />)
+    const overview = await screen.findByRole('region', {
+      name: 'Saved-tab health',
+    })
+    expect(within(overview).getByLabelText('Health score')).toHaveTextContent(
+      '—',
+    )
+    expect(
+      within(overview).getByText('Save tabs to see a health overview.'),
+    ).toBeInTheDocument()
+    expect(within(overview).queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('makes a concentration penalty actionable even with no recent or uncategorized URLs', async () => {
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue([
+      { ...records[0], subCategories: ['Work'], projectCategories: [] },
+    ])
+    render(<AnalyticsRoute />)
+    const overview = await screen.findByRole('region', {
+      name: 'Saved-tab health',
+    })
+    expect(within(overview).getByLabelText('Health score')).toHaveTextContent(
+      '80 / 100',
+    )
+    await userEvent.setup().click(
+      within(overview).getByRole('button', {
+        name: 'Review largest category: Domain / Work',
+      }),
+    )
+    expect(
+      within(screen.getByTestId('analytics-drilldown-panel')).getByText(
+        'Example Docs',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('explains the calculation and offers domain candidates in Japanese', async () => {
+    analyticsRouteMocks.language = 'ja'
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue([
+      { ...records[0], subCategories: [], projectCategories: [] },
+    ])
+    render(<AnalyticsRoute />)
+    const overview = await screen.findByRole('region', {
+      name: '保存タブの健康状態',
+    })
+    expect(within(overview).getByLabelText('健康スコア')).toHaveTextContent(
+      '60 / 100',
+    )
+    expect(within(overview).getByText('スコアの計算方法')).toBeInTheDocument()
+    await userEvent.setup().click(
+      within(overview).getByRole('button', {
+        name: 'docs.example.com を確認',
+      }),
+    )
+    expect(
+      within(screen.getByTestId('analytics-drilldown-panel')).getByText(
+        'Example Docs',
+      ),
+    ).toBeInTheDocument()
+  })
+
   beforeEach(() => {
     vi.useFakeTimers({
       shouldAdvanceTime: true,
