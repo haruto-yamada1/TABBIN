@@ -16,7 +16,6 @@ type AnalyticsHealth = {
   records: SavedTabsInsightRecord[]
   categories: HealthCategory[]
   concentration: number
-  duplicates: SavedTabsInsightRecord[]
   growingCategories: HealthCategory[]
   knownLastSaved: number
   score: number | null
@@ -31,7 +30,6 @@ const STALE_DAYS = 90
 const RECENT_DAYS = 7
 const MAX_HEALTH_SCORE = 100
 const UNCATEGORIZED_PENALTY = 40
-const DUPLICATE_PENALTY = 40
 const CONCENTRATION_PENALTY = 20
 const CATEGORY_SUMMARY_LIMIT = 3
 const HEALTH_LABEL_KEYS = [
@@ -165,9 +163,7 @@ const calculateAnalyticsHealth = (
 ): AnalyticsHealth => {
   const urls = collectHealthUrls(records, now)
   const uncategorized: SavedTabsInsightRecord[] = []
-  const duplicates: SavedTabsInsightRecord[] = []
   const stale: SavedTabsInsightRecord[] = []
-  const seenUrls = new Set<string>()
   const categories = new Map<string, HealthCategory>()
   const growingCategories = new Map<string, HealthCategory>()
   const categoryCollections = { categories, growingCategories }
@@ -177,10 +173,6 @@ const calculateAnalyticsHealth = (
   >()
   let knownLastSaved = 0
   for (const { record, firstSaved, lastSaved } of urls) {
-    if (seenUrls.has(record.url)) {
-      duplicates.push(record)
-    }
-    seenUrls.add(record.url)
     if (lastSaved !== undefined) {
       knownLastSaved += 1
       if (now - lastSaved >= STALE_DAYS * DAY_MS) {
@@ -213,14 +205,12 @@ const calculateAnalyticsHealth = (
       : Math.round(
           MAX_HEALTH_SCORE -
             (UNCATEGORIZED_PENALTY * uncategorized.length) / urls.length -
-            (DUPLICATE_PENALTY * duplicates.length) / urls.length -
             CONCENTRATION_PENALTY * Math.max(0, 2 * concentration - 1),
         )
   return {
     records: urls.map((item) => item.record),
     categories: ranked,
     concentration,
-    duplicates,
     growingCategories: rankCategories([...growingCategories.values()]).slice(
       0,
       CATEGORY_SUMMARY_LIMIT,

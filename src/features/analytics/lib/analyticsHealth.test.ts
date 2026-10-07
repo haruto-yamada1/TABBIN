@@ -13,7 +13,7 @@ const record = (
   eventId: 'a:first',
   domain: 'example.com',
   title: 'A',
-  url: 'https://example.com/a',
+  url: `https://example.com/${overrides.id ?? 'a'}`,
   savedAt: now,
   metric: 'first-saved',
   timestampAccuracy: 'exact',
@@ -59,7 +59,7 @@ describe('calculateAnalyticsHealth', () => {
     ])
   })
 
-  it('deduplicates event rows by URL id and counts distinct duplicate URLs only', () => {
+  it('counts each URL once across saving events without a duplicate health metric', () => {
     const result = calculateAnalyticsHealth(
       [
         record(),
@@ -77,9 +77,8 @@ describe('calculateAnalyticsHealth', () => {
     )
     expect(result.total).toBe(3)
     expect(result.uncategorized).toHaveLength(2)
-    expect(result.duplicates).toHaveLength(1)
-    expect(result.duplicates[0]?.id).toBe('b')
-    expect(result.score).toBe(40)
+    expect(result).not.toHaveProperty('duplicates')
+    expect(result.score).toBe(53)
   })
 
   it('uses only exact last saves for stale review candidates, never first saves or membership activity', () => {

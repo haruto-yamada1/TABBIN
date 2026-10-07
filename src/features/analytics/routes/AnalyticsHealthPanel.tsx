@@ -58,11 +58,6 @@ export const AnalyticsHealthPanel = ({
       count: health.uncategorized.length,
     },
     {
-      key: 'duplicates',
-      value: percent(health.duplicates.length, health.total),
-      count: health.duplicates.length,
-    },
-    {
       key: 'concentration',
       value: percent(health.concentration, 1),
       count: health.categories[0]?.records.length ?? 0,
@@ -73,11 +68,6 @@ export const AnalyticsHealthPanel = ({
       key: 'uncategorized',
       records: health.uncategorized,
       label: t('analytics.health.reviewUncategorized'),
-    },
-    {
-      key: 'duplicates',
-      records: health.duplicates,
-      label: t('analytics.health.reviewDuplicates'),
     },
     {
       key: 'stale',
@@ -110,7 +100,7 @@ export const AnalyticsHealthPanel = ({
           <p>{t('analytics.health.empty')}</p>
         ) : (
           <>
-            <dl className='grid gap-3 sm:grid-cols-3'>
+            <dl className='grid gap-3 sm:grid-cols-2'>
               {metrics.map((metric) => (
                 <div key={metric.key} className='rounded-2xl bg-muted/50 p-3'>
                   <dt className='text-sm text-muted-foreground'>

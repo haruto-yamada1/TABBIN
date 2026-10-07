@@ -62,13 +62,14 @@ snapshot read, browser history permission, or persisted health state is needed.
 
 The score is an organizing heuristic, rounded to an integer:
 
-`100 - 40 * uncategorizedRate - 40 * duplicateRate - 20 * max(0, 2 * largestCategoryLabelShare - 1)`
+`100 - 40 * uncategorizedRate - 20 * max(0, 2 * largestCategoryLabelShare - 1)`
 
 - Uncategorized means no Domain or Custom category on any current membership.
   A collection group alone does not count as a category.
-- Duplicates are extra distinct URL IDs with identical URL strings. Multiple
-  events and memberships for the same ID count once. Canonical persistence
-  already rejects normalized URL duplicates, so healthy snapshots report zero.
+- URL uniqueness is a canonical persistence invariant. Conflicting URL IDs or
+  normalized URLs are integrity errors handled by persistence verification,
+  not an organizing health metric or a user cleanup suggestion. Multiple
+  saving events and memberships for the same URL ID still count once.
 - Category-label share uses categorized URLs as the denominator and counts each
   URL once per label and mode. Identical labels within a mode are combined;
   this is a label distribution, not a category identity or quality judgment.
