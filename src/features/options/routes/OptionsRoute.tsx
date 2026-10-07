@@ -6,15 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { LoadingState } from '@/components/ui/loading-state'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Toaster } from '@/components/ui/sonner'
-import { clickBehaviorOptions } from '@/constants/clickBehaviorOptions'
 import { colorOptions } from '@/constants/colorOptions'
 import { getDefaultColor } from '@/constants/defaultColors'
 import {
@@ -26,9 +18,11 @@ import {
 } from '@/constants/fontSize'
 import { LanguageSelect } from '@/features/i18n/components/LanguageSelect'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { ClickBehaviorSelect } from '@/features/options/ClickBehaviorSelect'
 import { useColorSettings } from '@/features/options/hooks/useColorSettings'
 import { useSettings } from '@/features/options/hooks/useSettings'
 import { ImportExportSettings } from '@/features/options/ImportExportSettings'
+import { OllamaConnectionSettings } from '@/features/options/OllamaConnectionSettings'
 import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
 import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
 import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
@@ -63,46 +57,6 @@ const applyFontSizePreview = (value: number) => {
   document.documentElement.style.setProperty(
     '--app-font-scale',
     String(normalizeFontSizePercent(value) / FONT_SIZE_PERCENT_DIVISOR),
-  )
-}
-
-type ClickBehaviorSelectProps = {
-  value: string
-  onValueChange: (value: string) => void
-}
-
-const ClickBehaviorSelect: React.FC<ClickBehaviorSelectProps> = ({
-  value,
-  onValueChange,
-}) => {
-  const { t } = useI18n()
-
-  return (
-    <div className='mb-6'>
-      <Label
-        htmlFor='click-behavior'
-        className='mb-2 block font-medium text-foreground'
-      >
-        {t('options.clickBehaviorLabel')}
-      </Label>
-      <div className='gap-y-2'>
-        <Select value={value} onValueChange={onValueChange}>
-          <SelectTrigger
-            id='click-behavior'
-            className='w-full cursor-pointer bg-background'
-          >
-            <SelectValue placeholder={t('options.clickBehaviorPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent>
-            {clickBehaviorOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {t(option.labelKey)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
   )
 }
 
@@ -197,6 +151,13 @@ const useOptionsRouteView = () => {
   const handleClickBehaviorChange = useCallback(
     async (value: string) => {
       await updateSetting('clickBehavior', parseClickBehavior(value))
+    },
+    [updateSetting],
+  )
+
+  const handleOllamaBaseUrlChange = useCallback(
+    (baseUrl: NonNullable<UserSettings['ollamaBaseUrl']>) => {
+      void updateSetting('ollamaBaseUrl', baseUrl)
     },
     [updateSetting],
   )
@@ -363,6 +324,11 @@ const useOptionsRouteView = () => {
           </h2>
           <ImportExportSettings />
         </div>
+
+        <OllamaConnectionSettings
+          baseUrl={settings.ollamaBaseUrl}
+          onBaseUrlChange={handleOllamaBaseUrlChange}
+        />
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
           <h2 className='mb-4 text-xl font-semibold text-foreground'>

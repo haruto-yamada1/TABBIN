@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createElement } from 'react'
+import { Children, createElement, isValidElement } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { OptionsPage } from '@/features/options/routes/OptionsRoute'
@@ -141,20 +141,24 @@ vi.mock('@/components/ui/select', () => ({
     children: React.ReactNode
     onValueChange?: (value: string) => void
     value?: string
-  }) => (
-    <div>
-      <button
-        data-testid='mock-select-change'
-        onClick={() =>
-          onValueChange?.(value === 'never' ? '30days' : 'saveWindowTabs')
-        }
-        type='button'
+  }) => {
+    const trigger = Children.toArray(children).find(
+      (child) => isValidElement<{ id?: string }>(child) && child.props.id,
+    )
+    const triggerId = isValidElement<{ id?: string }>(trigger)
+      ? trigger.props.id
+      : undefined
+
+    return (
+      <select
+        id={triggerId}
+        onChange={(event) => onValueChange?.(event.target.value)}
+        value={value}
       >
-        change-select
-      </button>
-      {children}
-    </div>
-  ),
+        {children}
+      </select>
+    )
+  },
   SelectContent: ({
     children,
     ...props
@@ -162,7 +166,7 @@ vi.mock('@/components/ui/select', () => ({
     children: React.ReactNode
   } & Record<string, unknown>) => {
     mocked.selectContentProps.push(props)
-    return <div>{children}</div>
+    return <>{children}</>
   },
   SelectItem: ({
     children,
@@ -170,16 +174,9 @@ vi.mock('@/components/ui/select', () => ({
   }: {
     children: React.ReactNode
     value: string
-  }) => <div data-value={value}>{children}</div>,
-  SelectTrigger: ({
-    children,
-    ...props
-  }: {
-    children: React.ReactNode
-  } & Record<string, unknown>) => <div {...props}>{children}</div>,
-  SelectValue: ({ placeholder }: { placeholder?: string }) => (
-    <span>{placeholder}</span>
-  ),
+  }) => <option value={value}>{children}</option>,
+  SelectTrigger: () => null,
+  SelectValue: () => null,
 }))
 
 vi.mock('@/components/ui/sonner', () => ({
@@ -260,6 +257,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.clickBehavior.sameDomain':
           'Save all tabs from the current domain',
         'options.clickBehavior.windowTabs': 'Save all tabs in the window',
+        'options.ollama.baseUrlLabel': 'Ollama connection URL',
         'options.clickBehaviorLabel': 'Click action',
         'options.clickBehaviorPlaceholder': 'Select click action',
         'options.color.background': 'Background',
@@ -401,12 +399,29 @@ describe('options route behavior', () => {
 
     expect(screen.queryByText('Current value')).toBeNull()
 
-    const select = screen.getAllByTestId('mock-select-change')[0]
-    assert.isDefined(select)
-    await user.click(select)
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Click action' }),
+      'saveWindowTabs',
+    )
     expect(mocked.updateSetting).toHaveBeenCalledWith(
       'clickBehavior',
       'saveWindowTabs',
+    )
+  })
+
+  it('Ollama 接続先の select を変更すると updateSetting が呼ばれる', async () => {
+    const user = userEvent.setup()
+    render(createElement(OptionsPage))
+
+    const selector = screen.getByRole('combobox', {
+      name: 'Ollama connection URL',
+    })
+    expect(selector).toHaveValue('http://localhost:11434')
+    await user.selectOptions(selector, 'http://127.0.0.1:11434')
+
+    expect(mocked.updateSetting).toHaveBeenCalledWith(
+      'ollamaBaseUrl',
+      'http://127.0.0.1:11434',
     )
   })
 

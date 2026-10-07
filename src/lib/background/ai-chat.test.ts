@@ -63,6 +63,55 @@ describe('listLocalOllamaModels', () => {
     } as unknown as typeof chrome
   })
 
+  it('選択した接続先からモデル一覧を取得する', async () => {
+    mocked.getUserSettings.mockResolvedValueOnce({
+      ollamaBaseUrl: 'http://127.0.0.1:11434',
+    })
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ models: [] }),
+    })
+
+    await listLocalOllamaModels(fetchMock)
+
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:11434/api/tags', {
+      method: 'GET',
+    })
+  })
+
+  it.each(['forbidden', 'notInstalledOrNotRunning'])(
+    '%s の案内に実際の接続先を使い、設定を途中で再読み込みしない',
+    async (kind) => {
+      mocked.getUserSettings.mockResolvedValueOnce({
+        language: 'en',
+        ollamaBaseUrl: 'http://127.0.0.1:11434',
+      })
+      const fetchMock = vi.fn(async () => {
+        mocked.getUserSettings.mockResolvedValue({
+          ollamaBaseUrl: 'http://localhost:11434',
+        })
+        if (kind === 'forbidden') {
+          return new Response(null, { status: 403 })
+        }
+        throw new TypeError('Failed to fetch')
+      })
+
+      const error = await listLocalOllamaModels(fetchMock).catch(
+        (error: unknown) => error,
+      )
+
+      expect(error).toMatchObject({
+        message: expect.stringContaining('http://127.0.0.1:11434/api/tags'),
+        ollamaError: {
+          allowedOrigins: 'chrome-extension://test-extension-id',
+          baseUrl: 'http://127.0.0.1:11434',
+          kind,
+          tagsUrl: 'http://127.0.0.1:11434/api/tags',
+        },
+      })
+    },
+  )
+
   it('background locale helper は chrome がない環境では日本語に fallback する', () => {
     Reflect.deleteProperty(globalThis, 'chrome')
 
@@ -416,6 +465,50 @@ describe('runAiChatRequest', () => {
       },
     } as unknown as typeof chrome
   })
+
+  it.each([
+    ['http://127.0.0.1:11434', 'http://127.0.0.1:11434'],
+    ['https://example.com', 'http://localhost:11434'],
+  ])(
+    '接続設定 %s を許可候補へ解決してチャットに使う',
+    async (value, expected) => {
+      mocked.getUserSettings.mockResolvedValueOnce({
+        ollamaBaseUrl: value,
+        ollamaModel: 'llama3.2',
+      })
+
+      await runAiChatRequest({ history: [], prompt: 'hello' })
+
+      expect(mocked.createOllama).toHaveBeenCalledWith({ baseURL: expected })
+    },
+  )
+
+  it.each(['forbidden', 'notInstalledOrNotRunning'])(
+    'チャットの %s エラーも選択先を案内する',
+    async (kind) => {
+      mocked.getUserSettings.mockResolvedValueOnce({
+        language: 'ja',
+        ollamaBaseUrl: 'http://127.0.0.1:11434',
+        ollamaModel: 'llama3.2',
+      })
+      mocked.generateText.mockRejectedValueOnce(
+        kind === 'forbidden'
+          ? new Error('Error 403: Forbidden')
+          : new TypeError('Failed to fetch'),
+      )
+
+      await expect(
+        runAiChatRequest({ history: [], prompt: 'hello' }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('http://127.0.0.1:11434/api/tags'),
+        ollamaError: {
+          baseUrl: 'http://127.0.0.1:11434',
+          kind,
+          tagsUrl: 'http://127.0.0.1:11434/api/tags',
+        },
+      })
+    },
+  )
 
   it('保存済みタブ文脈を組み立てて generateText を呼ぶ', async () => {
     const result = await runAiChatRequest({

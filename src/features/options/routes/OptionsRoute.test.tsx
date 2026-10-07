@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Children, isValidElement } from 'react'
 import type { ReactNode } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -57,15 +58,24 @@ vi.mock('@/components/ui/select', () => ({
     children?: ReactNode
     onValueChange?: (value: string) => void
     value?: string
-  }) => (
-    <select
-      aria-label='click-behavior'
-      onChange={(event) => onValueChange?.(event.target.value)}
-      value={value}
-    >
-      {children}
-    </select>
-  ),
+  }) => {
+    const trigger = Children.toArray(children).find(
+      (child) => isValidElement<{ id?: string }>(child) && child.props.id,
+    )
+    const triggerId = isValidElement<{ id?: string }>(trigger)
+      ? trigger.props.id
+      : undefined
+
+    return (
+      <select
+        aria-label={triggerId}
+        onChange={(event) => onValueChange?.(event.target.value)}
+        value={value}
+      >
+        {children}
+      </select>
+    )
+  },
 
   SelectContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
   SelectItem: ({
@@ -189,6 +199,32 @@ describe('OptionsRoute', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('Ollama 接続設定の既定の接続先を表示する', () => {
+    render(<OptionsRoute />)
+
+    expect(
+      screen.getByRole('heading', { name: 'options.ollama.title' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('combobox', { name: 'ollama-base-url' }),
+    ).toHaveValue('http://localhost:11434')
+  })
+
+  it('選択した Ollama 接続先を既存の設定保存へ渡す', async () => {
+    const user = userEvent.setup()
+    render(<OptionsRoute />)
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'ollama-base-url' }),
+      'http://127.0.0.1:11434',
+    )
+
+    expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
+      'ollamaBaseUrl',
+      'http://127.0.0.1:11434',
+    )
   })
 
   it('renders settings sections and commits font size controls', async () => {

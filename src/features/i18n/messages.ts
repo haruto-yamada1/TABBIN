@@ -541,6 +541,10 @@ const messages = {
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
+    'options.ollama.baseUrlDescription':
+      'Choose the local Ollama address. If localhost does not connect, try 127.0.0.1. Changes are saved automatically and used for model loading and chat.',
+    'options.ollama.baseUrlLabel': 'Ollama connection URL',
+    'options.ollama.title': 'Ollama connection',
     'options.persistenceRecovery.actionFailed':
       'The action could not be completed. Try again.',
     'options.persistenceRecovery.backup': 'Back up current data',
@@ -1445,6 +1449,10 @@ const messages = {
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
+    'options.ollama.baseUrlDescription':
+      'ローカルの Ollama の接続先を選択します。localhost で接続できない場合は 127.0.0.1 をお試しください。変更は自動保存され、モデルの読み込みとチャットに使用されます。',
+    'options.ollama.baseUrlLabel': 'Ollama の接続先 URL',
+    'options.ollama.title': 'Ollama 接続設定',
     'options.persistenceRecovery.actionFailed':
       '操作を完了できませんでした。もう一度お試しください。',
     'options.persistenceRecovery.backup': '現在のデータをバックアップ',
