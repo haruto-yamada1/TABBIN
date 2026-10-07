@@ -721,6 +721,18 @@ describe('AnalyticsRoute', () => {
     })
     expect(within(overview).getByText('50%')).toBeInTheDocument()
     expect(
+      within(overview).queryByText('Duplicate rate'),
+    ).not.toBeInTheDocument()
+    expect(
+      within(overview).queryByRole('button', {
+        name: 'Review duplicate candidates',
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(overview).getByText(/Organizing guide:/),
+    ).not.toHaveTextContent('duplicate')
+    expect(within(overview).getAllByRole('term')).toHaveLength(2)
+    expect(
       within(overview).getByText(/Viewing history is not tracked/),
     ).toBeInTheDocument()
     const user = userEvent.setup()
@@ -798,6 +810,10 @@ describe('AnalyticsRoute', () => {
       '60 / 100',
     )
     expect(within(overview).getByText('スコアの計算方法')).toBeInTheDocument()
+    expect(within(overview).queryByText('重複率')).not.toBeInTheDocument()
+    expect(within(overview).getByText(/整理の目安：/)).not.toHaveTextContent(
+      '重複',
+    )
     await userEvent.setup().click(
       within(overview).getByRole('button', {
         name: 'docs.example.com を確認',

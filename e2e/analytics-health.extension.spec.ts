@@ -179,7 +179,10 @@ test('analytics health uses canonical URLs and keeps review/delete/undo/navigati
   await expect(health.getByLabel('Health score')).toHaveText('90 / 100')
   await expect(health.getByText(/^All 4 saved URLs,/)).toBeVisible()
   await expect(health.getByText('25%', { exact: true })).toBeVisible()
-  await expect(health.getByText('0%', { exact: true })).toBeVisible()
+  await expect(health.getByText('Duplicate rate', { exact: true })).toHaveCount(
+    0,
+  )
+  await expect(health.getByRole('term')).toHaveCount(2)
   await expect(health.getByText(/available for 3 of 4 URLs/)).toBeVisible()
   await expect(health.getByText(/Viewing history is not tracked/)).toBeVisible()
   await expect(
@@ -188,8 +191,7 @@ test('analytics health uses canonical URLs and keeps review/delete/undo/navigati
       exact: true,
     }),
   ).toHaveCount(0)
-  await page.screenshot({
-    fullPage: true,
+  await health.screenshot({
     path: '/tmp/issue-362-analytics-health.png',
   })
 
