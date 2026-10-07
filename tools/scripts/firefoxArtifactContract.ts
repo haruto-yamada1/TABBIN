@@ -1,3 +1,5 @@
+import { DEFAULT_LANGUAGE } from '#default-language'
+
 import { isRecord } from './manifestHelpers.ts'
 
 export type FirefoxArtifactFilePredicate = (relativePath: string) => boolean
@@ -97,11 +99,11 @@ const collectManifestShapeViolations = (
         'Firefox MV2 content_security_policy must be a string (MV3 object form is rejected)',
     })
   }
-  if (manifest.default_locale !== 'ja') {
+  if (manifest.default_locale !== DEFAULT_LANGUAGE) {
     violations.push({
       category: 'manifest',
       path: `${label}.default_locale`,
-      reason: `default_locale must be 'ja'; found ${quoteManifestValue(manifest.default_locale)}`,
+      reason: `default_locale must be '${DEFAULT_LANGUAGE}'; found ${quoteManifestValue(manifest.default_locale)}`,
     })
   }
   const optionsUi = manifest.options_ui
@@ -221,19 +223,20 @@ const collectArtifactFileViolations = (
     }
   }
 
-  if (!fileExists('_locales/ja/messages.json')) {
+  const defaultLocaleMessagesPath = `_locales/${DEFAULT_LANGUAGE}/messages.json`
+  if (!fileExists(defaultLocaleMessagesPath)) {
     violations.push({
       category: 'artifact',
-      path: `${label}/_locales/ja/messages.json`,
+      path: `${label}/${defaultLocaleMessagesPath}`,
       reason: 'default locale messages.json missing in artifact',
     })
   }
 
-  if (!fileExists('_locales/en/messages.json')) {
+  if (!fileExists('_locales/ja/messages.json')) {
     violations.push({
       category: 'artifact',
-      path: `${label}/_locales/en/messages.json`,
-      reason: 'fallback locale messages.json missing in artifact',
+      path: `${label}/_locales/ja/messages.json`,
+      reason: 'supported locale messages.json missing in artifact',
     })
   }
 

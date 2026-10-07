@@ -8,6 +8,7 @@
   ],
   "type": "module",
   "imports": {
+    "#default-language": "./src/constants/language.ts",
     "#extension-permissions": "./src/constants/extensionPermissions.ts",
     "#harness-state": "./tools/harness/state/index.ts",
     "#production-network-policy": "./src/constants/productionNetworkPolicy.ts",
