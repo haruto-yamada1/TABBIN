@@ -8,6 +8,15 @@ export const PRODUCTION_OUTBOUND_HOST_PERMISSIONS =
 
 export const OLLAMA_BASE_URL = PRODUCTION_OUTBOUND_ALLOWED_ORIGINS[0]
 
+export const OLLAMA_BASE_URL_VALUES = PRODUCTION_OUTBOUND_ALLOWED_ORIGINS
+export type OllamaBaseUrl = (typeof OLLAMA_BASE_URL_VALUES)[number]
+
+export const isOllamaBaseUrl = (value: unknown): value is OllamaBaseUrl =>
+  OLLAMA_BASE_URL_VALUES.some((candidate) => candidate === value)
+
+export const resolveOllamaBaseUrl = (value: unknown): OllamaBaseUrl =>
+  isOllamaBaseUrl(value) ? value : OLLAMA_BASE_URL
+
 const MANIFEST_VERSION_3 = '3'
 
 export const createProductionExtensionCsp = (

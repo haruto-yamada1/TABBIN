@@ -3,7 +3,8 @@ import { createOllama } from 'ai-sdk-ollama'
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { getAiChatToolTitle } from '@/constants/aiChatTools'
-import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
+import { resolveOllamaBaseUrl } from '@/constants/productionNetworkPolicy'
+import type { OllamaBaseUrl } from '@/constants/productionNetworkPolicy'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
 import { listSavedUrlPage } from '@/features/ai-chat/lib/savedUrlQuery'
@@ -110,7 +111,6 @@ const normalizeLoadedAiChatSettings = (settings: UserSettings | undefined) =>
 const getNormalizedAiChatSettings = async () =>
   normalizeLoadedAiChatSettings(await getUserSettings())
 
-const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`
 const OLLAMA_DOWNLOAD_URL = 'https://ollama.com/download'
 const OLLAMA_FAQ_URL =
   'https://docs.ollama.com/faq#how-do-i-configure-ollama-server'
@@ -142,24 +142,30 @@ const getConfiguredOllamaOrigin = (): string => {
   return extensionOrigin ?? 'chrome-extension://*'
 }
 
-const createBaseOllamaErrorDetails = (): Pick<
+const createBaseOllamaErrorDetails = (
+  baseUrl: OllamaBaseUrl,
+): Pick<
   OllamaErrorDetails,
   'baseUrl' | 'downloadUrl' | 'faqUrl' | 'tagsUrl'
 > => ({
-  baseUrl: OLLAMA_BASE_URL,
+  baseUrl,
   downloadUrl: OLLAMA_DOWNLOAD_URL,
   faqUrl: OLLAMA_FAQ_URL,
-  tagsUrl: OLLAMA_TAGS_URL,
+  tagsUrl: `${baseUrl}/api/tags`,
 })
 
-const createOllamaSetupInstructions = (language: AppLanguage): string =>
+const createOllamaSetupInstructions = (
+  language: AppLanguage,
+  baseUrl: OllamaBaseUrl,
+): string =>
   (() => {
     const configuredOrigin = getConfiguredOllamaOrigin()
+    const tagsUrl = `${baseUrl}/api/tags`
 
     return [
-      `${getMessage(language, 'aiChat.ollama.connectionUrl')}${OLLAMA_BASE_URL}`,
-      `${getMessage(language, 'aiChat.ollama.tagsUrl')}${OLLAMA_TAGS_URL}`,
-      `${getMessage(language, 'aiChat.ollama.checkCommand')} curl ${OLLAMA_TAGS_URL}`,
+      `${getMessage(language, 'aiChat.ollama.connectionUrl')}${baseUrl}`,
+      `${getMessage(language, 'aiChat.ollama.tagsUrl')}${tagsUrl}`,
+      `${getMessage(language, 'aiChat.ollama.checkCommand')} curl ${tagsUrl}`,
       getMessage(language, 'background.aiChat.ollama.macTitle'),
       getMessage(language, 'aiChat.ollama.mac.step1'),
       getMessage(language, 'aiChat.ollama.mac.step2'),
@@ -171,7 +177,10 @@ const createOllamaSetupInstructions = (language: AppLanguage): string =>
     ].join('\n')
   })()
 
-const createOllamaForbiddenErrorMessage = (language: AppLanguage): string => {
+const createOllamaForbiddenErrorMessage = (
+  language: AppLanguage,
+  baseUrl: OllamaBaseUrl,
+): string => {
   const allowedOrigins = getConfiguredOllamaOrigin()
 
   return [
@@ -184,15 +193,18 @@ const createOllamaForbiddenErrorMessage = (language: AppLanguage): string => {
         value: allowedOrigins,
       },
     ),
-    createOllamaSetupInstructions(language),
+    createOllamaSetupInstructions(language, baseUrl),
   ].join('\n')
 }
 
-const createOllamaConnectionErrorMessage = (language: AppLanguage): string =>
+const createOllamaConnectionErrorMessage = (
+  language: AppLanguage,
+  baseUrl: OllamaBaseUrl,
+): string =>
   [
     getMessage(language, 'aiChat.ollama.connectionError'),
     `${getMessage(language, 'aiChat.ollama.downloadUrl')} ${OLLAMA_DOWNLOAD_URL}`,
-    createOllamaSetupInstructions(language),
+    createOllamaSetupInstructions(language, baseUrl),
   ].join('\n')
 
 const createOllamaError = (
@@ -204,19 +216,21 @@ const createOllamaError = (
   })
 
 const createOllamaForbiddenError = (
-  language: AppLanguage = 'ja',
+  language: AppLanguage,
+  baseUrl: OllamaBaseUrl,
 ): OllamaStructuredError =>
-  createOllamaError(createOllamaForbiddenErrorMessage(language), {
-    ...createBaseOllamaErrorDetails(),
+  createOllamaError(createOllamaForbiddenErrorMessage(language, baseUrl), {
+    ...createBaseOllamaErrorDetails(baseUrl),
     allowedOrigins: getConfiguredOllamaOrigin(),
     kind: 'forbidden',
   })
 
 const createOllamaConnectionError = (
-  language: AppLanguage = 'ja',
+  language: AppLanguage,
+  baseUrl: OllamaBaseUrl,
 ): OllamaStructuredError =>
-  createOllamaError(createOllamaConnectionErrorMessage(language), {
-    ...createBaseOllamaErrorDetails(),
+  createOllamaError(createOllamaConnectionErrorMessage(language, baseUrl), {
+    ...createBaseOllamaErrorDetails(baseUrl),
     allowedOrigins: getConfiguredOllamaOrigin(),
     kind: 'notInstalledOrNotRunning',
   })
@@ -646,31 +660,27 @@ const shouldFallbackToInterestCharts = (prompt: string): boolean =>
 const listLocalOllamaModels = async (
   fetchImpl: typeof fetch = fetch,
 ): Promise<OllamaModelOption[]> => {
-  let response: Response
-
-  try {
-    response = await fetchImpl(OLLAMA_TAGS_URL, {
-      method: 'GET',
-    })
-  } catch (error) {
-    const settings = await getNormalizedAiChatSettings()
-    const language = resolveLanguage(
-      settings.language ?? 'system',
-      getAiChatUiLocale(),
-    )
-    if (isConnectionError(error)) {
-      throw createOllamaConnectionError(language)
-    }
-    throw error
-  }
-
   const settings = await getNormalizedAiChatSettings()
+  const baseUrl = resolveOllamaBaseUrl(settings.ollamaBaseUrl)
   const language = resolveLanguage(
     settings.language ?? 'system',
     getAiChatUiLocale(),
   )
+  let response: Response
+
+  try {
+    response = await fetchImpl(`${baseUrl}/api/tags`, {
+      method: 'GET',
+    })
+  } catch (error) {
+    if (isConnectionError(error)) {
+      throw createOllamaConnectionError(language, baseUrl)
+    }
+    throw error
+  }
+
   if (response.status === HTTP_FORBIDDEN) {
-    throw createOllamaForbiddenError(language)
+    throw createOllamaForbiddenError(language, baseUrl)
   }
 
   if (!response.ok) {
@@ -725,6 +735,7 @@ const runAiChatRequest = async (
     throw new Error('Ollama model is not configured')
   }
   const { ollamaModel } = settings
+  const baseUrl = resolveOllamaBaseUrl(settings.ollamaBaseUrl)
 
   const dataPlane = getBackgroundSavedTabsDataPlane()
   const [insightRecords, analyticsRecords] = await Promise.all([
@@ -734,7 +745,7 @@ const runAiChatRequest = async (
   const records: AiSavedUrlRecord[] = [...insightRecords]
 
   const ollama = createOllama({
-    baseURL: OLLAMA_BASE_URL,
+    baseURL: baseUrl,
   })
 
   const tools = createAiChatTools(records, language, analyticsRecords)
@@ -799,10 +810,10 @@ const runAiChatRequest = async (
       })
     } catch (error) {
       if (isForbiddenError(error)) {
-        throw createOllamaForbiddenError(language)
+        throw createOllamaForbiddenError(language, baseUrl)
       }
       if (isConnectionError(error)) {
-        throw createOllamaConnectionError(language)
+        throw createOllamaConnectionError(language, baseUrl)
       }
       throw error
     }

@@ -30,6 +30,66 @@ describe('settings storage', () => {
     vi.clearAllMocks()
   })
 
+  it.each(['http://localhost:11434', 'http://127.0.0.1:11434'])(
+    'Ollama 接続先 %s を保存して再読み込みできる',
+    async (ollamaBaseUrl) => {
+      const { defaultSettings, getUserSettings, saveUserSettings } =
+        await loadModule()
+      let storedValue: unknown
+      const storageLocal = {
+        get: vi.fn(async () => ({ userSettings: storedValue })),
+        set: vi.fn(async ({ userSettings }: { userSettings: unknown }) => {
+          storedValue = userSettings
+        }),
+      }
+      mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+      const settings = { ...defaultSettings }
+      Reflect.set(settings, 'ollamaBaseUrl', ollamaBaseUrl)
+
+      await saveUserSettings(settings)
+
+      await expect(getUserSettings()).resolves.toMatchObject({ ollamaBaseUrl })
+    },
+  )
+
+  it.each([
+    'https://example.com',
+    'http://localhost:11435',
+    'http://localhost:11434/api',
+    'http://user:password@localhost:11434',
+    'http://localhost:11434/',
+    null,
+    123,
+  ])('許可外の Ollama 接続先 %s は保存しない', async (value) => {
+    const storageLocal = { set: vi.fn(async () => undefined) }
+    mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
+    const { defaultSettings, saveUserSettings } = await loadModule()
+    const settings = { ...defaultSettings }
+    Reflect.set(settings, 'ollamaBaseUrl', value)
+    using _errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(saveUserSettings(settings)).rejects.toThrow(/Invalid option/u)
+    expect(storageLocal.set).not.toHaveBeenCalled()
+  })
+
+  it.each([undefined, 'https://example.com'])(
+    '未設定または不正な保存済み接続先 %s は localhost に戻す',
+    async (ollamaBaseUrl) => {
+      mocks.getChromeStorageLocal.mockReturnValue({
+        get: vi.fn(async () => ({
+          userSettings: { ollamaBaseUrl, language: 'en' },
+        })),
+        set: vi.fn(async () => undefined),
+      })
+      const { getUserSettings } = await loadModule()
+
+      await expect(getUserSettings()).resolves.toMatchObject({
+        language: 'en',
+        ollamaBaseUrl: 'http://localhost:11434',
+      })
+    },
+  )
+
   it('chrome.storage が無い場合はデフォルト設定を返す', async () => {
     mocks.getChromeStorageLocal.mockReturnValue(null)
 

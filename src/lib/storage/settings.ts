@@ -1,4 +1,5 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
+import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
 import {
   DEFAULT_EXCLUDE_PATTERNS,
   mergeStoredUserSettingsDefaults,
@@ -13,7 +14,10 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
-import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
+import {
+  parseStoredUserSettings,
+  UserSettingsSchema,
+} from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
@@ -62,6 +66,7 @@ export const defaultSettings: UserSettings = {
   fontSizePercent: DEFAULT_FONT_SIZE_PERCENT,
   colors: {}, // デフォルト: カラー設定まとめ
   ollamaModel: '',
+  ollamaBaseUrl: OLLAMA_BASE_URL,
   activeAiSystemPromptId: DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   aiSystemPrompts: [
     {
@@ -138,6 +143,7 @@ export const saveUserSettings = async (
   settings: UserSettings,
 ): Promise<void> => {
   try {
+    UserSettingsSchema.shape.ollamaBaseUrl.parse(settings.ollamaBaseUrl)
     const validatedSettings = parseStoredUserSettings(settings)
     const normalizedSettings = normalizeAiSystemPromptSettings(
       mergeStoredUserSettings(validatedSettings),
