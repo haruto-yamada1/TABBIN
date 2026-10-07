@@ -21,7 +21,7 @@ artifact 構造を検証する。
 - failure を検出する範囲:
   - `manifest_version` が 2 ではなくなる
   - `content_security_policy` が MV3 object 形式に退化する
-  - `default_locale` が `ja` 以外になる
+  - `default_locale` が `en` 以外になる（[i18n 方針](../architecture/i18n.md)）
   - `options_ui.page` が `options.html` でなくなる
   - required icon size (16 / 32 / 48 / 96 / 128) の欠落
   - Chrome 専用 API permission (`debugger`, `gcm`, `platformKeys`, ...) の混入

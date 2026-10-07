@@ -15,7 +15,7 @@ const createCompliantManifest = (): Record<string, unknown> => ({
   name: '__MSG_extensionName__',
   description: '__MSG_extensionDescription__',
   version: '2.0.17',
-  default_locale: 'ja',
+  default_locale: 'en',
   icons: {
     '16': 'icon/16.png',
     '32': 'icon/32.png',
@@ -127,9 +127,9 @@ describe('collectFirefoxArtifactContractViolations', () => {
     })
   })
 
-  it('rejects default_locale other than ja', () => {
+  it('rejects default_locale other than en', () => {
     const manifest = createCompliantManifest()
-    manifest.default_locale = 'en'
+    manifest.default_locale = 'ja'
 
     const violations = collectFirefoxArtifactContractViolations({
       manifest,
@@ -140,7 +140,7 @@ describe('collectFirefoxArtifactContractViolations', () => {
     expect(violations).toContainEqual({
       category: 'manifest',
       path: 'firefox-mv2.default_locale',
-      reason: "default_locale must be 'ja'; found 'en'",
+      reason: "default_locale must be 'en'; found 'ja'",
     })
   })
 
@@ -157,7 +157,7 @@ describe('collectFirefoxArtifactContractViolations', () => {
     expect(violations).toContainEqual({
       category: 'manifest',
       path: 'firefox-mv2.default_locale',
-      reason: "default_locale must be 'ja'; found undefined",
+      reason: "default_locale must be 'en'; found undefined",
     })
   })
 
@@ -392,26 +392,6 @@ describe('collectFirefoxArtifactContractViolations', () => {
       fileExists: createFileExists(
         new Set(
           [...createCompliantArtifacts()].filter(
-            (p) => p !== '_locales/ja/messages.json',
-          ),
-        ),
-      ),
-      label: 'firefox-mv2',
-    })
-
-    expect(violations).toContainEqual({
-      category: 'artifact',
-      path: 'firefox-mv2/_locales/ja/messages.json',
-      reason: 'default locale messages.json missing in artifact',
-    })
-  })
-
-  it('rejects when the fallback en locale messages.json is not present in the artifact', () => {
-    const violations = collectFirefoxArtifactContractViolations({
-      manifest: createCompliantManifest(),
-      fileExists: createFileExists(
-        new Set(
-          [...createCompliantArtifacts()].filter(
             (p) => p !== '_locales/en/messages.json',
           ),
         ),
@@ -422,7 +402,27 @@ describe('collectFirefoxArtifactContractViolations', () => {
     expect(violations).toContainEqual({
       category: 'artifact',
       path: 'firefox-mv2/_locales/en/messages.json',
-      reason: 'fallback locale messages.json missing in artifact',
+      reason: 'default locale messages.json missing in artifact',
+    })
+  })
+
+  it('rejects when the supported ja locale messages.json is not present in the artifact', () => {
+    const violations = collectFirefoxArtifactContractViolations({
+      manifest: createCompliantManifest(),
+      fileExists: createFileExists(
+        new Set(
+          [...createCompliantArtifacts()].filter(
+            (p) => p !== '_locales/ja/messages.json',
+          ),
+        ),
+      ),
+      label: 'firefox-mv2',
+    })
+
+    expect(violations).toContainEqual({
+      category: 'artifact',
+      path: 'firefox-mv2/_locales/ja/messages.json',
+      reason: 'supported locale messages.json missing in artifact',
     })
   })
 
