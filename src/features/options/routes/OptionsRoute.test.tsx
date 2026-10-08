@@ -49,9 +49,12 @@ vi.mock('@/features/options/ImportExportSettings', () => ({
   ImportExportSettings: () => <div>import-export-settings</div>,
 }))
 
-vi.mock('@/features/options/ReviewReminderSettings', () => ({
-  ReviewReminderSettings: () => <h2>review-reminder-settings</h2>,
-}))
+vi.mock(
+  '@/features/periodic-execution/components/ReviewReminderSettings',
+  () => ({
+    ReviewReminderSettings: () => <h2>options.review.title</h2>,
+  }),
+)
 
 vi.mock('@/components/ui/select', () => ({
   Select: ({
@@ -238,8 +241,8 @@ describe('OptionsRoute', () => {
     expect(screen.getByText('options.title')).toBeTruthy()
     expect(screen.getByText('import-export-settings')).toBeTruthy()
     expect(
-      screen.getByRole('heading', { name: 'review-reminder-settings' }),
-    ).toBeVisible()
+      screen.queryByRole('heading', { name: 'options.review.title' }),
+    ).not.toBeInTheDocument()
 
     const slider = screen.getByLabelText('options.fontSize.rangeLabel')
     // eslint-disable-next-line testing-library/prefer-user-event

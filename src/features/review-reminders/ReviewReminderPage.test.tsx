@@ -32,6 +32,9 @@ describe('review reminder target list', () => {
     expect(
       screen.getByRole('region', { name: 'reviewReminder.listTitle' }),
     ).toBeTruthy()
+    expect(
+      screen.getByRole('link', { name: 'reviewReminder.configure' }),
+    ).toHaveAttribute('href', '#/periodic-execution')
   })
   beforeEach(() => {
     vi.clearAllMocks()

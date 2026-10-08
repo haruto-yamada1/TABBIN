@@ -1,5 +1,8 @@
 export const reviewReminderMessages = {
   en: {
+    'periodicExecution.review.targetTitle': 'Review candidates',
+    'periodicExecution.review.scheduleTitle': 'Notification schedule',
+    'periodicExecution.review.quietTitle': 'Quiet hours',
     'options.review.title': 'Review reminders',
     'options.review.description':
       'Choose when to review saved tabs. Reminders suggest candidates for you to organize; they never delete tabs automatically.',
@@ -67,6 +70,9 @@ export const reviewReminderMessages = {
     'reviewReminder.loading': 'Loading review candidates…',
   },
   ja: {
+    'periodicExecution.review.targetTitle': '通知対象',
+    'periodicExecution.review.scheduleTitle': '実行日時',
+    'periodicExecution.review.quietTitle': '通知しない時間帯',
     'options.review.title': '整理リマインダー',
     'options.review.description':
       '保存したタブを見直すタイミングを設定します。リマインダーは整理の候補をお知らせするもので、自動でタブを削除しません。',

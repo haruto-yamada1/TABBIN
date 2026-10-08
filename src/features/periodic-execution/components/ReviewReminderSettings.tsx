@@ -1,3 +1,10 @@
+import {
+  ArrowRight,
+  Bell,
+  CalendarClock,
+  Moon,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, SubmitEvent } from 'react'
 
@@ -51,7 +58,7 @@ const hourOptions = Array.from({ length: HOURS_PER_DAY }, (_, hour) => ({
   label: `${String(hour).padStart(2, '0')}:00`,
 }))
 const fieldClassName =
-  'h-10 w-full rounded-md border border-input bg-background px-3 text-foreground disabled:opacity-50'
+  'h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50'
 
 const createDraft = (settings: ReminderSettings): Draft => ({
   ...settings,
@@ -146,7 +153,7 @@ const TargetFields = ({
     return options
   }, [categories, draft.categoryId, t])
   return (
-    <div className='grid gap-4 sm:grid-cols-2'>
+    <div className='space-y-4'>
       <ReviewSelect
         name='target'
         label={t('options.review.target')}
@@ -209,7 +216,7 @@ const ScheduleFields = ({ draft, onChange, t }: FieldsProps) => {
     [t],
   )
   return (
-    <div className='grid gap-4 sm:grid-cols-3'>
+    <div className='grid gap-4 sm:grid-cols-2'>
       <ReviewSelect
         name='frequency'
         label={t('options.review.frequency')}
@@ -238,14 +245,14 @@ const ScheduleFields = ({ draft, onChange, t }: FieldsProps) => {
 }
 
 const QuietHoursFields = ({ draft, onChange, t }: FieldsProps) => (
-  <div className='space-y-3'>
-    <label className='flex items-center gap-2'>
+  <div className='space-y-4'>
+    <label className='flex cursor-pointer items-start gap-3 text-sm font-medium'>
       <input
         name='quietHoursEnabled'
         type='checkbox'
         checked={draft.quietHoursEnabled}
         onChange={onChange}
-        className='size-4 accent-primary'
+        className='mt-0.5 size-4 shrink-0 accent-primary'
       />
       {t('options.review.quietEnabled')}
     </label>
@@ -267,10 +274,121 @@ const QuietHoursFields = ({ draft, onChange, t }: FieldsProps) => (
         />
       </div>
     ) : null}
-    <p className='text-sm text-muted-foreground'>
+    <p className='text-sm leading-6 text-muted-foreground'>
       {t('options.review.quietHelp')}
     </p>
   </div>
+)
+
+const ReminderEnabledToggle = ({ draft, onChange, t }: FieldsProps) => (
+  <label className='flex cursor-pointer items-center justify-between gap-4 rounded-xl bg-muted/50 px-4 py-4'>
+    <span className='text-sm font-medium'>{t('options.review.enabled')}</span>
+    <span className='relative flex shrink-0 items-center'>
+      <input
+        name='enabled'
+        type='checkbox'
+        checked={draft.enabled}
+        onChange={onChange}
+        className='peer absolute inset-0 z-10 size-full cursor-pointer opacity-0 disabled:cursor-default'
+      />
+      <span
+        aria-hidden='true'
+        className='h-6 w-11 rounded-full bg-input peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:opacity-50'
+      />
+      <span
+        aria-hidden='true'
+        className='pointer-events-none absolute left-0.5 size-5 rounded-full bg-background shadow-sm peer-checked:translate-x-5'
+      />
+    </span>
+  </label>
+)
+
+const ReminderDetailsFields = ({
+  draft,
+  categories,
+  onChange,
+  t,
+}: FieldsProps & { categories: Category[] }) => (
+  <div className='grid gap-6 lg:grid-cols-2'>
+    <div className='min-w-0 space-y-4'>
+      <h3 className='flex items-center gap-2 text-sm font-semibold'>
+        <SlidersHorizontal
+          aria-hidden='true'
+          className='size-4 text-muted-foreground'
+        />
+        {t('periodicExecution.review.targetTitle')}
+      </h3>
+      <TargetFields
+        draft={draft}
+        categories={categories}
+        onChange={onChange}
+        t={t}
+      />
+      <p className='text-sm leading-6 text-muted-foreground'>
+        {t('options.review.noHistory')}
+      </p>
+    </div>
+    <div className='min-w-0 space-y-4'>
+      <h3 className='flex items-center gap-2 text-sm font-semibold'>
+        <CalendarClock
+          aria-hidden='true'
+          className='size-4 text-muted-foreground'
+        />
+        {t('periodicExecution.review.scheduleTitle')}
+      </h3>
+      <ScheduleFields draft={draft} onChange={onChange} t={t} />
+      <p className='text-sm leading-6 text-muted-foreground'>
+        {t('options.review.localTime')}
+      </p>
+    </div>
+  </div>
+)
+
+const ReminderForm = ({
+  draft,
+  categories,
+  isSaving,
+  onChange,
+  onSubmit,
+  t,
+  reviewUrl,
+}: FieldsProps & {
+  categories: Category[]
+  isSaving: boolean
+  onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
+  reviewUrl: string
+}) => (
+  <form aria-label={t('options.review.title')} onSubmit={onSubmit} noValidate>
+    <fieldset disabled={isSaving} className='space-y-6'>
+      <ReminderEnabledToggle draft={draft} onChange={onChange} t={t} />
+      <ReminderDetailsFields
+        draft={draft}
+        categories={categories}
+        onChange={onChange}
+        t={t}
+      />
+      <div className='space-y-4 rounded-xl border border-border bg-muted/20 p-4 sm:p-5'>
+        <h3 className='flex items-center gap-2 text-sm font-semibold'>
+          <Moon aria-hidden='true' className='size-4 text-muted-foreground' />
+          {t('periodicExecution.review.quietTitle')}
+        </h3>
+        <QuietHoursFields draft={draft} onChange={onChange} t={t} />
+      </div>
+      <div className='flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5'>
+        <Button
+          type='submit'
+          disabled={isSaving}
+          className='w-full cursor-pointer sm:w-auto'
+        >
+          {t(isSaving ? 'options.review.saving' : 'options.review.save')}
+        </Button>
+        <ReviewNowLink
+          reviewUrl={reviewUrl}
+          label={t('options.review.reviewNow')}
+        />
+      </div>
+    </fieldset>
+  </form>
 )
 
 const useReviewReminderSettings = () => {
@@ -380,84 +498,77 @@ export const ReviewReminderSettings = () => {
   return (
     <section
       aria-labelledby='review-settings-title'
-      className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'
+      className='overflow-hidden rounded-2xl border border-border bg-card shadow-sm'
     >
-      <h2 id='review-settings-title' className='mb-3 text-xl font-semibold'>
-        {t('options.review.title')}
-      </h2>
-      <p className='mb-2 text-sm text-muted-foreground'>
-        {t('options.review.description')}
-      </p>
-      <p className='mb-4 text-sm text-muted-foreground'>
-        {t('options.review.noHistory')}
-      </p>
-      {state.draft ? (
-        <form
-          aria-label={t('options.review.title')}
-          onSubmit={handleSubmit}
-          noValidate
-        >
-          <fieldset disabled={state.status === 'saving'} className='space-y-4'>
-            <label className='flex items-center gap-2'>
-              <input
-                name='enabled'
-                type='checkbox'
-                checked={state.draft.enabled}
-                onChange={handleChange}
-                className='size-4 accent-primary'
-              />
-              {t('options.review.enabled')}
-            </label>
-            <TargetFields
-              draft={state.draft}
-              categories={state.categories}
-              onChange={handleChange}
-              t={t}
+      <div className='flex items-start gap-4 border-b border-border p-5 sm:p-6'>
+        <div className='flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+          <Bell aria-hidden='true' className='size-5' />
+        </div>
+        <div className='min-w-0'>
+          <h2 id='review-settings-title' className='text-xl font-semibold'>
+            {t('options.review.title')}
+          </h2>
+          <p className='mt-2 text-sm leading-6 text-muted-foreground'>
+            {t('options.review.description')}
+          </p>
+        </div>
+      </div>
+      <div className='p-5 sm:p-6'>
+        {state.draft ? (
+          <ReminderForm
+            draft={state.draft}
+            categories={state.categories}
+            isSaving={state.status === 'saving'}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            t={t}
+            reviewUrl={reviewUrl}
+          />
+        ) : null}
+        {state.categoriesError ? (
+          <p className='mt-3 text-sm text-destructive'>
+            {t('options.review.categoriesError')}
+          </p>
+        ) : null}
+        {state.errorKey ? (
+          <p role='alert' className='mt-3 text-sm text-destructive'>
+            {t(state.errorKey)}
+          </p>
+        ) : null}
+        {state.status === 'loading' ||
+        state.status === 'dirty' ||
+        state.status === 'saved' ? (
+          <output className='mt-3 block text-sm text-muted-foreground'>
+            {t(
+              `options.review.${state.status === 'dirty' ? 'unsaved' : state.status}`,
+            )}
+          </output>
+        ) : null}
+        {!state.draft ? (
+          <div className='mt-4'>
+            <ReviewNowLink
+              reviewUrl={reviewUrl}
+              label={t('options.review.reviewNow')}
             />
-            <ScheduleFields draft={state.draft} onChange={handleChange} t={t} />
-            <p className='text-sm text-muted-foreground'>
-              {t('options.review.localTime')}
-            </p>
-            <QuietHoursFields
-              draft={state.draft}
-              onChange={handleChange}
-              t={t}
-            />
-            <Button type='submit' disabled={state.status === 'saving'}>
-              {t(
-                state.status === 'saving'
-                  ? 'options.review.saving'
-                  : 'options.review.save',
-              )}
-            </Button>
-          </fieldset>
-        </form>
-      ) : null}
-      {state.categoriesError ? (
-        <p className='mt-3 text-sm text-destructive'>
-          {t('options.review.categoriesError')}
-        </p>
-      ) : null}
-      {state.errorKey ? (
-        <p role='alert' className='mt-3 text-sm text-destructive'>
-          {t(state.errorKey)}
-        </p>
-      ) : null}
-      {state.status === 'loading' ||
-      state.status === 'dirty' ||
-      state.status === 'saved' ? (
-        <output className='mt-3 block text-sm text-muted-foreground'>
-          {t(
-            `options.review.${state.status === 'dirty' ? 'unsaved' : state.status}`,
-          )}
-        </output>
-      ) : null}
-      <a
-        href={reviewUrl}
-        className='mt-4 inline-block text-sm text-primary underline'
-      >
-        {t('options.review.reviewNow')}
-      </a>
+          </div>
+        ) : null}
+      </div>
     </section>
   )
 }
+
+const ReviewNowLink = ({
+  reviewUrl,
+  label,
+}: {
+  reviewUrl: string
+  label: string
+}) => (
+  <a
+    href={reviewUrl}
+    className='inline-flex items-center gap-2 rounded-md px-1 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
+  >
+    {label}
+    <ArrowRight aria-hidden='true' className='size-4' />
+  </a>
+)

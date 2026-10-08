@@ -27,7 +27,6 @@ import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
 import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
 import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
 import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
-import { ReviewReminderSettings } from '@/features/options/ReviewReminderSettings'
 import type { UserSettings } from '@/types/storage'
 
 import {
@@ -322,8 +321,6 @@ const useOptionsRouteView = () => {
           baseUrl={settings.ollamaBaseUrl}
           onBaseUrlChange={handleOllamaBaseUrlChange}
         />
-
-        <ReviewReminderSettings />
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
           <h2 className='mb-4 text-xl font-semibold text-foreground'>
