@@ -1,5 +1,6 @@
 import { assert, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { SavedTabsOrganizationCatalogDto } from '@/contexts/saved-tabs/public-api'
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
 import type { AnalyticsResult } from '@/features/analytics/lib/analytics'
 
@@ -33,6 +34,214 @@ const records: AiSavedUrlRecord[] = [
     parentCategories: [],
   },
 ]
+
+const organizationCatalog: SavedTabsOrganizationCatalogDto = {
+  memberships: [
+    { categoryId: 'reading', projectId: 'research', urlId: '1' },
+    { projectId: 'inbox', urlId: '2' },
+  ],
+  projects: [
+    {
+      categories: [{ id: 'reading', name: 'Reading' }],
+      id: 'research',
+      name: 'Research',
+    },
+    {
+      categories: [{ id: 'catchup', name: 'Catchup' }],
+      id: 'inbox',
+      name: 'Inbox',
+    },
+  ],
+  revision: 7,
+}
+
+const toolExecutionOptions = {
+  context: {},
+  messages: [],
+  toolCallId: 'organization-tool',
+}
+
+const executeOrganizationProposal = async (
+  proposal: unknown,
+  catalog = organizationCatalog,
+  urlRecords = records,
+) => {
+  const tools = createAiChatTools(urlRecords, 'en', [], catalog)
+  const { execute } = tools.proposeSavedTabsAction
+  assert.isDefined(execute)
+  return Reflect.apply(execute, undefined, [proposal, toolExecutionOptions])
+}
+
+describe('organization proposal tools', () => {
+  it('一覧・検索・月別結果からcanonical URL IDを参照できる', async () => {
+    const tools = createAiChatTools(records)
+    const pagination = { page: 1, pageSize: 10, sortDirection: 'desc' as const }
+    const invocations = [
+      { input: pagination, tool: tools.listSavedUrls },
+      { input: { ...pagination, query: 'Docs' }, tool: tools.searchSavedUrls },
+      {
+        input: { ...pagination, month: 3, year: 2026 },
+        tool: tools.findUrlsByMonth,
+      },
+    ]
+    await Promise.all(
+      invocations.map(async ({ input, tool }) => {
+        assert.isDefined(tool.execute)
+        const result = await Reflect.apply(tool.execute, undefined, [
+          input,
+          toolExecutionOptions,
+        ])
+        expect(result.items).toContainEqual(
+          expect.objectContaining({ id: '1', url: records[0]?.url }),
+        )
+      }),
+    )
+  })
+
+  it('プロジェクト・カテゴリ・所属IDを読み取り専用の独立した結果に返す', async () => {
+    const tools = createAiChatTools(records, 'en', [], organizationCatalog)
+    const { execute } = tools.listOrganizationTargets
+    assert.isDefined(execute)
+    const result = await execute({}, toolExecutionOptions)
+    expect(result).toStrictEqual({
+      memberships: organizationCatalog.memberships,
+      projects: organizationCatalog.projects,
+    })
+    if (!('projects' in result) || !('memberships' in result)) {
+      throw new Error('Expected organization target output')
+    }
+    expect(result.projects).not.toBe(organizationCatalog.projects)
+    expect(result.memberships).not.toBe(organizationCatalog.memberships)
+  })
+
+  it('移動先に既存所属があるURLは元の所属情報を失わせず拒否する', async () => {
+    const catalog = {
+      ...organizationCatalog,
+      memberships: [
+        ...organizationCatalog.memberships,
+        { categoryId: 'catchup', projectId: 'inbox', urlId: '1' },
+      ],
+    }
+
+    await expect(
+      executeOrganizationProposal(
+        {
+          kind: 'move_urls',
+          sourceProjectId: 'research',
+          targetProjectId: 'inbox',
+          urlIds: ['1'],
+        },
+        catalog,
+      ),
+    ).rejects.toThrow('The target project already contains a selected URL')
+  })
+
+  it('最大100件の一意な既存URLを提案できる', async () => {
+    assert.isDefined(records[0])
+    const firstRecord = records[0]
+    const urlRecords = Array.from({ length: 100 }, (_, index) => ({
+      ...firstRecord,
+      id: `url-${index}`,
+    }))
+    const proposal = {
+      kind: 'delete_urls',
+      urlIds: urlRecords.map((record) => record.id),
+    }
+    await expect(
+      executeOrganizationProposal(proposal, organizationCatalog, urlRecords),
+    ).resolves.toStrictEqual({ proposal })
+  })
+
+  it.each([
+    {
+      kind: 'move_urls',
+      sourceProjectId: 'research',
+      targetProjectId: 'inbox',
+      urlIds: ['1'],
+    },
+    {
+      categoryId: 'reading',
+      kind: 'set_category',
+      projectId: 'research',
+      urlIds: ['1'],
+    },
+    {
+      categoryId: null,
+      kind: 'set_category',
+      projectId: 'research',
+      urlIds: ['1'],
+    },
+    { kind: 'delete_urls', urlIds: ['1', '2'] },
+    { kind: 'create_project', name: 'New collection' },
+  ])('有効な $kind は保存状態を変更せず提案だけを返す', async (proposal) => {
+    const before = structuredClone({ organizationCatalog, records })
+    await expect(executeOrganizationProposal(proposal)).resolves.toStrictEqual({
+      proposal,
+    })
+    expect({ organizationCatalog, records }).toStrictEqual(before)
+  })
+
+  it.each([
+    { kind: 'delete_urls', urlIds: ['missing'] },
+    { kind: 'delete_urls', urlIds: [] },
+    { kind: 'delete_urls', urlIds: ['1', '1'] },
+    {
+      kind: 'delete_urls',
+      urlIds: Array.from({ length: 101 }, (_, index) => `url-${index}`),
+    },
+    { kind: 'delete_urls', urlIds: ['1'], confirmed: true },
+    {
+      kind: 'move_urls',
+      sourceProjectId: 'missing',
+      targetProjectId: 'inbox',
+      urlIds: ['1'],
+    },
+    {
+      kind: 'move_urls',
+      sourceProjectId: 'research',
+      targetProjectId: 'missing',
+      urlIds: ['1'],
+    },
+    {
+      kind: 'move_urls',
+      sourceProjectId: 'research',
+      targetProjectId: 'research',
+      urlIds: ['1'],
+    },
+    {
+      kind: 'move_urls',
+      sourceProjectId: 'research',
+      targetProjectId: 'inbox',
+      urlIds: ['2'],
+    },
+    {
+      categoryId: 'reading',
+      kind: 'set_category',
+      projectId: 'missing',
+      urlIds: ['1'],
+    },
+    {
+      categoryId: 'catchup',
+      kind: 'set_category',
+      projectId: 'research',
+      urlIds: ['1'],
+    },
+    {
+      categoryId: 'reading',
+      kind: 'set_category',
+      projectId: 'research',
+      urlIds: ['2'],
+    },
+    { kind: 'create_project', name: ' research ' },
+    { kind: 'create_project', name: ' ' },
+    { kind: 'deduplicate_urls', urlIds: ['1'] },
+  ])(
+    '未知の対象・所属不一致・不正な入力を拒否する: $kind',
+    async (proposal) => {
+      await expect(executeOrganizationProposal(proposal)).rejects.toThrow(/.+/)
+    },
+  )
+})
 
 describe('createAiChatTools', () => {
   it('保存データ分析ツールでチャート仕様を返す', async () => {

@@ -14,6 +14,16 @@
 
 export { normalizeDomainString } from './domain/value-objects/DomainName'
 
+export { savedTabsOrganizationProposalSchema } from './application/dto/SavedTabsOrganizationDto'
+export type {
+  SavedTabsOrganizationCatalogDto,
+  SavedTabsOrganizationExecuteResultDto,
+  SavedTabsOrganizationPreviewDto,
+  SavedTabsOrganizationProposal,
+  SavedTabsOrganizationUndoResultDto,
+} from './application/dto/SavedTabsOrganizationDto'
+export type { SavedTabsOrganizationService } from './application/services/SavedTabsOrganizationService'
+
 export type { ClockPort } from './application/ports/ClockPort'
 export type { IdGeneratorPort } from './application/ports/IdGeneratorPort'
 export type {

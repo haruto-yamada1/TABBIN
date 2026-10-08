@@ -2,6 +2,7 @@ import { generateText, isStepCount } from 'ai'
 import { createOllama } from 'ai-sdk-ollama'
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
+import { getSavedTabsOrganizationService } from '@/app/composition/savedTabsOrganization'
 import { getAiChatToolTitle } from '@/constants/aiChatTools'
 import { resolveOllamaBaseUrl } from '@/constants/productionNetworkPolicy'
 import type { OllamaBaseUrl } from '@/constants/productionNetworkPolicy'
@@ -738,17 +739,24 @@ const runAiChatRequest = async (
   const baseUrl = resolveOllamaBaseUrl(settings.ollamaBaseUrl)
 
   const dataPlane = getBackgroundSavedTabsDataPlane()
-  const [insightRecords, analyticsRecords] = await Promise.all([
-    dataPlane.readInsightRecords(),
-    dataPlane.readAnalyticsRecords(),
-  ])
+  const [insightRecords, analyticsRecords, organizationCatalog] =
+    await Promise.all([
+      dataPlane.readInsightRecords(),
+      dataPlane.readAnalyticsRecords(),
+      getSavedTabsOrganizationService().readCatalog(),
+    ])
   const records: AiSavedUrlRecord[] = [...insightRecords]
 
   const ollama = createOllama({
     baseURL: baseUrl,
   })
 
-  const tools = createAiChatTools(records, language, analyticsRecords)
+  const tools = createAiChatTools(
+    records,
+    language,
+    analyticsRecords,
+    organizationCatalog,
+  )
   let streamedToolTraces: AiChatToolTrace[] = []
 
   const result = await (async () => {

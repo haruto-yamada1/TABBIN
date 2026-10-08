@@ -4,6 +4,11 @@ import { z } from 'zod'
 
 import type { SavedTabsAnalyticsRecord } from '@/app/composition/backgroundSavedTabsDataPlaneTypes'
 import { getAiChatToolDescription } from '@/constants/aiChatTools'
+import { savedTabsOrganizationProposalSchema } from '@/contexts/saved-tabs/public-api'
+import type {
+  SavedTabsOrganizationCatalogDto,
+  SavedTabsOrganizationProposal,
+} from '@/contexts/saved-tabs/public-api'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
 import {
   DEFAULT_SAVED_URL_PAGE,
@@ -51,6 +56,7 @@ const mapRecordForToolOutput = (
   record: AiSavedUrlRecord,
 ): AiSavedUrlToolItem => ({
   domain: record.domain,
+  id: record.id,
   parentCategories: record.parentCategories,
   savedAt: record.savedAt,
   savedInProjects: record.savedInProjects,
@@ -162,10 +168,85 @@ const MAX_MONTH = 12
 const MAX_ANALYTICS_LIMIT = 20
 const DEFAULT_ANALYTICS_LIMIT = 8
 
+const validateOrganizationProposal = (
+  proposal: SavedTabsOrganizationProposal,
+  records: readonly AiSavedUrlRecord[],
+  catalog: SavedTabsOrganizationCatalogDto,
+): void => {
+  if (proposal.kind === 'create_project') {
+    const name = proposal.name.toLowerCase()
+    if (
+      catalog.projects.some(
+        (project) => project.name.trim().toLowerCase() === name,
+      )
+    ) {
+      throw new Error('A project with this name already exists')
+    }
+    return
+  }
+
+  const knownUrlIds = new Set(records.map((record) => record.id))
+  const selectedUrlIds = new Set(proposal.urlIds)
+  if (proposal.urlIds.some((urlId) => !knownUrlIds.has(urlId))) {
+    throw new Error('The proposal contains an unknown saved URL ID')
+  }
+  if (proposal.kind === 'delete_urls') {
+    return
+  }
+
+  const projectId =
+    proposal.kind === 'move_urls'
+      ? proposal.sourceProjectId
+      : proposal.projectId
+  const project = catalog.projects.find((item) => item.id === projectId)
+  if (!project) {
+    throw new Error('The proposal contains an unknown project ID')
+  }
+
+  if (proposal.kind === 'move_urls') {
+    if (proposal.sourceProjectId === proposal.targetProjectId) {
+      throw new Error('The source and target project must be different')
+    }
+    if (
+      !catalog.projects.some((item) => item.id === proposal.targetProjectId)
+    ) {
+      throw new Error('The proposal contains an unknown target project ID')
+    }
+    if (
+      catalog.memberships.some(
+        (membership) =>
+          membership.projectId === proposal.targetProjectId &&
+          selectedUrlIds.has(membership.urlId),
+      )
+    ) {
+      throw new Error('The target project already contains a selected URL')
+    }
+  } else if (
+    proposal.categoryId !== null &&
+    !project.categories.some((category) => category.id === proposal.categoryId)
+  ) {
+    throw new Error('The category does not belong to the selected project')
+  }
+
+  const memberUrlIds = new Set(
+    catalog.memberships
+      .filter((membership) => membership.projectId === projectId)
+      .map((membership) => membership.urlId),
+  )
+  if (proposal.urlIds.some((urlId) => !memberUrlIds.has(urlId))) {
+    throw new Error('The saved URL does not belong to the selected project')
+  }
+}
+
 const createAiChatTools = (
   records: AiSavedUrlRecord[],
   language: AppLanguage = 'ja',
   analyticsRecords: readonly SavedTabsAnalyticsRecord[] = [],
+  organizationCatalog: SavedTabsOrganizationCatalogDto = {
+    memberships: [],
+    projects: [],
+    revision: 0,
+  },
 ) => ({
   findUrlsByMonth: tool({
     description: getAiChatToolDescription(language, 'findUrlsByMonth'),
@@ -283,12 +364,32 @@ const createAiChatTools = (
 
     execute: async () => inferUserInterests(records, language),
   }),
+  listOrganizationTargets: tool({
+    description: getAiChatToolDescription(language, 'listOrganizationTargets'),
+    inputSchema: z.strictObject({}),
+
+    execute: async () => ({
+      memberships: structuredClone(organizationCatalog.memberships),
+      projects: structuredClone(organizationCatalog.projects),
+    }),
+  }),
   listSavedUrls: tool({
     description: getAiChatToolDescription(language, 'listSavedUrls'),
     inputSchema: paginationSchema,
 
     execute: async (input) =>
       mapPageForToolOutput(listSavedUrlPage(records, input)),
+  }),
+
+  proposeSavedTabsAction: tool({
+    description: getAiChatToolDescription(language, 'proposeSavedTabsAction'),
+    inputSchema: savedTabsOrganizationProposalSchema,
+
+    execute: async (input) => {
+      const proposal = savedTabsOrganizationProposalSchema.parse(input)
+      validateOrganizationProposal(proposal, records, organizationCatalog)
+      return { proposal }
+    },
   }),
 
   searchSavedUrls: tool({
