@@ -1492,7 +1492,7 @@ const messages = {
     'options.title': 'オプション',
     'periodicExecution.title': '定期実行',
     'periodicExecution.description':
-      '保存タブの整理リマインダーと自動削除のスケジュールを設定します。',
+      '保存タブの整理リマインダーの通知予定と、自動削除までの期間を設定します。',
     'savedTabs.addProject': 'プロジェクト追加',
     'savedTabs.category.dragHandleAria':
       'ドラッグしてカテゴリ「{{name}}」を並べ替える',
