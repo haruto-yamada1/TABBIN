@@ -100,9 +100,21 @@ vi.mock('@/features/options/routes/OptionsRoute', () => ({
   OptionsRoute: () => <div>options-route</div>,
 }))
 
+vi.mock('@/features/review-reminders/ReviewReminderPage', () => ({
+  ReviewReminderPage: ({ search }: { search: string }) => (
+    <div>{`review-route:${search}`}</div>
+  ),
+}))
+
 import { AppRouter } from './AppRouter'
 
 describe('AppRouter', () => {
+  it('preserves notification criteria and opens the review list', async () => {
+    const search = '?review=1&target=older&olderThanDays=30&reviewAt=1000'
+    render(<AppRouter initialEntries={[`/saved-tabs${search}`]} />)
+    expect(await screen.findByText(`review-route:${search}`)).toBeTruthy()
+    expect(screen.queryByText(/saved-tabs-route:/)).toBeNull()
+  })
   beforeEach(() => {
     // The lazy route-module load counter is module-level and accumulates
     // across tests; reset it so load-count assertions are order-independent.

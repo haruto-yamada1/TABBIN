@@ -65,6 +65,9 @@ const CURRENT_WRITER_IDS = [
   'RELEASE-CONTROL',
   'SETTINGS-REPAIR',
   'SETTINGS-SAVE',
+  'REVIEW-REMINDER-SETTINGS',
+  'REVIEW-REMINDER-NOTIFICATION',
+  'REVIEW-REMINDER-SCHEDULE',
   'SETTINGS-AUTO-DELETE',
   'DDD-USER-SETTINGS',
   'AI-SELECTION',
@@ -316,7 +319,7 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 14 rows, found 13')
+    ).toThrow('Writer ID baseline mismatch: expected 17 rows, found 16')
   })
 
   test.each([

@@ -1,7 +1,16 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { z } from 'zod'
 
+import { getExtensionUrl } from '@/lib/browser/runtime'
 import type { UserSettings } from '@/types/storage'
+
+export const openOptionsReleaseNotes = () => {
+  window.open(
+    getExtensionUrl('changelog.html') ?? 'changelog.html',
+    '_blank',
+    'noopener,noreferrer',
+  )
+}
 
 const resetFontSizeInputValue = <
   T extends {

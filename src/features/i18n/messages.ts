@@ -1,8 +1,10 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
+import { reviewReminderMessages } from './reviewReminderMessages'
 
 const messages = {
   en: {
     ...analyticsHealthMessages.en,
+    ...reviewReminderMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
     'aiChat.attachments.defaultName': 'attachment',
@@ -915,6 +917,7 @@ const messages = {
   },
   ja: {
     ...analyticsHealthMessages.ja,
+    ...reviewReminderMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
     'aiChat.attachments.defaultName': '添付ファイル',

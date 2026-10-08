@@ -3,6 +3,8 @@ import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
   setupExpiredTabsCheckAlarm: vi.fn(),
+  registerReviewReminderListeners: vi.fn(),
+  reconcileReviewReminderAlarm: vi.fn(async () => {}),
   createContextMenus: vi.fn(),
   handleExtensionActionClick: vi.fn(),
   setupMessageListener: vi.fn(),
@@ -32,6 +34,10 @@ vi.mock('wxt/utils/define-background', () => ({
 }))
 vi.mock('@/lib/background/alarm-notification', () => ({
   setupExpiredTabsCheckAlarm: mocked.setupExpiredTabsCheckAlarm,
+}))
+vi.mock('@/lib/background/review-reminders', () => ({
+  registerReviewReminderListeners: mocked.registerReviewReminderListeners,
+  reconcileReviewReminderAlarm: mocked.reconcileReviewReminderAlarm,
 }))
 vi.mock('@/lib/background/context-menu', () => ({
   createContextMenus: mocked.createContextMenus,
@@ -231,6 +237,24 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 describe('バックグラウンドのライフサイクル時の自動オープン挙動', () => {
+  it('reminder listenersを同期登録し、persistence readiness後にscheduleを照合する', async () => {
+    const pending = Promise.withResolvers<undefined>()
+    await loadBackground({
+      clearAfterImport: false,
+      setupMocks: () => {
+        mocked.ready.mockReturnValue(pending.promise)
+      },
+    })
+    expect(mocked.registerReviewReminderListeners).toHaveBeenCalledOnce()
+    expect(mocked.reconcileReviewReminderAlarm).not.toHaveBeenCalled()
+    pending.resolve(undefined)
+    await flushMicrotasks()
+    expect(mocked.reconcileReviewReminderAlarm).toHaveBeenCalledOnce()
+    expect(
+      mocked.registerReviewReminderListeners.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
+  })
+
   it('IndexedDB readiness を旧storageやmigration stateなしで待ってからalarmを設定する', async () => {
     const harness = await loadBackground({ clearAfterImport: false })
 
