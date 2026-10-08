@@ -1,7 +1,8 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { ReviewCandidate } from './lib/reviewCandidates'
 import { defaultReviewReminderSettings } from './lib/reviewReminderSettings'
 import { ReviewReminderPage } from './ReviewReminderPage'
 
@@ -47,6 +48,48 @@ describe('review reminder target list', () => {
     ])
   })
   afterEach(cleanup)
+
+  it.each(['resolve', 'reject'] as const)(
+    'obsolete requests cannot replace the newer list when they %s',
+    async (outcome) => {
+      const stale = Promise.withResolvers<ReviewCandidate[]>()
+      mocks.getReviewCandidates
+        .mockReturnValueOnce(stale.promise)
+        .mockResolvedValueOnce([
+          {
+            id: 'new',
+            title: 'Current list',
+            url: 'https://example.com/current',
+          },
+        ])
+      const view = render(
+        <ReviewReminderPage search='?review=1&target=older&olderThanDays=30&reviewAt=1000' />,
+      )
+      await waitFor(() => {
+        expect(mocks.getReviewCandidates).toHaveBeenCalledTimes(1)
+      })
+      view.rerender(
+        <ReviewReminderPage search='?review=1&target=all&olderThanDays=30&reviewAt=1000' />,
+      )
+      expect(await screen.findByText('Current list')).toBeVisible()
+      await act(async () => {
+        if (outcome === 'resolve') {
+          stale.resolve([
+            {
+              id: 'old',
+              title: 'Obsolete list',
+              url: 'https://example.com/obsolete',
+            },
+          ])
+        } else {
+          stale.reject(new Error('obsolete read failed'))
+        }
+      })
+      expect(screen.getByText('Current list')).toBeVisible()
+      expect(screen.queryByText('Obsolete list')).not.toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    },
+  )
 
   it('uses the notified criteria even when the current settings changed, and keeps titles escaped', async () => {
     render(

@@ -58,6 +58,108 @@ const waitForSettings = async () =>
   screen.findByRole('checkbox', { name: 'Enable review reminders' })
 
 describe('ReviewReminderSettings', () => {
+  it.each([
+    { target: 'all', invalidDays: '' },
+    { target: 'uncategorized', invalidDays: '0' },
+    { target: 'category', invalidDays: '1.5' },
+  ])(
+    'invalid hidden age does not block saving $target',
+    async ({ target, invalidDays }) => {
+      persisted = {
+        ...persisted,
+        enabled: true,
+        target: 'older',
+        olderThanDays: 21,
+      }
+      const user = userEvent.setup()
+      render(<ReviewReminderSettings />)
+      await waitForSettings()
+      const days = screen.getByRole('spinbutton', {
+        name: 'Days since first save',
+      })
+      await user.clear(days)
+      if (invalidDays) {
+        await user.type(days, invalidDays)
+      }
+      await user.selectOptions(screen.getByLabelText('Tabs to review'), target)
+      if (target === 'category') {
+        await user.selectOptions(
+          screen.getByLabelText('Category'),
+          'custom-work',
+        )
+      }
+      expect(
+        screen.queryByRole('spinbutton', { name: 'Days since first save' }),
+      ).not.toBeInTheDocument()
+      await user.click(
+        screen.getByRole('button', { name: 'Save reminder settings' }),
+      )
+      expect(settingsMocks.save).toHaveBeenCalledWith(
+        expect.objectContaining({ target, olderThanDays: 21 }),
+      )
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      await user.selectOptions(screen.getByLabelText('Tabs to review'), 'older')
+      expect(
+        screen.getByRole('spinbutton', { name: 'Days since first save' }),
+      ).toHaveValue(21)
+    },
+  )
+
+  it('invalid unused age does not block disabling notifications', async () => {
+    persisted = {
+      ...persisted,
+      enabled: true,
+      target: 'older',
+      olderThanDays: 21,
+    }
+    const user = userEvent.setup()
+    render(<ReviewReminderSettings />)
+    await waitForSettings()
+    await user.clear(
+      screen.getByRole('spinbutton', { name: 'Days since first save' }),
+    )
+    await user.click(screen.getByLabelText('Enable review reminders'))
+    await user.click(
+      screen.getByRole('button', { name: 'Save reminder settings' }),
+    )
+    expect(settingsMocks.save).toHaveBeenCalledWith(
+      expect.objectContaining({ enabled: false, olderThanDays: 21 }),
+    )
+  })
+
+  it('normalization preserves valid edits and uses the latest successful save for later invalid drafts', async () => {
+    persisted = {
+      ...persisted,
+      enabled: true,
+      target: 'older',
+      olderThanDays: 21,
+    }
+    const user = userEvent.setup()
+    render(<ReviewReminderSettings />)
+    await waitForSettings()
+    const days = screen.getByRole('spinbutton', {
+      name: 'Days since first save',
+    })
+    await user.clear(days)
+    await user.type(days, '45')
+    await user.selectOptions(screen.getByLabelText('Tabs to review'), 'all')
+    await user.click(
+      screen.getByRole('button', { name: 'Save reminder settings' }),
+    )
+    expect(persisted.olderThanDays).toBe(45)
+    await user.selectOptions(screen.getByLabelText('Tabs to review'), 'older')
+    await user.clear(
+      screen.getByRole('spinbutton', { name: 'Days since first save' }),
+    )
+    await user.selectOptions(screen.getByLabelText('Tabs to review'), 'all')
+    await user.click(
+      screen.getByRole('button', { name: 'Save reminder settings' }),
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(persisted.olderThanDays).toBe(45)
+    expect(settingsMocks.save).toHaveBeenCalledTimes(2)
+  })
+
   it('初期設定は無効で、利用者が有効にするまで通知しない', async () => {
     render(<ReviewReminderSettings />)
 

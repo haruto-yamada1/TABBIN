@@ -7,7 +7,10 @@ import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import type { ReviewReminderSettings as ReminderSettings } from '@/features/review-reminders/lib/reviewReminderSettings'
-import { ReviewReminderSettingsSchema } from '@/features/review-reminders/lib/reviewReminderSettings'
+import {
+  defaultReviewReminderSettings,
+  ReviewReminderSettingsSchema,
+} from '@/features/review-reminders/lib/reviewReminderSettings'
 import { getExtensionUrl } from '@/lib/browser/runtime'
 import {
   readReviewReminderSettings,
@@ -29,6 +32,7 @@ type Draft = {
 type Category = { id: string; name: string }
 type SettingsState = {
   draft: Draft | null
+  persistedOlderThanDays: number
   categories: Category[]
   categoriesError: boolean
   status: 'loading' | 'ready' | 'dirty' | 'saving' | 'saved' | 'error'
@@ -59,15 +63,21 @@ const createDraft = (settings: ReminderSettings): Draft => ({
 })
 const parseNumber = (value: string) =>
   value.trim() ? Number(value) : Number.NaN
-const parseDraft = (draft: Draft) =>
-  ReviewReminderSettingsSchema.safeParse({
+const parseDraft = (draft: Draft, persistedOlderThanDays: number) => {
+  const days = parseNumber(draft.olderThanDays)
+  const validAge =
+    ReviewReminderSettingsSchema.shape.olderThanDays.safeParse(days)
+  const ageIsActive = draft.enabled && draft.target === 'older'
+  return ReviewReminderSettingsSchema.safeParse({
     ...draft,
-    olderThanDays: parseNumber(draft.olderThanDays),
+    olderThanDays:
+      !validAge.success && !ageIsActive ? persistedOlderThanDays : days,
     hour: parseNumber(draft.hour),
     weekday: parseNumber(draft.weekday),
     quietStartHour: parseNumber(draft.quietStartHour),
     quietEndHour: parseNumber(draft.quietEndHour),
   })
+}
 
 const ReviewSelect = ({
   name,
@@ -266,6 +276,7 @@ const QuietHoursFields = ({ draft, onChange, t }: FieldsProps) => (
 const useReviewReminderSettings = () => {
   const [state, setState] = useState<SettingsState>({
     draft: null,
+    persistedOlderThanDays: defaultReviewReminderSettings.olderThanDays,
     categories: [],
     categoriesError: false,
     status: 'loading',
@@ -286,6 +297,10 @@ const useReviewReminderSettings = () => {
       setState({
         draft:
           settings.status === 'fulfilled' ? createDraft(settings.value) : null,
+        persistedOlderThanDays:
+          settings.status === 'fulfilled'
+            ? settings.value.olderThanDays
+            : defaultReviewReminderSettings.olderThanDays,
         categories: categories.status === 'fulfilled' ? categories.value : [],
         categoriesError: categories.status === 'rejected',
         status: settings.status === 'fulfilled' ? 'ready' : 'error',
@@ -318,7 +333,7 @@ const useReviewReminderSettings = () => {
     if (savePending.current || !state.draft) {
       return
     }
-    const parsed = parseDraft(state.draft)
+    const parsed = parseDraft(state.draft, state.persistedOlderThanDays)
     if (
       !parsed.success ||
       (parsed.data.enabled &&
@@ -335,7 +350,12 @@ const useReviewReminderSettings = () => {
     setState((previous) => ({ ...previous, status: 'saving', errorKey: null }))
     try {
       await saveReviewReminderSettings(parsed.data)
-      setState((previous) => ({ ...previous, status: 'saved' }))
+      setState((previous) => ({
+        ...previous,
+        draft: createDraft(parsed.data),
+        persistedOlderThanDays: parsed.data.olderThanDays,
+        status: 'saved',
+      }))
     } catch {
       setState((previous) => ({
         ...previous,
