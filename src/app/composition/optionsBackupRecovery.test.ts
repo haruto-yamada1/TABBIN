@@ -16,6 +16,7 @@ import type {
   PreImportRecoverySnapshotServiceDeps,
   RecoverySnapshotService,
 } from '@/features/options/lib/import-export/v2/PreImportRecoverySnapshotService'
+import { normalizeUserSettingsForStorage } from '@/lib/storage/settings'
 
 import {
   getOptionsBackupRecoveryRuntime,
@@ -55,6 +56,7 @@ const createRecoveryListing = () => {
     getBootstrap: () => bootstrap,
     getOperationGate: createReadyPersistenceOperationGateStub,
     idGenerator: { generate: () => 'unused-id' },
+    normalizeUserSettings: normalizeUserSettingsForStorage,
     readUserSettings: unexpected,
     writeUserSettings: unexpected,
   }
@@ -167,6 +169,7 @@ describe('optionsBackupRecovery composition', () => {
       }),
       getOperationGate: vi.fn(() => operationGate),
       idGenerator: { generate: vi.fn(() => 'generated-id') },
+      normalizeUserSettings: normalizeUserSettingsForStorage,
       readUserSettings: vi.fn(),
       writeUserSettings: vi.fn(),
     }
@@ -185,6 +188,7 @@ describe('optionsBackupRecovery composition', () => {
       clock: deps.clock,
       estimateStorage: deps.estimateStorage,
       idGenerator: deps.idGenerator,
+      normalizeUserSettings: deps.normalizeUserSettings,
       readUserSettings: deps.readUserSettings,
       replacement,
       repository,
@@ -192,6 +196,7 @@ describe('optionsBackupRecovery composition', () => {
       writeUserSettings: expect.any(Function),
     })
     expect(createImportUseCase).toHaveBeenCalledWith({
+      normalizeUserSettings: deps.normalizeUserSettings,
       readUserSettings: deps.readUserSettings,
       recovery: {
         captureBeforeOverwrite: recoveryService.captureBeforeOverwrite,

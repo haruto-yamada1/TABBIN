@@ -138,16 +138,23 @@ export const getUserSettings = async (
 export const readUserSettingsWithoutRepair = async (): Promise<UserSettings> =>
   getUserSettings({ repairStoredSettings: false })
 
+/** Returns the settings that the storage writer will persist. */
+export const normalizeUserSettingsForStorage = (
+  settings: UserSettings,
+): UserSettings => {
+  UserSettingsSchema.shape.ollamaBaseUrl.parse(settings.ollamaBaseUrl)
+  const validatedSettings = parseStoredUserSettings(settings)
+  return normalizeAiSystemPromptSettings(
+    mergeStoredUserSettings(validatedSettings),
+  )
+}
+
 // 設定を保存する関数
 export const saveUserSettings = async (
   settings: UserSettings,
 ): Promise<void> => {
   try {
-    UserSettingsSchema.shape.ollamaBaseUrl.parse(settings.ollamaBaseUrl)
-    const validatedSettings = parseStoredUserSettings(settings)
-    const normalizedSettings = normalizeAiSystemPromptSettings(
-      mergeStoredUserSettings(validatedSettings),
-    )
+    const normalizedSettings = normalizeUserSettingsForStorage(settings)
     console.log('ユーザー設定を保存:', normalizedSettings)
     const storageLocal = getChromeStorageLocal()
     if (!storageLocal) {
