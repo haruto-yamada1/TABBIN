@@ -64,6 +64,8 @@ export type OverwriteRecoveryCapability = {
 }
 
 export type ImportBackupV2UseCaseDeps = {
+  /** Must use the same normalization policy as writeUserSettings. */
+  readonly normalizeUserSettings: (settings: UserSettings) => UserSettings
   readonly readUserSettings: () => Promise<UserSettings>
   readonly recovery?: OverwriteRecoveryCapability | undefined
   readonly replacement: PersistenceV2ReplacementPort
@@ -175,10 +177,16 @@ export const createImportBackupV2UseCase = (
   return async (inspection) => {
     const envelope = reconstructEnvelope(inspection)
     const requestedSnapshot = assertPreflight(envelope)
-    const requestedData = BackupMapper.toBackupData(
-      requestedSnapshot,
-      envelope.data.userSettings,
-    )
+    let requestedData: BackupDataV2
+    try {
+      requestedData = BackupMapper.toBackupData(
+        requestedSnapshot,
+        deps.normalizeUserSettings(envelope.data.userSettings),
+      )
+    } catch {
+      throw new BackupV2ImportError('INVALID_BACKUP')
+    }
+    assertPreflight({ ...envelope, data: requestedData })
     const recovery = deps.recovery
 
     if (recovery === undefined) {

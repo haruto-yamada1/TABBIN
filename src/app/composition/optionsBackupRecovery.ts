@@ -31,6 +31,7 @@ import type {
 } from '@/features/options/lib/import-export/v2/PreImportRecoverySnapshotService'
 import type { PersistenceStorageEstimatePort } from '@/lib/persistence/capacity'
 import {
+  normalizeUserSettingsForStorage,
   readUserSettingsWithoutRepair,
   saveUserSettings,
 } from '@/lib/storage/settings'
@@ -71,6 +72,7 @@ export type OptionsBackupRecoveryRuntimeDeps = {
   readonly getBootstrap: () => Pick<PersistenceBootstrapPort, 'ready'>
   readonly getOperationGate: () => PersistenceOperationGatePort
   readonly idGenerator: IdGeneratorPort
+  readonly normalizeUserSettings: ImportBackupV2UseCaseDeps['normalizeUserSettings']
   readonly readUserSettings: ImportBackupV2UseCaseDeps['readUserSettings']
   readonly writeUserSettings: ImportBackupV2UseCaseDeps['writeUserSettings']
 }
@@ -147,6 +149,7 @@ const defaultDeps: OptionsBackupRecoveryRuntimeDeps = {
   getBootstrap: () => getPersistenceBootstrapRuntime().bootstrap,
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   idGenerator: createSystemIdGenerator(),
+  normalizeUserSettings: normalizeUserSettingsForStorage,
   readUserSettings: readUserSettingsWithoutRepair,
   writeUserSettings: saveUserSettings,
 }
@@ -176,6 +179,7 @@ const createRuntime = (
     clock: deps.clock,
     estimateStorage: deps.estimateStorage,
     idGenerator: deps.idGenerator,
+    normalizeUserSettings: deps.normalizeUserSettings,
     readUserSettings: deps.readUserSettings,
     replacement,
     repository,
@@ -183,6 +187,7 @@ const createRuntime = (
     writeUserSettings,
   })
   const importBackupV2 = deps.createImportUseCase({
+    normalizeUserSettings: deps.normalizeUserSettings,
     readUserSettings: deps.readUserSettings,
     recovery: {
       captureBeforeOverwrite: recoveryService.captureBeforeOverwrite,

@@ -36,6 +36,7 @@ describe('Child category Backup V2 recovery', () => {
     )
     let settings: UserSettings = structuredClone(canonicalUserSettings)
     const settingsDeps = {
+      normalizeUserSettings: (value: UserSettings) => value,
       readUserSettings: async () => structuredClone(settings),
       writeUserSettings: async (value: UserSettings) => {
         settings = structuredClone(value)

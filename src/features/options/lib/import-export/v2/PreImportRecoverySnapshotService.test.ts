@@ -138,6 +138,7 @@ const createDeps = (
     idGenerator: {
       generate: vi.fn(() => '00000000-0000-4000-8000-000000000740'),
     },
+    normalizeUserSettings: (settings) => settings,
     publishedEvents,
     readUserSettings: vi.fn(async () =>
       structuredClone(inspection.data.userSettings),
@@ -180,6 +181,24 @@ const createService = (
 }
 
 describe('createPreImportRecoverySnapshotService', () => {
+  it('rejects a settings normalization failure before restore writes', async () => {
+    const { deps, service } = createService({
+      normalizeUserSettings: () => {
+        throw new Error('Private normalization failure')
+      },
+    })
+    await deps.repository.saveWithRetention(createRecord(), {
+      ...BACKUP_RECOVERY_RETENTION_POLICY,
+      now: 1_000,
+    })
+
+    await expect(service.restore(createSummary().id)).rejects.toMatchObject({
+      code: 'RECOVERY_SNAPSHOT_INVALID',
+    })
+    expect(deps.replacement.replaceAll).not.toHaveBeenCalled()
+    expect(deps.writeUserSettings).not.toHaveBeenCalled()
+  })
+
   it('captures the current logical Backup V2 data before publishing a content-free lifecycle event', async () => {
     const snapshotId = '00000000-0000-4000-8000-000000000740'
     const changeId = '00000000-0000-4000-8000-000000000741'

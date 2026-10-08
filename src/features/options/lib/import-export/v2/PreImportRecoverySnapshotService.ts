@@ -115,6 +115,8 @@ export type PreImportRecoverySnapshotServiceDeps = {
   readonly clock: ClockPort
   readonly estimateStorage: PersistenceStorageEstimatePort
   readonly idGenerator: IdGeneratorPort
+  /** Must use the same normalization policy as writeUserSettings. */
+  readonly normalizeUserSettings: (settings: UserSettings) => UserSettings
   readonly readUserSettings: () => Promise<UserSettings>
   readonly replacement: PersistenceV2ReplacementPort
   readonly repository: PersistenceRecoverySnapshotRepositoryPort
@@ -434,13 +436,14 @@ export const createPreImportRecoverySnapshotService = (
   ): Promise<never> => {
     let revision: number
     try {
+      const settings = deps.normalizeUserSettings(previous.settings)
       const result = await deps.replacement.replaceAll(
         createReplacementTarget(previous.snapshot),
       )
       revision = result.revision
-      await deps.writeUserSettings(previous.settings)
+      await deps.writeUserSettings(settings)
       const readback = await readRestoreState()
-      if (!matchesRestoreState(previous, readback, revision)) {
+      if (!matchesRestoreState({ ...previous, settings }, readback, revision)) {
         throw new Error('Compensation readback mismatch')
       }
     } catch {
@@ -470,12 +473,23 @@ export const createPreImportRecoverySnapshotService = (
     if (record === undefined) {
       throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_NOT_FOUND')
     }
-    const data = parseRecoveryData(record)
+    const sourceData = parseRecoveryData(record)
     if (
       hasBlockingPersistenceIntegrityIssues(
-        checkPersistenceIntegrity(data.savedTabs),
+        checkPersistenceIntegrity(sourceData.savedTabs),
       )
     ) {
+      throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_INVALID')
+    }
+
+    let data: BackupDataV2
+    try {
+      const sourceSnapshot = BackupMapper.toLogicalSnapshot(sourceData, 0)
+      data = toRecoveryData(
+        sourceSnapshot,
+        deps.normalizeUserSettings(sourceData.userSettings),
+      ).data
+    } catch {
       throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_INVALID')
     }
 

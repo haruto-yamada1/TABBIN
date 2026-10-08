@@ -212,6 +212,7 @@ const createDeps = (
   }
 
   return {
+    normalizeUserSettings: (settings) => settings,
     readUserSettings: vi.fn(async () => {
       events.push('read-settings')
       return structuredClone(
@@ -339,6 +340,20 @@ describe('createImportBackupV2UseCase', () => {
     expect(events).toEqual([])
     expect(deps.replacement.replaceAll).not.toHaveBeenCalled()
     expect(deps.writeUserSettings).not.toHaveBeenCalled()
+  })
+
+  it('rejects a settings normalization failure before recovery or writes', async () => {
+    const events: string[] = []
+    const deps = createDeps(events, {
+      normalizeUserSettings: () => {
+        throw new Error(SECRET_VALUES[3])
+      },
+    })
+
+    await expect(
+      createImportBackupV2UseCase(deps)(createInspection()),
+    ).rejects.toMatchObject({ code: 'INVALID_BACKUP' })
+    expect(events).toEqual([])
   })
 
   it('does not mutate or restore when recovery capture fails', async () => {
