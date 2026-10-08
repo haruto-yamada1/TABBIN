@@ -70,6 +70,12 @@ const OptionsRoutePage = lazy(async () =>
   })),
 )
 
+const ReviewReminderRoutePage = lazy(async () =>
+  import('@/features/review-reminders/ReviewReminderPage').then(
+    ({ ReviewReminderPage }) => ({ default: ReviewReminderPage }),
+  ),
+)
+
 const PeriodicExecutionRoutePage = lazy(async () =>
   import('@/features/periodic-execution/routes/PeriodicExecutionRoute').then(
     ({ PeriodicExecutionRoute }) => ({
@@ -82,6 +88,8 @@ const SavedTabsRoutePage = () => {
   const routerLocation = useLocation()
   const navigate = useNavigate()
   const hasModeQuery = new URLSearchParams(routerLocation.search).has('mode')
+  const hasReviewQuery =
+    new URLSearchParams(routerLocation.search).get('review') === '1'
 
   const handleViewModeNavigate = useCallback(
     (mode: 'custom' | 'domain') => {
@@ -98,12 +106,18 @@ const SavedTabsRoutePage = () => {
   )
 
   useEffect(() => {
-    if (hasModeQuery) {
+    if (hasModeQuery || hasReviewQuery) {
       return
     }
     const nextRoute = getSavedTabsHrefForMode('domain')
     void navigate(nextRoute, { replace: true })
-  }, [hasModeQuery, routerLocation.pathname, routerLocation.search, navigate])
+  }, [
+    hasModeQuery,
+    hasReviewQuery,
+    routerLocation.pathname,
+    routerLocation.search,
+    navigate,
+  ])
 
   useEffect(() => {
     const storageLocal = getStorageLocalRemove()
@@ -112,6 +126,14 @@ const SavedTabsRoutePage = () => {
     }
     void storageLocal.remove('viewMode')
   }, [])
+
+  if (hasReviewQuery) {
+    return (
+      <Suspense fallback={null}>
+        <ReviewReminderRoutePage search={routerLocation.search} />
+      </Suspense>
+    )
+  }
 
   if (!hasModeQuery) {
     return null

@@ -11,6 +11,10 @@ import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
 import { createContextMenus } from '@/lib/background/context-menu'
 import { handleExtensionActionClick } from '@/lib/background/extension-actions'
 import { setupMessageListener } from '@/lib/background/message-handler'
+import {
+  reconcileReviewReminderAlarm,
+  registerReviewReminderListeners,
+} from '@/lib/background/review-reminders'
 import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
 import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
@@ -19,6 +23,8 @@ const MANIFEST_V2 = 2
 
 export default defineBackground(() => {
   // eslint-disable-line import/no-default-export
+  // MV3 wake events must be registered before the first asynchronous bootstrap.
+  registerReviewReminderListeners()
   // 拡張機能インストール・更新時の処理
   // eslint-disable-next-line typescript/no-misused-promises
   chrome.runtime.onInstalled.addListener(async (details) => {
@@ -98,6 +104,7 @@ export default defineBackground(() => {
 
       // 期限切れタブのチェック用アラームを設定
       setupExpiredTabsCheckAlarm()
+      await reconcileReviewReminderAlarm()
     } catch (error) {
       logger.error('background_initialization_failed', error)
     }

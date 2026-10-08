@@ -21,6 +21,9 @@ writing the former Chrome Storage keys.
 - `customProjects`
 - `parentCategories`
 - `userSettings`
+- `reviewReminderSettings`
+- `reviewReminderNotification`
+- `reviewReminderAlarmTimeZone`
 - `aiChatConversations`
 - `savedAnalyticsViews`
 
@@ -62,6 +65,13 @@ domain records.
 
 ## Current writer inventory
 
+Review reminders are opt-in control state independent of auto-delete settings.
+Notification metadata stores only the validated filter and reference time, with
+no saved URLs or titles. Disabling or changing reminders clears the notification.
+This device-local state is outside the Backup V2 domain/settings envelope.
+The scheduled alarm stores its timezone so a worker restart after a device
+timezone change recalculates the next local review time.
+
 | ID                        | Storage key                                          | Category            | Context            | Entry point                        | Mutation boundary                                                                                                                                                                                        | Read keys                     | Write keys                             | RMW | Queue/lock                 | Cache              | Capacity policy                     | Readiness / recovery gate                    | Change notification                   | v2 target                   |
 | ------------------------- | ---------------------------------------------------- | ------------------- | ------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | -------------------------------------- | --- | -------------------------- | ------------------ | ----------------------------------- | -------------------------------------------- | ------------------------------------- | --------------------------- |
 | UI-THEME                  | tab-manager-theme                                    | ui sync             | page               | ThemeProvider.setTheme             | `src/components/ThemeProvider.tsx`                                                                                                                                                                       | theme key                     | theme key                              | No  | None                       | UI state           | None                                | Settings independent                         | None                                  | Chrome UI                   |
@@ -78,6 +88,11 @@ domain records.
 | PERSISTENCE-V2-AI-HISTORY | aiChatConversations                                  | self-healing load   | AI page/background | conversation replace/repair        | `src/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork.ts`                                                                                                        | conversation/message stores   | conversation/message stores / revision | Yes | Web Lock + IDB transaction | History store      | AI resource limits                  | IndexedDB readiness                          | Post-commit AI-history scope          | IndexedDB                   |
 | PERSISTENCE-V2-ANALYTICS  | savedAnalyticsViews                                  | explicit mutation   | analytics page     | analytics view replace             | `src/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork.ts`                                                                                                        | analytics views / revision    | analytics views / revision             | Yes | Web Lock + IDB transaction | Query projections  | Backup resource policy              | IndexedDB readiness                          | Post-commit analytics scope           | IndexedDB                   |
 | PERSISTENCE-V2-RECOVERY   | recoverySnapshots                                    | import/restore      | options            | capture/restore/TTL cleanup        | `src/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceRecoverySnapshotRepository.ts`                                                                                        | recovery snapshots / revision | recovery snapshots / revision          | Yes | Web Lock + IDB transaction | Snapshot list      | Measured payload capacity           | IndexedDB readiness; independent domain scan | Post-commit recovery scope            | IndexedDB                   |
+
+| REVIEW-REMINDER-SETTINGS | reviewReminderSettings | explicit mutation | options | saveReviewReminderSettings | `src/lib/storage/review-reminders.ts` | reminder settings | reminder settings | No | Explicit save | UI draft | One bounded configuration | Settings independent | Chrome onChanged | Chrome settings |
+| REVIEW-REMINDER-NOTIFICATION | reviewReminderNotification | scheduled maintenance | background | save/clearReviewReminderNotification | `src/lib/storage/review-reminders.ts` | reminder metadata | reminder metadata | No | Serialized background flow | None | One filter and reference time | Domain readiness before notification | None | Chrome control state |
+
+| REVIEW-REMINDER-SCHEDULE | reviewReminderAlarmTimeZone | scheduled maintenance | background | saveReviewReminderAlarmTimeZone | `src/lib/storage/review-reminders.ts` | alarm timezone | alarm timezone | No | Serialized background flow | None | One timezone string | Settings independent | None | Chrome control state |
 
 The three IndexedDB mutation files below are shared physical boundaries.
 Saved-tabs, AI-history, and analytics writer rows intentionally point to the
@@ -98,6 +113,7 @@ Replacement and recovery snapshot writers have separate transactions.
 - `src/features/options/hooks/useAutoDeletePeriod.ts`
 - `src/features/options/hooks/useColorSettings.ts`
 - `src/lib/storage/settings.ts`
+- `src/lib/storage/review-reminders.ts`
 
 This appendix and writer table are checked by
 `tools/scripts/verify-storage-writer-inventory.ts`. The source detector covers
