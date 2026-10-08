@@ -42,6 +42,29 @@ const paginationSchema = z.object({
   sortDirection: z.enum(['desc', 'asc']).default('desc'),
 })
 
+// Ollama's ToolFunctionParameters retains root type/properties/required;
+// a root oneOf loses the parameters. Keep variant validation at execute.
+const [moveProposal, categoryProposal, deleteProposal, createProposal] =
+  savedTabsOrganizationProposalSchema.options
+const organizationToolInputSchema = z.strictObject({
+  kind: z
+    .enum([
+      moveProposal.shape.kind.value,
+      categoryProposal.shape.kind.value,
+      deleteProposal.shape.kind.value,
+      createProposal.shape.kind.value,
+    ])
+    .describe(
+      'move_urls requires urlIds, sourceProjectId, targetProjectId; set_category requires urlIds, projectId, categoryId (null clears); delete_urls requires urlIds; create_project requires name. Omit unrelated fields.',
+    ),
+  urlIds: moveProposal.shape.urlIds.optional(),
+  sourceProjectId: moveProposal.shape.sourceProjectId.optional(),
+  targetProjectId: moveProposal.shape.targetProjectId.optional(),
+  projectId: categoryProposal.shape.projectId.optional(),
+  categoryId: categoryProposal.shape.categoryId.optional(),
+  name: createProposal.shape.name.optional(),
+})
+
 const TOOL_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
   hour: '2-digit',
@@ -383,7 +406,7 @@ const createAiChatTools = (
 
   proposeSavedTabsAction: tool({
     description: getAiChatToolDescription(language, 'proposeSavedTabsAction'),
-    inputSchema: savedTabsOrganizationProposalSchema,
+    inputSchema: organizationToolInputSchema,
 
     execute: async (input) => {
       const proposal = savedTabsOrganizationProposalSchema.parse(input)

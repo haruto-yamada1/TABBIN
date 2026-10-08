@@ -1,4 +1,5 @@
 import { assert, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { z } from 'zod'
 
 import type { SavedTabsOrganizationCatalogDto } from '@/contexts/saved-tabs/public-api'
 import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
@@ -73,6 +74,29 @@ const executeOrganizationProposal = async (
 }
 
 describe('organization proposal tools', () => {
+  it('exposes operation parameters in the object schema accepted by Ollama', () => {
+    const { inputSchema } = createAiChatTools(records).proposeSavedTabsAction
+    if (!(inputSchema instanceof z.ZodType)) {
+      throw new Error('Expected the tool input Zod schema')
+    }
+    const schema = z.toJSONSchema(inputSchema)
+    expect(schema).toMatchObject({
+      type: 'object',
+      properties: {
+        kind: {
+          enum: ['move_urls', 'set_category', 'delete_urls', 'create_project'],
+        },
+        urlIds: { type: 'array' },
+        sourceProjectId: { type: 'string' },
+        targetProjectId: { type: 'string' },
+        projectId: { type: 'string' },
+        name: { type: 'string' },
+      },
+      required: ['kind'],
+    })
+    expect(schema).not.toHaveProperty('oneOf')
+  })
+
   it('一覧・検索・月別結果からcanonical URL IDを参照できる', async () => {
     const tools = createAiChatTools(records)
     const pagination = { page: 1, pageSize: 10, sortDirection: 'desc' as const }
@@ -182,6 +206,9 @@ describe('organization proposal tools', () => {
   })
 
   it.each([
+    { kind: 'delete_urls', urlIds: ['1'], name: 'Unrelated field' },
+    { kind: 'move_urls', sourceProjectId: 'research', urlIds: ['1'] },
+    { kind: 'set_category', projectId: 'research', urlIds: ['1'] },
     { kind: 'delete_urls', urlIds: ['missing'] },
     { kind: 'delete_urls', urlIds: [] },
     { kind: 'delete_urls', urlIds: ['1', '1'] },
