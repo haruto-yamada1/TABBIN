@@ -74,6 +74,103 @@ const executeOrganizationProposal = async (
 }
 
 describe('organization proposal tools', () => {
+  it('bounds membership output by default and exposes remaining pages without mutating the catalog', async () => {
+    const catalog = {
+      ...organizationCatalog,
+      memberships: Array.from({ length: 551 }, (_, index) => ({
+        projectId: index % 2 === 0 ? 'research' : 'inbox',
+        urlId: `url-${index}`,
+      })),
+    }
+    const before = structuredClone(catalog)
+    const { execute } = createAiChatTools(
+      records,
+      'en',
+      [],
+      catalog,
+    ).listOrganizationTargets
+    assert.isDefined(execute)
+    const first = await Reflect.apply(execute, undefined, [
+      {},
+      toolExecutionOptions,
+    ])
+    expect(first).toMatchObject({
+      page: 1,
+      pageSize: 50,
+      totalItems: 551,
+      totalPages: 12,
+      hasNextPage: true,
+      hasPreviousPage: false,
+    })
+    expect(first.memberships).toEqual(catalog.memberships.slice(0, 50))
+    const next = await Reflect.apply(execute, undefined, [
+      { page: 2, pageSize: 200 },
+      toolExecutionOptions,
+    ])
+    expect(next).toMatchObject({
+      page: 2,
+      pageSize: 200,
+      totalItems: 551,
+      totalPages: 3,
+      hasNextPage: true,
+      hasPreviousPage: true,
+    })
+    expect(next.memberships).toEqual(catalog.memberships.slice(200, 400))
+    const capped = await Reflect.apply(execute, undefined, [
+      { pageSize: 1000 },
+      toolExecutionOptions,
+    ])
+    expect(capped.memberships).toHaveLength(200)
+    expect(capped.pageSize).toBe(200)
+    expect(catalog).toEqual(before)
+  })
+
+  it('combines URL and project filters and reports empty selections', async () => {
+    const catalog = {
+      ...organizationCatalog,
+      memberships: [
+        { projectId: 'research', urlId: '1' },
+        { projectId: 'inbox', urlId: '1' },
+        { projectId: 'inbox', urlId: '2' },
+      ],
+    }
+    const { execute } = createAiChatTools(
+      records,
+      'en',
+      [],
+      catalog,
+    ).listOrganizationTargets
+    assert.isDefined(execute)
+    const filtered = await Reflect.apply(execute, undefined, [
+      { urlIds: ['1'], projectId: 'inbox' },
+      toolExecutionOptions,
+    ])
+    expect(filtered.memberships).toEqual([{ projectId: 'inbox', urlId: '1' }])
+    expect(filtered).toMatchObject({
+      totalItems: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    })
+    expect(filtered.projects).toEqual(catalog.projects)
+    const urlsOnly = await Reflect.apply(execute, undefined, [
+      { urlIds: ['2'] },
+      toolExecutionOptions,
+    ])
+    expect(urlsOnly.memberships).toEqual([{ projectId: 'inbox', urlId: '2' }])
+    const empty = await Reflect.apply(execute, undefined, [
+      { projectId: 'missing' },
+      toolExecutionOptions,
+    ])
+    expect(empty).toMatchObject({
+      memberships: [],
+      totalItems: 0,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    })
+  })
+
   it('exposes operation parameters in the object schema accepted by Ollama', () => {
     const { inputSchema } = createAiChatTools(records).proposeSavedTabsAction
     if (!(inputSchema instanceof z.ZodType)) {
@@ -126,10 +223,19 @@ describe('organization proposal tools', () => {
     const tools = createAiChatTools(records, 'en', [], organizationCatalog)
     const { execute } = tools.listOrganizationTargets
     assert.isDefined(execute)
-    const result = await execute({}, toolExecutionOptions)
+    const result = await execute(
+      { page: 1, pageSize: 50 },
+      toolExecutionOptions,
+    )
     expect(result).toStrictEqual({
+      hasNextPage: false,
+      hasPreviousPage: false,
       memberships: organizationCatalog.memberships,
+      page: 1,
+      pageSize: 50,
       projects: organizationCatalog.projects,
+      totalItems: 2,
+      totalPages: 1,
     })
     if (!('projects' in result) || !('memberships' in result)) {
       throw new Error('Expected organization target output')

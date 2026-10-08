@@ -16,6 +16,7 @@ import {
   MAX_SAVED_URL_PAGE_SIZE,
   findSavedUrlsAddedInMonthPage,
   listSavedUrlPage,
+  paginateValues,
   searchSavedUrlsPage,
 } from '@/features/ai-chat/lib/savedUrlQuery'
 import type {
@@ -389,12 +390,30 @@ const createAiChatTools = (
   }),
   listOrganizationTargets: tool({
     description: getAiChatToolDescription(language, 'listOrganizationTargets'),
-    inputSchema: z.strictObject({}),
+    inputSchema: paginationSchema
+      .pick({ page: true, pageSize: true })
+      .extend({
+        projectId: categoryProposal.shape.projectId.optional(),
+        urlIds: moveProposal.shape.urlIds.optional(),
+      })
+      .strict(),
 
-    execute: async () => ({
-      memberships: structuredClone(organizationCatalog.memberships),
-      projects: structuredClone(organizationCatalog.projects),
-    }),
+    execute: async (input) => {
+      const selectedIds =
+        input.urlIds === undefined ? undefined : new Set(input.urlIds)
+      const memberships = organizationCatalog.memberships.filter(
+        (membership) =>
+          (input.projectId === undefined ||
+            membership.projectId === input.projectId) &&
+          (selectedIds === undefined || selectedIds.has(membership.urlId)),
+      )
+      const { items, ...metadata } = paginateValues(memberships, input)
+      return {
+        ...metadata,
+        memberships: structuredClone(items),
+        projects: structuredClone(organizationCatalog.projects),
+      }
+    },
   }),
   listSavedUrls: tool({
     description: getAiChatToolDescription(language, 'listSavedUrls'),

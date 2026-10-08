@@ -79,6 +79,45 @@ const review = async () => {
 }
 
 describe('SavedTabsActionProposals', () => {
+  it.each([1, 2])(
+    'shows a neutral count label for %i affected URLs',
+    async (count) => {
+      const countProposal = {
+        kind: 'delete_urls',
+        urlIds: Array.from({ length: count }, (_, index) => `url-${index}`),
+      }
+      mocks.preview.mockResolvedValue({
+        expiresAt: Date.now() + 60_000,
+        id: 'count-preview',
+        proposal: countProposal,
+        revision: 1,
+        targets: countProposal.urlIds.map((id) => ({
+          id,
+          title: id,
+          url: `https://example.com/${id}`,
+          before: 'Inbox',
+          after: '—',
+        })),
+      })
+      const user = userEvent.setup()
+      render(
+        <SavedTabsActionProposals
+          toolTraces={[
+            {
+              ...trace,
+              input: countProposal,
+              output: { proposal: countProposal },
+            },
+          ]}
+        />,
+      )
+      await user.click(
+        screen.getByRole('button', { name: 'Review proposed action' }),
+      )
+      expect(screen.getByText(`Affected URLs: ${count}`)).toBeTruthy()
+    },
+  )
+
   it('retains the applied state and Undo after navigating away and back', async () => {
     const user = userEvent.setup()
     const { unmount } = render(
@@ -110,7 +149,7 @@ describe('SavedTabsActionProposals', () => {
     )
 
     expect(mocks.preview).toHaveBeenCalledWith(proposal)
-    expect(screen.getByText('1 URLs affected')).toBeTruthy()
+    expect(screen.getByText('Affected URLs: 1')).toBeTruthy()
     expect(screen.getByText('https://example.com/research')).toBeTruthy()
     expect(screen.getByText('<script>private title</script>')).toBeTruthy()
     expect(screen.getByText('Research / Articles; example.com')).toBeTruthy()

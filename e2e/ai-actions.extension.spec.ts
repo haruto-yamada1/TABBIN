@@ -176,7 +176,7 @@ test.describe('extension AI saved-tabs actions', () => {
 
     await move.getByRole('button', { name: 'Review proposed action' }).click()
     await expect(
-      move.getByText('1 URLs affected', { exact: true }),
+      move.getByText('Affected URLs: 1', { exact: true }),
     ).toBeVisible()
     await expect(move.getByText('Example Home', { exact: true })).toBeVisible()
     await expect(

@@ -1,7 +1,7 @@
 export const organizationActionMessages = {
   en: {
     'aiChat.tool.listOrganizationTargets.description':
-      'Read existing project and category IDs and saved URL memberships. Use this with saved URL search results before proposing an organization action.',
+      'Read existing project and category IDs and paged saved URL memberships (default 50, maximum 200 per page). Filter memberships with projectId and/or urlIds from saved URL search results. Use page, totalPages, and hasNextPage to retrieve remaining memberships before proposing an organization action.',
     'aiChat.tool.listOrganizationTargets.title': 'Check organization targets',
     'aiChat.tool.proposeSavedTabsAction.description':
       'Return a proposal to move up to 100 unique saved URL IDs between projects, set their project category, delete saved URLs, or create a project. Use only known IDs and valid memberships. A move target must not already contain a selected URL. This tool never changes saved data; the user must confirm the preview. delete_urls deletes URLs and all their memberships globally. Never propose automatic duplicate deletion.',
@@ -16,7 +16,7 @@ export const organizationActionMessages = {
     'aiChat.action.set_category': 'Change project category',
     'aiChat.action.delete_urls': 'Delete saved URLs',
     'aiChat.action.create_project': 'Create project',
-    'aiChat.action.count': '{{count}} URLs affected',
+    'aiChat.action.count': 'Affected URLs: {{count}}',
     'aiChat.action.target': 'Target',
     'aiChat.action.before': 'Before',
     'aiChat.action.after': 'After',
@@ -37,7 +37,7 @@ export const organizationActionMessages = {
   },
   ja: {
     'aiChat.tool.listOrganizationTargets.description':
-      '既存のプロジェクト・カテゴリのIDと保存URLの所属を読み取る。保存URLの検索結果と合わせて、整理操作を提案する前に使う',
+      '既存のプロジェクト・カテゴリのIDと保存URLの所属をページ単位で読み取る（既定50件、1ページ最大200件）。projectIdと検索結果のurlIdsで所属を絞り込める。page・totalPages・hasNextPageで残りの所属を取得してから整理操作を提案する',
     'aiChat.tool.listOrganizationTargets.title': '整理対象の確認',
     'aiChat.tool.proposeSavedTabsAction.description':
       '最大100件の一意な保存URL IDについて、プロジェクト間の移動、プロジェクト内カテゴリ変更、保存URL削除、またはプロジェクト作成を提案する。既存IDと正しい所属だけを使い、移動先に対象URLがすでにある場合は提案しない。このtoolは保存状態を変更せず、ユーザーがプレビューを確認するまで実行されない。delete_urlsはURLと全所属を全プロジェクトから削除する。重複の自動削除は提案しない',

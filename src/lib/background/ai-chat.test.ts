@@ -539,8 +539,14 @@ describe('runAiChatRequest', () => {
     await expect(
       generateArgs.tools.listOrganizationTargets.execute({}),
     ).resolves.toStrictEqual({
+      hasNextPage: false,
+      hasPreviousPage: false,
       memberships: catalog.memberships,
+      page: 1,
+      pageSize: 50,
       projects: catalog.projects,
+      totalItems: 1,
+      totalPages: 1,
     })
     await expect(
       generateArgs.tools.proposeSavedTabsAction.execute({
