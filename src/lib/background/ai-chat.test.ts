@@ -8,6 +8,7 @@ const mocked = vi.hoisted(() => ({
   getUserSettings: vi.fn(),
   readAnalyticsRecords: vi.fn(),
   readInsightRecords: vi.fn(),
+  readOrganizationCatalog: vi.fn(),
 }))
 
 vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
@@ -19,6 +20,12 @@ vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
 
 vi.mock('ai-sdk-ollama', () => ({
   createOllama: mocked.createOllama,
+}))
+
+vi.mock('@/app/composition/savedTabsOrganization', () => ({
+  getSavedTabsOrganizationService: () => ({
+    readCatalog: mocked.readOrganizationCatalog,
+  }),
 }))
 
 vi.mock('ai', () => ({
@@ -377,6 +384,11 @@ describe('runAiChatRequest', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocked.readAnalyticsRecords.mockResolvedValue([])
+    mocked.readOrganizationCatalog.mockResolvedValue({
+      memberships: [],
+      projects: [],
+      revision: 1,
+    })
     mocked.createOllama.mockReturnValue((modelId: string) => ({
       modelId,
       provider: 'ollama',
@@ -509,6 +521,42 @@ describe('runAiChatRequest', () => {
       })
     },
   )
+
+  it('保存操作の対象catalogを読み、AIには提案だけを返すtoolを渡す', async () => {
+    const catalog = {
+      memberships: [{ projectId: 'project-1', urlId: 'url-1' }],
+      projects: [{ categories: [], id: 'project-1', name: 'Research' }],
+      revision: 2,
+    }
+    mocked.readOrganizationCatalog.mockResolvedValue(catalog)
+
+    await runAiChatRequest({ history: [], prompt: '保存済みタブを整理して' })
+
+    expect(mocked.readOrganizationCatalog).toHaveBeenCalledOnce()
+    const generateArgs = mocked.generateText.mock.calls[0]?.[0]
+    expect(generateArgs.tools.listOrganizationTargets).toBeDefined()
+    expect(generateArgs.tools.proposeSavedTabsAction).toBeDefined()
+    await expect(
+      generateArgs.tools.listOrganizationTargets.execute({}),
+    ).resolves.toStrictEqual({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      memberships: catalog.memberships,
+      page: 1,
+      pageSize: 50,
+      projects: catalog.projects,
+      totalItems: 1,
+      totalPages: 1,
+    })
+    await expect(
+      generateArgs.tools.proposeSavedTabsAction.execute({
+        kind: 'delete_urls',
+        urlIds: ['url-1'],
+      }),
+    ).resolves.toStrictEqual({
+      proposal: { kind: 'delete_urls', urlIds: ['url-1'] },
+    })
+  })
 
   it('保存済みタブ文脈を組み立てて generateText を呼ぶ', async () => {
     const result = await runAiChatRequest({
@@ -1525,6 +1573,7 @@ describe('runAiChatRequest', () => {
       hasPreviousPage: false,
       items: [
         {
+          id: 'url-1',
           url: 'https://react.dev/learn',
           title: 'React Learn',
           domain: 'react.dev',
@@ -1552,6 +1601,7 @@ describe('runAiChatRequest', () => {
       hasPreviousPage: false,
       items: [
         {
+          id: 'url-1',
           url: 'https://react.dev/learn',
           title: 'React Learn',
           domain: 'react.dev',
@@ -1578,6 +1628,7 @@ describe('runAiChatRequest', () => {
       hasPreviousPage: false,
       items: [
         {
+          id: 'url-1',
           url: 'https://react.dev/learn',
           title: 'React Learn',
           domain: 'react.dev',

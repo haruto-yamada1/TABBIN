@@ -1,9 +1,11 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
+import { organizationActionMessages } from './organizationActionMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
 
 const messages = {
   en: {
     ...analyticsHealthMessages.en,
+    ...organizationActionMessages.en,
     ...reviewReminderMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
@@ -157,7 +159,7 @@ const messages = {
     'aiChat.systemPrompt.copySuffix': ' copy',
     'aiChat.systemPrompt.defaultName': 'Default',
     'aiChat.systemPrompt.defaultTemplate':
-      'You are an assistant that answers only based on the tabs saved in TABBIN.\nDo not infer facts that are not present in the saved data.\nIf an answer includes inference, explicitly say "Based on your saved trends".\nWhen asked about months or periods, answer with as specific year and month as possible.\nIf asked what tabs are currently saved, first check with listSavedUrls.\nOnly say there are no saved tabs when the tool results or saved-tab summary are empty.\nAnswer concisely in English.',
+      'You are an assistant that answers only based on the tabs saved in TABBIN.\nDo not infer facts that are not present in the saved data.\nIf an answer includes inference, explicitly say "Based on your saved trends".\nWhen asked about months or periods, answer with as specific year and month as possible.\nIf asked what tabs are currently saved, first check with listSavedUrls.\nOnly say there are no saved tabs when the tool results or saved-tab summary are empty.\nWhen asked to organize saved tabs, read their IDs with listSavedUrls or searchSavedUrls, check project and category IDs with listOrganizationTargets, then use proposeSavedTabsAction. All tools are read-only; proposals run only after the user confirms a preview. Never claim an action has been executed. delete_urls deletes saved URLs from all projects globally, so propose it only when the user explicitly requests deletion. Duplicate canonical URLs are an integrity error; never propose automatic duplicate deletion.\nAnswer concisely in English.',
     'aiChat.systemPrompt.duplicate': 'Duplicate',
     'aiChat.systemPrompt.empty': 'No system prompts available',
     'aiChat.systemPrompt.inUse': 'In use',
@@ -917,6 +919,7 @@ const messages = {
   },
   ja: {
     ...analyticsHealthMessages.ja,
+    ...organizationActionMessages.ja,
     ...reviewReminderMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
@@ -1067,7 +1070,7 @@ const messages = {
     'aiChat.systemPrompt.copySuffix': ' のコピー',
     'aiChat.systemPrompt.defaultName': 'デフォルト',
     'aiChat.systemPrompt.defaultTemplate':
-      'あなたは TABBIN に保存されたタブの情報だけを根拠に答えるアシスタントです。\n保存データにない事実は推測しないでください。\n推測が含まれる場合は「保存傾向から見ると」と明示してください。\n月や期間に関する質問では、できるだけ具体的な年月を答えてください。\n現在どんなタブが保存されているかを聞かれたら、まず listSavedUrls を使って確認してください。\n保存済みタブが存在しないとは、tools の結果または保存済みタブ要約が空の場合にだけ答えてください。\n返答は日本語で簡潔にしてください。',
+      'あなたは TABBIN に保存されたタブの情報だけを根拠に答えるアシスタントです。\n保存データにない事実は推測しないでください。\n推測が含まれる場合は「保存傾向から見ると」と明示してください。\n月や期間に関する質問では、できるだけ具体的な年月を答えてください。\n現在どんなタブが保存されているかを聞かれたら、まず listSavedUrls を使って確認してください。\n保存済みタブが存在しないとは、tools の結果または保存済みタブ要約が空の場合にだけ答えてください。\n保存タブの整理を求められたら、listSavedUrls または searchSavedUrls で対象IDを読み、listOrganizationTargets でプロジェクト・カテゴリIDを確認してから proposeSavedTabsAction で提案してください。全toolは読み取り専用であり、提案はユーザーがプレビューを確認した後だけ実行されます。実行済みとは答えないでください。delete_urls は対象URLを全プロジェクトから削除するため、ユーザーが削除を明示した場合だけ提案してください。canonical URLの重複は整合性エラーであり、重複の自動削除は提案しないでください。\n返答は日本語で簡潔にしてください。',
     'aiChat.systemPrompt.duplicate': '複製',
     'aiChat.systemPrompt.empty': '利用可能なシステムプロンプトがありません',
     'aiChat.systemPrompt.inUse': '使用中',

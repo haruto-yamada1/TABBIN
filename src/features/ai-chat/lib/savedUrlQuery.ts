@@ -55,14 +55,12 @@ const sortSavedUrlRecords = (
       : left.savedAt - right.savedAt,
   )
 
-const paginateSavedUrlRecords = (
-  records: AiSavedUrlRecord[],
+const paginateValues = <Value>(
+  values: readonly Value[],
   options: AiSavedUrlPageOptions = {},
-): AiSavedUrlPage<AiSavedUrlRecord> => {
-  const { page, pageSize, sortDirection } =
-    normalizeSavedUrlPageOptions(options)
-  const sortedRecords = sortSavedUrlRecords(records, sortDirection)
-  const totalItems = sortedRecords.length
+): Omit<AiSavedUrlPage<Value>, 'sortDirection'> => {
+  const { page, pageSize } = normalizeSavedUrlPageOptions(options)
+  const totalItems = values.length
   const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize)
   const startIndex = (page - 1) * pageSize
   const endIndex = startIndex + pageSize
@@ -70,12 +68,25 @@ const paginateSavedUrlRecords = (
   return {
     hasNextPage: totalPages > 0 && page < totalPages,
     hasPreviousPage: totalItems > 0 && page > 1,
-    items: sortedRecords.slice(startIndex, endIndex),
+    items: values.slice(startIndex, endIndex),
     page,
     pageSize,
-    sortDirection,
     totalItems,
     totalPages,
+  }
+}
+
+const paginateSavedUrlRecords = (
+  records: AiSavedUrlRecord[],
+  options: AiSavedUrlPageOptions = {},
+): AiSavedUrlPage<AiSavedUrlRecord> => {
+  const normalized = normalizeSavedUrlPageOptions(options)
+  return {
+    ...paginateValues(
+      sortSavedUrlRecords(records, normalized.sortDirection),
+      normalized,
+    ),
+    sortDirection: normalized.sortDirection,
   }
 }
 
@@ -115,6 +126,7 @@ export {
   listSavedUrlPage,
   normalizeSavedUrlPageOptions,
   paginateSavedUrlRecords,
+  paginateValues,
   searchSavedUrlsPage,
   sortSavedUrlRecords,
 }

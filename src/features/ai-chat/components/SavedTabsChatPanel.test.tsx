@@ -100,6 +100,42 @@ const createProps = (
 })
 
 describe('SavedTabsChatPanel', () => {
+  it('offers review for a completed assistant action proposal', () => {
+    render(
+      <SavedTabsChatPanel
+        {...createProps({
+          messages: [
+            {
+              content: 'Review these tabs before deleting them.',
+              id: 'proposal-message',
+              role: 'assistant',
+              toolTraces: [
+                {
+                  input: { kind: 'delete_urls', urlIds: ['url-1'] },
+                  output: {
+                    proposal: { kind: 'delete_urls', urlIds: ['url-1'] },
+                  },
+                  state: 'output-available',
+                  title: 'Propose a saved-tab action',
+                  toolCallId: 'proposal-1',
+                  toolName: 'proposeSavedTabsAction',
+                  type: 'dynamic-tool',
+                },
+              ],
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Review proposed action' }),
+    ).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: 'Approve and apply' }),
+    ).toBeNull()
+  })
+
   it('composes the page shell with Header, intro, data scope, and Composer', () => {
     render(<SavedTabsChatPanel {...createProps()} />)
 

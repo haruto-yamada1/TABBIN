@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { StorybookTestHarness, createPreview } from './preview'
+
+afterEach(cleanup)
 
 describe('Storybook preview helpers', () => {
   it('provides decorators and global theme toolbar', () => {
@@ -28,5 +30,9 @@ describe('Storybook preview helpers', () => {
     )
 
     expect(screen.getByText('storybook harness')).toBeTruthy()
+  })
+
+  it('does not retain a mounted preview from the previous test', () => {
+    expect(screen.queryByText('storybook harness')).toBeNull()
   })
 })

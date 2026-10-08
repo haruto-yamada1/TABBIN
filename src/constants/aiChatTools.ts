@@ -38,6 +38,16 @@ const AI_CHAT_TOOL_DEFINITIONS = [
     name: 'inferUserInterests',
     titleKey: 'aiChat.tool.inferUserInterests.title',
   },
+  {
+    descriptionKey: 'aiChat.tool.listOrganizationTargets.description',
+    name: 'listOrganizationTargets',
+    titleKey: 'aiChat.tool.listOrganizationTargets.title',
+  },
+  {
+    descriptionKey: 'aiChat.tool.proposeSavedTabsAction.description',
+    name: 'proposeSavedTabsAction',
+    titleKey: 'aiChat.tool.proposeSavedTabsAction.title',
+  },
 ] as const satisfies readonly AiChatToolDefinition[]
 
 type AiChatToolDefinitionEntry = (typeof AI_CHAT_TOOL_DEFINITIONS)[number]

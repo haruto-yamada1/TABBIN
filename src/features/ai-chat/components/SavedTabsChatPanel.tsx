@@ -38,12 +38,12 @@ import {
 } from '@/components/ai-elements/tool'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { AiChartRenderer } from '@/features/ai-chat/components/AiChartRenderer'
 import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
 import type {
   OllamaErrorDetails,
   OllamaErrorPlatform,
 } from '@/features/ai-chat/components/OllamaErrorNotice'
+import { SavedTabsAssistantArtifacts } from '@/features/ai-chat/components/SavedTabsActionProposals'
 import { SavedTabsChatAttachmentItem } from '@/features/ai-chat/components/SavedTabsChatAttachmentItem'
 import { SavedTabsChatComposer } from '@/features/ai-chat/components/SavedTabsChatComposer'
 import { SavedTabsChatHeader } from '@/features/ai-chat/components/SavedTabsChatHeader'
@@ -337,7 +337,11 @@ const renderChatConversationMessage = ({
           : null}
         {messageBody}
         {message.role === 'assistant' ? (
-          <AiChartRenderer {...getAiChartOptionalProps(message)} />
+          <SavedTabsAssistantArtifacts
+            actionScope={message.id}
+            {...getAiChartOptionalProps(message)}
+            {...getAssistantMessageOptionalProps(message)}
+          />
         ) : null}
         {shouldShowStreamingShimmer ? (
           <Shimmer className='text-sm'>{t('aiChat.shimmer')}</Shimmer>
