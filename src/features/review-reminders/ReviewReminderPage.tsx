@@ -94,7 +94,7 @@ export const ReviewReminderPage = ({ search }: { readonly search: string }) => {
           <a href='#/saved-tabs?mode=domain' className='text-primary underline'>
             {t('reviewReminder.backToSavedTabs')}
           </a>
-          <a href='#/options' className='text-primary underline'>
+          <a href='#/periodic-execution' className='text-primary underline'>
             {t('reviewReminder.configure')}
           </a>
           <Button variant='outline' onClick={handleRefresh}>

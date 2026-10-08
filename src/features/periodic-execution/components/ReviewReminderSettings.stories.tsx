@@ -12,7 +12,7 @@ const meta = {
       <ReviewReminderSettings />
     </I18nProvider>
   ),
-  title: 'Features/Options/ReviewReminderSettings',
+  title: 'Features/PeriodicExecution/ReviewReminderSettings',
 } satisfies Meta<typeof ReviewReminderSettings>
 
 type Story = StoryObj<typeof meta>

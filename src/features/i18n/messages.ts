@@ -581,6 +581,8 @@ const messages = {
       'When enabled, the saved date is shown in the saved tabs list.',
     'options.title': 'Options',
     'periodicExecution.title': 'Scheduled tasks',
+    'periodicExecution.description':
+      'Set up review reminders and automatic cleanup for your saved tabs.',
     'savedTabs.addProject': 'Add project',
     'savedTabs.category.dragHandleAria': 'Drag to reorder category "{{name}}"',
     'savedTabs.category.deleteAllItemName': 'domains in this category',
@@ -1489,6 +1491,8 @@ const messages = {
       'オンにすると、保存タブ一覧に保存された日時が表示されます。',
     'options.title': 'オプション',
     'periodicExecution.title': '定期実行',
+    'periodicExecution.description':
+      '保存タブの整理リマインダーの通知予定と、自動削除までの期間を設定します。',
     'savedTabs.addProject': 'プロジェクト追加',
     'savedTabs.category.dragHandleAria':
       'ドラッグしてカテゴリ「{{name}}」を並べ替える',

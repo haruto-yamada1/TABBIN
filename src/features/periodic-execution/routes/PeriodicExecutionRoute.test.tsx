@@ -5,6 +5,8 @@ import { createElement } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { getMessages } from '@/features/i18n/messages'
+import { defaultReviewReminderSettings } from '@/features/review-reminders/lib/reviewReminderSettings'
 import type { UserSettings } from '@/types/storage'
 
 const mocked = vi.hoisted(() => ({
@@ -31,6 +33,22 @@ const mocked = vi.hoisted(() => ({
   } as UserSettings,
   setSettings: vi.fn(),
   selectContentProps: [] as Record<string, unknown>[],
+  readReminderSettings: vi.fn(),
+  saveReminderSettings: vi.fn(),
+  getReviewCategories: vi.fn(),
+}))
+
+vi.mock('@/lib/storage/review-reminders', () => ({
+  readReviewReminderSettings: mocked.readReminderSettings,
+  saveReviewReminderSettings: mocked.saveReminderSettings,
+}))
+
+vi.mock('@/app/composition/reviewReminders', () => ({
+  getReviewCategories: mocked.getReviewCategories,
+}))
+
+vi.mock('@/lib/browser/runtime', () => ({
+  getExtensionUrl: () => 'chrome-extension://tabbin/app.html',
 }))
 
 vi.mock('@/components/ui/sonner', () => ({
@@ -182,7 +200,9 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'options.autoDelete.title': 'Auto delete',
           'periodicExecution.title': 'Scheduled tasks',
         }) satisfies Record<string, string>
-      )[key] ?? key,
+      )[key] ??
+      (getMessages('en') as Record<string, string>)[key] ??
+      key,
   }),
 }))
 
@@ -218,6 +238,11 @@ describe('PeriodicExecutionRoute', () => {
     vi.clearAllMocks()
     mocked.selectContentProps = []
     mocked.isLoading = false
+    mocked.readReminderSettings.mockResolvedValue({
+      ...defaultReviewReminderSettings,
+    })
+    mocked.saveReminderSettings.mockResolvedValue(undefined)
+    mocked.getReviewCategories.mockResolvedValue([])
     mocked.settings = {
       autoDeletePeriod: 'never',
       clickBehavior: 'saveSameDomainTabs',
@@ -240,7 +265,7 @@ describe('PeriodicExecutionRoute', () => {
     cleanup()
   })
 
-  it('定期実行ページと自動削除設定を表示する', () => {
+  it('定期実行ページに整理リマインダーと自動削除設定を表示する', async () => {
     render(createElement(PeriodicExecutionRoute))
 
     expect(
@@ -249,12 +274,48 @@ describe('PeriodicExecutionRoute', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: 'Auto delete' }),
     ).toBeTruthy()
+    expect(
+      await screen.findByRole('checkbox', { name: 'Enable review reminders' }),
+    ).not.toBeChecked()
+    expect(mocked.saveReminderSettings).not.toHaveBeenCalled()
     expect(screen.getByText('Auto-delete period for tabs')).toBeTruthy()
     expect(
       screen.getByText(
         'Saved tabs are deleted automatically after the selected period.',
       ),
     ).toBeTruthy()
+  })
+
+  it('移設したリマインダー設定を保存し、再表示時に読み込む', async () => {
+    let persisted = { ...defaultReviewReminderSettings, hour: 15 }
+    mocked.readReminderSettings.mockImplementation(async () => ({
+      ...persisted,
+    }))
+    mocked.saveReminderSettings.mockImplementation(async (settings) => {
+      persisted = { ...settings }
+    })
+    const user = userEvent.setup()
+    const view = render(createElement(PeriodicExecutionRoute))
+    const enabled = await screen.findByRole('checkbox', {
+      name: 'Enable review reminders',
+    })
+    expect(screen.getByLabelText('Reminder hour')).toHaveValue('15')
+    await user.click(enabled)
+    await user.selectOptions(screen.getByLabelText('Frequency'), 'daily')
+    await user.click(
+      screen.getByRole('button', { name: 'Save reminder settings' }),
+    )
+    expect(await screen.findByText('Reminder settings saved.')).toBeVisible()
+    view.unmount()
+    render(createElement(PeriodicExecutionRoute))
+    expect(
+      await screen.findByRole('checkbox', {
+        name: 'Enable review reminders',
+      }),
+    ).toBeChecked()
+    expect(screen.getByLabelText('Frequency')).toHaveValue('daily')
+    expect(screen.getByLabelText('Reminder hour')).toHaveValue('15')
+    expect(mocked.prepareAutoDeletePeriod).not.toHaveBeenCalled()
   })
 
   it('自動削除期間が未設定なら never を選択値として扱う', async () => {
