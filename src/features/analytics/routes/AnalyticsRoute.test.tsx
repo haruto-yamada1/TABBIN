@@ -927,27 +927,14 @@ describe('AnalyticsRoute', () => {
     vi.unstubAllGlobals()
   })
 
-  it('legacy fallbackの履歴だけ注意を表示しexact dataでは表示しない', async () => {
-    const notice =
-      'Some historical dates come from legacy fallback data. Counts remain available, but first-save, last-save activity, or collection-addition dates may be approximate.'
-
-    const legacyView = render(<AnalyticsRoute />)
-    expect(await screen.findByText(notice)).toBeTruthy()
-    legacyView.unmount()
-
-    analyticsRouteMocks.loadRecordsMock.mockResolvedValueOnce(
-      records.map((record) => ({
-        ...record,
-        metric: 'first-saved' as const,
-        timestampAccuracy: 'exact' as const,
-      })),
-    )
+  it('legacy fallbackの履歴でも日時の注意を表示しない', async () => {
     render(<AnalyticsRoute />)
-    await screen.findByTestId('analytics-page-layout')
-
-    await waitFor(() => {
-      expect(screen.queryByText(notice)).toBeNull()
-    })
+    expect(await screen.findByText(/from 2 saved records\./)).toBeTruthy()
+    expect(
+      screen.queryByText(
+        /Some historical dates come from legacy fallback data\./,
+      ),
+    ).toBeNull()
   })
 
   it('analytics helper が trace と fallback label を正規化する', () => {

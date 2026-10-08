@@ -18,10 +18,7 @@ import {
   generateAnalyticsResult,
   getDefaultAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
-import type {
-  AnalyticsHistoricalDataQuality,
-  AnalyticsQuery,
-} from '@/features/analytics/lib/analytics'
+import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { AnalyticsHealth } from '@/features/analytics/lib/analyticsHealth'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
@@ -88,7 +85,6 @@ const CanvasPane = ({
   isDeleteActionDisabled,
   isUsingAiCharts,
   language,
-  historicalDataQuality,
   summary,
   t,
 }: {
@@ -109,7 +105,6 @@ const CanvasPane = ({
   isDeleteActionDisabled: boolean
   isUsingAiCharts: boolean
   language: string
-  historicalDataQuality: AnalyticsHistoricalDataQuality
   summary: string
   t: (key: string) => string
 }) => (
@@ -127,11 +122,6 @@ const CanvasPane = ({
             {t('analytics.canvasTitle')}
           </h2>
           <p className='mt-1 text-sm text-muted-foreground'>{summary}</p>
-          {historicalDataQuality === 'partial' ? (
-            <output className='mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100'>
-              {t('analytics.timestampQualityNotice')}
-            </output>
-          ) : null}
         </div>
       </div>
       <div
@@ -713,9 +703,6 @@ const useAnalyticsRouteView = () => {
               isDeleteActionDisabled={isDeleteActionDisabled}
               isUsingAiCharts={isUsingAiCharts}
               language={language}
-              historicalDataQuality={
-                generatedAnalyticsResult.historicalDataQuality
-              }
               summary={summary}
               t={t}
             />

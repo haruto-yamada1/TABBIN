@@ -247,8 +247,6 @@ const messages = {
     'analytics.savedViewsEmpty': 'No saved analytics views yet.',
     'analytics.savedViewsTitle': 'Saved views',
     'analytics.summary': 'Created {{title}} from {{count}} saved records.',
-    'analytics.timestampQualityNotice':
-      'Some historical dates come from legacy fallback data. Counts remain available, but first-save, last-save activity, or collection-addition dates may be approximate.',
     'analytics.uncategorized': 'Uncategorized',
     'analytics.viewName': 'View name',
     'analytics.viewNameDuplicate': 'A view with this name already exists',
@@ -1157,8 +1155,6 @@ const messages = {
     'analytics.savedViewsTitle': '保存済みビュー',
     'analytics.summary':
       '{{count}} 件の保存データから「{{title}}」を作成しました。',
-    'analytics.timestampQualityNotice':
-      '一部の履歴日時は旧データからの代替値です。件数は確認できますが、初回保存日、最終保存日時、コレクション追加日は概算の場合があります。',
     'analytics.uncategorized': '未分類',
     'analytics.viewName': 'ビュー名',
     'analytics.viewNameDuplicate': 'このビュー名は既に存在しています',
