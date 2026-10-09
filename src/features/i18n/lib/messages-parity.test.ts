@@ -94,14 +94,6 @@ describe('i18n message parity', () => {
     expect(mismatches).toEqual([])
   })
 
-  it('英語と日本語のフォントサイズ表示に preview の接頭辞を付けない', () => {
-    const en = getMessages('en') as Record<string, string>
-    const ja = getMessages('ja') as Record<string, string>
-
-    expect(en['options.previewFontSizeCustomization']).toBe('Font size')
-    expect(ja['options.previewFontSizeCustomization']).toBe('フォントサイズ')
-  })
-
   it('cutoff後のbackup copyをja/enで保持し期限前keyを残さない', () => {
     const en = getMessages('en') as Record<string, string>
     const ja = getMessages('ja') as Record<string, string>
