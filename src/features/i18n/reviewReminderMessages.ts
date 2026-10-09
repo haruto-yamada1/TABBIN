@@ -58,6 +58,42 @@ export const reviewReminderMessages = {
     'reviewReminder.notificationMessage':
       'Saved tabs to review: {{count}}. Open the review list to organize them.',
     'reviewReminder.listTitle': 'Review saved tabs',
+    'reviewReminder.description':
+      'Search your review candidates, open tabs to check them, and delete tabs you no longer need.',
+    'reviewReminder.search': 'Search review candidates',
+    'reviewReminder.searchPlaceholder': 'Search by title or URL',
+    'reviewReminder.clearSearch': 'Clear search',
+    'reviewReminder.filteredCount':
+      'Showing {{count}} of {{total}} review candidates',
+    'reviewReminder.searchEmpty': 'No review candidates match your search.',
+    'reviewReminder.results': 'Review candidates',
+    'reviewReminder.sort': 'Sort by',
+    'reviewReminder.sortOldest': 'Oldest saved first',
+    'reviewReminder.sortNewest': 'Newest saved first',
+    'reviewReminder.sortTitle': 'Title',
+    'reviewReminder.savedDate': 'First saved: {{date}}',
+    'reviewReminder.unknownDate': 'First save date unknown',
+    'reviewReminder.select': 'Select tab',
+    'reviewReminder.selectVisible': 'Select displayed tabs',
+    'reviewReminder.clearSelection': 'Clear selection',
+    'reviewReminder.selectionHelp':
+      'Select up to 100 displayed tabs at a time. Changing the search or refreshing the list clears the selection.',
+    'reviewReminder.delete': 'Delete tab',
+    'reviewReminder.deleteSelected': 'Delete selected ({{count}})',
+    'reviewReminder.deleteTitle': 'Delete these saved tabs?',
+    'reviewReminder.deleteDescription':
+      'These tabs will be deleted from all categories and projects. You can undo the most recent deletion for 30 minutes while this page stays open.',
+    'reviewReminder.confirmDelete': 'Delete {{count}} tabs',
+    'reviewReminder.cancel': 'Cancel',
+    'reviewReminder.deleted': 'Saved tabs deleted.',
+    'reviewReminder.undone': 'Deletion undone.',
+    'reviewReminder.undo': 'Undo deletion',
+    'reviewReminder.actionError':
+      'The tabs could not be deleted. The saved data may have changed. Refresh the list and try again.',
+    'reviewReminder.undoError':
+      'Deletion could not be undone. The saved data may have changed or the undo period has expired.',
+    'reviewReminder.notificationFailed':
+      'The change was saved, but other open pages could not be notified. Refresh those pages to see the change.',
     'reviewReminder.listCount': 'Tabs to review: {{count}}',
     'reviewReminder.listEmpty':
       'There are no tabs matching your reminder settings.',
@@ -127,6 +163,42 @@ export const reviewReminderMessages = {
     'reviewReminder.notificationMessage':
       '{{count}} 件の保存タブが見直しの候補です。リストを開いて整理してください。',
     'reviewReminder.listTitle': '保存タブの見直し',
+    'reviewReminder.description':
+      '見直し候補を検索し、タブを開いて内容を確認したり、不要なタブを削除したりできます。',
+    'reviewReminder.search': '見直し候補を検索',
+    'reviewReminder.searchPlaceholder': 'タイトルやURLで検索',
+    'reviewReminder.clearSearch': '検索をクリア',
+    'reviewReminder.filteredCount':
+      '見直し候補 {{total}} 件のうち {{count}} 件を表示',
+    'reviewReminder.searchEmpty': '検索に一致する見直し候補はありません。',
+    'reviewReminder.results': '見直し候補',
+    'reviewReminder.sort': '並び順',
+    'reviewReminder.sortOldest': '保存日が古い順',
+    'reviewReminder.sortNewest': '保存日が新しい順',
+    'reviewReminder.sortTitle': 'タイトル順',
+    'reviewReminder.savedDate': '最初の保存：{{date}}',
+    'reviewReminder.unknownDate': '最初の保存日時は不明',
+    'reviewReminder.select': 'タブを選択',
+    'reviewReminder.selectVisible': '表示中のタブを選択',
+    'reviewReminder.clearSelection': '選択を解除',
+    'reviewReminder.selectionHelp':
+      '表示中のタブを一度に100件まで選択できます。検索やリストの更新で選択は解除されます。',
+    'reviewReminder.delete': 'タブを削除',
+    'reviewReminder.deleteSelected': '選択したタブを削除（{{count}}件）',
+    'reviewReminder.deleteTitle': 'この保存タブを削除しますか？',
+    'reviewReminder.deleteDescription':
+      'すべてのカテゴリ・プロジェクトから削除します。この画面を開いている間は、30分以内なら直前の削除を取り消せます。',
+    'reviewReminder.confirmDelete': '{{count}}件のタブを削除',
+    'reviewReminder.cancel': 'キャンセル',
+    'reviewReminder.deleted': '保存タブを削除しました。',
+    'reviewReminder.undone': '削除を取り消しました。',
+    'reviewReminder.undo': '削除を取り消す',
+    'reviewReminder.actionError':
+      'タブを削除できませんでした。保存データが変更された可能性があります。リストを更新してもう一度お試しください。',
+    'reviewReminder.undoError':
+      '削除を取り消せませんでした。保存データが変更されたか、取り消せる時間を過ぎた可能性があります。',
+    'reviewReminder.notificationFailed':
+      '変更は保存されましたが、他の画面への通知に失敗しました。他に開いている画面を更新してください。',
     'reviewReminder.listCount': '見直しの候補 {{count}} 件',
     'reviewReminder.listEmpty': 'リマインダー設定に一致するタブはありません。',
     'reviewReminder.listError':

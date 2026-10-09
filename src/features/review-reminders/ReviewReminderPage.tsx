@@ -1,94 +1,72 @@
-import { useCallback, useEffect, useState } from 'react'
-
-import { getReviewCandidates } from '@/app/composition/reviewReminders'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import type { ReviewCandidate } from '@/features/review-reminders/lib/reviewCandidates'
-import { ReviewReminderSettingsSchema } from '@/features/review-reminders/lib/reviewReminderSettings'
-import type { ReviewReminderSettings } from '@/features/review-reminders/lib/reviewReminderSettings'
-import { readReviewReminderSettings } from '@/lib/storage/review-reminders'
-import { toSafeSavedUrlHref } from '@/lib/url-filter'
 
-type ReviewState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; candidates: readonly ReviewCandidate[] }
+import { ReviewCandidateList } from './ReviewCandidateList'
+import { ReviewDeleteDialog } from './ReviewDeleteDialog'
+import { useReviewActions } from './useReviewActions'
+import { useReviewCandidates } from './useReviewCandidates'
 
-const resolveReviewCriteria = (
-  settings: ReviewReminderSettings,
-  search: string,
-) => {
-  const params = new URLSearchParams(search)
-  if (!params.has('target')) {
-    return { settings, reviewAt: Date.now() }
-  }
-  const parsed = ReviewReminderSettingsSchema.parse({
-    ...settings,
-    target: params.get('target'),
-    categoryId: params.get('categoryId') ?? '',
-    olderThanDays: Number(params.get('olderThanDays')),
-  })
-  const reviewAt = Number(params.get('reviewAt'))
-  if (
-    !Number.isSafeInteger(reviewAt) ||
-    reviewAt <= 0 ||
-    reviewAt > Date.now()
-  ) {
-    throw new TypeError('Invalid review reference time')
-  }
-  return { settings: parsed, reviewAt }
+const ReviewActionFeedback = ({
+  state,
+  disabled,
+  onUndo,
+}: {
+  readonly state: ReturnType<typeof useReviewActions>['state']
+  readonly disabled: boolean
+  readonly onUndo: () => void
+}) => {
+  const { t } = useI18n()
+  return (
+    <>
+      {state.error && <p role='alert'>{t(state.error)}</p>}
+      {state.notice && (
+        <div className='flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3'>
+          <output className='text-sm'>
+            {t(`reviewReminder.${state.notice}`)}
+          </output>
+          {state.undoId && (
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={disabled}
+              onClick={onUndo}
+            >
+              {t('reviewReminder.undo')}
+            </Button>
+          )}
+        </div>
+      )}
+      {state.notificationFailed && (
+        <p role='alert' className='text-sm'>
+          {t('reviewReminder.notificationFailed')}
+        </p>
+      )}
+    </>
+  )
 }
 
 export const ReviewReminderPage = ({ search }: { readonly search: string }) => {
+  return <ReviewReminderWorkspace key={search} search={search} />
+}
+
+const ReviewReminderWorkspace = ({ search }: { readonly search: string }) => {
   const { t } = useI18n()
-  const [result, setResult] = useState<{
-    search: string
-    reload: number
-    state: ReviewState
-  } | null>(null)
-  const [reload, setReload] = useState(0)
-  const state: ReviewState =
-    result?.search === search && result.reload === reload
-      ? result.state
-      : { status: 'loading' }
-  const handleRefresh = useCallback(() => {
-    setReload((value) => value + 1)
-  }, [])
-  useEffect(() => {
-    const cancellation = new AbortController()
-    void (async () => {
-      try {
-        const stored = await readReviewReminderSettings()
-        const criteria = resolveReviewCriteria(stored, search)
-        const candidates = await getReviewCandidates(
-          criteria.settings,
-          criteria.reviewAt,
-        )
-        if (!cancellation.signal.aborted) {
-          setResult({ search, reload, state: { status: 'ready', candidates } })
-        }
-      } catch {
-        if (!cancellation.signal.aborted) {
-          setResult({ search, reload, state: { status: 'error' } })
-        }
-      }
-    })()
-    return () => {
-      cancellation.abort()
-    }
-  }, [search, reload])
+  const { state, refreshing, handleRefresh } = useReviewCandidates(search)
+  const actions = useReviewActions(handleRefresh)
+  const disabled =
+    refreshing || actions.state.busy || actions.state.preview !== null
 
   return (
     <section
-      className='h-full overflow-y-auto p-6'
+      className='h-full min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6'
       aria-labelledby='review-title'
     >
-      <div className='mx-auto max-w-3xl space-y-4'>
+      <div className='mx-auto max-w-4xl space-y-5'>
         <h1 id='review-title' className='text-2xl font-semibold'>
           {t('reviewReminder.listTitle')}
         </h1>
         <p className='text-sm text-muted-foreground'>
-          {t('options.review.description')}
+          {t('reviewReminder.description')}
         </p>
         <nav className='flex flex-wrap items-center gap-4'>
           <a href='#/saved-tabs?mode=domain' className='text-primary underline'>
@@ -97,58 +75,34 @@ export const ReviewReminderPage = ({ search }: { readonly search: string }) => {
           <a href='#/periodic-execution' className='text-primary underline'>
             {t('reviewReminder.configure')}
           </a>
-          <Button variant='outline' onClick={handleRefresh}>
+          <Button variant='outline' onClick={handleRefresh} disabled={disabled}>
             {t('reviewReminder.refresh')}
           </Button>
         </nav>
-        {state.status === 'loading' && (
-          <output>{t('reviewReminder.loading')}</output>
-        )}
-        {state.status === 'error' && (
+        {refreshing && <output>{t('reviewReminder.loading')}</output>}
+        {(state.status === 'error' ||
+          (state.status === 'ready' && state.refreshError)) && (
           <p role='alert'>{t('reviewReminder.listError')}</p>
         )}
+        <ReviewActionFeedback
+          state={actions.state}
+          disabled={disabled}
+          onUndo={actions.handleUndo}
+        />
         {state.status === 'ready' && (
-          <>
-            <output>
-              {t('reviewReminder.listCount', undefined, {
-                count: String(state.candidates.length),
-              })}
-            </output>
-            {state.candidates.length === 0 && (
-              <p>{t('reviewReminder.listEmpty')}</p>
-            )}
-            <ul className='space-y-3'>
-              {state.candidates.map((candidate) => {
-                const href = toSafeSavedUrlHref(candidate.url)
-                return (
-                  <li
-                    key={candidate.id}
-                    className='rounded-lg border border-border bg-card p-4'
-                  >
-                    <p className='font-medium break-words'>
-                      {candidate.title || candidate.url}
-                    </p>
-                    <p className='mt-1 text-sm break-all text-muted-foreground'>
-                      {candidate.url}
-                    </p>
-                    {href && (
-                      <a
-                        href={href}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='mt-2 inline-block text-primary underline'
-                        aria-label={`${t('reviewReminder.open')} ${candidate.title || candidate.url}`}
-                      >
-                        {t('reviewReminder.open')}
-                      </a>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </>
+          <ReviewCandidateList
+            candidates={state.candidates}
+            disabled={disabled || Boolean(state.refreshError)}
+            onDelete={actions.handleRequestDelete}
+          />
         )}
       </div>
+      <ReviewDeleteDialog
+        preview={actions.state.preview}
+        busy={actions.state.busy}
+        onCancel={actions.handleCancelDelete}
+        onConfirm={actions.handleConfirmDelete}
+      />
     </section>
   )
 }
