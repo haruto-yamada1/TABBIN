@@ -85,7 +85,7 @@ test('review candidates can be searched, deleted across memberships, restored, a
   )
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.screenshot({
-    path: '/tmp/tabbin-review-actions-en.png',
+    path: test.info().outputPath('review-actions-en.png'),
     fullPage: true,
   })
   await page.setViewportSize({ width: 390, height: 844 })
@@ -95,7 +95,7 @@ test('review candidates can be searched, deleted across memberships, restored, a
     ),
   ).toBe(true)
   await page.screenshot({
-    path: '/tmp/tabbin-review-actions-mobile.png',
+    path: test.info().outputPath('review-actions-mobile.png'),
     fullPage: true,
   })
   await serviceWorker.evaluate(
@@ -109,7 +109,7 @@ test('review candidates can be searched, deleted across memberships, restored, a
   ).toBeVisible()
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.screenshot({
-    path: '/tmp/tabbin-review-actions-ja.png',
+    path: test.info().outputPath('review-actions-ja.png'),
     fullPage: true,
   })
   await serviceWorker.evaluate(
