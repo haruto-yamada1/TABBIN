@@ -130,15 +130,6 @@ export const ImportExportSettings: React.FC = () => {
         </AlertDescription>
       </Alert>
 
-      <Alert className='border-amber-500/60 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-50'>
-        <AlertCircle className='size-4' />
-        <AlertTitle>{t('options.importExport.compatibilityTitle')}</AlertTitle>
-        <AlertDescription className='space-y-1'>
-          <p>{t('options.importExport.compatibilityWarning')}</p>
-          <p>{t('options.importExport.compatibilityAction')}</p>
-        </AlertDescription>
-      </Alert>
-
       {recoverySnapshot ? (
         <RecoverySnapshotNotice
           isRestoring={isRestoring}
