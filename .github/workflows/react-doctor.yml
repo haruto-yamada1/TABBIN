@@ -7,7 +7,7 @@
 name: React Doctor
 
 on:
-  # Scans the PR's changed files and posts a sticky summary comment listing only the new issues introduced relative to the merge base of the target branch.
+  # Scan the entire project on every PR so unchanged findings cannot bypass the score gate.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   # Scans `develop` on every push to track the health-score trend and catch regressions that slipped past PR review.
@@ -18,7 +18,6 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
-  statuses: write
 
 # Cancels any in-flight scan for the same PR (or branch, on push) the moment a new commit arrives, so reviewers only ever see the latest run.
 concurrency:
@@ -27,6 +26,7 @@ concurrency:
 
 jobs:
   react-doctor:
+    name: React Doctor Score 100
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -35,19 +35,27 @@ jobs:
           fetch-depth: 0
 
       - uses: millionco/react-doctor@8a8ab66c1200ed5eb0f7249b9ed7a4fdaceba261 # v2
-        # Strict gate: any new error-severity finding fails the check and
-        # red-Xes the PR. The action also posts a sticky summary comment,
-        # inline review comments on changed lines, and a commit status with
-        # the health score so reviewers can see the full picture.
-        # Loosen to `blocking: warning` (fail on any finding) or
-        # `blocking: none` (comment-only) when the team needs breathing room.
-        # Full reference: https://www.react.doctor/ci
+        id: doctor
         with:
           blocking: error
-        #   scope: full              # On PRs, scan the whole project instead of just changed files
-        #   comment: false           # Disable the sticky PR summary comment
-        #   review-comments: false   # Disable inline review comments on changed lines
-        #   commit-status: false     # Disable the commit status (score + counts, links to the run)
-        #   version: "0.4.0"         # Pin to a specific react-doctor version instead of "latest"
-        #   directory: apps/web      # Scan a sub-directory (default: ".")
-        #   project: "web,admin"     # In a monorepo, scan specific workspace project(s)
+          scope: full
+          # Use the job result for branch protection; the action's own status
+          # only reflects blocking severity and can succeed below 100.
+          commit-status: false
+
+      - name: Require React Doctor score 100
+        if: ${{ always() }}
+        shell: bash
+        env:
+          REACT_DOCTOR_SCORE: ${{ steps.doctor.outputs.score }}
+          REACT_DOCTOR_OUTCOME: ${{ steps.doctor.outcome }}
+        run: |
+          if [[ "$REACT_DOCTOR_OUTCOME" != 'success' ]]; then
+            echo "::error::React Doctor did not complete successfully ($REACT_DOCTOR_OUTCOME)."
+            exit 1
+          fi
+          if [[ "$REACT_DOCTOR_SCORE" != '100' ]]; then
+            echo "::error::React Doctor must score 100/100; received ${REACT_DOCTOR_SCORE:-unavailable}."
+            exit 1
+          fi
+          echo "React Doctor score: 100/100"

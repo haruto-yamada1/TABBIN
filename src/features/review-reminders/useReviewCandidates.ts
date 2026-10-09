@@ -55,8 +55,8 @@ export const useReviewCandidates = (search: string) => {
   }, [])
   const refreshing = state.status === 'loading' || result?.reload !== reload
   useEffect(() => {
-    const cancellation = new AbortController()
-    void (async () => {
+    let cancelled = false
+    const loadCandidates = async () => {
       try {
         const stored = await readReviewReminderSettings()
         const criteria = resolveReviewCriteria(stored, search)
@@ -64,11 +64,11 @@ export const useReviewCandidates = (search: string) => {
           criteria.settings,
           criteria.reviewAt,
         )
-        if (!cancellation.signal.aborted) {
+        if (!cancelled) {
           setResult({ search, reload, state: { status: 'ready', candidates } })
         }
       } catch {
-        if (!cancellation.signal.aborted) {
+        if (!cancelled) {
           setResult((current) => ({
             search,
             reload,
@@ -79,9 +79,10 @@ export const useReviewCandidates = (search: string) => {
           }))
         }
       }
-    })()
+    }
+    void loadCandidates()
     return () => {
-      cancellation.abort()
+      cancelled = true
     }
   }, [search, reload])
   return { state, refreshing, handleRefresh }
