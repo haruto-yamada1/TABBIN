@@ -574,7 +574,7 @@ const messages = {
       'Backups created with older versions are no longer supported.',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
-    'options.previewFontSizeCustomization': '(preview) Font size',
+    'options.previewFontSizeCustomization': 'Font size',
     'options.releaseNotes': 'Release Notes',
     'options.showSavedTime': 'Show saved time',
     'options.showSavedTimeDescription':
