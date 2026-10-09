@@ -65,11 +65,6 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.scopeDescription':
           'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
         'options.importExport.scopeTitle': 'Backup scope',
-        'options.importExport.compatibilityTitle': 'Backup format',
-        'options.importExport.compatibilityWarning':
-          'Only the current backup format can be imported.',
-        'options.importExport.compatibilityAction':
-          'Backups created with older versions are not supported.',
         'options.importExport.export': 'Export settings and tab data',
         'options.importExport.exporting': 'Exporting...',
         'options.importExport.exportError': 'An error occurred while exporting',
@@ -102,7 +97,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.importExport.previewProjects': 'Projects: {{count}}',
         'options.importExport.previewAiChat': 'AI Chat History: {{hasAiChat}}',
         'options.importExport.unsupportedLegacyBackup':
-          'This backup format is not supported. Only the current backup format can be imported.',
+          'This backup format is not supported.',
         'options.importExport.autoBackup':
           'Create a recovery backup before importing',
         'options.importExport.autoBackupDescription':
@@ -298,20 +293,6 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(
       screen.getByText(
         'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
-      ),
-    ).toBeTruthy()
-  })
-
-  it('current backup formatだけをサポートする説明を常設表示する', () => {
-    render(<ImportExportSettings />)
-
-    expect(screen.getByText('Backup format')).toBeTruthy()
-    expect(
-      screen.getByText('Only the current backup format can be imported.'),
-    ).toBeTruthy()
-    expect(
-      screen.getByText(
-        'Backups created with older versions are not supported.',
       ),
     ).toBeTruthy()
   })
@@ -874,8 +855,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         issueCodes: [],
         stage: 'format-detection',
       },
-      message:
-        'This backup format is not supported. Only the current backup format can be imported.',
+      message: 'This backup format is not supported.',
       success: false,
     })
 
@@ -895,7 +875,7 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'This backup format is not supported. Only the current backup format can be imported.',
+        'This backup format is not supported.',
       )
     })
     expect(screen.queryByRole('button', { name: 'Confirm Import' })).toBeNull()

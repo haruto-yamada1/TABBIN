@@ -169,7 +169,7 @@ describe('production import flow', () => {
   it.each([
     [
       'UNSUPPORTED_LEGACY_BACKUP',
-      'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。',
+      'このバックアップ形式はサポートされていません。',
     ],
     [
       'UNSUPPORTED_FUTURE_SCHEMA',

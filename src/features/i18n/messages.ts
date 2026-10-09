@@ -473,11 +473,6 @@ const messages = {
     'options.fontSize.rangeLabel': 'Font size slider',
     'options.importExport.back': 'Back',
     'options.importExport.cancel': 'Cancel',
-    'options.importExport.compatibilityAction':
-      'Backups created with older versions are not supported.',
-    'options.importExport.compatibilityTitle': 'Backup format',
-    'options.importExport.compatibilityWarning':
-      'Only the current backup format can be imported.',
     'options.importExport.confirmImport': 'Confirm Import',
     'options.importExport.dialogDescription':
       'Restore settings and tab data from a previously exported backup file.',
@@ -539,7 +534,7 @@ const messages = {
     'options.importExport.unsupportedFutureBackup':
       'This backup was created with a newer version and cannot be imported by this version.',
     'options.importExport.unsupportedLegacyBackup':
-      'This backup format is not supported. Only the current backup format can be imported.',
+      'This backup format is not supported.',
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
@@ -1386,11 +1381,6 @@ const messages = {
     'options.fontSize.rangeLabel': 'フォントサイズスライダー',
     'options.importExport.back': '戻る',
     'options.importExport.cancel': 'キャンセル',
-    'options.importExport.compatibilityAction':
-      '旧形式のバックアップはサポートされていません。',
-    'options.importExport.compatibilityTitle': 'バックアップ形式について',
-    'options.importExport.compatibilityWarning':
-      '現在のバックアップ形式のみインポートできます。',
     'options.importExport.confirmImport': 'インポートを実行',
     'options.importExport.dialogDescription':
       '以前にエクスポートしたバックアップファイルから設定とタブデータを復元します。',
@@ -1449,7 +1439,7 @@ const messages = {
     'options.importExport.unsupportedFutureBackup':
       'このバックアップは新しいバージョンで作成されているため、現在のバージョンではインポートできません。',
     'options.importExport.unsupportedLegacyBackup':
-      'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。',
+      'このバックアップ形式はサポートされていません。',
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',

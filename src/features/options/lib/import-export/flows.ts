@@ -72,7 +72,7 @@ const getKnownImportErrorMessage = (
   if (error.code === 'UNSUPPORTED_LEGACY_BACKUP') {
     return translate
       ? translate('options.importExport.unsupportedLegacyBackup')
-      : 'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。'
+      : 'このバックアップ形式はサポートされていません。'
   }
   if (error.code === 'UNSUPPORTED_FUTURE_SCHEMA') {
     return translate
