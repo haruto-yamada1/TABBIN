@@ -3,6 +3,33 @@
 TABBIN は Renovate で dependency update を検知し、CI と手動 review を経て merge する。
 CI success や vulnerability warning がないことだけを安全性の保証にしない。
 
+## Local dependency cooldown
+
+新しく採用する npm package version は、公開から7日以上経過したものに限定する。
+
+- `bunfig.toml` の `install.minimumReleaseAge = 604800`（秒）で、
+  `bun add` / `bun install` / `bun update` の新規依存解決に待機期間を適用する。
+  直接依存と間接依存の両方が対象で、`minimumReleaseAgeExcludes` は空にする。
+- `.ncurc.json` の `cooldown: 7`（日）で、ncu の更新候補も同じ待機期間に揃える。
+  最新版が待機期間内なら、7日以上経過した version から候補を選ぶ。
+- `npm-check-updates` は対応版を devDependency として exact pin する。
+  プロジェクトの Node 24 / Bun 1.3.14 を使い、候補確認は `bun run deps:check`、
+  `package.json` の更新は `bun run deps:update` を実行する。
+  その後 `bun install` で lockfile を更新し、quality / audit を確認する。
+  `tools/legacy-tooling` も確認する場合は、ルートから
+  `bun run deps:check -- --packageFile tools/legacy-tooling/package.json --configFilePath .`
+  を使う（更新時は `deps:update`）。
+
+ルートでの `ncu` / `ncu -u` にも `.ncurc.json` は適用されるが、
+古い global ncu は cooldown に未対応なので、固定したローカル版のコマンドを使う。
+`bun.lock` に記録済みの version は遡って待機対象にしない。
+CI の `bun install --frozen-lockfile` は検証済みの lockfile をそのまま再現する。
+待機期間は npm の公開日時に基づく新規解決の制限で、git / local / workspace 依存は
+対象外。Renovate による通常更新の14日待機は維持する。
+
+参照: [Bun minimum release age](https://bun.com/docs/pm/cli/install#minimum-release-age)、
+[npm-check-updates cooldown](https://github.com/raineorshine/npm-check-updates#cooldown)。
+
 ## Renovate の責務
 
 - `bun` と `github-actions` の version / lockfile update と PR 作成
