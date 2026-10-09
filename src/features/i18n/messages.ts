@@ -574,7 +574,7 @@ const messages = {
       'Backups created with older versions are no longer supported.',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
-    'options.previewFontSizeCustomization': '(preview) Font size',
+    'options.previewFontSizeCustomization': 'Font size',
     'options.releaseNotes': 'Release Notes',
     'options.showSavedTime': 'Show saved time',
     'options.showSavedTimeDescription':
@@ -1484,7 +1484,7 @@ const messages = {
       '旧形式のバックアップは現在インポートできません。',
     'options.previewColorCustomization': '(preview)カラーカスタマイズ',
     'options.previewColorCustomizationReset': 'リセット',
-    'options.previewFontSizeCustomization': '(preview)フォントサイズ',
+    'options.previewFontSizeCustomization': 'フォントサイズ',
     'options.releaseNotes': 'リリースノート',
     'options.showSavedTime': '保存日時を表示する',
     'options.showSavedTimeDescription':

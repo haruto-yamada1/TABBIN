@@ -310,7 +310,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'options.excludePatterns.removeAria':
           'Remove exclude pattern {{pattern}}',
         'options.previewColorCustomization': '(preview) Color customization',
-        'options.previewFontSizeCustomization': '(preview) Font size',
+        'options.previewFontSizeCustomization': 'Font size',
         'options.previewColorCustomizationReset': 'Reset',
         'options.releaseNotes': 'Release Notes',
         'options.showSavedTimeDescription':
