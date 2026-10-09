@@ -111,14 +111,12 @@ export const reconcileReviewReminderAlarm = async (
         browser.alarms.get(REVIEW_ALARM_NAME),
         readReviewReminderAlarmTimeZone(),
       ])
-      if (alarmSchedulesInFlight > 0) {
-        return
-      }
       if (
-        existing &&
-        existing.scheduledTime > Date.now() &&
-        existing.periodInMinutes === undefined &&
-        alarmTimeZone === Intl.DateTimeFormat().resolvedOptions().timeZone
+        alarmSchedulesInFlight > 0 ||
+        (existing &&
+          existing.scheduledTime > Date.now() &&
+          existing.periodInMinutes === undefined &&
+          alarmTimeZone === Intl.DateTimeFormat().resolvedOptions().timeZone)
       ) {
         return
       }
