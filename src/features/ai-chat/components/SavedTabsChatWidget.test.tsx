@@ -763,6 +763,13 @@ describe('SavedTabsChatWidget', () => {
       ollamaModel: 'qwen3:latest',
     } satisfies UserSettings
     mocked.getUserSettings.mockResolvedValue(initialSettings)
+    mocked.sendRuntimeMessage.mockResolvedValue({
+      models: [
+        { label: 'Llama 3.2', name: 'llama3.2' },
+        { label: 'Qwen 3', name: 'qwen3:latest' },
+      ],
+      status: 'ok',
+    })
 
     render(<SavedTabsChatWidget />)
 
@@ -773,6 +780,11 @@ describe('SavedTabsChatWidget', () => {
     )
 
     expect(screen.getByRole('combobox', { name: 'Default' })).toBeTruthy()
+
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.click(screen.getByRole('combobox', { name: 'Select a model' }))
+    await screen.findByRole('option', { name: 'Qwen 3' })
+    await user.keyboard('{Escape}')
 
     const settingsListener = storageListeners[0]
     assert.isDefined(settingsListener)
@@ -1972,7 +1984,7 @@ describe('SavedTabsChatWidget', () => {
 
     // Radix UI Select does not work with userEvent in jsdom
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.click(screen.getByRole('combobox', { name: 'llama3.2' }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Select a model' }))
 
     await waitFor(() => {
       expect(mocked.sendRuntimeMessage).toHaveBeenCalledWith({
@@ -2434,7 +2446,7 @@ describe('SavedTabsChatWidget', () => {
     await user.type(await screen.findByLabelText('Ask AI'), 'Keep this draft')
     // Radix UI Select does not work with userEvent in jsdom
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.click(screen.getByRole('combobox', { name: 'llama3.2' }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Select a model' }))
     // eslint-disable-next-line testing-library/prefer-user-event
     fireEvent.click(await screen.findByRole('option', { name: 'Qwen 3' }))
 
@@ -2477,7 +2489,7 @@ describe('SavedTabsChatWidget', () => {
 
     // Radix UI Select does not work with userEvent in jsdom
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.click(screen.getByRole('combobox', { name: 'llama3.2' }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Select a model' }))
 
     await waitFor(() => {
       expect(mocked.sendRuntimeMessage).toHaveBeenCalledWith({
