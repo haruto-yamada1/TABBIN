@@ -17,6 +17,19 @@ import {
   writeHarnessStatusSnapshot,
   writeHarnessSchemaFiles,
 } from '#harness-state'
+import { runWorktreeCli } from '#harness-worktrees'
+
+if (process.argv[2] === 'worktree') {
+  try {
+    await runWorktreeCli(process.cwd(), process.argv.slice(3))
+  } catch (error) {
+    console.error(
+      `worktree: error: ${error instanceof Error ? error.message : 'operation failed'}`,
+    )
+    process.exitCode = 1
+  }
+  process.exit(process.exitCode ?? 0)
+}
 
 const COMMAND_NAMES = [
   'audit',

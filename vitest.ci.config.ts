@@ -9,6 +9,7 @@ const alias = {
 }
 
 const sharedExclude = [
+  '**/.worktrees/**',
   '**/node_modules/**',
   '**/dist/**',
   '**/e2e/**',
@@ -89,6 +90,7 @@ export default defineConfig({
         },
       },
       exclude: [
+        '**/.worktrees/**',
         '.storybook/**',
         '**/*.stories.ts',
         '**/*.stories.tsx',

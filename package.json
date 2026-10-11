@@ -11,6 +11,8 @@
     "#default-language": "./src/constants/language.ts",
     "#extension-permissions": "./src/constants/extensionPermissions.ts",
     "#harness-state": "./tools/harness/state/index.ts",
+    "#harness-worktrees": "./tools/harness/worktrees.ts",
+    "#agent-config-sync": "./tools/scripts/sync-agent-config.ts",
     "#production-network-policy": "./src/constants/productionNetworkPolicy.ts",
     "#typescript-parser": "./tools/typescript/native-parser.mjs"
   },
@@ -59,6 +61,7 @@
     "test:changed": "vitest run --config vitest.ci.config.ts --changed",
     "test:related": "vitest related --run --config vitest.ci.config.ts",
     "harness:start": "bun tools/scripts/harness.ts start",
+    "harness:worktree": "bun tools/scripts/harness.ts worktree",
     "harness:plan": "bun tools/scripts/harness.ts plan",
     "harness:evaluate": "bun tools/scripts/harness.ts evaluate",
     "harness:checkpoint": "bun tools/scripts/harness.ts checkpoint",

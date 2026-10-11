@@ -36,8 +36,9 @@
     }
   },
   "include": ["dependencies", "unlisted", "binaries"],
-  "ignoreBinaries": ["codex"],
+  "ignoreBinaries": ["codex", "headroom"],
   "ignore": [
+    ".worktrees/**",
     ".output/**",
     ".wxt/**",
     "coverage/**",
