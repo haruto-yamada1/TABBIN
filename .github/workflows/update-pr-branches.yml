@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 concurrency:
   group: update-pr-branches-${{ github.ref }}
@@ -14,6 +13,10 @@ concurrency:
 
 jobs:
   update-pr-branches:
+    permissions:
+      contents: read
+      # This trusted develop-push job calls pulls.updateBranch for same-repo PRs.
+      pull-requests: write # Needed to update same-repository PR branches
     name: Update Open PR Branches
     runs-on: ubuntu-latest
 

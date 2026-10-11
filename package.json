@@ -92,7 +92,12 @@
     "apm:check": "bun tools/scripts/sync-agent-config-cli.ts --check",
     "apm:sync": "bun tools/scripts/sync-agent-config-cli.ts",
     "release:provenance": "bun tools/scripts/generate-release-provenance.ts",
-    "waza:trace-eval": "bun tools/scripts/evaluate-waza-trace.ts"
+    "waza:trace-eval": "bun tools/scripts/evaluate-waza-trace.ts",
+    "ci:setup": "node tools/ci-audit/install.mjs",
+    "ci:lint": "node tools/ci-audit/run.mjs lint",
+    "ci:security": "node tools/ci-audit/run.mjs security",
+    "ci:security:report": "node tools/ci-audit/run.mjs security-report",
+    "ci:test": "node --test tools/ci-audit/install.test.mjs && node tools/ci-audit/test.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -6,7 +6,8 @@ name: Waza Skill Eval (PR)
 
 permissions:
   contents: read
-  pull-requests: read
+  # Waza PR evaluation may inspect PR context; no write access is granted.
+  pull-requests: read # Needed to inspect the Waza PR evaluation context
 
 on:
   pull_request:

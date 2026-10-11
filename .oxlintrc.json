@@ -484,7 +484,9 @@
     "vitest/valid-title": "error",
     "vitest/expect-expect": [
       "error",
-      { "assertFunctionNames": ["expect", "expectTypeOf", "fc.assert"] }
+      {
+        "assertFunctionNames": ["expect", "expectTypeOf", "fc.assert"]
+      }
     ],
     "vitest/no-conditional-expect": "error",
     "vitest/no-conditional-tests": "error",
@@ -553,7 +555,8 @@
         "wxt.config.ts",
         "tailwind.config.js",
         "vitest.workspace.ts",
-        "src/entrypoints/**"
+        "src/entrypoints/**",
+        "tools/ci-audit/*.mjs"
       ],
       "env": {
         "node": true,
@@ -1392,6 +1395,12 @@
         "testing-library/no-node-access": "off",
         "testing-library/no-container": "off",
         "testing-library/prefer-user-event": "off"
+      }
+    },
+    {
+      "files": ["tools/ci-audit/install.test.mjs"],
+      "rules": {
+        "vitest/no-import-node-test": "off"
       }
     }
   ]
