@@ -12,9 +12,13 @@ import forge from 'node-forge'
 // A real low-exponent RSA key exercises the affected PKCS#1 v1.5 parser.
 // Native privateEncrypt preserves the supplied DigestInfo bytes in RSA padding.
 const { privateKey, publicKey } = generateKeyPairSync('rsa', {
-  modulusLength: 1024,
+  modulusLength: 2048,
   publicExponent: 3,
 })
+assert.ok(
+  (publicKey.asymmetricKeyDetails?.modulusLength ?? 0) >= 2048,
+  'RSA regression probe must use a key of at least 2048 bits',
+)
 const forgePublicKey = forge.pki.publicKeyFromPem(
   publicKey.export({ format: 'pem', type: 'pkcs1' }).toString(),
 )
