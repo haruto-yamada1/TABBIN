@@ -48,7 +48,10 @@ gh api --paginate 'repos/haruto-yamada1/TABBIN/code-scanning/alerts?ref=refs/hea
 
 Match an analysis's `commit_sha` to the current `develop` SHA, and check
 `error`, `warning`, `results_count`, and the successful JS/TS analysis job. For a
-PR, inspect its checks and query analyses with `ref=refs/pull/<number>/merge`.
+PR, inspect its checks and query analyses using the actual run's ref. This
+Default setup uses `ref=refs/pull/<number>/head`; match `commit_sha` to the
+current PR head SHA. Other configurations may use `refs/pull/<number>/merge`,
+so an empty result for that ref alone does not mean the PR was not scanned.
 Configuration being `configured`, an old successful run, or an empty alert list
 alone does not prove that the requested revision was scanned. API errors such
 as `no analysis found`, `403`, or `404` are not zero-alert results.
