@@ -251,3 +251,6 @@ security review, not a routine snapshot update.
 A mechanical snapshot update must never bypass these steps. The verifier fails
 loudly on any unreviewed privileged surface so the failure is the trigger to
 start this checklist.
+
+For JS/TS data-flow analysis and alert triage alongside these manifest checks,
+see [`code-scanning.md`](code-scanning.md).
