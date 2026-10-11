@@ -1,7 +1,9 @@
+import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { parse } from 'yaml'
 
 // Issue #794 Step 1 / Issue #799 Step 8: Waza version と checksum の管理方式が
 // 矛盾しないことを検証する。Option A (完全固定) を採用し、workflow_dispatch の
@@ -181,11 +183,51 @@ describe('waza real-agent-eval workflow contract (Issue #799 Step 1)', () => {
     expect(workflow).toContain('--transcript-dir')
   })
 
-  it('real-agent-eval validates skill input against an allowlist', () => {
-    const workflow = readProjectFile(WAZA_WORKFLOWS[2])
-    expect(workflow).toContain('ALLOWED_SKILLS')
-    // path traversal prevention: skill name must be in allowlist
-    expect(workflow).toMatch(/grep -qw/)
+  const realWorkflow = parse(readProjectFile(WAZA_WORKFLOWS[2])) as {
+    jobs: Record<string, { steps: { name?: string; run?: string }[] }>
+  }
+  const validateSkill = (skill: string) => {
+    const step = realWorkflow.jobs['real-agent-eval']?.steps.find(
+      (candidate) =>
+        candidate.name === 'Validate skill input against allowlist',
+    )
+    if (!step?.run) {
+      throw new Error('Waza skill allowlist validation step is missing')
+    }
+    return spawnSync(
+      'bash',
+      ['--noprofile', '--norc', '-e', '-o', 'pipefail', '-c', step.run],
+      {
+        cwd: projectRoot,
+        env: { PATH: process.env.PATH, SKILL: skill },
+        encoding: 'utf8',
+        timeout: 5_000,
+      },
+    )
+  }
+
+  it('real-agent-eval accepts an exact allowlisted skill with a real spec', () => {
+    const result = validateSkill('github-pr-review')
+    expect(result.error).toBeUndefined()
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Validated skill: github-pr-review')
+  })
+
+  it.each([
+    'github',
+    'review',
+    '.*',
+    '[a-z]*',
+    'check\ngithub-pr-review',
+    '../github-pr-review',
+    '-e',
+    'check; exit 0',
+  ])('rejects non-allowlisted input %j before resolving a spec', (skill) => {
+    const result = validateSkill(skill)
+    expect(result.error).toBeUndefined()
+    expect(result.status).toBe(2)
+    expect(result.stdout).toContain('is not in the allowlist')
+    expect(result.stdout).not.toContain('real-model spec required')
   })
 
   it('real-agent-eval distinguishes skip from success in status JSON', () => {

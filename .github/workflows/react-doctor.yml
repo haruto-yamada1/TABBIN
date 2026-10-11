@@ -16,8 +16,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 # Cancels any in-flight scan for the same PR (or branch, on push) the moment a new commit arrives, so reviewers only ever see the latest run.
 concurrency:
@@ -26,6 +24,11 @@ concurrency:
 
 jobs:
   react-doctor:
+    permissions:
+      contents: read
+      # React Doctor posts the existing PR summary and inline review comments.
+      pull-requests: write # Needed for React Doctor inline review comments
+      issues: write # Needed for React Doctor sticky PR summaries
     name: React Doctor Score 100
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,53 @@
+name: Actions Definition Audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/zizmor.yml'
+      - 'tools/ci-audit/**'
+      - 'tools/scripts/ci-audit-workflow.test.ts'
+      - 'package.json'
+      - '.node-version'
+      - '.bun-version'
+  push:
+    branches: [develop, main]
+    paths:
+      - '.github/workflows/**'
+      - '.github/zizmor.yml'
+      - 'tools/ci-audit/**'
+      - 'package.json'
+      - '.node-version'
+      - '.bun-version'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actions-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Actions Definition Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+      - name: Install checksum-verified auditors
+        run: bun run ci:setup
+      - name: Check workflow syntax, expressions and shell scripts
+        run: bun run ci:lint
+      - name: Reject medium and high security findings
+        run: bun run ci:security
+      - name: Prove unsafe fixtures are rejected
+        run: bun run ci:test

@@ -1,0 +1,13 @@
+name: Audit fixture
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          nonexistent-input: true
+      - run: echo "safe"

@@ -65,3 +65,6 @@ web-ext.config.ts
 
 # APM dependencies
 apm_modules/
+
+# Pinned workflow auditors
+.cache/ci-audit/

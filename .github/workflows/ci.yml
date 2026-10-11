@@ -9,6 +9,10 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-typecheck:
     name: Lint & Type Check
@@ -303,7 +307,9 @@ jobs:
 
       - name: Resolve Playwright Firefox executable
         id: firefox-executable
-        run: echo "path=$(bun -e \"import { firefox } from '@playwright/test'; console.log(firefox.executablePath())\")" >> "$GITHUB_OUTPUT"
+        run: |
+          FIREFOX_EXECUTABLE_PATH=$(bun -e "import { firefox } from '@playwright/test'; console.log(firefox.executablePath())")
+          printf 'path=%s\n' "$FIREFOX_EXECUTABLE_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Build Firefox artifact
         run: bun run build:firefox
