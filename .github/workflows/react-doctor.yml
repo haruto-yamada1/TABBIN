@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - uses: millionco/react-doctor@8a8ab66c1200ed5eb0f7249b9ed7a4fdaceba261 # v2
+      - uses: millionco/react-doctor@673ce802a375eeb4c3c5cb9a96d21eaeb7eafd93 # v2
         id: doctor
         with:
           blocking: error
