@@ -71,13 +71,27 @@ export function verifyContextPath(
   }
 }
 
-async function main(args: string[]): Promise<void> {
+function parseCounterArgument(value: string | undefined): number {
+  const counter = /^\d+$/u.test(value ?? '') ? Number(value) : Number.NaN
+  if (!Number.isSafeInteger(counter) || counter < 0) {
+    throw new Error('Invalid baseline counters')
+  }
+  return counter
+}
+
+export async function main(args: string[]): Promise<void> {
   const [proxy, ...verification] = args
   if (!proxy || ![0, 3].includes(verification.length)) {
     throw new Error(
       'Usage: bun tools/scripts/verify-codex-context-path.ts <proxy> [requests-before failed-before model]',
     )
   }
+  const before = verification.length
+    ? {
+        requests: parseCounterArgument(verification[0]),
+        failed: parseCounterArgument(verification[1]),
+      }
+    : null
   const response = await fetch(contextPathStatsUrl(proxy), {
     redirect: 'error',
     signal: AbortSignal.timeout(5000),
@@ -86,15 +100,8 @@ async function main(args: string[]): Promise<void> {
     throw new Error('Headroom statistics endpoint failed')
   }
   const snapshot = parseContextPathStats(await response.json())
-  if (verification.length) {
-    verifyContextPath(
-      {
-        requests: Number(verification[0]),
-        failed: Number(verification[1]),
-      },
-      snapshot,
-      verification[2] ?? '',
-    )
+  if (before) {
+    verifyContextPath(before, snapshot, verification[2] ?? '')
   }
   console.log(
     JSON.stringify({ ...snapshot, verified: Boolean(verification.length) }),

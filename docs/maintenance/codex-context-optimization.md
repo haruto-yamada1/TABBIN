@@ -73,9 +73,12 @@ codex_backup_root="$codex_config_root/backups/context-optimization-before"
 umask 077
 mkdir -p "$codex_backup_root"
 chmod 700 "$codex_backup_root"
-cp "$codex_config_root/config.toml" "$codex_backup_root/config.toml"
-cp "$codex_config_root/hooks.json" "$codex_backup_root/hooks.json"
-chmod 600 "$codex_backup_root/config.toml" "$codex_backup_root/hooks.json"
+for codex_config_file in config.toml hooks.json; do
+  if [ -f "$codex_config_root/$codex_config_file" ]; then
+    cp "$codex_config_root/$codex_config_file" "$codex_backup_root/$codex_config_file"
+    chmod 600 "$codex_backup_root/$codex_config_file"
+  fi
+done
 ```
 
 存在する指示ファイルも同様に退避します。`auth.json` を repo やこの公開記録へ
@@ -275,6 +278,11 @@ repo の Node 24 / Bun 1.3.14 と host の Codex / Headroom / RTK / context-mode
 確認してから実行します。runner の測定モデル/effort は検証した
 `gpt-6.1-sol` / `xhigh` に固定されています。自分の現在値が異なる場合は、
 既存モデルを切り替えず、runner の測定条件を揃えて検証してから使います。
+
+`--run` は親環境に非空の `CODEX_API_KEY` / `OPENAI_API_KEY` がある場合、
+Codex / Headroom を起動する前に拒否します。保存済みログインへ黙って切り替えたり、
+意図せず API キー認証で計測したりしません。空の key 変数も子環境から除き、
+既存の認証 home は維持します。認証種別は事前棚卸しで確認してください。
 
 ```sh
 # --run なしでは公開 snapshot・匿名 fixture・ground truth の準備だけ

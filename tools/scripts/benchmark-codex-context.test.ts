@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import {
   chmodSync,
+  existsSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -10,6 +11,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
+import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -17,6 +19,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   buildCodexArguments,
+  benchmarkEnvironment,
   fixtureTestCommand,
   readProxyCounters,
   scoreAnswer,
@@ -264,6 +267,90 @@ describe.runIf(process.platform !== 'win32')(
       const binary = path.join(root, 'old-node')
       writeFileSync(binary, '#!/bin/sh\necho v22.14.0\n', { mode: 0o700 })
       expect(() => selectBenchmarkNode('24', binary)).toThrow(/Node 24/u)
+    })
+
+    it.each(['CODEX_API_KEY', 'OPENAI_API_KEY'])(
+      'refuses inherited %s rather than silently changing authentication',
+      (key) => {
+        const root = temporaryRoot()
+        const parent = {
+          [key]: 'DUMMY_AUTH_OVERRIDE',
+          CODEX_HOME: '/existing/home',
+        }
+        expect(() => benchmarkEnvironment(root, parent)).toThrow(/API key/u)
+        expect(parent[key]).toBe('DUMMY_AUTH_OVERRIDE')
+      },
+    )
+
+    it('preserves the existing home while dropping empty API-key variables', () => {
+      const root = temporaryRoot()
+      const env = benchmarkEnvironment(root, {
+        CODEX_HOME: '/existing/home',
+        CODEX_API_KEY: ' ',
+        OPENAI_API_KEY: '',
+      })
+      expect(env.CODEX_HOME).toBe('/existing/home')
+      expect(env).not.toHaveProperty('CODEX_API_KEY')
+      expect(env).not.toHaveProperty('OPENAI_API_KEY')
+    })
+
+    it('handles a missing proxy binary without leaking its path or stack', async () => {
+      const root = temporaryRoot()
+      const binaryDirectory = path.join(root, 'bin')
+      mkdirSync(binaryDirectory)
+      writeFileSync(
+        path.join(binaryDirectory, 'codex'),
+        '#!/bin/sh\nprintf "fixture-codex\\n"\n',
+        { mode: 0o700 },
+      )
+      const reservation = createServer()
+      await new Promise<void>((resolve) =>
+        reservation.listen(0, '127.0.0.1', resolve),
+      )
+      const address = reservation.address()
+      if (!address || typeof address === 'string') {
+        throw new Error('Expected fixture port')
+      }
+      await new Promise<void>((resolve, reject) =>
+        reservation.close((error) => (error ? reject(error) : resolve())),
+      )
+      const missingBinary = path.join(root, 'private-missing-proxy')
+      const output = path.join(root, 'output')
+      const result = spawnSync(
+        'bun',
+        [
+          path.resolve(import.meta.dirname, 'benchmark-codex-context.ts'),
+          '--run',
+          '--variants',
+          'B',
+          '--repetitions',
+          '1',
+          '--headroom',
+          missingBinary,
+          '--port',
+          String(address.port),
+          '--output',
+          output,
+        ],
+        {
+          encoding: 'utf8',
+          timeout: 10000,
+          env: {
+            ...process.env,
+            PATH: `${binaryDirectory}${path.delimiter}${process.env.PATH ?? ''}`,
+            CODEX_API_KEY: '',
+            OPENAI_API_KEY: '',
+          },
+        },
+      )
+      expect(result.error).toBeUndefined()
+      expect(result.status).toBe(1)
+      expect(result.stderr).toContain(
+        'Benchmark failed; private diagnostics retained',
+      )
+      expect(result.stderr).not.toContain(missingBinary)
+      expect(result.stderr).not.toContain('ENOENT')
+      expect(existsSync(path.join(output, 'proxy.log'))).toBe(true)
     })
   },
 )

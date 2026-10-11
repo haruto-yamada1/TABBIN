@@ -479,11 +479,22 @@ function parseBenchmarkOptions(): BenchmarkOptions {
   }
 }
 
-function benchmarkEnvironment(output: string): NodeJS.ProcessEnv {
+export function benchmarkEnvironment(
+  output: string,
+  parentEnvironment: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  if (
+    parentEnvironment.CODEX_API_KEY?.trim() ||
+    parentEnvironment.OPENAI_API_KEY?.trim()
+  ) {
+    throw new Error(
+      'Benchmark refuses an environment API key authentication override',
+    )
+  }
   const temporaryDirectory = path.join(output, 'workload', '.tmp')
   privateDirectory(temporaryDirectory)
   const env: NodeJS.ProcessEnv = {
-    ...process.env,
+    ...parentEnvironment,
     TMPDIR: temporaryDirectory,
     HEADROOM_MODE: 'cache',
     HEADROOM_LOSSLESS: '1',
@@ -510,15 +521,23 @@ function benchmarkEnvironment(output: string): NodeJS.ProcessEnv {
   delete env.HEADROOM_PROBE_RECORD_DIR
   delete env.HEADROOM_PROXY_CONFIG_JSON
   delete env.HEADROOM_WORKERS
+  delete env.CODEX_API_KEY
+  delete env.OPENAI_API_KEY
   return env
 }
 
 async function awaitProxyReady(
   proxy: ReturnType<typeof spawn>,
   port: number,
+  failedToSpawn: () => boolean,
   attempts = 60,
 ): Promise<void> {
-  if (proxy.exitCode !== null || attempts <= 0) {
+  if (
+    failedToSpawn() ||
+    proxy.exitCode !== null ||
+    proxy.signalCode !== null ||
+    attempts <= 0
+  ) {
     throw new Error(
       'Dedicated proxy did not become ready; diagnostics retained privately',
     )
@@ -527,7 +546,10 @@ async function awaitProxyReady(
     await proxyStats(port)
   } catch {
     await new Promise((resolve) => setTimeout(resolve, 500))
-    return awaitProxyReady(proxy, port, attempts - 1)
+    return awaitProxyReady(proxy, port, failedToSpawn, attempts - 1)
+  }
+  if (failedToSpawn()) {
+    throw new Error('Dedicated proxy failed to start')
   }
 }
 
@@ -561,9 +583,13 @@ async function startDedicatedProxy(
     ],
     { env, stdio: ['ignore', log, log] },
   )
+  let spawnFailed = false
+  proxy.on('error', () => {
+    spawnFailed = true
+  })
   closeSync(log)
   try {
-    await awaitProxyReady(proxy, options.port)
+    await awaitProxyReady(proxy, options.port, () => spawnFailed)
   } catch (error) {
     proxy.kill('SIGTERM')
     throw error
