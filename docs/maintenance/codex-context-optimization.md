@@ -4,6 +4,9 @@
 `package.json`、ロックファイル、ブラウザ権限にはツールを追加しません。
 Headroom 未導入の共同開発者や CI は通常の開発コマンドを使えます。
 
+複数 Issue を同時に進めるときの worktree、port、runtime の分離と後片付けは
+[Codex CLI の並列 worktree 運用](codex-parallel-worktrees.md)を参照してください。
+
 benchmark の `codex` は利用者がインストールした host CLI です。Knip の
 `ignoreBinaries` にこの外部 binary だけを宣言し、拡張の依存関係として追加しません。
 依存関係・unlisted・他の binary の検査は維持します。

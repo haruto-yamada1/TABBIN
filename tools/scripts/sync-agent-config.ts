@@ -41,14 +41,14 @@ const SNAPSHOT_PATHS = [
   'apm.lock.yaml',
 ] as const
 
-const TRACKED_SYNC_ARTIFACTS = [
+export const TRACKED_SYNC_ARTIFACTS = [
   'AGENTS.md',
   'CLAUDE.md',
   'GEMINI.md',
   'apm.lock.yaml',
 ] as const
 
-const GENERATED_AGENT_ARTIFACT_PATHS = [
+export const GENERATED_AGENT_ARTIFACT_PATHS = [
   '.agents/skills',
   '.claude/apm-hooks.json',
   '.claude/commands',

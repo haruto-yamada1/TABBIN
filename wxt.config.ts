@@ -38,6 +38,11 @@ const vitePlugins = tailwindcss()
 export default defineConfig({
   srcDir: 'src',
   publicDir: 'src/public',
+  dev: {
+    server: {
+      strictPort: process.env.TABBIN_PARALLEL_WORKTREE === '1',
+    },
+  },
   zip: {
     dotSources: true,
     includeSources: [
