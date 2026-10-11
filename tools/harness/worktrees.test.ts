@@ -323,6 +323,35 @@ function start(root: string, issue: number) {
   expect(result.status).toBe(0)
   return path.join(root, '.worktrees', `issue-${issue}-fixture`)
 }
+function largeIgnoredWorktree() {
+  const root = project()
+  const work = start(root, 941)
+  const generated = path.join(
+    work,
+    'node_modules/generated-fixture',
+    'a'.repeat(180),
+    'b'.repeat(180),
+    'c'.repeat(180),
+  )
+  mkdirSync(generated, { recursive: true })
+  for (let index = 0; index < 6000; index += 1) {
+    writeFileSync(
+      path.join(
+        generated,
+        `${String(index).padStart(5, '0')}-${'x'.repeat(180)}.js`,
+      ),
+      '',
+    )
+  }
+  const listing = spawnSync(
+    'git',
+    ['ls-files', '--others', '--ignored', '--exclude-standard', '-z'],
+    { cwd: work, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
+  )
+  expect(listing.status).toBe(0)
+  expect(Buffer.byteLength(listing.stdout)).toBeGreaterThan(4 * 1024 * 1024)
+  return { root, work }
+}
 afterEach(() =>
   roots
     .splice(0)
@@ -451,6 +480,41 @@ describe('Harness worktree lifecycle', () => {
     expect(run(root, 'pause', '--issue', '941').status).toBe(0)
     start(root, 943)
     expect(run(root, 'resume', '--issue', '941').status).not.toBe(0)
+  })
+
+  it('cleans known ignored files beyond the default output buffer and keeps the branch', () => {
+    const { root, work } = largeIgnoredWorktree()
+    const result = run(root, 'cleanup', '--issue', '941', '--confirm', '941')
+    expect(result.status).toBe(0)
+    expect(existsSync(work)).toBe(false)
+    expect(
+      git(root, 'show-ref', '--verify', 'refs/heads/codex/issue-941-fixture'),
+    ).toContain('codex/issue-941-fixture')
+    expect(git(root, 'status', '--porcelain')).toBe('')
+  })
+
+  it('retains a private ignored file after a listing beyond the default output buffer', () => {
+    const { root, work } = largeIgnoredWorktree()
+    writeFileSync(
+      path.join(work, '.gitignore'),
+      `${readFileSync(path.join(work, '.gitignore'), 'utf8')}zz-private.recovery.json\n`,
+    )
+    git(work, 'add', '.gitignore')
+    git(work, 'commit', '-m', 'ignore private fixture after generated paths')
+    writeFileSync(
+      path.join(work, 'zz-private.recovery.json'),
+      'retained-private-marker',
+    )
+    const result = run(root, 'cleanup', '--issue', '941', '--confirm', '941')
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain('unknown ignored files retained')
+    expect(
+      readFileSync(path.join(work, 'zz-private.recovery.json'), 'utf8'),
+    ).toBe('retained-private-marker')
+    expect(result.stdout + result.stderr).not.toContain(
+      'retained-private-marker',
+    )
+    expect(git(root, 'status', '--porcelain')).toBe('')
   })
 
   it('refuses dirty or unknown ignored cleanup and never removes branches', () => {

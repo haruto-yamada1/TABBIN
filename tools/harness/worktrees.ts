@@ -38,10 +38,17 @@ import {
 } from './worktrees-runtime'
 
 const MAX_ACTIVE = 2
+// A frozen TABBIN install already produces a multi-MiB ignored-file listing.
+// Keep enumeration bounded while preserving the complete NUL-delimited output.
+const GIT_OUTPUT_MAX_BYTES = 64 * 1024 * 1024
 type Repository = { root: string; common: string; registry: string }
 
 function git(cwd: string, args: string[]): string {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8' })
+  const result = spawnSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+    maxBuffer: GIT_OUTPUT_MAX_BYTES,
+  })
   if (result.status !== 0) {
     throw new Error(`git ${args[0] ?? 'command'} failed; inspect Git locally`)
   }
@@ -490,23 +497,13 @@ function transition(
   record: WorktreeRecord,
   command: string,
   args: string[],
-  all: WorktreeRecord[],
 ): void {
   assertIdle(record)
   assertWorktree(record)
   if (record.phase === 'removed') {
     throw new Error('Issue worktree was removed')
   }
-  if (command === 'resume') {
-    assertCapacity(all, record.issue)
-    if (!record.setupComplete) {
-      throw new Error('setup is incomplete')
-    }
-    checkpoint(record, command)
-    record.phase = 'ready'
-    delete record.ownerPid
-    delete record.childPid
-  } else if (command === 'pause') {
+  if (command === 'pause') {
     checkpoint(record, command)
     record.phase = 'paused'
   } else if (command === 'finish') {
@@ -677,6 +674,6 @@ export async function runWorktreeCli(
     if (!record) {
       throw new Error('Issue is not registered')
     }
-    transition(repo, record, command, args, all)
+    transition(repo, record, command, args)
   })
 }
