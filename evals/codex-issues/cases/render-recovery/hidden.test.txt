@@ -1,0 +1,298 @@
+// @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
+
+import { act, cleanup, fireEvent, render, within } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { AppLayout } from '@/features/navigation/app/AppLayout'
+import { BackupEnvelopeV2Schema } from '@/features/options/lib/import-export/v2/BackupV2Schema'
+import {
+  getOrCreateRoot,
+  mountToElement,
+  renderToRoot,
+} from '@/lib/react/render-root'
+
+const backupActions = vi.hoisted(() => ({
+  exportBackupV2: vi.fn(),
+  downloadAsJson: vi.fn(),
+}))
+
+vi.mock('@/app/composition/optionsBackupV2Export', () => ({
+  exportBackupV2: backupActions.exportBackupV2,
+}))
+vi.mock('@/features/options/lib/import-export', () => ({
+  downloadAsJson: backupActions.downloadAsJson,
+}))
+
+vi.unmock('react-dom/client')
+vi.mock('@/features/i18n/components/DocumentTitleSync', () => ({
+  DocumentTitleSync: () => null,
+}))
+vi.mock('@/features/navigation/components/ExtensionPageShell', () => ({
+  ExtensionPageShell: ({ children }: { children: ReactNode }) => (
+    <div>
+      <nav>
+        Recovery navigation
+        <Link to='/options'>Healthy options</Link>
+      </nav>
+      {children}
+    </div>
+  ),
+}))
+
+const containers: HTMLElement[] = []
+const createContainer = () => {
+  const container = document.createElement('div')
+  document.body.append(container)
+  containers.push(container)
+  return container
+}
+const ignoreBrowserError = (event: ErrorEvent) => event.preventDefault()
+const exportedBackup = BackupEnvelopeV2Schema.parse(
+  JSON.parse(
+    readFileSync(
+      'src/features/options/lib/import-export/v2/fixtures/backup-v2-current.json',
+      'utf8',
+    ),
+  ),
+)
+
+beforeEach(() => {
+  backupActions.exportBackupV2.mockReset().mockResolvedValue(exportedBackup)
+  backupActions.downloadAsJson.mockReset().mockResolvedValue(undefined)
+  document.documentElement.lang = 'en'
+  window.addEventListener('error', ignoreBrowserError)
+  vi.spyOn(console, 'error').mockImplementation(() => undefined)
+})
+afterEach(() => {
+  cleanup()
+  act(() => {
+    for (const container of containers.splice(0)) {
+      getOrCreateRoot(container).unmount()
+      container.remove()
+    }
+  })
+  window.removeEventListener('error', ignoreBrowserError)
+  vi.restoreAllMocks()
+})
+
+describe('Issue 717 failure domains', () => {
+  it('recovers a reused root explicitly while concealing render payloads', async () => {
+    const container = createContainer()
+    const root = getOrCreateRoot(container)
+    await act(async () => renderToRoot(container, <p>Initially healthy</p>))
+    let broken = true
+    const Feature = () => {
+      if (broken) {
+        throw new Error('PRIVATE_USER_URL_AND_PROMPT')
+      }
+      return <p>Recovered from transient failure</p>
+    }
+    await act(async () => renderToRoot(container, <Feature />))
+    const ui = within(container)
+    expect(ui.queryByRole('alert')).not.toBeNull()
+    expect(container.textContent).not.toContain('PRIVATE_USER_URL_AND_PROMPT')
+    expect(ui.queryByRole('button', { name: /reload/i })).not.toBeNull()
+    expect(ui.queryByRole('button', { name: /export/i })).toBeNull()
+    broken = false
+    // A recovered dependency must not dismiss a failure before explicit retry.
+    expect(ui.queryByText('Recovered from transient failure')).toBeNull()
+    await act(async () =>
+      fireEvent.click(ui.getByRole('button', { name: /retry/i })),
+    )
+    expect(ui.getByText('Recovered from transient failure')).toBeTruthy()
+    expect(ui.queryByRole('alert')).toBeNull()
+    expect(getOrCreateRoot(container)).toBe(root)
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      'PRIVATE_USER_URL_AND_PROMPT',
+    )
+  })
+
+  it('keeps route navigation usable when an outlet crashes', async () => {
+    const BrokenRoute = () => {
+      throw new Error('PRIVATE_ROUTE_DATA')
+    }
+    const result = render(
+      <MemoryRouter initialEntries={['/analytics']}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path='/analytics' element={<BrokenRoute />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    const ui = within(result.container)
+    expect(ui.queryByRole('navigation')).not.toBeNull()
+    expect(ui.queryByRole('alert')).not.toBeNull()
+    expect(result.container.textContent).not.toContain('PRIVATE_ROUTE_DATA')
+  })
+
+  it('leaves a crashed outlet behind when the user navigates to a healthy route', async () => {
+    const BrokenRoute = () => {
+      throw new Error('PRIVATE_FAILED_ROUTE')
+    }
+    const result = render(
+      <MemoryRouter initialEntries={['/analytics']}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path='/analytics' element={<BrokenRoute />} />
+            <Route path='/options' element={<p>Healthy options content</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    const ui = within(result.container)
+    expect(ui.getByRole('alert')).toBeTruthy()
+    await act(async () =>
+      fireEvent.click(ui.getByRole('link', { name: 'Healthy options' })),
+    )
+    expect(ui.queryByRole('alert')).toBeNull()
+    expect(ui.getByText('Healthy options content')).toBeTruthy()
+    expect(ui.getByRole('navigation')).toBeTruthy()
+  })
+
+  it('passes recovery actions through mountToElement while reusing its root', async () => {
+    const container = createContainer()
+    container.id = 'hidden-mount-recovery'
+    await act(async () =>
+      mountToElement(
+        container.id,
+        <p>Healthy mounted content</p>,
+        'Missing container',
+      ),
+    )
+    const root = getOrCreateRoot(container)
+    let failed = true
+    const Feature = () => {
+      if (failed) {
+        throw new Error('PRIVATE_MOUNT_DATA')
+      }
+      return <p>Mounted content recovered</p>
+    }
+    const onExport = vi.fn(async () => undefined)
+    await act(async () => {
+      Reflect.apply(mountToElement, undefined, [
+        container.id,
+        <Feature />,
+        'Missing container',
+        { onExport },
+      ])
+    })
+    const ui = within(container)
+    expect(ui.getByRole('alert')).toBeTruthy()
+    expect(onExport).not.toHaveBeenCalled()
+    await act(async () =>
+      fireEvent.click(ui.getByRole('button', { name: /export data/i })),
+    )
+    expect(onExport).toHaveBeenCalledOnce()
+    failed = false
+    await act(async () =>
+      fireEvent.click(ui.getByRole('button', { name: /retry/i })),
+    )
+    expect(ui.getByText('Mounted content recovered')).toBeTruthy()
+    expect(ui.queryByRole('alert')).toBeNull()
+    expect(getOrCreateRoot(container)).toBe(root)
+    expect(container.textContent).not.toContain('PRIVATE_MOUNT_DATA')
+  })
+
+  it('wires the route recovery export to the existing validated Backup V2 composition', async () => {
+    const BrokenRoute = () => {
+      throw new Error('PRIVATE_EXPORT_ROUTE')
+    }
+    const result = render(
+      <MemoryRouter initialEntries={['/analytics']}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path='/analytics' element={<BrokenRoute />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    const ui = within(result.container)
+    expect(backupActions.exportBackupV2).not.toHaveBeenCalled()
+    expect(backupActions.downloadAsJson).not.toHaveBeenCalled()
+    await act(async () =>
+      fireEvent.click(ui.getByRole('button', { name: /export data/i })),
+    )
+    expect(backupActions.exportBackupV2).toHaveBeenCalledOnce()
+    expect(backupActions.downloadAsJson).toHaveBeenCalledExactlyOnceWith(
+      exportedBackup,
+      expect.stringMatching(/^tabbin-backup-\d{4}-\d{2}-\d{2}\.json$/u),
+    )
+    expect(ui.getByRole('alert')).toBeTruthy()
+    expect(
+      ui.getByRole('button', { name: /retry/i }).hasAttribute('disabled'),
+    ).toBe(false)
+  })
+
+  it('does not download fallback data after the existing Backup V2 exporter rejects', async () => {
+    backupActions.exportBackupV2.mockRejectedValueOnce(
+      new Error('PRIVATE_COMPOSITION_FAILURE'),
+    )
+    const BrokenRoute = () => {
+      throw new Error('PRIVATE_EXPORT_FAILURE_ROUTE')
+    }
+    const result = render(
+      <MemoryRouter initialEntries={['/analytics']}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path='/analytics' element={<BrokenRoute />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+    const ui = within(result.container)
+    await act(async () =>
+      fireEvent.click(ui.getByRole('button', { name: /export data/i })),
+    )
+    expect(backupActions.exportBackupV2).toHaveBeenCalledOnce()
+    expect(backupActions.downloadAsJson).not.toHaveBeenCalled()
+    expect(ui.getByRole('alert')).toBeTruthy()
+    expect(
+      ui.getByRole('button', { name: /retry/i }).hasAttribute('disabled'),
+    ).toBe(false)
+    expect(
+      ui.getByRole('button', { name: /export data/i }).hasAttribute('disabled'),
+    ).toBe(false)
+    expect(result.container.textContent).not.toContain(
+      'PRIVATE_COMPOSITION_FAILURE',
+    )
+    expect(result.container.textContent).not.toContain(
+      'PRIVATE_EXPORT_FAILURE_ROUTE',
+    )
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      'PRIVATE_COMPOSITION_FAILURE',
+    )
+  })
+
+  it('contains failed backup actions inside a usable recovery screen', async () => {
+    const container = createContainer()
+    const Broken = () => {
+      throw new Error('PRIVATE_RENDER_DATA')
+    }
+    const onExport = vi.fn(async () => {
+      throw new Error('PRIVATE_BACKUP_DATA')
+    })
+    await act(async () => {
+      Reflect.apply(renderToRoot, undefined, [
+        container,
+        <Broken />,
+        { onExport },
+      ])
+    })
+    const ui = within(container)
+    expect(onExport).not.toHaveBeenCalled()
+    await act(async () =>
+      fireEvent.click(ui.getByRole('button', { name: /export data/i })),
+    )
+    expect(onExport).toHaveBeenCalledOnce()
+    expect(ui.queryByRole('alert')).not.toBeNull()
+    expect(
+      ui.getByRole('button', { name: /retry/i }).hasAttribute('disabled'),
+    ).toBe(false)
+    expect(container.textContent).not.toContain('PRIVATE_BACKUP_DATA')
+    expect(container.textContent).not.toContain('PRIVATE_RENDER_DATA')
+  })
+})

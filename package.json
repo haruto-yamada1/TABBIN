@@ -14,7 +14,9 @@
     "#harness-worktrees": "./tools/harness/worktrees.ts",
     "#agent-config-sync": "./tools/scripts/sync-agent-config.ts",
     "#production-network-policy": "./src/constants/productionNetworkPolicy.ts",
-    "#typescript-parser": "./tools/typescript/native-parser.mjs"
+    "#typescript-parser": "./tools/typescript/native-parser.mjs",
+    "#codex-issue-evaluation": "./tools/codex-issues/runner.ts",
+    "#codex-issue-pressure": "./tools/codex-issues/pressure.ts"
   },
   "scripts": {
     "dev": "wxt",
@@ -100,7 +102,12 @@
     "ci:lint": "node tools/ci-audit/run.mjs lint",
     "ci:security": "node tools/ci-audit/run.mjs security",
     "ci:security:report": "node tools/ci-audit/run.mjs security-report",
-    "ci:test": "node --test tools/ci-audit/install.test.mjs && node tools/ci-audit/test.mjs"
+    "ci:test": "node --test tools/ci-audit/install.test.mjs && node tools/ci-audit/test.mjs",
+    "agent:issues:check": "bun tools/scripts/evaluate-codex-issues.ts check",
+    "agent:issues:mock": "bun tools/scripts/evaluate-codex-issues.ts mock",
+    "agent:issues:baseline": "bun tools/scripts/evaluate-codex-issues.ts baseline",
+    "agent:issues:real": "bun tools/scripts/evaluate-codex-issues.ts real",
+    "agent:issues:pressure": "bun tools/scripts/evaluate-codex-issues.ts pressure"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
