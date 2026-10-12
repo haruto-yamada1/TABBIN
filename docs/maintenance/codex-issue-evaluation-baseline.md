@@ -22,3 +22,9 @@ unknownのまま記録し、0で補完しない。batch内の未実行を成功�
 完全な機械可読記録は [baseline JSON](./codex-issue-evaluation-baseline.json)、
 再実行・予算・権限・失敗・rollbackは [runbook](./codex-issue-evaluation.md) を参照。
 Raw traceは公開しない。API従量課金への切替はない。
+
+PR #950 のレビュー修正後は Codex CLI 0.162.1 でモデル推論を行わず、同じ3題の
+reference baseline を再採点した。RED は3/16/7件で、全題の hidden / 既存回帰 /
+compile / DDD は合格し、RED の診断はすべて `test_failure` と記録された。
+再採点は JSON の `reviewReferenceBaseline` に保存する。元の測定は当時の
+runner hash と診断を保持し、実Codexの結果を再測定値で置き換えない。

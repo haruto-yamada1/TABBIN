@@ -25,40 +25,38 @@ const productionPath = relativePath.refine(
     (value.startsWith('src/') && !/\.(?:test|spec)\./u.test(value)),
   'Only production sources and guarded package imports may change',
 )
-const caseSchema = z
-  .object({
-    id: z.string().regex(/^[a-z][a-z0-9-]{1,63}$/u),
-    issue: z.number().int().positive(),
-    startCommit: z.string().regex(/^[a-f0-9]{40}$/u),
-    prompt: z.string().min(10),
-    allowedPaths: z.array(productionPath).min(1).max(20),
-    hiddenTest: relativePath,
-    hiddenTestTarget: relativePath.refine((value) =>
-      /^src\/.*\.test\.tsx?$/u.test(value),
-    ),
-    project: z.enum(['node', 'dom']),
-    referencePatch: relativePath,
-    additionalHiddenTests: z
-      .array(
-        z
-          .object({
-            hiddenTest: relativePath,
-            hiddenTestTarget: relativePath.refine((value) =>
-              /^src\/.*\.test\.tsx?$/u.test(value),
-            ),
-          })
-          .strict(),
-      )
-      .max(5)
-      .optional(),
-    regressionTests: z.array(relativePath).min(1).max(20),
-    expectedHiddenTests: z.number().int().positive(),
-    expectedRegressionTests: z.number().int().positive(),
-  })
-  .strict()
+const caseSchema = z.strictObject({
+  id: z.string().regex(/^[a-z][a-z0-9-]{1,63}$/u),
+  issue: z.number().int().positive(),
+  startCommit: z.string().regex(/^[a-f0-9]{40}$/u),
+  prompt: z.string().min(10),
+  allowedPaths: z.array(productionPath).min(1).max(20),
+  hiddenTest: relativePath,
+  hiddenTestTarget: relativePath.refine((value) =>
+    /^src\/.*\.test\.tsx?$/u.test(value),
+  ),
+  project: z.enum(['node', 'dom']),
+  referencePatch: relativePath,
+  additionalHiddenTests: z
+    .array(
+      z.strictObject({
+        hiddenTest: relativePath,
+        hiddenTestTarget: relativePath.refine((value) =>
+          /^src\/.*\.test\.tsx?$/u.test(value),
+        ),
+      }),
+    )
+    .max(5)
+    .optional(),
+  regressionTests: z.array(relativePath).min(1).max(20),
+  expectedHiddenTests: z.number().int().positive(),
+  expectedRegressionTests: z.number().int().positive(),
+})
 const manifestSchema = z
-  .object({ version: z.literal(1), cases: z.array(caseSchema).min(3).max(5) })
-  .strict()
+  .strictObject({
+    version: z.literal(1),
+    cases: z.array(caseSchema).min(3).max(5),
+  })
   .superRefine((manifest, context) => {
     for (const key of ['id', 'issue'] as const) {
       if (

@@ -63,7 +63,11 @@ function resource(root: string, file: string): string {
   }
   return resolved
 }
-export function loadManifest(root: string, oracleRoot = root) {
+export function loadManifest(
+  root: string,
+  oracleRoot = root,
+  verifyHistory = false,
+) {
   const manifest = validateManifest(
     JSON.parse(
       readFileSync(
@@ -91,27 +95,29 @@ export function loadManifest(root: string, oracleRoot = root) {
     ) {
       throw new Error('Reference patch exceeds fixed edit scope')
     }
-    if (
-      git(root, ['rev-parse', `${item.startCommit}^{commit}`]).trim() !==
-      item.startCommit
-    ) {
-      throw new Error('Pinned start commit unavailable')
-    }
-    const files = git(root, [
-      'ls-tree',
-      '-r',
-      '--name-only',
-      item.startCommit,
-    ]).split('\n')
-    if (
-      [
-        item.hiddenTestTarget,
-        ...(item.additionalHiddenTests ?? []).map(
-          (test) => test.hiddenTestTarget,
-        ),
-      ].some((file) => files.includes(file))
-    ) {
-      throw new Error('Hidden grader must not replace a test')
+    if (verifyHistory) {
+      if (
+        git(root, ['rev-parse', `${item.startCommit}^{commit}`]).trim() !==
+        item.startCommit
+      ) {
+        throw new Error('Pinned start commit unavailable')
+      }
+      const files = git(root, [
+        'ls-tree',
+        '-r',
+        '--name-only',
+        item.startCommit,
+      ]).split('\n')
+      if (
+        [
+          item.hiddenTestTarget,
+          ...(item.additionalHiddenTests ?? []).map(
+            (test) => test.hiddenTestTarget,
+          ),
+        ].some((file) => files.includes(file))
+      ) {
+        throw new Error('Hidden grader must not replace a test')
+      }
     }
   }
   return manifest
@@ -132,16 +138,16 @@ async function prepare(
   const seed = path.join(directory, 'seed')
   const workspace = path.join(directory, 'agent')
   mkdirSync(seed, { mode: 0o700 })
-  const archive = spawnSync('git', ['archive', item.startCommit], {
+  const snapshot = spawnSync('git', ['archive', item.startCommit], {
     cwd: root,
     timeout: 60000,
     maxBuffer: 64 * 1024 * 1024,
   })
-  if (archive.status !== 0) {
+  if (snapshot.status !== 0) {
     throw new Error('Pinned archive unavailable')
   }
   const unpack = spawnSync('tar', ['-xf', '-', '-C', seed], {
-    input: archive.stdout,
+    input: snapshot.stdout,
   })
   if (unpack.status !== 0) {
     throw new Error('Archive extraction failed')
@@ -270,7 +276,13 @@ function readTestResult(grader: string, name: string, expected: number) {
     return { valid: false, passed: false, failures: null }
   }
 }
-function classifyFailure(output: string): string {
+export function classifyFailure(
+  output: string,
+  report?: ReturnType<typeof inspectTestReport> | null,
+): string {
+  if (report?.valid && (report.failures ?? 0) > 0) {
+    return 'test_failure'
+  }
   if (/permission denied|operation not permitted/iu.test(output)) {
     return 'sandbox_denied'
   }
@@ -425,7 +437,7 @@ async function grade(
         diagnostic:
           result.exitCode === 0
             ? null
-            : classifyFailure(result.stdout + result.stderr),
+            : classifyFailure(result.stdout + result.stderr, report),
         passed:
           result.exitCode === 0 &&
           !result.timedOut &&
@@ -665,6 +677,9 @@ async function runSuite(options: EvaluationOptions) {
       saveReport(options.output, report)
       return false
     }
+    // History is required only after an actual execution passes preflight.
+    // Static/mock checks and deliberate skips must work in shallow PR clones.
+    loadManifest(root, options.snapshotRoot ?? root, true)
   }
   const selected = selectCases(manifest.cases, options)
   saveReport(options.output, report)

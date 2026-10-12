@@ -443,9 +443,21 @@ describe('bounded subprocess', () => {
   it('kills SIGTERM-resistant descendants with the timed-out process group', async () => {
     const directory = workspace()
     const marker = path.join(directory, 'escaped')
-    const childCode = `process.on('SIGTERM',()=>{});setTimeout(()=>require('node:fs').writeFileSync(${JSON.stringify(marker)},'escaped'),750);setInterval(()=>{},1000)`
-    const command = `require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(childCode)}],{stdio:'ignore'});process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`
-    const result = await runProcess(process.execPath, ['-e', command], {
+    const script = path.join(directory, 'signal-resistant.cjs')
+    writeFileSync(
+      script,
+      `const { spawn } = require('node:child_process')
+const { writeFileSync } = require('node:fs')
+process.on('SIGTERM', () => {})
+if (process.argv[2] === 'child') {
+  setTimeout(() => writeFileSync(process.argv[3], 'escaped'), 750)
+} else {
+  spawn(process.execPath, [__filename, 'child', process.argv[2]], { stdio: 'ignore' })
+}
+setInterval(() => {}, 1000)
+`,
+    )
+    const result = await runProcess(process.execPath, [script, marker], {
       cwd: directory,
       timeoutMs: 150,
     })

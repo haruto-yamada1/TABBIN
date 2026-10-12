@@ -482,5 +482,214 @@
     "The batch stopped later inference after ollama-host timed out; render-recovery was explicitly run individually in a separate output directory.",
     "Missing final usage remains null and produces usage_unavailable; skipped tasks are not counted as passes.",
     "Raw prompts, replies, absolute paths, tool payloads and credential data are excluded."
-  ]
+  ],
+  "reviewReferenceBaseline": {
+    "schemaVersion": 1,
+    "mode": "baseline",
+    "status": "passed",
+    "configuration": {
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "guidanceSha256": "c5bef64a754e66b50ecf91aba9aaca03b3b7aadfcee2cf25c1205ab26365f327",
+      "hooks": "disabled",
+      "network": "agent-denied",
+      "authentication": "chatgpt-only",
+      "codex": "codex-cli 0.162.1",
+      "runnerSha256": "8ebe860aca43705bda940c0cbe277b75a5b41cee971dca09b4af3778deb69789",
+      "node": "v24.17.0",
+      "bun": "1.3.14"
+    },
+    "budget": {
+      "secondsPerCase": 300,
+      "tokensPerCase": 500000,
+      "additionalApiSpendUsd": 0,
+      "automaticRetries": 0
+    },
+    "cadence": "change",
+    "caseId": null,
+    "sandboxProof": {
+      "candidate.allowed_file_write": "ALLOWED",
+      "candidate.scratch_write": "ALLOWED",
+      "candidate.source_read": "ALLOWED",
+      "candidate.other_file_write": "EPERM",
+      "candidate.test_write": "EPERM",
+      "candidate.config_write": "EPERM",
+      "candidate.git_write": "EPERM",
+      "candidate.git_read": "EPERM",
+      "candidate.user_config_write": "EPERM",
+      "candidate.user_config_read": "EPERM",
+      "candidate.gold_read": "EPERM",
+      "candidate.hidden_tests_read": "EPERM",
+      "candidate.auth_read": "EPERM",
+      "candidate.root_repository_read": "EPERM",
+      "candidate.network": "EPERM",
+      "grader.allowed_file_write": "EPERM",
+      "grader.scratch_write": "ALLOWED",
+      "grader.source_read": "ALLOWED",
+      "grader.other_file_write": "EPERM",
+      "grader.test_write": "EPERM",
+      "grader.config_write": "EPERM",
+      "grader.git_write": "EPERM",
+      "grader.git_read": "EPERM",
+      "grader.user_config_write": "EPERM",
+      "grader.user_config_read": "EPERM",
+      "grader.gold_read": "EPERM",
+      "grader.hidden_tests_read": "EPERM",
+      "grader.auth_read": "EPERM",
+      "grader.root_repository_read": "EPERM",
+      "grader.network": "EPERM"
+    },
+    "records": [
+      {
+        "id": "default-language",
+        "issue": 675,
+        "startCommit": "295ac50798cf99f8b66553a4e19ef63851707c6c",
+        "status": "passed",
+        "redDetected": true,
+        "red": {
+          "gate": "hidden",
+          "assertionsFailed": 3,
+          "diagnostic": "test_failure",
+          "passed": false,
+          "elapsedMs": 1392,
+          "exitCode": 1
+        },
+        "gates": [
+          {
+            "gate": "hidden",
+            "assertionsFailed": 0,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 1369,
+            "exitCode": 0
+          },
+          {
+            "gate": "vitest",
+            "assertionsFailed": 0,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 686,
+            "exitCode": 0
+          },
+          {
+            "gate": "compile",
+            "assertionsFailed": null,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 2188,
+            "exitCode": 0
+          },
+          {
+            "gate": "ddd",
+            "assertionsFailed": null,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 2466,
+            "exitCode": 0
+          }
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "ollama-host",
+        "issue": 671,
+        "startCommit": "834b238610f2495f3e0664fd06304465525dc6d0",
+        "status": "passed",
+        "redDetected": true,
+        "red": {
+          "gate": "hidden",
+          "assertionsFailed": 16,
+          "diagnostic": "test_failure",
+          "passed": false,
+          "elapsedMs": 2321,
+          "exitCode": 1
+        },
+        "gates": [
+          {
+            "gate": "hidden",
+            "assertionsFailed": 0,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 2448,
+            "exitCode": 0
+          },
+          {
+            "gate": "vitest",
+            "assertionsFailed": 0,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 818,
+            "exitCode": 0
+          },
+          {
+            "gate": "compile",
+            "assertionsFailed": null,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 2320,
+            "exitCode": 0
+          },
+          {
+            "gate": "ddd",
+            "assertionsFailed": null,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 3481,
+            "exitCode": 0
+          }
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "render-recovery",
+        "issue": 717,
+        "startCommit": "49ad9add54e43dc2df204a93de69a43ccfe90347",
+        "status": "passed",
+        "redDetected": true,
+        "red": {
+          "gate": "hidden",
+          "assertionsFailed": 7,
+          "diagnostic": "test_failure",
+          "passed": false,
+          "elapsedMs": 2028,
+          "exitCode": 1
+        },
+        "gates": [
+          {
+            "gate": "hidden",
+            "assertionsFailed": 0,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 1933,
+            "exitCode": 0
+          },
+          {
+            "gate": "vitest",
+            "assertionsFailed": 0,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 2894,
+            "exitCode": 0
+          },
+          {
+            "gate": "compile",
+            "assertionsFailed": null,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 9040,
+            "exitCode": 0
+          },
+          {
+            "gate": "ddd",
+            "assertionsFailed": null,
+            "diagnostic": null,
+            "passed": true,
+            "elapsedMs": 2314,
+            "exitCode": 0
+          }
+        ],
+        "synthetic": false
+      }
+    ]
+  }
 }

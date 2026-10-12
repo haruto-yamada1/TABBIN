@@ -47,7 +47,8 @@ baseline では修正前 hidden tests の実 assertion failure と、正解差�
 
 ## 実行
 
-Node 24.x、Bun 1.3.14、全開始 commit を持つ Git checkout を使う。shallow clone
+Node 24.x、Bun 1.3.14 を使う。`check`・`mock`・`real` の skip は shallow clone
+でも実行できる。baseline と実評価には全開始 commit が必要なため、shallow clone
 では履歴を取得してから実行する。実評価と baseline の OS sandbox は macOS の
 Codex CLI 0.160 以降を使用し、利用できない環境では失敗として記録する。
 
@@ -58,8 +59,12 @@ bun run agent:issues:mock --output .codex-issue-results/mock
 bun run agent:issues:pressure
 bun run agent:issues:baseline --output .codex-issue-results/baseline
 bun run agent:issues:real --run --model gpt-6.1-sol --effort high \
-  --seconds 300 --tokens 500000 --output .codex-issue-results/real
+  --seconds 300 --tokens 2000000 --output .codex-issue-results/real
 ```
+
+上記の実評価コマンドは公開 baseline と同じ2,000,000 token/題を明示する。
+比較時は model・effort・時間・token 上限を baseline と揃える。CLI の既定上限は
+500,000 token/題のままなので、比較用の再実行では指定を省略しない。
 
 `pressure` は synthetic データで権限を実測し、モデルを呼ばない。
 実モデルを呼ぶ前に、同じ candidate 権限と同じ検査コマンドで固定した公開回帰

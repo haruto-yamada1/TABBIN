@@ -6,6 +6,7 @@ import {
   mkdirSync,
   writeFileSync,
   chmodSync,
+  cpSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -13,9 +14,10 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { decideResult, validateManifest } from './contract'
-import { loadManifest } from './runner'
+import { classifyFailure, evaluateIssues, loadManifest } from './runner'
 import { summarizeEvents } from './runtime'
 import { guardedPackage } from './scope'
+import { inspectTestReport } from './test-report'
 
 const entry = {
   id: 'default-language',
@@ -62,6 +64,36 @@ describe('independent issue evaluation contract', () => {
       /Only production|Expected a normalized/,
     )
   })
+
+  it.each(['manifest', 'case', 'additionalHiddenTest'])(
+    'rejects unknown fields in the strict %s boundary',
+    (level) => {
+      const cases = [0, 1, 2].map((index) => ({
+        ...entry,
+        id: `case-${index}`,
+        issue: 675 + index,
+        ...(level === 'case' ? { unexpected: true } : {}),
+        ...(level === 'additionalHiddenTest'
+          ? {
+              additionalHiddenTests: [
+                {
+                  hiddenTest: 'cases/extra.txt',
+                  hiddenTestTarget: 'src/extra.test.ts',
+                  unexpected: true,
+                },
+              ],
+            }
+          : {}),
+      }))
+      expect(() =>
+        validateManifest({
+          version: 1,
+          cases,
+          ...(level === 'manifest' ? { unexpected: true } : {}),
+        }),
+      ).toThrow(/Unrecognized key/)
+    },
+  )
 
   it('never accepts an agent self-report, skipped gate or missing usage', () => {
     const result = {
@@ -162,6 +194,178 @@ describe('independent issue evaluation contract', () => {
   it('verifies the real pinned resource pack without model inference', () => {
     const root = path.resolve(import.meta.dirname, '../..')
     expect(loadManifest(root).cases).toHaveLength(3)
+  })
+
+  it.each([
+    { mode: 'mock', run: false, cadence: 'change', ci: '' },
+    { mode: 'real', run: false, cadence: 'change', ci: '' },
+    { mode: 'real', run: true, cadence: 'change', ci: '1' },
+    { mode: 'real', run: true, cadence: 'weekly', ci: '' },
+  ] as const)(
+    'handles $mode/$cadence/run=$run/CI=$ci without pinned history',
+    async (options) => {
+      const directory = mkdtempSync(path.join(tmpdir(), 'issue-shallow-'))
+      const originalCi = process.env.CI
+      try {
+        const source = path.resolve(import.meta.dirname, '../..')
+        for (const file of ['AGENTS.md', '.apm', 'evals/codex-issues']) {
+          cpSync(path.join(source, file), path.join(directory, file), {
+            recursive: true,
+          })
+        }
+        const git = (args: string[]) => {
+          const result = spawnSync(
+            'git',
+            ['-c', 'core.hooksPath=/dev/null', ...args],
+            {
+              cwd: directory,
+              encoding: 'utf8',
+            },
+          )
+          expect(result.status).toBe(0)
+          return result.stdout.trim()
+        }
+        git(['init', '--quiet'])
+        git([
+          '-c',
+          'user.name=Evaluation',
+          '-c',
+          'user.email=eval@example.invalid',
+          'commit',
+          '--allow-empty',
+          '--quiet',
+          '-m',
+          'Shallow fixture',
+        ])
+        writeFileSync(
+          path.join(directory, '.git/shallow'),
+          `${git(['rev-parse', 'HEAD'])}\n`,
+        )
+        expect(git(['rev-parse', '--is-shallow-repository'])).toBe('true')
+        process.env.CI = options.ci
+        const output = path.join(directory, 'report')
+        const result = await evaluateIssues({
+          root: directory,
+          output,
+          ...options,
+          optIn: false,
+          model: 'gpt-6.1-sol',
+          effort: 'high',
+          seconds: 300,
+          maxTokens: 500000,
+        })
+        const report = JSON.parse(
+          readFileSync(path.join(output, 'results.json'), 'utf8'),
+        )
+        expect(result).toBe(options.mode === 'mock')
+        expect(report.status).toBe(
+          options.mode === 'mock' ? 'mock_passed' : 'skipped',
+        )
+        expect(() => loadManifest(directory, directory, true)).toThrow(
+          /Git preparation failed|Pinned start commit/,
+        )
+      } finally {
+        if (originalCi === undefined) {
+          delete process.env.CI
+        } else {
+          process.env.CI = originalCi
+        }
+        rmSync(directory, { recursive: true, force: true })
+      }
+    },
+  )
+
+  it('retains pinned history and hidden-test replacement checks for grading', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'issue-history-'))
+    try {
+      const source = path.resolve(import.meta.dirname, '../..')
+      cpSync(path.join(source, 'evals'), path.join(directory, 'evals'), {
+        recursive: true,
+      })
+      const git = (args: string[]) => {
+        const result = spawnSync(
+          'git',
+          ['-c', 'core.hooksPath=/dev/null', ...args],
+          { cwd: directory, encoding: 'utf8' },
+        )
+        expect(result.status).toBe(0)
+        return result.stdout.trim()
+      }
+      git(['init', '--quiet'])
+      git([
+        '-c',
+        'user.name=Evaluation',
+        '-c',
+        'user.email=eval@example.invalid',
+        'commit',
+        '--allow-empty',
+        '--quiet',
+        '-m',
+        'Pinned fixture',
+      ])
+      const manifestPath = path.join(
+        directory,
+        'evals/codex-issues/manifest.json',
+      )
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+      const save = (commit: string) => {
+        for (const item of manifest.cases) {
+          item.startCommit = commit
+        }
+        writeFileSync(manifestPath, JSON.stringify(manifest))
+      }
+      save(git(['rev-parse', 'HEAD']))
+      expect(loadManifest(directory, directory, true).cases).toHaveLength(3)
+      const target = manifest.cases[0].hiddenTestTarget
+      mkdirSync(path.dirname(path.join(directory, target)), { recursive: true })
+      writeFileSync(path.join(directory, target), 'existing test')
+      git(['add', target])
+      git([
+        '-c',
+        'user.name=Evaluation',
+        '-c',
+        'user.email=eval@example.invalid',
+        'commit',
+        '--quiet',
+        '-m',
+        'Existing test',
+      ])
+      save(git(['rev-parse', 'HEAD']))
+      expect(() => loadManifest(directory, directory, true)).toThrow(
+        'Hidden grader must not replace a test',
+      )
+      save('a'.repeat(40))
+      expect(() => loadManifest(directory, directory, true)).toThrow(
+        /Git preparation failed|Pinned start commit/,
+      )
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('classifies quiet JSON-reported assertion failures from valid evidence', () => {
+    const report = inspectTestReport(
+      JSON.stringify({
+        numTotalTests: 1,
+        numPassedTests: 0,
+        numFailedTests: 1,
+        numPendingTests: 0,
+        testResults: [{ assertionResults: [{ status: 'failed' }] }],
+      }),
+      1,
+    )
+    expect(report.valid).toBe(true)
+    expect(classifyFailure('JSON report written to scratch', report)).toBe(
+      'test_failure',
+    )
+    expect(
+      classifyFailure('permission denied', {
+        valid: false,
+        passed: false,
+        failures: null,
+      }),
+    ).toBe('sandbox_denied')
+    expect(classifyFailure('', inspectTestReport('{}', 1))).toBe('tool_failure')
   })
 
   it.each(['mock', 'real'])(
