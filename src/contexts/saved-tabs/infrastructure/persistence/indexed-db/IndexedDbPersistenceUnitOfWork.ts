@@ -68,11 +68,14 @@ const queueMutation = (
   store: IDBObjectStore,
   mutation: UnknownMutation | undefined,
 ): void => {
-  for (const value of mutation?.put ?? []) {
-    store.put(value)
-  }
+  // Release unique index entries before inserting their replacements (e.g. Undo
+  // restoring an older collection ID for a domain recreated after deletion).
+  // Both phases remain inside the same transaction and roll back together.
   for (const key of mutation?.delete ?? []) {
     store.delete(toIndexedDbKey(key))
+  }
+  for (const value of mutation?.put ?? []) {
+    store.put(value)
   }
 }
 

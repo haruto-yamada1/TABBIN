@@ -38,6 +38,41 @@ const createDomainCollection = (id: string, domain = `${id}.example.com`) => ({
 })
 
 describe('IndexedDbPersistenceUnitOfWork', () => {
+  it('同じ domain の Collection を別 ID へ原子的に置換できる', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'replace-domain-id',
+      indexedDb: new IDBFactory(),
+    })
+    const unit = new IndexedDbPersistenceUnitOfWork(manager, operationGate)
+    try {
+      await unit.commit({
+        collections: {
+          put: [createDomainCollection('old', 'fixture.invalid')],
+        },
+      })
+      const before = await unit.readRevision()
+      await unit.commit(
+        {
+          collections: {
+            delete: ['old'],
+            put: [createDomainCollection('restored', 'fixture.invalid')],
+          },
+        },
+        { expectedRevision: before },
+      )
+      const after = await new IndexedDbPersistenceSnapshotReader(
+        manager,
+        operationGate,
+      ).readConsistentSnapshot()
+      expect(after.revision).toBe(before + 1)
+      expect(after.savedTabs.collections.map(({ id }) => id)).toEqual([
+        'restored',
+      ])
+    } finally {
+      manager.close()
+    }
+  })
+
   it('multi-store mutation と revision increment を1 transactionでcommitする', async () => {
     const manager = new IndexedDbConnectionManager({
       databaseName: 'unit-of-work',
@@ -177,6 +212,41 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
       revision: 1,
     })
     manager.close()
+  })
+
+  it('既存Collection削除後の置換失敗は元のindexとrevisionを復元する', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'replace-domain-rollback',
+      indexedDb: new IDBFactory(),
+    })
+    const unit = new IndexedDbPersistenceUnitOfWork(manager, operationGate)
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
+    try {
+      await unit.commit({
+        collections: {
+          put: [createDomainCollection('old', 'fixture.invalid')],
+        },
+      })
+      const before = await reader.readConsistentSnapshot()
+      await expect(
+        unit.commit({
+          collections: {
+            delete: ['old'],
+            put: [
+              createDomainCollection('new-a', 'fixture.invalid'),
+              createDomainCollection('new-b', 'fixture.invalid'),
+            ],
+          },
+          urls: { put: [createUrl('rollback-url')] },
+        }),
+      ).rejects.toMatchObject({ name: 'ConstraintError' })
+      expect(await reader.readConsistentSnapshot()).toEqual(before)
+    } finally {
+      manager.close()
+    }
   })
 
   it('途中のunique index violationで全storeとrevisionをrollbackする', async () => {

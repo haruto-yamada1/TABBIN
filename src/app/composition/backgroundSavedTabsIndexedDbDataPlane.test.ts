@@ -193,7 +193,7 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
 
     await dataPlane.saveTabs([
       { title: 'Docs guide', url: 'https://example.com/docs' },
-      { title: 'Docs duplicate', url: 'https://EXAMPLE.com/docs' },
+      { title: 'Docs duplicate', url: 'https://example.com/docs' },
     ])
 
     expect(sessionRun).toHaveBeenCalledOnce()

@@ -6,6 +6,7 @@ import type {
   PersistenceV2Url,
 } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { PERSISTENCE_V2_ORDERING_POLICY } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
+import { createUrlIdentityKey } from '@/contexts/saved-tabs/domain/services/UrlIdentityPolicy'
 import type { IndexedDbSavedTabsMutableState } from '@/contexts/saved-tabs/infrastructure/composition/IndexedDbSavedTabsSessionService'
 import { toHostname } from '@/utils/domain-normalize'
 
@@ -33,11 +34,9 @@ export type CreateBackgroundSavedTabsIndexedDbDataPlaneOptions = {
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)]
 
-const comparableUrl = (rawUrl: string): string | null => {
+const validUrlIdentityKey = (rawUrl: string): string | null => {
   try {
-    const url = new URL(rawUrl.trim())
-    url.hostname = url.hostname.toLowerCase()
-    return url.toString()
+    return createUrlIdentityKey(rawUrl)
   } catch {
     return null
   }
@@ -243,7 +242,7 @@ const removeSelectedUrls = (
   const removedIds = new Set(
     state.urls
       .filter((url) => {
-        const comparable = comparableUrl(url.url)
+        const comparable = validUrlIdentityKey(url.url)
         return (
           selectedIds.has(url.id) ||
           (comparable !== null && selectedUrls.has(comparable))
@@ -334,7 +333,7 @@ const ensureUrl = (
   idGenerator: () => string,
   timestamp: number,
 ): PersistenceV2Url => {
-  const normalizedUrl = comparableUrl(input.url)
+  const normalizedUrl = validUrlIdentityKey(input.url)
   if (!normalizedUrl) {
     throw new TypeError('A valid normalized URL is required.')
   }
@@ -438,7 +437,7 @@ const saveTabs = (
 ): void => {
   const uniqueTabs = new Map<string, Required<BackgroundSavedTabInput>>()
   for (const tab of tabs) {
-    const url = comparableUrl(tab.url ?? '')
+    const url = validUrlIdentityKey(tab.url ?? '')
     if (url) {
       uniqueTabs.set(url, { title: tab.title ?? '', url })
     }
@@ -548,7 +547,7 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   removeExpiredUrls: async (cutoffTime, currentTime) =>
     session.run((state) => removeExpiredUrls(state, cutoffTime, currentTime)),
   removeUrl: async (url) => {
-    const normalized = comparableUrl(url)
+    const normalized = validUrlIdentityKey(url)
     return normalized
       ? session.run((state) =>
           removeSelectedUrls(state, new Set(), new Set([normalized])),

@@ -57,6 +57,7 @@
     "test": "vitest run --config vitest.ci.config.ts",
     "test:coverage": "vitest run --coverage --config vitest.ci.config.ts --max-workers=2",
     "test:indexeddb:browsers": "playwright test --config playwright.indexeddb.config.ts",
+    "test:persistence:model": "vitest run --config vitest.ci.config.ts --project=node src/contexts/saved-tabs/infrastructure/persistence/stateful/persistenceStateMachine.test.ts",
     "benchmark:persistence": "bun src/contexts/saved-tabs/infrastructure/persistence/indexed-db/benchmarkIndexedDbPersistence.ts",
     "test:node": "vitest run --config vitest.ci.config.ts --project=node",
     "test:dom": "vitest run --config vitest.ci.config.ts --project=dom",
