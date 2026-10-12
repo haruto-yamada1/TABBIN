@@ -62,6 +62,7 @@ web-ext.config.ts
 .waza-cache/
 .waza-results/
 .codex/waza-results/
+.codex-issue-results/
 
 # APM dependencies
 apm_modules/
