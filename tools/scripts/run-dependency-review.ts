@@ -1,5 +1,6 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
+import { readReviewedPatchContents } from './dependency-patch-policy'
 import { reviewDependencyChanges } from './dependency-review'
 import type { ReviewRequest } from './dependency-review'
 
@@ -26,6 +27,7 @@ const result = await reviewDependencyChanges(
   readFileSync(basePath, 'utf8'),
   readFileSync('bun.lock', 'utf8'),
   request,
+  readReviewedPatchContents(),
 )
 // JSON avoids treating untrusted dependency metadata as workflow commands.
 const report = JSON.stringify(result, null, 2)

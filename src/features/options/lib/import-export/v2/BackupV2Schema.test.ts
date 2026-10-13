@@ -156,6 +156,65 @@ const createLogicalSnapshot = (reverse = false): PersistenceLogicalSnapshot => {
 }
 
 describe('Backup V2 schemas', () => {
+  it('preserves omitted optional metadata without adding undefined properties', () => {
+    const url = {
+      firstSavedAt: 0,
+      id: 'url-1',
+      lastSavedAt: 0,
+      normalizedUrl: 'https://example.test/',
+      title: 'Example',
+      updatedAt: 0,
+      url: 'https://example.test/',
+    }
+    const collection = {
+      createdAt: 0,
+      definition: { domain: 'example.test', type: 'domain' },
+      id: 'collection-1',
+      name: 'Example',
+      sortOrder: 0,
+      updatedAt: 0,
+    }
+    const membership = {
+      addedAt: 0,
+      collectionId: 'collection-1',
+      sortOrder: 0,
+      updatedAt: 0,
+      urlId: 'url-1',
+    }
+
+    expect(PersistenceV2UrlSchema.parse(url)).toStrictEqual(url)
+    expect(PersistenceV2CollectionSchema.parse(collection)).toStrictEqual(
+      collection,
+    )
+    expect(
+      PersistenceV2CollectionMembershipSchema.parse(membership),
+    ).toStrictEqual(membership)
+  })
+
+  it.each([0, Number.MAX_SAFE_INTEGER])(
+    'preserves valid epoch boundary %s and optional saved metadata',
+    (timestamp) => {
+      const url = {
+        ...createSavedTabs().urls[0],
+        favIconUrl: 'https://example.test/favicon.ico',
+        firstSavedAt: timestamp,
+        lastSavedAt: timestamp,
+        updatedAt: timestamp,
+      }
+      const membership = {
+        ...createSavedTabs().memberships[0],
+        addedAt: timestamp,
+        categoryId: 'category-1',
+        updatedAt: timestamp,
+      }
+
+      expect(PersistenceV2UrlSchema.parse(url)).toStrictEqual(url)
+      expect(
+        PersistenceV2CollectionMembershipSchema.parse(membership),
+      ).toStrictEqual(membership)
+    },
+  )
+
   it.each([0, 1, Number.MAX_SAFE_INTEGER])(
     'round-trips uncategorized insertion position %s through Backup V2',
     (position) => {

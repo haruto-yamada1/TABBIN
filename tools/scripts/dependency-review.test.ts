@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs'
+
+import JSON5 from 'json5'
 import { describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 
 import { reviewDependencyChanges } from './dependency-review'
 import type { ReviewRequest } from './dependency-review'
@@ -14,7 +18,61 @@ const entry = (name: string, version: string) => [
 const response = (value: unknown, headers = {}) =>
   Response.json(value, { headers })
 
+const reviewedId = '@stryker-mutator/vitest-runner@10.0.0'
+const reviewedPath = 'patches/@stryker-mutator%2Fvitest-runner@10.0.0.patch'
+const installedLock = z
+  .object({ packages: z.record(z.string(), z.unknown()) })
+  .parse(JSON5.parse<unknown>(readFileSync('bun.lock', 'utf8')))
+const reviewedEntry: unknown =
+  installedLock.packages['@stryker-mutator/vitest-runner']
+const reviewedContents = { [reviewedPath]: readFileSync(reviewedPath, 'utf8') }
+const reviewedLock = (patched: boolean, packages = { runner: reviewedEntry }) =>
+  JSON.stringify({
+    lockfileVersion: 1,
+    workspaces: {},
+    packages,
+    patchedDependencies: patched ? { [reviewedId]: reviewedPath } : {},
+  })
+
 describe('Bun dependency changes', () => {
+  it.each([
+    { license: 'Apache-2.0', severity: 'low', expected: [] },
+    {
+      license: 'Apache-2.0',
+      severity: 'high',
+      expected: ['high: GHSA-patched'],
+    },
+    {
+      license: undefined,
+      severity: 'low',
+      expected: [`license: ${reviewedId}: UNKNOWN`],
+    },
+  ])(
+    'scans a reviewed patch addition on an already installed package ($severity/$license)',
+    async ({ license, severity, expected }) => {
+      const request = vi.fn<ReviewRequest>().mockImplementation(async (url) =>
+        url.startsWith('https://api.github.com/')
+          ? response([
+              { ghsa_id: 'GHSA-patched', severity, withdrawn_at: null },
+            ])
+          : response({
+              name: '@stryker-mutator/vitest-runner',
+              version: '10.0.0',
+              license,
+            }),
+      )
+      const result = await reviewDependencyChanges(
+        reviewedLock(false),
+        reviewedLock(true),
+        request,
+        reviewedContents,
+      )
+      expect(result.dependencies).toEqual([reviewedId])
+      expect(result.findings).toEqual(expected)
+      expect(request).toHaveBeenCalledTimes(2)
+    },
+  )
+
   it('detects a dangerous added transitive dependency despite an empty GitHub graph', async () => {
     const request = vi.fn<ReviewRequest>().mockImplementation(async (input) =>
       input.startsWith('https://api.github.com/')
