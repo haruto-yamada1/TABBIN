@@ -1,6 +1,8 @@
 import JSON5 from 'json5'
 import { z } from 'zod'
 
+import { verifyReviewedPatchAdditions } from './dependency-patch-policy'
+import type { PatchContents } from './dependency-patch-policy'
 import { extractNameAndVersion } from './generate-release-provenance'
 
 // Composite expressions require explicit review; no package-wide exceptions.
@@ -41,6 +43,7 @@ const packageSchema = z.object({
   version: z.string(),
   license: z.union([z.string(), z.object({ type: z.string() })]).optional(),
 })
+
 const npmEntrySchema = z.tuple([
   z.string(),
   z.enum(['', 'https://registry.npmjs.org']),
@@ -124,22 +127,21 @@ export const reviewDependencyChanges = async (
   baseContent: string,
   headContent: string,
   request: ReviewRequest = fetch,
+  patchContents: PatchContents = {},
 ): Promise<{ dependencies: string[]; findings: string[] }> => {
   const base = readLock(baseContent)
   const head = readLock(headContent)
-  if (
-    JSON.stringify(base.patchedDependencies) !==
-    JSON.stringify(head.patchedDependencies)
-  ) {
-    throw new Error('Dependency patch changes require a security review')
-  }
+  const newlyPatched = verifyReviewedPatchAdditions(base, head, patchContents)
   const previous = dependencies(base, base)
   const current = dependencies(head, base)
   const changed = [...current].filter(
     ([key, entry]) => previous.get(key)?.fingerprint !== entry.fingerprint,
   )
   const added = [
-    ...new Set(changed.map(([, entry]) => `${entry.name}@${entry.version}`)),
+    ...new Set([
+      ...changed.map(([, entry]) => `${entry.name}@${entry.version}`),
+      ...newlyPatched,
+    ]),
   ].toSorted()
   // Batch the public Advisory API instead of making one request per package.
   const batches = Array.from(

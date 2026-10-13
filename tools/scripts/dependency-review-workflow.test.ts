@@ -5,12 +5,15 @@ import {
   readFileSync,
   rmSync,
   writeFileSync,
+  chmodSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import JSON5 from 'json5'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
+import { z } from 'zod'
 
 import { allowedLicenses } from './dependency-review'
 
@@ -41,24 +44,104 @@ describe('Dependency Review workflow permissions and policy', () => {
         { cwd: directory, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
       ).trim()
     try {
+      const scriptDirectory = path.join(directory, 'tools/scripts')
+      mkdirSync(scriptDirectory, { recursive: true })
+      for (const name of [
+        'verify-dependency-patches.ts',
+        'dependency-patch-policy.ts',
+      ]) {
+        writeFileSync(
+          path.join(scriptDirectory, name),
+          readFileSync(`tools/scripts/${name}`),
+        )
+      }
+      // A hostile patched dependency must never run before the patch gate.
+      for (const name of ['json5', 'zod']) {
+        const moduleDirectory = path.join(directory, 'node_modules', name)
+        mkdirSync(moduleDirectory, { recursive: true })
+        writeFileSync(
+          path.join(moduleDirectory, 'package.json'),
+          JSON.stringify({ name, type: 'module', main: 'index.js' }),
+        )
+        writeFileSync(
+          path.join(moduleDirectory, 'index.js'),
+          'export default {}; export const z = {}; process.exit(0)\n',
+        )
+      }
       git('init')
       mkdirSync(path.join(directory, 'patches'))
       const file = path.join(directory, 'patches', 'forge.patch')
       writeFileSync(file, 'original patch\n')
+      writeFileSync(
+        path.join(directory, 'bun.lock'),
+        JSON.stringify({ packages: {} }),
+      )
       git('add', '.')
       git('commit', '-m', 'baseline')
       const baseSha = git('rev-parse', 'HEAD')
-      const check = (headSha: string) =>
-        spawnSync('bash', ['-c', guard.run], {
-          cwd: directory,
-          env: { ...process.env, BASE_SHA: baseSha, HEAD_SHA: headSha },
-          encoding: 'utf8',
-        }).status
+      const check = (headSha: string, comparisonBase = baseSha) =>
+        spawnSync(
+          'bash',
+          [
+            '-c',
+            guard.run.replace(
+              'tools/scripts/verify-dependency-patches.ts',
+              '"$PATCH_VERIFIER"',
+            ),
+          ],
+          {
+            cwd: directory,
+            env: {
+              ...process.env,
+              BASE_SHA: comparisonBase,
+              HEAD_SHA: headSha,
+              PATCH_VERIFIER: path.join(
+                scriptDirectory,
+                'verify-dependency-patches.ts',
+              ),
+            },
+            encoding: 'utf8',
+          },
+        ).status
       expect(check(baseSha)).toBe(0)
       writeFileSync(file, 'modified patch\n')
       git('add', '.')
       git('commit', '-m', 'same-path patch edit')
       expect(check(git('rev-parse', 'HEAD'))).toBe(1)
+
+      rmSync(path.join(directory, 'node_modules'), {
+        recursive: true,
+        force: true,
+      })
+      writeFileSync(file, 'original patch\n')
+      const reviewedPath =
+        'patches/@stryker-mutator%2Fvitest-runner@10.0.0.patch'
+      const reviewedId = '@stryker-mutator/vitest-runner@10.0.0'
+      const current = z
+        .object({ packages: z.record(z.string(), z.unknown()) })
+        .parse(JSON5.parse<unknown>(readFileSync('bun.lock', 'utf8')))
+      writeFileSync(
+        path.join(directory, reviewedPath),
+        readFileSync(reviewedPath),
+      )
+      writeFileSync(
+        path.join(directory, 'bun.lock'),
+        JSON.stringify({
+          packages: {
+            runner: current.packages['@stryker-mutator/vitest-runner'],
+          },
+          patchedDependencies: { [reviewedId]: reviewedPath },
+        }),
+      )
+      git('add', '.')
+      git('commit', '-m', 'reviewed patch addition')
+      const reviewedSha = git('rev-parse', 'HEAD')
+      expect(check(reviewedSha)).toBe(0)
+      expect(check(reviewedSha, reviewedSha)).toBe(0)
+      chmodSync(path.join(directory, reviewedPath), 0o755)
+      git('add', '.')
+      git('commit', '-m', 'unreviewed patch mode change')
+      expect(check(git('rev-parse', 'HEAD'), reviewedSha)).toBe(1)
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
@@ -73,6 +156,17 @@ describe('Dependency Review workflow permissions and policy', () => {
     const text = JSON.stringify(workflow)
     expect(text).not.toContain('secrets.')
     expect(text).not.toContain('continue-on-error')
+    expect(
+      workflow.jobs.review.steps.findIndex(
+        (step: { name?: string }) =>
+          step.name === 'Require security review for patch changes',
+      ),
+    ).toBeLessThan(
+      workflow.jobs.review.steps.findIndex(
+        (step: { name?: string }) =>
+          step.name === 'Install dependencies without lifecycle scripts',
+      ),
+    )
     const steps = workflow.jobs.review.steps
     expect(steps[0].with['persist-credentials']).toBe(false)
     expect(steps[0].with.ref).toContain('github.event.pull_request.head.sha')

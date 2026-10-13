@@ -69,7 +69,22 @@ SBOM は release artifact の在庫と provenance で、advisory の合否を代
 照合の例外である。base と同じ `node-forge@github:digitalbazaar/forge#ceba344`
 entry のみ維持し、source / integrity / patch の変更は失敗させる。
 lockfile の patch map は path のみを持つため、workflow が base/head の `patches/`
-差分も拒否する。同じ path の patch 本文変更を見逃さない。
+全体を Git snapshot から検証する。同じ path の本文・mode 変更、削除、rename、
+未知の追加は拒否する。node-forge patch の変更は引き続き許可しない。
+この gate は依存 install より前に実行し、Bun の組み込み JSON5 parser と Node の
+組み込み機能だけを使う。`--ignore-scripts` でも patch は適用されるため、検査前に
+patch 済みの JSON5 / zod などを import しない。
+
+レビュー済みの新規追加だけは `tools/scripts/dependency-patch-policy.ts` に対象
+package/version、npm integrity、patch path と SHA-256 を記録して許可できる。
+現在の登録は Stryker Vitest runner 10.0.0 の upstream #6247 互換修正のみ。
+map 追加と regular file (`100644`) 追加は一対一で照合し、本文・対象解決・integrity の
+不一致、同一versionの別integrity、孤立した file/map を拒否する。登録済み patch が
+base に入った後の編集も許可しない。登録の変更は個別 PR の security review 対象。
+
+Bun scanner も同じ判定と実際の patch bytes を使う。レビュー済み patch を新たに
+適用した依存は、base に同じ version が存在しても advisory/license を再スキャンする。
+これは patch 内容の承認であり、advisory / license の例外ではない。
 `security:audit` の正常署名・異常 ASN.1 拒否 probe は必須で、GHSA 全体の allow は追加しない。
 owner: dependency maintenance / @haruto-yamada1。次の再評価期限: 2026-11-10。
 正式版に切り替える際は [既存 backport の検証条件](dependency-updates.md) を満たすこと。

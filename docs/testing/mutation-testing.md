@@ -42,6 +42,11 @@ Vitest 5 の nested name separator `" > "` を受理し、名前の末尾を anc
 更新時は upstream の取り込みを確認し、patch を外した実計測がゼロ件実行を含まず、
 代表変異を kill することを確認する。JSON verifier も残す。
 
+Dependency Review はこのレビュー済み追加を patch SHA-256、対象10.0.0、npm integrity
+に固定して許可する。未知の追加や既存 patch の編集・削除は拒否し、Stryker の
+advisory/license 検査も実行する。詳細は
+[dependency review policy](../maintenance/dependency-review.md) を参照する。
+
 Stryker の tsconfig rewriter は TypeScript 7 で削除された
 `parseConfigFileTextToJson` を呼ぶため、初回 PoC が失敗した。
 独立した `vitest.mutation.config.ts` で alias と純粋 node test を指定し、sandbox には
