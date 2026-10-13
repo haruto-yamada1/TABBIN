@@ -10,6 +10,8 @@ stats.html
 stats-*.json
 
 # Test artifacts
+.stryker-tmp/
+/reports/mutation/
 /test-results/
 /playwright-report/
 /blob-report/
