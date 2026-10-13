@@ -1,4 +1,11 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import {
+  readFileSync,
+  readdirSync,
+  statSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
@@ -128,6 +135,12 @@ const collectSourceFiles = (dir: string): string[] => {
     return result
   }
   for (const entry of entries) {
+    if (
+      dir === resolve(repoRoot, 'src', 'contexts') &&
+      entry.startsWith('__oxlint-fixture-')
+    ) {
+      continue
+    }
     const fullPath = resolve(dir, entry)
     let stats
     try {
@@ -194,6 +207,22 @@ const stripComments = (source: string): string =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
 
 describe('src/contexts/saved-tabs DDD layer guard', () => {
+  it('excludes temporary Oxlint contexts while retaining real production sources', () => {
+    const allContexts = resolve(repoRoot, 'src', 'contexts')
+    const fixture = mkdtempSync(resolve(allContexts, '__oxlint-fixture-'))
+    const file = resolve(fixture, 'MutatingPresentationService.ts')
+    try {
+      writeFileSync(file, 'export const fixtureOnly = true')
+      const sources = collectSourceFiles(allContexts)
+      expect(sources).not.toContain(file)
+      expect(sources).toContain(
+        resolve(contextsRoot, 'domain/value-objects/Url.ts'),
+      )
+    } finally {
+      rmSync(fixture, { recursive: true, force: true })
+    }
+  })
+
   const config = loadOxlintConfig()
   const dependencyCruiserSource = readFileSync(
     dependencyCruiserConfigPath,
