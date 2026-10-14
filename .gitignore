@@ -13,6 +13,7 @@ stats-*.json
 .stryker-tmp/
 /reports/mutation/
 /reports/flakes/
+/reports/ci-performance/
 /test-results/
 /playwright-report/
 /blob-report/

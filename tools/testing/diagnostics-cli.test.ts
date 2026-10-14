@@ -95,7 +95,7 @@ describe('diagnostic CLI boundaries', () => {
         '--output',
         output,
       ],
-      { GITHUB_STEP_SUMMARY: summaryPath },
+      { GITHUB_STEP_SUMMARY: summaryPath, GITHUB_EVENT_NAME: 'push' },
     )
     expect(result.status).toBe(0)
     const summary = JSON.parse(
@@ -109,7 +109,10 @@ describe('diagnostic CLI boundaries', () => {
     expect(summary.current.candidatesTruncated).toBe(false)
     expect(summary.ingestion.historyMetadata.unavailable).toBe(true)
     expect(summary.ingestion.currentRejected).toBe(1)
-    expect(summary.missingSuites).toHaveLength(4)
+    expect(summary.missingSuites).toEqual([
+      'indexeddb-browser-semantics',
+      'e2e-accessibility',
+    ])
     const markdown = readFileSync(summaryPath, 'utf8')
     expect(markdown).toContain('retry recovered: 1')
     expect(markdown).not.toContain('canary')

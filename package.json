@@ -100,6 +100,7 @@
     "apm:sync": "bun tools/scripts/sync-agent-config-cli.ts",
     "release:provenance": "bun tools/scripts/generate-release-provenance.ts",
     "waza:trace-eval": "bun tools/scripts/evaluate-waza-trace.ts",
+    "ci:performance": "bun tools/ci-performance/cli.ts",
     "ci:setup": "node tools/ci-audit/install.mjs",
     "ci:lint": "node tools/ci-audit/run.mjs lint",
     "ci:security": "node tools/ci-audit/run.mjs security",
