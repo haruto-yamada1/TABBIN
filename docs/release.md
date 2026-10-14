@@ -25,6 +25,14 @@ bun run release:check
 8. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証
 9. `bun run verify:firefox-source` — production source に `chrome-extension://` literal や Chrome 専用 API 呼び出しが混入していないことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
 
+## 独立ビルドの再現性（手動検証）
+
+リリース前に `bun run release:reproducibility --ref <commit-sha>` で同一 SHA の
+Chrome / Firefox を独立した checkout で二回ビルドできます。ZIP byte 一致と展開後の
+内容一致を分けて記録します。実行条件、許容基準、SBOM / Provenance との対応は
+[ビルドの再現性](testing/build-reproducibility.md)を参照してください。
+初期運用は手動の観測で、既存 release gate と配布手順を維持します。
+
 ## Persistence v2 compatibility check
 
 Issue #729 の cutover release 以降は、Store へのアップロード前に
