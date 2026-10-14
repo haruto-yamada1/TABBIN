@@ -62,9 +62,22 @@ describe('diagnostic CLI boundaries', () => {
     const directory = temporary()
     const current = path.join(directory, 'current')
     mkdirSync(current)
+    const report = reportFixture('1')
+    report.runErrors = 1
+    // A broken module must not fill the 500 candidate slots with passing tests.
+    for (let index = 0; index < 501; index++) {
+      recordTest(report, {
+        file: 'src/healthy.test.ts',
+        project: 'node',
+        browser: 'none',
+        title: `healthy test ${index}`,
+        expectedStatus: 'passed',
+        attempts: [{ index: 0, status: 'passed', durationMs: 1 }],
+      })
+    }
     writeFileSync(
       path.join(current, 'flake-coverage.json'),
-      JSON.stringify(reportFixture('1')),
+      JSON.stringify(report),
     )
     writeFileSync(
       path.join(current, 'flake-private.json'),
@@ -89,6 +102,11 @@ describe('diagnostic CLI boundaries', () => {
       readFileSync(path.join(output, 'summary.json'), 'utf8'),
     )
     expect(summary.current.counts.flaky).toBe(1)
+    expect(summary.current.counts.passed).toBe(501)
+    expect(summary.current.runErrors).toBe(1)
+    expect(summary.current.tests).toHaveLength(1)
+    expect(summary.current.tests[0].diagnosis).toBe('flake-candidate')
+    expect(summary.current.candidatesTruncated).toBe(false)
     expect(summary.ingestion.historyMetadata.unavailable).toBe(true)
     expect(summary.ingestion.currentRejected).toBe(1)
     expect(summary.missingSuites).toHaveLength(4)

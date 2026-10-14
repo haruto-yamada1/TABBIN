@@ -125,6 +125,44 @@ describe('flake telemetry contract', () => {
     )
   })
 
+  it.each([
+    ['passed', ['passed']],
+    ['retry recovered', ['failed', 'passed']],
+    ['skipped', ['skipped']],
+    ['expected failure', ['failed']],
+  ])('keeps unrelated run errors out of %s test groups', (label, statuses) => {
+    const report = fixture(statuses)
+    report.runErrors = 2
+    if (label === 'expected failure') {
+      const test = report.tests[0]
+      if (!test) {
+        throw new Error('Missing fixture test')
+      }
+      test.expectedStatus = 'failed'
+      test.frameworkStatus = 'passed'
+    }
+    const result = aggregateReports([report])
+    expect(result.runErrors).toBe(2)
+    expect(result.tests[0]?.runErrors).toBe(0)
+    expect(result.tests[0]?.diagnosis).toBe(
+      label === 'retry recovered' ? 'flake-candidate' : 'stable-observed',
+    )
+  })
+
+  it.each(['failed', 'interrupted'])(
+    'keeps run-error investigation on an affected %s outcome',
+    (status) => {
+      const report = fixture([status])
+      report.runErrors = 2
+      const result = aggregateReports([report])
+      expect(result.runErrors).toBe(2)
+      expect(result.tests[0]).toMatchObject({
+        runErrors: 2,
+        diagnosis: 'environment-or-setup-investigation',
+      })
+    },
+  )
+
   it('does not mark expected failures as flakes and exposes incomplete runs', () => {
     const expected = fixture(['failed'])
     const first = expected.tests[0]

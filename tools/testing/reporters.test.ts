@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -93,9 +94,9 @@ ${setupFailure ? `globalSetup: ${JSON.stringify(join(directory, 'setup.ts'))},` 
     )
   }
   if (setupFailure) {
-    writeFileSync(
+    copyFileSync(
+      join(reporterDir, 'fixtures/global-setup.fixture.ts'),
       join(directory, 'setup.ts'),
-      `export default () => { throw new Error(${JSON.stringify(privateText)}) }`,
     )
   }
   const cli =

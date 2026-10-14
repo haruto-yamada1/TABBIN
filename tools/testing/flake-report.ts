@@ -221,6 +221,19 @@ type ShaObservations = Map<
   Map<string, { passed: number; failed: number }>
 >
 
+const diagnose = (group: TestSummary): string => {
+  if (group.runErrors) {
+    return 'environment-or-setup-investigation'
+  }
+  if (group.retryRecovered || group.crossRunFailures) {
+    return 'flake-candidate'
+  }
+  if (group.finalFailures >= 2) {
+    return 'regression-candidate'
+  }
+  return group.finalFailures ? 'failure-investigation' : 'stable-observed'
+}
+
 function updateSummary(
   group: TestSummary,
   report: Report,
@@ -253,7 +266,11 @@ function updateSummary(
     (sum, attempt) => sum + attempt.durationMs,
     0,
   )
-  group.runErrors += report.runErrors
+  // Keep unrelated module/setup errors at run scope. Only an unsuccessful
+  // test outcome can have been affected by those errors.
+  if (['failed', 'interrupted'].includes(result)) {
+    group.runErrors += report.runErrors
+  }
   const bySha =
     observations.get(key) ??
     new Map<string, { passed: number; failed: number }>()
@@ -279,16 +296,7 @@ function updateSummary(
   group.retryRecoveryRate = group.executed
     ? group.retryRecovered / group.executed
     : null
-  group.diagnosis = 'stable-observed'
-  if (group.runErrors) {
-    group.diagnosis = 'environment-or-setup-investigation'
-  } else if (group.retryRecovered || group.crossRunFailures) {
-    group.diagnosis = 'flake-candidate'
-  } else if (group.finalFailures >= 2) {
-    group.diagnosis = 'regression-candidate'
-  } else if (group.finalFailures) {
-    group.diagnosis = 'failure-investigation'
-  }
+  group.diagnosis = diagnose(group)
 }
 
 export function aggregateReports(input: Report[]) {
