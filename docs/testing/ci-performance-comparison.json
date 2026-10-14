@@ -210,5 +210,117 @@
       ]
     }
   ],
-  "finalRuns": []
+  "finalRuns": [
+    {
+      "runId": 38646072429,
+      "attempt": 1,
+      "sha": "9eb7255f413833d3c380d5e5b540853767e17cee",
+      "conclusion": "success",
+      "createdAt": "2026-10-14T22:13:03Z",
+      "attemptStartedAt": "2026-10-14T22:13:03Z",
+      "elapsedSeconds": 309,
+      "attemptElapsedSeconds": 309,
+      "runnerMinutes": 7.966666666666667,
+      "roundedJobMinutesEstimate": 11,
+      "cacheMarkers": {
+        "jobId": 116133124312,
+        "playwrightRestored": true
+      },
+      "jobs": [
+        {
+          "id": 116133123952,
+          "name": "Coverage Thresholds",
+          "conclusion": "success",
+          "executionSeconds": 268
+        },
+        {
+          "id": 116133124087,
+          "name": "E2E Accessibility (axe)",
+          "conclusion": "success",
+          "executionSeconds": 48
+        },
+        {
+          "id": 116133124194,
+          "name": "Verify Build",
+          "conclusion": "success",
+          "executionSeconds": 37
+        },
+        {
+          "id": 116133124196,
+          "name": "Lint & Type Check",
+          "conclusion": "success",
+          "executionSeconds": 45
+        },
+        {
+          "id": 116133124312,
+          "name": "IndexedDB Browser Semantics",
+          "conclusion": "success",
+          "executionSeconds": 42,
+          "steps": [
+            {
+              "name": "Install dependencies",
+              "conclusion": "success",
+              "seconds": 5
+            },
+            {
+              "name": "Cache Playwright browsers",
+              "conclusion": "success",
+              "seconds": 5
+            },
+            {
+              "name": "Install Playwright browsers",
+              "conclusion": "success",
+              "seconds": 16
+            },
+            {
+              "name": "Post Cache Playwright browsers",
+              "conclusion": "success",
+              "seconds": 0
+            }
+          ]
+        },
+        {
+          "id": 116133126150,
+          "name": "Firefox Extension Smoke",
+          "conclusion": "skipped",
+          "executionSeconds": null
+        },
+        {
+          "id": 116134899617,
+          "name": "Flaky Test Diagnostics",
+          "conclusion": "success",
+          "executionSeconds": 35
+        },
+        {
+          "id": 116134899647,
+          "name": "Run Vitest Tests",
+          "conclusion": "success",
+          "executionSeconds": 3
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "beforeSuccessPRWithDiagnostics": {
+      "count": 5,
+      "runIds": [
+        38578597319, 38575566902, 38572444599, 38570593357, 38499051361
+      ],
+      "elapsedP50": 302,
+      "elapsedP90": 332,
+      "runnerMinutesP50": 11.533333333333333,
+      "runnerMinutesP90": 12.616666666666667,
+      "failures": 0
+    },
+    "afterPWOnly": {
+      "count": 1,
+      "elapsedP50": 309,
+      "elapsedP90": 309,
+      "runnerMinutesP50": 7.966666666666667,
+      "runnerMinutesP90": 7.966666666666667,
+      "failures": 0
+    },
+    "runnerMinutesChangePercent": -30.924855491329474,
+    "limitation": "After is a single observed run; no sustained latency or failure-rate improvement is established"
+  }
 }

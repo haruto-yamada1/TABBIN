@@ -57,6 +57,9 @@ baseline 期間中に flake 診断が追加され、30件すべてが同じ job 
 切上げ p50 15分 / p90 17分。
 取得ログは219件、1件は取得不可。baseline の秒境界で step の cache 帰属を確定できない
 箇所は unknown に倒し、job 単位の restore 観測と step の hit 率を混同しない。
+219件の restore 観測には setup-bun 等の toolchain 内部cacheを含む。
+変更前に明示的な Bun依存 / Playwright browser cache step は存在せず、
+この job 単位の100%を依存cacheのhit率として扱わない。
 
 `Run Vitest Tests` の required check 名は、coverage の成功だけを受け付ける純 shell
 集約 job で維持する。coverage が failure / skipped / cancelled なら成功させない。
@@ -110,16 +113,21 @@ coverage / required Vitest / flake 診断まで両 attempt が success、Firefox
 従来どおり skip だった。同じ job 構成を持つ変更前の成功 PR 5件の runner p50 11.53分に
 対して削減を確認した。一方、経過時間の短縮は確認できていない。
 この2 attempt は同じコミットの cache 採否実験であり、独立した2 PR でも最終 PW-only
-構成の測定でもない。最終構成の実測は後続の run を別枠で記録する。
+構成の測定でもない。最終構成の [run 38646072429](https://github.com/haruto-yamada1/TABBIN/actions/runs/38646072429)
+（`9eb7255f`、attempt 1）は309秒・7.97 runner分・切上げ11分で success。
+PW-only の IndexedDB job は42秒、cache restore 5秒 + install 16秒で、一次ログの
+restore も確認した。before の runner p50 11.53分に対して約30.9%少ない。
+比較表はこの初回runを固定snapshotとし、後の文書だけのcommitのrunとは分ける。
 
 | 比較対象                             |   n | elapsed p50 / p90 | runner分 p50 / p90 |     failure |
 | ------------------------------------ | --: | ----------------: | -----------------: | ----------: |
 | before 全体（参考）                  |  30 |     258.5 / 303秒 |      10.50 / 11.85 | 9/30（30%） |
 | before 同じjob構成の成功PR           |   5 |       302 / 332秒 |      11.53 / 12.62 |   0/5（0%） |
 | 両cache採否実験（同じSHAの2attempt） |   2 |     321.5 / 323秒 |        8.20 / 8.27 |   0/2（0%） |
+| after 最終PW-only構成                |   1 |       309 / 309秒 |        7.97 / 7.97 |   0/1（0%） |
 
 成功 PR を比較対象に選んだ表なので失敗率改善は主張しない。after の少数標本は継続的な
-p50 / p90 の改善を証明しない。最終構成の初回採取を加えた後も、この限界を維持する。
+p50 / p90 の改善を証明しない。after は初回1件だけの観測で、p50 / p90 が等しいことは分布の安定を示さない。
 
 再実行の API は attempt 自体の `created_at` を返すため、collector は元 run の
 `created_at` を維持して attempt の `run_started_at` だけを別に採用する。
