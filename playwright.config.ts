@@ -14,7 +14,9 @@ export default defineConfig({
       testMatch: '**/*.extension.spec.ts',
     },
   ],
-  reporter: 'html',
+  reporter: process.env.FLAKE_REPORT_PATH
+    ? [['html'], ['./tools/testing/playwright-flake-reporter.ts']]
+    : 'html',
   retries: process.env.CI ? 2 : 0,
   testDir: './e2e',
   use: {

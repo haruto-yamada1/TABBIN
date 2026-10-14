@@ -6,7 +6,9 @@ export default defineConfig({
     { name: 'chromium', use: { browserName: 'chromium' } },
     { name: 'firefox', use: { browserName: 'firefox' } },
   ],
-  reporter: 'line',
+  reporter: process.env.FLAKE_REPORT_PATH
+    ? [['line'], ['./tools/testing/playwright-flake-reporter.ts']]
+    : 'line',
   testDir: './e2e/indexeddb',
   workers: 1,
 })

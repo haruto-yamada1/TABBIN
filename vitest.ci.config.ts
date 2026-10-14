@@ -34,6 +34,12 @@ export default defineConfig({
     alias,
   },
   test: {
+    ...(process.env.FLAKE_REPORT_PATH
+      ? {
+          reporters: ['default', './tools/testing/vitest-flake-reporter.ts'],
+          runner: './tools/testing/vitest-flake-runner.ts',
+        }
+      : {}),
     coverage: {
       // Coverage thresholds — see docs/testing/coverage-thresholds.md
       //

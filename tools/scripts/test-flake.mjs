@@ -16,20 +16,29 @@ function findArg(name) {
   return undefined
 }
 
+const MAX_REPEAT = 100
 const repeatRaw = findArg('--repeat') ?? '10'
 const repeat = Math.trunc(Number(repeatRaw))
 const configArg = findArg('--config') ?? 'vitest.ci.config.ts'
 const projectOverride = findArg('--project')
 
-const reserved = new Set(['--repeat', '--config', '--project'])
+const testName = findArg('--test-name')
+const reserved = new Set(['--repeat', '--config', '--project', '--test-name'])
 const positional = args.filter((arg, idx) => {
   const prev = args[idx - 1]
-  return !reserved.has(arg) && !reserved.has(prev)
+  return arg !== '--' && !reserved.has(arg) && !reserved.has(prev)
 })
 
-if (positional.length === 0 || Number.isNaN(repeat) || repeat <= 0) {
+if (
+  positional.length !== 1 ||
+  !/\.(?:test|spec)\.[cm]?[jt]sx?$/u.test(positional[0]) ||
+  !Number.isInteger(Number(repeatRaw)) ||
+  repeat <= 0 ||
+  repeat > MAX_REPEAT ||
+  (args.includes('--test-name') && !testName)
+) {
   console.error(
-    'Usage: bun tools/scripts/test-flake.mjs -- <file> --repeat <n> [--project <dom|node>]',
+    'Usage: bun tools/scripts/test-flake.mjs -- <file> --repeat <n> [--project <dom|node>] [--test-name <regex>] (repeat: 1-100)',
   )
   process.exit(1)
 }
@@ -57,6 +66,7 @@ for (let i = 1; i <= repeat; i++) {
     configArg,
     '--project',
     project,
+    ...(testName ? ['--testNamePattern', testName] : []),
   ]
 
   const result = spawnSync('bunx', vitestArgs, {
