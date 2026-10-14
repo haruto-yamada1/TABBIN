@@ -66,6 +66,30 @@ describe('CI performance evidence', () => {
     })
   })
 
+  it('distinguishes p90 from p95 and averages the middle pair for p50', () => {
+    const samples = Array.from({ length: 20 }, (_, index) => ({
+      run: run({ id: index + 1 }),
+      jobs: [
+        job({
+          id: index + 100,
+          created_at: '2026-10-14T00:00:00Z',
+          started_at: '2026-10-14T00:00:00Z',
+          completed_at: new Date(
+            Date.parse('2026-10-14T00:00:00Z') + (index + 1) * 1000,
+          ).toISOString(),
+          steps: [],
+        }),
+      ],
+      logs: {},
+    }))
+    expect(summarizeRuns(samples).summary.elapsedSeconds).toMatchObject({
+      count: 20,
+      median: 10.5,
+      p90: 18,
+      p95: 19,
+    })
+  })
+
   it('does not count cancelled or skipped as failures or fabricate absent timing', () => {
     const samples = ['success', 'failure', 'cancelled', 'skipped'].map(
       (conclusion, index) => ({
@@ -102,7 +126,9 @@ describe('CI performance evidence', () => {
         if (path.endsWith('/runs/1') || path.endsWith('/attempts/2')) {
           return run({
             run_attempt: 2,
-            created_at: '2026-10-13T00:00:00Z',
+            created_at: path.endsWith('/attempts/2')
+              ? '2026-10-14T00:00:01Z'
+              : '2026-10-13T00:00:00Z',
             run_started_at: path.endsWith('/attempts/2')
               ? '2026-10-14T00:00:00Z'
               : '2026-10-13T00:00:00Z',

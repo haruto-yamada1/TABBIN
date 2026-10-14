@@ -73,19 +73,58 @@ coverage threshold、test retry / worker 数も変更しない。
 
 ## cache の試験と判断
 
-最初の比較では IndexedDB Browser Semantics job だけに Bun download cache と
-Playwright browser cache を加える。キャッシュするのは配布物のダウンロードであり、
-`node_modules` や検証済み成果物は再利用しない。key は OS / architecture / lockfile と
-該当 runtime、Bun patch に結び付け、fallback restore key を使わない。
+[実験 run 38643889025](https://github.com/haruto-yamada1/TABBIN/actions/runs/38643889025)
+の同一コミット `8ee2b7f6` を attempt 1（cold）/ 2（warm）で比較した。
+Bun / Playwright とも一次ログで miss → save → restore を確認した。キーや生ログは
+公開せず、種類ごとの boolean と API の step 時間を比較証拠へ保存する。
+
+| 項目                           | cold | warm | 採否                                                        |
+| ------------------------------ | ---: | ---: | ----------------------------------------------------------- |
+| IndexedDB job 全体             | 52秒 | 38秒 | frozen install・実ブラウザテストは双方成功                  |
+| Bun restore / miss             |  0秒 |  6秒 | warm でも導入2秒との合計8秒が cold導入4秒より遅く、削除     |
+| Bun install                    |  4秒 |  2秒 | cache なしでも frozen install を毎回実行                    |
+| Bun post save                  |  5秒 |  1秒 | 保存コストも採否に含める                                    |
+| Playwright restore / miss      |  1秒 |  4秒 | restore + install は18秒で cold導入28秒から短縮したため採用 |
+| Playwright install --with-deps | 28秒 | 14秒 | OS依存導入はhitでも必要                                     |
+| Playwright post save           |  3秒 |  0秒 | coldでは保存3秒も追加される                                 |
+
+最終的に残すのは IndexedDB job の Playwright browser cache だけ。
+`~/.cache/ms-playwright` を OS / architecture / `.bun-version` / `bun.lock` に結び付ける。
+lockfile が Playwright version を固定し、fallback restore key を使わない。
+`node_modules`、secret、検証済み拡張成果物は cache しない。cold の追加コストと
+warm の効果は小標本なので、lockfile 更新頻度と hit 率を継続比較して再判断する。
 
 hit / miss のどちらでも `bun install --frozen-lockfile` と
-`playwright install --with-deps chromium firefox` を必ず実行する。ブラウザの OS 依存は
-cache できない。[Playwright の説明](https://playwright.dev/docs/ci#caching-browsers)も参照。
+`playwright install --with-deps chromium firefox` を必ず実行する。
+[Playwright の説明](https://playwright.dev/docs/ci#caching-browsers)も参照。
 [GitHub の cache scope](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching#restrictions-for-accessing-a-cache)
 により PR の cache は merge ref に閉じる。secret や追加の write permission を使わない。
+fork の実行条件と秘密情報不要の境界は workflow fixture とこの公式scopeで確認した。
+実際の別 repository からの fork PR は作成していない。
 
-before / after と cold / warm の実測を記録し、restore / save を足した job 時間で
-改善がなければ cache を削除する。全体 wall clock だけで高速化を主張しない。
+## 最適化後の比較
+
+[比較の一次計測値](ci-performance-comparison.json) に run / attempt / SHA / job 時間を保存する。
+両 cache を含む採否実験の全体は cold 323秒・8.27 runner分、warm 320秒・8.13 runner分。
+coverage / required Vitest / flake 診断まで両 attempt が success、Firefox Extension Smoke は
+従来どおり skip だった。同じ job 構成を持つ変更前の成功 PR 5件の runner p50 11.53分に
+対して削減を確認した。一方、経過時間の短縮は確認できていない。
+この2 attempt は同じコミットの cache 採否実験であり、独立した2 PR でも最終 PW-only
+構成の測定でもない。最終構成の実測は後続の run を別枠で記録する。
+
+| 比較対象                             |   n | elapsed p50 / p90 | runner分 p50 / p90 |     failure |
+| ------------------------------------ | --: | ----------------: | -----------------: | ----------: |
+| before 全体（参考）                  |  30 |     258.5 / 303秒 |      10.50 / 11.85 | 9/30（30%） |
+| before 同じjob構成の成功PR           |   5 |       302 / 332秒 |      11.53 / 12.62 |   0/5（0%） |
+| 両cache採否実験（同じSHAの2attempt） |   2 |     321.5 / 323秒 |        8.20 / 8.27 |   0/2（0%） |
+
+成功 PR を比較対象に選んだ表なので失敗率改善は主張しない。after の少数標本は継続的な
+p50 / p90 の改善を証明しない。最終構成の初回採取を加えた後も、この限界を維持する。
+
+再実行の API は attempt 自体の `created_at` を返すため、collector は元 run の
+`created_at` を維持して attempt の `run_started_at` だけを別に採用する。
+warm の元 run 起点686秒（手動再実行前の待ちを含む）を、比較用320秒と混同しない。
+この API 差は実測後、異なる created_at を返す fixture の RED / GREEN でも確認した。
 
 ## 実行と保守の契約
 

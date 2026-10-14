@@ -149,6 +149,8 @@ export async function collectEvidence(options: Options): Promise<Evidence[]> {
         }
       },
     )
-    return { run, jobs, logs }
+    // The attempt endpoint has its own created_at. Keep the original run's
+    // creation time for elapsed/queue metrics and the attempt's start separately.
+    return { run: { ...run, created_at: latest.created_at }, jobs, logs }
   })
 }

@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "baseline": "ci-performance-baseline.json",
+  "method": "API job timing includes setup/post; compare attempts by attemptElapsedSeconds; cold/warm share one SHA and are not independent production samples",
+  "cacheExperiments": [
+    {
+      "phase": "cold",
+      "runId": 38643889025,
+      "attempt": 1,
+      "sha": "8ee2b7f6ce72e6e44d54f5c7f4e9ca37affca3c2",
+      "conclusion": "success",
+      "createdAt": "2026-10-14T21:55:08Z",
+      "attemptStartedAt": "2026-10-14T21:55:08Z",
+      "elapsedSeconds": 323,
+      "attemptElapsedSeconds": 323,
+      "runnerMinutes": 8.266666666666667,
+      "roundedJobMinutesEstimate": 11,
+      "cacheMarkers": {
+        "jobId": 116125879506,
+        "runId": 38643889025,
+        "attempt": 1,
+        "bunMiss": true,
+        "playwrightMiss": true,
+        "bunSaved": true,
+        "playwrightSaved": true
+      },
+      "jobs": [
+        {
+          "id": 116125879059,
+          "name": "E2E Accessibility (axe)",
+          "conclusion": "success",
+          "executionSeconds": 54
+        },
+        {
+          "id": 116125879294,
+          "name": "Lint & Type Check",
+          "conclusion": "success",
+          "executionSeconds": 41
+        },
+        {
+          "id": 116125879436,
+          "name": "Verify Build",
+          "conclusion": "success",
+          "executionSeconds": 31
+        },
+        {
+          "id": 116125879466,
+          "name": "Coverage Thresholds",
+          "conclusion": "success",
+          "executionSeconds": 285
+        },
+        {
+          "id": 116125879506,
+          "name": "IndexedDB Browser Semantics",
+          "conclusion": "success",
+          "executionSeconds": 52,
+          "steps": [
+            {
+              "name": "Cache Bun downloads (experiment)",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Install dependencies",
+              "conclusion": "success",
+              "seconds": 4
+            },
+            {
+              "name": "Cache Playwright browsers (experiment)",
+              "conclusion": "success",
+              "seconds": 1
+            },
+            {
+              "name": "Install Playwright browsers",
+              "conclusion": "success",
+              "seconds": 28
+            },
+            {
+              "name": "Post Cache Playwright browsers (experiment)",
+              "conclusion": "success",
+              "seconds": 3
+            },
+            {
+              "name": "Post Cache Bun downloads (experiment)",
+              "conclusion": "success",
+              "seconds": 5
+            }
+          ]
+        },
+        {
+          "id": 116125880869,
+          "name": "Firefox Extension Smoke",
+          "conclusion": "skipped",
+          "executionSeconds": null
+        },
+        {
+          "id": 116127825452,
+          "name": "Run Vitest Tests",
+          "conclusion": "success",
+          "executionSeconds": 3
+        },
+        {
+          "id": 116127825668,
+          "name": "Flaky Test Diagnostics",
+          "conclusion": "success",
+          "executionSeconds": 30
+        }
+      ]
+    },
+    {
+      "phase": "warm",
+      "runId": 38643889025,
+      "attempt": 2,
+      "sha": "8ee2b7f6ce72e6e44d54f5c7f4e9ca37affca3c2",
+      "conclusion": "success",
+      "createdAt": "2026-10-14T21:55:08Z",
+      "attemptStartedAt": "2026-10-14T22:01:14Z",
+      "elapsedSeconds": 686,
+      "attemptElapsedSeconds": 320,
+      "runnerMinutes": 8.133333333333333,
+      "roundedJobMinutesEstimate": 11,
+      "cacheMarkers": {
+        "jobId": 116128373883,
+        "runId": 38643889025,
+        "attempt": 2,
+        "bunRestored": true,
+        "playwrightRestored": true
+      },
+      "jobs": [
+        {
+          "id": 116128371922,
+          "name": "Verify Build",
+          "conclusion": "success",
+          "executionSeconds": 38
+        },
+        {
+          "id": 116128372255,
+          "name": "Coverage Thresholds",
+          "conclusion": "success",
+          "executionSeconds": 277
+        },
+        {
+          "id": 116128372393,
+          "name": "E2E Accessibility (axe)",
+          "conclusion": "success",
+          "executionSeconds": 48
+        },
+        {
+          "id": 116128372490,
+          "name": "Lint & Type Check",
+          "conclusion": "success",
+          "executionSeconds": 51
+        },
+        {
+          "id": 116128373883,
+          "name": "IndexedDB Browser Semantics",
+          "conclusion": "success",
+          "executionSeconds": 38,
+          "steps": [
+            {
+              "name": "Cache Bun downloads (experiment)",
+              "conclusion": "success",
+              "seconds": 6
+            },
+            {
+              "name": "Install dependencies",
+              "conclusion": "success",
+              "seconds": 2
+            },
+            {
+              "name": "Cache Playwright browsers (experiment)",
+              "conclusion": "success",
+              "seconds": 4
+            },
+            {
+              "name": "Install Playwright browsers",
+              "conclusion": "success",
+              "seconds": 14
+            },
+            {
+              "name": "Post Cache Playwright browsers (experiment)",
+              "conclusion": "success",
+              "seconds": 0
+            },
+            {
+              "name": "Post Cache Bun downloads (experiment)",
+              "conclusion": "success",
+              "seconds": 1
+            }
+          ]
+        },
+        {
+          "id": 116128374672,
+          "name": "Firefox Extension Smoke",
+          "conclusion": "skipped",
+          "executionSeconds": null
+        },
+        {
+          "id": 116130265776,
+          "name": "Run Vitest Tests",
+          "conclusion": "success",
+          "executionSeconds": 3
+        },
+        {
+          "id": 116130265797,
+          "name": "Flaky Test Diagnostics",
+          "conclusion": "success",
+          "executionSeconds": 33
+        }
+      ]
+    }
+  ],
+  "finalRuns": []
+}

@@ -124,11 +124,13 @@ describe('CI performance quality and scheduling contract', () => {
     const caches = job.steps.filter((step: { uses?: string }) =>
       step.uses?.startsWith('actions/cache@'),
     )
-    expect(caches).toHaveLength(2)
+    expect(caches).toHaveLength(1)
     for (const cache of caches) {
       expect(cache.with.key).toContain('runner.os')
       expect(cache.with.key).toContain('runner.arch')
       expect(cache.with.key).toContain("'bun.lock'")
+      expect(cache.with.key).toContain("'.bun-version'")
+      expect(cache.with.path).toBe('~/.cache/ms-playwright')
       expect(cache.with['restore-keys']).toBeUndefined()
       expect(cache.uses).toMatch(/@[0-9a-f]{40}$/u)
     }
