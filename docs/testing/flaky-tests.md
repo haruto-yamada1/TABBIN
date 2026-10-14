@@ -31,6 +31,9 @@ push / develop の baseline と同じ PR の直近 14 日を対象にする。
 最大 25 runs / 50 artifacts、圧縮済み取得合計 30 MiB、正規化 report ごと 5 MiB
 に制限する。取得不能・期限切れ・件数制限・途中で打ち切った履歴はその制約を
 summary に残す。
+ZIP は外部コマンドを起動せず、既に lockfile にある固定版 `fflate` で
+metadata と stream を検証してデータとして読む。central directory が欠けた ZIP、
+複数 entry、path traversal、宣言サイズ・実際の出力の上限超過を拒否する。
 展開後の正規化 JSON も合計 30 MiB に制限し、期限切れ数を別に表示する。
 表示される傾向は保持期間内に収集できた標本であり、全 CI 履歴の failure rate
 や母集団全体の信頼性を示すものではない。

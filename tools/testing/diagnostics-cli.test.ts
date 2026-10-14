@@ -37,6 +37,9 @@ const run = (file: string, args: string[], env: NodeJS.ProcessEnv = {}) =>
 const reportFixture = (runId: string) => {
   const report = createReport('vitest', '5.0.3')
   report.context.runId = runId
+  report.context.runAttempt = 1
+  report.context.sha = '0'.repeat(40)
+  report.context.headSha = '0'.repeat(40)
   report.context.event = 'push'
   report.suite = 'coverage'
   report.complete = true
@@ -109,6 +112,11 @@ describe('diagnostic CLI boundaries', () => {
         cwd: directory,
       }).status,
     ).toBe(0)
+    // A history artifact is data: its parser must never execute unzip or an
+    // imported filename through a command-line tool.
+    const forbiddenUnzip = path.join(bin, 'unzip')
+    writeFileSync(forbiddenUnzip, '#!/bin/sh\nexit 1\n')
+    chmodSync(forbiddenUnzip, 0o700)
     const fake = path.join(bin, 'gh')
     writeFileSync(
       fake,

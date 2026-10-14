@@ -10,6 +10,9 @@ import {
 const fixture = (statuses: string[], runId = '1') => {
   const report = createReport('vitest', '5.0.3')
   report.context.runId = runId
+  report.context.runAttempt = 1
+  report.context.sha = '0'.repeat(40)
+  report.context.headSha = '0'.repeat(40)
   report.complete = true
   recordTest(report, {
     file: 'src/example.test.ts',

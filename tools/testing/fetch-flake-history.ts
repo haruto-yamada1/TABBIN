@@ -1,18 +1,11 @@
 import { spawnSync } from 'node:child_process'
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs'
-import os from 'node:os'
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
 
 import { parseReport } from './flake-report'
+import { readFlakeArchive } from './read-flake-archive'
 import { selectHistoryRuns } from './telemetry-files'
 
 const runsSchema = z.object({
@@ -76,7 +69,6 @@ const metadata = {
   unavailable: false,
   truncated: false,
 }
-const temporary = mkdtempSync(path.join(os.tmpdir(), 'flake-history-'))
 try {
   const since = new Date(Date.now() - metadata.days * 86_400_000).toISOString()
   const query = new URLSearchParams({
@@ -132,40 +124,13 @@ try {
           Math.min(MAX_REPORT_BYTES, MAX_BYTES - metadata.bytes),
         )
         metadata.bytes += zip.length
-        const archive = path.join(temporary, 'artifact.zip')
-        writeFileSync(archive, zip, { mode: 0o600 })
-        // Read one bounded JSON entry without extracting paths from an untrusted
-        // archive. A zip bomb is terminated by maxBuffer; no file is materialized.
-        const listing = spawnSync('unzip', ['-Z', '-1', archive], {
-          encoding: 'utf8',
-          maxBuffer: 4096,
-          timeout: 5000,
-        })
-        const entries = listing.stdout?.trim().split('\n')
-        const entry = entries?.[0]
-        if (
-          listing.error ||
-          listing.status !== 0 ||
-          entries?.length !== 1 ||
-          !entry ||
-          !/^flake-[a-zA-Z0-9_.-]+\.json$/u.test(entry)
-        ) {
-          throw new Error('Invalid archive')
-        }
-        const extracted = spawnSync('unzip', ['-p', archive, entry], {
-          encoding: 'utf8',
-          maxBuffer: MAX_REPORT_BYTES,
-          timeout: 5000,
-        })
-        if (extracted.error || extracted.status !== 0) {
-          throw new Error('Invalid report')
-        }
-        const bytes = Buffer.byteLength(extracted.stdout)
+        const extracted = readFlakeArchive(zip)
+        const bytes = Buffer.byteLength(extracted)
         if (reportBytes + bytes > MAX_BYTES) {
           metadata.truncated = true
           continue
         }
-        const report = parseReport(JSON.parse(extracted.stdout))
+        const report = parseReport(JSON.parse(extracted))
         if (
           report.context.runId !== String(run.id) ||
           report.context.event !== run.event ||
@@ -190,7 +155,6 @@ try {
 } catch {
   metadata.unavailable = true
 } finally {
-  rmSync(temporary, { recursive: true, force: true })
   writeFileSync(
     path.join(directory, 'history-metadata.json'),
     `${JSON.stringify(metadata)}\n`,
