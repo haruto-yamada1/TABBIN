@@ -12,6 +12,7 @@ stats-*.json
 # Test artifacts
 .stryker-tmp/
 /reports/mutation/
+/reports/flakes/
 /test-results/
 /playwright-report/
 /blob-report/
