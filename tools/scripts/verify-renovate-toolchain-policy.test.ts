@@ -76,6 +76,11 @@ const assertVerifierBeforeInstall = (workflow: string): void => {
   ).toBeGreaterThan(0)
 
   for (const job of jobs) {
+    // A pure shell result gate has no checkout or Bun dependency to install.
+    // Any checkout, setup, or Bun command still requires the full toolchain gate.
+    if (!job.some((line) => /uses:|\bbun\b/.test(line))) {
+      continue
+    }
     const setupBunIndex = job.findIndex((line) =>
       line.includes('uses: oven-sh/setup-bun'),
     )
@@ -267,10 +272,32 @@ describe('Renovate toolchain update automation policy', () => {
     ).toThrow('ENOENT')
   })
 
-  it('runs verify:toolchain-versions in CI for every job before installing dependencies', () => {
+  it('runs verify:toolchain-versions before dependencies in every toolchain job', () => {
     const ciWorkflow = readRepositoryFile('.github/workflows/ci.yml')
     expect(ciWorkflow).toContain('run: bun run verify:toolchain-versions')
     assertVerifierBeforeInstall(ciWorkflow)
+  })
+
+  it('permits a pure shell result gate without a dependency install', () => {
+    expect(() =>
+      assertVerifierBeforeInstall(`
+jobs:
+  results:
+    steps:
+      - run: test "$RESULT" = success
+    `),
+    ).not.toThrow()
+  })
+
+  it('rejects a Bun job without setup, verification or frozen installation', () => {
+    expect(() =>
+      assertVerifierBeforeInstall(`
+jobs:
+  tests:
+    steps:
+      - run: bun run test
+    `),
+    ).toThrow(/every job must set up Bun/)
   })
 
   it('fails when the toolchain verifier runs after dependency installation', () => {

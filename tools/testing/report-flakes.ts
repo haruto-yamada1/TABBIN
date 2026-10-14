@@ -61,8 +61,6 @@ if (existsSync(metadataPath)) {
 const current = readReports(currentDirectory)
 const history = readReports(historyDirectory)
 const expectedSuites = [
-  'run-tests-shard-1',
-  'run-tests-shard-2',
   'coverage',
   'indexeddb-browser-semantics',
   'e2e-accessibility',

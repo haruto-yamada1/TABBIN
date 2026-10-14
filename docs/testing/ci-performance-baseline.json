@@ -1,0 +1,2129 @@
+{
+  "schemaVersion": 1,
+  "repository": "haruto-yamada1/TABBIN",
+  "workflow": "ci.yml",
+  "collectedAt": "2026-10-14T14:31:45.962Z",
+  "sourceCommand": "bun run ci:performance -- --limit 30 --output reports/ci-performance/baseline.json",
+  "sample": {
+    "count": 30,
+    "createdAtRange": ["2026-10-11T15:28:28Z", "2026-10-14T14:13:30Z"],
+    "attemptPolicy": "Latest attempt only; earlier attempts are not included",
+    "attempts": {
+      "1": 30
+    },
+    "eventCounts": {
+      "pull_request": 24,
+      "push": 6
+    }
+  },
+  "definitions": {
+    "elapsedSeconds": "Original run created_at to last executed job completed_at; reruns include delay before rerun",
+    "initialSchedulingSeconds": "Run created_at to first executed job started_at",
+    "queueSeconds": "Job created_at to started_at; includes dependency and runner wait, not an isolated runner queue",
+    "runnerMinutes": "Sum of actual executed job seconds / 60; excludes skipped jobs; not invoice data",
+    "roundedJobMinutesEstimate": "Sum of each executed job duration rounded up to minutes; excludes OS multipliers and prior attempts",
+    "failureRate": "Failures / (successes + failures); cancelled, skipped, and neutral are separate conclusions",
+    "percentile": "p90/p95 use nearest-rank; median (p50) averages the middle pair",
+    "cache": "Explicit restore/miss markers by step time window; restoreRate includes exact and fallback restores; inaccessible or unobserved logs excluded",
+    "criticalPath": "lastCompletedJob identifies the observed tail, not an inferred workflow DAG",
+    "attemptElapsedSeconds": "Latest attempt run_started_at to last executed job completed_at; excludes delay before rerun"
+  },
+  "summary": {
+    "count": 30,
+    "conclusions": {
+      "success": 21,
+      "failure": 9
+    },
+    "failureRate": 0.3,
+    "elapsedSeconds": {
+      "count": 30,
+      "missing": 0,
+      "median": 258.5,
+      "p90": 303,
+      "p95": 332,
+      "total": 7554
+    },
+    "initialSchedulingSeconds": {
+      "count": 30,
+      "missing": 0,
+      "median": 3,
+      "p90": 10,
+      "p95": 18,
+      "total": 147
+    },
+    "runnerMinutes": 308.34999999999997,
+    "roundedJobMinutesEstimate": 406,
+    "logsAvailable": 219,
+    "logsUnavailable": 1,
+    "attemptElapsedSeconds": {
+      "count": 30,
+      "missing": 0,
+      "median": 258.5,
+      "p90": 303,
+      "p95": 332,
+      "total": 7554
+    }
+  },
+  "cohorts": {
+    "all": {
+      "count": 30,
+      "elapsedSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 258.5,
+        "p90": 303,
+        "p95": 332,
+        "total": 7554
+      },
+      "attemptElapsedSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 258.5,
+        "p90": 303,
+        "p95": 332,
+        "total": 7554
+      },
+      "runnerMinutesPerRun": {
+        "count": 30,
+        "missing": 0,
+        "median": 10.5,
+        "p90": 11.85,
+        "p95": 12.616666666666667,
+        "total": 308.35
+      },
+      "roundedJobMinutesPerRun": {
+        "count": 30,
+        "missing": 0,
+        "median": 13,
+        "p90": 15,
+        "p95": 17,
+        "total": 406
+      }
+    },
+    "successful": {
+      "count": 21,
+      "elapsedSeconds": {
+        "count": 21,
+        "missing": 0,
+        "median": 264,
+        "p90": 303,
+        "p95": 325,
+        "total": 5549
+      },
+      "attemptElapsedSeconds": {
+        "count": 21,
+        "missing": 0,
+        "median": 264,
+        "p90": 303,
+        "p95": 325,
+        "total": 5549
+      },
+      "runnerMinutesPerRun": {
+        "count": 21,
+        "missing": 0,
+        "median": 10.6,
+        "p90": 11.85,
+        "p95": 12.35,
+        "total": 222.1
+      },
+      "roundedJobMinutesPerRun": {
+        "count": 21,
+        "missing": 0,
+        "median": 13,
+        "p90": 15,
+        "p95": 16,
+        "total": 286
+      }
+    },
+    "byEventAndConclusion": [
+      {
+        "event": "pull_request",
+        "conclusion": "failure",
+        "count": 9,
+        "elapsedSeconds": {
+          "count": 9,
+          "missing": 0,
+          "median": 257,
+          "p90": 334,
+          "p95": 334,
+          "total": 2005
+        },
+        "attemptElapsedSeconds": {
+          "count": 9,
+          "missing": 0,
+          "median": 257,
+          "p90": 334,
+          "p95": 334,
+          "total": 2005
+        },
+        "runnerMinutesPerRun": {
+          "count": 9,
+          "missing": 0,
+          "median": 10.216666666666667,
+          "p90": 13.516666666666667,
+          "p95": 13.516666666666667,
+          "total": 86.25
+        },
+        "roundedJobMinutesPerRun": {
+          "count": 9,
+          "missing": 0,
+          "median": 14,
+          "p90": 17,
+          "p95": 17,
+          "total": 120
+        }
+      },
+      {
+        "event": "pull_request",
+        "conclusion": "success",
+        "count": 15,
+        "elapsedSeconds": {
+          "count": 15,
+          "missing": 0,
+          "median": 265,
+          "p90": 325,
+          "p95": 332,
+          "total": 4085
+        },
+        "attemptElapsedSeconds": {
+          "count": 15,
+          "missing": 0,
+          "median": 265,
+          "p90": 325,
+          "p95": 332,
+          "total": 4085
+        },
+        "runnerMinutesPerRun": {
+          "count": 15,
+          "missing": 0,
+          "median": 10.6,
+          "p90": 12.35,
+          "p95": 12.616666666666667,
+          "total": 160.41666666666666
+        },
+        "roundedJobMinutesPerRun": {
+          "count": 15,
+          "missing": 0,
+          "median": 13,
+          "p90": 16,
+          "p95": 17,
+          "total": 206
+        }
+      },
+      {
+        "event": "push",
+        "conclusion": "success",
+        "count": 6,
+        "elapsedSeconds": {
+          "count": 6,
+          "missing": 0,
+          "median": 241.5,
+          "p90": 303,
+          "p95": 303,
+          "total": 1464
+        },
+        "attemptElapsedSeconds": {
+          "count": 6,
+          "missing": 0,
+          "median": 241.5,
+          "p90": 303,
+          "p95": 303,
+          "total": 1464
+        },
+        "runnerMinutesPerRun": {
+          "count": 6,
+          "missing": 0,
+          "median": 10.033333333333333,
+          "p90": 11.85,
+          "p95": 11.85,
+          "total": 61.68333333333333
+        },
+        "roundedJobMinutesPerRun": {
+          "count": 6,
+          "missing": 0,
+          "median": 13,
+          "p90": 15,
+          "p95": 15,
+          "total": 80
+        }
+      }
+    ]
+  },
+  "cacheEvidence": {
+    "scope": "job",
+    "restored": 219,
+    "missed": 0,
+    "unavailable": 1,
+    "unobserved": 0,
+    "restoreRate": 1,
+    "limitation": "Raw logs are not retained. Legacy step attribution was ambiguous at second boundaries, so all baseline step cache outcomes are unknown. Job-scoped restore markers remain observed. Future CLI uses primary markers in explicit cache/setup steps; exact and fallback restores are combined."
+  },
+  "jobs": [
+    {
+      "name": "Coverage Thresholds",
+      "count": 30,
+      "conclusions": {
+        "success": 27,
+        "failure": 3
+      },
+      "failureRate": 0.1,
+      "executionSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 250,
+        "p90": 267,
+        "p95": 280,
+        "total": 6922
+      },
+      "queueSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 3,
+        "p90": 21,
+        "p95": 30,
+        "total": 196
+      },
+      "steps": [
+        {
+          "name": "Install dependencies",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "failure": 1
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 5,
+            "p90": 8,
+            "p95": 10,
+            "total": 173
+          }
+        },
+        {
+          "name": "Run coverage with thresholds",
+          "count": 30,
+          "conclusions": {
+            "success": 27,
+            "failure": 2,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 236,
+            "p90": 251,
+            "p95": 253,
+            "total": 6430
+          }
+        },
+        {
+          "name": "Set up Bun",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1.5,
+            "p90": 3,
+            "p95": 3,
+            "total": 52
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Set up Node.js",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 3,
+            "p95": 3,
+            "total": 25
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Upload normalized flake observations",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 12
+          }
+        }
+      ]
+    },
+    {
+      "name": "E2E Accessibility (axe)",
+      "count": 30,
+      "conclusions": {
+        "success": 29,
+        "failure": 1
+      },
+      "failureRate": 0.03333333333333333,
+      "executionSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 49,
+        "p90": 58,
+        "p95": 89,
+        "total": 1689
+      },
+      "queueSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 3,
+        "p90": 20,
+        "p95": 28,
+        "total": 221
+      },
+      "steps": [
+        {
+          "name": "Check failure evidence budget",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 0,
+            "p90": 0,
+            "p95": 0,
+            "total": 0
+          }
+        },
+        {
+          "name": "Install dependencies",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "failure": 1
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 6,
+            "p90": 8,
+            "p95": 9,
+            "total": 193
+          }
+        },
+        {
+          "name": "Install Playwright browsers",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 24,
+            "p90": 33,
+            "p95": 44,
+            "total": 907
+          }
+        },
+        {
+          "name": "Run axe accessibility E2E tests",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 11,
+            "p90": 12,
+            "p95": 12,
+            "total": 303
+          }
+        },
+        {
+          "name": "Set up Bun",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 3,
+            "total": 40
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Set up Node.js",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 3,
+            "p95": 5,
+            "total": 43
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Upload bounded failure evidence",
+          "count": 10,
+          "conclusions": {
+            "skipped": 10
+          },
+          "executionSeconds": {
+            "count": 0,
+            "missing": 10,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "total": 0
+          }
+        },
+        {
+          "name": "Upload normalized flake observations",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 1,
+            "p90": 1,
+            "p95": 1,
+            "total": 10
+          }
+        }
+      ]
+    },
+    {
+      "name": "Firefox Extension Smoke",
+      "count": 30,
+      "conclusions": {
+        "skipped": 30
+      },
+      "failureRate": null,
+      "executionSeconds": {
+        "count": 0,
+        "missing": 30,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "total": 0
+      },
+      "queueSeconds": {
+        "count": 0,
+        "missing": 30,
+        "median": null,
+        "p90": null,
+        "p95": null,
+        "total": 0
+      },
+      "steps": []
+    },
+    {
+      "name": "Flaky Test Diagnostics",
+      "count": 10,
+      "conclusions": {
+        "success": 10
+      },
+      "failureRate": 0,
+      "executionSeconds": {
+        "count": 10,
+        "missing": 0,
+        "median": 38.5,
+        "p90": 47,
+        "p95": 47,
+        "total": 369
+      },
+      "queueSeconds": {
+        "count": 10,
+        "missing": 0,
+        "median": 3,
+        "p90": 4,
+        "p95": 4,
+        "total": 32
+      },
+      "steps": [
+        {
+          "name": "Download current normalized observations",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 1,
+            "p90": 1,
+            "p95": 2,
+            "total": 10
+          }
+        },
+        {
+          "name": "Fetch bounded recent history",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 17,
+            "p90": 25,
+            "p95": 27,
+            "total": 173
+          }
+        },
+        {
+          "name": "Install dependencies without lifecycle scripts",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 5,
+            "p90": 8,
+            "p95": 10,
+            "total": 53
+          }
+        },
+        {
+          "name": "Set up Bun",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 1.5,
+            "p90": 2,
+            "p95": 3,
+            "total": 16
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 10,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Set up Node.js",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 1.5,
+            "p90": 3,
+            "p95": 6,
+            "total": 18
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 10,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Summarize flaky test candidates",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 0,
+            "p90": 1,
+            "p95": 1,
+            "total": 3
+          }
+        },
+        {
+          "name": "Upload normalized flake summary",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 13
+          }
+        }
+      ]
+    },
+    {
+      "name": "IndexedDB Browser Semantics",
+      "count": 30,
+      "conclusions": {
+        "success": 29,
+        "failure": 1
+      },
+      "failureRate": 0.03333333333333333,
+      "executionSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 49,
+        "p90": 63,
+        "p95": 68,
+        "total": 1483
+      },
+      "queueSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 3,
+        "p90": 21,
+        "p95": 29,
+        "total": 208
+      },
+      "steps": [
+        {
+          "name": "Check failure evidence budget",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 0,
+            "p90": 0,
+            "p95": 1,
+            "total": 1
+          }
+        },
+        {
+          "name": "Install dependencies",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "failure": 1
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 6,
+            "p90": 8,
+            "p95": 10,
+            "total": 181
+          }
+        },
+        {
+          "name": "Install Playwright browsers",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 30,
+            "p90": 40,
+            "p95": 43,
+            "total": 904
+          }
+        },
+        {
+          "name": "Run IndexedDB browser semantics",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 4,
+            "p90": 5,
+            "p95": 5,
+            "total": 119
+          }
+        },
+        {
+          "name": "Set up Bun",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 40
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Set up Node.js",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 1,
+            "p95": 2,
+            "total": 22
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Upload bounded failure evidence",
+          "count": 10,
+          "conclusions": {
+            "skipped": 10
+          },
+          "executionSeconds": {
+            "count": 0,
+            "missing": 10,
+            "median": null,
+            "p90": null,
+            "p95": null,
+            "total": 0
+          }
+        },
+        {
+          "name": "Upload normalized flake observations",
+          "count": 10,
+          "conclusions": {
+            "success": 10
+          },
+          "executionSeconds": {
+            "count": 10,
+            "missing": 0,
+            "median": 1,
+            "p90": 1,
+            "p95": 2,
+            "total": 9
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lint & Type Check",
+      "count": 30,
+      "conclusions": {
+        "success": 23,
+        "failure": 7
+      },
+      "failureRate": 0.23333333333333334,
+      "executionSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 51.5,
+        "p90": 56,
+        "p95": 57,
+        "total": 1301
+      },
+      "queueSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 3,
+        "p90": 21,
+        "p95": 25,
+        "total": 188
+      },
+      "steps": [
+        {
+          "name": "Audit dependencies",
+          "count": 30,
+          "conclusions": {
+            "success": 23,
+            "failure": 6,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 0,
+            "p90": 1,
+            "p95": 1,
+            "total": 14
+          }
+        },
+        {
+          "name": "Install dependencies",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "failure": 1
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 6,
+            "p90": 8,
+            "p95": 13,
+            "total": 186
+          }
+        },
+        {
+          "name": "Run architecture check",
+          "count": 30,
+          "conclusions": {
+            "success": 23,
+            "skipped": 7
+          },
+          "executionSeconds": {
+            "count": 23,
+            "missing": 7,
+            "median": 3,
+            "p90": 3,
+            "p95": 3,
+            "total": 59
+          }
+        },
+        {
+          "name": "Run formatter check",
+          "count": 30,
+          "conclusions": {
+            "success": 23,
+            "skipped": 7
+          },
+          "executionSeconds": {
+            "count": 23,
+            "missing": 7,
+            "median": 29,
+            "p90": 30,
+            "p95": 30,
+            "total": 617
+          }
+        },
+        {
+          "name": "Run secretlint",
+          "count": 30,
+          "conclusions": {
+            "success": 23,
+            "skipped": 7
+          },
+          "executionSeconds": {
+            "count": 23,
+            "missing": 7,
+            "median": 1,
+            "p90": 1,
+            "p95": 1,
+            "total": 18
+          }
+        },
+        {
+          "name": "Run type checking",
+          "count": 30,
+          "conclusions": {
+            "success": 23,
+            "skipped": 7
+          },
+          "executionSeconds": {
+            "count": 23,
+            "missing": 7,
+            "median": 5,
+            "p90": 6,
+            "p95": 6,
+            "total": 116
+          }
+        },
+        {
+          "name": "Set up Bun",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 40
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Set up Node.js",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 3,
+            "p95": 3,
+            "total": 43
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 30,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Verify Firefox source contract",
+          "count": 30,
+          "conclusions": {
+            "success": 23,
+            "skipped": 7
+          },
+          "executionSeconds": {
+            "count": 23,
+            "missing": 7,
+            "median": 0,
+            "p90": 1,
+            "p95": 1,
+            "total": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "Run Vitest Tests",
+      "count": 60,
+      "conclusions": {
+        "success": 56,
+        "failure": 4
+      },
+      "failureRate": 0.06666666666666667,
+      "executionSeconds": {
+        "count": 60,
+        "missing": 0,
+        "median": 91,
+        "p90": 136,
+        "p95": 139,
+        "total": 5771
+      },
+      "queueSeconds": {
+        "count": 60,
+        "missing": 0,
+        "median": 3,
+        "p90": 22,
+        "p95": 24,
+        "total": 377
+      },
+      "steps": [
+        {
+          "name": "Install dependencies",
+          "count": 60,
+          "conclusions": {
+            "success": 58,
+            "failure": 2
+          },
+          "executionSeconds": {
+            "count": 60,
+            "missing": 0,
+            "median": 6,
+            "p90": 8,
+            "p95": 9,
+            "total": 351
+          }
+        },
+        {
+          "name": "Run unit tests (shard 1/2)",
+          "count": 30,
+          "conclusions": {
+            "success": 28,
+            "failure": 1,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 108,
+            "p90": 124,
+            "p95": 125,
+            "total": 2969
+          }
+        },
+        {
+          "name": "Run unit tests (shard 2/2)",
+          "count": 30,
+          "conclusions": {
+            "success": 28,
+            "failure": 1,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 67,
+            "p90": 78,
+            "p95": 80,
+            "total": 1844
+          }
+        },
+        {
+          "name": "Set up Bun",
+          "count": 60,
+          "conclusions": {
+            "success": 60
+          },
+          "executionSeconds": {
+            "count": 60,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 87
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 60,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Set up Node.js",
+          "count": 60,
+          "conclusions": {
+            "success": 60
+          },
+          "executionSeconds": {
+            "count": 60,
+            "missing": 0,
+            "median": 1,
+            "p90": 3,
+            "p95": 4,
+            "total": 81
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 0,
+            "unobserved": 60,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Upload normalized flake observations",
+          "count": 20,
+          "conclusions": {
+            "success": 20
+          },
+          "executionSeconds": {
+            "count": 20,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 22
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify Build",
+      "count": 30,
+      "conclusions": {
+        "success": 29,
+        "failure": 1
+      },
+      "failureRate": 0.03333333333333333,
+      "executionSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 32.5,
+        "p90": 37,
+        "p95": 38,
+        "total": 966
+      },
+      "queueSeconds": {
+        "count": 30,
+        "missing": 0,
+        "median": 3,
+        "p90": 18,
+        "p95": 22,
+        "total": 156
+      },
+      "steps": [
+        {
+          "name": "Archive build artifacts",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 44
+          }
+        },
+        {
+          "name": "Build and package Chrome extension",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 4,
+            "p90": 5,
+            "p95": 5,
+            "total": 116
+          }
+        },
+        {
+          "name": "Build and package Firefox extension",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 5,
+            "p90": 5,
+            "p95": 6,
+            "total": 132
+          }
+        },
+        {
+          "name": "Install dependencies",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "failure": 1
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 6,
+            "p90": 7,
+            "p95": 8,
+            "total": 175
+          }
+        },
+        {
+          "name": "Report extension artifact size",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 0,
+            "p90": 1,
+            "p95": 1,
+            "total": 3
+          }
+        },
+        {
+          "name": "Set up Bun",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 2,
+            "p95": 2,
+            "total": 42
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 1,
+            "unobserved": 29,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Set up Node.js",
+          "count": 30,
+          "conclusions": {
+            "success": 30
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 3,
+            "p95": 4,
+            "total": 27
+          },
+          "cache": {
+            "restored": 0,
+            "missed": 0,
+            "unavailable": 1,
+            "unobserved": 29,
+            "restoreRate": null
+          }
+        },
+        {
+          "name": "Upload artifact size report",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "failure": 1
+          },
+          "executionSeconds": {
+            "count": 30,
+            "missing": 0,
+            "median": 1,
+            "p90": 1,
+            "p95": 2,
+            "total": 36
+          }
+        },
+        {
+          "name": "Verify Firefox artifact contract",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 0,
+            "p90": 0,
+            "p95": 0,
+            "total": 1
+          }
+        },
+        {
+          "name": "Verify generated manifest version",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 0,
+            "p90": 0,
+            "p95": 0,
+            "total": 0
+          }
+        },
+        {
+          "name": "Verify persistence release compatibility metadata",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 0,
+            "p90": 0,
+            "p95": 0,
+            "total": 1
+          }
+        },
+        {
+          "name": "Verify production network policy",
+          "count": 30,
+          "conclusions": {
+            "success": 29,
+            "skipped": 1
+          },
+          "executionSeconds": {
+            "count": 29,
+            "missing": 1,
+            "median": 7,
+            "p90": 8,
+            "p95": 8,
+            "total": 195
+          }
+        }
+      ]
+    }
+  ],
+  "runFields": [
+    "id",
+    "attempt",
+    "sha",
+    "event",
+    "conclusion",
+    "createdAt",
+    "attemptStartedAt",
+    "elapsedSeconds",
+    "attemptElapsedSeconds",
+    "runnerMinutes",
+    "roundedJobMinutesEstimate",
+    "lastCompletedJobIndex"
+  ],
+  "runs": [
+    [
+      38578597319,
+      1,
+      "085d5f16b4e5ea49244dff7a56d06e90fc4282a2",
+      "pull_request",
+      "success",
+      "2026-10-14T14:13:30Z",
+      "2026-10-14T14:13:30Z",
+      295,
+      295,
+      10.966666666666667,
+      13,
+      3
+    ],
+    [
+      38578574550,
+      1,
+      "8fdf7f68c25445193933233e45e3c8a30c508317",
+      "pull_request",
+      "failure",
+      "2026-10-14T14:13:21Z",
+      "2026-10-14T14:13:21Z",
+      334,
+      334,
+      11.6,
+      15,
+      3
+    ],
+    [
+      38578315709,
+      1,
+      "c3c42f700d1b46f709d0536c0182e571d9931ddd",
+      "push",
+      "success",
+      "2026-10-14T14:11:34Z",
+      "2026-10-14T14:11:34Z",
+      303,
+      303,
+      11.85,
+      15,
+      3
+    ],
+    [
+      38575566902,
+      1,
+      "34f007bda264071d293b7c5d42d75b6d41f30e55",
+      "pull_request",
+      "success",
+      "2026-10-14T13:52:52Z",
+      "2026-10-14T13:52:52Z",
+      302,
+      302,
+      11.533333333333333,
+      15,
+      3
+    ],
+    [
+      38572444599,
+      1,
+      "d25ce12c03e9b459adfc7186a34c9c7150caca54",
+      "pull_request",
+      "success",
+      "2026-10-14T13:31:06Z",
+      "2026-10-14T13:31:06Z",
+      325,
+      325,
+      12.35,
+      17,
+      3
+    ],
+    [
+      38572419834,
+      1,
+      "9193bb96e38ba366a14bbf34e334879caea435a4",
+      "pull_request",
+      "failure",
+      "2026-10-14T13:30:56Z",
+      "2026-10-14T13:30:56Z",
+      243,
+      243,
+      10.1,
+      15,
+      3
+    ],
+    [
+      38572114483,
+      1,
+      "75389a7228c3e471c02c47d8b219fb5bcf53010e",
+      "push",
+      "success",
+      "2026-10-14T13:28:46Z",
+      "2026-10-14T13:28:46Z",
+      218,
+      218,
+      9.466666666666667,
+      13,
+      3
+    ],
+    [
+      38570593357,
+      1,
+      "a7688f211c37d09fc3b324a25f4e59f9a06ad150",
+      "pull_request",
+      "success",
+      "2026-10-14T13:17:45Z",
+      "2026-10-14T13:17:45Z",
+      332,
+      332,
+      12.616666666666667,
+      16,
+      3
+    ],
+    [
+      38499051361,
+      1,
+      "772c2636e98e17901cdade8a98b9124510cf72e5",
+      "pull_request",
+      "success",
+      "2026-10-14T02:03:46Z",
+      "2026-10-14T02:03:46Z",
+      289,
+      289,
+      11.033333333333333,
+      14,
+      3
+    ],
+    [
+      38495750814,
+      1,
+      "1f281ef032ec0a5cfd678a93439a447f3fde1aca",
+      "pull_request",
+      "failure",
+      "2026-10-14T01:26:40Z",
+      "2026-10-14T01:26:40Z",
+      283,
+      283,
+      11.65,
+      14,
+      3
+    ],
+    [
+      38420804523,
+      1,
+      "75380185ff6612efc0d2d374133557ea9945b0eb",
+      "pull_request",
+      "success",
+      "2026-10-13T15:17:38Z",
+      "2026-10-13T15:17:38Z",
+      265,
+      265,
+      10,
+      13,
+      0
+    ],
+    [
+      38420788597,
+      1,
+      "7bf0d1e6b329bd2ac8946b439b7a5e11b9261ffb",
+      "pull_request",
+      "failure",
+      "2026-10-13T15:17:32Z",
+      "2026-10-13T15:17:32Z",
+      185,
+      185,
+      8.633333333333333,
+      13,
+      0
+    ],
+    [
+      38420478303,
+      1,
+      "0f80be99deee3814ace5b4abd4bd3badc25bc773",
+      "push",
+      "success",
+      "2026-10-13T15:15:25Z",
+      "2026-10-13T15:15:25Z",
+      237,
+      237,
+      10.766666666666667,
+      13,
+      0
+    ],
+    [
+      38418861930,
+      1,
+      "c03639ddb6acc535d950a3a803e348730f5a141a",
+      "pull_request",
+      "success",
+      "2026-10-13T15:04:18Z",
+      "2026-10-13T15:04:18Z",
+      269,
+      269,
+      11.166666666666666,
+      14,
+      0
+    ],
+    [
+      38354209684,
+      1,
+      "de1e73160fc077ed734677b133a49c3476e6c702",
+      "pull_request",
+      "success",
+      "2026-10-13T05:58:58Z",
+      "2026-10-13T05:58:58Z",
+      218,
+      218,
+      9.3,
+      12,
+      0
+    ],
+    [
+      38258282851,
+      1,
+      "4024e5a94f0a52f7cf5470a81417d5f6856a1a3d",
+      "pull_request",
+      "success",
+      "2026-10-12T13:48:25Z",
+      "2026-10-12T13:48:25Z",
+      297,
+      297,
+      11.533333333333333,
+      15,
+      0
+    ],
+    [
+      38258270361,
+      1,
+      "91dda6bcb957e3506985baaa1bc7c420fe0fb322",
+      "pull_request",
+      "failure",
+      "2026-10-12T13:48:18Z",
+      "2026-10-12T13:48:18Z",
+      260,
+      260,
+      10.216666666666667,
+      13,
+      0
+    ],
+    [
+      38258107603,
+      1,
+      "ae97b49388e900e79bc3a6831d62ee526380d148",
+      "push",
+      "success",
+      "2026-10-12T13:46:57Z",
+      "2026-10-12T13:46:57Z",
+      246,
+      246,
+      9.683333333333334,
+      13,
+      0
+    ],
+    [
+      38255024656,
+      1,
+      "2e02773b75cd1cbbbc166eb5ff2db35310b3f7cf",
+      "pull_request",
+      "success",
+      "2026-10-12T13:20:40Z",
+      "2026-10-12T13:20:40Z",
+      264,
+      264,
+      10.6,
+      13,
+      0
+    ],
+    [
+      38234197740,
+      1,
+      "b2674e8062289cb052c4cfec500391d92b1f29b5",
+      "pull_request",
+      "success",
+      "2026-10-12T10:06:15Z",
+      "2026-10-12T10:06:15Z",
+      205,
+      205,
+      8.85,
+      11,
+      0
+    ],
+    [
+      38234186986,
+      1,
+      "a7f43090cf8c3dbb3bafbb3679e9df86b2e31f67",
+      "pull_request",
+      "failure",
+      "2026-10-12T10:06:09Z",
+      "2026-10-12T10:06:09Z",
+      261,
+      261,
+      13.516666666666667,
+      17,
+      0
+    ],
+    [
+      38233976584,
+      1,
+      "c1e0a4acc2f0d81fbab7864f4017173a17d19d99",
+      "push",
+      "success",
+      "2026-10-12T10:04:15Z",
+      "2026-10-12T10:04:15Z",
+      207,
+      207,
+      9.533333333333333,
+      13,
+      0
+    ],
+    [
+      38228057301,
+      1,
+      "0f1bc387104e0b40f56d50ac5dc1131483bd6c5d",
+      "pull_request",
+      "success",
+      "2026-10-12T09:09:24Z",
+      "2026-10-12T09:09:24Z",
+      265,
+      265,
+      10.4,
+      13,
+      0
+    ],
+    [
+      38224150557,
+      1,
+      "2ec64f34ed080132c78b6a08a494cfe4ccc244ee",
+      "pull_request",
+      "failure",
+      "2026-10-12T08:32:07Z",
+      "2026-10-12T08:32:07Z",
+      257,
+      257,
+      10.716666666666667,
+      14,
+      0
+    ],
+    [
+      38169977260,
+      1,
+      "c1e0e267c71af908a6751b03e2f768f5767a0b9b",
+      "pull_request",
+      "success",
+      "2026-10-11T19:54:26Z",
+      "2026-10-11T19:54:26Z",
+      247,
+      247,
+      9.883333333333333,
+      13,
+      0
+    ],
+    [
+      38169969024,
+      1,
+      "a8603962a8fbad7c7a9865637899bfc827604b19",
+      "pull_request",
+      "failure",
+      "2026-10-11T19:54:18Z",
+      "2026-10-11T19:54:18Z",
+      165,
+      165,
+      8.6,
+      12,
+      0
+    ],
+    [
+      38169885500,
+      1,
+      "2f6198322a498676a1dbbbe127eca10f90a18c16",
+      "push",
+      "success",
+      "2026-10-11T19:53:05Z",
+      "2026-10-11T19:53:05Z",
+      253,
+      253,
+      10.383333333333333,
+      13,
+      0
+    ],
+    [
+      38155961468,
+      1,
+      "e7db48ac193898856493b2a70213ed1f3123ac05",
+      "pull_request",
+      "success",
+      "2026-10-11T16:33:28Z",
+      "2026-10-11T16:33:28Z",
+      257,
+      257,
+      9.583333333333334,
+      13,
+      0
+    ],
+    [
+      38152358136,
+      1,
+      "593252c5d5be6ab1c473aa63cd2c25d219f838c8",
+      "pull_request",
+      "success",
+      "2026-10-11T15:41:50Z",
+      "2026-10-11T15:41:50Z",
+      255,
+      255,
+      10.6,
+      14,
+      0
+    ],
+    [
+      38151412342,
+      1,
+      "e019a54d317cf2137f6e6ae1678789bb16ad60c9",
+      "pull_request",
+      "failure",
+      "2026-10-11T15:28:28Z",
+      "2026-10-11T15:28:28Z",
+      17,
+      17,
+      1.2166666666666666,
+      7,
+      6
+    ]
+  ],
+  "jobFields": [
+    "runIndex",
+    "id",
+    "jobIndex",
+    "conclusion",
+    "startOffsetSeconds",
+    "executionSeconds",
+    "queueSeconds",
+    "jobCacheOutcome"
+  ],
+  "jobSamples": [
+    [0, 115902177450, 5, "success", 10, 57, 9, "restored"],
+    [0, 115902177713, 0, "success", 27, 218, 26, "restored"],
+    [0, 115902177740, 7, "success", 19, 33, 18, "restored"],
+    [0, 115902177782, 6, "success", 25, 93, 24, "restored"],
+    [0, 115902177857, 1, "success", 29, 58, 28, "restored"],
+    [0, 115902177918, 6, "success", 29, 100, 28, "restored"],
+    [0, 115902178100, 4, "success", 30, 53, 29, "restored"],
+    [0, 115902179654, 2, "skipped", 1, null, null, "unobserved"],
+    [0, 115904291448, 3, "success", 249, 46, 4, "restored"],
+    [1, 115902098314, 1, "success", 4, 55, 3, "restored"],
+    [1, 115902098552, 6, "success", 3, 83, 2, "restored"],
+    [1, 115902098590, 7, "success", 4, 32, 3, "restored"],
+    [1, 115902098725, 6, "success", 3, 135, 2, "restored"],
+    [1, 115902098757, 4, "success", 3, 45, 2, "restored"],
+    [1, 115902098872, 0, "success", 3, 280, 2, "restored"],
+    [1, 115902098882, 5, "failure", 4, 19, 3, "restored"],
+    [1, 115902103397, 2, "skipped", 1, null, null, "unobserved"],
+    [1, 115904531404, 3, "success", 287, 47, 4, "restored"],
+    [2, 115901190659, 6, "success", 4, 94, 3, "restored"],
+    [2, 115901190985, 0, "success", 4, 257, 3, "restored"],
+    [2, 115901191009, 4, "success", 4, 45, 3, "restored"],
+    [2, 115901191046, 7, "success", 4, 32, 3, "restored"],
+    [2, 115901191185, 5, "success", 4, 55, 3, "restored"],
+    [2, 115901191198, 6, "success", 4, 138, 3, "restored"],
+    [2, 115901192137, 1, "success", 5, 52, 4, "restored"],
+    [2, 115901193291, 2, "skipped", 1, null, null, "unobserved"],
+    [2, 115903421730, 3, "success", 265, 38, 3, "restored"],
+    [3, 115891619592, 5, "success", 3, 51, 2, "restored"],
+    [3, 115891619991, 4, "success", 4, 44, 3, "restored"],
+    [3, 115891620008, 7, "success", 4, 29, 3, "restored"],
+    [3, 115891620095, 6, "success", 4, 126, 3, "restored"],
+    [3, 115891620163, 6, "success", 4, 100, 3, "restored"],
+    [3, 115891620375, 0, "success", 4, 265, 3, "restored"],
+    [3, 115891620548, 1, "success", 5, 47, 4, "restored"],
+    [3, 115891623246, 2, "skipped", 1, null, null, "unobserved"],
+    [3, 115893890272, 3, "success", 272, 30, 3, "restored"],
+    [4, 115880851953, 6, "success", 15, 66, 15, "restored"],
+    [4, 115880852208, 1, "success", 16, 89, 16, "restored"],
+    [4, 115880852303, 5, "success", 15, 59, 15, "restored"],
+    [4, 115880852341, 4, "success", 21, 63, 21, "restored"],
+    [4, 115880852611, 6, "success", 23, 130, 23, "restored"],
+    [4, 115880852769, 7, "success", 24, 33, 24, "unavailable"],
+    [4, 115880852779, 0, "success", 21, 270, 21, "restored"],
+    [4, 115880854861, 2, "skipped", 1, null, null, "unobserved"],
+    [4, 115883192525, 3, "success", 294, 31, 3, "restored"],
+    [5, 115880769320, 6, "success", 4, 71, 4, "restored"],
+    [5, 115880769321, 6, "success", 3, 129, 3, "restored"],
+    [5, 115880769361, 5, "failure", 3, 20, 3, "restored"],
+    [5, 115880769368, 4, "success", 3, 74, 3, "restored"],
+    [5, 115880769473, 1, "success", 3, 43, 3, "restored"],
+    [5, 115880769534, 0, "success", 3, 190, 3, "restored"],
+    [5, 115880769547, 7, "success", 4, 32, 4, "restored"],
+    [5, 115880772257, 2, "skipped", 1, null, null, "unobserved"],
+    [5, 115882314383, 3, "success", 196, 47, 3, "restored"],
+    [6, 115879730530, 0, "success", 6, 181, 4, "restored"],
+    [6, 115879730783, 6, "success", 6, 98, 4, "restored"],
+    [6, 115879731005, 6, "success", 6, 89, 4, "restored"],
+    [6, 115879731022, 1, "success", 6, 49, 4, "restored"],
+    [6, 115879731034, 4, "success", 6, 51, 4, "restored"],
+    [6, 115879731092, 5, "success", 6, 43, 4, "restored"],
+    [6, 115879731302, 7, "success", 6, 30, 4, "restored"],
+    [6, 115879732848, 2, "skipped", 2, null, null, "unobserved"],
+    [6, 115881234250, 3, "success", 191, 27, 3, "restored"],
+    [7, 115874441944, 5, "success", 4, 50, 2, "restored"],
+    [7, 115874442084, 6, "success", 4, 91, 2, "restored"],
+    [7, 115874442148, 0, "success", 5, 284, 3, "restored"],
+    [7, 115874442250, 4, "success", 5, 68, 3, "restored"],
+    [7, 115874442327, 7, "success", 5, 33, 3, "restored"],
+    [7, 115874442422, 6, "success", 4, 135, 2, "restored"],
+    [7, 115874442524, 1, "success", 5, 57, 3, "restored"],
+    [7, 115874443569, 2, "skipped", 2, null, null, "unobserved"],
+    [7, 115876734548, 3, "success", 293, 39, 3, "restored"],
+    [8, 115641388933, 7, "success", 3, 31, 2, "restored"],
+    [8, 115641389151, 5, "success", 4, 56, 3, "restored"],
+    [8, 115641389158, 6, "success", 3, 112, 2, "restored"],
+    [8, 115641389185, 6, "success", 4, 78, 3, "restored"],
+    [8, 115641389208, 4, "success", 4, 57, 3, "restored"],
+    [8, 115641389229, 0, "success", 3, 260, 2, "restored"],
+    [8, 115641389236, 1, "success", 3, 45, 2, "restored"],
+    [8, 115641390628, 2, "skipped", 1, null, null, "unobserved"],
+    [8, 115642630544, 3, "success", 266, 23, 3, "restored"],
+    [9, 115631000517, 7, "success", 3, 38, 3, "restored"],
+    [9, 115631000763, 6, "failure", 3, 88, 3, "restored"],
+    [9, 115631000793, 5, "success", 4, 54, 4, "restored"],
+    [9, 115631000812, 0, "failure", 4, 235, 4, "restored"],
+    [9, 115631000832, 6, "success", 4, 139, 4, "restored"],
+    [9, 115631000863, 1, "success", 3, 47, 3, "restored"],
+    [9, 115631000940, 4, "success", 3, 57, 3, "restored"],
+    [9, 115631002173, 2, "skipped", 1, null, null, "unobserved"],
+    [9, 115632149159, 3, "success", 242, 41, 3, "restored"],
+    [10, 115377284910, 6, "success", 23, 62, 22, "restored"],
+    [10, 115377285351, 1, "success", 38, 58, 37, "restored"],
+    [10, 115377285359, 7, "success", 23, 36, 22, "restored"],
+    [10, 115377285377, 6, "success", 24, 92, 23, "restored"],
+    [10, 115377285459, 4, "success", 32, 49, 31, "restored"],
+    [10, 115377285547, 0, "success", 18, 247, 17, "restored"],
+    [10, 115377285592, 5, "success", 28, 56, 27, "restored"],
+    [10, 115377286958, 2, "skipped", 1, null, null, "unobserved"],
+    [11, 115377229186, 5, "failure", 4, 17, 4, "restored"],
+    [11, 115377229622, 1, "success", 3, 73, 2, "restored"],
+    [11, 115377229689, 7, "success", 4, 38, 3, "restored"],
+    [11, 115377229826, 4, "success", 4, 53, 3, "restored"],
+    [11, 115377229887, 0, "success", 3, 182, 2, "restored"],
+    [11, 115377229945, 6, "success", 3, 91, 2, "restored"],
+    [11, 115377229973, 6, "success", 3, 64, 2, "restored"],
+    [11, 115377231800, 2, "skipped", 1, null, null, "unobserved"],
+    [12, 115376152447, 7, "success", 4, 37, 4, "restored"],
+    [12, 115376152795, 6, "success", 3, 82, 2, "restored"],
+    [12, 115376152900, 0, "success", 4, 233, 3, "restored"],
+    [12, 115376152902, 1, "success", 3, 47, 2, "restored"],
+    [12, 115376152971, 6, "success", 4, 143, 3, "restored"],
+    [12, 115376153024, 5, "success", 4, 52, 3, "restored"],
+    [12, 115376153113, 4, "success", 4, 52, 3, "restored"],
+    [12, 115376155134, 2, "skipped", 1, null, null, "unobserved"],
+    [13, 115370495876, 0, "success", 4, 265, 3, "restored"],
+    [13, 115370496005, 1, "success", 3, 50, 2, "restored"],
+    [13, 115370496013, 7, "success", 4, 34, 3, "restored"],
+    [13, 115370496071, 6, "success", 4, 154, 3, "restored"],
+    [13, 115370496120, 5, "success", 4, 53, 3, "restored"],
+    [13, 115370496418, 4, "success", 4, 45, 3, "restored"],
+    [13, 115370496435, 6, "success", 4, 69, 3, "restored"],
+    [13, 115370497100, 2, "skipped", 1, null, null, "unobserved"],
+    [14, 115153218734, 5, "success", 3, 50, 2, "restored"],
+    [14, 115153218918, 6, "success", 4, 75, 3, "restored"],
+    [14, 115153218929, 0, "success", 4, 214, 3, "restored"],
+    [14, 115153218940, 7, "success", 4, 39, 3, "restored"],
+    [14, 115153218972, 1, "success", 4, 44, 3, "restored"],
+    [14, 115153219082, 6, "success", 4, 89, 3, "restored"],
+    [14, 115153219148, 4, "success", 4, 47, 3, "restored"],
+    [14, 115153220041, 2, "skipped", 1, null, null, "unobserved"],
+    [15, 114841924507, 0, "success", 30, 267, 30, "restored"],
+    [15, 114841924537, 7, "success", 20, 26, 20, "restored"],
+    [15, 114841924642, 1, "success", 23, 51, 23, "restored"],
+    [15, 114841924662, 4, "success", 28, 64, 28, "restored"],
+    [15, 114841924768, 6, "success", 30, 145, 30, "restored"],
+    [15, 114841924802, 5, "success", 25, 55, 25, "restored"],
+    [15, 114841924870, 6, "success", 22, 84, 22, "restored"],
+    [15, 114841925842, 2, "skipped", 0, null, null, "unobserved"],
+    [16, 114841880059, 6, "success", 4, 119, 3, "restored"],
+    [16, 114841880288, 7, "success", 3, 31, 2, "restored"],
+    [16, 114841880337, 4, "success", 4, 53, 3, "restored"],
+    [16, 114841880369, 6, "success", 4, 84, 3, "restored"],
+    [16, 114841880385, 5, "failure", 4, 23, 3, "restored"],
+    [16, 114841880414, 0, "success", 4, 256, 3, "restored"],
+    [16, 114841880442, 1, "success", 4, 47, 3, "restored"],
+    [16, 114841881319, 2, "skipped", 1, null, null, "unobserved"],
+    [17, 114841325236, 6, "success", 3, 97, 2, "restored"],
+    [17, 114841325525, 1, "success", 4, 53, 3, "restored"],
+    [17, 114841325530, 4, "success", 4, 50, 3, "restored"],
+    [17, 114841325532, 6, "success", 3, 62, 2, "restored"],
+    [17, 114841325544, 5, "success", 3, 41, 2, "restored"],
+    [17, 114841325579, 7, "success", 4, 36, 3, "restored"],
+    [17, 114841325748, 0, "success", 4, 242, 3, "restored"],
+    [17, 114841327204, 2, "skipped", 1, null, null, "unobserved"],
+    [18, 114830747923, 4, "success", 3, 46, 3, "restored"],
+    [18, 114830748281, 5, "success", 3, 54, 2, "restored"],
+    [18, 114830748283, 7, "success", 3, 28, 2, "restored"],
+    [18, 114830748287, 1, "success", 4, 49, 3, "restored"],
+    [18, 114830748309, 0, "success", 4, 260, 3, "restored"],
+    [18, 114830748406, 6, "success", 3, 112, 2, "restored"],
+    [18, 114830748418, 6, "success", 3, 87, 2, "restored"],
+    [18, 114830749974, 2, "skipped", 1, null, null, "unobserved"],
+    [19, 114760728679, 7, "success", 3, 35, 2, "restored"],
+    [19, 114760729007, 6, "success", 18, 98, 17, "restored"],
+    [19, 114760729055, 4, "success", 20, 43, 19, "restored"],
+    [19, 114760729070, 5, "success", 22, 56, 21, "restored"],
+    [19, 114760729071, 1, "success", 21, 51, 20, "restored"],
+    [19, 114760729073, 6, "success", 28, 75, 27, "restored"],
+    [19, 114760729104, 0, "success", 32, 173, 31, "restored"],
+    [19, 114760731099, 2, "skipped", 1, null, null, "unobserved"],
+    [20, 114760692290, 4, "success", 3, 52, 2, "restored"],
+    [20, 114760692462, 7, "success", 3, 33, 2, "restored"],
+    [20, 114760692542, 6, "success", 4, 86, 3, "restored"],
+    [20, 114760692569, 5, "failure", 4, 15, 3, "restored"],
+    [20, 114760692661, 0, "success", 3, 258, 2, "restored"],
+    [20, 114760692718, 6, "success", 3, 132, 2, "restored"],
+    [20, 114760692729, 1, "success", 3, 235, 2, "restored"],
+    [20, 114760694607, 2, "skipped", 1, null, null, "unobserved"],
+    [21, 114760000042, 0, "success", 4, 203, 3, "restored"],
+    [21, 114760000170, 6, "success", 3, 63, 2, "restored"],
+    [21, 114760000182, 5, "success", 3, 41, 2, "restored"],
+    [21, 114760000185, 6, "success", 3, 136, 2, "restored"],
+    [21, 114760000268, 7, "success", 3, 31, 2, "restored"],
+    [21, 114760000279, 1, "success", 4, 53, 3, "restored"],
+    [21, 114760000292, 4, "success", 3, 45, 2, "restored"],
+    [21, 114760001014, 2, "skipped", 1, null, null, "unobserved"],
+    [22, 114740359807, 6, "success", 4, 91, 3, "restored"],
+    [22, 114740360076, 6, "success", 4, 108, 3, "restored"],
+    [22, 114740360128, 7, "success", 4, 33, 3, "restored"],
+    [22, 114740360137, 5, "success", 4, 39, 3, "restored"],
+    [22, 114740360175, 4, "success", 4, 44, 3, "restored"],
+    [22, 114740360237, 0, "success", 4, 261, 3, "restored"],
+    [22, 114740360356, 1, "success", 4, 48, 3, "restored"],
+    [22, 114740361765, 2, "skipped", 1, null, null, "unobserved"],
+    [23, 114727410551, 6, "failure", 4, 132, 3, "restored"],
+    [23, 114727410710, 0, "failure", 4, 253, 3, "restored"],
+    [23, 114727410771, 6, "success", 4, 84, 3, "restored"],
+    [23, 114727410862, 5, "success", 3, 53, 2, "restored"],
+    [23, 114727410863, 7, "success", 4, 32, 3, "restored"],
+    [23, 114727410886, 4, "success", 3, 43, 2, "restored"],
+    [23, 114727410924, 1, "success", 17, 46, 16, "restored"],
+    [23, 114727412094, 2, "skipped", 1, null, null, "unobserved"],
+    [24, 114560357312, 6, "success", 3, 83, 2, "restored"],
+    [24, 114560357379, 0, "success", 3, 244, 2, "restored"],
+    [24, 114560357439, 7, "success", 4, 36, 3, "restored"],
+    [24, 114560357449, 6, "success", 13, 85, 12, "restored"],
+    [24, 114560357478, 4, "success", 13, 41, 12, "restored"],
+    [24, 114560357491, 1, "success", 18, 50, 17, "restored"],
+    [24, 114560357537, 5, "success", 25, 54, 24, "restored"],
+    [24, 114560358424, 2, "skipped", 1, null, null, "unobserved"],
+    [25, 114560331079, 0, "success", 3, 162, 2, "restored"],
+    [25, 114560331176, 5, "failure", 4, 15, 3, "restored"],
+    [25, 114560331203, 4, "success", 3, 45, 2, "restored"],
+    [25, 114560331222, 7, "success", 3, 32, 2, "restored"],
+    [25, 114560331252, 6, "success", 3, 82, 2, "restored"],
+    [25, 114560331262, 1, "success", 3, 48, 2, "restored"],
+    [25, 114560331307, 6, "success", 4, 132, 3, "restored"],
+    [25, 114560331937, 2, "skipped", 1, null, null, "unobserved"],
+    [26, 114560081748, 7, "success", 3, 30, 2, "restored"],
+    [26, 114560081816, 6, "success", 4, 136, 3, "restored"],
+    [26, 114560081820, 0, "success", 4, 249, 3, "restored"],
+    [26, 114560081855, 4, "success", 4, 49, 3, "restored"],
+    [26, 114560081859, 5, "success", 4, 57, 3, "restored"],
+    [26, 114560081909, 6, "success", 4, 60, 3, "restored"],
+    [26, 114560082181, 1, "success", 4, 42, 3, "restored"],
+    [26, 114560082698, 2, "skipped", 1, null, null, "unobserved"],
+    [27, 114518878329, 6, "success", 3, 86, 3, "restored"],
+    [27, 114518878467, 1, "success", 3, 44, 3, "restored"],
+    [27, 114518878477, 6, "success", 3, 61, 3, "restored"],
+    [27, 114518878481, 4, "success", 4, 46, 4, "restored"],
+    [27, 114518878501, 0, "success", 3, 254, 3, "restored"],
+    [27, 114518878509, 7, "success", 3, 30, 3, "restored"],
+    [27, 114518878644, 5, "success", 3, 54, 3, "restored"],
+    [27, 114518879188, 2, "skipped", 1, null, null, "unobserved"],
+    [28, 114508238774, 7, "success", 4, 34, 3, "restored"],
+    [28, 114508238918, 5, "success", 4, 42, 3, "restored"],
+    [28, 114508238959, 4, "success", 4, 51, 3, "restored"],
+    [28, 114508238985, 6, "success", 4, 122, 3, "restored"],
+    [28, 114508239005, 6, "success", 4, 89, 3, "restored"],
+    [28, 114508239013, 0, "success", 4, 251, 3, "restored"],
+    [28, 114508239032, 1, "success", 3, 47, 2, "restored"],
+    [28, 114508239588, 2, "skipped", 1, null, null, "unobserved"],
+    [29, 114505482183, 5, "failure", 3, 10, 2, "restored"],
+    [29, 114505482329, 4, "failure", 3, 8, 2, "restored"],
+    [29, 114505482345, 6, "failure", 3, 14, 2, "restored"],
+    [29, 114505482365, 1, "failure", 3, 11, 2, "restored"],
+    [29, 114505482373, 7, "failure", 3, 12, 2, "restored"],
+    [29, 114505482464, 0, "failure", 4, 8, 3, "restored"],
+    [29, 114505482482, 6, "failure", 5, 10, 4, "restored"],
+    [29, 114505482992, 2, "skipped", 1, null, null, "unobserved"]
+  ]
+}

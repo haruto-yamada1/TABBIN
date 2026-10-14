@@ -13,8 +13,9 @@ on:
     branches: [main, develop]
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # A unique group also avoids replacing pending pushes when cancellation is off.
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint-typecheck:
@@ -52,7 +53,10 @@ jobs:
         run: bun run compile
 
       - name: Run formatter check
-        run: bun run check
+        run: bun run format:check
+
+      - name: Run lint
+        run: bun run lint
 
       - name: Run architecture check
         run: bun run arch:check
@@ -124,85 +128,17 @@ jobs:
       - name: Verify Firefox artifact contract
         run: bun run verify:firefox-artifact
 
-  run-tests-shard-1:
+  # Keep the existing required check name; coverage runs the full suite.
+  run-tests:
     name: Run Vitest Tests
     runs-on: ubuntu-latest
-    env:
-      FLAKE_REPORT_PATH: test-results/flake-run-tests-shard-1.json
-      FLAKE_SUITE: run-tests-shard-1
-
+    needs: [coverage]
+    if: ${{ !cancelled() }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: '.node-version'
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: '.bun-version'
-
-      - name: Verify toolchain versions
-        run: bun run verify:toolchain-versions
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run unit tests (shard 1/2)
-        run: bun run test --shard=1/2
-
-      - name: Upload normalized flake observations
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: flake-current-run-tests-shard-1
-          path: test-results/flake-run-tests-shard-1.json
-          if-no-files-found: warn
-          retention-days: 14
-
-  run-tests-shard-2:
-    name: Run Vitest Tests
-    runs-on: ubuntu-latest
-    env:
-      FLAKE_REPORT_PATH: test-results/flake-run-tests-shard-2.json
-      FLAKE_SUITE: run-tests-shard-2
-
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: '.node-version'
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: '.bun-version'
-
-      - name: Verify toolchain versions
-        run: bun run verify:toolchain-versions
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run unit tests (shard 2/2)
-        run: bun run test --shard=2/2
-
-      - name: Upload normalized flake observations
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: flake-current-run-tests-shard-2
-          path: test-results/flake-run-tests-shard-2.json
-          if-no-files-found: warn
-          retention-days: 14
+      - name: Require the complete covered suite to pass
+        env:
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+        run: test "$COVERAGE_RESULT" = success
 
   coverage:
     name: Coverage Thresholds
@@ -269,8 +205,23 @@ jobs:
       - name: Verify toolchain versions
         run: bun run verify:toolchain-versions
 
+      # Measured experiment: retain only if restore/save beats a fresh install.
+      - name: Cache Bun downloads (experiment)
+        id: bun-downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ci-perf-v1-${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('.node-version', '.bun-version', 'bun.lock', 'patches/**') }}
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Cache Playwright browsers (experiment)
+        id: playwright-browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ci-perf-v1-${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('.bun-version', 'bun.lock') }}
 
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium firefox
@@ -459,8 +410,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     needs:
-      - run-tests-shard-1
-      - run-tests-shard-2
       - coverage
       - indexeddb-browser-semantics
       - e2e-accessibility

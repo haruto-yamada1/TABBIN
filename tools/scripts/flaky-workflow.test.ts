@@ -30,8 +30,6 @@ const workflow = parse(readFileSync('.github/workflows/ci.yml', 'utf8')) as {
 }
 
 const testJobs = {
-  'run-tests-shard-1': 'bun run test --shard=1/2',
-  'run-tests-shard-2': 'bun run test --shard=2/2',
   coverage: 'bun run test:coverage',
   'indexeddb-browser-semantics': 'bun run test:indexeddb:browsers',
   'e2e-accessibility': 'bun run e2e:a11y',
