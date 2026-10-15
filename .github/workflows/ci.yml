@@ -221,12 +221,27 @@ jobs:
       - name: Run IndexedDB browser semantics
         run: bun run test:indexeddb:browsers
 
+      - name: Run MV3 persistence worker restart
+        env:
+          FLAKE_REPORT_PATH: test-results/mv3-worker/flake-mv3-worker.json
+          FLAKE_SUITE: persistence-mv3-worker
+        run: bunx playwright test --project=extension e2e/persistence-worker-restart.extension.spec.ts --output=test-results/mv3-worker
+
       - name: Upload normalized flake observations
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: flake-current-indexeddb-browser-semantics
           path: test-results/flake-indexeddb-browser-semantics.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload MV3 worker flake observations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-current-persistence-mv3-worker
+          path: test-results/mv3-worker/flake-mv3-worker.json
           if-no-files-found: warn
           retention-days: 14
 
