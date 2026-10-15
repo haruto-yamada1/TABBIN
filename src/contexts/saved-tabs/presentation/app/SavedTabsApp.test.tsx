@@ -1680,6 +1680,12 @@ describe('SavedTabsApp custom search', () => {
     } as SavedTabsUiFixtureApi
 
     render(<SavedTabsApp initialViewMode='domain' />)
+    await waitFor(() =>
+      expect(
+        mocked.tabDataState.refreshTabGroupsWithUrls,
+      ).toHaveBeenCalledOnce(),
+    )
+    mocked.tabDataState.refreshTabGroupsWithUrls.mockClear()
 
     const domainProps = mocked.domainModeContainerSpy.mock.calls.at(
       -1,
@@ -2804,16 +2810,19 @@ describe('SavedTabsApp custom search', () => {
       area: string,
     ) => void
 
-    listener(
-      {
-        userSettings: {
-          newValue: {},
-          oldValue: {},
+    await waitFor(() => expect(syncStorageChanges).toHaveBeenCalled())
+    vi.mocked(syncStorageChanges).mockClear()
+    await act(async () => {
+      listener(
+        {
+          userSettings: {
+            newValue: {},
+            oldValue: {},
+          },
         },
-      },
-      'local',
-    )
-    unmount()
+        'local',
+      )
+    })
 
     expect(syncStorageChanges).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2827,6 +2836,7 @@ describe('SavedTabsApp custom search', () => {
         ],
       }),
     )
+    unmount()
     expect(removeListener).toHaveBeenCalledWith(listener)
   })
 

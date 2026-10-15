@@ -212,6 +212,11 @@ const createDeps = (
   }
 
   return {
+    changePort: {
+      publish: vi.fn(async () => undefined),
+      subscribe: () => () => {},
+    },
+    idGenerator: { generate: () => 'import-change' },
     normalizeUserSettings: (settings) => settings,
     readUserSettings: vi.fn(async () => {
       events.push('read-settings')
@@ -253,6 +258,50 @@ const captureImportError = async (
 }
 
 describe('createImportBackupV2UseCase', () => {
+  it('publishes only metadata after verified import; notification failure never restores committed data', async () => {
+    const events: string[] = []
+    let eventsAtPublication: string[] = []
+    const publish = vi.fn(async () => {
+      eventsAtPublication = [...events]
+      throw new Error('private notification failure')
+    })
+    const deps = {
+      ...createDeps(events),
+      changePort: { publish, subscribe: () => () => {} },
+      idGenerator: { generate: () => 'import-change' },
+    }
+    const result = await createImportBackupV2UseCase(deps)(createInspection())
+    expect(eventsAtPublication).toEqual([
+      'capture',
+      'replace',
+      'write-settings',
+      'read-snapshot',
+      'read-settings',
+    ])
+    expect(publish).toHaveBeenCalledExactlyOnceWith({
+      changeId: 'import-change',
+      revision: 77,
+      scopes: [
+        'analyticsViews',
+        'categories',
+        'collections',
+        'conversations',
+        'groups',
+        'memberships',
+        'recoverySnapshots',
+        'urls',
+      ],
+    })
+    expect(result).toMatchObject({
+      revision: 77,
+      notification: {
+        kind: 'commit_succeeded_notification_failed',
+        diagnostic: { revision: 77, stage: 'change_publication' },
+      },
+    })
+    expect(deps.recovery?.restore).not.toHaveBeenCalled()
+  })
+
   it('imports a normalized current inspection and verifies readback', async () => {
     const events: string[] = []
     const deps = createDeps(events)
@@ -261,6 +310,23 @@ describe('createImportBackupV2UseCase', () => {
     const result = await createImportBackupV2UseCase(deps)(inspection)
 
     expect(result).toEqual({
+      notification: {
+        kind: 'committed_and_published',
+        event: {
+          changeId: 'import-change',
+          revision: 77,
+          scopes: [
+            'analyticsViews',
+            'categories',
+            'collections',
+            'conversations',
+            'groups',
+            'memberships',
+            'recoverySnapshots',
+            'urls',
+          ],
+        },
+      },
       entityCounts: inspection.preview.entityCounts,
       revision: 77,
     })

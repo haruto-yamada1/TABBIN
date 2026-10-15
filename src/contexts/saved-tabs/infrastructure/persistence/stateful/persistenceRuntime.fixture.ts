@@ -126,6 +126,13 @@ export const createPersistenceRuntime = async () => {
   })
   let recovery: PersistenceLogicalSnapshot | null = null
   const importBackup = createImportBackupV2UseCase({
+    changePort: {
+      publish: async () => {
+        await Promise.resolve()
+      },
+      subscribe: () => () => {},
+    },
+    idGenerator: { generate: () => 'import-change' },
     normalizeUserSettings: (value) => value,
     readUserSettings,
     writeUserSettings: async (value) => {

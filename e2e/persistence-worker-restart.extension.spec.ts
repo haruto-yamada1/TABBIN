@@ -111,6 +111,12 @@ test('MV3 worker restart preserves a committed delete and accepts the next backg
   await page.goto(getExtensionUrl(extensionId, 'app.html#/saved-tabs'))
   await expect(page.getByText('Before worker restart')).toBeVisible()
   await expect(page.getByText('After worker restart')).toBeVisible()
+  const observer = await extensionContext.newPage()
+  const options = await extensionContext.newPage()
+  await observer.goto(getExtensionUrl(extensionId, 'app.html#/saved-tabs'))
+  await options.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+  await expect(observer.getByText('After worker restart')).toBeVisible()
+  await expect(options.getByRole('button', { name: /export/i })).toBeVisible()
   expect(
     await page.evaluate(async () =>
       chrome.runtime.sendMessage({
@@ -162,7 +168,8 @@ test('MV3 worker restart preserves a committed delete and accepts the next backg
   expect(afterRestart.collections).toEqual([])
   expect(afterRestart.memberships).toEqual([])
   expect(afterRestart.urls).toEqual([])
-  await page.reload()
   await expect(page.getByText('After worker restart')).toBeHidden()
+  await expect(observer.getByText('After worker restart')).toBeHidden()
+  await expect(options.getByRole('button', { name: /export/i })).toBeVisible()
   await cdp.detach()
 })

@@ -131,6 +131,7 @@ describe('optionsBackupRecovery composition', () => {
       restore: vi.fn(async () => ({ notification, revision: 14 })),
     }
     const importBackupV2 = vi.fn(async () => ({
+      notification,
       entityCounts: {
         analyticsViews: 0,
         categories: 0,
@@ -196,6 +197,8 @@ describe('optionsBackupRecovery composition', () => {
       writeUserSettings: expect.any(Function),
     })
     expect(createImportUseCase).toHaveBeenCalledWith({
+      changePort: deps.changePort,
+      idGenerator: deps.idGenerator,
       normalizeUserSettings: deps.normalizeUserSettings,
       readUserSettings: deps.readUserSettings,
       recovery: {

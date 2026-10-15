@@ -187,6 +187,8 @@ const createRuntime = (
     writeUserSettings,
   })
   const importBackupV2 = deps.createImportUseCase({
+    changePort: deps.changePort,
+    idGenerator: deps.idGenerator,
     normalizeUserSettings: deps.normalizeUserSettings,
     readUserSettings: deps.readUserSettings,
     recovery: {

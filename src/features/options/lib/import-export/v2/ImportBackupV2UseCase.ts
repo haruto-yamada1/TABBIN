@@ -3,6 +3,8 @@ import {
   hasBlockingPersistenceIntegrityIssues,
 } from '@/contexts/saved-tabs/public-api'
 import type {
+  IdGeneratorPort,
+  PersistenceChangePort,
   PersistenceLogicalSnapshot,
   PersistenceV2ReplacementPort,
   PersistenceV2ReplacementTarget,
@@ -20,6 +22,11 @@ import {
   BackupEnvelopeV2Schema,
 } from './BackupV2Schema'
 import type { BackupDataV2, BackupEnvelopeV2 } from './BackupV2Schema'
+import {
+  publishPostCommitNotification,
+  RESTORE_CHANGE_SCOPES,
+} from './PreImportRecoverySnapshotService'
+import type { RecoverySnapshotNotificationOutcome } from './PreImportRecoverySnapshotService'
 
 export type BackupV2ImportErrorCode =
   | 'BACKUP_INTEGRITY_FAILED'
@@ -64,6 +71,8 @@ export type OverwriteRecoveryCapability = {
 }
 
 export type ImportBackupV2UseCaseDeps = {
+  readonly changePort: PersistenceChangePort
+  readonly idGenerator: IdGeneratorPort
   /** Must use the same normalization policy as writeUserSettings. */
   readonly normalizeUserSettings: (settings: UserSettings) => UserSettings
   readonly readUserSettings: () => Promise<UserSettings>
@@ -76,6 +85,7 @@ export type ImportBackupV2UseCaseDeps = {
 }
 
 export type ImportBackupV2Result = {
+  readonly notification: RecoverySnapshotNotificationOutcome
   readonly entityCounts: BackupPreviewEntityCounts
   readonly revision: number
 }
@@ -248,7 +258,14 @@ export const createImportBackupV2UseCase = (
       return restoreAndThrow(recovery, recoveryId, 'READBACK_MISMATCH')
     }
 
+    const notification = await publishPostCommitNotification({
+      changePort: deps.changePort,
+      idGenerator: deps.idGenerator,
+      revision: replacementResult.revision,
+      scopes: RESTORE_CHANGE_SCOPES,
+    })
     return {
+      notification,
       entityCounts: createEntityCounts(requestedData),
       revision: replacementResult.revision,
     }

@@ -54,6 +54,7 @@ import {
   shouldWaitForInitialViewMode,
   syncSavedTabsViewModeLocation,
   syncStorageChanges,
+  useSavedTabsStorageSync,
 } from './savedTabsApp.helpers'
 
 // eslint-disable-next-line import/no-unassigned-import
@@ -355,15 +356,20 @@ const useSavedTabsAppView = ({
     [handleDeleteCategory, refreshTabGroupsWithUrls],
   )
 
-  // ストレージ変更検出時のリスナー。`StorageChangePort` 経由で chrome API 実装
-  // (infrastructure 層) と疎結合にし、port 境界をまたいだ購読 / 解除として
-  // 扱う（issue #503）。React 側は購読開始 / 解除と state 反映のみに責務を絞り、
-  // Chrome ストレージ変更通知の詳細は port 実装側に閉じ込めている。
-  useEffect(() => {
-    const unsubscribe = deps.storageChangePort.subscribe((changes) => {
-      console.log('ストレージ変更を検出:', changes)
-      void syncStorageChanges({
-        changes,
+  useSavedTabsStorageSync(
+    deps.storageChangePort,
+    async (changes) => {
+      if (changes.some((change) => change.key === 'urls')) {
+        const pageData = await savedTabsUseCases.getSavedTabsPageData()
+        await refreshTabGroupsWithUrls(
+          pageData.tabGroups.map(toSavedTabsTabGroupViewModel),
+        )
+        setCategories([...pageData.parentCategories])
+        setSettings(pageData.userSettings)
+        await syncDomainDataToCustomProjects()
+      }
+      await syncStorageChanges({
+        changes: changes.filter((change) => change.key !== 'urls'),
         refreshTabGroupsWithUrls,
         setCategories,
         setCustomProjects,
@@ -371,18 +377,9 @@ const useSavedTabsAppView = ({
         syncDomainDataToCustomProjects,
         viewModeRef,
       })
-    })
-    return () => {
-      unsubscribe()
-    }
-  }, [
-    deps.storageChangePort,
-    refreshTabGroupsWithUrls,
-    syncDomainDataToCustomProjects,
-    setCategories,
-    setCustomProjects,
-    viewModeRef,
-  ])
+    },
+    !isLoading,
+  )
 
   useEffect(() => {
     if (previousInitialViewModeRef.current !== initialViewMode) {
