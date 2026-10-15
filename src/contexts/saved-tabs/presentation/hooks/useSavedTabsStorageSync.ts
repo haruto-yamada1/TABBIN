@@ -14,7 +14,8 @@ const CURRENT_DATA_HINT: TypedSavedTabsStorageChange = {
 }
 
 // All deliveries and lifecycle repairs share one drain, so an older read cannot
-// finish after a newer one. Notifications remain hints; the query owns the data.
+// finish after a newer one, including across effect cleanup/setup. Notifications
+// remain hints; the query owns the data.
 export const useSavedTabsStorageSync = (
   changePort: StorageChangePort,
   synchronize: (
@@ -23,6 +24,7 @@ export const useSavedTabsStorageSync = (
   initialLoadComplete = true,
 ) => {
   const synchronizeRef = useRef(synchronize)
+  const inFlightDrainRef = useRef<Promise<void> | undefined>(undefined)
   useLayoutEffect(() => {
     synchronizeRef.current = synchronize
   }, [synchronize])
@@ -32,6 +34,7 @@ export const useSavedTabsStorageSync = (
       return () => {}
     }
     let disposed = false
+    const isDisposed = () => disposed
     let draining = false
     const pending = new Map<
       TypedSavedTabsStorageChange['key'],
@@ -39,7 +42,9 @@ export const useSavedTabsStorageSync = (
     >()
 
     const drain = async (): Promise<void> => {
-      draining = true
+      if (isDisposed()) {
+        return
+      }
       const changes = [...pending.values()]
       pending.clear()
       try {
@@ -47,7 +52,7 @@ export const useSavedTabsStorageSync = (
       } catch {
         logger.error('saved_tabs_synchronization_failed', {})
       }
-      if (!disposed && pending.size > 0) {
+      if (!isDisposed() && pending.size > 0) {
         return drain()
       }
       draining = false
@@ -60,7 +65,16 @@ export const useSavedTabsStorageSync = (
         pending.set(change.key, change)
       }
       if (!draining) {
-        void drain()
+        draining = true
+        const previous = inFlightDrainRef.current
+        const current = previous ? previous.then(drain, drain) : drain()
+        inFlightDrainRef.current = current
+        const finish = () => {
+          if (inFlightDrainRef.current === current) {
+            inFlightDrainRef.current = undefined
+          }
+        }
+        void current.then(finish, finish)
       }
     }
     const refresh = () => {

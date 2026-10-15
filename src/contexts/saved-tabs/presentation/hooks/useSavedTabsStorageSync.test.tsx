@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type {
@@ -27,6 +28,90 @@ const createPort = () => {
 }
 
 describe('useSavedTabsStorageSync', () => {
+  it.each(['changePort', 'initialLoadComplete'] as const)(
+    'serializes old and new reads across a %s effect transition',
+    async (transition) => {
+      const original = createPort()
+      const replacement = createPort()
+      const heldRead = Promise.withResolvers<string>()
+      const applied: string[] = []
+      let reads = 0
+      const synchronize = vi.fn(async () => {
+        reads += 1
+        const value = reads === 1 ? await heldRead.promise : 'current'
+        applied.push(value)
+      })
+      const { rerender } = renderHook(
+        ({ port, ready }) => useSavedTabsStorageSync(port, synchronize, ready),
+        { initialProps: { port: original.port, ready: true } },
+      )
+      expect(synchronize).toHaveBeenCalledOnce()
+      await act(async () => {
+        if (transition === 'changePort') {
+          rerender({ port: replacement.port, ready: true })
+        } else {
+          rerender({ port: original.port, ready: false })
+        }
+      })
+      if (transition === 'initialLoadComplete') {
+        await act(async () => {
+          rerender({ port: original.port, ready: true })
+        })
+      }
+      await act(async () => {
+        heldRead.resolve('old')
+      })
+      await waitFor(() => expect(applied).toHaveLength(2))
+      expect(applied).toEqual(['old', 'current'])
+      expect(synchronize).toHaveBeenCalledTimes(2)
+    },
+  )
+
+  it('serializes the StrictMode effect replay with the first in-flight read', async () => {
+    const { port } = createPort()
+    const heldRead = Promise.withResolvers<string>()
+    const applied: string[] = []
+    let reads = 0
+    const synchronize = vi.fn(async () => {
+      reads += 1
+      const value = reads === 1 ? await heldRead.promise : 'current'
+      applied.push(value)
+    })
+    renderHook(() => useSavedTabsStorageSync(port, synchronize), {
+      wrapper: StrictMode,
+    })
+    await act(async () => {
+      heldRead.resolve('old')
+    })
+    await waitFor(() => expect(applied).toHaveLength(2))
+    expect(applied).toEqual(['old', 'current'])
+    expect(synchronize).toHaveBeenCalledTimes(2)
+  })
+
+  it('skips a retired effect queued behind an earlier read', async () => {
+    const ports = [createPort(), createPort(), createPort()] as const
+    const heldRead = Promise.withResolvers<string>()
+    const applied: string[] = []
+    let reads = 0
+    const synchronize = vi.fn(async () => {
+      reads += 1
+      const value = reads === 1 ? await heldRead.promise : 'current'
+      applied.push(value)
+    })
+    const { rerender } = renderHook(
+      ({ port }) => useSavedTabsStorageSync(port, synchronize),
+      { initialProps: { port: ports[0].port } },
+    )
+    rerender({ port: ports[1].port })
+    rerender({ port: ports[2].port })
+    await act(async () => {
+      heldRead.resolve('old')
+    })
+    await waitFor(() => expect(applied).toHaveLength(2))
+    expect(applied).toEqual(['old', 'current'])
+    expect(synchronize).toHaveBeenCalledTimes(2)
+  })
+
   it('waits for initial loading, then subscribes and repairs commits missed during loading', async () => {
     const { port } = createPort()
     const subscribe = vi.spyOn(port, 'subscribe')

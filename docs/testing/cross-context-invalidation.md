@@ -13,7 +13,9 @@ The import now publishes after replacement, settings write, and verified
 readback. Notification failure is a typed partial success and does not restore
 or repeat the committed import. Saved Tabs subscribes and repairs after its
 initial load, coalesces pending changes by key, serializes refreshes, and repairs
-on focus or becoming visible. Settings continue through their existing storage
+on focus or becoming visible. The in-flight drain is shared across effect
+cleanup/setup so port/readiness changes and StrictMode replay also retain read
+ordering. Settings continue through their existing storage
 boundary. These changes require no schema migration or new extension permission.
 
 ## Browser checks
