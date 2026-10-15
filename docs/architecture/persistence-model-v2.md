@@ -728,7 +728,28 @@ Readiness does not scan the complete domain snapshot. Snapshot readers retain
 record decoding and blocking integrity checks, while recovery snapshots stay
 accessible even when current domain records are damaged. Database failures are
 reported through the typed persistence recovery path; retry closes and reopens
-the connection. Recovery never falls back to legacy Chrome Storage.
+the connection and revalidates the snapshot before clearing the notice. Decode
+failures and blocking integrity findings also report
+`PERSISTENCE_RECOVERY_REQUIRED`; no rows are implicitly repaired or deleted.
+Recovery never falls back to legacy Chrome Storage.
+
+The notice offers a local saved-tab rescue export when normal reads or Backup
+V2 export cannot pass validation. One readonly transaction reads URL,
+collection, membership, category, group, and metadata stores, including invalid
+and orphan records. Settings, chats, analytics, and previous recovery snapshots
+are outside this file. The envelope uses `format: tabbin-saved-tabs-recovery`,
+`version: 1`, and `encoding: tagged-json-v1`, without a Backup V2 `schemaVersion`.
+Normal import rejects it; manual inspection and repair are required.
+
+Encoded values are arrays beginning with a type tag. `['json', value]` retains
+JSON-safe subtrees; `array` contains encoded elements and `object` contains
+`[key, encodedValue]` pairs. `number` retains `NaN`, `Infinity`, `-Infinity`,
+and `-0` as strings; `undefined` has no payload, `bigint` contains a decimal
+string, and `date` contains encoded epoch milliseconds. User data inside a
+`json` subtree cannot impersonate encoding tags. Unsupported structured-clone
+values (including Maps, cycles, and sparse arrays) abort export with a safe
+error before download, without silently omitting records. Export remains local,
+retains source data, and uses the existing download size limit.
 
 Normal reads and writes retain the stable cross-context Web Lock in shared
 mode. The existing lock name is preserved so overlapping extension contexts

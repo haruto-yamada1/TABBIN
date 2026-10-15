@@ -9,6 +9,7 @@ import { PersistenceOperationGateService } from '@/contexts/saved-tabs/applicati
 import { PersistenceRecoveryService } from '@/contexts/saved-tabs/application/services/PersistenceRecoveryService'
 import { WebLocksPersistenceCoordinationAdapter } from '@/contexts/saved-tabs/infrastructure/browser/WebLocksPersistenceCoordinationAdapter'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
+import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { isObjectLike } from '@/lib/browser/chrome-global'
 
 export type PersistenceBootstrapRuntime = {
@@ -50,6 +51,10 @@ export const createPersistenceBootstrapRuntime = (
     retry: async () => {
       connectionManager.close()
       await bootstrap.ready()
+      await new IndexedDbPersistenceSnapshotReader(
+        connectionManager,
+        operationGate,
+      ).readConsistentSnapshot()
     },
   })
   const operationGate = new PersistenceOperationGateService({

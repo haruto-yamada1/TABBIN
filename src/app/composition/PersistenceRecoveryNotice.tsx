@@ -22,6 +22,22 @@ export const PersistenceRecoveryNotice = ({
   )
   const [actionError, setActionError] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = useCallback((): void => {
+    setActionError(false)
+    setIsExporting(true)
+    void import('./persistenceRecoveryExport')
+      .then(async ({ exportSavedTabsRecoveryData }) =>
+        exportSavedTabsRecoveryData(),
+      )
+      .catch(() => {
+        setActionError(true)
+      })
+      .finally(() => {
+        setIsExporting(false)
+      })
+  }, [])
 
   const handleRetry = useCallback((): void => {
     setActionError(false)
@@ -53,7 +69,7 @@ export const PersistenceRecoveryNotice = ({
   return (
     <section
       aria-live='assertive'
-      className='fixed inset-x-4 top-4 z-100 mx-auto flex max-w-3xl flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-foreground shadow-lg'
+      className='fixed inset-x-4 top-4 z-100 mx-auto flex max-w-3xl flex-col gap-3 rounded-lg border border-destructive/40 bg-background p-4 text-foreground shadow-lg'
       role='alert'
     >
       <div>
@@ -63,7 +79,7 @@ export const PersistenceRecoveryNotice = ({
         <p className='text-sm text-foreground/80'>
           {t(
             'options.persistenceRecovery.description',
-            'Database could not be opened. Existing data has not been deleted.',
+            'Saved data could not be read. Existing data has not been deleted.',
           )}
         </p>
       </div>
@@ -84,6 +100,12 @@ export const PersistenceRecoveryNotice = ({
           {t('options.persistenceRecovery.copyDiagnostic', 'Copy error code')}
         </Button>
       </details>
+      <p className='text-sm text-foreground/80'>
+        {t(
+          'options.persistenceRecovery.rescueDescription',
+          'Export saved tabs for manual repair. The file contains private data and cannot be imported as a backup. Store it securely.',
+        )}
+      </p>
       {actionError ? (
         <p className='text-sm text-destructive'>
           {t(
@@ -94,7 +116,18 @@ export const PersistenceRecoveryNotice = ({
       ) : null}
       <div className='flex flex-wrap justify-end gap-2'>
         <Button
-          disabled={isRetrying}
+          disabled={isRetrying || isExporting}
+          onClick={handleExport}
+          type='button'
+          variant='outline'
+        >
+          {t(
+            'options.persistenceRecovery.rescueExport',
+            'Export saved-tab recovery data',
+          )}
+        </Button>
+        <Button
+          disabled={isRetrying || isExporting}
           onClick={handleRetry}
           type='button'
           variant='outline'

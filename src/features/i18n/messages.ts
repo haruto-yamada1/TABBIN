@@ -549,7 +549,7 @@ const messages = {
       'The emergency backup contains private URLs, titles, notes, and AI content. Store it securely.',
     'options.persistenceRecovery.copyDiagnostic': 'Copy error code',
     'options.persistenceRecovery.description':
-      'Database could not be opened. Existing data has not been deleted.',
+      'Saved data could not be read. Existing data has not been deleted.',
     'options.persistenceRecovery.diagnostic': 'Error code',
     'options.persistenceRecovery.diskWriteFailed':
       'Writing data to browser storage failed.',
@@ -559,6 +559,10 @@ const messages = {
       'There is not enough browser storage to complete the update.',
     'options.persistenceRecovery.recheck': 'Run checks and retry',
     'options.persistenceRecovery.retry': 'Retry',
+    'options.persistenceRecovery.rescueDescription':
+      'Export saved tabs for manual repair. The file contains private data and cannot be imported as a backup. Store it securely.',
+    'options.persistenceRecovery.rescueExport':
+      'Export saved-tab recovery data',
     'options.persistenceRecovery.storageUnavailable':
       'Browser storage is currently unavailable.',
     'options.persistenceRecovery.title': 'Storage recovery required',
@@ -1454,7 +1458,7 @@ const messages = {
       '緊急バックアップには非公開のURL、タイトル、メモ、AIの内容が含まれます。安全な場所に保管してください。',
     'options.persistenceRecovery.copyDiagnostic': 'エラーコードをコピー',
     'options.persistenceRecovery.description':
-      'データベースを開けませんでした。既存のデータは削除されていません。',
+      '保存データを読み取れませんでした。既存のデータは削除されていません。',
     'options.persistenceRecovery.diagnostic': 'エラーコード',
     'options.persistenceRecovery.diskWriteFailed':
       'ブラウザの保存領域への書き込みに失敗しました。',
@@ -1464,6 +1468,10 @@ const messages = {
       'データの更新に必要なブラウザの保存領域を確保できませんでした。',
     'options.persistenceRecovery.recheck': '事前確認を再実行して再試行',
     'options.persistenceRecovery.retry': '再試行',
+    'options.persistenceRecovery.rescueDescription':
+      '手動での修復用に保存タブをエクスポートできます。個人データを含み、バックアップとしてはインポートできません。安全な場所に保管してください。',
+    'options.persistenceRecovery.rescueExport':
+      '保存タブの救出データをエクスポート',
     'options.persistenceRecovery.storageUnavailable':
       'ブラウザの保存領域を現在利用できません。',
     'options.persistenceRecovery.title': '保存領域の復旧が必要です',
