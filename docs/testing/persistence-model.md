@@ -120,10 +120,9 @@ command 表示には操作名と synthetic fixture の識別子を使い、raw U
 ## 対象範囲と browser 検証
 
 この suite は単一 context の逐次操作を検証する。transaction 中断、同時実行の
-interleaving、MV3 service worker の終了・再起動、複数 extension context の同期は
-[#885](https://github.com/haruto-yamada1/TABBIN/issues/885) /
-[#902](https://github.com/haruto-yamada1/TABBIN/issues/902) の browser / concurrency
-検証に接続する。破損状態の検出 oracle はここでも使うが、破損をユーザーへ示す UI、
+interleaving、writer 再起動は [並行操作の回帰検証](./persistence-concurrency.md)
+と実 browser suite で扱う。複数 extension context の UI 同期は
+[#902](https://github.com/haruto-yamada1/TABBIN/issues/902) の対象である。破損状態の検出 oracle はここでも使うが、破損をユーザーへ示す UI、
 recovery 導線、修復操作は [#903](https://github.com/haruto-yamada1/TABBIN/issues/903)
 の対象である。
 
