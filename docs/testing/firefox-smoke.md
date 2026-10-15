@@ -123,7 +123,7 @@ Issue #722 の受け入れ条件に対する Phase 1 + 2 + 3 の対応と残課�
 - [x] options または saved tabs の主要画面を開けることを検証する — Phase 3b の title render assertion
 - [x] Chrome 専用 API 利用が混入した場合の検出方法がある — Phase 3a verifier が `chrome-extension://` literal と chrome-only API を CI 常時 enforce
 - [x] IndexedDB の fresh / restart / read / write / recovery / Backup V2 を検証する — Phase 4 の non-skippable smoke。Chrome Storage の旧 control / preflight metadata が現在の起動を妨げないことも検証する
-- [~] CI / nightly / release gate の実行タイミングが決定されている — Phase 1 / 3a は CI / release:check で常時、Phase 2 / 3b は workflow_dispatch で manual gate。nightly cron 自動実行は follow-up issue で整備
+- [x] CI / release gate の実行タイミングが決定されている — Phase 1 / 3a は CI / release:check で常時、Phase 4 IndexedDB smoke は release:check / release:zip の必須 gate。Phase 2 / 3b は workflow_dispatch で manual gate。nightly cron 自動実行は follow-up issue で整備
 
 ## follow-up 候補
 
@@ -164,7 +164,7 @@ FIREFOX_EXTENSION_SMOKE=1 bun run test:firefox:smoke
 CI で manual 実行する場合は `Actions` タブから `CI` workflow を
 `Run workflow` で dispatch する。`firefox-extension-smoke` job が走る。
 
-### Phase 4 Firefox IndexedDB smoke (manual gate)
+### Phase 4 Firefox IndexedDB smoke (release gate / manual CI)
 
 ```bash
 export GECKODRIVER_PATH=/path/to/geckodriver
@@ -175,6 +175,9 @@ bun run test:firefox:indexeddb-smoke
 この command は Firefox artifact と browser harness を build してから、WebDriver で
 fresh / native IndexedDB fixture / restart / read / write / recovery / Backup V2 を実行する。
 skip や `|| true` で unsupported 環境を成功扱いにしない。
+`release:check` は `release:e2e` 経由でこの command を必ず実行し、`release:zip` も
+成功を配布条件にします。通常 PR CI の範囲は増やしません。前提環境と Chrome 側の
+必須導線は [リリース手順](../release.md#配布前の-e2e) を参照してください。
 
 Chrome の更新 smoke は、別々に build した変更前 / 現行 artifact を指定する。
 
