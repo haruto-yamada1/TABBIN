@@ -49,7 +49,7 @@ const KIBIBYTE = 1_024
 export const RECOVERY_CAPACITY_MINIMUM_RESERVE_BYTES = KIBIBYTE * KIBIBYTE
 export const RECOVERY_CAPACITY_RESERVE_RATIO = 0.2
 
-const RESTORE_CHANGE_SCOPES = [
+export const RESTORE_CHANGE_SCOPES = [
   'analyticsViews',
   'categories',
   'collections',
@@ -268,7 +268,7 @@ const createNotificationFailure = (
   kind: 'commit_succeeded_notification_failed',
 })
 
-const publishPostCommitNotification = async ({
+export const publishPostCommitNotification = async ({
   changePort,
   idGenerator,
   revision,

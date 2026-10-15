@@ -199,6 +199,8 @@ describe('concurrent persistence operations across independent connections', () 
     await paused.entered
     let settings = backup.data.userSettings
     const importBackup = createImportBackupV2UseCase({
+      changePort: { publish: async () => undefined, subscribe: () => () => {} },
+      idGenerator: { generate: () => 'import-change' },
       normalizeUserSettings: (value) => value,
       readUserSettings: async () => settings,
       writeUserSettings: async (value) => {

@@ -118,6 +118,11 @@ describe('Child category Backup V2 recovery', () => {
       })
       let recoveryId = ''
       await createImportBackupV2UseCase({
+        changePort: {
+          publish: async () => undefined,
+          subscribe: () => () => {},
+        },
+        idGenerator: { generate: () => 'import-change' },
         ...settingsDeps,
         recovery: {
           captureBeforeOverwrite: async () => {

@@ -59,6 +59,14 @@ describe('current Backup V2 production import boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(importBackupV2WithRecovery).mockResolvedValue({
+      notification: {
+        kind: 'committed_and_published',
+        event: {
+          changeId: 'test-import',
+          revision: 2,
+          scopes: ['collections'],
+        },
+      },
       entityCounts: {
         analyticsViews: 0,
         categories: 0,

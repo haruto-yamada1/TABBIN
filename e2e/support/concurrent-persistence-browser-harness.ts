@@ -4,17 +4,23 @@ import type { PersistenceChangeEvent } from '@/contexts/saved-tabs/application/p
 import { PersistenceRevisionConflictError } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 import { createBroadcastChannelPersistenceChangeAdapter } from '@/contexts/saved-tabs/infrastructure/browser/BroadcastChannelPersistenceChangeAdapter'
+import { createSystemIdGenerator } from '@/contexts/saved-tabs/infrastructure/browser/SystemIdGeneratorAdapter'
 import {
   createIndexedDbSavedTabsUseCases,
   createNativeIndexedDbSavedTabsRuntime,
 } from '@/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsUseCases'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
+import { IndexedDbPersistenceReplacementAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceReplacementAdapter'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
+import { inspectBackupV2 } from '@/features/options/lib/import-export/v2/BackupV2Inspector'
+import { createExportBackupV2UseCase } from '@/features/options/lib/import-export/v2/ExportBackupV2UseCase'
+import { createImportBackupV2UseCase } from '@/features/options/lib/import-export/v2/ImportBackupV2UseCase'
 import {
   createDomainCollectionFixture,
   createMembershipFixture,
   createUrlFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
+import type { UserSettings } from '@/types/storage'
 
 const serializeFailure = (error: unknown) => ({
   name: error instanceof Error ? error.name : 'UnknownError',
@@ -30,7 +36,81 @@ type WriteOutcome =
   | { status: 'committed' }
   | ({ status: 'rejected' } & ReturnType<typeof serializeFailure>)
 
-const createHarness = (databaseName: string) => {
+const createBackupActions = (
+  manager: IndexedDbConnectionManager,
+  gate: PersistenceOperationGatePort,
+  reader: IndexedDbPersistenceSnapshotReader,
+) => {
+  // Settings live outside IDB in production too. Recovery retains a real
+  // consistent logical snapshot; every replacement still uses native IDB.
+  let settings: UserSettings = {
+    clickBehavior: 'saveCurrentTab',
+    confirmDeleteAll: true,
+    confirmDeleteEach: true,
+    enableCategories: true,
+    excludePatterns: [],
+    excludePinnedTabs: false,
+    openAllInNewWindow: false,
+    openUrlInBackground: false,
+    removeTabAfterExternalDrop: false,
+    removeTabAfterOpen: false,
+    showSavedTime: true,
+  }
+  const readUserSettings = async () => {
+    await Promise.resolve()
+    return structuredClone(settings)
+  }
+  const writeUserSettings = async (value: UserSettings) => {
+    settings = structuredClone(value)
+    await Promise.resolve()
+  }
+  const replacement = new IndexedDbPersistenceReplacementAdapter(manager, gate)
+  let recovery:
+    | {
+        snapshot: Awaited<ReturnType<typeof reader.readConsistentSnapshot>>
+        settings: UserSettings
+      }
+    | undefined
+  const importBackup = createImportBackupV2UseCase({
+    changePort: createBroadcastChannelPersistenceChangeAdapter(),
+    idGenerator: createSystemIdGenerator(),
+    normalizeUserSettings: (value) => structuredClone(value),
+    readUserSettings,
+    recovery: {
+      captureBeforeOverwrite: async () => {
+        recovery = {
+          snapshot: await reader.readConsistentSnapshot(),
+          settings: await readUserSettings(),
+        }
+        return 'browser-preimport-recovery'
+      },
+      restore: async (id) => {
+        if (id !== 'browser-preimport-recovery' || !recovery) {
+          throw new Error('The browser recovery snapshot is unavailable.')
+        }
+        await replacement.replaceAll(recovery.snapshot)
+        await writeUserSettings(recovery.settings)
+      },
+    },
+    replacement,
+    snapshotReader: reader,
+    writeUserSettings,
+  })
+  return {
+    exportBackup: createExportBackupV2UseCase({
+      getAppVersion: () => '2.0.17',
+      now: () => new Date(),
+      readUserSettings,
+      snapshotReader: reader,
+    }),
+    importBackup: async (input: unknown) =>
+      importBackup(inspectBackupV2(input)),
+  }
+}
+
+export const createConcurrentPersistenceBrowserHarness = (
+  databaseName: string,
+) => {
   // The ordinary page supplies only the constructor's settings API shape.
   // Domain operations must stay entirely on native IndexedDB.
   const forbidSettingsStorage = (): never => {
@@ -92,6 +172,7 @@ const createHarness = (databaseName: string) => {
   }
 
   return {
+    ...createBackupActions(manager, gate, reader),
     addUrl,
     close: () => {
       unsubscribe()
@@ -189,6 +270,9 @@ const createHarness = (databaseName: string) => {
     releaseWrite: () => {
       releaseWrite()
     },
+    readConsistentSnapshot: async () => reader.readConsistentSnapshot(),
+    removeUrl: async (projectId: string, url: string) =>
+      useCases.removeUrlFromCustomProject({ projectId, url }),
     snapshot: async () => {
       const snapshot = await reader.readVerifiedSavedTabsSnapshot()
       return {
@@ -204,7 +288,7 @@ const createHarness = (databaseName: string) => {
 }
 
 export type ConcurrentPersistenceBrowserHarness = ReturnType<
-  typeof createHarness
+  typeof createConcurrentPersistenceBrowserHarness
 >
 
 declare global {
@@ -217,6 +301,7 @@ declare global {
 
 Object.assign(globalThis, {
   __initializeTabbinConcurrentPersistence: (databaseName: string) => {
-    window.__tabbinConcurrentPersistence = createHarness(databaseName)
+    window.__tabbinConcurrentPersistence =
+      createConcurrentPersistenceBrowserHarness(databaseName)
   },
 })
