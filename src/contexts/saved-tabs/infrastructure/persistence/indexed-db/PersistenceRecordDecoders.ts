@@ -1,3 +1,4 @@
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type {
   PersistenceJsonRecord,
   PersistenceMessageRecord,
@@ -130,9 +131,11 @@ export const isPersistenceMessageRecord = (
   typeof value.id === 'string' &&
   isJsonValue(value.value)
 
-export class PersistenceRecordDecodeError extends Error {
+export class PersistenceRecordDecodeError extends PersistenceUnavailableError {
   constructor(storeName: string) {
-    super(`IndexedDB ${storeName} contains an invalid persistence record.`)
+    super('PERSISTENCE_RECOVERY_REQUIRED', {
+      message: `IndexedDB ${storeName} contains an invalid persistence record.`,
+    })
     this.name = 'PersistenceRecordDecodeError'
   }
 }

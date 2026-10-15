@@ -24,6 +24,12 @@ import {
 } from './helpers/extension'
 
 const now = Date.now()
+type UrlRows = ReturnType<typeof createExamplePersistenceFixture>['urls']
+const corruptUrls = {
+  'missing-url': (_rows: UrlRows) => [],
+  'nonnumeric-date': (rows: UrlRows) =>
+    rows.map((row) => ({ ...row, firstSavedAt: 'not-a-number' })),
+}
 const createSeedWithUrls = () => {
   const persistence = createExamplePersistenceFixture(now)
   return {
@@ -44,6 +50,69 @@ const createSeedWithUrls = () => {
 }
 
 test.describe('extension options', () => {
+  for (const corruption of ['missing-url', 'nonnumeric-date'] as const) {
+    test(`${corruption} shows recovery, retains failed retry and downloads saved-tab rescue data`, async ({
+      extensionId,
+      page,
+      serviceWorker,
+    }, testInfo) => {
+      const fixture = createExamplePersistenceFixture(now)
+      const corrupted = {
+        ...fixture,
+        urls: corruptUrls[corruption](fixture.urls),
+      }
+      await seedSavedTabsFixture(serviceWorker, {
+        persistence: corrupted,
+        storage: createBaseSeed(),
+      })
+      const before = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+      await page.goto(
+        getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+      )
+      const alert = page
+        .getByRole('alert')
+        .filter({ hasText: 'Storage recovery required' })
+      await expect(alert).toBeVisible()
+      await alert.getByRole('button', { name: 'Retry', exact: true }).click()
+      await expect(
+        alert.getByRole('button', { name: 'Retry', exact: true }),
+      ).toBeEnabled()
+      await expect(alert).toBeVisible()
+      await alert.getByText('Error code', { exact: true }).click()
+      await expect(alert).toContainText('PERSISTENCE_RECOVERY_REQUIRED')
+      await expect(alert).not.toContainText('not-a-number')
+      const downloading = page.waitForEvent('download')
+      await alert
+        .getByRole('button', { name: 'Export saved-tab recovery data' })
+        .click()
+      const download = await downloading
+      expect(download.suggestedFilename()).toMatch(
+        /^tabbin-saved-tabs-recovery-/,
+      )
+      const downloadPath = await download.path()
+      expect(downloadPath).toBeTruthy()
+      const rescue: unknown = JSON.parse(
+        await readFile(downloadPath as string, 'utf8'),
+      )
+      expect(rescue).toMatchObject({
+        encoding: 'tagged-json-v1',
+        format: 'tabbin-saved-tabs-recovery',
+        stores: {
+          collectionMemberships: ['json', before.memberships],
+          urls: ['json', before.urls],
+        },
+      })
+      expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
+        before,
+      )
+      await page.screenshot({
+        path: testInfo.outputPath('corrupt-record-recovery.png'),
+      })
+      await page.reload()
+      await expect(alert).toBeVisible()
+    })
+  }
+
   test('fresh IndexedDB starts without writing migration metadata', async ({
     extensionId,
     page,

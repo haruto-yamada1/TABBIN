@@ -1,3 +1,4 @@
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type {
   PersistenceLogicalSnapshot,
@@ -105,13 +106,13 @@ const readSavedTabsSnapshot = async (
   }
 }
 
-export class PersistenceSnapshotIntegrityError extends Error {
+export class PersistenceSnapshotIntegrityError extends PersistenceUnavailableError {
   readonly report: StorageIntegrityReport
 
   constructor(report: StorageIntegrityReport) {
-    super(
-      `Persistence snapshot failed integrity validation with ${report.issues.length} issue(s).`,
-    )
+    super('PERSISTENCE_RECOVERY_REQUIRED', {
+      message: `Persistence snapshot failed integrity validation with ${report.issues.length} issue(s).`,
+    })
     this.report = report
     this.name = 'PersistenceSnapshotIntegrityError'
   }
