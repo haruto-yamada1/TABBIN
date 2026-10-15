@@ -267,49 +267,49 @@ test.describe('extension options', () => {
     expect(backup.data.userSettings).not.toHaveProperty('activeAiSystemPrompt')
   })
 
-  test('Backup V2のエクスポートファイルを実際のインポートUIで復元できる', async ({
-    extensionId,
-    page,
-    serviceWorker,
-  }) => {
-    await seedSavedTabsFixture(serviceWorker, createSeedWithUrls())
-    await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
-    await waitForPersistenceV2Ready(serviceWorker)
-    const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: /export/i }).click()
-    const downloadPath = await (await downloadPromise).path()
-    expect(downloadPath).toBeTruthy()
-    const fileContent = await readFile(downloadPath as string, 'utf8')
-    const backup = BackupEnvelopeV2Schema.parse(JSON.parse(fileContent))
-    expect(backup.data.savedTabs.urls).toHaveLength(2)
-    expect(backup.data.savedTabs.collections).toHaveLength(1)
-    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'tabbin-import-v2-'))
-    try {
-      const tmpFilePath = path.join(tmpDir, 'tabbin-backup-v2.json')
-      await writeFile(tmpFilePath, fileContent)
-      await seedPersistenceV2SavedTabs(
-        serviceWorker,
-        createEmptyPersistenceFixture(),
-      )
-      await page.getByRole('button', { name: /import/i }).click()
-      await page
-        .locator('[data-testid="hidden-file-input"]')
-        .setInputFiles(tmpFilePath)
-      await expect(
-        page.getByRole('button', { name: /confirm.*import/i }),
-      ).toBeVisible()
-      await page.getByRole('button', { name: /confirm.*import/i }).click()
-      await expect(
-        page.getByRole('button', { name: /confirm.*import/i }),
-      ).toBeHidden()
-      await page.goto(
-        getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
-      )
-      await expect(page.getByText('Example Home')).toBeVisible()
-      await page.reload()
-      await expect(page.getByText('Example Home')).toBeVisible()
-    } finally {
-      await rm(tmpDir, { force: true, recursive: true })
-    }
-  })
+  test(
+    'Backup V2のエクスポートファイルを実際のインポートUIで復元できる',
+    { tag: '@release-backup-v2' },
+    async ({ extensionId, page, serviceWorker }) => {
+      await seedSavedTabsFixture(serviceWorker, createSeedWithUrls())
+      await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+      await waitForPersistenceV2Ready(serviceWorker)
+      const downloadPromise = page.waitForEvent('download')
+      await page.getByRole('button', { name: /export/i }).click()
+      const downloadPath = await (await downloadPromise).path()
+      expect(downloadPath).toBeTruthy()
+      const fileContent = await readFile(downloadPath as string, 'utf8')
+      const backup = BackupEnvelopeV2Schema.parse(JSON.parse(fileContent))
+      expect(backup.data.savedTabs.urls).toHaveLength(2)
+      expect(backup.data.savedTabs.collections).toHaveLength(1)
+      const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'tabbin-import-v2-'))
+      try {
+        const tmpFilePath = path.join(tmpDir, 'tabbin-backup-v2.json')
+        await writeFile(tmpFilePath, fileContent)
+        await seedPersistenceV2SavedTabs(
+          serviceWorker,
+          createEmptyPersistenceFixture(),
+        )
+        await page.getByRole('button', { name: /import/i }).click()
+        await page
+          .locator('[data-testid="hidden-file-input"]')
+          .setInputFiles(tmpFilePath)
+        await expect(
+          page.getByRole('button', { name: /confirm.*import/i }),
+        ).toBeVisible()
+        await page.getByRole('button', { name: /confirm.*import/i }).click()
+        await expect(
+          page.getByRole('button', { name: /confirm.*import/i }),
+        ).toBeHidden()
+        await page.goto(
+          getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+        )
+        await expect(page.getByText('Example Home')).toBeVisible()
+        await page.reload()
+        await expect(page.getByText('Example Home')).toBeVisible()
+      } finally {
+        await rm(tmpDir, { force: true, recursive: true })
+      }
+    },
+  )
 })
