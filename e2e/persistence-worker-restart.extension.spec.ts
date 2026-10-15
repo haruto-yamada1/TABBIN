@@ -15,16 +15,33 @@ import {
   test,
 } from './helpers/extension'
 
-const currentWorker = (context: BrowserContext, workerUrl: string): Worker => {
-  const workers = context
-    .serviceWorkers()
-    .filter((worker) => worker.url() === workerUrl)
-  expect(workers).toHaveLength(1)
-  const [worker] = workers
-  if (!worker) {
+const currentWorker = async (
+  context: BrowserContext,
+  workerUrl: string,
+): Promise<Worker> => {
+  let current: Worker | undefined
+  // Wait for one registry observation that also has a fresh execution realm.
+  // A retained target is valid; a transient stale/overlapping view is not ready.
+  await expect(async () => {
+    const workers = context
+      .serviceWorkers()
+      .filter((worker) => worker.url() === workerUrl)
+    expect(workers).toHaveLength(1)
+    const [worker] = workers
+    if (!worker) {
+      throw new Error('The restarted extension worker is unavailable.')
+    }
+    expect(
+      await worker.evaluate(() =>
+        Reflect.get(globalThis, '__tabbinWorkerLifetimeMarker'),
+      ),
+    ).toBeUndefined()
+    current = worker
+  }).toPass({ timeout: 5_000 })
+  if (!current) {
     throw new Error('The restarted extension worker is unavailable.')
   }
-  return worker
+  return current
 }
 
 const stopWorker = async (
@@ -125,12 +142,10 @@ test('MV3 worker restart preserves a committed delete and accepts the next backg
       chrome.runtime.sendMessage({ action: 'getAlarmStatus' }),
     ),
   ).toMatchObject({ exists: expect.any(Boolean) })
-  const restartedWorker = currentWorker(extensionContext, serviceWorker.url())
-  expect(
-    await restartedWorker.evaluate(() =>
-      Reflect.get(globalThis, '__tabbinWorkerLifetimeMarker'),
-    ),
-  ).toBeUndefined()
+  const restartedWorker = await currentWorker(
+    extensionContext,
+    serviceWorker.url(),
+  )
   expect(await readPersistenceV2SavedTabsSnapshot(restartedWorker)).toEqual(
     committed,
   )
