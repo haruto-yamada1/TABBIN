@@ -33,16 +33,38 @@ bun run release:check
 
 このコマンドは以下の流れで実行されます：
 
-1. `bun run quality:check` — フォーマット、lint、テスト、重複チェックなど
-2. `bun run build` — Chrome 拡張機能のビルド
-3. `bun run build:firefox` — Firefox 拡張機能のビルド
-4. `bun run verify:production-logging` — production build から console / debugger が除去済みであること
-5. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
-6. `bun run verify:persistence-release-compatibility` — 生成された artifact の Persistence v2 compatibility metadata を検証
-7. `bun run verify:production-network-policy` — 生成された manifest の host / CSP / permission 契約を検証
-8. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証
-9. `bun run verify:firefox-source` — production source に `chrome-extension://` literal や Chrome 専用 API 呼び出しが混入していないことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
-10. `bun run release:e2e` — Chrome の主要ユーザーフローと Firefox の IndexedDB smoke を実行
+1. `bun run security:audit` — node-forge backport の再評価期限と実 RSA probe を検証し、全依存の High / Critical を監査
+2. `bun run quality:check` — フォーマット、lint、テスト、重複チェックなど
+3. `bun run build` — Chrome 拡張機能のビルド
+4. `bun run build:firefox` — Firefox 拡張機能のビルド
+5. `bun run verify:production-logging` — production build から console / debugger が除去済みであること
+6. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
+7. `bun run verify:persistence-release-compatibility` — 生成された artifact の Persistence v2 compatibility metadata を検証
+8. `bun run verify:production-network-policy` — 生成された manifest の host / CSP / permission 契約を検証
+9. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証
+10. `bun run verify:firefox-source` — production source に `chrome-extension://` literal や Chrome 専用 API 呼び出しが混入していないことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
+11. `bun run release:e2e` — Chrome の主要ユーザーフローと Firefox の IndexedDB smoke を実行
+
+### リリース直前の依存脆弱性監査
+
+`release:check` は build 前に毎回 `security:audit` を実行します。
+`release:zip` もこの gate を経由するため、失敗すると ZIP 生成へ進みません。
+過去の CI 成功、Renovate の更新 PR、定期監査は直前の監査の代わりになりません。
+
+- `verify:security-audit-policy` が node-forge の固定 Git snapshot / patch と
+  再評価期限を検証します。不正・欠落・期限切れなら理由とともに失敗します。
+- `verify:node-forge-backport` が実 RSA 署名の正常系と不正 ASN.1 の拒否を検証します。
+- `bun audit --audit-level=high` が runtime / development の全 npm 依存を監査します。
+  High / Critical の advisory は配布を止めます。advisory ignore は追加しません。
+
+各コマンドの標準出力・標準エラーと非ゼロ終了をそのまま保持します。
+監査サービスの障害、通信・認証エラー、lockfile の欠落、Bun の起動失敗も
+**audit unavailable としてリリース失敗**です。warn-only、skip、過去の結果への
+fallback はありません。表示された失敗段階と Bun の診断を確認し、復旧・修正後に
+`release:check` 全体を再実行してください。
+
+期限付き backport の管理と Renovate での修正手順は
+[依存更新ポリシー](maintenance/dependency-updates.md#vulnerability-response)を参照してください。
 
 ### 配布前の E2E
 

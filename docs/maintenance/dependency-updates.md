@@ -207,16 +207,41 @@ fresh install で適用と正常署名の互換性を確認する。
 正式版への切替と patch 削除は、下記の検証がすべて成功する版の公開後に行う。
 
 Git dependency は npm advisory の version 照合だけでは検証できないため、
-`security:audit` の先頭で実 RSA 署名の正常系と異常 ASN.1 構造の拒否を検証する。
+`security:audit` の先頭で `tools/security-audit-policy.json` の再評価期限と
+`package.json` の固定 snapshot / patch の一致を検証し、続いて実 RSA 署名の
+正常系と異常 ASN.1 構造の拒否を検証する。
 OID のみ / OID + 空の NULL は受理し、余分な OCTET STRING / NULL と
 非空の NULL parameters は拒否する。
 未修正 1.4.0 でこの probe が失敗することを確認済み。
 その後の `bun audit --audit-level=high` は維持し、ignore は追加しない。
 
+再評価期限の source of truth は `tools/security-audit-policy.json` とする。
+現在の期限は 2026-11-10 **00:00 UTC** で、この時刻以降は CI / release の
+`security:audit` を失敗させる。期限は review 日から最大30日とし、未来の review 日、
+実在しない日付、owner・依存経路・根拠・upstream status・tracking Issue の欠落、
+未承認 snapshot / patch を拒否する。この記録は npm version 照合対象外の
+検証済み backport の再評価管理であり、High / Critical を許容する ignore ではない。
+正式版に更新する場合は probe と policy binding を同じ PR で見直す。
+
 security update は14日待機を機械的に適用せず urgency を判断する。GitHub vulnerability
 alerts、Renovate vulnerability PR、OSV、`bun audit` の結果を突き合わせる。
 一時 ignore が必要な場合は advisory、dependency path、影響、upstream status、期限、
 owner をこの文書または専用 Issue に残し、恒久的な ignore にしない。
+
+### Release audit と Renovate の役割
+
+`release:check` / `release:zip` は直前に同じ `security:audit` を実行する。
+監査不能（registry / network / authentication / lockfile / process failure）も
+非ゼロ終了として配布を止め、障害復旧後に gate 全体を再実行する。
+通常 CI と Issue #908 の定期監査は早期検知、release gate は配布時点の合否を担う。
+
+監査が advisory を報告したら、依存経路と production / tooling への影響を確認し、
+Renovate の vulnerability PR / Dependency Dashboard の OSV 情報と突き合わせる。
+既存の security label、最低修正版への更新方針、automerge 無効を維持し、更新または
+検証済み override をレビューして frozen install・監査・品質 gate を再実行する。
+Renovate が更新できない Git snapshot とローカル patch は担当者が手動再評価する。
+期限更新には新しい追跡 Issue、影響評価、upstream status、根拠、owner、新期限を
+個別 PR に記録する。日付だけの延長や、監査障害を理由とする例外化は行わない。
 
 ## Initial rollout
 
