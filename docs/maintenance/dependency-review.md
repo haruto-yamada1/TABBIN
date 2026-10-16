@@ -88,8 +88,11 @@ Bun scanner も同じ判定と実際の patch bytes を使う。レビュー済�
 適用した依存は、base に同じ version が存在しても advisory/license を再スキャンする。
 これは patch 内容の承認であり、advisory / license の例外ではない。
 `security:audit` の正常署名・異常 ASN.1 拒否 probe は必須で、GHSA 全体の allow は追加しない。
-owner: dependency maintenance / @haruto-yamada1。再評価期限の source of truth は
-`tools/security-audit-policy.json`（2026-11-10 00:00 UTC）で、`security:audit` が検証する。
+owner: dependency maintenance / @haruto-yamada1。再評価記録は
+`tools/security-audit-policy.json`（2026-11-10 00:00 UTC）、承認履歴は
+`tools/scripts/security-audit-review-approvals.ts` で管理する。
+`security:audit` は最新承認との一致に加え、patch bytes と全 node-forge lock binding を
+release gate でも検証する。期限更新は新しい追跡 Issue を持つ承認レコードの追記が必要。
 正式版に切り替える際は [既存 backport の検証条件](dependency-updates.md) を満たすこと。
 
 現時点の追加 advisory / license exception は0件。false positive は exact package/version、

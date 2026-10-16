@@ -1,4 +1,11 @@
+import { createHash } from 'node:crypto'
+
 import { z } from 'zod'
+
+import {
+  backportTrackingIssueSchema,
+  verifyBackportReviewApproval,
+} from './security-audit-review-approvals'
 
 const source =
   'github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65'
@@ -15,9 +22,7 @@ const policySchema = z.strictObject({
     owner: text,
     rationale: text,
     upstreamStatus: text,
-    trackingIssue: z
-      .string()
-      .regex(/^https:\/\/github\.com\/haruto-yamada1\/TABBIN\/issues\/\d+$/),
+    trackingIssue: backportTrackingIssueSchema,
     reviewedAt: z.iso.date(),
     expiresAt: z.iso.date(),
   }),
@@ -27,6 +32,55 @@ const packageSchema = z.object({
   overrides: z.object({ 'node-forge': z.literal(source) }),
   patchedDependencies: z.object({ [patchKey]: z.literal(patchFile) }),
 })
+const lockSchema = z.object({
+  lockfileVersion: z.literal(1),
+  workspaces: z.object({
+    '': z.object({
+      devDependencies: z.object({ 'node-forge': z.literal(source) }),
+    }),
+  }),
+  overrides: z.object({ 'node-forge': z.literal(source) }),
+  patchedDependencies: z.object({ [patchKey]: z.literal(patchFile) }),
+  packages: z.record(z.string(), z.unknown()),
+})
+const resolutionSchema = z.tuple([
+  z.literal(patchKey),
+  z.strictObject({}),
+  z.literal('digitalbazaar-forge-ceba344'),
+  z.literal(
+    'sha512-wQzUb9EXQPFuPFkcj/4B6mxSxkAbkRTgCJ7xEH61S0uBcaeUy3x0y7ppyHDW8xMGwsvkxgMzPaJH0hgWZHs4cQ==',
+  ),
+])
+
+export function verifySecurityAuditArtifacts(
+  lockInput: unknown,
+  patchBytes: Uint8Array,
+): void {
+  if (
+    createHash('sha256').update(patchBytes).digest('hex') !==
+    '66b0a5fbdb250c8faa4c2df38f3921bc39942e45491ad081bd452b906b067721'
+  ) {
+    throw new Error('node-forge patch digest differs from the approved bytes')
+  }
+  const lock = lockSchema.parse(lockInput)
+  const resolutions = Object.entries(lock.packages).filter(
+    ([key, entry]) =>
+      key === 'node-forge' ||
+      (key.endsWith('/node-forge') &&
+        !key.split('/').at(-2)?.startsWith('@')) ||
+      (Array.isArray(entry) &&
+        typeof entry[0] === 'string' &&
+        entry[0].startsWith('node-forge@')),
+  )
+  if (resolutions.length === 0) {
+    throw new Error('node-forge lock binding is missing')
+  }
+  for (const [key, entry] of resolutions) {
+    if (!resolutionSchema.safeParse(entry).success) {
+      throw new Error(`node-forge lock binding is not approved: ${key}`)
+    }
+  }
+}
 
 // This is a review deadline for the existing verified Git backport, never an
 // advisory suppression. Bun still audits all npm dependencies without ignores.
@@ -53,5 +107,6 @@ export function verifySecurityAuditPolicy(
         `${policy.owner} must re-evaluate ${policy.trackingIssue}`,
     )
   }
+  verifyBackportReviewApproval(policy)
   return `node-forge backport review valid until ${policy.expiresAt} 00:00 UTC (${policy.owner}); no advisory ignores`
 }

@@ -51,8 +51,9 @@ bun run release:check
 `release:zip` もこの gate を経由するため、失敗すると ZIP 生成へ進みません。
 過去の CI 成功、Renovate の更新 PR、定期監査は直前の監査の代わりになりません。
 
-- `verify:security-audit-policy` が node-forge の固定 Git snapshot / patch と
-  再評価期限を検証します。不正・欠落・期限切れなら理由とともに失敗します。
+- `verify:security-audit-policy` が node-forge の固定 Git snapshot と lockfile の全解決・
+  patch map / 本文の digest を照合し、再評価記録が承認履歴と一致することを検証します。
+  不正・欠落・期限切れ・日付だけの延長は理由とともに失敗します。
 - `verify:node-forge-backport` が実 RSA 署名の正常系と不正 ASN.1 の拒否を検証します。
 - `bun audit --audit-level=high` が runtime / development の全 npm 依存を監査します。
   High / Critical の advisory は配布を止めます。advisory ignore は追加しません。

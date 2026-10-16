@@ -208,14 +208,20 @@ fresh install で適用と正常署名の互換性を確認する。
 
 Git dependency は npm advisory の version 照合だけでは検証できないため、
 `security:audit` の先頭で `tools/security-audit-policy.json` の再評価期限と
-`package.json` の固定 snapshot / patch の一致を検証し、続いて実 RSA 署名の
+`package.json` / `bun.lock` の固定 snapshot・patch map・全 node-forge 解決の
+revision / archive / integrity と、patch 本文の承認済み SHA-256 を照合する。
+patch は通常の非実行ファイルに限定し、欠落・symlink・改変を拒否する。続いて実 RSA 署名の
 正常系と異常 ASN.1 構造の拒否を検証する。
 OID のみ / OID + 空の NULL は受理し、余分な OCTET STRING / NULL と
 非空の NULL parameters は拒否する。
 未修正 1.4.0 でこの probe が失敗することを確認済み。
 その後の `bun audit --audit-level=high` は維持し、ignore は追加しない。
 
-再評価期限の source of truth は `tools/security-audit-policy.json` とする。
+運用する再評価記録は `tools/security-audit-policy.json` に置き、期限の承認は
+`tools/scripts/security-audit-review-approvals.ts` の承認履歴を source of truth とする。
+policy の追跡 Issue・review 日・期限は最新の承認レコードと完全一致させる。
+既存の初期承認はコード内の固定 anchor として照合し、承認履歴からの削除・書換えを拒否する。
+anchor 自体の変更は通常の期限更新ではなく、別途 security policy review の対象とする。
 現在の期限は 2026-11-10 **00:00 UTC** で、この時刻以降は CI / release の
 `security:audit` を失敗させる。期限は review 日から最大30日とし、未来の review 日、
 実在しない日付、owner・依存経路・根拠・upstream status・tracking Issue の欠落、
@@ -241,7 +247,10 @@ Renovate の vulnerability PR / Dependency Dashboard の OSV 情報と突き合�
 検証済み override をレビューして frozen install・監査・品質 gate を再実行する。
 Renovate が更新できない Git snapshot とローカル patch は担当者が手動再評価する。
 期限更新には新しい追跡 Issue、影響評価、upstream status、根拠、owner、新期限を
-個別 PR に記録する。日付だけの延長や、監査障害を理由とする例外化は行わない。
+個別 PR に記録する。同じ PR で承認履歴の末尾に新しい Issue のレコードを追加し、
+policy をその最新レコードに合わせる。履歴は追記のみとし、以前の記録は書き換えない。
+同じ Issue の再利用、日付の巻き戻し、未承認の期限、policy の日付だけの延長を
+verifier が拒否する。監査障害を理由とする例外化は行わない。
 
 ## Initial rollout
 
