@@ -172,7 +172,7 @@ describe('Renovate dependency update policy', () => {
     const ciWorkflow = readRepositoryFile('.github/workflows/ci.yml')
 
     expect(packageJson.scripts['security:audit']).toBe(
-      'bun run verify:node-forge-backport && bun audit --audit-level=high',
+      'bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun audit --audit-level=high',
     )
     expect(packageJson.scripts['verify:node-forge-backport']).toBe(
       'bun tools/scripts/verify-node-forge-backport.ts',

@@ -63,7 +63,9 @@ npm registry には渡さない。HTTP redirect も許可しない。
 この PR 差分検査は導入した依存に焦点を当て、license を追加で検査する。
 変更のない依存に後から発見された advisory は既存 audit / alerts / Renovate で扱う。
 SBOM は release artifact の在庫と provenance で、advisory の合否を代替しない。
-`security:audit`、Renovate、SBOM と `release:check` は変更しない。
+`release:check` / `release:zip` は同じ `security:audit` を配布直前にも実行する。
+監査不能時の failure policy と再評価期限は [release 手順](../release.md) に従う。
+Renovate、SBOM と PR 差分検査の責務は維持する。
 
 既存の `node-forge` は Git snapshot と Bun patch で修正しており、npm version
 照合の例外である。base と同じ `node-forge@github:digitalbazaar/forge#ceba344`
@@ -86,7 +88,11 @@ Bun scanner も同じ判定と実際の patch bytes を使う。レビュー済�
 適用した依存は、base に同じ version が存在しても advisory/license を再スキャンする。
 これは patch 内容の承認であり、advisory / license の例外ではない。
 `security:audit` の正常署名・異常 ASN.1 拒否 probe は必須で、GHSA 全体の allow は追加しない。
-owner: dependency maintenance / @haruto-yamada1。次の再評価期限: 2026-11-10。
+owner: dependency maintenance / @haruto-yamada1。再評価記録は
+`tools/security-audit-policy.json`（2026-11-10 00:00 UTC）、承認履歴は
+`tools/scripts/security-audit-review-approvals.ts` で管理する。
+`security:audit` は最新承認との一致に加え、patch bytes と全 node-forge lock binding を
+release gate でも検証する。期限更新は新しい追跡 Issue を持つ承認レコードの追記が必要。
 正式版に切り替える際は [既存 backport の検証条件](dependency-updates.md) を満たすこと。
 
 現時点の追加 advisory / license exception は0件。false positive は exact package/version、

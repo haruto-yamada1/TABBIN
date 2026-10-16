@@ -10,7 +10,11 @@ const { scripts } = JSON.parse(
   readFileSync(path.join(root, 'package.json'), 'utf8'),
 ) as { scripts: Record<string, string> }
 
-const runRelease = (failure = '') => {
+const runRelease = (
+  failure = '',
+  command = 'release:check',
+  diagnostic = 'fixture failure',
+) => {
   const directory = mkdtempSync(path.join(os.tmpdir(), 'release-gate-'))
   const log = path.join(directory, 'commands')
   writeFileSync(log, '')
@@ -22,22 +26,38 @@ const runRelease = (failure = '') => {
         String.raw`
 git() { return 0; }
 bun() {
-  if [ "$2" = 'release:e2e' ]; then
+  local step="$2"
+  if [ "$1" = 'audit' ]; then step='bun audit --audit-level=high'; fi
+  printf '%s\n' "$step" >> "$COMMAND_LOG"
+  if [ "$step" = "$FAIL_STEP" ]; then
+    printf '%s\n' "$FAIL_REASON" >&2
+    return 23
+  fi
+  if [ "$step" = 'release:e2e' ]; then
     eval "$RELEASE_E2E"
     return $?
   fi
-  printf '%s\n' "$2" >> "$COMMAND_LOG"
-  if [ "$2" = "$FAIL_STEP" ]; then return 23; fi
+  if [ "$step" = 'security:audit' ]; then
+    eval "$SECURITY_AUDIT"
+    return $?
+  fi
+  if [ "$step" = 'release:check' ]; then
+    eval "$RELEASE_CHECK"
+    return $?
+  fi
 }
-` + scripts['release:check'],
+` + scripts[command],
       ],
       {
         cwd: root,
         env: {
           PATH: process.env.PATH,
           RELEASE_E2E: scripts['release:e2e'],
+          SECURITY_AUDIT: scripts['security:audit'],
+          RELEASE_CHECK: scripts['release:check'],
           COMMAND_LOG: log,
           FAIL_STEP: failure,
+          FAIL_REASON: diagnostic,
         },
         encoding: 'utf8',
       },
@@ -49,6 +69,74 @@ bun() {
 }
 
 describe('distribution release gate', () => {
+  it('audits dependencies before building release artifacts', () => {
+    const result = runRelease()
+    expect(result.commands).toContain('security:audit')
+    expect(result.commands.indexOf('security:audit')).toBeLessThan(
+      result.commands.indexOf('build'),
+    )
+  })
+
+  it('stops before building when the security audit fails', () => {
+    const result = runRelease('security:audit')
+    expect(result.status).toBe(23)
+    expect(result.commands).not.toContain('build')
+    expect(result.commands).not.toContain('release:e2e')
+  })
+
+  it('validates the backport deadline and RSA probe before the unfiltered High audit', () => {
+    const result = runRelease()
+    expect(result.commands.slice(0, 4)).toEqual([
+      'security:audit',
+      'verify:security-audit-policy',
+      'verify:node-forge-backport',
+      'bun audit --audit-level=high',
+    ])
+  })
+
+  it.each([
+    'verify:security-audit-policy',
+    'verify:node-forge-backport',
+    'bun audit --audit-level=high',
+  ])(
+    'blocks release ZIPs and preserves diagnostics when %s fails',
+    (failure) => {
+      const result = runRelease(failure, 'release:zip')
+      expect(result.status).toBe(23)
+      expect(result.stderr).toContain('fixture failure')
+      expect(result.commands).not.toContain('build')
+      expect(result.commands).not.toContain('zip')
+      expect(result.commands).not.toContain('zip:firefox')
+    },
+  )
+
+  it.each(['verify:security-audit-policy', 'verify:node-forge-backport'])(
+    'stops before the network audit when %s fails',
+    (failure) => {
+      expect(runRelease(failure).commands).not.toContain(
+        'bun audit --audit-level=high',
+      )
+    },
+  )
+
+  it.each([
+    'high: GHSA-fixture',
+    'critical: GHSA-fixture',
+    'ConnectionRefused: audit request failed',
+    'HTTP 503: advisory registry unavailable',
+    'lockfile not found',
+  ])('blocks release and retains audit diagnostics: %s', (diagnostic) => {
+    const result = runRelease(
+      'bun audit --audit-level=high',
+      'release:zip',
+      diagnostic,
+    )
+    expect(result.status).toBe(23)
+    expect(result.stderr).toContain(diagnostic)
+    expect(result.commands).not.toContain('build')
+    expect(result.commands).not.toContain('zip')
+  })
+
   it('runs Chrome critical flows and Firefox IndexedDB smoke before succeeding', () => {
     const result = runRelease()
     expect(result.status).toBe(0)
