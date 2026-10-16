@@ -203,6 +203,11 @@ const fresh = async () => {
     url: 'https://example.com/custom',
   })
   const result = {
+    privateAccessAllowed: await new Promise<boolean>((resolve) => {
+      chrome.extension.isAllowedIncognitoAccess(resolve)
+    }),
+    inIncognitoContext: chrome.extension.inIncognitoContext,
+    incognitoPolicy: chrome.runtime.getManifest().incognito,
     backup: await exportBackup(
       runtime.connectionManager,
       runtime.operationGate,
