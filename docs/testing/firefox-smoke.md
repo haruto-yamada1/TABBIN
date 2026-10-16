@@ -97,6 +97,30 @@ IndexedDB の既存 rows を読み、custom project への URL 追加を行う�
 snapshot が不変であり、Backup V2 の URL / notes / AI data / analytics view が保持される
 ことを assert する。強制 IndexedDB open failure では gate 内の write callback が 0 回で
 recovery が unavailable となり、接続の復旧後は retry で available に戻ることも検証する。
+インストールした artifact の `incognito: not_allowed`、private access の拒否、
+normal context での実行も検証する。Chrome 側の同じ契約は
+`e2e/storage-policy.extension.spec.ts` で確認する。
+
+### IndexedDB 利用不可・容量不足の回帰検証
+
+`bun run test:indexeddb:browsers` は Chrome / Firefox の native IndexedDB 上で
+`e2e/indexeddb/storage-failure.spec.ts` も実行する。既存の #735 / #736 の
+容量・normal-only policy を変更せず、次の失敗経路を検証する。
+
+- IndexedDB API 不在、open の `SecurityError` / `UnknownError`：初期化・再試行の
+  失敗を成功扱いせず、既存の復旧通知と明示的な再試行を維持する。
+- 保存、復旧 snapshot の復元、Import 前の recovery capture、Import の replacement：
+  `QuotaExceededError` により既存データを失わず、失敗後も復旧通知を表示する。
+- 同期的な request queue failure と、非同期の transaction abort の両方で、
+  queue 済みの native write が巻き戻ることを close / reopen 後に確認する。
+- 復旧通知・error result・console に URL / title / notes / profile path を露出せず、
+  「再試行」は接続と読み取りの確認だけを行い、失敗した更新を自動再実行しない。
+
+ブラウザテストでは settings / 通知の外部 port を fixture に置き換え、保存・Backup V2・
+復旧サービスと React の復旧通知は production code を使う。容量不足は request queue
+または実 transaction の abort 境界に注入するため、実ディスク容量を使い切る測定ではない。
+Import が保護 snapshot を保存した後で失敗した場合、その snapshot と revision の進行は
+保持される。Import 本体の成功通知は発行されない。
 
 起動可能な Firefox / geckodriver がない場合は
 `FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE` を持つ明示的 error で失敗する。

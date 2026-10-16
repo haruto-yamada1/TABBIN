@@ -32,6 +32,9 @@ type WebDriverSession = {
 }
 
 type SmokeResult = {
+  readonly privateAccessAllowed?: boolean
+  readonly inIncognitoContext?: boolean
+  readonly incognitoPolicy?: string
   readonly backup: {
     readonly data: {
       readonly analyticsViews: readonly unknown[]
@@ -393,6 +396,9 @@ const runHarnessPhase = async (
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
+  assert.equal(result.incognitoPolicy, 'not_allowed')
+  assert.equal(result.privateAccessAllowed, false)
+  assert.equal(result.inIncognitoContext, false)
   assert.equal(result.storageIndependent, true)
   assert.deepEqual(result.emptyProjection, {
     collections: 0,
