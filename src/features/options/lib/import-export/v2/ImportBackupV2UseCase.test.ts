@@ -46,6 +46,7 @@ const createUserSettings = (): UserSettings => ({
   openUrlInBackground: true,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
+  showRelativeSavedTime: false,
   showSavedTime: true,
 })
 

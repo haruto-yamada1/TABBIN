@@ -577,6 +577,7 @@ const messages = {
     'options.previewColorCustomizationReset': 'Reset',
     'options.previewFontSizeCustomization': 'Font size',
     'options.releaseNotes': 'Release Notes',
+    'options.showRelativeSavedTime': 'Show relative saved time',
     'options.showSavedTime': 'Show saved time',
     'options.showSavedTimeDescription':
       'When enabled, the saved date is shown in the saved tabs list.',
@@ -1487,6 +1488,7 @@ const messages = {
     'options.previewColorCustomizationReset': 'リセット',
     'options.previewFontSizeCustomization': 'フォントサイズ',
     'options.releaseNotes': 'リリースノート',
+    'options.showRelativeSavedTime': '保存日時を相対表示する',
     'options.showSavedTime': '保存日時を表示する',
     'options.showSavedTimeDescription':
       'オンにすると、保存タブ一覧に保存された日時が表示されます。',

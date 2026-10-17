@@ -76,6 +76,7 @@ export const createCorruptPersistenceBrowserHarness = (
     removeTabAfterExternalDrop: false,
     removeTabAfterOpen: false,
     showSavedTime: true,
+    showRelativeSavedTime: false,
   }
   const exportBackup = createExportBackupV2UseCase({
     getAppVersion: () => '2.0.0',

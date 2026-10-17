@@ -107,6 +107,7 @@ describe('SavedTabsPresentationMapper', () => {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: true,
+      showRelativeSavedTime: true,
       showSavedTime: true,
     }
 

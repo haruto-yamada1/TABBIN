@@ -190,6 +190,13 @@ const useOptionsRouteView = () => {
     [updateSetting],
   )
 
+  const handleToggleRelativeSavedTime = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('showRelativeSavedTime', checked)
+    },
+    [updateSetting],
+  )
+
   const handleToggleOpenUrlInBackground = useCallback(
     async (checked: boolean) => {
       await updateSetting('openUrlInBackground', checked)
@@ -446,6 +453,23 @@ const useOptionsRouteView = () => {
           <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.savedTimeDescription')}
           </p>
+
+          <div className='mt-4 ml-7 flex items-center gap-x-2'>
+            <Checkbox
+              id='show-relative-saved-time'
+              checked={settings.showRelativeSavedTime}
+              disabled={!settings.showSavedTime}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onCheckedChange={handleToggleRelativeSavedTime}
+              className='cursor-pointer'
+            />
+            <Label
+              htmlFor='show-relative-saved-time'
+              className='cursor-pointer text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+            >
+              {t('options.showRelativeSavedTime')}
+            </Label>
+          </div>
 
           <div className='mt-6 mb-4 flex items-center gap-x-2'>
             <Checkbox

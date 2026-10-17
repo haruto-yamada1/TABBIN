@@ -41,6 +41,7 @@ vi.mock('@/lib/storage/settings', () => ({
     excludePatterns: ['chrome-extension://', 'chrome://'],
     enableCategories: true,
     autoDeletePeriod: 'never',
+    showRelativeSavedTime: false,
     showSavedTime: false,
     clickBehavior: 'saveSameDomainTabs',
     excludePinnedTabs: true,
@@ -199,6 +200,7 @@ const buildConfiguredSettings = (): UserSettings =>
     openUrlInBackground: true,
     removeTabAfterExternalDrop: true,
     removeTabAfterOpen: true,
+    showRelativeSavedTime: false,
     showSavedTime: false,
   }) as UserSettings
 const restoreClipboardMock = () => {

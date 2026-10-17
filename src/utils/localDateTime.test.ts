@@ -103,6 +103,17 @@ describe('localDateTime', () => {
     expect(formatFixedDatetime()).toBe('-')
   })
 
+  it.each([Number.NaN, Infinity, -Infinity, 8.64e15 + 1])(
+    '不正timestamp %sはフォールバックを返す',
+    (invalid) => {
+      expect(formatFixedDatetime(invalid)).toBe('-')
+    },
+  )
+
+  it('epochの絶対日時も表示する', () => {
+    expect(formatFixedDatetime(0, 'UTC')).toBe('1970/01/01 00:00:00')
+  })
+
   it('locale と timeZone を指定してローカル日時を返す', () => {
     expect(formatLocaleDateTime(timestamp, 'en-US', 'UTC')).toContain('2026')
   })

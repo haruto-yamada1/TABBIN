@@ -105,6 +105,14 @@ const createSettingsForScenario = (scenario: string): UserSettings => {
   if (scenario === 'optional defaults') {
     return { ...canonicalUserSettings, language: 'ja' }
   }
+  if (scenario === 'relative saved time') {
+    return {
+      ...defaultSettings,
+      language: 'ja',
+      showRelativeSavedTime: true,
+      showSavedTime: false,
+    }
+  }
   if (scenario === 'exclude patterns') {
     return {
       ...defaultSettings,
@@ -154,6 +162,7 @@ describe('Backup V2 with production settings storage', () => {
       scenario: 'optional defaults',
       extraPatterns: ['a.example', 'z.example'],
     },
+    { scenario: 'relative saved time', extraPatterns: [] },
     { scenario: 'exclude patterns', extraPatterns: ['custom.example'] },
     { scenario: 'localized prompt', extraPatterns: [] },
     { scenario: 'custom prompt whitespace', extraPatterns: [] },
@@ -178,6 +187,7 @@ describe('Backup V2 with production settings storage', () => {
         colors: {},
         fontSizePercent: 100,
         language: 'ja',
+        showRelativeSavedTime: scenario === 'relative saved time',
       })
       expect(readbackSettings.excludePatterns).toEqual([
         'about:',

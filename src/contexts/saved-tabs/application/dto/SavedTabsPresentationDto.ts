@@ -24,6 +24,7 @@ export type SavedTabsUserSettingsDto = {
   excludePatterns: string[]
   enableCategories: boolean
   autoDeletePeriod?: string
+  showRelativeSavedTime: boolean
   showSavedTime: boolean
   clickBehavior:
     | 'saveCurrentTab'

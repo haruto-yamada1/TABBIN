@@ -44,6 +44,7 @@ const envelope = {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: false,
+      showRelativeSavedTime: false,
       showSavedTime: false,
     },
   },

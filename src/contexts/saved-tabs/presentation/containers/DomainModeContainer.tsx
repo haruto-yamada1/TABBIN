@@ -185,6 +185,8 @@ const deleteVisibleUrlsForGroups = async (
 }
 
 type UncategorizedDomainSectionState = {
+  showSavedTime: boolean
+  showRelativeSavedTime: boolean
   shouldShowSectionHeader: boolean
   hasVisibleCategoryGroups: boolean
   confirmDeleteAll: boolean
@@ -226,6 +228,8 @@ const UncategorizedDomainSection = ({
     shouldShowSectionHeader,
     hasVisibleCategoryGroups,
     confirmDeleteAll,
+    showSavedTime,
+    showRelativeSavedTime,
     isReorderMode,
     shouldShowList,
   },
@@ -256,8 +260,10 @@ const UncategorizedDomainSection = ({
     () => ({
       ...defaultUserSettings,
       confirmDeleteAll,
+      showSavedTime,
+      showRelativeSavedTime,
     }),
-    [confirmDeleteAll],
+    [confirmDeleteAll, showSavedTime, showRelativeSavedTime],
   )
 
   const uncategorizedDomainIds = useMemo(
@@ -518,6 +524,8 @@ export const DomainModeContainer = ({
       shouldShowSectionHeader: shouldShowUncategorizedSectionHeader,
       hasVisibleCategoryGroups,
       confirmDeleteAll: settings.confirmDeleteAll,
+      showSavedTime: settings.showSavedTime,
+      showRelativeSavedTime: settings.showRelativeSavedTime,
       isReorderMode: isUncategorizedReorderMode,
       shouldShowList: shouldShowUncategorizedList,
     }),
@@ -525,6 +533,8 @@ export const DomainModeContainer = ({
       shouldShowUncategorizedSectionHeader,
       hasVisibleCategoryGroups,
       settings.confirmDeleteAll,
+      settings.showSavedTime,
+      settings.showRelativeSavedTime,
       isUncategorizedReorderMode,
       shouldShowUncategorizedList,
     ],

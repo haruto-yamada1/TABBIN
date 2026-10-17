@@ -90,6 +90,7 @@ const buildFullUserSettings = (
   excludePatterns: ['existing-pattern'],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: true,

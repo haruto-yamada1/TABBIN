@@ -116,6 +116,9 @@ const toUserSettingsBehaviorPayload = (
   ...(settings.removeTabAfterOpen !== undefined
     ? { removeTabAfterOpen: settings.removeTabAfterOpen }
     : {}),
+  ...(settings.showRelativeSavedTime !== undefined
+    ? { showRelativeSavedTime: settings.showRelativeSavedTime }
+    : {}),
   ...(settings.showSavedTime !== undefined
     ? { showSavedTime: settings.showSavedTime }
     : {}),
