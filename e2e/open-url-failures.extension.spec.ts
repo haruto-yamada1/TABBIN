@@ -487,4 +487,20 @@ test('bulk progress can be cancelled, failed URLs retried, and unopened URLs res
     failedUrl,
     ...urls.slice(7),
   ])
+  const undo = page.getByRole('button', { name: 'Undo', exact: true })
+  await expect(undo).toHaveCount(1)
+  await undo.click()
+  await expect
+    .poll(
+      async () =>
+        (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls.length,
+    )
+    .toBe(12)
+  await page.reload()
+  await expect(
+    page.getByRole('link', { name: 'Saved URL 1', exact: true }),
+  ).toBeVisible()
+  expect(
+    (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls,
+  ).toHaveLength(12)
 })

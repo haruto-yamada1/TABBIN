@@ -59,6 +59,31 @@ describe('createChromeBrowserTabAdapter', () => {
     })
   })
 
+  it.each([false, true])(
+    '明示した active: %s は resolveActive の設定より優先する',
+    async (active) => {
+      const create = vi.fn(async (props) => ({ url: props.url }))
+      const resolveActive = vi.fn(() => !active)
+      const adapter = createChromeBrowserTabAdapter(
+        { getApi: () => createMockApi({ create }) },
+        { resolveActive },
+      )
+
+      await adapter.open({
+        active,
+        url: 'https://example.com/page',
+        windowId: 42,
+      })
+
+      expect(create).toHaveBeenCalledExactlyOnceWith({
+        active,
+        url: 'https://example.com/page',
+        windowId: 42,
+      })
+      expect(resolveActive).not.toHaveBeenCalled()
+    },
+  )
+
   it('作成したタブの URL が未取得でも入力 URL を返す', async () => {
     const create = vi.fn(async () => ({}))
     const adapter = createChromeBrowserTabAdapter({

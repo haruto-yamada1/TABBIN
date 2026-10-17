@@ -164,7 +164,7 @@ const openRequestedUrls = async (
       }
       const result = await deps.browserTabPort.open({
         url,
-        ...(windowId === undefined ? {} : { windowId }),
+        ...(windowId === undefined ? {} : { active: false, windowId }),
       })
       record(index, { requestedUrl: url, openedUrl: result.url })
     } catch (error) {

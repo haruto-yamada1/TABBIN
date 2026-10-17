@@ -17,6 +17,9 @@ const completeRun = () =>
       maxTimerGapMs: 10,
       createdTabs: count,
       createdWindows: 1,
+      newWindows: mode === 'newWindow' ? 1 : 0,
+      tabsInNewWindows: mode === 'newWindow' ? count : 0,
+      firstTabActive: mode === 'newWindow' ? true : null,
       opened: count,
       failed: 0,
       removed: count,
@@ -28,6 +31,35 @@ describe('native staged-opening measurement evidence', () => {
   it('accepts a complete run with confirmed creation and removal', () => {
     const run = completeRun()
     expect(parseStagedOpeningMeasurements(run)).toEqual(run)
+  })
+
+  it.each([
+    { largestWindowBatch: 0 },
+    { largestWindowBatch: 4 },
+    { newWindows: 0, tabsInNewWindows: 0 },
+    { newWindows: 2 },
+    { tabsInNewWindows: 9 },
+    { firstTabActive: false },
+    { firstTabActive: null },
+  ])(
+    'rejects new-window evidence that violates its destination: %j',
+    (invalid) => {
+      const run = completeRun().map((result) =>
+        result.mode === 'newWindow' ? { ...result, ...invalid } : result,
+      )
+      expect(() => parseStagedOpeningMeasurements(run)).toThrow(AssertionError)
+    },
+  )
+
+  it.each([
+    { newWindows: 1 },
+    { tabsInNewWindows: 1 },
+    { largestWindowBatch: 1 },
+  ])('rejects background tabs that create a window: %j', (invalid) => {
+    const run = completeRun().map((result) =>
+      result.mode === 'backgroundTabs' ? { ...result, ...invalid } : result,
+    )
+    expect(() => parseStagedOpeningMeasurements(run)).toThrow(AssertionError)
   })
 
   it.each(

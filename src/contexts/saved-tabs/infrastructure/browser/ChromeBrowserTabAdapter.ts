@@ -44,7 +44,7 @@ type ChromeBrowserTabAdapterOptions = {
   /**
    * 新規タブをアクティブ（前面）にするかを port 利用側（open saved url use-case）が
    * 決められるよう、`active` を返す関数を委譲できる。
-   * 未指定なら `active: true` で開く。
+   * open の active が未指定の場合に評価し、関数も未指定なら true で開く。
    */
   readonly resolveActive?: () => boolean
 }
@@ -76,11 +76,12 @@ export const createChromeBrowserTabAdapter = (
     [CHROME_BROWSER_TAB_ADAPTER_MARKER]: true,
     open: async (input: {
       readonly url: string
+      readonly active?: boolean
       readonly windowId?: number
     }) => {
       const api = deps.getApi()
       const tabs = api?.tabs
-      const active = options.resolveActive?.() ?? true
+      const active = input.active ?? options.resolveActive?.() ?? true
       if (!tabs?.create) {
         throw new BrowserOpenError('unavailable')
       }

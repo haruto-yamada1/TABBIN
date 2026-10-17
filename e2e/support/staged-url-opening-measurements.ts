@@ -22,7 +22,12 @@ export type StagedOpeningMeasurement = {
   readonly timerTicks: number
   readonly maxTimerGapMs: number
   readonly createdTabs: number
+  /** Number of destination windows containing created tabs. */
   readonly createdWindows: number
+  /** Newly observed native window IDs relative to the initial window set. */
+  readonly newWindows: number
+  readonly tabsInNewWindows: number
+  readonly firstTabActive: boolean | null
   readonly opened: number
   readonly failed: number
   readonly removed: number
@@ -37,6 +42,18 @@ const queryTabs = async (): Promise<readonly chrome.tabs.Tab[]> =>
         reject(new Error(error.message))
       } else {
         resolve(tabs)
+      }
+    })
+  })
+
+const queryWindows = async (): Promise<readonly chrome.windows.Window[]> =>
+  new Promise((resolve, reject) => {
+    chrome.windows.getAll({}, (windows) => {
+      const error = chrome.runtime.lastError
+      if (error) {
+        reject(new Error(error.message))
+      } else {
+        resolve(windows)
       }
     })
   })
@@ -89,10 +106,11 @@ const measure = async (
   await waitForIndexedDbTransaction(transaction)
   // Creation can settle before a browser exposes the requested navigation URL.
   const initialIds = new Set((await queryTabs()).map(({ id }) => id))
+  const initialWindowIds = new Set((await queryWindows()).map(({ id }) => id))
   const runtime = createNativeIndexedDbSavedTabsRuntime({
     connectionManager: bootstrap.connectionManager,
     operationGate: bootstrap.operationGate,
-    presentationOptions: { resolveActive: () => false },
+    presentationOptions: { resolveActive: () => true },
   })
   let pending = 0
   let peakPendingCreates = 0
@@ -163,6 +181,16 @@ const measure = async (
     clearInterval(interval)
     maxTimerGapMs = Math.max(maxTimerGapMs, finished - lastTick)
     const created = (await queryTabs()).filter(({ id }) => !initialIds.has(id))
+    if (created.length !== count) {
+      console.info(
+        `[staged-opening] Unexpected created tabs: ${JSON.stringify(created)}`,
+      )
+    }
+    const newWindowIds = new Set(
+      (await queryWindows())
+        .filter(({ id }) => !initialWindowIds.has(id))
+        .map(({ id }) => id),
+    )
     const snapshot = await new IndexedDbPersistenceSnapshotReader(
       bootstrap.connectionManager,
       bootstrap.operationGate,
@@ -178,6 +206,14 @@ const measure = async (
       maxTimerGapMs,
       createdTabs: created.length,
       createdWindows: new Set(created.map(({ windowId }) => windowId)).size,
+      newWindows: newWindowIds.size,
+      tabsInNewWindows: created.filter(({ windowId }) =>
+        newWindowIds.has(windowId),
+      ).length,
+      firstTabActive:
+        mode === 'newWindow'
+          ? created.some(({ index, active }) => index === 0 && active)
+          : null,
       opened: result.openedUrls.length,
       failed: result.failedUrls.length,
       removed: result.removedUrlRecordIds.length,

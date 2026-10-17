@@ -12,6 +12,8 @@ const numericFields = [
   'maxTimerGapMs',
   'createdTabs',
   'createdWindows',
+  'newWindows',
+  'tabsInNewWindows',
   'opened',
   'failed',
   'removed',
@@ -30,6 +32,8 @@ const isMeasurement = (value: unknown): value is StagedOpeningMeasurement =>
       value[field] >= 0,
   ) &&
   (value.mode === 'backgroundTabs' || value.mode === 'newWindow') &&
+  (value.firstTabActive === null ||
+    typeof value.firstTabActive === 'boolean') &&
   (value.firstProgressMs === null ||
     (typeof value.firstProgressMs === 'number' &&
       Number.isFinite(value.firstProgressMs) &&
@@ -59,12 +63,19 @@ export const parseStagedOpeningMeasurements = (
     )
     assert.equal(result.createdTabs, result.count)
     assert.equal(result.createdWindows, 1)
+    const opensWindow = result.mode === 'newWindow'
+    assert.equal(result.newWindows, opensWindow ? 1 : 0)
+    assert.equal(result.tabsInNewWindows, opensWindow ? result.count : 0)
+    assert.equal(result.firstTabActive, opensWindow ? true : null)
     assert.equal(result.opened, result.count)
     assert.equal(result.removed, result.count)
     assert.equal(result.failed, 0)
     assert.equal(result.remaining, 0)
     assert.ok(result.peakPendingCreates > 0 && result.peakPendingCreates <= 5)
-    assert.ok(result.largestWindowBatch <= 5)
+    assert.equal(
+      result.largestWindowBatch,
+      opensWindow ? Math.min(5, result.count) : 0,
+    )
     assert.notEqual(result.firstProgressMs, null)
   }
   return value

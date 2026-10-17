@@ -237,7 +237,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
     expect(opened).toEqual([])
   })
 
-  it('opens large new-window requests in one window with bounded batches', async () => {
+  it('appends large new-window requests in bounded batches without changing the active tab', async () => {
     const urls = Array.from(
       { length: 12 },
       (_, i) => `https://example.com/${i}`,
@@ -264,7 +264,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       urls: urls.slice(0, 5),
     })
     expect(open.mock.calls.map(([input]) => input)).toEqual(
-      urls.slice(5).map((url) => ({ url, windowId: 42 })),
+      urls.slice(5).map((url) => ({ active: false, url, windowId: 42 })),
     )
   })
 

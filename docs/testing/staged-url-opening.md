@@ -4,11 +4,14 @@ Issue #899 は #364 のプレビュー・重複除外・確認と #893 の安全
 一括オープンの作成処理を最大5件の pool にする。通常タブは完了するたびに次の1件を開始する。
 新規ウィンドウは最初の最大5件を `windows.create` で開き、確認した `windowId` に残りを追加する。
 作成を確認できないウィンドウへは追加せず、別ウィンドウへの fallback はしない。
+新規ウィンドウへの後続追加は `active: false` に固定し、最初のタブの選択を維持する。
 
 UI は総件数・処理済み・成功・失敗を表示する。キャンセル後は未着手分を開始せず、
 開始済みの作成結果を待つ。成功した分だけを既存の設定に従って保存データから削除し、
 失敗分と未着手分を保存したままにする。「失敗したURLを再試行」と「未着手のURLを開く」は
 対象を分け、累計の成功数と残りの対象を維持する。保存更新が失敗しても成功分を再試行へ混ぜない。
+初回実行と再試行・再開は1つの Undo 通知を共有し、累計削除件数を表示する。
+Undo はその操作全体を1回だけ復元し、回復処理中・復元中の古いコールバックは保存データを変更しない。
 取消はタブ作成を取り消したり、作成済みタブを閉じたりする操作ではない。
 
 ## 測定条件と基準
@@ -17,11 +20,16 @@ UI は総件数・処理済み・成功・失敗を表示する。キャンセ�
 Chrome for Testing 153.0.8010.12 と Firefox 155.0 の各1サンプル。
 一時プロファイルと専用 IndexedDB を使い、`about:blank` の一意な fragment を10/100/500件開く。
 実際の browser adapter と native persistence session を使い、作成後の URL 読み出しを待たずに
-タブ ID の差分で件数を確認する。Chrome のインストール時自動表示タブは計測開始前に待ち、基準へ含める。
+タブ ID の差分で件数を確認する。開始前の全ウィンドウ ID も記録し、既存ウィンドウへの誤追加を検出する。
+タブを開く設定は `active: true` とし、新規ウィンドウの後続追加が設定に影響されず先頭タブを維持するか確認する。
+Chrome のインストール時自動表示タブは計測開始前に待ち、基準へ含める。
 各ケース後に作成したタブを閉じ、最終的に専用プロファイルを削除する。
 
 - 正しさ: 作成・成功・削除が要求件数と一致し、失敗・残存保存URLは0件。対象ウィンドウは1つ。
-- 作成負荷: 同時 native API 呼び出しは最大5件。新規ウィンドウの初回 URL 配列も最大5件。
+  `createdWindows` は作成タブの行先ウィンドウ数、`newWindows` は開始時の ID 集合との差分を示す。
+  通常タブは新規ウィンドウ0件。新規ウィンドウモードは新規1件かつ全作成タブがその中にあり、
+  完了後の先頭タブが active であることを native query で確認する。
+- 作成負荷: 同時 native API 呼び出しは最大5件。新規ウィンドウの初回 URL 配列は `min(5, 件数)` 件。
 - 応答性: 10ms timer の最大間隔と、最初の成功/失敗通知までの時間を記録する。
   この軽量 fixture では timer 間隔250ms超、最初の結果5秒超、500件30秒超を再調査の目安とする。
   これらの時間は手動測定の目安であり、CI gate や製品の timeout としては使わない。
@@ -32,18 +40,18 @@ Chrome for Testing 153.0.8010.12 と Firefox 155.0 の各1サンプル。
 
 | ブラウザ | 件数 | モード         | 作成・保存更新完了 | 最初の結果 | 最大timer間隔 |
 | -------- | ---: | -------------- | -----------------: | ---------: | ------------: |
-| Chrome   |   10 | backgroundTabs |             0.10秒 |       13ms |          12ms |
-| Chrome   |   10 | newWindow      |             0.26秒 |       88ms |          11ms |
-| Chrome   |  100 | backgroundTabs |             1.44秒 |       11ms |          11ms |
-| Chrome   |  100 | newWindow      |             1.62秒 |      158ms |          11ms |
-| Chrome   |  500 | backgroundTabs |             9.57秒 |       15ms |          12ms |
-| Chrome   |  500 | newWindow      |            10.47秒 |      132ms |          12ms |
-| Firefox  |   10 | backgroundTabs |             0.24秒 |       20ms |          13ms |
-| Firefox  |   10 | newWindow      |             0.29秒 |      167ms |          14ms |
-| Firefox  |  100 | backgroundTabs |             2.54秒 |       24ms |          15ms |
-| Firefox  |  100 | newWindow      |             2.83秒 |      295ms |          26ms |
-| Firefox  |  500 | backgroundTabs |            17.01秒 |       25ms |          40ms |
-| Firefox  |  500 | newWindow      |            20.69秒 |     2972ms |         157ms |
+| Chrome   |   10 | backgroundTabs |             0.13秒 |       17ms |          12ms |
+| Chrome   |   10 | newWindow      |             0.15秒 |       66ms |          12ms |
+| Chrome   |  100 | backgroundTabs |             1.53秒 |       16ms |          11ms |
+| Chrome   |  100 | newWindow      |             1.40秒 |       69ms |          12ms |
+| Chrome   |  500 | backgroundTabs |            11.98秒 |       19ms |          26ms |
+| Chrome   |  500 | newWindow      |            11.96秒 |      111ms |          12ms |
+| Firefox  |   10 | backgroundTabs |             0.26秒 |       24ms |          14ms |
+| Firefox  |   10 | newWindow      |             0.29秒 |      166ms |          13ms |
+| Firefox  |  100 | backgroundTabs |             2.72秒 |       25ms |          15ms |
+| Firefox  |  100 | newWindow      |             2.60秒 |      176ms |          16ms |
+| Firefox  |  500 | backgroundTabs |            18.32秒 |       27ms |          27ms |
+| Firefox  |  500 | newWindow      |            16.80秒 |      239ms |          16ms |
 
 ## 再実行
 
@@ -66,7 +74,8 @@ MEASURE_STAGED_URL_OPENING=1 \
 ```
 
 両 runner は欠落ケース、重複ケース、不正な数値、未確認作成、保存更新の不一致、
-5件超の圧力を検出したら失敗する。Firefox runner は通常の保存・再起動 smoke も実行する。
+誤った行先ウィンドウ、先頭タブ選択の喪失、初回 batch の不一致、5件超の圧力を検出したら失敗する。
+Firefox runner は通常の保存・再起動 smoke も実行する。
 Chrome runner は180秒で専用 context を閉じて測定を失敗させる。
 
 ## 回帰検証

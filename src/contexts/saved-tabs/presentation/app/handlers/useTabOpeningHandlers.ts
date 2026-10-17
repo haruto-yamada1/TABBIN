@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import { toBrowserOpenFailureReason } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
@@ -7,6 +7,7 @@ import type { BrowserOpenFailureReason } from '@/contexts/saved-tabs/application
 import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import type { OpenAllSavedUrlsOptions } from '@/contexts/saved-tabs/application/use-cases/OpenAllSavedUrlsUseCase'
+import type { OpenedUrlsUndoScope } from '@/contexts/saved-tabs/presentation/app/savedTabsApp.helpers'
 import {
   showOpenedUrlsUndoToast,
   toDomainParentCategories,
@@ -69,6 +70,9 @@ export const useTabOpeningHandlers = ({
     readonly mode: 'single' | 'bulk'
   } | null>(null)
   const lastModeRef = useRef<'single' | 'bulk'>('single')
+  const bulkUndoScopeRef = useRef<OpenedUrlsUndoScope | null>(null)
+  const undoId = useId()
+  const undoSequenceRef = useRef(0)
   const updateOperation = useCallback((operation: UrlOpeningOperation) => {
     operationRef.current = operation
     setOpeningOperation(operation)
@@ -252,62 +256,81 @@ export const useTabOpeningHandlers = ({
 
   const openAllTabs = useCallback(
     async (urls: readonly OpeningUrl[], retained?: RetainedOpeningOutcome) => {
-      await runOpening(
-        urls.map(({ url }) => url),
-        'bulk',
-        async (options) => {
-          const preDeleteSnapshot = settings.removeTabAfterOpen
-            ? await savedTabsUseCases.buildSavedTabsSnapshot({
+      const scope = (retained ? bulkUndoScopeRef.current : null) ?? {
+        id: `${undoId}-bulk-${undoSequenceRef.current++}`,
+        snapshot: undefined,
+        removedCount: 0,
+        pending: false,
+        restoring: false,
+      }
+      if (scope.restoring) {
+        return
+      }
+      scope.pending = true
+      try {
+        await runOpening(
+          urls.map(({ url }) => url),
+          'bulk',
+          async (options) => {
+            bulkUndoScopeRef.current = scope
+            if (settings.removeTabAfterOpen && !scope.snapshot) {
+              scope.snapshot = await savedTabsUseCases.buildSavedTabsSnapshot({
                 parentCategories: toDomainParentCategories(categories),
               })
-            : undefined
+            }
 
-          const result = await savedTabsUseCases.openAllSavedUrls(
-            {
-              mode: settings.openAllInNewWindow
-                ? 'newWindow'
-                : 'backgroundTabs',
-              removeTabAfterOpen: settings.removeTabAfterOpen,
-              urls: urls.map((u) => u.url),
-            },
-            options,
-          )
+            const result = await savedTabsUseCases.openAllSavedUrls(
+              {
+                mode: settings.openAllInNewWindow
+                  ? 'newWindow'
+                  : 'backgroundTabs',
+                removeTabAfterOpen: settings.removeTabAfterOpen,
+                urls: urls.map((u) => u.url),
+              },
+              options,
+            )
 
-          if (
-            settings.removeTabAfterOpen &&
-            preDeleteSnapshot &&
-            result.snapshot
-          ) {
-            try {
-              await refreshTabGroupsWithUrls()
-              showOpenedUrlsUndoToast({
-                count: result.removedUrlRecordIds.length,
-                refreshTabGroupsWithUrls,
-                savedTabsUseCases,
-                setCustomProjects,
-                snapshot: preDeleteSnapshot,
-                t,
-              })
-            } catch {
-              return {
-                opened: result.openedUrls.length,
-                failedUrls: result.failedUrls,
-                cancelledUrls: result.cancelledUrls ?? [],
-                postProcessingFailed: true,
+            if (
+              settings.removeTabAfterOpen &&
+              scope.snapshot &&
+              result.snapshot
+            ) {
+              scope.removedCount += result.removedUrlRecordIds.length
+              try {
+                await refreshTabGroupsWithUrls()
+                showOpenedUrlsUndoToast({
+                  count: scope.removedCount,
+                  scope,
+                  refreshTabGroupsWithUrls,
+                  savedTabsUseCases,
+                  setCustomProjects,
+                  snapshot: scope.snapshot,
+                  t,
+                })
+              } catch {
+                return {
+                  opened: result.openedUrls.length,
+                  failedUrls: result.failedUrls,
+                  cancelledUrls: result.cancelledUrls ?? [],
+                  postProcessingFailed: true,
+                }
               }
             }
-          }
-          return {
-            opened: result.openedUrls.length,
-            failedUrls: result.failedUrls,
-            cancelledUrls: result.cancelledUrls ?? [],
-          }
-        },
-        retained,
-      )
+            return {
+              opened: result.openedUrls.length,
+              failedUrls: result.failedUrls,
+              cancelledUrls: result.cancelledUrls ?? [],
+            }
+          },
+          retained,
+        )
+      } finally {
+        scope.pending = false
+      }
     },
     [
       runOpening,
+      undoId,
       settings.openAllInNewWindow,
       settings.removeTabAfterOpen,
       savedTabsUseCases,

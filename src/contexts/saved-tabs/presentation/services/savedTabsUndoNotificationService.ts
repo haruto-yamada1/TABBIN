@@ -41,8 +41,18 @@ type UndoNotificationContext = {
  * 復元後の payload (storage 形配列) を `setCustomProjects` /
  * `setCategories` / `refreshTabGroupsWithUrls` へ反映する。
  */
+/** One Undo boundary shared by a bulk operation and its recovery partitions. */
+export type OpenedUrlsUndoScope = {
+  readonly id: string
+  snapshot: OpenedUrlsRestoreSnapshot | undefined
+  removedCount: number
+  pending: boolean
+  restoring: boolean
+}
+
 type ShowOpenedUrlsUndoToastParams = UndoNotificationContext & {
   readonly count: number
+  readonly scope?: OpenedUrlsUndoScope
   readonly messageKey?: string
   readonly snapshot: OpenedUrlsRestoreSnapshot
   readonly t: (
@@ -66,6 +76,7 @@ type ShowOpenedUrlsUndoToastParams = UndoNotificationContext & {
  */
 const showOpenedUrlsUndoToast = ({
   count,
+  scope,
   messageKey = 'savedTabs.undo.removedAfterOpen',
   refreshTabGroupsWithUrls,
   savedTabsUseCases,
@@ -77,14 +88,30 @@ const showOpenedUrlsUndoToast = ({
   const restoreView: RestoreOpenedUrlsSnapshotViewUseCase =
     savedTabsUseCases.restoreOpenedUrlsSnapshotView
   toast.info(t(messageKey, undefined, { count: String(count) }), {
+    ...(scope ? { id: scope.id } : {}),
     action: {
       label: t('common.undo'),
       // eslint-disable-next-line typescript/no-misused-promises
       onClick: async () => {
+        if (scope) {
+          if (
+            scope.pending ||
+            scope.restoring ||
+            scope.removedCount === 0 ||
+            !scope.snapshot
+          ) {
+            return
+          }
+          scope.restoring = true
+        }
         try {
           const restored: RestoredSnapshotViewDto = await restoreView({
-            snapshot,
+            snapshot: scope?.snapshot ?? snapshot,
           })
+          if (scope) {
+            scope.removedCount = 0
+            scope.snapshot = undefined
+          }
           if (restored.customProjects) {
             setCustomProjects(
               restored.customProjects.map(toSavedTabsCustomProjectViewModel),
@@ -100,6 +127,10 @@ const showOpenedUrlsUndoToast = ({
         } catch (error) {
           console.error('開いた後に削除したURLの復元に失敗しました:', error)
           toast.error(t('savedTabs.undo.restoreError'))
+        } finally {
+          if (scope) {
+            scope.restoring = false
+          }
         }
       },
     },

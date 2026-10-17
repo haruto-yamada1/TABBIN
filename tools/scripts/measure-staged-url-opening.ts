@@ -73,11 +73,23 @@ try {
     Reflect.has(globalThis, '__tabbinStagedOpeningMeasurements'),
   )
   // Include the installation tab in the baseline before any timed work starts.
-  await page.waitForFunction(async () =>
-    (await chrome.tabs.query({})).some(({ url, pendingUrl }) =>
-      [url, pendingUrl].some((value) => value?.endsWith('/saved-tabs.html')),
-    ),
-  )
+  await page.waitForFunction(async () => {
+    const installed = await chrome.storage.local.get([
+      'changelogShown',
+      'seenVersion',
+    ])
+    return (
+      installed.changelogShown &&
+      installed.seenVersion === chrome.runtime.getManifest().version &&
+      (await chrome.tabs.query({})).some(
+        ({ url, pendingUrl, pinned }) =>
+          pinned &&
+          [url, pendingUrl].some((value) =>
+            value?.endsWith('/saved-tabs.html'),
+          ),
+      )
+    )
+  })
   const execution: unknown = await page.evaluate(
     'globalThis.__tabbinStagedOpeningMeasurements.runStagedOpeningMeasurements()',
   )
