@@ -45,7 +45,7 @@ type ProjectUrlItem = UrlRecord & {
   category?: string
 }
 type UrlState = {
-  isLoadingUrls: boolean
+  project: CustomProject | null
   projectUrls: ProjectUrlItem[]
 }
 const isPointerDroppedInUncategorizedArea = (
@@ -327,10 +327,11 @@ export const useCustomProjectCard = ({
   const { t, language } = useI18n()
   // --- プロジェクトURL状態 ---
   const [urlState, setUrlState] = useState<UrlState>({
-    isLoadingUrls: true,
+    project: null,
     projectUrls: [],
   })
-  const { isLoadingUrls, projectUrls } = urlState
+  const { projectUrls } = urlState
+  const isLoadingUrls = urlState.project !== project
   const setProjectUrls: Dispatch<SetStateAction<ProjectUrlItem[]>> =
     useCallback((action) => {
       setUrlState((current) => ({
@@ -379,7 +380,7 @@ export const useCustomProjectCard = ({
         console.error('プロジェクトURLの取得エラー:', error)
       }
       if (!isCancelled) {
-        setUrlState({ isLoadingUrls: false, projectUrls: nextProjectUrls })
+        setUrlState({ project, projectUrls: nextProjectUrls })
       }
     }
     void run()
