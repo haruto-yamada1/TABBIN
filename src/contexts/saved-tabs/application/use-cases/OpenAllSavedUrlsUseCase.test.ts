@@ -117,7 +117,259 @@ const createSpyBrowserWindowPort = (): {
   return { opened, port }
 }
 
+const createPendingRequests = (urls: readonly string[]) => {
+  const pending = urls.map((url) => ({
+    url,
+    ...Promise.withResolvers<{ url: string }>(),
+  }))
+  const open = vi.fn(async ({ url }: { url: string }) => {
+    const request = pending.find((item) => item.url === url)
+    assert.isDefined(request)
+    return request.promise
+  })
+  return { pending, open }
+}
+
 describe('OpenAllSavedUrlsUseCase', () => {
+  it('limits creation to five pending tabs, reports progress, and preserves request order', async () => {
+    const urls = Array.from(
+      { length: 12 },
+      (_, i) => `https://example.com/${i}`,
+    )
+    const { pending, open } = createPendingRequests(urls)
+    const progress = vi.fn()
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...createInMemoryRepositories(),
+      browserTabPort: { open },
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+    const result = useCase(
+      { urls, mode: 'backgroundTabs', removeTabAfterOpen: false },
+      { onProgress: progress },
+    )
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(5))
+    const third = pending[2]
+    assert.isDefined(third)
+    third.resolve({ url: third.url })
+    await vi.waitFor(() =>
+      expect(progress).toHaveBeenCalledWith({
+        total: 12,
+        opened: 1,
+        failed: 0,
+      }),
+    )
+    // A completed request replenishes the pool without waiting for slower siblings.
+    expect(open).toHaveBeenCalledTimes(6)
+    pending.forEach((item) => item.resolve({ url: item.url }))
+    await expect(result).resolves.toMatchObject({
+      openedUrls: urls,
+      failedUrls: [],
+      cancelledUrls: [],
+    })
+  })
+
+  it('settles in-flight successes and failures, retains unopened data on cancel', async () => {
+    const urls = Array.from(
+      { length: 12 },
+      (_, i) => `https://example.com/${i}`,
+    )
+    const records = urls.map((url, i) =>
+      createUrlRecord({ id: `url-${i}`, url, title: url, savedAt: 1 }),
+    )
+    const repos = createInMemoryRepositories({
+      urlRecords: records,
+      tabGroups: [
+        createTabGroup({
+          id: 'group-1',
+          domain: 'example.com',
+          memberships: records.map(({ id }) => ({ urlId: id })),
+        }),
+      ],
+    })
+    const controller = new AbortController()
+    const { pending, open } = createPendingRequests(urls)
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort: { open },
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+    const result = useCase(
+      { urls, mode: 'backgroundTabs', removeTabAfterOpen: true },
+      { signal: controller.signal },
+    )
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(5))
+    controller.abort()
+    pending.slice(0, 4).forEach((item) => item.resolve({ url: item.url }))
+    const fifth = pending[4]
+    assert.isDefined(fifth)
+    fifth.reject(new BrowserOpenError('tabLimit'))
+    await expect(result).resolves.toMatchObject({
+      openedUrls: urls.slice(0, 4),
+      failedUrls: [{ url: urls[4], reason: 'tabLimit' }],
+      cancelledUrls: urls.slice(5),
+    })
+    expect(open).toHaveBeenCalledTimes(5)
+    expect(
+      (await repos.urlRecordRepository.findAll()).map(({ url }) => url),
+    ).toEqual(urls.slice(4))
+  })
+
+  it('does not start browser operations when already cancelled', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const { port, opened } = createSpyBrowserTabPort()
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...createInMemoryRepositories(),
+      browserTabPort: port,
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+    const urls = ['https://example.com/a']
+    await expect(
+      useCase(
+        { urls, mode: 'backgroundTabs', removeTabAfterOpen: true },
+        { signal: controller.signal },
+      ),
+    ).resolves.toMatchObject({
+      openedUrls: [],
+      failedUrls: [],
+      cancelledUrls: urls,
+    })
+    expect(opened).toEqual([])
+  })
+
+  it('opens large new-window requests in one window with bounded batches', async () => {
+    const urls = Array.from(
+      { length: 12 },
+      (_, i) => `https://example.com/${i}`,
+    )
+    const open = vi.fn(async ({ url }: { url: string; windowId?: number }) => ({
+      url,
+    }))
+    const openWithUrls = vi.fn(
+      async ({ urls: batch }: { urls: readonly string[] }) => ({
+        urls: batch,
+        windowId: 42,
+      }),
+    )
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...createInMemoryRepositories(),
+      browserTabPort: { open },
+      browserWindowPort: { openWithUrls },
+    })
+    await expect(
+      useCase({ urls, mode: 'newWindow', removeTabAfterOpen: false }),
+    ).resolves.toMatchObject({ openedUrls: urls })
+    expect(openWithUrls).toHaveBeenCalledExactlyOnceWith({
+      focused: true,
+      urls: urls.slice(0, 5),
+    })
+    expect(open.mock.calls.map(([input]) => input)).toEqual(
+      urls.slice(5).map((url) => ({ url, windowId: 42 })),
+    )
+  })
+
+  it('keeps confirmed outcomes when a progress observer throws', async () => {
+    const urls = ['https://example.com/a']
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...createInMemoryRepositories(),
+      browserTabPort: createSpyBrowserTabPort().port,
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+    await expect(
+      useCase(
+        { urls, mode: 'backgroundTabs', removeTabAfterOpen: false },
+        {
+          onProgress: () => {
+            throw new Error('observer')
+          },
+        },
+      ),
+    ).resolves.toMatchObject({
+      openedUrls: urls,
+      failedUrls: [],
+      cancelledUrls: [],
+    })
+  })
+
+  it('settles a pending new-window batch on cancel without starting more tabs', async () => {
+    const urls = Array.from(
+      { length: 12 },
+      (_, i) => `https://example.com/${i}`,
+    )
+    const controller = new AbortController()
+    const pending = Promise.withResolvers<{
+      urls: readonly string[]
+      windowId: number
+    }>()
+    const openWithUrls = vi.fn(async () => pending.promise)
+    const open = vi.fn(async ({ url }: { url: string }) => ({ url }))
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...createInMemoryRepositories(),
+      browserTabPort: { open },
+      browserWindowPort: { openWithUrls },
+    })
+    const result = useCase(
+      { urls, mode: 'newWindow', removeTabAfterOpen: false },
+      { signal: controller.signal },
+    )
+    await vi.waitFor(() => expect(openWithUrls).toHaveBeenCalledTimes(1))
+    controller.abort()
+    pending.resolve({ urls: urls.slice(0, 4), windowId: 42 })
+    await expect(result).resolves.toMatchObject({
+      openedUrls: urls.slice(0, 4),
+      failedUrls: [{ url: urls[4], reason: 'unknown' }],
+      cancelledUrls: urls.slice(5),
+    })
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('keeps the new-window failure reason for all URLs without creating fallback tabs', async () => {
+    const urls = Array.from(
+      { length: 12 },
+      (_, i) => `https://example.com/${i}`,
+    )
+    const open = vi.fn(async ({ url }: { url: string }) => ({ url }))
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...createInMemoryRepositories(),
+      browserTabPort: { open },
+      browserWindowPort: {
+        openWithUrls: async () => {
+          throw new BrowserOpenError('permission')
+        },
+      },
+    })
+    await expect(
+      useCase({ urls, mode: 'newWindow', removeTabAfterOpen: false }),
+    ).resolves.toMatchObject({
+      openedUrls: [],
+      failedUrls: urls.map((url) => ({ url, reason: 'permission' })),
+    })
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('keeps remaining new-window URLs retryable when no target window is confirmed', async () => {
+    const urls = Array.from(
+      { length: 12 },
+      (_, i) => `https://example.com/${i}`,
+    )
+    const open = vi.fn(async ({ url }: { url: string }) => ({ url }))
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...createInMemoryRepositories(),
+      browserTabPort: { open },
+      browserWindowPort: {
+        openWithUrls: async ({ urls: batch }) => ({ urls: batch }),
+      },
+    })
+    await expect(
+      useCase({ urls, mode: 'newWindow', removeTabAfterOpen: false }),
+    ).resolves.toMatchObject({
+      openedUrls: urls.slice(0, 5),
+      failedUrls: urls.slice(5).map((url) => ({ url, reason: 'unknown' })),
+      cancelledUrls: [],
+    })
+    expect(open).not.toHaveBeenCalled()
+  })
+
   it.each(['tabGroupSave', 'projectSave', 'recordRemove'] as const)(
     '一括オープン後の %s 失敗でも確認済み成功と失敗 URL を保持する',
     async (failure) => {
@@ -363,6 +615,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       })
 
       expect(result).toStrictEqual({
+        cancelledUrls: [],
         failedUrls: [{ url, reason: 'unknown' }],
         openedUrls: [],
         removedUrlRecordIds: [],

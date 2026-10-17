@@ -33,6 +33,19 @@ describe('createChromeBrowserTabAdapter', () => {
     expect(result).toStrictEqual({ url: 'https://example.com' })
   })
 
+  it('targets the confirmed window when appending a staged batch', async () => {
+    const create = vi.fn(async (props) => ({ url: props.url }))
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () => createMockApi({ create }),
+    })
+    await adapter.open({ url: 'https://example.com/a', windowId: 42 })
+    expect(create).toHaveBeenCalledWith({
+      active: true,
+      url: 'https://example.com/a',
+      windowId: 42,
+    })
+  })
+
   it('resolveActive が false を返すときは active: false で開く', async () => {
     const create = vi.fn(async (props) => ({ url: props.url }))
     const adapter = createChromeBrowserTabAdapter(

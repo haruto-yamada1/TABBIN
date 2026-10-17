@@ -32,6 +32,8 @@ const noopCreateProject = () => {}
 type HeaderProps = {
   openingOperation?: ComponentProps<typeof UrlOpeningResult>['operation']
   onRetryOpening?: () => Promise<void>
+  onCancelOpening?: () => void
+  onResumeOpening?: () => Promise<void>
   tabGroups: TabGroup[]
   filteredTabGroups?: TabGroup[]
   currentMode: ViewMode
@@ -59,6 +61,8 @@ export const Header = ({
   // eslint-disable-line eslint/max-lines-per-function
   openingOperation,
   onRetryOpening,
+  onCancelOpening,
+  onResumeOpening,
   tabGroups,
   filteredTabGroups,
   currentMode,
@@ -182,6 +186,8 @@ export const Header = ({
         <UrlOpeningResult
           operation={openingOperation ?? null}
           onRetry={onRetryOpening}
+          onCancel={onCancelOpening}
+          onResume={onResumeOpening}
         />
       )}
       {currentMode === 'domain' && isModalOpen && (
