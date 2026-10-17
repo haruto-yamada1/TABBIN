@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -189,10 +195,13 @@ const createHookState = (params?: {
   isDraggingCategory?: boolean
 }) => ({
   urls: {
-    projectUrls: Array.from({ length: params?.projectUrlsLength ?? 0 }, () => ({
-      url: 'https://example.com',
-      title: 'Example',
-    })),
+    projectUrls: Array.from(
+      { length: params?.projectUrlsLength ?? 0 },
+      (_, index) => ({
+        url: `https://example.com/${index}`,
+        title: `Example ${index}`,
+      }),
+    ),
     setProjectUrls: vi.fn(),
     isLoadingUrls: params?.isLoadingUrls ?? false,
     uncategorizedUrls: [],
@@ -241,6 +250,131 @@ describe('ProjectCardRoot', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  describe.each(['ja', 'en'] as const)('%s bulk confirmations', (language) => {
+    it.each([10, 11, 20])(
+      'confirms exactly the %i URLs passed to the open and delete handlers',
+      async (count) => {
+        projectCardRootI18nState.language = language
+        const user = userEvent.setup()
+        const props = createProps()
+        const handleDeleteUrlsFromProject = vi.fn()
+        const hookState = createHookState({ projectUrlsLength: count })
+        useCustomProjectCardMock.mockReturnValue(hookState)
+
+        render(
+          <ProjectCardRoot
+            {...props}
+            settings={{ ...defaultSettings, confirmDeleteAll: true }}
+            handlers={{ ...props.handlers, handleDeleteUrlsFromProject }}
+          >
+            <div>children</div>
+          </ProjectCardRoot>,
+        )
+
+        await user.click(
+          screen.getByRole('button', {
+            name: language === 'ja' ? 'すべてのタブを開く' : 'Open all tabs',
+          }),
+        )
+        const openDialog = screen.getByRole('alertdialog')
+        expect(openDialog).toHaveAccessibleDescription(
+          language === 'ja'
+            ? `「Project A」のタブ${count}件を開きます。続行しますか？`
+            : `Open ${count} tabs for "Project A". Continue?`,
+        )
+        expect(props.handlers.handleOpenAllUrls).not.toHaveBeenCalled()
+        await user.click(
+          within(openDialog).getByRole('button', {
+            name: language === 'ja' ? '開く' : 'Open',
+          }),
+        )
+        expect(
+          props.handlers.handleOpenAllUrls,
+        ).toHaveBeenCalledExactlyOnceWith(hookState.urls.projectUrls)
+
+        await user.click(
+          screen.getByRole('button', {
+            name: language === 'ja' ? 'すべて削除' : 'Delete all',
+          }),
+        )
+        const deleteDialog = screen.getByRole('alertdialog')
+        expect(deleteDialog).toHaveAccessibleDescription(
+          language === 'ja'
+            ? `「Project A」のタブ${count}件をすべて削除します。この操作は元に戻せません。`
+            : `Delete all ${count} tabs in "Project A". This action cannot be undone.`,
+        )
+        expect(handleDeleteUrlsFromProject).not.toHaveBeenCalled()
+        await user.click(
+          within(deleteDialog).getByRole('button', {
+            name: language === 'ja' ? '削除' : 'Delete',
+          }),
+        )
+        expect(handleDeleteUrlsFromProject).toHaveBeenCalledExactlyOnceWith(
+          props.project.id,
+          hookState.urls.projectUrls.map(({ url }) => url),
+        )
+      },
+    )
+  })
+
+  it('uses the resolved target set when its size differs from project metadata', async () => {
+    const user = userEvent.setup()
+    const props = createProps()
+    props.project.memberships = Array.from({ length: 20 }, (_, index) => ({
+      collectionId: props.project.id,
+      urlId: `url-${index}`,
+      sortOrder: index,
+      addedAt: 1,
+    }))
+    const hookState = createHookState({ projectUrlsLength: 2 })
+    useCustomProjectCardMock.mockReturnValue(hookState)
+
+    render(
+      <ProjectCardRoot {...props}>
+        <div>children</div>
+      </ProjectCardRoot>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'すべてのタブを開く' }))
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(props.handlers.handleOpenAllUrls).toHaveBeenCalledExactlyOnceWith(
+      hookState.urls.projectUrls,
+    )
+    await user.click(screen.getByRole('button', { name: 'すべて削除' }))
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(props.hookHandlers.handleDeleteUrl).toHaveBeenCalledTimes(2)
+    for (const { url } of hookState.urls.projectUrls) {
+      expect(props.hookHandlers.handleDeleteUrl).toHaveBeenCalledWith(
+        props.project.id,
+        url,
+      )
+    }
+  })
+
+  it.each([
+    { isLoadingUrls: true, projectUrlsLength: 0 },
+    { isLoadingUrls: true, projectUrlsLength: 2 },
+    { isLoadingUrls: false, projectUrlsLength: 0 },
+  ])('does not offer bulk actions for unavailable targets: %j', (state) => {
+    const props = createProps()
+    props.project.urls = [{ url: 'https://example.com/', title: 'Example' }]
+    useCustomProjectCardMock.mockReturnValue(createHookState(state))
+
+    render(
+      <ProjectCardRoot {...props}>
+        <div>children</div>
+      </ProjectCardRoot>,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: 'すべてのタブを開く' }),
+    ).toBeNull()
+    expect(screen.queryByRole('button', { name: 'すべて削除' })).toBeNull()
+    expect(screen.getByRole('button', { name: '管理' })).toBeTruthy()
+    expect(props.handlers.handleOpenAllUrls).not.toHaveBeenCalled()
+    expect(props.hookHandlers.handleDeleteUrl).not.toHaveBeenCalled()
   })
 
   it('プロジェクト名とドラッグハンドルを表示し、DnD コールバックを呼び出す', async () => {

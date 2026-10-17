@@ -170,9 +170,11 @@ export const ProjectCardRoot = ({
     isProjectReorderMode || isCrossProjectUrlDragActive || userCollapsedState
 
   const projectUrlCount = getProjectUrlCount(project, sortedProjectUrls.length)
+  const bulkUrlCount = sortedProjectUrls.length
+  const canBulkAct = !urls.isLoadingUrls && bulkUrlCount > 0
 
   const handleOpenAllUrls = useCallback(() => {
-    if (projectUrlCount === 0) {
+    if (!canBulkAct) {
       return
     }
     handlers.handleOpenAllUrls?.(
@@ -181,10 +183,10 @@ export const ProjectCardRoot = ({
         url: u.url,
       })),
     )
-  }, [handlers, projectUrlCount, sortedProjectUrls])
+  }, [canBulkAct, handlers, sortedProjectUrls])
 
   const handleDeleteAllUrls = useCallback(() => {
-    if (projectUrlCount === 0) {
+    if (!canBulkAct) {
       return
     }
     if (handlers.handleDeleteUrlsFromProject) {
@@ -198,7 +200,7 @@ export const ProjectCardRoot = ({
         hookHandlers.handleDeleteUrl(project.id, urlItem.url)
       }
     }
-  }, [handlers, hookHandlers, project.id, projectUrlCount, sortedProjectUrls])
+  }, [canBulkAct, handlers, hookHandlers, project.id, sortedProjectUrls])
 
   const contextValue: ProjectCardContextType = useMemo(
     () => ({
@@ -273,19 +275,30 @@ export const ProjectCardRoot = ({
             />
           </div>
           <CardGroupActions
-            {...(projectUrlCount > 0
+            {...(canBulkAct
               ? {
                   onOpenAll: handleOpenAllUrls,
                   onDeleteAll: handleDeleteAllUrls,
                 }
               : {})}
             onManage={handleOpenManagement}
-            onConfirmOpenAll={projectUrlCount >= BULK_OPEN_THRESHOLD}
+            onConfirmOpenAll={bulkUrlCount >= BULK_OPEN_THRESHOLD}
             // eslint-disable-next-line react/jsx-handler-names -- boolean toggle prop for CardGroupActions
             onConfirmDeleteAll={settings.confirmDeleteAll}
-            openAllThreshold={10}
+            openAllThreshold={BULK_OPEN_THRESHOLD}
+            openAllCount={bulkUrlCount}
+            openAllConfirmDescription={t(
+              'savedTabs.openAllConfirmDescriptionWithName',
+              undefined,
+              { count: String(bulkUrlCount), name: project.name },
+            )}
             itemName={t('savedTabs.project.deleteAllItemName')}
             warningMessage={t('savedTabs.project.deleteAllWarning')}
+            deleteAllConfirmDescription={t(
+              'savedTabs.deleteAllConfirmDescriptionWithCount',
+              undefined,
+              { categoryName: project.name, count: String(bulkUrlCount) },
+            )}
           />
         </CardHeader>
         <CardContent className='overflow-x-hidden'>
