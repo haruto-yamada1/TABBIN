@@ -197,6 +197,8 @@ const useSavedTabsAppView = ({
     handleOpenAllTabs,
     openingOperation,
     retryFailedUrls,
+    cancelOpening,
+    resumeCancelledUrls,
   } = useTabOpeningHandlers({
     savedTabsUseCases,
     deps,
@@ -538,6 +540,8 @@ const useSavedTabsAppView = ({
         <Header
           openingOperation={openingOperation}
           onRetryOpening={retryFailedUrls}
+          onCancelOpening={cancelOpening}
+          onResumeOpening={resumeCancelledUrls}
           tabGroups={tabGroups}
           filteredTabGroups={headerFilteredTabGroups}
           customProjects={customProjectsForHeader}

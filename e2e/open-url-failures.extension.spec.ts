@@ -31,6 +31,16 @@ type OpenFailureRuntime = typeof globalThis & {
   __tabbinOpenFailureTest: OpenFailureState
 }
 
+type StagedOpeningState = {
+  released: boolean
+  requested: string[]
+  releasePending: (() => void)[]
+}
+
+type StagedOpeningRuntime = typeof globalThis & {
+  __tabbinStagedOpeningTest: StagedOpeningState
+}
+
 const test = extensionTest.extend<{ localOrigin: string }>({
   localOrigin: async ({ extensionContext }, runFixture) => {
     void extensionContext
@@ -98,9 +108,10 @@ const installOpeningFailures = async (
   page: Page,
   rejectedUrls: readonly string[],
   rejectWindow = false,
+  heldUrls: readonly string[] = [],
 ) => {
   await page.addInitScript(
-    ({ rejectedUrls, rejectWindow }) => {
+    ({ rejectedUrls, rejectWindow, heldUrls }) => {
       const state: OpenFailureState = {
         copiedUrls: [],
         copyFailure: false,
@@ -110,11 +121,23 @@ const installOpeningFailures = async (
         windowCalls: [],
       }
       ;(globalThis as OpenFailureRuntime).__tabbinOpenFailureTest = state
+      const staged: StagedOpeningState = {
+        released: false,
+        requested: [],
+        releasePending: [],
+      }
+      ;(globalThis as StagedOpeningRuntime).__tabbinStagedOpeningTest = staged
       const createTab = chrome.tabs.create.bind(chrome.tabs)
       Object.defineProperty(chrome.tabs, 'create', {
         configurable: true,
         value: async (properties: chrome.tabs.CreateProperties) => {
           const url = properties.url ?? ''
+          staged.requested.push(url)
+          if (!staged.released && heldUrls.includes(url)) {
+            await new Promise<void>((resolve) =>
+              staged.releasePending.push(resolve),
+            )
+          }
           state.tabCalls.push(url)
           if (state.rejectUrls.includes(url)) {
             throw new Error('Permission denied while opening the saved URL')
@@ -149,7 +172,7 @@ const installOpeningFailures = async (
         },
       })
     },
-    { rejectedUrls, rejectWindow },
+    { rejectedUrls, rejectWindow, heldUrls },
   )
 }
 
@@ -362,4 +385,122 @@ test('a rejected new window retains every saved URL and membership after reload'
   expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
     original,
   )
+})
+
+test('bulk progress can be cancelled, failed URLs retried, and unopened URLs resumed without duplicates', async ({
+  extensionId,
+  localOrigin,
+  page,
+  serviceWorker,
+}) => {
+  const urls = Array.from(
+    { length: 12 },
+    (_, index) => `${localOrigin}/staged-${index}`,
+  )
+  await seedSavedTabsFixture(serviceWorker, createOpeningSeed(urls))
+  const failedUrl = `${localOrigin}/staged-1`
+  await installOpeningFailures(page, [failedUrl], false, urls.slice(2))
+  await openSavedTabs(page, extensionId)
+  await page
+    .getByRole('button', {
+      name: 'Open all tabs for "127.0.0.1"',
+      exact: true,
+    })
+    .click()
+  const preview = page.getByRole('alertdialog', { name: 'Open all tabs?' })
+  await expect(preview).toHaveAccessibleDescription(
+    'Open 12 tabs for "127.0.0.1". Continue?',
+  )
+  await preview.getByRole('button', { name: 'Open', exact: true }).click()
+  const result = page.getByRole('region', { name: 'URL opening result' })
+  await expect(result.getByRole('progressbar')).toHaveAttribute(
+    'aria-valuenow',
+    '2',
+  )
+  await expect(result).toContainText('1 opened, 1 failed')
+  const requested = async () =>
+    page.evaluate(
+      () =>
+        (globalThis as StagedOpeningRuntime).__tabbinStagedOpeningTest
+          .requested,
+    )
+  await expect.poll(requested).toEqual(urls.slice(0, 7))
+  await result
+    .getByRole('button', { name: 'Cancel opening', exact: true })
+    .click()
+  await expect(
+    result.getByRole('button', { name: 'Cancelling…', exact: true }),
+  ).toBeDisabled()
+  await page.evaluate(() => {
+    const state = (globalThis as StagedOpeningRuntime).__tabbinStagedOpeningTest
+    state.released = true
+    for (const resolve of state.releasePending.splice(0)) {
+      resolve()
+    }
+  })
+  await expect(result.getByRole('progressbar')).toHaveCount(0)
+  expect(await requested()).toEqual(urls.slice(0, 7))
+  await expect
+    .poll(async () =>
+      (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls
+        .map(({ id }) => id)
+        .toSorted((a, b) => a.localeCompare(b)),
+    )
+    .toEqual(
+      [
+        'opening-1',
+        ...Array.from({ length: 5 }, (_, index) => `opening-${index + 7}`),
+      ].toSorted(),
+    )
+  await page.setViewportSize({ width: 1280, height: 900 })
+  const screenshot = test.info().outputPath('staged-opening-cancelled.png')
+  await page.screenshot({ path: screenshot, fullPage: true })
+  await test.info().attach('Staged opening cancelled', {
+    path: screenshot,
+    contentType: 'image/png',
+  })
+  await allowRetry(page)
+  await result
+    .getByRole('button', { name: 'Retry failed URLs', exact: true })
+    .click()
+  await expect.poll(requested).toEqual([...urls.slice(0, 7), failedUrl])
+  await expect
+    .poll(
+      async () =>
+        (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls.length,
+    )
+    .toBe(5)
+  await result
+    .getByRole('button', { name: 'Resume unopened URLs', exact: true })
+    .click()
+  await expect
+    .poll(requested)
+    .toEqual([...urls.slice(0, 7), failedUrl, ...urls.slice(7)])
+  await expect
+    .poll(
+      async () =>
+        (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls,
+    )
+    .toEqual([])
+  expect((await readOpeningCalls(page)).tabCalls).toEqual([
+    ...urls.slice(0, 7),
+    failedUrl,
+    ...urls.slice(7),
+  ])
+  const undo = page.getByRole('button', { name: 'Undo', exact: true })
+  await expect(undo).toHaveCount(1)
+  await undo.click()
+  await expect
+    .poll(
+      async () =>
+        (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls.length,
+    )
+    .toBe(12)
+  await page.reload()
+  await expect(
+    page.getByRole('link', { name: 'Saved URL 1', exact: true }),
+  ).toBeVisible()
+  expect(
+    (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls,
+  ).toHaveLength(12)
 })

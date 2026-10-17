@@ -33,6 +33,19 @@ describe('createChromeBrowserTabAdapter', () => {
     expect(result).toStrictEqual({ url: 'https://example.com' })
   })
 
+  it('targets the confirmed window when appending a staged batch', async () => {
+    const create = vi.fn(async (props) => ({ url: props.url }))
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () => createMockApi({ create }),
+    })
+    await adapter.open({ url: 'https://example.com/a', windowId: 42 })
+    expect(create).toHaveBeenCalledWith({
+      active: true,
+      url: 'https://example.com/a',
+      windowId: 42,
+    })
+  })
+
   it('resolveActive が false を返すときは active: false で開く', async () => {
     const create = vi.fn(async (props) => ({ url: props.url }))
     const adapter = createChromeBrowserTabAdapter(
@@ -45,6 +58,31 @@ describe('createChromeBrowserTabAdapter', () => {
       url: 'https://example.com/page',
     })
   })
+
+  it.each([false, true])(
+    '明示した active: %s は resolveActive の設定より優先する',
+    async (active) => {
+      const create = vi.fn(async (props) => ({ url: props.url }))
+      const resolveActive = vi.fn(() => !active)
+      const adapter = createChromeBrowserTabAdapter(
+        { getApi: () => createMockApi({ create }) },
+        { resolveActive },
+      )
+
+      await adapter.open({
+        active,
+        url: 'https://example.com/page',
+        windowId: 42,
+      })
+
+      expect(create).toHaveBeenCalledExactlyOnceWith({
+        active,
+        url: 'https://example.com/page',
+        windowId: 42,
+      })
+      expect(resolveActive).not.toHaveBeenCalled()
+    },
+  )
 
   it('作成したタブの URL が未取得でも入力 URL を返す', async () => {
     const create = vi.fn(async () => ({}))

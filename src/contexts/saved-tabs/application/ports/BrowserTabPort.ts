@@ -23,9 +23,14 @@ export type BrowserTabPort = {
    * 拡張機能によっては `chrome.tabs.create` / `chrome.tabs.update` のいずれかを
    * 使い分けるが、本 port では `url` を受け取り、作成 API が受け付けた要求 URL を返す形
    * に正規化する。呼び出し側は「どのタブが開いたか」の ID を知る必要がない
-   * ため、ID を返さない（必要になった時点で port を拡張する）。
+   * ため、タブ ID は返さない。windowId 指定時はそのウィンドウに追加する。
+   * active 指定時はその値を優先し、未指定時は利用者の設定に従う。
    *
    * 失敗時（permission 不足・URL 不正など）は `Error` を投げる。
    */
-  open: (input: { url: string }) => Promise<{ readonly url: string }>
+  open: (input: {
+    url: string
+    readonly active?: boolean
+    readonly windowId?: number
+  }) => Promise<{ readonly url: string }>
 }

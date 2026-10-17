@@ -1,6 +1,7 @@
 import type { OpenAllSavedUrlsCommand } from '@/contexts/saved-tabs/application/commands/OpenAllSavedUrlsCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { OpenedUrlsDto } from '@/contexts/saved-tabs/application/dto/OpenedUrlsDto'
+import type { BrowserOpenFailureReason } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
 import { toBrowserOpenFailureReason } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
 import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import {
@@ -35,10 +36,20 @@ export type OpenAllSavedUrlsUseCaseDeps = {
 }
 
 /**
- * `OpenAllSavedUrlsUseCase` の関数型。
+ * 一括オープンの実行時制御。signal / observer は保存データに含めない。
  */
+export type OpenAllSavedUrlsOptions = {
+  readonly signal?: AbortSignal
+  readonly onProgress?: (progress: {
+    readonly total: number
+    readonly opened: number
+    readonly failed: number
+  }) => void
+}
+
 export type OpenAllSavedUrlsUseCase = (
   command: OpenAllSavedUrlsCommand,
+  options?: OpenAllSavedUrlsOptions,
 ) => Promise<OpenedUrlsDto>
 
 type RemovalPlan = {
@@ -53,6 +64,7 @@ type RemovalPlan = {
 type OpeningResult = {
   readonly openedUrls: readonly string[]
   readonly openedRequestedUrls: readonly string[]
+  readonly cancelledUrls: readonly string[]
   readonly failedUrls: OpenedUrlsDto['failedUrls']
 }
 
@@ -62,63 +74,132 @@ type SavedUrlsSnapshot = {
   readonly customProjects: readonly CustomProject[]
 }
 
+// Bounds native creation pressure in both modes. A new window starts with at
+// most five URLs; subsequent requests target that same window via tabs.create.
+const MAX_CONCURRENT_URL_OPENS = 5
+
+type UrlOpeningOutcome = {
+  readonly requestedUrl: string
+  readonly openedUrl?: string
+  readonly failure?: OpenedUrlsDto['failedUrls'][number]
+}
+
 const openRequestedUrls = async (
   command: OpenAllSavedUrlsCommand,
   deps: OpenAllSavedUrlsUseCaseDeps,
+  options: OpenAllSavedUrlsOptions,
 ): Promise<OpeningResult> => {
-  if (command.mode === 'newWindow') {
+  const outcomes: (UrlOpeningOutcome | undefined)[] = Array.from({
+    length: command.urls.length,
+  })
+  let next = 0
+  let opened = 0
+  let failed = 0
+  let windowId: number | undefined
+  let windowFailureReason: BrowserOpenFailureReason = 'unknown'
+  const report = () => {
+    // Observers cannot turn confirmed creations into failed/retryable requests.
+    try {
+      options.onProgress?.({ total: command.urls.length, opened, failed })
+    } catch {
+      // Opening and its safe final result are independent of presentation errors.
+    }
+  }
+  const record = (index: number, outcome: UrlOpeningOutcome) => {
+    outcomes[index] = outcome
+    if (outcome.failure) {
+      failed += 1
+    } else {
+      opened += 1
+    }
+    report()
+  }
+  report()
+
+  if (command.mode === 'newWindow' && !options.signal?.aborted) {
+    const batch = command.urls.slice(0, MAX_CONCURRENT_URL_OPENS)
+    next = batch.length
     try {
       const result = await deps.browserWindowPort.openWithUrls({
         focused: true,
-        urls: [...command.urls],
+        urls: batch,
       })
-      const confirmedUrls = new Set(result.urls)
-      const openedRequestedUrls = command.urls.filter((url) =>
-        confirmedUrls.has(url),
-      )
-      return {
-        openedRequestedUrls,
-        openedUrls: openedRequestedUrls,
-        failedUrls: command.urls
-          .filter((url) => !confirmedUrls.has(url))
-          .map((url) => ({ url, reason: 'unknown' })),
-      }
+      windowId = result.windowId
+      const remainingConfirmed = [...result.urls]
+      batch.forEach((url, index) => {
+        const confirmedIndex = remainingConfirmed.indexOf(url)
+        if (confirmedIndex >= 0) {
+          remainingConfirmed.splice(confirmedIndex, 1)
+          record(index, { requestedUrl: url, openedUrl: url })
+        } else {
+          record(index, {
+            requestedUrl: url,
+            failure: { url, reason: 'unknown' },
+          })
+        }
+      })
     } catch (error) {
-      return {
-        openedRequestedUrls: [],
-        openedUrls: [],
-        failedUrls: command.urls.map((url) => ({
-          url,
-          reason: toBrowserOpenFailureReason(error),
-        })),
-      }
+      const reason = toBrowserOpenFailureReason(error)
+      windowFailureReason = reason
+      batch.forEach((url, index) => {
+        record(index, { requestedUrl: url, failure: { url, reason } })
+      })
     }
   }
 
-  const results = await Promise.all(
-    command.urls.map(async (url): Promise<OpeningResult> => {
-      try {
-        const result = await deps.browserTabPort.open({ url })
-        return {
-          openedRequestedUrls: [url],
-          openedUrls: [result.url],
-          failedUrls: [],
-        }
-      } catch (error) {
-        return {
-          openedRequestedUrls: [],
-          openedUrls: [],
-          failedUrls: [{ url, reason: toBrowserOpenFailureReason(error) }],
-        }
+  const openOne = async (index: number) => {
+    const url = command.urls[index]
+    if (url === undefined) {
+      return
+    }
+    try {
+      // Never silently open remaining URLs in another/current window when the
+      // target window was not confirmed. Keep them retryable instead.
+      if (command.mode === 'newWindow' && windowId === undefined) {
+        record(index, {
+          requestedUrl: url,
+          failure: { url, reason: windowFailureReason },
+        })
+        return
       }
-    }),
-  )
-  return {
-    openedRequestedUrls: results.flatMap(
-      (result) => result.openedRequestedUrls,
+      const result = await deps.browserTabPort.open({
+        url,
+        ...(windowId === undefined ? {} : { active: false, windowId }),
+      })
+      record(index, { requestedUrl: url, openedUrl: result.url })
+    } catch (error) {
+      record(index, {
+        requestedUrl: url,
+        failure: { url, reason: toBrowserOpenFailureReason(error) },
+      })
+    }
+  }
+  const worker = async (): Promise<void> => {
+    if (next >= command.urls.length || options.signal?.aborted) {
+      return
+    }
+    await openOne(next++)
+    await worker()
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(MAX_CONCURRENT_URL_OPENS, command.urls.length) },
+      worker,
     ),
-    openedUrls: results.flatMap((result) => result.openedUrls),
-    failedUrls: results.flatMap((result) => result.failedUrls),
+  )
+  const confirmed = outcomes.filter((outcome) => outcome !== undefined)
+  return {
+    openedRequestedUrls: confirmed
+      .filter((outcome) => !outcome.failure)
+      .map((outcome) => outcome.requestedUrl),
+    openedUrls: confirmed.flatMap((outcome) =>
+      outcome.openedUrl === undefined ? [] : [outcome.openedUrl],
+    ),
+    failedUrls: confirmed.flatMap((outcome) =>
+      outcome.failure ? [outcome.failure] : [],
+    ),
+    cancelledUrls: command.urls.slice(next),
   }
 }
 
@@ -204,9 +285,10 @@ const openAndRemoveFromSnapshot = async (
   command: OpenAllSavedUrlsCommand,
   deps: OpenAllSavedUrlsUseCaseDeps,
   savedUrls: SavedUrlsSnapshot,
+  options: OpenAllSavedUrlsOptions,
 ): Promise<OpenedUrlsDto> => {
-  const { openedUrls, openedRequestedUrls, failedUrls } =
-    await openRequestedUrls(command, deps)
+  const { openedUrls, openedRequestedUrls, failedUrls, cancelledUrls } =
+    await openRequestedUrls(command, deps, options)
 
   try {
     const plan = computeRemovalPlan({
@@ -223,6 +305,7 @@ const openAndRemoveFromSnapshot = async (
     if (plan.urlRecordIdsToDelete.length === 0) {
       return {
         failedUrls,
+        cancelledUrls,
         openedUrls,
         removedUrlRecordIds: [],
         removedUrlRecords: [],
@@ -262,13 +345,18 @@ const openAndRemoveFromSnapshot = async (
 
     return {
       failedUrls,
+      cancelledUrls,
       openedUrls,
       removedUrlRecordIds: plan.urlRecordIdsToDelete,
       removedUrlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
       snapshot,
     }
   } catch {
-    throw new UrlOpeningPostProcessingError(openedUrls, failedUrls)
+    throw new UrlOpeningPostProcessingError(
+      openedUrls,
+      failedUrls,
+      cancelledUrls,
+    )
   }
 }
 
@@ -290,10 +378,11 @@ const openAndRemoveFromSnapshot = async (
 export const createOpenAllSavedUrlsUseCase = (
   deps: OpenAllSavedUrlsUseCaseDeps,
 ): OpenAllSavedUrlsUseCase => {
-  return async (command) => {
+  return async (command, options = {}) => {
     if (command.urls.length === 0) {
       return {
         failedUrls: [],
+        cancelledUrls: [],
         openedUrls: [],
         removedUrlRecords: [],
         removedUrlRecordIds: [],
@@ -309,10 +398,15 @@ export const createOpenAllSavedUrlsUseCase = (
 
     // 保存状態の取得が成功してから開く。取得失敗時にブラウザ操作だけが
     // 先行しないよう、この snapshot をオープン・削除フェーズへ渡す。
-    return openAndRemoveFromSnapshot(command, deps, {
-      customProjects: allCustomProjects,
-      tabGroups: allTabGroups,
-      urlRecords: allUrlRecords,
-    })
+    return openAndRemoveFromSnapshot(
+      command,
+      deps,
+      {
+        customProjects: allCustomProjects,
+        tabGroups: allTabGroups,
+        urlRecords: allUrlRecords,
+      },
+      options,
+    )
   }
 }
