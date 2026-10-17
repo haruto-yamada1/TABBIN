@@ -1,3 +1,7 @@
+import { BrowserOpenError } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+
+import { classifyBrowserOpenError } from './browserOpenError'
+
 /**
  * `chrome.windows` 依存を `BrowserWindowPort` interface に適合させる adapter。
  *
@@ -5,7 +9,7 @@
  * `composition` 層からこの adapter を `BrowserWindowPort` として use-case へ注入する。
  *
  * `openWithUrls` は引数の URL 配列をそのまま `chrome.windows.create` に渡し、
- * 開いた URL 配列を返す。`focused` は省略時 `true`（前面表示）として扱う。
+ * 作成結果で確認できた要求 URL の部分集合を返す。`focused` は省略時 `true`（前面表示）として扱う。
  *
  * @example
  * ```ts
@@ -34,7 +38,13 @@ export type ChromeWindowsLike = {
     readonly url?: readonly string[] | string
   }) =>
     | Promise<
-        { readonly tabs?: readonly { readonly url?: string }[] } | undefined
+        | {
+            readonly tabs?: readonly {
+              readonly url?: string
+              readonly pendingUrl?: string
+            }[]
+          }
+        | undefined
       >
     | undefined
 }
@@ -69,19 +79,45 @@ export const createChromeBrowserWindowAdapter = (
       const windows = api?.windows
       const focused = input.focused ?? options.resolveFocused?.() ?? true
       if (!windows?.create) {
-        throw new Error('chrome.windows.create is not available')
+        throw new BrowserOpenError('unavailable')
       }
-      const result = await windows.create({
-        focused,
-        url: [...input.urls],
-      })
-      const openedUrls = (result?.tabs ?? [])
-        .map((tab) => tab.url)
-        .filter((url): url is string => typeof url === 'string')
-      // `chrome.windows.create` が URL 情報を返さない（あるいは一部しか返さない）
-      // 環境へのフォールバックとして、入力された URL 配列をそのまま返す。
-      return {
-        urls: openedUrls.length > 0 ? openedUrls : [...input.urls],
+      try {
+        const result = await windows.create({ focused, url: [...input.urls] })
+        if (!result) {
+          throw new BrowserOpenError('unknown')
+        }
+        const confirmed = (result.tabs ?? []).map((tab) =>
+          [tab.url, tab.pendingUrl].filter(
+            (url): url is string => typeof url === 'string',
+          ),
+        )
+        return {
+          urls: input.urls.filter((requested) => {
+            const index = confirmed.findIndex((urls) =>
+              urls.some((url) => {
+                if (url === requested) {
+                  return true
+                }
+                try {
+                  return new URL(url).href === new URL(requested).href
+                } catch {
+                  return false
+                }
+              }),
+            )
+            if (index === -1) {
+              return false
+            }
+            // A created tab confirms at most one request, even when URLs normalize equally.
+            confirmed.splice(index, 1)
+            return true
+          }),
+        }
+      } catch (error) {
+        if (error instanceof BrowserOpenError) {
+          throw error
+        }
+        throw classifyBrowserOpenError(error)
       }
     },
   }

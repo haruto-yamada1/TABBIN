@@ -1,3 +1,7 @@
+import { BrowserOpenError } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+
+import { classifyBrowserOpenError } from './browserOpenError'
+
 /**
  * `chrome.tabs` 依存を `BrowserTabPort` interface に適合させる adapter。
  *
@@ -74,10 +78,20 @@ export const createChromeBrowserTabAdapter = (
       const tabs = api?.tabs
       const active = options.resolveActive?.() ?? true
       if (!tabs?.create) {
-        throw new Error('chrome.tabs.create is not available')
+        throw new BrowserOpenError('unavailable')
       }
-      const result = await tabs.create({ active, url: input.url })
-      return { url: result?.url ?? input.url }
+      try {
+        const result = await tabs.create({ active, url: input.url })
+        if (!result) {
+          throw new BrowserOpenError('unknown')
+        }
+        return { url: result.url ?? input.url }
+      } catch (error) {
+        if (error instanceof BrowserOpenError) {
+          throw error
+        }
+        throw classifyBrowserOpenError(error)
+      }
     },
   }
 }

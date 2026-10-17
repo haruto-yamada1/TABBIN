@@ -46,8 +46,8 @@ describe('createChromeBrowserTabAdapter', () => {
     })
   })
 
-  it('chrome.tabs.create の戻り url が undefined のとき入力 url を返す', async () => {
-    const create = vi.fn(async () => undefined)
+  it('作成したタブの URL が未取得でも入力 URL を返す', async () => {
+    const create = vi.fn(async () => ({}))
     const adapter = createChromeBrowserTabAdapter({
       getApi: () => createMockApi({ create }),
     })
@@ -55,12 +55,43 @@ describe('createChromeBrowserTabAdapter', () => {
     expect(result).toStrictEqual({ url: 'https://example.com' })
   })
 
+  it('作成結果が未確認の場合は成功扱いしない', async () => {
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () => createMockApi({ create: vi.fn(async () => undefined) }),
+    })
+    await expect(adapter.open({ url: 'https://example.com' })).rejects.toThrow(
+      'The browser could not open this URL.',
+    )
+  })
+
+  it.each([
+    ['Permission denied', 'permission'],
+    ['Illegal URL: https://secret.example/?token=hidden', 'restrictedUrl'],
+    ['Too many tabs', 'tabLimit'],
+    ['private diagnostic https://secret.example', 'unknown'],
+  ])('browser rejection is safely classified: %s', async (message, reason) => {
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () =>
+        createMockApi({
+          create: async () => {
+            throw new Error(message)
+          },
+        }),
+    })
+    await expect(
+      adapter.open({ url: 'https://example.com' }),
+    ).rejects.toMatchObject({ reason })
+    await expect(
+      adapter.open({ url: 'https://example.com' }),
+    ).rejects.not.toThrow(message)
+  })
+
   it('chrome API がない環境では Error を投げる', async () => {
     const adapter = createChromeBrowserTabAdapter({
       getApi: () => undefined,
     })
     await expect(adapter.open({ url: 'https://example.com' })).rejects.toThrow(
-      'chrome.tabs.create is not available',
+      'The browser is unavailable.',
     )
   })
 
@@ -69,7 +100,7 @@ describe('createChromeBrowserTabAdapter', () => {
       getApi: () => createMockApi({}),
     })
     await expect(adapter.open({ url: 'https://example.com' })).rejects.toThrow(
-      'chrome.tabs.create is not available',
+      'The browser is unavailable.',
     )
   })
 })

@@ -1,5 +1,7 @@
 import { assert, describe, expect, it, vi } from 'vitest'
 
+import { BrowserOpenError } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/BrowserWindowPort'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
@@ -116,6 +118,288 @@ const createSpyBrowserWindowPort = (): {
 }
 
 describe('OpenAllSavedUrlsUseCase', () => {
+  it.each(['tabGroupSave', 'projectSave', 'recordRemove'] as const)(
+    '一括オープン後の %s 失敗でも確認済み成功と失敗 URL を保持する',
+    async (failure) => {
+      const urls = ['https://example.com/a', 'https://example.com/b'] as const
+      const records = urls.map((url, index) =>
+        createUrlRecord({
+          id: `url-${index}`,
+          savedAt: 1,
+          title: url,
+          url,
+        }),
+      )
+      const group = createTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        memberships: records.map(({ id }) => ({ urlId: id })),
+      })
+      const project = createCustomProject({
+        id: 'project-1',
+        name: 'P',
+        memberships: records.map(({ id }) => ({ urlId: id })),
+      })
+      const repos = createInMemoryRepositories({
+        customProjects: [project],
+        tabGroups: [group],
+        urlRecords: records,
+      })
+      const diagnostics = new Error('private persistence diagnostics')
+      if (failure === 'tabGroupSave') {
+        vi.spyOn(repos.tabGroupRepository, 'saveAll').mockRejectedValue(
+          diagnostics,
+        )
+      } else if (failure === 'projectSave') {
+        vi.spyOn(repos.customProjectRepository, 'saveAll').mockRejectedValue(
+          diagnostics,
+        )
+      } else {
+        vi.spyOn(repos.urlRecordRepository, 'removeByIds').mockRejectedValue(
+          diagnostics,
+        )
+      }
+      const browserTabPort = {
+        open: vi.fn(async ({ url }: { url: string }) => {
+          if (url === urls[1]) {
+            throw new BrowserOpenError('tabLimit')
+          }
+          return { url }
+        }),
+      }
+      const useCase = createOpenAllSavedUrlsUseCase({
+        ...repos,
+        browserTabPort,
+        browserWindowPort: createSpyBrowserWindowPort().port,
+      })
+
+      const result = useCase({
+        mode: 'backgroundTabs',
+        removeTabAfterOpen: true,
+        urls,
+      })
+
+      await expect(result).rejects.toBeInstanceOf(UrlOpeningPostProcessingError)
+      await expect(result).rejects.toMatchObject({
+        name: 'UrlOpeningPostProcessingError',
+        message: 'URL opening succeeded, but updating saved URLs failed.',
+        openedUrls: [urls[0]],
+        failedUrls: [{ url: urls[1], reason: 'tabLimit' }],
+      })
+      await expect(result).rejects.not.toHaveProperty('cause')
+      expect(browserTabPort.open).toHaveBeenCalledTimes(2)
+    },
+  )
+
+  it('一括オープン前の repository 失敗は確認済みの成功として扱わない', async () => {
+    const repos = createInMemoryRepositories()
+    const error = new Error('lookup failure')
+    vi.spyOn(repos.urlRecordRepository, 'findAll').mockRejectedValue(error)
+    const browser = createSpyBrowserTabPort()
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort: browser.port,
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+
+    await expect(
+      useCase({
+        mode: 'backgroundTabs',
+        removeTabAfterOpen: true,
+        urls: ['https://example.com/a'],
+      }),
+    ).rejects.toBe(error)
+    expect(browser.opened).toStrictEqual([])
+  })
+
+  it('タブの部分失敗を待ち合わせ、成功した保存 URL だけを削除する', async () => {
+    const urls = ['https://example.com', 'https://example.com/b']
+    const records = urls.map((url, index) =>
+      createUrlRecord({ id: `url-${index}`, savedAt: 1, title: url, url }),
+    )
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      memberships: records.map(({ id }) => ({ urlId: id })),
+    })
+    const project = createCustomProject({
+      categories: [],
+      createdAt: 1,
+      id: 'project-1',
+      name: 'P',
+      updatedAt: 1,
+      memberships: records.map(({ id }) => ({ urlId: id })),
+    })
+    const repos = createInMemoryRepositories({
+      customProjects: [project],
+      tabGroups: [group],
+      urlRecords: records,
+    })
+    const pendingOpen = Promise.withResolvers<{ url: string }>()
+    const open = vi.fn(async ({ url }: { url: string }) => {
+      if (url === urls[0]) {
+        return pendingOpen.promise
+      }
+      throw new Error('private browser diagnostics')
+    })
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort: { open },
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+    const resultPromise = useCase({
+      mode: 'backgroundTabs',
+      removeTabAfterOpen: true,
+      urls,
+    })
+    const completion = vi.fn()
+    void resultPromise.then(completion, completion)
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(2))
+    expect(completion).not.toHaveBeenCalled()
+    await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual(
+      records,
+    )
+    pendingOpen.resolve({ url: 'https://example.com/' })
+
+    const result = await resultPromise
+
+    expect(result.openedUrls).toStrictEqual(['https://example.com/'])
+    expect(result.failedUrls).toStrictEqual([
+      { url: urls[1], reason: 'unknown' },
+    ])
+    expect(result.removedUrlRecordIds).toStrictEqual(['url-0'])
+    expect(result.removedUrlRecords.map(({ id }) => id)).toStrictEqual([
+      'url-0',
+    ])
+    expect(result.snapshot?.urlRecords?.map(({ id }) => id)).toStrictEqual([
+      'url-0',
+    ])
+    await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([
+      records[1],
+    ])
+    await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([
+      { ...group, memberships: [group.memberships[1]] },
+    ])
+    await expect(
+      repos.customProjectRepository.findAll(),
+    ).resolves.toStrictEqual([
+      { ...project, memberships: [project.memberships[1]] },
+    ])
+  })
+
+  it.each(['backgroundTabs', 'newWindow'] as const)(
+    '%s の全件失敗は保存データを変更せず全対象を失敗として返す',
+    async (mode) => {
+      const url = 'https://example.com/a'
+      const record = createUrlRecord({
+        id: 'url-1',
+        savedAt: 1,
+        title: 'A',
+        url,
+      })
+      const group = createTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        memberships: [{ urlId: record.id }],
+      })
+      const repos = createInMemoryRepositories({
+        tabGroups: [group],
+        urlRecords: [record],
+      })
+      const rejection = new Error('private browser diagnostics')
+      const useCase = createOpenAllSavedUrlsUseCase({
+        ...repos,
+        browserTabPort: { open: vi.fn().mockRejectedValue(rejection) },
+        browserWindowPort: {
+          openWithUrls: vi.fn().mockRejectedValue(rejection),
+        },
+      })
+
+      const result = await useCase({
+        mode,
+        removeTabAfterOpen: true,
+        urls: [url],
+      })
+
+      expect(result).toStrictEqual({
+        failedUrls: [{ url, reason: 'unknown' }],
+        openedUrls: [],
+        removedUrlRecordIds: [],
+        removedUrlRecords: [],
+        snapshot: null,
+      })
+      await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([
+        record,
+      ])
+      await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([
+        group,
+      ])
+    },
+  )
+
+  it.each(['backgroundTabs', 'newWindow'] as const)(
+    '%s は typed browser error の理由を失敗結果に保持する',
+    async (mode) => {
+      const urls = ['https://example.com/a', 'https://example.com/b']
+      const error = new BrowserOpenError('permission')
+      const useCase = createOpenAllSavedUrlsUseCase({
+        ...createInMemoryRepositories(),
+        browserTabPort: { open: vi.fn().mockRejectedValue(error) },
+        browserWindowPort: {
+          openWithUrls: vi.fn().mockRejectedValue(error),
+        },
+      })
+
+      const result = await useCase({ mode, removeTabAfterOpen: true, urls })
+
+      expect(result.failedUrls).toStrictEqual(
+        urls.map((url) => ({ url, reason: 'permission' })),
+      )
+      expect(result.openedUrls).toStrictEqual([])
+    },
+  )
+
+  it('新規ウィンドウの確認済み URL だけを削除し未確認 URL を残す', async () => {
+    const urls = ['https://example.com/a', 'https://example.com/b'] as const
+    const records = urls.map((url, index) =>
+      createUrlRecord({ id: `url-${index}`, savedAt: 1, title: url, url }),
+    )
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      memberships: records.map(({ id }) => ({ urlId: id })),
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [group],
+      urlRecords: records,
+    })
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort: createSpyBrowserTabPort().port,
+      browserWindowPort: {
+        openWithUrls: vi.fn(async () => ({ urls: [urls[0]] })),
+      },
+    })
+
+    const result = await useCase({
+      mode: 'newWindow',
+      removeTabAfterOpen: true,
+      urls,
+    })
+
+    expect(result.openedUrls).toStrictEqual([urls[0]])
+    expect(result.failedUrls).toStrictEqual([
+      { url: urls[1], reason: 'unknown' },
+    ])
+    expect(result.removedUrlRecordIds).toStrictEqual(['url-0'])
+    await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([
+      records[1],
+    ])
+    await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([
+      { ...group, memberships: [group.memberships[1]] },
+    ])
+  })
+
   it('mode=backgroundTabs のときは BrowserTabPort.open を各 URL で呼び出す', async () => {
     const repos = createInMemoryRepositories()
     const tab = createSpyBrowserTabPort()
@@ -141,6 +425,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       'https://example.com/a',
       'https://example.com/b',
     ])
+    expect(result.failedUrls).toStrictEqual([])
     expect(result.snapshot).toBeNull()
   })
 
@@ -421,6 +706,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
     expect(tab.opened).toStrictEqual([])
     expect(win.opened).toStrictEqual([])
     expect(result.openedUrls).toStrictEqual([])
+    expect(result.failedUrls).toStrictEqual([])
     expect(result.snapshot).toBeNull()
   })
 })

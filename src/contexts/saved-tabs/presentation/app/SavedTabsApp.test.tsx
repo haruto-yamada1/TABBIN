@@ -2136,7 +2136,7 @@ describe('SavedTabsApp custom search', () => {
         },
       },
       tabs: {
-        create: vi.fn(),
+        create: vi.fn(async () => ({})),
       },
       windows: {
         create: vi.fn(),
@@ -2286,7 +2286,7 @@ describe('SavedTabsApp custom search', () => {
         },
       },
       tabs: {
-        create: vi.fn(),
+        create: vi.fn(async () => ({})),
       },
       windows: {
         create: vi.fn(),
@@ -3816,7 +3816,7 @@ describe('SavedTabsApp custom search', () => {
         url: 'https://example.com/keep',
       },
     ]
-    const chromeTabsCreateMock = vi.fn()
+    const chromeTabsCreateMock = vi.fn(async () => ({}))
     const repositoryWriteMock = vi.fn()
     const fixtureApi = repositoryFixtures
     fixtureApi.current = {
@@ -4010,7 +4010,7 @@ describe('SavedTabsApp custom search', () => {
         },
       },
       tabs: {
-        create: vi.fn(),
+        create: vi.fn(async () => ({})),
       },
       windows: {
         create: vi.fn(),
@@ -4601,7 +4601,7 @@ describe('SavedTabsApp custom search', () => {
         },
       },
       tabs: {
-        create: vi.fn(),
+        create: vi.fn(async () => ({})),
       },
       windows: {
         create: vi.fn(),
@@ -4705,7 +4705,7 @@ describe('SavedTabsApp custom search', () => {
         },
       },
       tabs: {
-        create: vi.fn(),
+        create: vi.fn(async () => ({})),
       },
       windows: {
         create: vi.fn(),

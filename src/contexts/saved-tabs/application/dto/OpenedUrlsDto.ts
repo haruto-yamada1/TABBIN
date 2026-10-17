@@ -1,4 +1,5 @@
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
+import type { BrowserOpenFailureReason } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
 
 import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
 
@@ -6,6 +7,7 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
  * `OpenAllSavedUrlsUseCase` の結果 DTO。
  *
  * `openedUrls` は実際にブラウザで開いた URL 文字列配列。
+ * `failedUrls` は開けなかった要求 URL と安全に分類した失敗理由。
  * `removedUrlRecordIds` は `removeTabAfterOpen` 設定と
  * 参照関係（他で参照されているか）に基づいて削除された
  * `UrlRecordId` 集合。空配列なら「削除されなかった」ことを示す。
@@ -18,6 +20,10 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
  */
 export type OpenedUrlsDto = {
   readonly openedUrls: readonly string[]
+  readonly failedUrls: readonly {
+    readonly url: string
+    readonly reason: BrowserOpenFailureReason
+  }[]
   readonly removedUrlRecordIds: readonly string[]
   readonly removedUrlRecords: readonly SavedTabsUrlRecordDto[]
   readonly snapshot: OpenedUrlsRestoreSnapshot | null

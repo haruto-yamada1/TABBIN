@@ -1,7 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useCallback } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import { toBrowserOpenFailureReason } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+import type { BrowserOpenFailureReason } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import {
   showOpenedUrlsUndoToast,
@@ -14,7 +17,6 @@ import type {
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
 
 type UseTabOpeningHandlersDeps = {
   savedTabsUseCases: SavedTabsUseCases
@@ -26,6 +28,17 @@ type UseTabOpeningHandlersDeps = {
   t: TranslateFn
 }
 
+export type UrlOpeningOperation = {
+  readonly status: 'running' | 'complete'
+  readonly postProcessingFailed?: boolean
+  readonly total: number
+  readonly opened: number
+  readonly failedUrls: readonly {
+    readonly url: string
+    readonly reason: BrowserOpenFailureReason
+  }[]
+}
+
 export const useTabOpeningHandlers = ({
   savedTabsUseCases,
   deps,
@@ -35,14 +48,85 @@ export const useTabOpeningHandlers = ({
   setCustomProjects,
   t,
 }: UseTabOpeningHandlersDeps) => {
+  const [openingOperation, setOpeningOperation] =
+    useState<UrlOpeningOperation | null>(null)
+  const queueRef = useRef(Promise.resolve())
+  const pendingRef = useRef(new Map<string, Promise<void>>())
+  const lastModeRef = useRef<'single' | 'bulk'>('single')
+  const runOpening = useCallback(
+    async (
+      urls: readonly string[],
+      mode: 'single' | 'bulk',
+      execute: () => Promise<
+        Pick<
+          UrlOpeningOperation,
+          'opened' | 'failedUrls' | 'postProcessingFailed'
+        >
+      >,
+    ): Promise<void> => {
+      if (urls.length === 0) {
+        return
+      }
+      const key = JSON.stringify([mode, urls])
+      const pending = pendingRef.current.get(key)
+      if (pending) {
+        return pending
+      }
+      const operation = queueRef.current
+        .then(async () => {
+          lastModeRef.current = mode
+          setOpeningOperation({
+            status: 'running',
+            total: urls.length,
+            opened: 0,
+            failedUrls: [],
+          })
+          try {
+            const outcome = await execute()
+            setOpeningOperation({
+              status: 'complete',
+              total: urls.length,
+              ...outcome,
+            })
+          } catch (error) {
+            if (error instanceof UrlOpeningPostProcessingError) {
+              setOpeningOperation({
+                status: 'complete',
+                total: urls.length,
+                opened: error.openedUrls.length,
+                failedUrls: error.failedUrls,
+                postProcessingFailed: true,
+              })
+            } else {
+              setOpeningOperation({
+                status: 'complete',
+                total: urls.length,
+                opened: 0,
+                failedUrls: urls.map((url) => ({
+                  url,
+                  reason: toBrowserOpenFailureReason(error),
+                })),
+              })
+            }
+          }
+        })
+        .finally(() => {
+          pendingRef.current.delete(key)
+        })
+      queueRef.current = operation
+      pendingRef.current.set(key, operation)
+      return operation
+    },
+    [],
+  )
   const handleOpenTab = useCallback(
     async (url: string) => {
-      try {
+      await runOpening([url], 'single', async () => {
         const lookup = await savedTabsUseCases.findUrlRecordByUrl({ url })
 
         if (!lookup.record) {
           await deps.browserTabPort.open({ url })
-          return
+          return { opened: 1, failedUrls: [] }
         }
 
         const snapshot = settings.removeTabAfterOpen
@@ -62,24 +146,25 @@ export const useTabOpeningHandlers = ({
         })
 
         if (snapshot && result.snapshot) {
-          await refreshTabGroupsWithUrls()
-          showOpenedUrlsUndoToast({
-            count: 1,
-            refreshTabGroupsWithUrls,
-            savedTabsUseCases,
-            setCustomProjects,
-            snapshot,
-            t,
-          })
-          console.log(
-            `URL ${redactUrlForLog(url)} を開いた後、保存データから削除しました`,
-          )
+          try {
+            await refreshTabGroupsWithUrls()
+            showOpenedUrlsUndoToast({
+              count: 1,
+              refreshTabGroupsWithUrls,
+              savedTabsUseCases,
+              setCustomProjects,
+              snapshot,
+              t,
+            })
+          } catch {
+            return { opened: 1, failedUrls: [], postProcessingFailed: true }
+          }
         }
-      } catch (error) {
-        console.error('タブを開く処理エラー:', error)
-      }
+        return { opened: 1, failedUrls: [] }
+      })
     },
     [
+      runOpening,
       savedTabsUseCases,
       deps,
       settings.removeTabAfterOpen,
@@ -97,42 +182,54 @@ export const useTabOpeningHandlers = ({
         title: string
       }[],
     ) => {
-      try {
-        const preDeleteSnapshot = settings.removeTabAfterOpen
-          ? await savedTabsUseCases.buildSavedTabsSnapshot({
-              parentCategories: toDomainParentCategories(categories),
-            })
-          : undefined
+      await runOpening(
+        urls.map(({ url }) => url),
+        'bulk',
+        async () => {
+          const preDeleteSnapshot = settings.removeTabAfterOpen
+            ? await savedTabsUseCases.buildSavedTabsSnapshot({
+                parentCategories: toDomainParentCategories(categories),
+              })
+            : undefined
 
-        const result = await savedTabsUseCases.openAllSavedUrls({
-          mode: settings.openAllInNewWindow ? 'newWindow' : 'backgroundTabs',
-          removeTabAfterOpen: settings.removeTabAfterOpen,
-          urls: urls.map((u) => u.url),
-        })
-
-        if (
-          settings.removeTabAfterOpen &&
-          preDeleteSnapshot &&
-          result.snapshot
-        ) {
-          await refreshTabGroupsWithUrls()
-          showOpenedUrlsUndoToast({
-            count: result.removedUrlRecordIds.length,
-            refreshTabGroupsWithUrls,
-            savedTabsUseCases,
-            setCustomProjects,
-            snapshot: preDeleteSnapshot,
-            t,
+          const result = await savedTabsUseCases.openAllSavedUrls({
+            mode: settings.openAllInNewWindow ? 'newWindow' : 'backgroundTabs',
+            removeTabAfterOpen: settings.removeTabAfterOpen,
+            urls: urls.map((u) => u.url),
           })
-          console.log(
-            `${urls.length}個のURLを開いた後、保存データから削除しました`,
-          )
-        }
-      } catch (error) {
-        console.error('タブ一括オープンエラー:', error)
-      }
+
+          if (
+            settings.removeTabAfterOpen &&
+            preDeleteSnapshot &&
+            result.snapshot
+          ) {
+            try {
+              await refreshTabGroupsWithUrls()
+              showOpenedUrlsUndoToast({
+                count: result.removedUrlRecordIds.length,
+                refreshTabGroupsWithUrls,
+                savedTabsUseCases,
+                setCustomProjects,
+                snapshot: preDeleteSnapshot,
+                t,
+              })
+            } catch {
+              return {
+                opened: result.openedUrls.length,
+                failedUrls: result.failedUrls,
+                postProcessingFailed: true,
+              }
+            }
+          }
+          return {
+            opened: result.openedUrls.length,
+            failedUrls: result.failedUrls,
+          }
+        },
+      )
     },
     [
+      runOpening,
       settings.openAllInNewWindow,
       settings.removeTabAfterOpen,
       savedTabsUseCases,
@@ -143,5 +240,17 @@ export const useTabOpeningHandlers = ({
     ],
   )
 
-  return { handleOpenTab, handleOpenAllTabs }
+  const retryFailedUrls = useCallback(async () => {
+    const failures = openingOperation?.failedUrls ?? []
+    if (failures.length === 0) {
+      return
+    }
+    if (lastModeRef.current === 'single' && failures[0]) {
+      await handleOpenTab(failures[0].url)
+    } else {
+      await handleOpenAllTabs(failures.map(({ url }) => ({ url, title: '' })))
+    }
+  }, [openingOperation, handleOpenTab, handleOpenAllTabs])
+
+  return { handleOpenTab, handleOpenAllTabs, openingOperation, retryFailedUrls }
 }

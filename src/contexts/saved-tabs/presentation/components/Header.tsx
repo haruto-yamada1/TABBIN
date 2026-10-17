@@ -1,4 +1,5 @@
 import { Plus, X } from 'lucide-react'
+import type { ComponentProps } from 'react'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -27,12 +28,15 @@ import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from './shared/SavedTabsResponsive'
+import { UrlOpeningResult } from './UrlOpeningResult'
 import { ViewModeToggle } from './ViewModeToggle'
 
 const EMPTY_CUSTOM_PROJECTS: CustomProject[] = []
 const noopCreateProject = () => {}
 
 type HeaderProps = {
+  openingOperation?: ComponentProps<typeof UrlOpeningResult>['operation']
+  onRetryOpening?: () => Promise<void>
   tabGroups: TabGroup[]
   filteredTabGroups?: TabGroup[]
   currentMode: ViewMode
@@ -59,6 +63,8 @@ type HeaderProps = {
 // eslint-disable-next-line eslint/complexity
 export const Header = ({
   // eslint-disable-line eslint/max-lines-per-function
+  openingOperation,
+  onRetryOpening,
   tabGroups,
   filteredTabGroups,
   currentMode,
@@ -185,7 +191,7 @@ export const Header = ({
   )
 
   return (
-    <div className='mb-4 flex items-center gap-4'>
+    <div className='mb-4 flex flex-wrap items-center gap-4'>
       <div className='flex flex-1 items-center gap-1'>
         <div className='relative w-full min-w-24'>
           <Input
@@ -271,7 +277,12 @@ export const Header = ({
           )}
         </div>
       </div>
-
+      {onRetryOpening && (
+        <UrlOpeningResult
+          operation={openingOperation ?? null}
+          onRetry={onRetryOpening}
+        />
+      )}
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
           onClose={handleCloseModal}

@@ -39,7 +39,7 @@ describe('createSavedTabsPorts (app/composition)', () => {
 
     it('chrome.tabs.create の戻り値に url が無い場合は引数の url をそのまま返す', async () => {
       // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
-      const create = vi.fn(async () => undefined)
+      const create = vi.fn(async () => ({}))
       setChromeApi({ tabs: { create } })
 
       const { browserTabPort } = createSavedTabsPorts()
@@ -56,14 +56,14 @@ describe('createSavedTabsPorts (app/composition)', () => {
       const { browserTabPort } = createSavedTabsPorts()
       await expect(
         browserTabPort.open({ url: 'https://example.com' }),
-      ).rejects.toThrow('chrome.tabs.create is not available')
+      ).rejects.toThrow('The browser is unavailable.')
     })
 
     it('chrome 自体が未定義の環境でも browserTabPort.open が Error を投げる', async () => {
       const { browserTabPort } = createSavedTabsPorts()
       await expect(
         browserTabPort.open({ url: 'https://example.com' }),
-      ).rejects.toThrow('chrome.tabs.create is not available')
+      ).rejects.toThrow('The browser is unavailable.')
     })
   })
 
