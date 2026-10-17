@@ -55,6 +55,7 @@ export const defaultSettings: UserSettings = {
   // デフォルトは有効
   autoDeletePeriod: 'never',
   // デフォルトでは自動削除しない
+  showRelativeSavedTime: false,
   showSavedTime: false,
   // デフォルトでは表示しない
   clickBehavior: 'saveSameDomainTabs',

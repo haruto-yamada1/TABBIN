@@ -102,16 +102,19 @@ vi.mock('@/components/ui/select', () => ({
 vi.mock('@/components/ui/checkbox', () => ({
   Checkbox: ({
     checked,
+    disabled,
     id,
     onCheckedChange,
   }: {
     checked?: boolean
+    disabled?: boolean
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
     // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       checked={Boolean(checked)}
+      disabled={disabled}
       id={id}
       onChange={(event) => onCheckedChange?.(event.target.checked)}
       type='checkbox'
@@ -155,11 +158,50 @@ const createSettings = (
   openUrlInBackground: true,
   removeTabAfterExternalDrop: true,
   removeTabAfterOpen: true,
+  showRelativeSavedTime: false,
   showSavedTime: false,
   ...override,
 })
 
 describe('OptionsRoute', () => {
+  it.each([false, true])('親OFFなら子の値%sを保って無効化する', (child) => {
+    optionsRouteMocks.settings = createSettings({
+      showSavedTime: false,
+      showRelativeSavedTime: child,
+    })
+    render(<OptionsRoute />)
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'options.showRelativeSavedTime',
+    })
+    expect(checkbox).toBeDisabled()
+    expect(checkbox).toHaveProperty('checked', child)
+  })
+
+  it('親ONなら子設定のみを更新し、親OFFでも子をリセットしない', async () => {
+    optionsRouteMocks.settings = createSettings({ showSavedTime: true })
+    const user = userEvent.setup()
+    render(<OptionsRoute />)
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'options.showRelativeSavedTime',
+    })
+    expect(checkbox).toBeEnabled()
+    await user.click(checkbox)
+    expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
+      'showRelativeSavedTime',
+      true,
+    )
+    optionsRouteMocks.updateSetting.mockClear()
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'options.autoDelete.savedTime',
+      }),
+    )
+    expect(optionsRouteMocks.updateSetting).toHaveBeenCalledExactlyOnceWith(
+      'showSavedTime',
+      false,
+    )
+  })
+
   it('font size helper は input value だけを既定値へ戻す', () => {
     expect(
       resetFontSizeInputValue(

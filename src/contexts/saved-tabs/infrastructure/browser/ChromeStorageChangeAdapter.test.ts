@@ -127,6 +127,7 @@ describe('createChromeStorageChangeAdapter', () => {
       excludePatterns: ['example.com'],
       enableCategories: true,
       autoDeletePeriod: '7days',
+      showRelativeSavedTime: true,
       showSavedTime: true,
       clickBehavior: 'saveCurrentTab',
       excludePinnedTabs: false,
@@ -160,6 +161,31 @@ describe('createChromeStorageChangeAdapter', () => {
       },
     ])
   })
+
+  it.each([false, true])(
+    '相対保存日時 %s の変更だけを通知する',
+    (showRelativeSavedTime) => {
+      const onChanged = createMockOnChanged()
+      const listener = vi.fn()
+      createChromeStorageChangeAdapter({
+        getOnChanged: () => onChanged,
+      }).subscribe(listener)
+
+      onChanged.emit(
+        { userSettings: { newValue: { showRelativeSavedTime } } },
+        'local',
+      )
+
+      expect(listener).toHaveBeenCalledExactlyOnceWith([
+        {
+          key: 'userSettings',
+          kind: 'parsed',
+          oldValue: undefined,
+          payload: [{ showRelativeSavedTime }],
+        },
+      ])
+    },
+  )
 
   it.each([undefined, null, [], { removeTabAfterOpen: 'invalid' }])(
     '不正 settings は空 payload として通知する: %j',

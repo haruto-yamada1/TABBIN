@@ -31,6 +31,7 @@ const userSettings = {
   openUrlInBackground: false,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
+  showRelativeSavedTime: false,
   showSavedTime: true,
 } satisfies UserSettings
 
@@ -156,6 +157,59 @@ const createLogicalSnapshot = (reverse = false): PersistenceLogicalSnapshot => {
 }
 
 describe('Backup V2 schemas', () => {
+  it('imports older Backup V2 settings with relative saved time disabled', () => {
+    const data = BackupMapper.toBackupData(
+      createLogicalSnapshot(),
+      userSettings,
+    )
+    const { showRelativeSavedTime: _relative, ...legacySettings } = {
+      ...data.userSettings,
+      showRelativeSavedTime: true,
+    }
+    const parsed = BackupDataV2Schema.parse({
+      ...data,
+      userSettings: legacySettings,
+    })
+
+    expect(parsed.userSettings).toMatchObject({
+      showRelativeSavedTime: false,
+      showSavedTime: true,
+    })
+  })
+
+  it('round-trips relative saved time independently of its parent setting', () => {
+    const settings = {
+      ...userSettings,
+      showRelativeSavedTime: true,
+      showSavedTime: false,
+    }
+    const data = BackupMapper.toBackupData(createLogicalSnapshot(), settings)
+    const serialized = JSON.stringify(data)
+    const parsed: unknown = JSON.parse(serialized)
+
+    expect(BackupDataV2Schema.parse(parsed).userSettings).toMatchObject({
+      showRelativeSavedTime: true,
+      showSavedTime: false,
+    })
+  })
+
+  it.each(['true', 1, null])(
+    'rejects invalid relative saved time %j in backups',
+    (value) => {
+      const data = BackupMapper.toBackupData(
+        createLogicalSnapshot(),
+        userSettings,
+      )
+
+      expect(
+        BackupDataV2Schema.safeParse({
+          ...data,
+          userSettings: { ...data.userSettings, showRelativeSavedTime: value },
+        }).success,
+      ).toBe(false)
+    },
+  )
+
   it('preserves omitted optional metadata without adding undefined properties', () => {
     const url = {
       firstSavedAt: 0,

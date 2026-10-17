@@ -63,6 +63,7 @@ describe('inspectBackupV2', () => {
     expect(
       inspectBackupV2(readFixture('backup-v2-current.json')),
     ).toMatchObject({
+      data: { userSettings: { showRelativeSavedTime: false } },
       preview: {
         schemaVersion: 2,
       },

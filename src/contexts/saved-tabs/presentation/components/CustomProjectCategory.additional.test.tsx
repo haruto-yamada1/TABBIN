@@ -87,6 +87,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,

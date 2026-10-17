@@ -29,6 +29,7 @@ const mocked = vi.hoisted(() => ({
     openUrlInBackground: true,
     removeTabAfterExternalDrop: true,
     removeTabAfterOpen: true,
+    showRelativeSavedTime: false,
     showSavedTime: false,
   } as UserSettings,
   setSettings: vi.fn(),
@@ -257,6 +258,7 @@ describe('PeriodicExecutionRoute', () => {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
       removeTabAfterOpen: true,
+      showRelativeSavedTime: false,
       showSavedTime: false,
     }
   })

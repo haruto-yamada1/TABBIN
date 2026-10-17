@@ -142,6 +142,7 @@ export const UserSettingsSchema = z.object({
   excludePatterns: z.array(z.string()),
   enableCategories: z.boolean(),
   autoDeletePeriod: autoDeletePeriodField,
+  showRelativeSavedTime: z.boolean(),
   showSavedTime: z.boolean(),
   clickBehavior: z.enum([
     'saveCurrentTab',
@@ -186,6 +187,7 @@ export const storedUserSettingsSchema = z.object({
     .catch(undefined),
   enableCategories: z.boolean().optional().catch(undefined),
   autoDeletePeriod: autoDeletePeriodField.catch(undefined),
+  showRelativeSavedTime: z.boolean().optional().catch(undefined),
   showSavedTime: z.boolean().optional().catch(undefined),
   clickBehavior: z
     .enum([

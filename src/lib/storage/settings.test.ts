@@ -30,6 +30,32 @@ describe('settings storage', () => {
     vi.clearAllMocks()
   })
 
+  it('相対保存日時は未設定で無効になり、親設定と独立して保存・再読み込みできる', async () => {
+    const { defaultSettings, getUserSettings, saveUserSettings } =
+      await loadModule()
+    let storedValue: unknown = { showSavedTime: true }
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({ userSettings: storedValue })),
+      set: vi.fn(async ({ userSettings }: { userSettings: unknown }) => {
+        storedValue = userSettings
+      }),
+    })
+
+    await expect(getUserSettings()).resolves.toMatchObject({
+      showRelativeSavedTime: false,
+      showSavedTime: true,
+    })
+    await saveUserSettings({
+      ...defaultSettings,
+      showRelativeSavedTime: true,
+      showSavedTime: false,
+    })
+    await expect(getUserSettings()).resolves.toMatchObject({
+      showRelativeSavedTime: true,
+      showSavedTime: false,
+    })
+  })
+
   it.each(['http://localhost:11434', 'http://127.0.0.1:11434'])(
     'Ollama 接続先 %s を保存して再読み込みできる',
     async (ollamaBaseUrl) => {
@@ -303,6 +329,7 @@ describe('settings storage', () => {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
       removeTabAfterOpen: true,
+      showRelativeSavedTime: false,
       showSavedTime: false,
     })
 

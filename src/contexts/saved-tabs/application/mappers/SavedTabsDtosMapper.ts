@@ -64,6 +64,7 @@ export const toUserSettingsDto = (storage: UserSettings): UserSettingsDto => ({
   openUrlInBackground: storage.openUrlInBackground,
   removeTabAfterExternalDrop: storage.removeTabAfterExternalDrop,
   removeTabAfterOpen: storage.removeTabAfterOpen,
+  showRelativeSavedTime: storage.showRelativeSavedTime,
   showSavedTime: storage.showSavedTime,
 })
 
@@ -87,6 +88,7 @@ export const toStorageUserSettings = (dto: UserSettingsDto): UserSettings => {
     openUrlInBackground: dto.openUrlInBackground,
     removeTabAfterExternalDrop: dto.removeTabAfterExternalDrop,
     removeTabAfterOpen: dto.removeTabAfterOpen,
+    showRelativeSavedTime: dto.showRelativeSavedTime,
     showSavedTime: dto.showSavedTime,
   }
   if (dto.activeAiSystemPromptId !== undefined) {

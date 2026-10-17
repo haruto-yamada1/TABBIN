@@ -111,6 +111,7 @@ export const createPersistenceRuntime = async () => {
     openUrlInBackground: false,
     removeTabAfterExternalDrop: false,
     removeTabAfterOpen: false,
+    showRelativeSavedTime: false,
     showSavedTime: true,
   }
   const readUserSettings = async (): Promise<UserSettings> => {

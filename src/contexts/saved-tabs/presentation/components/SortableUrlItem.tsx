@@ -9,10 +9,10 @@ import type { SortableUrlItemProps } from '@/contexts/saved-tabs/presentation/ty
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { toSafeSavedUrlHref } from '@/lib/url-filter'
 import { TimeRemaining } from '@/utils/datetime'
-import { formatFixedDatetime as formatDatetime } from '@/utils/localDateTime'
 
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
+import { SavedTime } from './shared/SavedTime'
 
 const ButtonContent = ({
   title,
@@ -23,7 +23,7 @@ const ButtonContent = ({
   title: string
   savedAt?: number | undefined
   autoDeletePeriod?: string | undefined
-  settings: { showSavedTime: boolean }
+  settings: { showSavedTime: boolean; showRelativeSavedTime: boolean }
 }) => (
   <span
     className='flex w-full min-w-0 flex-col overflow-hidden'
@@ -32,12 +32,13 @@ const ButtonContent = ({
     <span className='block truncate text-left' data-testid='url-title-label'>
       {title}
     </span>
-    {savedAt && (
+    {savedAt !== undefined && (
       <span className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
         {settings.showSavedTime && (
-          <span className='truncate text-muted-foreground'>
-            {formatDatetime(savedAt)}
-          </span>
+          <SavedTime
+            savedAt={savedAt}
+            relative={settings.showRelativeSavedTime}
+          />
         )}
         {autoDeletePeriod && autoDeletePeriod !== 'never' && (
           <TimeRemaining

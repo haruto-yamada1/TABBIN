@@ -55,6 +55,7 @@ const createBackupActions = (
     removeTabAfterExternalDrop: false,
     removeTabAfterOpen: false,
     showSavedTime: true,
+    showRelativeSavedTime: false,
   }
   const readUserSettings = async () => {
     await Promise.resolve()
