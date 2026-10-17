@@ -35,6 +35,7 @@ export type ChromeApiLike = {
 export type ChromeTabsLike = {
   readonly create?: (createProperties: {
     readonly active?: boolean
+    readonly windowId?: number
     readonly url: string
   }) => Promise<{ readonly url?: string } | undefined> | undefined
 }
@@ -73,7 +74,10 @@ export const createChromeBrowserTabAdapter = (
 ) => {
   return {
     [CHROME_BROWSER_TAB_ADAPTER_MARKER]: true,
-    open: async (input: { readonly url: string }) => {
+    open: async (input: {
+      readonly url: string
+      readonly windowId?: number
+    }) => {
       const api = deps.getApi()
       const tabs = api?.tabs
       const active = options.resolveActive?.() ?? true
@@ -81,7 +85,11 @@ export const createChromeBrowserTabAdapter = (
         throw new BrowserOpenError('unavailable')
       }
       try {
-        const result = await tabs.create({ active, url: input.url })
+        const result = await tabs.create({
+          active,
+          url: input.url,
+          ...(input.windowId === undefined ? {} : { windowId: input.windowId }),
+        })
         if (!result) {
           throw new BrowserOpenError('unknown')
         }

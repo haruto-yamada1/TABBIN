@@ -5,6 +5,16 @@ export const urlOpeningMessages = {
     'savedTabs.opening.result': 'URL opening result',
     'savedTabs.opening.running': 'Opening {{count}} URLs…',
     'savedTabs.opening.summary': '{{opened}} / {{total}} URLs opened',
+    'savedTabs.opening.progress': '{{completed}} / {{total}} URLs processed',
+    'savedTabs.opening.counts': '{{opened}} opened, {{failed}} failed',
+    'savedTabs.opening.cancel': 'Cancel opening',
+    'savedTabs.opening.cancelPending': 'Cancelling…',
+    'savedTabs.opening.cancelling':
+      'Waiting for URLs already being opened to finish.',
+    'savedTabs.opening.cancelled': 'Opening cancelled.',
+    'savedTabs.opening.unstarted':
+      '{{count}} URLs were not started and remain saved.',
+    'savedTabs.opening.resume': 'Resume unopened URLs',
     'savedTabs.opening.retained':
       'URLs without a confirmed opening remain saved.',
     'savedTabs.opening.failedUrl': 'Failed URL',
@@ -27,6 +37,15 @@ export const urlOpeningMessages = {
     'savedTabs.opening.result': 'URLを開いた結果',
     'savedTabs.opening.running': '{{count}}件のURLを開いています…',
     'savedTabs.opening.summary': '{{total}}件中{{opened}}件のURLを開きました',
+    'savedTabs.opening.progress': '{{total}}件中{{completed}}件を処理しました',
+    'savedTabs.opening.counts': '成功{{opened}}件、失敗{{failed}}件',
+    'savedTabs.opening.cancel': '開く処理をキャンセル',
+    'savedTabs.opening.cancelPending': 'キャンセル中…',
+    'savedTabs.opening.cancelling':
+      'すでに開始したURLを開く処理の完了を待っています。',
+    'savedTabs.opening.cancelled': 'URLを開く処理をキャンセルしました。',
+    'savedTabs.opening.unstarted': '未着手のURL{{count}}件は保存したままです。',
+    'savedTabs.opening.resume': '未着手のURLを開く',
     'savedTabs.opening.retained':
       '開いたことを確認できなかったURLは保存したままです。',
     'savedTabs.opening.failedUrl': '開けなかったURL',

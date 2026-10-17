@@ -21,138 +21,210 @@ const gate: PersistenceOperationGatePort = {
 }
 
 describe('createIndexedDbSavedTabsUseCases', () => {
-  describe.each(['single', 'bulk'] as const)('%s URL opening', (mode) => {
-    it.each(['quota', 'revisionConflict'] as const)(
-      'preserves confirmed opening outcomes after native %s commit failure and reload',
-      async (failure) => {
-        const indexedDb = new IDBFactory()
-        const databaseName = `opening-commit-failure-${mode}-${failure}`
-        const manager = new IndexedDbConnectionManager({
-          databaseName,
-          indexedDb,
-        })
-        const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager, gate)
-        const collection = {
-          createdAt: 1,
-          definition: { domain: 'example.com', type: 'domain' as const },
-          id: 'domain-example',
-          name: 'example.com',
-          sortOrder: 0,
-          updatedAt: 1,
+  it('forwards cancellation and progress through the native persistence session', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'opening-cancel-session',
+      indexedDb: new IDBFactory(),
+    })
+    const create = vi.fn(async ({ url }: { url: string }) => ({ url }))
+    vi.stubGlobal('chrome', {
+      tabs: { create },
+      storage: {
+        local: { get: vi.fn(async () => ({})), set: vi.fn(), remove: vi.fn() },
+      },
+    })
+    const useCases = createIndexedDbSavedTabsUseCases({
+      connectionManager: manager,
+      operationGate: gate,
+    })
+    const urls = Array.from(
+      { length: 12 },
+      (_, i) => `https://example.com/${i}`,
+    )
+    const controller = new AbortController()
+    const progress = vi.fn(
+      ({ opened, failed }: { opened: number; failed: number }) => {
+        if (opened + failed > 0) {
+          controller.abort()
         }
-        const urls = ['https://example.com/a', 'https://example.com/b'] as const
-        await unitOfWork.commit({
-          collections: { put: [collection] },
-          memberships: {
-            put: urls.map((_url, index) => ({
-              addedAt: 1,
-              collectionId: collection.id,
-              sortOrder: index,
-              updatedAt: 1,
-              urlId: `url-${index}`,
-            })),
-          },
-          urls: {
-            put: urls.map((url, index) => ({
-              firstSavedAt: 1,
-              id: `url-${index}`,
-              lastSavedAt: 1,
-              normalizedUrl: url,
-              title: url,
-              updatedAt: 1,
-              url,
-            })),
-          },
-        })
-        const reader = new IndexedDbPersistenceSnapshotReader(manager, gate)
-        let expectedSnapshot = await reader.readConsistentSnapshot()
-        const tabsCreate = vi.fn(async ({ url }: { url: string }) => {
-          if (url === urls[1]) {
-            throw new BrowserOpenError('tabLimit')
-          }
-          if (failure === 'revisionConflict') {
-            await unitOfWork.commit({
-              collections: {
-                put: [
-                  { ...collection, name: 'Concurrent change', updatedAt: 2 },
-                ],
-              },
-            })
-            expectedSnapshot = await reader.readConsistentSnapshot()
-          }
-          return { url }
-        })
-        vi.stubGlobal('chrome', {
-          tabs: { create: tabsCreate },
-          storage: {
-            local: {
-              get: vi.fn(async () => ({})),
-              remove: vi.fn(),
-              set: vi.fn(),
-            },
-          },
-        })
-        const operationGate: PersistenceOperationGatePort = {
-          runIndexedDbRead: gate.runIndexedDbRead,
-          runIndexedDbWrite: async (operation) => {
-            if (failure === 'quota') {
-              throw new DOMException(
-                'private quota diagnostics',
-                'QuotaExceededError',
-              )
-            }
-            return operation()
-          },
-        }
-        const useCases = createIndexedDbSavedTabsUseCases({
-          connectionManager: manager,
-          operationGate,
-        })
-        const result =
-          mode === 'single'
-            ? useCases.openSavedUrl({
-                origin: 'click',
-                settings: {
-                  removeTabAfterExternalDrop: false,
-                  removeTabAfterOpen: true,
-                },
-                urlRecordId: 'url-0',
-              })
-            : useCases.openAllSavedUrls({
-                mode: 'backgroundTabs',
-                removeTabAfterOpen: true,
-                urls,
-              })
-
-        await expect(result).rejects.toBeInstanceOf(
-          UrlOpeningPostProcessingError,
-        )
-        await expect(result).rejects.toMatchObject({
-          openedUrls: [urls[0]],
-          failedUrls:
-            mode === 'bulk' ? [{ url: urls[1], reason: 'tabLimit' }] : [],
-          message: 'URL opening succeeded, but updating saved URLs failed.',
-        })
-        await expect(result).rejects.not.toHaveProperty('cause')
-        expect(tabsCreate).toHaveBeenCalledTimes(mode === 'single' ? 1 : 2)
-        manager.close()
-        const reopened = new IndexedDbConnectionManager({
-          databaseName,
-          indexedDb,
-        })
-        await expect(
-          new IndexedDbPersistenceSnapshotReader(
-            reopened,
-            gate,
-          ).readConsistentSnapshot(),
-        ).resolves.toStrictEqual(expectedSnapshot)
-        expect(expectedSnapshot.revision).toBe(failure === 'quota' ? 1 : 2)
-        expect(expectedSnapshot.savedTabs.urls).toHaveLength(2)
-        expect(expectedSnapshot.savedTabs.memberships).toHaveLength(2)
-        reopened.close()
       },
     )
+    const result = await useCases.openAllSavedUrls(
+      { mode: 'backgroundTabs', removeTabAfterOpen: false, urls },
+      { signal: controller.signal, onProgress: progress },
+    )
+    expect(create).toHaveBeenCalledTimes(5)
+    expect(result).toMatchObject({
+      openedUrls: urls.slice(0, 5),
+      failedUrls: [],
+      cancelledUrls: urls.slice(5),
+    })
+    expect(progress).toHaveBeenLastCalledWith({
+      total: 12,
+      opened: 5,
+      failed: 0,
+    })
+    manager.close()
   })
+
+  describe.each(['single', 'bulk', 'cancelledBulk'] as const)(
+    '%s URL opening',
+    (mode) => {
+      it.each(['quota', 'revisionConflict'] as const)(
+        'preserves confirmed opening outcomes after native %s commit failure and reload',
+        async (failure) => {
+          const indexedDb = new IDBFactory()
+          const databaseName = `opening-commit-failure-${mode}-${failure}`
+          const manager = new IndexedDbConnectionManager({
+            databaseName,
+            indexedDb,
+          })
+          const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager, gate)
+          const collection = {
+            createdAt: 1,
+            definition: { domain: 'example.com', type: 'domain' as const },
+            id: 'domain-example',
+            name: 'example.com',
+            sortOrder: 0,
+            updatedAt: 1,
+          }
+          const urls =
+            mode === 'cancelledBulk'
+              ? Array.from({ length: 12 }, (_, i) => `https://example.com/${i}`)
+              : ['https://example.com/a', 'https://example.com/b']
+          await unitOfWork.commit({
+            collections: { put: [collection] },
+            memberships: {
+              put: urls.map((_url, index) => ({
+                addedAt: 1,
+                collectionId: collection.id,
+                sortOrder: index,
+                updatedAt: 1,
+                urlId: `url-${index}`,
+              })),
+            },
+            urls: {
+              put: urls.map((url, index) => ({
+                firstSavedAt: 1,
+                id: `url-${index}`,
+                lastSavedAt: 1,
+                normalizedUrl: url,
+                title: url,
+                updatedAt: 1,
+                url,
+              })),
+            },
+          })
+          const reader = new IndexedDbPersistenceSnapshotReader(manager, gate)
+          let expectedSnapshot = await reader.readConsistentSnapshot()
+          const tabsCreate = vi.fn(async ({ url }: { url: string }) => {
+            if (url === urls[1]) {
+              throw new BrowserOpenError('tabLimit')
+            }
+            if (failure === 'revisionConflict' && url === urls[0]) {
+              await unitOfWork.commit({
+                collections: {
+                  put: [
+                    { ...collection, name: 'Concurrent change', updatedAt: 2 },
+                  ],
+                },
+              })
+              expectedSnapshot = await reader.readConsistentSnapshot()
+            }
+            return { url }
+          })
+          vi.stubGlobal('chrome', {
+            tabs: { create: tabsCreate },
+            storage: {
+              local: {
+                get: vi.fn(async () => ({})),
+                remove: vi.fn(),
+                set: vi.fn(),
+              },
+            },
+          })
+          const operationGate: PersistenceOperationGatePort = {
+            runIndexedDbRead: gate.runIndexedDbRead,
+            runIndexedDbWrite: async (operation) => {
+              if (failure === 'quota') {
+                throw new DOMException(
+                  'private quota diagnostics',
+                  'QuotaExceededError',
+                )
+              }
+              return operation()
+            },
+          }
+          const useCases = createIndexedDbSavedTabsUseCases({
+            connectionManager: manager,
+            operationGate,
+          })
+          const controller = new AbortController()
+          const result =
+            mode === 'single'
+              ? useCases.openSavedUrl({
+                  origin: 'click',
+                  settings: {
+                    removeTabAfterExternalDrop: false,
+                    removeTabAfterOpen: true,
+                  },
+                  urlRecordId: 'url-0',
+                })
+              : useCases.openAllSavedUrls(
+                  {
+                    mode: 'backgroundTabs',
+                    removeTabAfterOpen: true,
+                    urls,
+                  },
+                  mode === 'cancelledBulk'
+                    ? {
+                        signal: controller.signal,
+                        onProgress: ({ opened, failed }) => {
+                          if (opened + failed > 0) {
+                            controller.abort()
+                          }
+                        },
+                      }
+                    : undefined,
+                )
+
+          await expect(result).rejects.toBeInstanceOf(
+            UrlOpeningPostProcessingError,
+          )
+          await expect(result).rejects.toMatchObject({
+            openedUrls:
+              mode === 'cancelledBulk'
+                ? urls.slice(0, 5).filter((_, i) => i !== 1)
+                : [urls[0]],
+            failedUrls:
+              mode !== 'single' ? [{ url: urls[1], reason: 'tabLimit' }] : [],
+            cancelledUrls: mode === 'cancelledBulk' ? urls.slice(5) : [],
+            message: 'URL opening succeeded, but updating saved URLs failed.',
+          })
+          await expect(result).rejects.not.toHaveProperty('cause')
+          const expectedCalls = { single: 1, bulk: 2, cancelledBulk: 5 }
+          expect(tabsCreate).toHaveBeenCalledTimes(expectedCalls[mode])
+          manager.close()
+          const reopened = new IndexedDbConnectionManager({
+            databaseName,
+            indexedDb,
+          })
+          await expect(
+            new IndexedDbPersistenceSnapshotReader(
+              reopened,
+              gate,
+            ).readConsistentSnapshot(),
+          ).resolves.toStrictEqual(expectedSnapshot)
+          expect(expectedSnapshot.revision).toBe(failure === 'quota' ? 1 : 2)
+          expect(expectedSnapshot.savedTabs.urls).toHaveLength(urls.length)
+          expect(expectedSnapshot.savedTabs.memberships).toHaveLength(
+            urls.length,
+          )
+          reopened.close()
+        },
+      )
+    },
+  )
 
   it.each([false, true])(
     'persists domain array order through reorder and presentation saves (categorized=%s)',

@@ -31,6 +31,323 @@ const setup = (
   )
 
 describe('URL opening operation', () => {
+  it('reports live progress, settles cancellation, and recovers each remaining partition without duplicate successes', async () => {
+    const urls = [
+      'https://opened.example',
+      'https://failed.example',
+      'https://unopened.example',
+    ] as const
+    const pending = Promise.withResolvers<undefined>()
+    const started = Promise.withResolvers<undefined>()
+    let signal: AbortSignal | undefined
+    const openAllSavedUrls = vi.fn(
+      async (
+        command: { readonly urls: readonly string[] },
+        options?: {
+          readonly signal?: AbortSignal
+          readonly onProgress?: (progress: {
+            total: number
+            opened: number
+            failed: number
+          }) => void
+        },
+      ) => {
+        if (command.urls.length === 3) {
+          signal = options?.signal
+          options?.onProgress?.({ total: 3, opened: 1, failed: 1 })
+          started.resolve(undefined)
+          await pending.promise
+          return {
+            openedUrls: [urls[0]],
+            failedUrls: [{ url: urls[1], reason: 'permission' as const }],
+            cancelledUrls: [urls[2]],
+            removedUrlRecordIds: [],
+            removedUrlRecords: [],
+            snapshot: null,
+          }
+        }
+        return {
+          openedUrls: command.urls,
+          failedUrls: [],
+          cancelledUrls: [],
+          removedUrlRecordIds: [],
+          removedUrlRecords: [],
+          snapshot: null,
+        }
+      },
+    )
+    const { result } = setup(async (input) => input, {
+      savedTabsUseCases: createSavedTabsUseCasesStub({ openAllSavedUrls }),
+    })
+    let opening: Promise<void> | undefined
+    await act(async () => {
+      opening = result.current.handleOpenAllTabs(
+        urls.map((url) => ({ url, title: '' })),
+      )
+      await started.promise
+    })
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'running',
+      total: 3,
+      opened: 1,
+      failed: 1,
+      canCancel: true,
+    })
+    act(() => {
+      result.current.cancelOpening()
+      result.current.cancelOpening()
+    })
+    expect(signal?.aborted).toBe(true)
+    expect(result.current.openingOperation?.status).toBe('cancelling')
+    await act(async () => {
+      pending.resolve(undefined)
+      await opening
+    })
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'cancelled',
+      total: 3,
+      opened: 1,
+      failedUrls: [{ url: urls[1], reason: 'permission' }],
+      cancelledUrls: [urls[2]],
+    })
+    await act(async () => {
+      await Promise.all([
+        result.current.retryFailedUrls(),
+        result.current.retryFailedUrls(),
+      ])
+    })
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'cancelled',
+      total: 3,
+      opened: 2,
+      failedUrls: [],
+      cancelledUrls: [urls[2]],
+    })
+    await act(async () => {
+      await result.current.resumeCancelledUrls()
+      await result.current.resumeCancelledUrls()
+    })
+    expect(
+      openAllSavedUrls.mock.calls.map(([command]) => command.urls),
+    ).toEqual([urls, [urls[1]], [urls[2]]])
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'complete',
+      total: 3,
+      opened: 3,
+      failedUrls: [],
+      cancelledUrls: [],
+    })
+    expect(openAllSavedUrls.mock.calls[0]?.[0]).not.toHaveProperty('signal')
+    expect(openAllSavedUrls.mock.calls[0]?.[0]).not.toHaveProperty('onProgress')
+  })
+
+  it('accepts immediate cancellation before the first async opening step', async () => {
+    const urls = ['https://first.example', 'https://second.example']
+    const openAllSavedUrls = vi.fn(
+      async (
+        command: { readonly urls: readonly string[] },
+        options?: { readonly signal?: AbortSignal },
+      ) => {
+        expect(options?.signal?.aborted).toBe(true)
+        return {
+          openedUrls: [],
+          failedUrls: [],
+          cancelledUrls: command.urls,
+          removedUrlRecordIds: [],
+          removedUrlRecords: [],
+          snapshot: null,
+        }
+      },
+    )
+    const { result } = setup(async (input) => input, {
+      savedTabsUseCases: createSavedTabsUseCasesStub({ openAllSavedUrls }),
+    })
+    await act(async () => {
+      const opening = result.current.handleOpenAllTabs(
+        urls.map((url) => ({ url, title: '' })),
+      )
+      result.current.cancelOpening()
+      await opening
+    })
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'cancelled',
+      opened: 0,
+      cancelledUrls: urls,
+    })
+  })
+
+  it('coalesces repeated bulk requests and keeps cancellation local to the active request', async () => {
+    const firstUrl = 'https://first.example'
+    const secondUrl = 'https://second.example'
+    const firstPending = Promise.withResolvers<undefined>()
+    const firstStarted = Promise.withResolvers<undefined>()
+    const signals: (AbortSignal | undefined)[] = []
+    const openAllSavedUrls = vi.fn(
+      async (
+        command: { readonly urls: readonly string[] },
+        options?: { readonly signal?: AbortSignal },
+      ) => {
+        signals.push(options?.signal)
+        if (command.urls[0] === firstUrl) {
+          firstStarted.resolve(undefined)
+          await firstPending.promise
+        }
+        return {
+          openedUrls: options?.signal?.aborted ? [] : command.urls,
+          failedUrls: [],
+          cancelledUrls: options?.signal?.aborted ? command.urls : [],
+          removedUrlRecordIds: [],
+          removedUrlRecords: [],
+          snapshot: null,
+        }
+      },
+    )
+    const { result } = setup(async (input) => input, {
+      savedTabsUseCases: createSavedTabsUseCasesStub({ openAllSavedUrls }),
+    })
+    let first: Promise<void> | undefined
+    let duplicate: Promise<void> | undefined
+    let second: Promise<void> | undefined
+    await act(async () => {
+      first = result.current.handleOpenAllTabs([{ url: firstUrl, title: '' }])
+      duplicate = result.current.handleOpenAllTabs([
+        { url: firstUrl, title: '' },
+      ])
+      second = result.current.handleOpenAllTabs([{ url: secondUrl, title: '' }])
+      await firstStarted.promise
+    })
+    expect(openAllSavedUrls).toHaveBeenCalledTimes(1)
+    act(() => {
+      result.current.cancelOpening()
+    })
+    expect(result.current.openingOperation?.status).toBe('cancelling')
+    await act(async () => {
+      firstPending.resolve(undefined)
+      await Promise.all([first, duplicate, second])
+    })
+    expect(
+      openAllSavedUrls.mock.calls.map(([command]) => command.urls),
+    ).toEqual([[firstUrl], [secondUrl]])
+    expect(signals.map((signal) => signal?.aborted)).toEqual([true, false])
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'complete',
+      total: 1,
+      opened: 1,
+      failedUrls: [],
+      cancelledUrls: [],
+    })
+  })
+
+  it('preserves success, failure, and unstarted partitions after a saved-data update fails', async () => {
+    const opened = 'https://opened.example'
+    const failed = 'https://failed.example'
+    const cancelled = 'https://cancelled.example'
+    const openAllSavedUrls = vi.fn(
+      async (command: { readonly urls: readonly string[] }) => {
+        if (command.urls.length === 3) {
+          throw new UrlOpeningPostProcessingError(
+            [opened],
+            [{ url: failed, reason: 'permission' }],
+            [cancelled],
+          )
+        }
+        return {
+          openedUrls: command.urls,
+          failedUrls: [],
+          cancelledUrls: [],
+          removedUrlRecordIds: [],
+          removedUrlRecords: [],
+          snapshot: null,
+        }
+      },
+    )
+    const { result } = setup(async (input) => input, {
+      savedTabsUseCases: createSavedTabsUseCasesStub({ openAllSavedUrls }),
+    })
+    await act(async () => {
+      await result.current.handleOpenAllTabs(
+        [opened, failed, cancelled].map((url) => ({ url, title: '' })),
+      )
+    })
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'cancelled',
+      opened: 1,
+      postProcessingFailed: true,
+      failedUrls: [{ url: failed, reason: 'permission' }],
+      cancelledUrls: [cancelled],
+    })
+    await act(async () => {
+      await result.current.resumeCancelledUrls()
+    })
+    expect(result.current.openingOperation).toMatchObject({
+      opened: 2,
+      total: 3,
+      failedUrls: [{ url: failed, reason: 'permission' }],
+    })
+    await act(async () => {
+      await result.current.retryFailedUrls()
+    })
+    expect(
+      openAllSavedUrls.mock.calls.map(([command]) => command.urls),
+    ).toEqual([[opened, failed, cancelled], [cancelled], [failed]])
+    expect(result.current.openingOperation).toMatchObject({
+      opened: 3,
+      total: 3,
+      failedUrls: [],
+      cancelledUrls: [],
+      postProcessingFailed: true,
+    })
+  })
+
+  it('ignores old progress and cancellation while a single opening is active', async () => {
+    const single = Promise.withResolvers<{ url: string }>()
+    let report:
+      | ((progress: { total: number; opened: number; failed: number }) => void)
+      | undefined
+    const { result } = setup(async () => single.promise, {
+      savedTabsUseCases: createSavedTabsUseCasesStub({
+        findUrlRecordByUrl: async () => ({ record: null }),
+        openAllSavedUrls: async (command, options) => {
+          report = options?.onProgress
+          return {
+            openedUrls: command.urls,
+            failedUrls: [],
+            cancelledUrls: [],
+            removedUrlRecordIds: [],
+            removedUrlRecords: [],
+            snapshot: null,
+          }
+        },
+      }),
+    })
+    await act(async () => {
+      await result.current.handleOpenAllTabs([
+        { url: 'https://bulk.example', title: '' },
+      ])
+    })
+    let pending: Promise<void> | undefined
+    await act(async () => {
+      pending = result.current.handleOpenTab('https://single.example')
+      await Promise.resolve()
+    })
+    act(() => {
+      report?.({ total: 50, opened: 30, failed: 20 })
+      result.current.cancelOpening()
+    })
+    expect(result.current.openingOperation).toMatchObject({
+      status: 'running',
+      total: 1,
+      opened: 0,
+      failed: 0,
+      canCancel: false,
+    })
+    await act(async () => {
+      single.resolve({ url: 'https://single.example' })
+      await pending
+    })
+    expect(result.current.openingOperation?.status).toBe('complete')
+  })
+
   it('reports a safe failure and retries the failed URL only', async () => {
     const url = 'https://example.com/private?token=secret'
     const open = vi

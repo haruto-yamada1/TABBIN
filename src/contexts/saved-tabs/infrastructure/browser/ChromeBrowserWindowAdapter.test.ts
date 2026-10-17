@@ -42,6 +42,35 @@ describe('createChromeBrowserWindowAdapter', () => {
     ])
   })
 
+  it('returns a confirmed window ID for subsequent staged tabs', async () => {
+    const adapter = createChromeBrowserWindowAdapter({
+      getApi: () => ({
+        windows: {
+          create: async () => ({ id: 42, tabs: [{ id: 7, index: 0 }] }),
+        },
+      }),
+    })
+    await expect(
+      adapter.openWithUrls({ urls: ['https://example.com/a'] }),
+    ).resolves.toEqual({ windowId: 42, urls: ['https://example.com/a'] })
+  })
+
+  it.each([-1, Number.NaN, 1.5])(
+    'does not expose invalid target window IDs: %s',
+    async (id) => {
+      const adapter = createChromeBrowserWindowAdapter({
+        getApi: () => ({
+          windows: {
+            create: async () => ({ id, tabs: [{ id: 7, index: 0 }] }),
+          },
+        }),
+      })
+      await expect(
+        adapter.openWithUrls({ urls: ['https://example.com/a'] }),
+      ).resolves.toEqual({ urls: ['https://example.com/a'] })
+    },
+  )
+
   it('focused を false で呼び出せる', async () => {
     const { api, create } = createSpyWindows()
     const adapter = createChromeBrowserWindowAdapter({ getApi: () => api })

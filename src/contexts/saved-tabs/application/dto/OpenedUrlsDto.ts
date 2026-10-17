@@ -19,6 +19,8 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
  * 削除が発生しなかったケースでは `null`。
  */
 export type OpenedUrlsDto = {
+  /** Requests not started because cancellation was requested. */
+  readonly cancelledUrls?: readonly string[]
   readonly openedUrls: readonly string[]
   readonly failedUrls: readonly {
     readonly url: string

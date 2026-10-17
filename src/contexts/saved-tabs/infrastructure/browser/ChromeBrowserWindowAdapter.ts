@@ -46,6 +46,7 @@ export type ChromeWindowsLike = {
   }) =>
     | Promise<
         | {
+            readonly id?: number
             readonly tabs?: readonly CreatedWindowTab[]
           }
         | undefined
@@ -115,7 +116,10 @@ export const createChromeBrowserWindowAdapter = (
         if (!result) {
           throw new BrowserOpenError('unknown')
         }
-        return { urls: confirmedRequestedWindowUrls(input.urls, result.tabs) }
+        return {
+          urls: confirmedRequestedWindowUrls(input.urls, result.tabs),
+          ...(isNonnegativeInteger(result.id) ? { windowId: result.id } : {}),
+        }
       } catch (error) {
         if (error instanceof BrowserOpenError) {
           throw error

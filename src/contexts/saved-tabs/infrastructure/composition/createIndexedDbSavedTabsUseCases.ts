@@ -83,13 +83,16 @@ export const createIndexedDbSavedTabsUseCases = (
     )
   const openAllSavedUrls: SavedTabsUseCases['openAllSavedUrls'] = async (
     command,
+    openingOptions,
   ) =>
     runtime.session.run(
-      async (state) => createSessionUseCases(state).openAllSavedUrls(command),
+      async (state) =>
+        createSessionUseCases(state).openAllSavedUrls(command, openingOptions),
       (_error, result) => {
         throw new UrlOpeningPostProcessingError(
           result.openedUrls,
           result.failedUrls,
+          result.cancelledUrls,
         )
       },
     )

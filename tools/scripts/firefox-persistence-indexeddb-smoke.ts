@@ -8,6 +8,9 @@ import path from 'node:path'
 
 // eslint-disable-next-line import/no-relative-parent-imports -- shared browser harness result is the WebDriver protocol contract
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
+import type { StagedOpeningMeasurement } from '../../e2e/support/staged-url-opening-measurements'
+import { parseStagedOpeningMeasurements } from './stagedOpeningMeasurementContract'
 
 const FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE =
   'FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE'
@@ -153,6 +156,12 @@ const createSmokeAddon = async (temporaryRoot: string): Promise<string> => {
     harnessBundlePath,
     path.join(addonDir, 'firefox-persistence-indexeddb-harness.js'),
   )
+  if (process.env.MEASURE_STAGED_URL_OPENING === '1') {
+    await cp(
+      path.join(repoRoot, '.output/staged-url-opening-measurements.js'),
+      path.join(addonDir, 'staged-url-opening-measurements.js'),
+    )
+  }
 
   const manifestPath = path.join(addonDir, 'manifest.json')
   const parsedManifest: unknown = JSON.parse(
@@ -424,6 +433,34 @@ const assertFreshResult = (result: SmokeResult): JsonRecord => {
   return result.obsoleteStorageBefore
 }
 
+const runOpeningMeasurements = async (
+  session: WebDriverSession,
+): Promise<readonly StagedOpeningMeasurement[]> => {
+  await sessionCommand(session, '/timeouts', { script: 180_000 })
+  const execution = await sessionCommand<unknown>(session, '/execute/async', {
+    args: [],
+    script: `
+      const done = arguments[arguments.length - 1]
+      const element = document.createElement('script')
+      element.src = chrome.runtime.getURL('staged-url-opening-measurements.js')
+      element.onload = () => globalThis.__tabbinStagedOpeningMeasurements.runStagedOpeningMeasurements().then(
+        value => done({ ok: true, value }),
+        error => done({ ok: false, error: { name: error?.name, message: error?.message } }),
+      )
+      element.onerror = () => done({ ok: false, error: 'Measurement harness did not load.' })
+      document.documentElement.append(element)
+    `,
+  })
+  if (
+    !isRecord(execution) ||
+    execution.ok !== true ||
+    !Array.isArray(execution.value)
+  ) {
+    throw new WebDriverCommandError('Staged opening measurement', execution)
+  }
+  return parseStagedOpeningMeasurements(execution.value)
+}
+
 const assertUrlOpeningResult = (
   result: FirefoxUrlOpeningSmokeResult | undefined,
 ): void => {
@@ -581,6 +618,10 @@ const run = async (): Promise<void> => {
     const fresh = await runHarnessPhase(session, 'fresh')
     const obsoleteStorageBefore = assertFreshResult(fresh)
     const firefoxVersion = session.version
+    const openingMeasurements =
+      process.env.MEASURE_STAGED_URL_OPENING === '1'
+        ? await runOpeningMeasurements(session)
+        : undefined
 
     await deleteSession(session)
     session = undefined
@@ -594,6 +635,7 @@ const run = async (): Promise<void> => {
       JSON.stringify(
         {
           firefoxVersion,
+          ...(openingMeasurements ? { openingMeasurements } : {}),
           fresh: {
             ...fresh.projection,
             storageIndependent: fresh.storageIndependent,

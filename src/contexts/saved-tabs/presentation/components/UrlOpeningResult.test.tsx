@@ -29,6 +29,80 @@ const failed = {
 } as const
 
 describe('URL opening result', () => {
+  it('shows live outcome counts and keeps cancellation pending until active requests settle', async () => {
+    const user = userEvent.setup()
+    const cancel = vi.fn()
+    const operation = {
+      status: 'running' as const,
+      total: 12,
+      opened: 4,
+      failed: 1,
+      failedUrls: [],
+      canCancel: true,
+    }
+    const { rerender } = render(
+      <UrlOpeningResult
+        operation={operation}
+        onRetry={async () => {}}
+        onCancel={cancel}
+      />,
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '5 / 12 URLs processed',
+    )
+    expect(screen.getByText('4 opened, 1 failed')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-valuenow',
+      '5',
+    )
+    await user.click(screen.getByRole('button', { name: 'Cancel opening' }))
+    expect(cancel).toHaveBeenCalledTimes(1)
+    rerender(
+      <UrlOpeningResult
+        operation={{ ...operation, status: 'cancelling' }}
+        onRetry={async () => {}}
+        onCancel={cancel}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Cancelling…' })).toBeDisabled()
+    expect(
+      screen.getByText('Waiting for URLs already being opened to finish.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Opening cancelled.')).not.toBeInTheDocument()
+  })
+
+  it('separates unopened URL recovery from failed URL retry', async () => {
+    const user = userEvent.setup()
+    const retry = vi.fn(async () => {})
+    const resume = vi.fn(async () => {})
+    render(
+      <UrlOpeningResult
+        operation={{
+          ...failed,
+          status: 'cancelled',
+          total: 9,
+          cancelledUrls: ['https://unopened.example'],
+        }}
+        onRetry={retry}
+        onResume={resume}
+      />,
+    )
+    expect(screen.getByText('Opening cancelled.')).toBeInTheDocument()
+    expect(
+      screen.getByText('1 URLs were not started and remain saved.'),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Retry failed URLs' }))
+    expect(retry).toHaveBeenCalledTimes(1)
+    expect(resume).not.toHaveBeenCalled()
+    await user.click(
+      screen.getByRole('button', { name: 'Resume unopened URLs' }),
+    )
+    expect(resume).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('button', { name: 'Cancel opening' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows counts, fixed reason and a non-navigating URL without credentials', async () => {
     const user = userEvent.setup()
     const retry = vi.fn(async () => {})
