@@ -85,7 +85,8 @@ export const createChromeBrowserTabAdapter = (
         if (!result) {
           throw new BrowserOpenError('unknown')
         }
-        return { url: result.url ?? input.url }
+        // Creation is confirmed before navigation; Firefox may still report about:blank.
+        return { url: input.url }
       } catch (error) {
         if (error instanceof BrowserOpenError) {
           throw error

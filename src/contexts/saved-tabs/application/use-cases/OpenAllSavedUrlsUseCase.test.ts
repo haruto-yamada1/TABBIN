@@ -191,6 +191,47 @@ describe('OpenAllSavedUrlsUseCase', () => {
     },
   )
 
+  it.each([
+    ['tabGroupRepository', 'backgroundTabs'],
+    ['urlRecordRepository', 'backgroundTabs'],
+    ['customProjectRepository', 'backgroundTabs'],
+    ['tabGroupRepository', 'newWindow'],
+    ['urlRecordRepository', 'newWindow'],
+    ['customProjectRepository', 'newWindow'],
+  ] as const)(
+    '%s の読込みが完了するまで %s を開始しない',
+    async (repository, mode) => {
+      const repos = createInMemoryRepositories()
+      const pendingRead = Promise.withResolvers<readonly never[]>()
+      vi.spyOn(repos[repository], 'findAll').mockReturnValue(
+        pendingRead.promise,
+      )
+      const browser = createSpyBrowserTabPort()
+      const window = createSpyBrowserWindowPort()
+      const useCase = createOpenAllSavedUrlsUseCase({
+        ...repos,
+        browserTabPort: browser.port,
+        browserWindowPort: window.port,
+      })
+      const urls = ['https://example.com/a']
+
+      const result = useCase({ mode, removeTabAfterOpen: true, urls })
+      await Promise.resolve()
+
+      expect(browser.opened).toStrictEqual([])
+      expect(window.opened).toStrictEqual([])
+
+      pendingRead.resolve([])
+      await expect(result).resolves.toMatchObject({ openedUrls: urls })
+      expect(browser.opened).toStrictEqual(
+        mode === 'backgroundTabs' ? [{ url: urls[0] }] : [],
+      )
+      expect(window.opened).toStrictEqual(
+        mode === 'newWindow' ? [{ focused: true, urls }] : [],
+      )
+    },
+  )
+
   it('一括オープン前の repository 失敗は確認済みの成功として扱わない', async () => {
     const repos = createInMemoryRepositories()
     const error = new Error('lookup failure')

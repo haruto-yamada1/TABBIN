@@ -55,6 +55,16 @@ describe('createChromeBrowserTabAdapter', () => {
     expect(result).toStrictEqual({ url: 'https://example.com' })
   })
 
+  it('作成直後のabout:blankではなく確認済み要求URLを返す', async () => {
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () =>
+        createMockApi({ create: async () => ({ id: 7, url: 'about:blank' }) }),
+    })
+    await expect(
+      adapter.open({ url: 'https://example.com/a' }),
+    ).resolves.toStrictEqual({ url: 'https://example.com/a' })
+  })
+
   it('作成結果が未確認の場合は成功扱いしない', async () => {
     const adapter = createChromeBrowserTabAdapter({
       getApi: () => createMockApi({ create: vi.fn(async () => undefined) }),

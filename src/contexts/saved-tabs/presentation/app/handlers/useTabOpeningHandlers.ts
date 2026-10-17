@@ -50,8 +50,8 @@ export const useTabOpeningHandlers = ({
 }: UseTabOpeningHandlersDeps) => {
   const [openingOperation, setOpeningOperation] =
     useState<UrlOpeningOperation | null>(null)
-  const queueRef = useRef(Promise.resolve())
-  const pendingRef = useRef(new Map<string, Promise<void>>())
+  const queueRef = useRef<Promise<void> | null>(null)
+  const pendingRef = useRef<Map<string, Promise<void>> | null>(null)
   const lastModeRef = useRef<'single' | 'bulk'>('single')
   const runOpening = useCallback(
     async (
@@ -68,11 +68,13 @@ export const useTabOpeningHandlers = ({
         return
       }
       const key = JSON.stringify([mode, urls])
-      const pending = pendingRef.current.get(key)
+      pendingRef.current ??= new Map<string, Promise<void>>()
+      const pendingOperations = pendingRef.current
+      const pending = pendingOperations.get(key)
       if (pending) {
         return pending
       }
-      const operation = queueRef.current
+      const operation = (queueRef.current ?? Promise.resolve())
         .then(async () => {
           lastModeRef.current = mode
           setOpeningOperation({
@@ -111,10 +113,10 @@ export const useTabOpeningHandlers = ({
           }
         })
         .finally(() => {
-          pendingRef.current.delete(key)
+          pendingOperations.delete(key)
         })
       queueRef.current = operation
-      pendingRef.current.set(key, operation)
+      pendingOperations.set(key, operation)
       return operation
     },
     [],

@@ -56,6 +56,12 @@ type OpeningResult = {
   readonly failedUrls: OpenedUrlsDto['failedUrls']
 }
 
+type SavedUrlsSnapshot = {
+  readonly tabGroups: readonly TabGroup[]
+  readonly urlRecords: readonly UrlRecord[]
+  readonly customProjects: readonly CustomProject[]
+}
+
 const openRequestedUrls = async (
   command: OpenAllSavedUrlsCommand,
   deps: OpenAllSavedUrlsUseCaseDeps,
@@ -194,6 +200,78 @@ const computeRemovalPlan = ({
   }
 }
 
+const openAndRemoveFromSnapshot = async (
+  command: OpenAllSavedUrlsCommand,
+  deps: OpenAllSavedUrlsUseCaseDeps,
+  savedUrls: SavedUrlsSnapshot,
+): Promise<OpenedUrlsDto> => {
+  const { openedUrls, openedRequestedUrls, failedUrls } =
+    await openRequestedUrls(command, deps)
+
+  try {
+    const plan = computeRemovalPlan({
+      customProjects: savedUrls.customProjects,
+      // Browser API may canonicalize the returned URL (for example, adding a
+      // trailing slash). The requested URLs identify the saved records that
+      // were successfully opened, so use them for removal matching.
+      openedUrls: openedRequestedUrls,
+      removeTabAfterOpen: command.removeTabAfterOpen,
+      tabGroups: savedUrls.tabGroups,
+      urlRecords: savedUrls.urlRecords,
+    })
+
+    if (plan.urlRecordIdsToDelete.length === 0) {
+      return {
+        failedUrls,
+        openedUrls,
+        removedUrlRecordIds: [],
+        removedUrlRecords: [],
+        snapshot: null,
+      }
+    }
+
+    // 変更があった場合のみ書き戻す。`removeUrlRecordIdsFromTabGroups` は
+    // 変更があった TabGroup だけ新しい object を返すので reference 比較で
+    // 検出できる。
+    if (
+      plan.updatedTabGroups.length !== plan.previousTabGroups.length ||
+      plan.updatedTabGroups.some(
+        (group, index) => group !== plan.previousTabGroups[index],
+      )
+    ) {
+      await deps.tabGroupRepository.saveAll(plan.updatedTabGroups)
+    }
+    if (
+      plan.updatedCustomProjects.length !==
+        plan.previousCustomProjects.length ||
+      plan.updatedCustomProjects.some(
+        (project, index) => project !== plan.previousCustomProjects[index],
+      )
+    ) {
+      await deps.customProjectRepository.saveAll(plan.updatedCustomProjects)
+    }
+    await deps.urlRecordRepository.removeByIds(plan.urlRecordIdsToDelete)
+
+    const snapshot: OpenedUrlsRestoreSnapshot = {
+      customProjects: plan.previousCustomProjects.map(
+        toSavedTabsCustomProjectDto,
+      ),
+      savedTabs: plan.previousTabGroups.map(toSavedTabsTabGroupDto),
+      urlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
+    }
+
+    return {
+      failedUrls,
+      openedUrls,
+      removedUrlRecordIds: plan.urlRecordIdsToDelete,
+      removedUrlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
+      snapshot,
+    }
+  } catch {
+    throw new UrlOpeningPostProcessingError(openedUrls, failedUrls)
+  }
+}
+
 /**
  * `OpenAllSavedUrlsUseCase` を生成する。
  *
@@ -229,70 +307,12 @@ export const createOpenAllSavedUrlsUseCase = (
       deps.customProjectRepository.findAll(),
     ])
 
-    const { openedUrls, openedRequestedUrls, failedUrls } =
-      await openRequestedUrls(command, deps)
-
-    try {
-      const plan = computeRemovalPlan({
-        customProjects: allCustomProjects,
-        // Browser API may canonicalize the returned URL (for example, adding a
-        // trailing slash). The requested URLs identify the saved records that
-        // were successfully opened, so use them for removal matching.
-        openedUrls: openedRequestedUrls,
-        removeTabAfterOpen: command.removeTabAfterOpen,
-        tabGroups: allTabGroups,
-        urlRecords: allUrlRecords,
-      })
-
-      if (plan.urlRecordIdsToDelete.length === 0) {
-        return {
-          failedUrls,
-          openedUrls,
-          removedUrlRecordIds: [],
-          removedUrlRecords: [],
-          snapshot: null,
-        }
-      }
-
-      // 変更があった場合のみ書き戻す。`removeUrlRecordIdsFromTabGroups` は
-      // 変更があった TabGroup だけ新しい object を返すので reference 比較で
-      // 検出できる。
-      if (
-        plan.updatedTabGroups.length !== plan.previousTabGroups.length ||
-        plan.updatedTabGroups.some(
-          (group, index) => group !== plan.previousTabGroups[index],
-        )
-      ) {
-        await deps.tabGroupRepository.saveAll(plan.updatedTabGroups)
-      }
-      if (
-        plan.updatedCustomProjects.length !==
-          plan.previousCustomProjects.length ||
-        plan.updatedCustomProjects.some(
-          (project, index) => project !== plan.previousCustomProjects[index],
-        )
-      ) {
-        await deps.customProjectRepository.saveAll(plan.updatedCustomProjects)
-      }
-      await deps.urlRecordRepository.removeByIds(plan.urlRecordIdsToDelete)
-
-      const snapshot: OpenedUrlsRestoreSnapshot = {
-        customProjects: plan.previousCustomProjects.map(
-          toSavedTabsCustomProjectDto,
-        ),
-        savedTabs: plan.previousTabGroups.map(toSavedTabsTabGroupDto),
-        urlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
-      }
-
-      return {
-        failedUrls,
-        openedUrls,
-        removedUrlRecordIds: plan.urlRecordIdsToDelete,
-        removedUrlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
-        snapshot,
-      }
-    } catch {
-      throw new UrlOpeningPostProcessingError(openedUrls, failedUrls)
-    }
+    // 保存状態の取得が成功してから開く。取得失敗時にブラウザ操作だけが
+    // 先行しないよう、この snapshot をオープン・削除フェーズへ渡す。
+    return openAndRemoveFromSnapshot(command, deps, {
+      customProjects: allCustomProjects,
+      tabGroups: allTabGroups,
+      urlRecords: allUrlRecords,
+    })
   }
 }

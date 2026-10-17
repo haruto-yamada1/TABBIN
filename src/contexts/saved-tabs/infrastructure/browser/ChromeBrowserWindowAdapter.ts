@@ -32,6 +32,13 @@ export type ChromeWindowsApiLike = {
   readonly windows?: ChromeWindowsLike
 }
 
+type CreatedWindowTab = {
+  readonly id?: number
+  readonly index?: number
+  readonly url?: string
+  readonly pendingUrl?: string
+}
+
 export type ChromeWindowsLike = {
   readonly create?: (createProperties: {
     readonly focused?: boolean
@@ -39,10 +46,7 @@ export type ChromeWindowsLike = {
   }) =>
     | Promise<
         | {
-            readonly tabs?: readonly {
-              readonly url?: string
-              readonly pendingUrl?: string
-            }[]
+            readonly tabs?: readonly CreatedWindowTab[]
           }
         | undefined
       >
@@ -66,6 +70,31 @@ export type ChromeBrowserWindowAdapterOptions = {
  * 「サイレントに何もしない」よりも、副作用が必要な操作は
  * 失敗を可視化することが重要という DDD の方針に従う。
  */
+const isNonnegativeInteger = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+
+const confirmedRequestedWindowUrls = (
+  requestedUrls: readonly string[],
+  tabs: readonly CreatedWindowTab[] = [],
+): readonly string[] => {
+  const confirmedIndexes = new Set<number>()
+  const confirmedIds = new Set<number>()
+  for (const tab of tabs) {
+    if (
+      isNonnegativeInteger(tab.id) &&
+      isNonnegativeInteger(tab.index) &&
+      tab.index < requestedUrls.length &&
+      !confirmedIds.has(tab.id) &&
+      !confirmedIndexes.has(tab.index)
+    ) {
+      confirmedIds.add(tab.id)
+      confirmedIndexes.add(tab.index)
+    }
+  }
+  // A created tab confirms one requested position, even before navigation starts.
+  return requestedUrls.filter((_, index) => confirmedIndexes.has(index))
+}
+
 export const createChromeBrowserWindowAdapter = (
   deps: ChromeBrowserWindowAdapterDeps,
   options: ChromeBrowserWindowAdapterOptions = {},
@@ -86,33 +115,7 @@ export const createChromeBrowserWindowAdapter = (
         if (!result) {
           throw new BrowserOpenError('unknown')
         }
-        const confirmed = (result.tabs ?? []).map((tab) =>
-          [tab.url, tab.pendingUrl].filter(
-            (url): url is string => typeof url === 'string',
-          ),
-        )
-        return {
-          urls: input.urls.filter((requested) => {
-            const index = confirmed.findIndex((urls) =>
-              urls.some((url) => {
-                if (url === requested) {
-                  return true
-                }
-                try {
-                  return new URL(url).href === new URL(requested).href
-                } catch {
-                  return false
-                }
-              }),
-            )
-            if (index === -1) {
-              return false
-            }
-            // A created tab confirms at most one request, even when URLs normalize equally.
-            confirmed.splice(index, 1)
-            return true
-          }),
-        }
+        return { urls: confirmedRequestedWindowUrls(input.urls, result.tabs) }
       } catch (error) {
         if (error instanceof BrowserOpenError) {
           throw error

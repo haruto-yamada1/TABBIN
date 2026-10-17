@@ -12,7 +12,9 @@ const createSpyWindows = (
   readonly api: ChromeWindowsApiLike
   readonly create: ReturnType<typeof vi.fn>
 } => {
-  const create = vi.fn(async () => ({ tabs: resolvedTabs }))
+  const create = vi.fn(async () => ({
+    tabs: resolvedTabs.map((tab, index) => ({ id: index + 1, index, ...tab })),
+  }))
   const api: ChromeWindowsApiLike = {
     windows: {
       create,
@@ -98,6 +100,69 @@ describe('createChromeBrowserWindowAdapter', () => {
     ).rejects.toThrow('The browser is unavailable.')
   })
 
+  it('about:blankの作成タブも一意なIDとindexで要求URLに対応付ける', async () => {
+    const adapter = createChromeBrowserWindowAdapter({
+      getApi: () => ({
+        windows: {
+          create: async () => ({
+            tabs: [
+              { id: 12, index: 1, url: 'about:blank' },
+              { id: 11, index: 0, url: 'about:blank' },
+            ],
+          }),
+        },
+      }),
+    })
+    await expect(
+      adapter.openWithUrls({
+        urls: ['https://example.com/a', 'https://example.com/b'],
+      }),
+    ).resolves.toStrictEqual({
+      urls: ['https://example.com/a', 'https://example.com/b'],
+    })
+  })
+
+  it('欠落したIDや重複IDでは複数の要求を成功扱いしない', async () => {
+    const adapter = createChromeBrowserWindowAdapter({
+      getApi: () => ({
+        windows: {
+          create: async () => ({
+            tabs: [
+              { id: 11, index: 0 },
+              { id: 11, index: 1 },
+              { index: 2, url: 'https://example.com/c' },
+            ],
+          }),
+        },
+      }),
+    })
+    await expect(
+      adapter.openWithUrls({
+        urls: [
+          'https://example.com/a',
+          'https://example.com/b',
+          'https://example.com/c',
+        ],
+      }),
+    ).resolves.toStrictEqual({ urls: ['https://example.com/a'] })
+  })
+
+  it.each([
+    { id: -1, index: 0 },
+    { id: Number.NaN, index: 0 },
+    { id: 1.5, index: 0 },
+    { id: 1, index: -1 },
+    { id: 1, index: 1.5 },
+    { id: 1, index: 1 },
+  ])('不正な作成メタデータは成功扱いしない: %j', async (tab) => {
+    const adapter = createChromeBrowserWindowAdapter({
+      getApi: () => ({ windows: { create: async () => ({ tabs: [tab] }) } }),
+    })
+    await expect(
+      adapter.openWithUrls({ urls: ['https://example.com/a'] }),
+    ).resolves.toStrictEqual({ urls: [] })
+  })
+
   it('確認できなかった URL は成功一覧に含めない', async () => {
     const { api } = createSpyWindows([{ url: 'https://example.com/a' }])
     const adapter = createChromeBrowserWindowAdapter({ getApi: () => api })
@@ -129,8 +194,8 @@ describe('createChromeBrowserWindowAdapter', () => {
         windows: {
           create: async () => ({
             tabs: [
-              { url: 'https://example.com/' },
-              { pendingUrl: 'https://other.example/' },
+              { id: 1, index: 0, url: 'https://example.com/' },
+              { id: 2, index: 1, pendingUrl: 'https://other.example/' },
             ],
           }),
         },
@@ -150,6 +215,8 @@ describe('createChromeBrowserWindowAdapter', () => {
           create: async () => ({
             tabs: [
               {
+                id: 1,
+                index: 0,
                 url: 'https://example.com/',
                 pendingUrl: 'https://other.example/',
               },

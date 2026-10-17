@@ -17,7 +17,37 @@ describe('createSavedTabsPorts (app/composition)', () => {
   })
 
   afterEach(() => {
+    vi.unstubAllGlobals()
     restoreChromeApi()
+  })
+
+  it('FirefoxではPromise browser APIを使いcallback chrome APIを二重実行しない', async () => {
+    const chromeCreate = vi.fn(() => undefined)
+    setChromeApi({
+      tabs: { create: chromeCreate },
+      windows: { create: chromeCreate },
+    })
+    const tabCreate = vi.fn(async ({ url }: { url: string }) => ({
+      id: 1,
+      url,
+    }))
+    const windowCreate = vi.fn(async () => ({
+      tabs: [{ id: 2, index: 0, url: 'about:blank' }],
+    }))
+    vi.stubGlobal('browser', {
+      tabs: { create: tabCreate },
+      windows: { create: windowCreate },
+    })
+    const ports = createSavedTabsPorts()
+    await expect(
+      ports.browserTabPort.open({ url: 'https://example.com/a' }),
+    ).resolves.toStrictEqual({ url: 'https://example.com/a' })
+    await expect(
+      ports.browserWindowPort.openWithUrls({ urls: ['https://example.com/b'] }),
+    ).resolves.toStrictEqual({ urls: ['https://example.com/b'] })
+    expect(chromeCreate).not.toHaveBeenCalled()
+    expect(tabCreate).toHaveBeenCalledTimes(1)
+    expect(windowCreate).toHaveBeenCalledTimes(1)
   })
 
   describe('chrome.tabs が利用可能な環境', () => {
@@ -140,7 +170,10 @@ describe('createSavedTabsPorts (app/composition)', () => {
 
   it('browserWindowPort は chrome.windows.create に URL 配列を渡す', async () => {
     const create = vi.fn(async () => ({
-      tabs: [{ url: 'https://example.com' }, { url: undefined }],
+      tabs: [
+        { id: 1, index: 0, url: 'https://example.com' },
+        { url: undefined },
+      ],
     }))
     setChromeApi({ windows: { create } })
     const { browserWindowPort } = createSavedTabsPorts()

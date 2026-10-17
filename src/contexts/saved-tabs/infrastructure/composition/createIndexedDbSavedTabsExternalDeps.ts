@@ -1,5 +1,6 @@
 import type { IndexedDbSavedTabsDataPlaneDeps } from '@/contexts/saved-tabs/application/IndexedDbSavedTabsDataPlaneDeps'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import { getBrowserCreationApi } from '@/contexts/saved-tabs/infrastructure/browser/BrowserCreationApi'
 import { createChromeBrowserTabAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import type { ChromeApiLike as ChromeApiLikeBase } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import { createChromeBrowserWindowAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserWindowAdapter'
@@ -62,11 +63,11 @@ export const createIndexedDbSavedTabsExternalDeps = (
     : null
   return {
     browserTabPort: createChromeBrowserTabAdapter(
-      { getApi: () => getChromeApi() },
+      { getApi: getBrowserCreationApi },
       options.resolveActive ? { resolveActive: options.resolveActive } : {},
     ),
     browserWindowPort: createChromeBrowserWindowAdapter({
-      getApi: () => getChromeApi(),
+      getApi: getBrowserCreationApi,
     }),
     clock: createSystemClock(),
     idGenerator: createSystemIdGenerator(),

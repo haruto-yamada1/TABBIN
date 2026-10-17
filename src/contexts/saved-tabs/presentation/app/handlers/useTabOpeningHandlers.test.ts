@@ -64,19 +64,22 @@ describe('URL opening operation', () => {
     const open = vi.fn(async ({ url }: { url: string }) =>
       url === 'https://example.com' ? pending.promise : { url },
     )
-    const { result } = setup(open)
+    const { result, rerender } = setup(open)
     let first: Promise<void> | undefined
     let duplicate: Promise<void> | undefined
     let second: Promise<void> | undefined
     act(() => {
       first = result.current.handleOpenTab('https://example.com')
-      duplicate = result.current.handleOpenTab('https://example.com')
-      second = result.current.handleOpenTab('https://other.example')
     })
     await act(async () => {
       await Promise.resolve()
     })
     expect(result.current.openingOperation?.status).toBe('running')
+    rerender()
+    act(() => {
+      duplicate = result.current.handleOpenTab('https://example.com')
+      second = result.current.handleOpenTab('https://other.example')
+    })
     expect(open).toHaveBeenCalledTimes(1)
     await act(async () => {
       pending.resolve({ url: 'https://example.com' })

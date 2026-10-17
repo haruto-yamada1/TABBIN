@@ -16,6 +16,11 @@ import {
   obsoletePersistenceStorageFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
+import {
+  runFirefoxUrlOpeningSmoke,
+  verifyFirefoxUrlOpeningAfterRestart,
+} from './firefox-url-opening-harness'
+
 const storageKeys = Object.keys(obsoletePersistenceStorageFixture)
 
 const readStorageError = (): Error | undefined => {
@@ -203,6 +208,7 @@ const fresh = async () => {
     url: 'https://example.com/custom',
   })
   const result = {
+    urlOpening: await runFirefoxUrlOpeningSmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
       chrome.extension.isAllowedIncognitoAccess(resolve)
     }),
@@ -294,6 +300,7 @@ const verifyAfterRestart = async () => {
     url: 'https://example.com/firefox-write',
   })
   const result = {
+    urlOpeningAfterRestart: await verifyFirefoxUrlOpeningAfterRestart(),
     backup: await exportBackup(
       runtime.connectionManager,
       runtime.operationGate,
