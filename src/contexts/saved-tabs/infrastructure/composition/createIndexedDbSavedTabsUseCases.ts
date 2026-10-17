@@ -1,4 +1,5 @@
 import { createSavedTabsUseCases as createApplicationSavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import type { IndexedDbSavedTabsDataPlaneDeps } from '@/contexts/saved-tabs/application/IndexedDbSavedTabsDataPlaneDeps'
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
@@ -15,6 +16,7 @@ import { createIndexedDbSavedTabsExternalDeps } from './createIndexedDbSavedTabs
 import type { CreateSavedTabsUseCasesDepsOptions } from './createIndexedDbSavedTabsExternalDeps'
 import { createNotifyingPersistenceV2UnitOfWork } from './createNotifyingPersistenceV2UnitOfWork'
 import { IndexedDbSavedTabsSessionService } from './IndexedDbSavedTabsSessionService'
+import type { IndexedDbSavedTabsMutableState } from './IndexedDbSavedTabsSessionService'
 import { createNativeSavedTabsPersistenceAdapters } from './NativeSavedTabsPersistenceAdapters'
 
 export type CreateIndexedDbSavedTabsUseCasesOptions = {
@@ -68,18 +70,45 @@ export const createIndexedDbSavedTabsUseCases = (
   options: CreateIndexedDbSavedTabsUseCasesOptions,
 ): SavedTabsUseCases => {
   const runtime = createNativeIndexedDbSavedTabsRuntime(options)
+  const createSessionUseCases = (state: IndexedDbSavedTabsMutableState) =>
+    createApplicationSavedTabsUseCases(
+      createNativeSavedTabsPersistenceAdapters(state, runtime.deps),
+    )
+  const openSavedUrl: SavedTabsUseCases['openSavedUrl'] = async (command) =>
+    runtime.session.run(
+      async (state) => createSessionUseCases(state).openSavedUrl(command),
+      (_error, result) => {
+        throw new UrlOpeningPostProcessingError([result.openedUrl])
+      },
+    )
+  const openAllSavedUrls: SavedTabsUseCases['openAllSavedUrls'] = async (
+    command,
+  ) =>
+    runtime.session.run(
+      async (state) => createSessionUseCases(state).openAllSavedUrls(command),
+      (_error, result) => {
+        throw new UrlOpeningPostProcessingError(
+          result.openedUrls,
+          result.failedUrls,
+        )
+      },
+    )
   const sessionBacked = new Proxy(
     {},
     {
       get: (_target, property): unknown => {
+        if (property === 'openSavedUrl') {
+          return openSavedUrl
+        }
+        if (property === 'openAllSavedUrls') {
+          return openAllSavedUrls
+        }
         if (typeof property !== 'string') {
           return undefined
         }
         return async (...args: readonly unknown[]): Promise<unknown> =>
           runtime.session.run(async (state) => {
-            const useCases = createApplicationSavedTabsUseCases(
-              createNativeSavedTabsPersistenceAdapters(state, runtime.deps),
-            )
+            const useCases = createSessionUseCases(state)
             const operation: unknown = Reflect.get(useCases, property)
             if (typeof operation !== 'function') {
               throw new TypeError(`Unknown Saved Tabs operation: ${property}`)

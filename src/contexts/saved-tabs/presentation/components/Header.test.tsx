@@ -448,7 +448,7 @@ describe('Header', () => {
     expect(onCreateProject).toHaveBeenCalledWith('新プロジェクト')
   })
 
-  it('Dialog の onOpenChange で custom プロジェクトダイアログを閉じる', async () => {
+  it('Dialog を閉じても入力中のプロジェクト名を再表示できる', async () => {
     const user = userEvent.setup()
     render(
       <Header
@@ -460,9 +460,18 @@ describe('Header', () => {
 
     await user.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
     expect(screen.getByTestId('dialog-content')).toBeTruthy()
+    await user.type(
+      screen.getByPlaceholderText('例: 仕事、調査、後で読む'),
+      '作成途中',
+    )
 
     await user.click(screen.getByRole('button', { name: 'dialog-close' }))
     expect(screen.queryByTestId('dialog-content')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: /プロジェクト追加/ }))
+    const input = screen.getByPlaceholderText('例: 仕事、調査、後で読む')
+    expect(input).toHaveValue('作成途中')
+    expect(input).toHaveFocus()
   })
 
   it('Enter 以外のキーでは追加せず、onCreateProject 未指定時のデフォルト関数でも成功分岐を通る', async () => {

@@ -1,10 +1,12 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
+import { urlOpeningMessages } from './urlOpeningMessages'
 
 const messages = {
   en: {
     ...analyticsHealthMessages.en,
+    ...urlOpeningMessages.en,
     ...organizationActionMessages.en,
     ...reviewReminderMessages.en,
     'aiChat.attachments.add': 'Attach files',
@@ -918,6 +920,7 @@ const messages = {
   },
   ja: {
     ...analyticsHealthMessages.ja,
+    ...urlOpeningMessages.ja,
     ...organizationActionMessages.ja,
     ...reviewReminderMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',

@@ -137,6 +137,7 @@ export class IndexedDbSavedTabsSessionService {
     operation: (
       state: IndexedDbSavedTabsMutableState,
     ) => Promise<Result> | Result,
+    onCommitFailure?: (error: unknown, result: Result) => never,
   ): Promise<Result> {
     const { revision, state: source } = await materializeState(
       this.deps.snapshotReaderPort,
@@ -145,9 +146,16 @@ export class IndexedDbSavedTabsSessionService {
     const result = await operation(state)
     const plan = toWritePlan(source, state)
     if (hasWritePlanChanges(plan)) {
-      await this.deps.unitOfWorkPort.commit(plan, {
-        expectedRevision: revision,
-      })
+      try {
+        await this.deps.unitOfWorkPort.commit(plan, {
+          expectedRevision: revision,
+        })
+      } catch (error) {
+        if (onCommitFailure) {
+          onCommitFailure(error, result)
+        }
+        throw error
+      }
     }
     return result
   }

@@ -6,6 +6,9 @@ import { createServer } from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 
+// eslint-disable-next-line import/no-relative-parent-imports -- shared browser harness result is the WebDriver protocol contract
+import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
+
 const FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE =
   'FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE'
 const EXTENSION_ID = 'tabbin@local'
@@ -32,6 +35,8 @@ type WebDriverSession = {
 }
 
 type SmokeResult = {
+  readonly urlOpening?: FirefoxUrlOpeningSmokeResult
+  readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
   readonly inIncognitoContext?: boolean
   readonly incognitoPolicy?: string
@@ -415,7 +420,83 @@ const assertFreshResult = (result: SmokeResult): JsonRecord => {
   assert.equal(result.backup.data.conversations.length, 1)
   assert.equal(result.backup.data.messages.length, 1)
   assert.ok(result.obsoleteStorageBefore)
+  assertUrlOpeningResult(result.urlOpening)
   return result.obsoleteStorageBefore
+}
+
+const assertUrlOpeningResult = (
+  result: FirefoxUrlOpeningSmokeResult | undefined,
+): void => {
+  assert.ok(result, 'Firefox URL-opening regression result must be present.')
+  for (const [name, scenario, ids, urls] of [
+    [
+      'single',
+      result.single,
+      ['opening-single'],
+      ['https://example.com/firefox-opening-single'],
+    ],
+    [
+      'newWindow',
+      result.newWindow,
+      ['opening-window-1', 'opening-window-2'],
+      [
+        'https://example.com/firefox-opening-window-1',
+        'https://example.com/firefox-opening-window-2',
+      ],
+    ],
+    [
+      'backgroundTabs',
+      result.backgroundTabs,
+      ['opening-background-1', 'opening-background-2'],
+      [
+        'https://example.com/firefox-opening-background-1',
+        'https://example.com/firefox-opening-background-2',
+      ],
+    ],
+  ] as const) {
+    assert.equal(
+      scenario.errorCode,
+      undefined,
+      `${name} falsely reported browser creation failure.`,
+    )
+    assert.deepEqual(
+      scenario.openedUrls,
+      urls,
+      `${name} must report the requested URLs.`,
+    )
+    assert.deepEqual(scenario.failureReasons, [])
+    assert.deepEqual(scenario.removedIds.toSorted(), ids.toSorted())
+    assert.equal(scenario.createdTabCount, ids.length)
+    for (const id of ids) {
+      assert.equal(scenario.remainingIds.includes(id), false)
+    }
+  }
+  assert.equal(result.keep.errorCode, undefined)
+  assert.deepEqual(result.keep.openedUrls, [
+    'https://example.com/firefox-opening-keep',
+  ])
+  assert.equal(result.keep.createdTabCount, 1)
+  assert.deepEqual(result.keep.removedIds, [])
+  assert.ok(result.keep.remainingIds.includes('opening-keep'))
+  assert.equal(result.retryAfterSuccess.errorCode, 'URL_RECORD_NOT_FOUND')
+  assert.equal(
+    result.retryAfterSuccess.createdTabCount,
+    0,
+    'Retrying a removed row must not create a duplicate tab.',
+  )
+  assert.deepEqual(result.retryAfterSuccess.openedUrls, [])
+  assert.equal(result.rejected.errorCode, 'restrictedUrl')
+  assert.equal(result.rejected.createdTabCount, 0)
+  assert.deepEqual(result.rejected.openedUrls, [])
+  assert.deepEqual(result.rejected.removedIds, [])
+  assert.deepEqual(result.rejected.remainingIds, [
+    'opening-keep',
+    'opening-rejected',
+  ])
+  assert.deepEqual(result.remainingAfterReconnect, [
+    'opening-keep',
+    'opening-rejected',
+  ])
 }
 
 const assertVerifyResult = (
@@ -429,6 +510,10 @@ const assertVerifyResult = (
   assert.equal(result.recoveryAfterRetry, 'available')
   assert.ok(result.savedTabsReadCount && result.savedTabsReadCount > 0)
   assert.ok(result.indexedDbFailureName)
+  assert.deepEqual(result.urlOpeningAfterRestart, [
+    'opening-keep',
+    'opening-rejected',
+  ])
   assert.deepEqual(result.projection, {
     collections: 2,
     memberships: 3,
@@ -522,6 +607,8 @@ const run = async (): Promise<void> => {
             savedTabsReadCount: verified.savedTabsReadCount,
           },
           schemaVersion: verified.backup.schemaVersion,
+          urlOpening: fresh.urlOpening,
+          urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',
         },
         null,

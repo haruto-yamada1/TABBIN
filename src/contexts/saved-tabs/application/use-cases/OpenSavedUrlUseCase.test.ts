@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { BrowserOpenError } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import type { BrowserTabPort } from '@/contexts/saved-tabs/application/ports/BrowserTabPort'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
@@ -121,6 +123,109 @@ const baseSettings = {
 }
 
 describe('OpenSavedUrlUseCase', () => {
+  it.each(['tabGroupSave', 'projectSave', 'recordRemove'] as const)(
+    '開いた後の %s 失敗でも確認済み URL を保持して安全なエラーを返す',
+    async (failure) => {
+      const record = createUrlRecord({
+        id: 'url-1',
+        savedAt: 1,
+        title: 'A',
+        url: 'https://example.com',
+      })
+      const group = createTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        memberships: [{ urlId: record.id }],
+      })
+      const project = createCustomProject({
+        id: 'project-1',
+        name: 'P',
+        memberships: [{ urlId: record.id }],
+      })
+      const repos = createInMemoryRepositories({
+        customProjects: [project],
+        tabGroups: [group],
+        urlRecords: [record],
+      })
+      const diagnostics = new Error('private persistence diagnostics')
+      if (failure === 'tabGroupSave') {
+        vi.spyOn(repos.tabGroupRepository, 'saveAll').mockRejectedValue(
+          diagnostics,
+        )
+      } else if (failure === 'projectSave') {
+        vi.spyOn(repos.customProjectRepository, 'saveAll').mockRejectedValue(
+          diagnostics,
+        )
+      } else {
+        vi.spyOn(repos.urlRecordRepository, 'removeByIds').mockRejectedValue(
+          diagnostics,
+        )
+      }
+      const browserTabPort = {
+        open: vi.fn(async () => ({ url: 'https://example.com/' })),
+      }
+      const useCase = createOpenSavedUrlUseCase({ ...repos, browserTabPort })
+
+      const result = useCase({
+        origin: 'click',
+        settings: { ...baseSettings, removeTabAfterOpen: true },
+        urlRecordId: record.id,
+      })
+
+      await expect(result).rejects.toBeInstanceOf(UrlOpeningPostProcessingError)
+      await expect(result).rejects.toMatchObject({
+        name: 'UrlOpeningPostProcessingError',
+        message: 'URL opening succeeded, but updating saved URLs failed.',
+        openedUrls: ['https://example.com/'],
+        failedUrls: [],
+      })
+      await expect(result).rejects.not.toHaveProperty('cause')
+      expect(browserTabPort.open).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('開く前の repository 失敗は確認済みの成功として扱わない', async () => {
+    const repos = createInMemoryRepositories()
+    const error = new Error('lookup failure')
+    vi.spyOn(repos.urlRecordRepository, 'findById').mockRejectedValue(error)
+    const browser = createSpyBrowserTabPort()
+    const useCase = createOpenSavedUrlUseCase({
+      ...repos,
+      browserTabPort: browser.port,
+    })
+
+    await expect(
+      useCase({
+        origin: 'click',
+        settings: baseSettings,
+        urlRecordId: 'url-1',
+      }),
+    ).rejects.toBe(error)
+    expect(browser.opened).toStrictEqual([])
+  })
+
+  it('単体のブラウザ失敗は後処理エラーで包まず分類を保持する', async () => {
+    const record = createUrlRecord({
+      id: 'url-1',
+      savedAt: 1,
+      title: 'A',
+      url: 'https://example.com/a',
+    })
+    const error = new BrowserOpenError('permission')
+    const useCase = createOpenSavedUrlUseCase({
+      ...createInMemoryRepositories({ urlRecords: [record] }),
+      browserTabPort: { open: vi.fn().mockRejectedValue(error) },
+    })
+
+    await expect(
+      useCase({
+        origin: 'click',
+        settings: baseSettings,
+        urlRecordId: record.id,
+      }),
+    ).rejects.toBe(error)
+  })
+
   it('BrowserTabPort.open を呼び出して URL を開く', async () => {
     const url = createUrlRecord({
       id: 'url-1',

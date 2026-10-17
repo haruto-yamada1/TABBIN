@@ -1,3 +1,7 @@
+import { BrowserOpenError } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+
+import { classifyBrowserOpenError } from './browserOpenError'
+
 /**
  * `chrome.windows` 依存を `BrowserWindowPort` interface に適合させる adapter。
  *
@@ -5,7 +9,7 @@
  * `composition` 層からこの adapter を `BrowserWindowPort` として use-case へ注入する。
  *
  * `openWithUrls` は引数の URL 配列をそのまま `chrome.windows.create` に渡し、
- * 開いた URL 配列を返す。`focused` は省略時 `true`（前面表示）として扱う。
+ * 作成結果で確認できた要求 URL の部分集合を返す。`focused` は省略時 `true`（前面表示）として扱う。
  *
  * @example
  * ```ts
@@ -28,13 +32,23 @@ export type ChromeWindowsApiLike = {
   readonly windows?: ChromeWindowsLike
 }
 
+type CreatedWindowTab = {
+  readonly id?: number
+  readonly index?: number
+  readonly url?: string
+  readonly pendingUrl?: string
+}
+
 export type ChromeWindowsLike = {
   readonly create?: (createProperties: {
     readonly focused?: boolean
     readonly url?: readonly string[] | string
   }) =>
     | Promise<
-        { readonly tabs?: readonly { readonly url?: string }[] } | undefined
+        | {
+            readonly tabs?: readonly CreatedWindowTab[]
+          }
+        | undefined
       >
     | undefined
 }
@@ -56,6 +70,31 @@ export type ChromeBrowserWindowAdapterOptions = {
  * 「サイレントに何もしない」よりも、副作用が必要な操作は
  * 失敗を可視化することが重要という DDD の方針に従う。
  */
+const isNonnegativeInteger = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+
+const confirmedRequestedWindowUrls = (
+  requestedUrls: readonly string[],
+  tabs: readonly CreatedWindowTab[] = [],
+): readonly string[] => {
+  const confirmedIndexes = new Set<number>()
+  const confirmedIds = new Set<number>()
+  for (const tab of tabs) {
+    if (
+      isNonnegativeInteger(tab.id) &&
+      isNonnegativeInteger(tab.index) &&
+      tab.index < requestedUrls.length &&
+      !confirmedIds.has(tab.id) &&
+      !confirmedIndexes.has(tab.index)
+    ) {
+      confirmedIds.add(tab.id)
+      confirmedIndexes.add(tab.index)
+    }
+  }
+  // A created tab confirms one requested position, even before navigation starts.
+  return requestedUrls.filter((_, index) => confirmedIndexes.has(index))
+}
+
 export const createChromeBrowserWindowAdapter = (
   deps: ChromeBrowserWindowAdapterDeps,
   options: ChromeBrowserWindowAdapterOptions = {},
@@ -69,19 +108,19 @@ export const createChromeBrowserWindowAdapter = (
       const windows = api?.windows
       const focused = input.focused ?? options.resolveFocused?.() ?? true
       if (!windows?.create) {
-        throw new Error('chrome.windows.create is not available')
+        throw new BrowserOpenError('unavailable')
       }
-      const result = await windows.create({
-        focused,
-        url: [...input.urls],
-      })
-      const openedUrls = (result?.tabs ?? [])
-        .map((tab) => tab.url)
-        .filter((url): url is string => typeof url === 'string')
-      // `chrome.windows.create` が URL 情報を返さない（あるいは一部しか返さない）
-      // 環境へのフォールバックとして、入力された URL 配列をそのまま返す。
-      return {
-        urls: openedUrls.length > 0 ? openedUrls : [...input.urls],
+      try {
+        const result = await windows.create({ focused, url: [...input.urls] })
+        if (!result) {
+          throw new BrowserOpenError('unknown')
+        }
+        return { urls: confirmedRequestedWindowUrls(input.urls, result.tabs) }
+      } catch (error) {
+        if (error instanceof BrowserOpenError) {
+          throw error
+        }
+        throw classifyBrowserOpenError(error)
       }
     },
   }

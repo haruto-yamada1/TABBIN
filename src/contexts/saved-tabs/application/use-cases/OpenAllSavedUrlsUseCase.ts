@@ -1,6 +1,8 @@
 import type { OpenAllSavedUrlsCommand } from '@/contexts/saved-tabs/application/commands/OpenAllSavedUrlsCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { OpenedUrlsDto } from '@/contexts/saved-tabs/application/dto/OpenedUrlsDto'
+import { toBrowserOpenFailureReason } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import {
   toSavedTabsCustomProjectDto,
   toSavedTabsTabGroupDto,
@@ -46,6 +48,78 @@ type RemovalPlan = {
   readonly updatedTabGroups: readonly TabGroup[]
   readonly updatedCustomProjects: readonly CustomProject[]
   readonly urlRecordIdsToDelete: readonly UrlRecordId[]
+}
+
+type OpeningResult = {
+  readonly openedUrls: readonly string[]
+  readonly openedRequestedUrls: readonly string[]
+  readonly failedUrls: OpenedUrlsDto['failedUrls']
+}
+
+type SavedUrlsSnapshot = {
+  readonly tabGroups: readonly TabGroup[]
+  readonly urlRecords: readonly UrlRecord[]
+  readonly customProjects: readonly CustomProject[]
+}
+
+const openRequestedUrls = async (
+  command: OpenAllSavedUrlsCommand,
+  deps: OpenAllSavedUrlsUseCaseDeps,
+): Promise<OpeningResult> => {
+  if (command.mode === 'newWindow') {
+    try {
+      const result = await deps.browserWindowPort.openWithUrls({
+        focused: true,
+        urls: [...command.urls],
+      })
+      const confirmedUrls = new Set(result.urls)
+      const openedRequestedUrls = command.urls.filter((url) =>
+        confirmedUrls.has(url),
+      )
+      return {
+        openedRequestedUrls,
+        openedUrls: openedRequestedUrls,
+        failedUrls: command.urls
+          .filter((url) => !confirmedUrls.has(url))
+          .map((url) => ({ url, reason: 'unknown' })),
+      }
+    } catch (error) {
+      return {
+        openedRequestedUrls: [],
+        openedUrls: [],
+        failedUrls: command.urls.map((url) => ({
+          url,
+          reason: toBrowserOpenFailureReason(error),
+        })),
+      }
+    }
+  }
+
+  const results = await Promise.all(
+    command.urls.map(async (url): Promise<OpeningResult> => {
+      try {
+        const result = await deps.browserTabPort.open({ url })
+        return {
+          openedRequestedUrls: [url],
+          openedUrls: [result.url],
+          failedUrls: [],
+        }
+      } catch (error) {
+        return {
+          openedRequestedUrls: [],
+          openedUrls: [],
+          failedUrls: [{ url, reason: toBrowserOpenFailureReason(error) }],
+        }
+      }
+    }),
+  )
+  return {
+    openedRequestedUrls: results.flatMap(
+      (result) => result.openedRequestedUrls,
+    ),
+    openedUrls: results.flatMap((result) => result.openedUrls),
+    failedUrls: results.flatMap((result) => result.failedUrls),
+  }
 }
 
 const computeRemovalPlan = ({
@@ -126,65 +200,29 @@ const computeRemovalPlan = ({
   }
 }
 
-/**
- * `OpenAllSavedUrlsUseCase` を生成する。
- *
- * 責務:
- * 1. 入力 URL 配列を `BrowserTabPort` / `BrowserWindowPort` 経由で一括オープンする。
- * 2. `removeTabAfterOpen` が有効なら、対象 `UrlRecordId` を `TabGroup` /
- *    `CustomProject` の `urlIds` から取り除く。
- * 3. 削除後に他で参照されなくなった `UrlRecord` を
- *    `UrlRecordRepository.removeByIds` で削除する。
- * 4. Undo 用 snapshot を `OpenedUrlsDto` にまとめて返す。
- *
- * 既存 `OpenSavedUrlUseCase` と同じ `removeUrlRecordIdsFromTabGroups` /
- * `filterUnreferencedUrlRecords` を再利用することで、1 件と複数で
- * 削除ポリシーが一致するようにしている。
- */
-export const createOpenAllSavedUrlsUseCase = (
+const openAndRemoveFromSnapshot = async (
+  command: OpenAllSavedUrlsCommand,
   deps: OpenAllSavedUrlsUseCaseDeps,
-): OpenAllSavedUrlsUseCase => {
-  return async (command) => {
-    if (command.urls.length === 0) {
-      return {
-        openedUrls: [],
-        removedUrlRecords: [],
-        removedUrlRecordIds: [],
-        snapshot: null,
-      }
-    }
+  savedUrls: SavedUrlsSnapshot,
+): Promise<OpenedUrlsDto> => {
+  const { openedUrls, openedRequestedUrls, failedUrls } =
+    await openRequestedUrls(command, deps)
 
-    const [allTabGroups, allUrlRecords, allCustomProjects] = await Promise.all([
-      deps.tabGroupRepository.findAll(),
-      deps.urlRecordRepository.findAll(),
-      deps.customProjectRepository.findAll(),
-    ])
-
-    const openedUrls =
-      command.mode === 'newWindow'
-        ? (
-            await deps.browserWindowPort.openWithUrls({
-              focused: true,
-              urls: [...command.urls],
-            })
-          ).urls
-        : await Promise.all(
-            command.urls.map(async (url) => deps.browserTabPort.open({ url })),
-          ).then((results) => results.map((result) => result.url))
-
+  try {
     const plan = computeRemovalPlan({
-      customProjects: allCustomProjects,
+      customProjects: savedUrls.customProjects,
       // Browser API may canonicalize the returned URL (for example, adding a
       // trailing slash). The requested URLs identify the saved records that
       // were successfully opened, so use them for removal matching.
-      openedUrls: command.urls,
+      openedUrls: openedRequestedUrls,
       removeTabAfterOpen: command.removeTabAfterOpen,
-      tabGroups: allTabGroups,
-      urlRecords: allUrlRecords,
+      tabGroups: savedUrls.tabGroups,
+      urlRecords: savedUrls.urlRecords,
     })
 
     if (plan.urlRecordIdsToDelete.length === 0) {
       return {
+        failedUrls,
         openedUrls,
         removedUrlRecordIds: [],
         removedUrlRecords: [],
@@ -223,10 +261,58 @@ export const createOpenAllSavedUrlsUseCase = (
     }
 
     return {
+      failedUrls,
       openedUrls,
       removedUrlRecordIds: plan.urlRecordIdsToDelete,
       removedUrlRecords: plan.removedUrlRecords.map(toSavedTabsUrlRecordDto),
       snapshot,
     }
+  } catch {
+    throw new UrlOpeningPostProcessingError(openedUrls, failedUrls)
+  }
+}
+
+/**
+ * `OpenAllSavedUrlsUseCase` を生成する。
+ *
+ * 責務:
+ * 1. 入力 URL 配列を `BrowserTabPort` / `BrowserWindowPort` 経由で一括オープンする。
+ * 2. `removeTabAfterOpen` が有効なら、成功した `UrlRecordId` を `TabGroup` /
+ *    `CustomProject` の `urlIds` から取り除く。
+ * 3. 削除後に他で参照されなくなった `UrlRecord` を
+ *    `UrlRecordRepository.removeByIds` で削除する。
+ * 4. Undo 用 snapshot を `OpenedUrlsDto` にまとめて返す。
+ *
+ * 既存 `OpenSavedUrlUseCase` と同じ `removeUrlRecordIdsFromTabGroups` /
+ * `filterUnreferencedUrlRecords` を再利用することで、1 件と複数で
+ * 削除ポリシーが一致するようにしている。
+ */
+export const createOpenAllSavedUrlsUseCase = (
+  deps: OpenAllSavedUrlsUseCaseDeps,
+): OpenAllSavedUrlsUseCase => {
+  return async (command) => {
+    if (command.urls.length === 0) {
+      return {
+        failedUrls: [],
+        openedUrls: [],
+        removedUrlRecords: [],
+        removedUrlRecordIds: [],
+        snapshot: null,
+      }
+    }
+
+    const [allTabGroups, allUrlRecords, allCustomProjects] = await Promise.all([
+      deps.tabGroupRepository.findAll(),
+      deps.urlRecordRepository.findAll(),
+      deps.customProjectRepository.findAll(),
+    ])
+
+    // 保存状態の取得が成功してから開く。取得失敗時にブラウザ操作だけが
+    // 先行しないよう、この snapshot をオープン・削除フェーズへ渡す。
+    return openAndRemoveFromSnapshot(command, deps, {
+      customProjects: allCustomProjects,
+      tabGroups: allTabGroups,
+      urlRecords: allUrlRecords,
+    })
   }
 }
