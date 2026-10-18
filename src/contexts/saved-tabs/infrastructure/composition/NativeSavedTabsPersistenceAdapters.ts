@@ -98,6 +98,26 @@ const membershipsFor = (
     .filter((membership) => membership.collectionId === collectionId)
     .toSorted((left, right) => left.sortOrder - right.sortOrder)
 
+// Rebuild for each repository read: commands may replace or append to state
+// within the same session, so retaining this index would return stale joins.
+const groupCollectionRecords = <
+  Value extends { readonly collectionId: string },
+>(
+  records: readonly Value[],
+): ReadonlyMap<string, readonly Value[]> => {
+  const byCollection = new Map<string, Value[]>()
+  for (const record of records) {
+    const { collectionId } = record
+    const group = byCollection.get(collectionId)
+    if (group) {
+      group.push(record)
+    } else {
+      byCollection.set(collectionId, [record])
+    }
+  }
+  return byCollection
+}
+
 const replaceCollectionAggregates = (
   state: IndexedDbSavedTabsMutableState,
   type: PersistenceV2Collection['definition']['type'],
@@ -148,16 +168,23 @@ const removeCollections = (
 const createTabGroupRepository = (
   state: IndexedDbSavedTabsMutableState,
 ): SavedTabsUseCasesDeps['tabGroupRepository'] => {
-  const findAll = async () =>
-    domainCollections(state)
+  const findAll = async () => {
+    const categoriesByCollection = groupCollectionRecords(state.categories)
+    const membershipsByCollection = groupCollectionRecords(state.memberships)
+    return domainCollections(state)
       .toSorted((left, right) => left.sortOrder - right.sortOrder)
       .map((collection) =>
         createTabGroup({
           collection,
-          collectionCategories: categoriesFor(state, collection.id),
-          memberships: membershipsFor(state, collection.id),
+          collectionCategories: (
+            categoriesByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
+          memberships: (
+            membershipsByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
         }),
       )
+  }
   return {
     findAll,
     findById: async (id) =>
@@ -183,16 +210,23 @@ const createTabGroupRepository = (
 const createCustomProjectRepository = (
   state: IndexedDbSavedTabsMutableState,
 ): SavedTabsUseCasesDeps['customProjectRepository'] => {
-  const findAll = async () =>
-    customCollections(state)
+  const findAll = async () => {
+    const categoriesByCollection = groupCollectionRecords(state.categories)
+    const membershipsByCollection = groupCollectionRecords(state.memberships)
+    return customCollections(state)
       .toSorted((left, right) => left.sortOrder - right.sortOrder)
       .map((collection) =>
         createCustomProject({
           collection,
-          collectionCategories: categoriesFor(state, collection.id),
-          memberships: membershipsFor(state, collection.id),
+          collectionCategories: (
+            categoriesByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
+          memberships: (
+            membershipsByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
         }),
       )
+  }
   return {
     findAll,
     findAllRaw: findAll,
@@ -817,15 +851,16 @@ export const createNativeSavedTabsPersistenceAdapters = (
       },
     },
     savedTabsTabGroupReadPort: {
-      findAll: async () =>
-        (await tabGroupRepository.findAll()).map((group) => {
+      findAll: async () => {
+        const groups = await tabGroupRepository.findAll()
+        const urlsById = new Map(state.urls.map((url) => [url.id, url]))
+        return groups.map((group) => {
           const categoriesById = new Map(
             group.collectionCategories.map((category) => [
               category.id,
               category,
             ]),
           )
-          const urlsById = new Map(state.urls.map((url) => [url.id, url]))
           return {
             ...group,
             resolvedUrls: group.memberships.flatMap((membership) => {
@@ -849,7 +884,8 @@ export const createNativeSavedTabsPersistenceAdapters = (
               ]
             }),
           }
-        }),
+        })
+      },
     },
     setCategoryKeywordsPort: {
       setCategoryKeywords: async (groupId, categoryName, keywords) => {
