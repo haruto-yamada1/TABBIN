@@ -12,6 +12,11 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { ImportExportSettings } from './ImportExportSettings'
+import { inspectBackupV2 } from './lib/import-export/v2/BackupV2Inspector'
+import backupFixture from './lib/import-export/v2/fixtures/backup-v2-current.json'
+
+const current = { data: inspectBackupV2(backupFixture).data, revision: 1 }
+const comparison = { current, changes: [] }
 
 vi.mock('sonner', () => ({
   toast: {
@@ -23,19 +28,7 @@ vi.mock('sonner', () => ({
 vi.mock('@/features/options/lib/import-export', () => ({
   downloadAsJson: vi.fn(),
   importSettings: vi.fn(),
-  getImportPreview: vi.fn().mockReturnValue({
-    success: true,
-    message: 'データの解析に成功しました',
-    preview: {
-      version: '1.0.0',
-      timestamp: '2026-02-16T00:00:00.000Z',
-      categoriesCount: 1,
-      domainsCount: 1,
-      projectsCount: 0,
-      hasAiChat: false,
-      hasAnalytics: false,
-    },
-  }),
+  prepareImportPreview: vi.fn(),
 }))
 
 vi.mock('@/app/composition/optionsBackupV2Export', () => ({
@@ -142,7 +135,7 @@ import { exportBackupV2 } from '@/app/composition/optionsBackupV2Export'
 import type { PersistenceRecoverySnapshotSummary } from '@/contexts/saved-tabs/public-api'
 import {
   downloadAsJson,
-  getImportPreview,
+  prepareImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
@@ -200,6 +193,20 @@ const recoverySnapshot = {
 describe('ImportExportSettingsコンポーネント', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prepareImportPreview).mockResolvedValue({
+      success: true,
+      message: 'ok',
+      preview: {
+        comparison,
+        version: '1.0.0',
+        timestamp: '2026-02-16T00:00:00.000Z',
+        categoriesCount: 1,
+        domainsCount: 1,
+        projectsCount: 0,
+        hasAiChat: false,
+        hasAnalytics: false,
+      },
+    })
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -396,7 +403,7 @@ describe('ImportExportSettingsコンポーネント', () => {
 
     const { container } = render(<ImportExportSettings />)
     // user.upload internally calls user.click which fails on hidden inputs.
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -456,7 +463,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     expect(screen.queryByRole('checkbox')).toBeNull()
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -477,16 +484,26 @@ describe('ImportExportSettingsコンポーネント', () => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
         expect.any(Function),
+        {
+          current,
+          selection: {
+            savedTabs: true,
+            userSettings: true,
+            aiChat: true,
+            analyticsViews: true,
+          },
+        },
       )
     })
   })
 
   it('current Backup V2をoverwrite modeでインポートする', async () => {
     const user = userEvent.setup()
-    vi.mocked(getImportPreview).mockReturnValueOnce({
+    vi.mocked(prepareImportPreview).mockResolvedValueOnce({
       success: true,
       message: 'ok',
       preview: {
+        comparison,
         categoriesCount: 0,
         domainsCount: 0,
         hasAiChat: false,
@@ -506,7 +523,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       screen.getByRole('button', { name: 'Import settings and tab data' }),
     )
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -522,6 +539,15 @@ describe('ImportExportSettingsコンポーネント', () => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
         expect.any(Function),
+        {
+          current,
+          selection: {
+            savedTabs: true,
+            userSettings: true,
+            aiChat: true,
+            analyticsViews: true,
+          },
+        },
       )
     })
   })
@@ -530,7 +556,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: { files: [] },
     })
@@ -576,6 +602,15 @@ describe('ImportExportSettingsコンポーネント', () => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
         expect.any(Function),
+        {
+          current,
+          selection: {
+            savedTabs: true,
+            userSettings: true,
+            aiChat: true,
+            analyticsViews: true,
+          },
+        },
       )
     })
   })
@@ -608,7 +643,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
 
     expect(readSpy).not.toHaveBeenCalled()
-    expect(getImportPreview).not.toHaveBeenCalled()
+    expect(prepareImportPreview).not.toHaveBeenCalled()
     expect(importSettings).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Confirm Import' })).toBeNull()
     expect(screen.getByText('Drag and drop a JSON file')).toBeTruthy()
@@ -669,7 +704,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     )
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -698,7 +733,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [new File(['dummy'], 'backup.txt', { type: 'text/plain' })],
@@ -720,14 +755,14 @@ describe('ImportExportSettingsコンポーネント', () => {
     const readAsText = vi.spyOn(MockFileReader.prototype, 'readAsText')
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: { files: [file] },
     })
 
     await waitFor(() => {
       expect(readAsText).toHaveBeenCalledWith(file)
-      expect(getImportPreview).toHaveBeenCalledWith(
+      expect(prepareImportPreview).toHaveBeenCalledWith(
         readerContent,
         expect.any(Function),
       )
@@ -748,7 +783,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const readAsText = vi.spyOn(MockFileReader.prototype, 'readAsText')
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: { files: [file] },
     })
@@ -762,7 +797,7 @@ describe('ImportExportSettingsコンポーネント', () => {
   })
 
   it('プレビュー解析が失敗した場合はプレビューの失敗メッセージを表示する', async () => {
-    vi.mocked(getImportPreview).mockReturnValueOnce({
+    vi.mocked(prepareImportPreview).mockResolvedValueOnce({
       diagnostic: {
         errorCode: 'INVALID_BACKUP',
         issueCodes: [],
@@ -775,7 +810,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -791,14 +826,14 @@ describe('ImportExportSettingsコンポーネント', () => {
   })
 
   it('プレビュー解析が例外を投げた場合は読み込みエラーを表示する', async () => {
-    vi.mocked(getImportPreview).mockImplementationOnce(() => {
+    vi.mocked(prepareImportPreview).mockImplementationOnce(() => {
       throw new Error('preview crashed')
     })
 
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -810,17 +845,15 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
     })
-    expect(console.error).toHaveBeenCalledWith(
-      'プレビューエラー:',
-      expect.any(Error),
-    )
+    expect(console.error).toHaveBeenCalledWith('プレビューエラー')
   })
 
   it('プレビューで AI chat を含むバックアップは Yes と表示する', async () => {
-    vi.mocked(getImportPreview).mockReturnValueOnce({
+    vi.mocked(prepareImportPreview).mockResolvedValueOnce({
       success: true,
       message: 'ok',
       preview: {
+        comparison,
         categoriesCount: 1,
         domainsCount: 1,
         hasAiChat: true,
@@ -834,7 +867,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -850,7 +883,7 @@ describe('ImportExportSettingsコンポーネント', () => {
   })
 
   it('legacy backupをimport可能なpreviewとして表示しない', async () => {
-    vi.mocked(getImportPreview).mockReturnValueOnce({
+    vi.mocked(prepareImportPreview).mockResolvedValueOnce({
       diagnostic: {
         errorCode: 'UNSUPPORTED_LEGACY_BACKUP',
         issueCodes: [],
@@ -863,7 +896,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -892,7 +925,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -913,6 +946,15 @@ describe('ImportExportSettingsコンポーネント', () => {
       expect(importSettings).toHaveBeenCalledWith(
         readerContent,
         expect.any(Function),
+        {
+          current,
+          selection: {
+            savedTabs: true,
+            userSettings: true,
+            aiChat: true,
+            analyticsViews: true,
+          },
+        },
       )
     })
 
@@ -937,7 +979,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -968,7 +1010,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -992,12 +1034,14 @@ describe('ImportExportSettingsコンポーネント', () => {
     })
   })
 
-  it('確定時にファイル内容が空なら読み込みエラーを表示する', async () => {
+  it('passes the selected sections and disables confirmation when all are unchecked', async () => {
     const user = userEvent.setup()
+    vi.mocked(importSettings).mockResolvedValue({
+      success: true,
+      message: 'ok',
+    })
     const { container } = render(<ImportExportSettings />)
-
-    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -1005,27 +1049,66 @@ describe('ImportExportSettingsコンポーネント', () => {
         ],
       },
     })
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: 'Confirm Import' }),
-      ).toBeTruthy()
-    })
-
-    readerMode = 'empty'
+    await screen.findByRole('button', { name: 'Confirm Import' })
+    const boxes = screen.getAllByRole('checkbox')
+    await user.click(boxes[0] as HTMLElement)
+    await user.click(boxes[1] as HTMLElement)
+    await user.click(boxes[2] as HTMLElement)
+    await user.click(boxes[3] as HTMLElement)
+    expect(
+      screen
+        .getByRole('button', { name: 'Confirm Import' })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'options.importExport.section.savedTabs',
+      }),
+    )
     await user.click(screen.getByRole('button', { name: 'Confirm Import' }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
-    })
+    expect(importSettings).toHaveBeenCalledWith(
+      readerContent,
+      expect.any(Function),
+      {
+        current,
+        selection: {
+          savedTabs: true,
+          userSettings: false,
+          aiChat: false,
+          analyticsViews: false,
+        },
+      },
+    )
   })
 
-  it('確定時の FileReader.onerror で読み込みエラーを表示する', async () => {
+  it('shows a bounded change list and lets the user inspect the next page', async () => {
     const user = userEvent.setup()
+    vi.mocked(prepareImportPreview).mockResolvedValueOnce({
+      success: true,
+      message: 'ok',
+      preview: {
+        version: '2',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        categoriesCount: 0,
+        domainsCount: 0,
+        projectsCount: 0,
+        hasAiChat: false,
+        hasAnalytics: false,
+        comparison: {
+          current,
+          changes: Array.from({ length: 21 }, (_, i) => ({
+            section: 'savedTabs',
+            entity: 'urls',
+            id: String(i),
+            kind: 'added',
+            before: '',
+            after: `URL row ${i}`,
+          })),
+        },
+      },
+    })
     const { container } = render(<ImportExportSettings />)
-
-    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -1033,56 +1116,102 @@ describe('ImportExportSettingsコンポーネント', () => {
         ],
       },
     })
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: 'Confirm Import' }),
-      ).toBeTruthy()
+    const list = await screen.findByRole('list', {
+      name: 'options.importExport.diffTitle',
     })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(20)
+    expect(screen.queryByText('URL row 20')).toBeNull()
+    await user.click(
+      screen.getByRole('button', { name: 'options.importExport.nextPage' }),
+    )
+    expect(within(list).getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText('URL row 20')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: 'options.importExport.previousPage' }),
+    )
+    expect(screen.getByText('URL row 0')).toBeTruthy()
+  })
 
+  it('ignores a late preview result after closing the dialog', async () => {
+    const user = userEvent.setup()
+    let finish: (
+      result: Awaited<ReturnType<typeof prepareImportPreview>>,
+    ) => void = () => {}
+    vi.mocked(prepareImportPreview).mockImplementationOnce(
+      async () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const { container } = render(<ImportExportSettings />)
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+    await user.keyboard('{Escape}')
+    await act(async () => {
+      finish({
+        success: true,
+        message: 'ok',
+        preview: {
+          comparison,
+          version: 'late',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          categoriesCount: 0,
+          domainsCount: 0,
+          projectsCount: 0,
+          hasAiChat: false,
+          hasAnalytics: false,
+        },
+      })
+    })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await user.click(
+      screen.getByRole('button', { name: 'Import settings and tab data' }),
+    )
+    expect(screen.queryByRole('button', { name: 'Confirm Import' })).toBeNull()
+    expect(importSettings).not.toHaveBeenCalled()
+  })
+
+  it('confirms exactly the reviewed file without reading it again', async () => {
+    const user = userEvent.setup()
+    vi.mocked(importSettings).mockResolvedValue({
+      success: true,
+      message: 'ok',
+    })
+    const readSpy = vi.spyOn(MockFileReader.prototype, 'readAsText')
+    const { container } = render(<ImportExportSettings />)
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
+    fireEvent.change(getHiddenFileInput(container), {
+      target: {
+        files: [
+          new File(['dummy'], 'backup.json', { type: 'application/json' }),
+        ],
+      },
+    })
+    await screen.findByRole('button', { name: 'Confirm Import' })
+    const reviewedContent = readerContent
+    readerContent = 'different unreviewed payload'
     readerMode = 'error'
     await user.click(screen.getByRole('button', { name: 'Confirm Import' }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
-    })
-  })
-
-  it('確定時に FileReader 作成が失敗したら汎用エラーを表示する', async () => {
-    const user = userEvent.setup()
-    const { container } = render(<ImportExportSettings />)
-
-    // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.change(getHiddenFileInput(container), {
-      target: {
-        files: [
-          new File(['dummy'], 'backup.json', { type: 'application/json' }),
-        ],
+    expect(readSpy).toHaveBeenCalledTimes(1)
+    expect(importSettings).toHaveBeenCalledWith(
+      reviewedContent,
+      expect.any(Function),
+      {
+        current,
+        selection: {
+          savedTabs: true,
+          userSettings: true,
+          aiChat: true,
+          analyticsViews: true,
+        },
       },
-    })
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: 'Confirm Import' }),
-      ).toBeTruthy()
-    })
-
-    class ThrowingFileReader {
-      constructor() {
-        throw new Error('reader constructor failed')
-      }
-    }
-    ;(globalThis as Record<string, unknown>).FileReader =
-      ThrowingFileReader as unknown as typeof FileReader
-
-    await user.click(screen.getByRole('button', { name: 'Confirm Import' }))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        'Failed to import settings and tab data',
-      )
-    })
+    )
   })
 
   it('ファイル内容が空のとき読み込みエラーを表示する', async () => {
@@ -1091,7 +1220,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -1112,7 +1241,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -1139,7 +1268,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container, unmount } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -1170,7 +1299,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     const { container, unmount } = render(<ImportExportSettings />)
 
     // user.upload internally calls user.click which fails on hidden inputs (pointer-events: none)
-    // eslint-disable-next-line testing-library/prefer-user-event
+    // eslint-disable-next-line testing-library/prefer-user-event -- the file input is hidden
     fireEvent.change(getHiddenFileInput(container), {
       target: {
         files: [
@@ -1182,6 +1311,6 @@ describe('ImportExportSettingsコンポーネント', () => {
     unmount()
 
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(toast.error).toHaveBeenCalledWith('Failed to read the file')
+    expect(toast.error).not.toHaveBeenCalled()
   })
 })

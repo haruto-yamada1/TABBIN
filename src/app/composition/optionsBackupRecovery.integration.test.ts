@@ -7,6 +7,7 @@ import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure
 import { IndexedDbPersistenceRecoverySnapshotRepository } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceRecoverySnapshotRepository'
 import { IndexedDbPersistenceReplacementAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceReplacementAdapter'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
+import type { PersistenceLogicalSnapshot } from '@/contexts/saved-tabs/public-api'
 import { normalizeAiSystemPromptSettings } from '@/features/ai-chat/lib/systemPromptPresets'
 import { BackupMapper } from '@/features/options/lib/import-export/v2/BackupMapper'
 import { inspectBackupV2 } from '@/features/options/lib/import-export/v2/BackupV2Inspector'
@@ -58,6 +59,7 @@ const createRuntime = (corruptImportedSettings = false) => {
     manager,
     gate,
   )
+  const writeUserSettings = vi.fn(saveUserSettings)
   let nextId = 0
   const runtime = getOptionsBackupRecoveryRuntime({
     changePort: { publish: async () => undefined, subscribe: () => () => {} },
@@ -74,31 +76,95 @@ const createRuntime = (corruptImportedSettings = false) => {
     idGenerator: { generate: () => `settings-recovery-${++nextId}` },
     normalizeUserSettings: normalizeUserSettingsForStorage,
     readUserSettings: readUserSettingsWithoutRepair,
-    writeUserSettings: saveUserSettings,
+    writeUserSettings,
   })
   const reopen = async () => {
     manager.close()
     return snapshotReader.readConsistentSnapshot()
   }
-  return { reopen, replacement, repository, runtime, snapshotReader }
+  return {
+    reopen,
+    replacement,
+    repository,
+    runtime,
+    snapshotReader,
+    writeUserSettings,
+  }
 }
 
-const createInspection = async (settings: UserSettings) => {
+const createInspection = async (
+  settings: UserSettings,
+  snapshot: PersistenceLogicalSnapshot = {
+    analyticsViews: [],
+    conversations: [],
+    messages: [],
+    revision: 0,
+    savedTabs: createHealthyPersistenceV2Snapshot(),
+  },
+) => {
   const envelope = await createExportBackupV2UseCase({
     getAppVersion: () => '2026.10.8',
     now: () => new Date('2026-10-08T00:00:00.000Z'),
     readUserSettings: async () => settings,
     snapshotReader: {
-      readConsistentSnapshot: async () => ({
-        analyticsViews: [],
-        conversations: [],
-        messages: [],
-        revision: 0,
-        savedTabs: createHealthyPersistenceV2Snapshot(),
-      }),
+      readConsistentSnapshot: async () => snapshot,
     },
   })()
   return inspectBackupV2(JSON.stringify(envelope))
+}
+
+const createSelectionSnapshot = (label: string): PersistenceLogicalSnapshot => {
+  const savedTabs = createHealthyPersistenceV2Snapshot()
+  return {
+    analyticsViews: [
+      { id: `view-${label}`, updatedAt: 1, value: { title: label } },
+    ],
+    conversations: [
+      { id: `conversation-${label}`, updatedAt: 1, value: { title: label } },
+    ],
+    messages: [
+      {
+        conversationId: `conversation-${label}`,
+        createdAt: 1,
+        id: `message-${label}`,
+        value: { content: label },
+      },
+    ],
+    revision: 0,
+    savedTabs: {
+      ...savedTabs,
+      urls: savedTabs.urls.map((url) => ({ ...url, title: label })),
+    },
+  }
+}
+
+const withConcurrentSavedTab = (
+  snapshot: PersistenceLogicalSnapshot,
+): PersistenceLogicalSnapshot => {
+  const {
+    urls: [url],
+    memberships: [membership],
+  } = createHealthyPersistenceV2Snapshot()
+  return {
+    ...snapshot,
+    savedTabs: {
+      ...snapshot.savedTabs,
+      urls: [
+        ...snapshot.savedTabs.urls,
+        {
+          ...url,
+          id: 'url-concurrent',
+          normalizedUrl: 'https://alpha.test/concurrent',
+          title: 'Concurrent saved tab',
+          url: 'https://alpha.test/concurrent',
+        },
+      ],
+      memberships: [
+        ...snapshot.savedTabs.memberships,
+        { ...membership, sortOrder: 3072, urlId: 'url-concurrent' },
+      ],
+    },
+  }
 }
 
 const createSettingsForScenario = (scenario: string): UserSettings => {
@@ -155,6 +221,373 @@ describe('Backup V2 with production settings storage', () => {
     resetOptionsBackupRecoveryRuntimeForTesting()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+  })
+
+  it.each(['savedTabs', 'userSettings', 'aiChat', 'analyticsViews'] as const)(
+    'imports only selected %s and preserves the other sections after reopening',
+    async (selectedSection) => {
+      const { reopen, replacement, runtime, writeUserSettings } =
+        createRuntime()
+      await saveUserSettings({ ...defaultSettings, language: 'en' })
+      await replacement.replaceAll(createSelectionSnapshot('current'))
+      const current = await runtime.readImportCurrent()
+      const inspection = await createInspection(
+        { ...defaultSettings, language: 'ja' },
+        createSelectionSnapshot('incoming'),
+      )
+      const selection = {
+        aiChat: selectedSection === 'aiChat',
+        analyticsViews: selectedSection === 'analyticsViews',
+        savedTabs: selectedSection === 'savedTabs',
+        userSettings: selectedSection === 'userSettings',
+      }
+      const expectedData = {
+        analyticsViews: selection.analyticsViews
+          ? inspection.data.analyticsViews
+          : current.data.analyticsViews,
+        conversations: selection.aiChat
+          ? inspection.data.conversations
+          : current.data.conversations,
+        messages: selection.aiChat
+          ? inspection.data.messages
+          : current.data.messages,
+        savedTabs: selection.savedTabs
+          ? inspection.data.savedTabs
+          : current.data.savedTabs,
+        userSettings: selection.userSettings
+          ? normalizeUserSettingsForStorage(inspection.data.userSettings)
+          : current.data.userSettings,
+      }
+
+      await expect(
+        runtime.importBackupV2(inspection, { current, selection }),
+      ).resolves.toMatchObject({ revision: current.revision + 2 })
+      const reopened = await reopen()
+      expect(
+        BackupMapper.toBackupData(
+          reopened,
+          await readUserSettingsWithoutRepair(),
+        ),
+      ).toStrictEqual(
+        BackupMapper.toBackupData(
+          BackupMapper.toLogicalSnapshot(
+            { ...expectedData, userSettings: current.data.userSettings },
+            reopened.revision,
+          ),
+          expectedData.userSettings,
+        ),
+      )
+      expect(writeUserSettings).toHaveBeenCalledTimes(
+        selection.userSettings ? 1 : 0,
+      )
+      expect(await runtime.listRecoverySnapshots()).toHaveLength(1)
+    },
+  )
+
+  it.each(['revision', 'settings'] as const)(
+    'rejects a preview after %s changes without capturing recovery or overwriting data',
+    async (changedSection) => {
+      const { reopen, replacement, runtime, writeUserSettings } =
+        createRuntime()
+      await saveUserSettings(defaultSettings)
+      await replacement.replaceAll(createSelectionSnapshot('current'))
+      const current = await runtime.readImportCurrent()
+      const inspection = await createInspection(
+        { ...defaultSettings, language: 'ja' },
+        createSelectionSnapshot('incoming'),
+      )
+      if (changedSection === 'revision') {
+        await replacement.replaceAll(createSelectionSnapshot('concurrent'))
+      } else {
+        await saveUserSettings({ ...defaultSettings, confirmDeleteAll: true })
+      }
+      const concurrent = await runtime.readImportCurrent()
+
+      await expect(
+        runtime.importBackupV2(inspection, {
+          current,
+          selection: {
+            aiChat: true,
+            analyticsViews: true,
+            savedTabs: true,
+            userSettings: true,
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'IMPORT_PREVIEW_STALE' })
+
+      expect((await reopen()).revision).toBe(concurrent.revision)
+      expect(await runtime.readImportCurrent()).toStrictEqual(concurrent)
+      expect(await runtime.listRecoverySnapshots()).toEqual([])
+      expect(writeUserSettings).not.toHaveBeenCalled()
+    },
+  )
+
+  it('keeps a concurrent change after recovery capture when replacement CAS fails', async () => {
+    const { reopen, replacement, repository, runtime, writeUserSettings } =
+      createRuntime()
+    await saveUserSettings(defaultSettings)
+    await replacement.replaceAll(createSelectionSnapshot('current'))
+    const current = await runtime.readImportCurrent()
+    const inspection = await createInspection(
+      { ...defaultSettings, language: 'ja' },
+      createSelectionSnapshot('incoming'),
+    )
+    const saveRecovery = repository.saveWithRetention.bind(repository)
+    const concurrent = createSelectionSnapshot('concurrent')
+    vi.spyOn(repository, 'saveWithRetention').mockImplementationOnce(
+      async (...args) => {
+        const saved = await saveRecovery(...args)
+        await replacement.replaceAll(concurrent, {
+          expectedRevision: saved.revision,
+        })
+        return saved
+      },
+    )
+
+    await expect(
+      runtime.importBackupV2(inspection, {
+        current,
+        selection: {
+          aiChat: true,
+          analyticsViews: true,
+          savedTabs: true,
+          userSettings: true,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'IMPORT_PREVIEW_STALE' })
+
+    const expectedConcurrent = BackupMapper.toLogicalSnapshot(
+      BackupMapper.toBackupData(concurrent, current.data.userSettings),
+      current.revision + 2,
+    )
+    expect(await reopen()).toStrictEqual(expectedConcurrent)
+    expect((await runtime.readImportCurrent()).data.userSettings).toStrictEqual(
+      current.data.userSettings,
+    )
+    expect(writeUserSettings).not.toHaveBeenCalled()
+    expect(await runtime.listRecoverySnapshots()).toHaveLength(1)
+  })
+
+  it.each([
+    'success',
+    'replacement failure',
+    'readback failure',
+    'recovery readback failure',
+  ] as const)(
+    'preserves unselected settings changed during replacement on %s',
+    async (outcome) => {
+      const {
+        reopen,
+        replacement,
+        runtime,
+        snapshotReader,
+        writeUserSettings,
+      } = createRuntime()
+      await saveUserSettings(defaultSettings)
+      await replacement.replaceAll(createSelectionSnapshot('current'))
+      const current = await runtime.readImportCurrent()
+      const inspection = await createInspection(
+        { ...defaultSettings, language: 'ja' },
+        createSelectionSnapshot('incoming'),
+      )
+      const concurrentSettings = normalizeUserSettingsForStorage({
+        ...defaultSettings,
+        confirmDeleteAll: !defaultSettings.confirmDeleteAll,
+      })
+      const replace = replacement.replaceAll.bind(replacement)
+      const readSnapshot =
+        snapshotReader.readConsistentSnapshot.bind(snapshotReader)
+      let failReadback = false
+      let replacementCalls = 0
+      vi.spyOn(replacement, 'replaceAll').mockImplementation(
+        async (...args) => {
+          replacementCalls += 1
+          if (replacementCalls === 1 && outcome === 'replacement failure') {
+            await saveUserSettings(concurrentSettings)
+            throw new Error('Simulated atomic replacement failure')
+          }
+          const result = await replace(...args)
+          if (replacementCalls === 1) {
+            await saveUserSettings(concurrentSettings)
+            failReadback =
+              outcome === 'readback failure' ||
+              outcome === 'recovery readback failure'
+          } else if (
+            replacementCalls === 2 &&
+            outcome === 'recovery readback failure'
+          ) {
+            failReadback = true
+          }
+          return result
+        },
+      )
+      vi.spyOn(snapshotReader, 'readConsistentSnapshot').mockImplementation(
+        async () => {
+          if (failReadback) {
+            failReadback = false
+            throw new Error('Simulated readback failure')
+          }
+          return readSnapshot()
+        },
+      )
+
+      const importing = runtime.importBackupV2(inspection, {
+        current,
+        selection: {
+          aiChat: false,
+          analyticsViews: false,
+          savedTabs: true,
+          userSettings: false,
+        },
+      })
+      const result = await importing.then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      )
+      const expectedErrors = {
+        'replacement failure': 'PERSISTENCE_REPLACEMENT_FAILED',
+        'readback failure': 'READBACK_FAILED',
+        'recovery readback failure': 'RECOVERY_RESTORE_FAILED',
+      }
+      expect(result).toMatchObject(
+        outcome === 'success'
+          ? { value: { revision: current.revision + 2 } }
+          : { error: { code: expectedErrors[outcome] } },
+      )
+
+      const reopened = await reopen()
+      expect(
+        BackupMapper.toBackupData(reopened, concurrentSettings).savedTabs,
+      ).toStrictEqual(
+        outcome === 'success' || outcome === 'recovery readback failure'
+          ? inspection.data.savedTabs
+          : current.data.savedTabs,
+      )
+      expect(await readUserSettingsWithoutRepair()).toStrictEqual(
+        concurrentSettings,
+      )
+      expect(writeUserSettings).not.toHaveBeenCalled()
+      expect(await runtime.listRecoverySnapshots()).toHaveLength(1)
+    },
+  )
+
+  it('keeps a saved tab added after a settings-only import commits and reports the concurrent change', async () => {
+    const { reopen, replacement, runtime, writeUserSettings } = createRuntime()
+    await saveUserSettings(defaultSettings)
+    await replacement.replaceAll(createSelectionSnapshot('current'))
+    const current = await runtime.readImportCurrent()
+    const inspection = await createInspection(
+      { ...defaultSettings, language: 'ja' },
+      createSelectionSnapshot('incoming'),
+    )
+    const concurrent = withConcurrentSavedTab(
+      BackupMapper.toLogicalSnapshot(current.data, current.revision),
+    )
+    writeUserSettings.mockImplementationOnce(async (settings) => {
+      await saveUserSettings(settings)
+      await replacement.replaceAll(concurrent)
+    })
+
+    await expect(
+      runtime.importBackupV2(inspection, {
+        current,
+        selection: {
+          aiChat: false,
+          analyticsViews: false,
+          savedTabs: false,
+          userSettings: true,
+        },
+      }),
+    ).resolves.toMatchObject({ concurrentChange: true })
+
+    const reopened = await reopen()
+    expect(
+      BackupMapper.toBackupData(reopened, defaultSettings).savedTabs,
+    ).toStrictEqual(
+      BackupMapper.toBackupData(concurrent, defaultSettings).savedTabs,
+    )
+    expect((await readUserSettingsWithoutRepair()).language).toBe('ja')
+    expect(writeUserSettings).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not roll back a concurrent saved tab when selected settings fail to write', async () => {
+    const { reopen, replacement, runtime, writeUserSettings } = createRuntime()
+    await saveUserSettings(defaultSettings)
+    await replacement.replaceAll(createSelectionSnapshot('current'))
+    const current = await runtime.readImportCurrent()
+    const inspection = await createInspection(
+      { ...defaultSettings, language: 'ja' },
+      createSelectionSnapshot('incoming'),
+    )
+    const concurrent = withConcurrentSavedTab(
+      BackupMapper.toLogicalSnapshot(current.data, current.revision),
+    )
+    writeUserSettings.mockImplementationOnce(async () => {
+      await replacement.replaceAll(concurrent)
+      throw new Error('Simulated settings write failure after concurrent save')
+    })
+
+    await expect(
+      runtime.importBackupV2(inspection, {
+        current,
+        selection: {
+          aiChat: false,
+          analyticsViews: false,
+          savedTabs: false,
+          userSettings: true,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'RECOVERY_RESTORE_FAILED' })
+
+    const reopened = await reopen()
+    expect(
+      BackupMapper.toBackupData(reopened, defaultSettings).savedTabs,
+    ).toStrictEqual(
+      BackupMapper.toBackupData(concurrent, defaultSettings).savedTabs,
+    )
+    expect((await readUserSettingsWithoutRepair()).language).toBe(
+      defaultSettings.language,
+    )
+    expect(writeUserSettings).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects a selected-settings mismatch after a concurrent save without overwriting the saved tab', async () => {
+    const { reopen, replacement, runtime, writeUserSettings } =
+      createRuntime(true)
+    await saveUserSettings(defaultSettings)
+    await replacement.replaceAll(createSelectionSnapshot('current'))
+    const current = await runtime.readImportCurrent()
+    const inspection = await createInspection(
+      { ...defaultSettings, language: 'ja' },
+      createSelectionSnapshot('incoming'),
+    )
+    const concurrent = withConcurrentSavedTab(
+      BackupMapper.toLogicalSnapshot(current.data, current.revision),
+    )
+    writeUserSettings.mockImplementationOnce(async (settings) => {
+      await saveUserSettings(settings)
+      await replacement.replaceAll(concurrent)
+    })
+
+    await expect(
+      runtime.importBackupV2(inspection, {
+        current,
+        selection: {
+          aiChat: false,
+          analyticsViews: false,
+          savedTabs: false,
+          userSettings: true,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'RECOVERY_RESTORE_FAILED' })
+
+    const reopened = await reopen()
+    expect(
+      BackupMapper.toBackupData(reopened, defaultSettings).savedTabs,
+    ).toStrictEqual(
+      BackupMapper.toBackupData(concurrent, defaultSettings).savedTabs,
+    )
+    expect(writeUserSettings).toHaveBeenCalledTimes(1)
   })
 
   it.each([

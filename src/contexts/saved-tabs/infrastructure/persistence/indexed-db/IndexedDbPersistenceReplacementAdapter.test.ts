@@ -225,6 +225,76 @@ afterEach(() => {
 })
 
 describe('IndexedDbPersistenceReplacementAdapter', () => {
+  it.each([6, 8])(
+    'rejects expected revision %s without changing any store or revision',
+    async (expectedRevision) => {
+      const operationGate = createReadyPersistenceOperationGateStub()
+      const manager = new IndexedDbConnectionManager({
+        databaseName: `backup-replacement-stale-${expectedRevision}`,
+        indexedDb: new IDBFactory(),
+      })
+      const oldTarget = createTarget('old')
+      await seedDatabase(manager, oldTarget)
+      const adapter = new IndexedDbPersistenceReplacementAdapter(
+        manager,
+        operationGate,
+      )
+
+      await expect(
+        adapter.replaceAll(createTarget('next'), { expectedRevision }),
+      ).rejects.toMatchObject({ code: 'REVISION_CONFLICT' })
+
+      manager.close()
+      const database = await manager.open()
+      await expect(
+        new IndexedDbPersistenceSnapshotReader(
+          manager,
+          operationGate,
+        ).readConsistentSnapshot(),
+      ).resolves.toEqual({ ...oldTarget, revision: 7 })
+      await expect(
+        readRecord(
+          database,
+          PERSISTENCE_STORE_NAMES.metadata,
+          'migration-state',
+        ),
+      ).resolves.toEqual({ key: 'migration-state', value: 'preserve' })
+      await expect(
+        readRecord(
+          database,
+          PERSISTENCE_STORE_NAMES.recoverySnapshots,
+          'recovery-1',
+        ),
+      ).resolves.toMatchObject({ id: 'recovery-1', value: { revision: 7 } })
+      manager.close()
+    },
+  )
+
+  it('commits the whole replacement when the expected revision matches', async () => {
+    const operationGate = createReadyPersistenceOperationGateStub()
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'backup-replacement-matched-revision',
+      indexedDb: new IDBFactory(),
+    })
+    const nextTarget = createTarget('next')
+    await seedDatabase(manager, createTarget('old'))
+    await expect(
+      new IndexedDbPersistenceReplacementAdapter(
+        manager,
+        operationGate,
+      ).replaceAll(nextTarget, { expectedRevision: 7 }),
+    ).resolves.toEqual({ revision: 8 })
+
+    manager.close()
+    await expect(
+      new IndexedDbPersistenceSnapshotReader(
+        manager,
+        operationGate,
+      ).readConsistentSnapshot(),
+    ).resolves.toEqual({ ...nextTarget, revision: 8 })
+    manager.close()
+  })
+
   it('8 logical storeを1 strict transactionで全置換しrevisionだけ更新する', async () => {
     const { operationGate, runIndexedDbWrite } = createOperationGateSpy()
     const manager = new IndexedDbConnectionManager({

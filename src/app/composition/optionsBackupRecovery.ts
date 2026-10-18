@@ -18,6 +18,8 @@ import type {
   PersistenceRecoverySnapshotSummary,
   PersistenceV2ReplacementPort,
 } from '@/contexts/saved-tabs/public-api'
+import { BackupMapper } from '@/features/options/lib/import-export/v2/BackupMapper'
+import type { BackupImportCurrent } from '@/features/options/lib/import-export/v2/BackupV2ImportDiff'
 import { createImportBackupV2UseCase } from '@/features/options/lib/import-export/v2/ImportBackupV2UseCase'
 import type {
   ImportBackupV2UseCase,
@@ -38,6 +40,7 @@ import {
 
 export type OptionsBackupRecoveryRuntime = {
   readonly importBackupV2: ImportBackupV2UseCase
+  readonly readImportCurrent: () => Promise<BackupImportCurrent>
   readonly listRecoverySnapshots: () => Promise<
     readonly PersistenceRecoverySnapshotSummary[]
   >
@@ -193,8 +196,15 @@ const createRuntime = (
     readUserSettings: deps.readUserSettings,
     recovery: {
       captureBeforeOverwrite: recoveryService.captureBeforeOverwrite,
-      restore: async (recoveryId) => {
-        await recoveryService.restore(getRecoverySnapshotId(recoveryId))
+      restore: async (recoveryId, options) => {
+        if (options) {
+          await recoveryService.restore(
+            getRecoverySnapshotId(recoveryId),
+            options,
+          )
+        } else {
+          await recoveryService.restore(getRecoverySnapshotId(recoveryId))
+        }
       },
     },
     replacement,
@@ -207,6 +217,15 @@ const createRuntime = (
       connectionManager.close()
     },
     importBackupV2,
+    readImportCurrent: async () => {
+      await deps.getBootstrap().ready()
+      const snapshot = await snapshotReader.readConsistentSnapshot()
+      const settings = deps.normalizeUserSettings(await deps.readUserSettings())
+      return {
+        data: BackupMapper.toBackupData(snapshot, settings),
+        revision: snapshot.revision,
+      }
+    },
     listRecoverySnapshots: async () => {
       const bootstrap = deps.getBootstrap()
       await bootstrap.ready()
@@ -228,7 +247,8 @@ export const getOptionsBackupRecoveryRuntime = (
 
 export const importBackupV2WithRecovery: ImportBackupV2UseCase = async (
   inspection,
-) => getOptionsBackupRecoveryRuntime().importBackupV2(inspection)
+  options,
+) => getOptionsBackupRecoveryRuntime().importBackupV2(inspection, options)
 
 export const listBackupRecoverySnapshots = async (): Promise<
   readonly PersistenceRecoverySnapshotSummary[]
@@ -243,3 +263,6 @@ export const resetOptionsBackupRecoveryRuntimeForTesting = (): void => {
   runtime?.close()
   runtime = undefined
 }
+
+export const readBackupImportCurrent = async (): Promise<BackupImportCurrent> =>
+  getOptionsBackupRecoveryRuntime().readImportCurrent()
