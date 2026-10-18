@@ -311,7 +311,7 @@ const useSavedTabsAppView = ({
   const filteredCustomProjects = useFilteredCustomProjects(
     savedTabsUseCases,
     customProjects,
-    searchQuery,
+    viewMode === 'custom' ? searchQuery : '',
   )
 
   // 表示判定・表示用整形は `createCategorizedDisplayState` へ移設（issue #504）。
