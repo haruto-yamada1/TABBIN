@@ -992,6 +992,45 @@ describe('SavedTabsApp custom search', () => {
     ).toStrictEqual(['group-b', 'group-c'])
   })
 
+  it('Domain 検索は非表示の Custom URL を読み直さず、切替後に現在の検索語を適用する', async () => {
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef.current = 'domain'
+    const user = userEvent.setup()
+    const { rerender } = render(<SavedTabsApp />)
+    const read = repositoryFixtures.current.repositories.data.read
+    const initialReads = vi.mocked(read).mock.calls.length
+
+    await user.type(screen.getByLabelText('search'), 'docker-cmd')
+
+    expect(screen.getByLabelText('search')).toHaveValue('docker-cmd')
+    expect(vi.mocked(read).mock.calls).toHaveLength(initialReads)
+
+    const pendingRead = Promise.withResolvers<undefined>()
+    const originalRead = vi.mocked(read).getMockImplementation()
+    assert.isDefined(originalRead)
+    vi.mocked(read).mockImplementation(async (keys) => {
+      await pendingRead.promise
+      return originalRead(keys)
+    })
+    mocked.projectState.viewMode = 'custom'
+    mocked.projectState.viewModeRef.current = 'custom'
+    rerender(<SavedTabsApp />)
+    expect(screen.queryByText('project:Reading List')).toBeNull()
+    expect(screen.queryByText('project:Videos')).toBeNull()
+    expect(screen.queryByText('project:Work')).toBeNull()
+    await act(async () => {
+      pendingRead.resolve(undefined)
+      await pendingRead.promise
+    })
+    await waitFor(() => {
+      expect(screen.getByText('project:Work')).toBeTruthy()
+      expect(screen.queryByText('project:Reading List')).toBeNull()
+      expect(screen.queryByText('project:Videos')).toBeNull()
+    })
+    expect(screen.getByLabelText('search')).toHaveValue('docker-cmd')
+    expect(vi.mocked(read).mock.calls.length).toBeGreaterThan(initialReads)
+  })
+
   it('プロジェクト名一致で対象プロジェクトだけを表示する', async () => {
     const user = userEvent.setup()
     render(<SavedTabsApp />)
