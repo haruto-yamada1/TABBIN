@@ -13,6 +13,7 @@ scratch = Path(tempfile.mkdtemp(prefix="tabbin-native-search-"))
 
 
 def replace_once(source, old, new):
+    """Replace a unique source marker, rejecting lifecycle recipe drift."""
     if source.count(old) != 1:
         raise RuntimeError(f"Native recipe source changed: expected one {old!r}")
     return source.replace(old, new, 1)

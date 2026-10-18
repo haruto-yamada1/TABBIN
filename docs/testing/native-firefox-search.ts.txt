@@ -205,7 +205,10 @@ try {
       )
     }
 } finally {
-  if (session) await deleteSession(session)
-  driver.kill('SIGTERM')
-  await rm(root, { recursive: true, force: true })
+  try {
+    if (session) await deleteSession(session)
+  } finally {
+    driver.kill('SIGTERM')
+    await rm(root, { recursive: true, force: true })
+  }
 }
