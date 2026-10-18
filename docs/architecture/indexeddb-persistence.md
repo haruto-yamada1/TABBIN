@@ -221,8 +221,9 @@ URLs or silently repairs broken relations.
 
 ## Query projections and N+1 policy
 
-UI and feature code consume `PersistenceV2QueryPort`, not object stores. The
-IndexedDB query adapter reads the five saved-tabs stores as one snapshot, builds
+UI and feature code consume application queries/use cases, not object stores.
+`IndexedDbSavedTabsQueryAdapter` implements `PersistenceV2QueryPort` and reads
+the five saved-tabs stores as one snapshot, builds
 URL/category/collection maps once, groups Memberships once, and creates:
 
 - Saved Tabs initial-load projections;
@@ -233,6 +234,18 @@ URL/category/collection maps once, groups Memberships once, and creates:
 
 It never performs one URL request per Membership. Missing relations are typed
 integrity failures, not UI-generated fallback records.
+
+The native Saved Tabs page uses `createIndexedDbSavedTabsUseCases` and its
+session-backed repositories. Each public operation reads one verified snapshot;
+page projection groups categories and memberships once per repository read and
+shares one URL map across domain collections. Project URL resolution reads URL
+records once per operation instead of materializing the entire URL repository
+for every membership. Joins are scoped to each invocation, so later mutations
+in the same session cannot reuse stale indexes. The session's clone/diff and
+revision CAS, record decoding, and blocking integrity checks remain in force.
+
+The [Issue #901 read audit](../testing/indexeddb-read-audit.md) records the actual
+list/search/category paths, index decisions, and native-browser measurements.
 
 ## Scale fixtures and migration decision
 
