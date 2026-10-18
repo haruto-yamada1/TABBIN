@@ -1,4 +1,9 @@
-export { downloadAsJson, getImportPreview, importSettings } from './flows'
+export {
+  downloadAsJson,
+  getImportPreview,
+  importSettings,
+  prepareImportPreview,
+} from './flows'
 export type {
   ImportPreview,
   ImportPreviewResult,

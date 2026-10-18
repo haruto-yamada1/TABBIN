@@ -12,6 +12,8 @@ import type {
 import type { UserSettings } from '@/types/storage'
 
 import { BackupMapper } from './BackupMapper'
+import { selectBackupImportData } from './BackupV2ImportDiff'
+import type { BackupImportOptions } from './BackupV2ImportDiff'
 import type {
   BackupPreviewEntityCounts,
   BackupV2Inspection,
@@ -32,6 +34,8 @@ export type BackupV2ImportErrorCode =
   | 'BACKUP_INTEGRITY_FAILED'
   | 'BACKUP_RESOURCE_REJECTED'
   | 'INVALID_BACKUP'
+  | 'IMPORT_PREVIEW_STALE'
+  | 'IMPORT_SELECTION_EMPTY'
   | 'OVERWRITE_RECOVERY_UNAVAILABLE'
   | 'PERSISTENCE_REPLACEMENT_FAILED'
   | 'READBACK_FAILED'
@@ -44,6 +48,8 @@ const BACKUP_V2_IMPORT_ERROR_MESSAGES = {
   BACKUP_INTEGRITY_FAILED: 'The backup failed the persistence integrity check.',
   BACKUP_RESOURCE_REJECTED: 'The backup exceeds an import resource limit.',
   INVALID_BACKUP: 'The backup does not match Backup V2.',
+  IMPORT_PREVIEW_STALE: 'Current data changed. Review a new import preview.',
+  IMPORT_SELECTION_EMPTY: 'Select at least one section to restore.',
   OVERWRITE_RECOVERY_UNAVAILABLE:
     'Overwrite import requires a recovery snapshot capability.',
   PERSISTENCE_REPLACEMENT_FAILED: 'The atomic persistence replacement failed.',
@@ -67,7 +73,13 @@ export class BackupV2ImportError extends Error {
 
 export type OverwriteRecoveryCapability = {
   readonly captureBeforeOverwrite: () => Promise<unknown>
-  readonly restore: (recoveryId: unknown) => Promise<void>
+  readonly restore: (
+    recoveryId: unknown,
+    options?: {
+      readonly preserveSettings?: boolean
+      readonly expectedRevision?: number
+    },
+  ) => Promise<void>
 }
 
 export type ImportBackupV2UseCaseDeps = {
@@ -85,6 +97,7 @@ export type ImportBackupV2UseCaseDeps = {
 }
 
 export type ImportBackupV2Result = {
+  readonly concurrentChange?: true
   readonly notification: RecoverySnapshotNotificationOutcome
   readonly entityCounts: BackupPreviewEntityCounts
   readonly revision: number
@@ -92,6 +105,7 @@ export type ImportBackupV2Result = {
 
 export type ImportBackupV2UseCase = (
   inspection: BackupV2Inspection,
+  options?: BackupImportOptions,
 ) => Promise<ImportBackupV2Result>
 
 const textEncoder = new TextEncoder()
@@ -163,13 +177,153 @@ const restoreAndThrow = async (
   recovery: OverwriteRecoveryCapability,
   recoveryId: unknown,
   failureCode: BackupV2ImportErrorCode,
+  options: {
+    readonly preserveSettings: boolean
+    readonly expectedRevision: number | undefined
+  },
 ): Promise<never> => {
   try {
-    await recovery.restore(recoveryId)
+    if (options.preserveSettings || options.expectedRevision !== undefined) {
+      await recovery.restore(recoveryId, {
+        preserveSettings: options.preserveSettings,
+        ...(options.expectedRevision === undefined
+          ? {}
+          : { expectedRevision: options.expectedRevision }),
+      })
+    } else {
+      await recovery.restore(recoveryId)
+    }
   } catch {
     throw new BackupV2ImportError('RECOVERY_RESTORE_FAILED')
   }
   throw new BackupV2ImportError(failureCode)
+}
+
+const isRevisionConflict = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  error.code === 'REVISION_CONFLICT'
+
+const assertImportPreviewCurrent = async (
+  deps: ImportBackupV2UseCaseDeps,
+  options: BackupImportOptions,
+): Promise<void> => {
+  const [currentSnapshot, currentSettings] = await Promise.all([
+    deps.snapshotReader.readConsistentSnapshot(),
+    deps.readUserSettings(),
+  ])
+  const currentData = BackupMapper.toBackupData(
+    currentSnapshot,
+    deps.normalizeUserSettings(currentSettings),
+  )
+  if (
+    currentSnapshot.revision !== options.current.revision ||
+    JSON.stringify(currentData) !== JSON.stringify(options.current.data)
+  ) {
+    throw new BackupV2ImportError('IMPORT_PREVIEW_STALE')
+  }
+}
+
+const getConfirmedReplacementRevision = async (
+  deps: ImportBackupV2UseCaseDeps,
+  options: BackupImportOptions,
+  recoveryId: unknown,
+): Promise<number> => {
+  if (
+    typeof recoveryId !== 'object' ||
+    recoveryId === null ||
+    !('revision' in recoveryId) ||
+    typeof recoveryId.revision !== 'number'
+  ) {
+    throw new BackupV2ImportError('RECOVERY_CAPTURE_FAILED')
+  }
+  const settings = deps.normalizeUserSettings(await deps.readUserSettings())
+  const canonicalSettings = BackupMapper.toBackupData(
+    BackupMapper.toLogicalSnapshot(options.current.data, 0),
+    settings,
+  ).userSettings
+  if (
+    recoveryId.revision !== options.current.revision + 1 ||
+    JSON.stringify(canonicalSettings) !==
+      JSON.stringify(options.current.data.userSettings)
+  ) {
+    throw new BackupV2ImportError('IMPORT_PREVIEW_STALE')
+  }
+  return recoveryId.revision
+}
+
+const prepareRequestedBackup = (
+  inspection: BackupV2Inspection,
+  normalizeUserSettings: ImportBackupV2UseCaseDeps['normalizeUserSettings'],
+  options?: BackupImportOptions,
+) => {
+  const incomingEnvelope = reconstructEnvelope(inspection)
+  assertPreflight(incomingEnvelope)
+  if (options && !Object.values(options.selection).some(Boolean)) {
+    throw new BackupV2ImportError('IMPORT_SELECTION_EMPTY')
+  }
+  const envelope = options
+    ? {
+        ...incomingEnvelope,
+        data: selectBackupImportData(
+          options.current.data,
+          incomingEnvelope.data,
+          options.selection,
+        ),
+      }
+    : incomingEnvelope
+  const requestedSnapshot = assertPreflight(envelope)
+  let requestedData: BackupDataV2
+  try {
+    requestedData = BackupMapper.toBackupData(
+      requestedSnapshot,
+      normalizeUserSettings(envelope.data.userSettings),
+    )
+  } catch {
+    throw new BackupV2ImportError('INVALID_BACKUP')
+  }
+  assertPreflight({ ...envelope, data: requestedData })
+  return { requestedData, requestedSnapshot }
+}
+
+const writeSelectedSettings = async (
+  deps: ImportBackupV2UseCaseDeps,
+  requestedData: BackupDataV2,
+  options?: BackupImportOptions,
+): Promise<void> => {
+  if (!options || options.selection.userSettings) {
+    await deps.writeUserSettings(requestedData.userSettings)
+  }
+}
+
+const matchesImportedData = (
+  requested: BackupDataV2,
+  snapshot: PersistenceLogicalSnapshot,
+  settings: UserSettings,
+  verification: {
+    readonly revision: number
+    readonly preserveSettings: boolean
+  },
+): boolean => {
+  try {
+    const actual = BackupMapper.toBackupData(
+      snapshot,
+      verification.preserveSettings ? requested.userSettings : settings,
+    )
+    return (
+      !hasBlockingPersistenceIntegrityIssues(
+        checkPersistenceIntegrity(snapshot.savedTabs),
+      ) &&
+      JSON.stringify(actual.userSettings) ===
+        JSON.stringify(requested.userSettings) &&
+      (snapshot.revision > verification.revision ||
+        (snapshot.revision === verification.revision &&
+          JSON.stringify(actual) === JSON.stringify(requested)))
+    )
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -178,29 +332,28 @@ const restoreAndThrow = async (
  * IndexedDB logical data is replaced atomically by `replacement`. Chrome-owned
  * settings are necessarily written afterward through a separate storage engine,
  * so this use case intentionally makes no cross-engine atomicity claim. Any
- * failure after recovery capture requests restoration, but a settings backend
- * could still have applied a partial write before reporting failure.
+ * failure after replacement requests revision-guarded restoration. A later
+ * IndexedDB commit is preserved, and unselected settings are never restored.
+ * A settings backend could still apply a partial write before reporting failure.
  */
 export const createImportBackupV2UseCase = (
   deps: ImportBackupV2UseCaseDeps,
 ): ImportBackupV2UseCase => {
-  return async (inspection) => {
-    const envelope = reconstructEnvelope(inspection)
-    const requestedSnapshot = assertPreflight(envelope)
-    let requestedData: BackupDataV2
-    try {
-      requestedData = BackupMapper.toBackupData(
-        requestedSnapshot,
-        deps.normalizeUserSettings(envelope.data.userSettings),
-      )
-    } catch {
-      throw new BackupV2ImportError('INVALID_BACKUP')
-    }
-    assertPreflight({ ...envelope, data: requestedData })
+  return async (inspection, options) => {
+    const preserveSettings = options?.selection.userSettings === false
+    const { requestedData, requestedSnapshot } = prepareRequestedBackup(
+      inspection,
+      deps.normalizeUserSettings,
+      options,
+    )
     const recovery = deps.recovery
 
     if (recovery === undefined) {
       throw new BackupV2ImportError('OVERWRITE_RECOVERY_UNAVAILABLE')
+    }
+
+    if (options) {
+      await assertImportPreviewCurrent(deps, options)
     }
 
     let recoveryId: unknown
@@ -210,23 +363,43 @@ export const createImportBackupV2UseCase = (
       throw new BackupV2ImportError('RECOVERY_CAPTURE_FAILED')
     }
 
+    const expectedRevision = options
+      ? await getConfirmedReplacementRevision(deps, options, recoveryId)
+      : undefined
+
     let replacementResult: { readonly revision: number }
     try {
-      replacementResult = await deps.replacement.replaceAll(
-        createReplacementTarget(requestedSnapshot),
-      )
-    } catch {
+      const target = createReplacementTarget(requestedSnapshot)
+      replacementResult =
+        expectedRevision === undefined
+          ? await deps.replacement.replaceAll(target)
+          : await deps.replacement.replaceAll(target, { expectedRevision })
+    } catch (error) {
+      if (isRevisionConflict(error)) {
+        // The transaction aborted before any write. Restoring would erase another context's change.
+        throw new BackupV2ImportError('IMPORT_PREVIEW_STALE')
+      }
       return restoreAndThrow(
         recovery,
         recoveryId,
         'PERSISTENCE_REPLACEMENT_FAILED',
+        { preserveSettings, expectedRevision },
       )
     }
 
+    const recoveryOptions = {
+      preserveSettings,
+      expectedRevision: options ? replacementResult.revision : undefined,
+    }
     try {
-      await deps.writeUserSettings(requestedData.userSettings)
+      await writeSelectedSettings(deps, requestedData, options)
     } catch {
-      return restoreAndThrow(recovery, recoveryId, 'SETTINGS_WRITE_FAILED')
+      return restoreAndThrow(
+        recovery,
+        recoveryId,
+        'SETTINGS_WRITE_FAILED',
+        recoveryOptions,
+      )
     }
 
     let readbackSnapshot: PersistenceLogicalSnapshot
@@ -235,27 +408,28 @@ export const createImportBackupV2UseCase = (
       readbackSnapshot = await deps.snapshotReader.readConsistentSnapshot()
       readbackSettings = await deps.readUserSettings()
     } catch {
-      return restoreAndThrow(recovery, recoveryId, 'READBACK_FAILED')
-    }
-
-    let readbackData: BackupDataV2
-    try {
-      readbackData = BackupMapper.toBackupData(
-        readbackSnapshot,
-        readbackSettings,
+      return restoreAndThrow(
+        recovery,
+        recoveryId,
+        'READBACK_FAILED',
+        recoveryOptions,
       )
-    } catch {
-      return restoreAndThrow(recovery, recoveryId, 'READBACK_MISMATCH')
     }
 
+    const concurrentChange =
+      readbackSnapshot.revision > replacementResult.revision
     if (
-      readbackSnapshot.revision !== replacementResult.revision ||
-      hasBlockingPersistenceIntegrityIssues(
-        checkPersistenceIntegrity(readbackSnapshot.savedTabs),
-      ) ||
-      JSON.stringify(readbackData) !== JSON.stringify(requestedData)
+      !matchesImportedData(requestedData, readbackSnapshot, readbackSettings, {
+        revision: replacementResult.revision,
+        preserveSettings,
+      })
     ) {
-      return restoreAndThrow(recovery, recoveryId, 'READBACK_MISMATCH')
+      return restoreAndThrow(
+        recovery,
+        recoveryId,
+        'READBACK_MISMATCH',
+        recoveryOptions,
+      )
     }
 
     const notification = await publishPostCommitNotification({
@@ -265,6 +439,7 @@ export const createImportBackupV2UseCase = (
       scopes: RESTORE_CHANGE_SCOPES,
     })
     return {
+      ...(concurrentChange ? { concurrentChange: true as const } : {}),
       notification,
       entityCounts: createEntityCounts(requestedData),
       revision: replacementResult.revision,

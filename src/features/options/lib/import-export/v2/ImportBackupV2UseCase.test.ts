@@ -271,6 +271,41 @@ const expectNoImportSideEffects = (
 }
 
 describe('createImportBackupV2UseCase', () => {
+  it('rejects a stale confirmed preview before recovery capture or writes', async () => {
+    const events: string[] = []
+    const deps = createDeps(events)
+    await expect(
+      createImportBackupV2UseCase(deps)(createInspection(), {
+        current: { data: createInspection().data, revision: 76 },
+        selection: {
+          savedTabs: true,
+          userSettings: true,
+          aiChat: true,
+          analyticsViews: true,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'IMPORT_PREVIEW_STALE' })
+    expect(deps.recovery?.captureBeforeOverwrite).not.toHaveBeenCalled()
+    expect(deps.replacement.replaceAll).not.toHaveBeenCalled()
+  })
+
+  it('rejects an empty restore selection without mutations', async () => {
+    const events: string[] = []
+    const deps = createDeps(events)
+    await expect(
+      createImportBackupV2UseCase(deps)(createInspection(), {
+        current: { data: createInspection().data, revision: 77 },
+        selection: {
+          savedTabs: false,
+          userSettings: false,
+          aiChat: false,
+          analyticsViews: false,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'IMPORT_SELECTION_EMPTY' })
+    expectNoImportSideEffects(deps, events)
+  })
+
   it('publishes only metadata after verified import; notification failure never restores committed data', async () => {
     const events: string[] = []
     let eventsAtPublication: string[] = []

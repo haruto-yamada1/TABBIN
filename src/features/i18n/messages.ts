@@ -1,10 +1,12 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
+import { backupImportMessages } from './backupImportMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
 import { urlOpeningMessages } from './urlOpeningMessages'
 
 const messages = {
   en: {
+    ...backupImportMessages.en,
     ...analyticsHealthMessages.en,
     ...urlOpeningMessages.en,
     ...organizationActionMessages.en,
@@ -523,12 +525,12 @@ const messages = {
     'options.importExport.recoveryRestoring': 'Restoring...',
     'options.importExport.recoveryTitle': 'Recovery point available',
     'options.importExport.replaceDescription':
-      'Importing will overwrite all current settings and tab data. This cannot be undone.',
+      'Only selected sections will be replaced. Review additions, updates and deletions before confirming. A recovery point is saved before import.',
     'options.importExport.replaceLabel': 'Warning',
     'options.importExport.replaceSuccess':
-      'Replaced settings and tab data (version: {{version}}, created at: {{timestamp}}){{unresolved}}',
+      'Restored selected data (version: {{version}}, created at: {{timestamp}}){{unresolved}}',
     'options.importExport.replaceWarning':
-      'Importing will overwrite all current settings and tab data. This cannot be undone.',
+      'Only selected sections will be replaced. Review additions, updates and deletions before confirming. A recovery point is saved before import.',
     'options.importExport.scopeDescription':
       'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
     'options.importExport.scopeTitle': 'Backup scope',
@@ -920,6 +922,7 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...backupImportMessages.ja,
     ...analyticsHealthMessages.ja,
     ...urlOpeningMessages.ja,
     ...organizationActionMessages.ja,
@@ -1434,12 +1437,12 @@ const messages = {
     'options.importExport.recoveryRestoring': '復元中...',
     'options.importExport.recoveryTitle': '回復ポイントがあります',
     'options.importExport.replaceDescription':
-      'インポートすると現在の設定とタブデータがすべて上書きされます。この操作は元に戻せません。',
+      '選択したデータを置き換えます。追加・更新・削除を確認してから実行してください。実行前のデータは回復ポイントに保存されます。',
     'options.importExport.replaceLabel': '警告',
     'options.importExport.replaceSuccess':
-      '設定とタブデータを置き換えました（バージョン: {{version}}、作成日時: {{timestamp}}）{{unresolved}}',
+      '選択したデータを復元しました（バージョン: {{version}}、作成日時: {{timestamp}}）{{unresolved}}',
     'options.importExport.replaceWarning':
-      'インポートすると現在の設定とタブデータがすべて上書きされます。この操作は元に戻せません。',
+      '選択したデータを置き換えます。追加・更新・削除を確認してから実行してください。実行前のデータは回復ポイントに保存されます。',
     'options.importExport.scopeDescription':
       'バックアップには、保存済みURL、カテゴリ、カスタムプロジェクト、分析データ、AIチャット履歴、AI設定が含まれます。',
     'options.importExport.scopeTitle': 'バックアップ対象',
