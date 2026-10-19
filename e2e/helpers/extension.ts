@@ -16,7 +16,9 @@ type ExtensionFixtures = {
   page: Page
 }
 
-const extensionPath = path.join(process.cwd(), '.output', 'chrome-mv3')
+const extensionPath =
+  process.env.TABBIN_E2E_EXTENSION_PATH ??
+  path.join(process.cwd(), '.output', 'chrome-mv3')
 
 export const test = base.extend<ExtensionFixtures>({
   extensionContext: async ({ browserName }, runFixture) => {

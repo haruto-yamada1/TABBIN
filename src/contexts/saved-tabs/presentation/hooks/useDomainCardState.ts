@@ -41,8 +41,7 @@ type UseDomainCardStateParams = {
   categoryAssignmentPort?: CategoryAssignmentPort
   /**
    * 保存タブページ全体 query (issue #510)。
-   * 親カテゴリ読み込み (`parentCategoryRepository.findAll` 直叩き)
-   * を 1 つの query に集約する。
+   * カテゴリ順序を保存するときに最新のタブグループを取得する。
    */
   getSavedTabsPageDataQuery?: GetSavedTabsPageDataQuery
   /**
@@ -553,33 +552,9 @@ export const useDomainCardState = ({
     [group.id, handleDeleteUrls, deleteSingleUrl],
   )
 
-  // --- 親カテゴリ読み込み ---
-  useEffect(() => {
-    let cancelled = false
-    const loadParentCategories = async () => {
-      if (!getSavedTabsPageDataQuery) {
-        return
-      }
-      try {
-        const fromQuery = (
-          await getSavedTabsPageDataQuery()
-        ).parentCategories.map(toStorageParentCategory)
-        if (cancelled) {
-          return
-        }
-        setParentCategories(fromQuery)
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-        console.error('親カテゴリの読み込みに失敗しました:', error)
-      }
-    }
-    void loadParentCategories()
-    return () => {
-      cancelled = true
-    }
-  }, [getSavedTabsPageDataQuery])
+  // 親カテゴリは CategoryKeywordModal が開いたときに読み取り、
+  // handleUpdateParentCategories で同期する。各カードの初期表示では
+  // モーダル専用データのためにページ全体の query を繰り返さない。
 
   // --- 親カテゴリ作成ハンドラ ---
   const handleCreateParentCategory = useCallback(
