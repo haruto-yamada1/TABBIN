@@ -501,3 +501,27 @@ describe('useCustomProjectCard grouped target lifecycle', () => {
     expect(handlers.handleReorderUrls).not.toHaveBeenCalled()
   })
 })
+
+it('日時ソート表示中はURLの保存済み手動順を変更しない', async () => {
+  const handleReorderUrls = vi.fn()
+  const getProjectUrlsUseCase = vi
+    .fn<GetProjectUrlsUseCase>()
+    .mockResolvedValue(urls)
+  const { result } = renderHook(() =>
+    useCustomProjectCard({
+      project,
+      getProjectUrlsUseCase,
+      handleReorderUrls,
+      allowUrlReorder: false,
+      handleDeleteUrl: vi.fn(),
+      handleSetUrlCategory: vi.fn(),
+      handleUpdateCategoryOrder: vi.fn(),
+    }),
+  )
+  await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+  await act(async () => {
+    await result.current.dnd.handleUrlDragEnd(createUrlDrag(), false)
+  })
+  expect(handleReorderUrls).not.toHaveBeenCalled()
+  expect(result.current.urls.projectUrls).toEqual(urls)
+})

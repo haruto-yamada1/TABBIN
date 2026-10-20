@@ -21,6 +21,7 @@ writing the former Chrome Storage keys.
 - `customProjects`
 - `parentCategories`
 - `userSettings`
+- `savedTabsSort:<scope>:<encoded-id>`
 - `reviewReminderSettings`
 - `reviewReminderNotification`
 - `reviewReminderAlarmTimeZone`
@@ -72,11 +73,22 @@ This device-local state is outside the Backup V2 domain/settings envelope.
 The scheduled alarm stores its timezone so a worker restart after a device
 timezone change recalculates the next local review time.
 
+Saved-tabs display sort preferences use one `savedTabsSort:<scope>:<encoded-id>`
+Chrome Storage key per category, domain card, or custom project card. Each write
+replaces only that preference and never reads or rewrites domain data or
+`userSettings`. These device-local preferences are outside Backup V2 and recovery
+snapshots, so import and recovery preserve them. Only matching local Chrome
+Storage events synchronize the preference across pages; no domain revision or
+post-commit notification is involved. Missing, deleted, and invalid values use
+the default display order. Preferences persist across reloads, including explicit
+returns to the default order; preferences for absent IDs remain inert.
+
 | ID                        | Storage key                                          | Category            | Context            | Entry point                        | Mutation boundary                                                                                                                                                                                        | Read keys                     | Write keys                             | RMW | Queue/lock                 | Cache              | Capacity policy                     | Readiness / recovery gate                    | Change notification                   | v2 target                   |
 | ------------------------- | ---------------------------------------------------- | ------------------- | ------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | -------------------------------------- | --- | -------------------------- | ------------------ | ----------------------------------- | -------------------------------------------- | ------------------------------------- | --------------------------- |
 | UI-THEME                  | tab-manager-theme                                    | ui sync             | page               | ThemeProvider.setTheme             | `src/components/ThemeProvider.tsx`                                                                                                                                                                       | theme key                     | theme key                              | No  | None                       | UI state           | None                                | Settings independent                         | None                                  | Chrome UI                   |
 | UI-COLOR-RESET            | tab-manager-theme                                    | ui sync             | options            | useColorSettings.handleResetColors | `src/features/options/hooks/useColorSettings.ts`                                                                                                                                                         | userSettings                  | theme key                              | No  | None                       | React state        | None                                | Settings independent                         | Settings event                        | Chrome UI                   |
 | UI-ROUTE-CLEANUP          | viewMode                                             | cleanup             | app                | AppRouter bootstrap                | `src/features/navigation/app/AppRouter.tsx`                                                                                                                                                              | None                          | remove viewMode                        | No  | None                       | URL route          | None                                | Settings independent                         | None                                  | No domain storage           |
+| UI-SAVED-TABS-SORT        | savedTabsSort:<scope>:<encoded-id>                   | ui sync             | saved-tabs page    | sort preference port               | `src/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSortPreferencesAdapter.ts`                                                                                                                | One scoped preference         | One scoped preference                  | No  | Single-key write           | UI state           | One enum per scope/ID               | Settings independent                         | Chrome onChanged                      | Chrome UI preference        |
 | RELEASE-CONTROL           | seenVersion / changelogShown                         | background listener | background         | install / update                   | `src/entrypoints/background.ts`                                                                                                                                                                          | release state                 | release state                          | Yes | Background flow            | None               | None                                | Settings independent                         | None                                  | Chrome release UI           |
 | SETTINGS-REPAIR           | userSettings                                         | normalize-on-read   | page/background    | getUserSettings                    | `src/lib/storage/settings.ts`                                                                                                                                                                            | userSettings                  | userSettings                           | Yes | Module queue               | Settings           | None                                | Settings independent                         | Chrome onChanged                      | Chrome settings             |
 | SETTINGS-SAVE             | userSettings                                         | explicit mutation   | page/background    | saveUserSettings                   | `src/lib/storage/settings.ts`                                                                                                                                                                            | userSettings                  | userSettings                           | Yes | Module queue               | Settings           | None                                | Settings independent                         | Chrome onChanged                      | Chrome settings             |
@@ -104,6 +116,7 @@ Replacement and recovery snapshot writers have separate transactions.
 - `src/app/composition/aiConversationHistoryDataPlane.ts`
 - `src/components/ThemeProvider.tsx`
 - `src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts`
+- `src/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSortPreferencesAdapter.ts`
 - `src/contexts/saved-tabs/infrastructure/persistence/chrome-storage/ChromeUserSettingsRepository.ts`
 - `src/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceRecoverySnapshotRepository.ts`
 - `src/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceReplacementAdapter.ts`

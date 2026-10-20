@@ -85,8 +85,12 @@ export const useCategoryGroupState = ({
   const {
     sortOrder,
     setSortOrder,
+    isPending: isSortPending,
     sortedItems: sortedDomains,
-  } = useSortOrder(localDomains, (d) => d.domain)
+  } = useSortOrder(localDomains, (d) => d.domain, {
+    scope: 'category',
+    id: category.id,
+  })
 
   // --- カテゴリ名更新ハンドラ ---
   const handleCategoryUpdate = useCallback(
@@ -347,6 +351,7 @@ export const useCategoryGroupState = ({
     },
     /** ソート関連 */
     sort: {
+      isSortPending,
       setSortOrder,
       sortOrder,
       sortedDomains,

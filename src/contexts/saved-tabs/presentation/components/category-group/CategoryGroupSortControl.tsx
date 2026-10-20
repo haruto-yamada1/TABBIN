@@ -9,6 +9,7 @@ export const CategoryGroupSortControl = () => {
 
   return (
     <CardSortControl
+      disabled={sort.isSortPending || state.reorder.isReorderMode}
       sortOrder={sort.sortOrder}
       setSortOrder={sort.setSortOrder}
       targetName={category.name}

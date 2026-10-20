@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import type { CSSProperties } from 'react'
 
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
@@ -150,7 +151,13 @@ export const DomainCardRoot = ({
         data-testid='domain-scroll-target'
         data-urls-count={group.urls?.length ?? 0}
       >
-        {children}
+        <UrlReorderAvailabilityContext
+          value={
+            state.sort.sortOrder === 'default' && !state.sort.isSortPending
+          }
+        >
+          {children}
+        </UrlReorderAvailabilityContext>
       </div>
     </DomainCardContext>
   )

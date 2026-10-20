@@ -386,6 +386,30 @@ and the `storage` permission stays required.
 Backup V2 contains the logical IndexedDB model and the supported settings
 projection. It does not duplicate old Chrome Storage domain representations.
 
+### Saved-tabs display sort preferences (#916)
+
+`chrome.storage.local` owns `savedTabsSort:<scope>:<encoded-id>`. The scopes are
+`category` (domain names within a parent category), `domain` (saved timestamps
+within a Domain card), and `project` (saved timestamps within a Custom card).
+Each card retains its own `default` / `asc` / `desc` choice. A missing or invalid
+value uses `default`; mounting or reading a card does not write a setting.
+Only an explicit user change writes the selected card key. Other open saved-tabs
+pages receive the key through `chrome.storage.onChanged`. A failed save restores
+the last confirmed selection and reports the failure.
+
+These device-local preferences are outside Backup V2 and recovery snapshots,
+like the theme preference. Export omits them, and import or recovery preserves
+the device's existing choices. Imported cards with new IDs use `default`.
+Preferences persist until overwritten or extension-local data is cleared;
+deleting a card does not reuse its ID or migrate its preference to another card.
+
+Sorting is a display projection and never rewrites collection, category, or
+membership order. Returning to `default` restores that persisted manual order.
+A category's explicit manual reorder mode displays its temporary manual order
+and disables its sort control. During a date-sorted URL projection, internal URL
+dragging and URL reorder writes are disabled; switching to `default` enables them.
+No permission, IndexedDB schema, or Backup V2 migration is needed.
+
 ## Incognito data boundary
 
 TABBIN does not support incognito/private-browsing persistence. Domain data and

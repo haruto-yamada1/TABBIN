@@ -18,6 +18,7 @@ import { useCategoryDnD } from './useCategoryDnD'
 
 /** UseCustomProjectCard フックの引数 */
 type UseCustomProjectCardParams = {
+  allowUrlReorder?: boolean
   /** プロジェクトデータ */
   project: CustomProject
   /** URL削除ハンドラ */
@@ -183,6 +184,7 @@ const handleProcessedUrlDrop = async (params: {
   over: DragEndEvent['over']
   event: DragEndEvent
   isUncategorizedOver: boolean
+  allowUrlReorder: boolean
   projectUrls: ProjectUrlItem[]
   handleSetUrlCategory: (
     projectId: string,
@@ -236,6 +238,10 @@ const handleProcessedUrlDrop = async (params: {
     projectUrls,
   })
   if (urlToUrlDropResult.kind === 'reordered') {
+    if (!params.allowUrlReorder) {
+      clearDragState()
+      return
+    }
     await handleReorderUrls(projectId, urlToUrlDropResult.reorderedUrls)
     setProjectUrls(urlToUrlDropResult.reorderedUrls)
     toast.success(getMessage(language, 'savedTabs.tab.orderUpdated'))
@@ -340,6 +346,7 @@ const noopGetProjectUrls: GetProjectUrlsUseCase = async () => {
 }
 
 export const useCustomProjectCard = ({
+  allowUrlReorder = true,
   project,
   handleSetUrlCategory,
   handleUpdateCategoryOrder,
@@ -438,6 +445,7 @@ export const useCustomProjectCard = ({
         await handleProcessedUrlDrop({
           // eslint-disable-next-line typescript/no-unsafe-assignment
           actualUrl,
+          allowUrlReorder,
           clearDragState,
           // eslint-disable-next-line typescript/no-unsafe-assignment
           dragSourceCategory,
@@ -460,6 +468,7 @@ export const useCustomProjectCard = ({
     [
       project.id,
       projectUrls,
+      allowUrlReorder,
       handleSetUrlCategory,
       handleReorderUrls,
       setActiveId,

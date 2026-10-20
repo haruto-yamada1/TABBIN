@@ -62,6 +62,7 @@ const CURRENT_WRITER_IDS = [
   'UI-THEME',
   'UI-COLOR-RESET',
   'UI-ROUTE-CLEANUP',
+  'UI-SAVED-TABS-SORT',
   'RELEASE-CONTROL',
   'SETTINGS-REPAIR',
   'SETTINGS-SAVE',
@@ -237,34 +238,30 @@ describe('verifyStorageWriterInventory', () => {
 
   test.each([
     'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
-  ])(
-    'discovers and maps the real repository alias writer %s',
-    (relativePath) => {
-      const sourceCode = readFileSync(
-        path.join(process.cwd(), relativePath),
+    'src/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSortPreferencesAdapter.ts',
+  ])('discovers and maps the real storage writer %s', (relativePath) => {
+    const sourceCode = readFileSync(
+      path.join(process.cwd(), relativePath),
+      'utf8',
+    )
+    const inventory = parseStorageWriterInventory(
+      readFileSync(
+        path.join(
+          process.cwd(),
+          'docs/architecture/current-storage-writer-inventory.md',
+        ),
         'utf8',
-      )
-      const inventory = parseStorageWriterInventory(
-        readFileSync(
-          path.join(
-            process.cwd(),
-            'docs/architecture/current-storage-writer-inventory.md',
-          ),
-          'utf8',
-        ),
-      )
+      ),
+    )
 
-      expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(
-        true,
-      )
-      expect(
-        inventory.writerTable.rows.some((row) =>
-          row.fileReferences.has(relativePath),
-        ),
-      ).toBe(true)
-      expect(inventory.mutationFiles.has(relativePath)).toBe(true)
-    },
-  )
+    expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(true)
+    expect(
+      inventory.writerTable.rows.some((row) =>
+        row.fileReferences.has(relativePath),
+      ),
+    ).toBe(true)
+    expect(inventory.mutationFiles.has(relativePath)).toBe(true)
+  })
 
   test('does not classify the app repository composition as a writer after settings-port separation', () => {
     const relativePath = 'src/app/composition/createSavedTabsUseCases.ts'
@@ -319,7 +316,7 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 17 rows, found 16')
+    ).toThrow('Writer ID baseline mismatch: expected 18 rows, found 17')
   })
 
   test.each([

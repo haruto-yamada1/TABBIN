@@ -6,6 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import { getProjectUrlSortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
@@ -91,6 +92,7 @@ const ProjectUrlItemComponent = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
+  const canReorderUrls = useUrlReorderAvailable()
 
   // ドラッグアンドドロップの設定を強化
   const {
@@ -102,6 +104,7 @@ const ProjectUrlItemComponent = ({
     transition,
     isDragging,
   } = useSortable({
+    disabled: !canReorderUrls,
     data: {
       type: 'url',
       name: item.title || originalUrl,
