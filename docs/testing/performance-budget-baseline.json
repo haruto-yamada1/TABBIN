@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "e9c14f6d9447884388abeb78d248656b7fb8bdc1",
+  "environment": {
+    "platform": "darwin-arm64",
+    "browserVersion": "153.0.8010.12",
+    "nodeVersion": "v24.17.0",
+    "bunVersion": "1.3.14"
+  },
+  "sampleCount": 42,
+  "repeatCount": 3,
+  "cases": [
+    {
+      "id": "initial/1000/domain",
+      "scenario": "initial",
+      "size": 1000,
+      "mode": "domain",
+      "count": 3,
+      "durationMs": {
+        "median": 1857.3000000044703,
+        "p95": 1875.199999988079
+      },
+      "work": {
+        "readonlyTransactions": 12,
+        "sessionCalls": 12,
+        "pageQueries": 2,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "initial/1000/custom",
+      "scenario": "initial",
+      "size": 1000,
+      "mode": "custom",
+      "count": 3,
+      "durationMs": {
+        "median": 2424.7999999970198,
+        "p95": 2556.9000000059605
+      },
+      "work": {
+        "readonlyTransactions": 37,
+        "sessionCalls": 37,
+        "pageQueries": 2,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "initial/10000/domain",
+      "scenario": "initial",
+      "size": 10000,
+      "mode": "domain",
+      "count": 3,
+      "durationMs": {
+        "median": 12234.70000000298,
+        "p95": 12684.90000000596
+      },
+      "work": {
+        "readonlyTransactions": 12,
+        "sessionCalls": 12,
+        "pageQueries": 2,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "initial/10000/custom",
+      "scenario": "initial",
+      "size": 10000,
+      "mode": "custom",
+      "count": 3,
+      "durationMs": {
+        "median": 21607,
+        "p95": 22708.20000000298
+      },
+      "work": {
+        "readonlyTransactions": 37,
+        "sessionCalls": 37,
+        "pageQueries": 2,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "search/1000/domain",
+      "scenario": "search",
+      "size": 1000,
+      "mode": "domain",
+      "count": 3,
+      "durationMs": {
+        "median": 59.70000000298023,
+        "p95": 61.3999999910593
+      },
+      "work": {
+        "readonlyTransactions": 0
+      }
+    },
+    {
+      "id": "search/1000/custom",
+      "scenario": "search",
+      "size": 1000,
+      "mode": "custom",
+      "count": 3,
+      "durationMs": {
+        "median": 170.29999999701977,
+        "p95": 170.70000000298023
+      },
+      "work": {
+        "readonlyTransactions": 6
+      }
+    },
+    {
+      "id": "search/10000/domain",
+      "scenario": "search",
+      "size": 10000,
+      "mode": "domain",
+      "count": 3,
+      "durationMs": {
+        "median": 60.099999994039536,
+        "p95": 64.79999999701977
+      },
+      "work": {
+        "readonlyTransactions": 0
+      }
+    },
+    {
+      "id": "search/10000/custom",
+      "scenario": "search",
+      "size": 10000,
+      "mode": "custom",
+      "count": 3,
+      "durationMs": {
+        "median": 1261.2999999970198,
+        "p95": 1326
+      },
+      "work": {
+        "readonlyTransactions": 6
+      }
+    },
+    {
+      "id": "category-switch/1000/domain",
+      "scenario": "category-switch",
+      "size": 1000,
+      "mode": "domain",
+      "count": 3,
+      "durationMs": {
+        "median": 785.3999999985099,
+        "p95": 787.5
+      },
+      "work": {
+        "readonlyTransactions": 0,
+        "sessionCalls": 0,
+        "pageQueries": 0,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "category-switch/1000/custom",
+      "scenario": "category-switch",
+      "size": 1000,
+      "mode": "custom",
+      "count": 3,
+      "durationMs": {
+        "median": 1547.6000000089407,
+        "p95": 1553.1999999955297
+      },
+      "work": {
+        "readonlyTransactions": 0,
+        "sessionCalls": 0,
+        "pageQueries": 0,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "category-switch/10000/domain",
+      "scenario": "category-switch",
+      "size": 10000,
+      "mode": "domain",
+      "count": 3,
+      "durationMs": {
+        "median": 1609.3999999910593,
+        "p95": 1615.5
+      },
+      "work": {
+        "readonlyTransactions": 0,
+        "sessionCalls": 0,
+        "pageQueries": 0,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "category-switch/10000/custom",
+      "scenario": "category-switch",
+      "size": 10000,
+      "mode": "custom",
+      "count": 3,
+      "durationMs": {
+        "median": 1627,
+        "p95": 1639.0999999940395
+      },
+      "work": {
+        "readonlyTransactions": 0,
+        "sessionCalls": 0,
+        "pageQueries": 0,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "bulk-open/1000/backgroundTabs",
+      "scenario": "bulk-open",
+      "size": 1000,
+      "mode": "backgroundTabs",
+      "count": 3,
+      "durationMs": {
+        "median": 1047.1000000089407,
+        "p95": 1048
+      },
+      "work": {
+        "peakPendingCreates": 5,
+        "createdTabs": 1000,
+        "opened": 1000,
+        "failed": 0,
+        "remaining": 1000,
+        "pendingOperations": 0
+      }
+    },
+    {
+      "id": "bulk-open/10000/backgroundTabs",
+      "scenario": "bulk-open",
+      "size": 10000,
+      "mode": "backgroundTabs",
+      "count": 3,
+      "durationMs": {
+        "median": 10123.89999999106,
+        "p95": 10158.70000000298
+      },
+      "work": {
+        "peakPendingCreates": 5,
+        "createdTabs": 10000,
+        "opened": 10000,
+        "failed": 0,
+        "remaining": 10000,
+        "pendingOperations": 0
+      }
+    }
+  ],
+  "failures": [],
+  "comparison": {
+    "duration": {
+      "status": "unavailable",
+      "reason": "No baseline supplied.",
+      "cases": []
+    },
+    "work": []
+  }
+}

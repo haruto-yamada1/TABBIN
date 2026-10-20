@@ -124,7 +124,12 @@ declare global {
       beginOperation: (kind: string) => () => void
       recordReactCommit: (commit: ReactCommit) => void
       measure: (
-        operation: 'initial' | 'scroll' | 'collapse' | 'expand',
+        operation:
+          | 'initial'
+          | 'scroll'
+          | 'collapse'
+          | 'expand'
+          | 'category-switch',
         expected: string[],
         mode: 'domain' | 'custom',
         expectedCards: number,
@@ -133,7 +138,7 @@ declare global {
   }
 }
 
-const installRenderingProbe = async (page: Page) => {
+export const installRenderingProbe = async (page: Page) => {
   await page.addInitScript((selector: string) => {
     const commits: ReactCommit[] = []
     let readonlyTransactions = 0
@@ -221,6 +226,36 @@ const installRenderingProbe = async (page: Page) => {
       }
       return profilers
     }
+    const navigateCategory = async (mode: 'domain' | 'custom') => {
+      const pane = document.querySelector(
+        '[data-testid="saved-tabs-left-pane"]',
+      )
+      const label =
+        mode === 'domain'
+          ? 'Scroll to next parent category'
+          : 'Scroll to next project'
+      const button = document.querySelector(`button[aria-label="${label}"]`)
+      if (
+        !(pane instanceof HTMLElement) ||
+        !(button instanceof HTMLButtonElement) ||
+        button.disabled
+      ) {
+        throw new Error('Category navigation is unavailable')
+      }
+      // Native scrollend completes the real smooth-scroll handler, including
+      // layout changes from content-visibility as the next section appears.
+      const ended = new Promise<void>((resolve) => {
+        pane.addEventListener(
+          'scrollend',
+          () => {
+            resolve()
+          },
+          { once: true },
+        )
+      })
+      button.click()
+      await ended
+    }
     window.tabbinRenderingProbe = {
       beginOperation(kind) {
         const counts = operations[kind] ?? { started: 0, completed: 0 }
@@ -240,11 +275,17 @@ const installRenderingProbe = async (page: Page) => {
         const expected = nextExpected.toSorted()
         const initial = operation === 'initial'
         const startedAt = initial ? 0 : performance.now()
-        const initialReads = initial ? 0 : readonlyTransactions
-        const initialCommits = initial ? 0 : commits.length
-        const initialOperations: typeof operations = initial
-          ? {}
-          : structuredClone(operations)
+        const baseline: {
+          reads: number
+          commits: number
+          operations: typeof operations
+        } = initial
+          ? { reads: 0, commits: 0, operations: {} }
+          : {
+              reads: readonlyTransactions,
+              commits: commits.length,
+              operations: structuredClone(operations),
+            }
         const stepsMs: number[] = []
         if (operation === 'scroll') {
           const pane = document.querySelector(
@@ -263,6 +304,9 @@ const installRenderingProbe = async (page: Page) => {
             await paintOpportunity()
             stepsMs.push(performance.now() - stepStart)
           }
+        }
+        if (operation === 'category-switch') {
+          await navigateCategory(mode)
         }
         if (operation === 'collapse' || operation === 'expand') {
           const kind = mode === 'domain' ? 'domain' : 'project'
@@ -289,11 +333,11 @@ const installRenderingProbe = async (page: Page) => {
           }
         }
         const domComplete = await settle(expected)
-        const events = commits.slice(initialCommits)
+        const events = commits.slice(baseline.commits)
         return {
           durationMs: performance.now() - startedAt,
           domCompleteMs: domComplete - startedAt,
-          readonlyTransactions: readonlyTransactions - initialReads,
+          readonlyTransactions: readonlyTransactions - baseline.reads,
           domElements: document.querySelectorAll('*').length,
           renderedUrls: document.querySelectorAll(selector).length,
           reactCommits: new Set(
@@ -306,9 +350,10 @@ const installRenderingProbe = async (page: Page) => {
               kind,
               {
                 started:
-                  counts.started - (initialOperations[kind]?.started ?? 0),
+                  counts.started - (baseline.operations[kind]?.started ?? 0),
                 completed:
-                  counts.completed - (initialOperations[kind]?.completed ?? 0),
+                  counts.completed -
+                  (baseline.operations[kind]?.completed ?? 0),
                 pendingAtCompletion: counts.started - counts.completed,
               },
             ]),

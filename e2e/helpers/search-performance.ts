@@ -427,4 +427,5 @@ export const benchmarkSavedTabsSearch = async (
     path: outputPath,
     contentType: 'application/json',
   })
+  return samples
 }
