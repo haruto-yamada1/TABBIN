@@ -36,8 +36,14 @@ export const SortableCategorySection = ({
   handleDeleteAllTabs?: (urls: { url: string }[]) => void // 新しいプロップの型定義
 }) => {
   const { t } = useI18n()
-  const { attributes, listeners, setNodeRef, isDragging, style } =
-    useSortableCategoryDrag(id)
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    isDragging,
+    style,
+  } = useSortableCategoryDrag(id)
 
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false)
@@ -130,6 +136,7 @@ export const SortableCategorySection = ({
           <div
             className={`flex grow items-center ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
             data-testid='draggable-category-handle'
+            ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
             aria-label={t('savedTabs.category.dragHandleAria', undefined, {

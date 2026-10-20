@@ -15,6 +15,7 @@ import { useMemo } from 'react'
 
 import { CardContent } from '@/components/ui/card'
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
+import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
 
 import { useCategoryGroup } from './CategoryGroupContext'
 
@@ -24,6 +25,7 @@ import { useCategoryGroup } from './CategoryGroupContext'
  * 折りたたみ時は何も表示しない
  */
 export const CategoryGroupContent = () => {
+  const accessibility = useDndAccessibility('confirm')
   const {
     state,
     category,
@@ -58,9 +60,11 @@ export const CategoryGroupContent = () => {
   return (
     <CardContent>
       <DndContext
+        accessibility={accessibility}
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={reorder.handleDragStart}
+        onDragCancel={reorder.handleDragCancel}
         onDragEnd={reorder.handleDragEnd}
       >
         <SortableContext

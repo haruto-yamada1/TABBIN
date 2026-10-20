@@ -1,3 +1,4 @@
+import type { DragStartEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -186,10 +187,13 @@ const persistCategoryOrder = async ({
     } catch (error) {
       if (!signal?.aborted) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
+        if (!signal) {
+          throw error
+        }
       }
     }
   })
-  saveQueue.current = pending
+  saveQueue.current = pending.catch(() => undefined)
   await pending
 }
 
@@ -205,8 +209,8 @@ const useDomainCardCollapse = (isReorderMode: boolean) => {
       onDragEnd: () => {
         setIsDraggingGlobal(false)
       },
-      onDragStart: () => {
-        setIsDraggingGlobal(true)
+      onDragStart: (event?: Pick<DragStartEvent, 'activatorEvent'>) => {
+        setIsDraggingGlobal(event?.activatorEvent.type !== 'keydown')
       },
     }),
     [],
@@ -351,7 +355,6 @@ export const useDomainCardState = ({
 
   const handleUpdateCategoryOrder = useCallback(
     async (updatedOrder: string[], updatedAllOrder: string[]) => {
-      setAllCategoryIds(updatedAllOrder)
       await persistCategoryOrder({
         saveQueue: categoryOrderSaveQueue,
         categoryAssignmentPort,
@@ -466,12 +469,16 @@ export const useDomainCardState = ({
     const updatedCategoryOrder = tempCategoryOrder.filter(
       (id) => id !== '__uncategorized' && subCategories.has(id),
     )
-    await handleUpdateCategoryOrder(updatedCategoryOrder, tempCategoryOrder)
-    setAllCategoryIds(tempCategoryOrder)
-    setIsCategoryReorderMode(false)
-    setOriginalCategoryOrder([])
-    setTempCategoryOrder([])
-    toast.success(t('savedTabs.subCategory.reorderUpdated'))
+    try {
+      await handleUpdateCategoryOrder(updatedCategoryOrder, tempCategoryOrder)
+      setAllCategoryIds(tempCategoryOrder)
+      setIsCategoryReorderMode(false)
+      setOriginalCategoryOrder([])
+      setTempCategoryOrder([])
+      toast.success(t('savedTabs.subCategory.reorderUpdated'))
+    } catch {
+      toast.error(t('savedTabs.dnd.saveError'))
+    }
   }, [
     isCategoryReorderMode,
     tempCategoryOrder,

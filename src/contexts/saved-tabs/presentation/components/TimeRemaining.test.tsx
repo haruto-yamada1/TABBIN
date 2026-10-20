@@ -61,7 +61,17 @@ vi.mock('./SortableUrlItem', () => ({
   ),
 }))
 
+import { toast } from 'sonner'
+
 import { CategorySection } from './TimeRemaining'
+
+vi.mock('@/features/i18n/context/I18nProvider', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}))
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}))
 
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
@@ -176,6 +186,8 @@ describe('CategorySection', () => {
       ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
     })
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
   })
 
   it('overがない場合と同一IDドロップでは並び替えを実行しない', () => {

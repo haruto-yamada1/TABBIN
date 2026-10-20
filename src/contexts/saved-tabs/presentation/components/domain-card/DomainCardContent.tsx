@@ -17,6 +17,7 @@ import { CardContent } from '@/components/ui/card'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { SortableCategorySection } from '@/contexts/saved-tabs/presentation/components/SortableCategorySection'
 import { CategorySection } from '@/contexts/saved-tabs/presentation/components/TimeRemaining'
+import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
 import type {
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
@@ -34,7 +35,10 @@ type CategorySectionItemProps = {
   groupId: string
   handleDeleteUrl: (groupId: string, url: string) => void
   handleOpenTab: (url: string) => void
-  handleUpdateUrls: (groupId: string, updatedUrls: TabGroup['urls']) => void
+  handleUpdateUrls: (
+    groupId: string,
+    updatedUrls: TabGroup['urls'],
+  ) => void | Promise<void>
   handleOpenAllTabs: (urls: { url: string; title: string }[]) => void
   handleDeleteAllTabsInCategory: (
     categoryName: string,
@@ -92,6 +96,7 @@ const CategorySectionItem = ({
  * 折りたたみ時は何も表示しない
  */
 export const DomainCardContent = () => {
+  const accessibility = useDndAccessibility('confirm')
   const { t } = useI18n()
   const {
     state,
@@ -158,6 +163,7 @@ export const DomainCardContent = () => {
   return (
     <CardContent className='gap-y-1'>
       <DndContext
+        accessibility={accessibility}
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={categoryReorder.handleCategoryDragEnd}

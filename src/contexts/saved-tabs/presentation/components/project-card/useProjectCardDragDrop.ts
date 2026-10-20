@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 
 import { useDragHandlers } from '@/contexts/saved-tabs/presentation/components/DragHandlersContext'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import type { ProjectCardContextType } from './ProjectCardContext'
 
@@ -13,9 +14,11 @@ export const useProjectCardDragDrop = (
   project: ProjectCardContextType['project'],
   dnd: ProjectCardContextType['hookState']['dnd'],
 ) => {
+  const { t } = useI18n()
   // プロジェクト全体をドラッグ可能にするためのsortable設定
   const {
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -47,6 +50,7 @@ export const useProjectCardDragDrop = (
   const { setNodeRef: setProjectDroppableRef, isOver: isProjectOver } =
     useDroppable({
       data: {
+        name: project.name,
         projectId: project.id,
         type: 'project',
       },
@@ -58,6 +62,7 @@ export const useProjectCardDragDrop = (
     isOver: isProjectHeaderOver,
   } = useDroppable({
     data: {
+      name: project.name,
       projectId: project.id,
       type: 'project-header',
     },
@@ -68,6 +73,7 @@ export const useProjectCardDragDrop = (
   const { setNodeRef: setUncategorizedDropRef, isOver: isUncategorizedOver } =
     useDroppable({
       data: {
+        name: t('savedTabs.projectCard.uncategorizedTitle'),
         isDropArea: true,
         projectId: project.id,
         type: 'uncategorized',
@@ -101,6 +107,7 @@ export const useProjectCardDragDrop = (
   }, [project.id, registerHandlers, unregisterHandlers, dnd])
 
   return {
+    setActivatorNodeRef,
     attributes,
     listeners,
     style,

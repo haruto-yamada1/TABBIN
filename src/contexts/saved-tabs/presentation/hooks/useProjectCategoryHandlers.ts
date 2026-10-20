@@ -181,6 +181,7 @@ const useProjectCategoryHandlers = ({
       } catch (error) {
         console.error('URL分類エラー:', error)
         toast.error(t('savedTabs.tab.moveError'))
+        throw error
       }
     },
     [
@@ -213,6 +214,7 @@ const useProjectCategoryHandlers = ({
       } catch (error) {
         console.error('カテゴリ順序更新エラー:', error)
         toast.error(t('savedTabs.projectCategory.orderUpdateError'))
+        throw error
       }
     },
     [refs.updateCustomProjectCategoryOrderUseCaseRef, setCustomProjects, t],
@@ -257,6 +259,7 @@ const useProjectCategoryHandlers = ({
       } catch (error) {
         console.error('URL順序更新エラー:', error)
         toast.error(t('savedTabs.tab.orderUpdateError'))
+        throw error
       }
     },
     [refs.reorderCustomProjectUrlsUseCaseRef, setCustomProjects, t],

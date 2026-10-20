@@ -1,5 +1,6 @@
 import type { DragEndEvent } from '@dnd-kit/core'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
+import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type {
@@ -81,9 +82,10 @@ const renderProjectHook = (
 ) => {
   const handlers = {
     handleDeleteUrl: vi.fn(),
-    handleSetUrlCategory: vi.fn(),
-    handleUpdateCategoryOrder: vi.fn(),
-    handleReorderUrls: vi.fn(),
+    handleSetUrlCategory: vi.fn<(...args: unknown[]) => void | Promise<void>>(),
+    handleUpdateCategoryOrder:
+      vi.fn<(...args: unknown[]) => void | Promise<void>>(),
+    handleReorderUrls: vi.fn<(...args: unknown[]) => void | Promise<void>>(),
   }
   return {
     ...renderHook(
@@ -179,7 +181,9 @@ describe('useCustomProjectCard resolved target lifecycle', () => {
       vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(urls),
     )
     await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
-    act(() => result.current.dnd.handleUrlDragEnd(createUrlDrag(), false))
+    await act(async () => {
+      await result.current.dnd.handleUrlDragEnd(createUrlDrag(), false)
+    })
     expect(result.current.urls.isLoadingUrls).toBe(false)
     expect(result.current.urls.projectUrls).toEqual(urls.toReversed())
     expect(handlers.handleReorderUrls).toHaveBeenCalledExactlyOnceWith(
@@ -195,9 +199,12 @@ describe('useCustomProjectCard resolved target lifecycle', () => {
       vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(categorizedUrls),
     )
     await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
-    act(() =>
-      result.current.dnd.handleUrlDragEnd(createUrlDrag('Old', 'New'), false),
-    )
+    await act(async () => {
+      await result.current.dnd.handleUrlDragEnd(
+        createUrlDrag('Old', 'New'),
+        false,
+      )
+    })
     expect(result.current.urls.isLoadingUrls).toBe(false)
     expect(result.current.urls.projectUrls).toEqual([
       { ...categorizedUrls[0], category: 'New' },
@@ -241,6 +248,75 @@ describe('useCustomProjectCard grouped target lifecycle', () => {
     vi.restoreAllMocks()
   })
 
+  it('keeps the loaded URL order and withholds success while saving is pending or fails', async () => {
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const success = vi.spyOn(toast, 'success')
+    const saved = Promise.withResolvers<undefined>()
+    const { result, handlers } = renderProjectHook(
+      vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(urls),
+    )
+    await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+    handlers.handleReorderUrls.mockReturnValue(saved.promise)
+    let drop = Promise.resolve()
+    act(() => {
+      drop = result.current.dnd.handleUrlDragEnd(createUrlDrag(), false)
+    })
+    expect(result.current.urls.projectUrls).toEqual(urls)
+    expect(success).not.toHaveBeenCalled()
+    await act(async () => {
+      saved.reject(new Error('storage unavailable'))
+      await drop
+    })
+    expect(result.current.urls.projectUrls).toEqual(urls)
+    expect(success).not.toHaveBeenCalled()
+    expect(logError).toHaveBeenCalled()
+  })
+
+  it('keeps the original URL category when a category move fails', async () => {
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const success = vi.spyOn(toast, 'success')
+    const categorized = urls.map((url) => ({ ...url, category: 'First' }))
+    const { result, handlers } = renderProjectHook(
+      vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(categorized),
+    )
+    await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+    handlers.handleSetUrlCategory.mockRejectedValue(
+      new Error('storage unavailable'),
+    )
+    await act(async () => {
+      await result.current.dnd.handleUrlDragEnd(
+        createUrlDrag('First', 'Second'),
+        false,
+      )
+    })
+    expect(result.current.urls.projectUrls).toEqual(categorized)
+    expect(success).not.toHaveBeenCalled()
+    expect(logError).toHaveBeenCalled()
+  })
+
+  it('clears category drag state and withholds success if its order cannot be saved', async () => {
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const success = vi.spyOn(toast, 'success')
+    const currentProject = { ...project, categories: ['First', 'Second'] }
+    const { result, handlers } = renderProjectHook(
+      vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(urls),
+      currentProject,
+    )
+    await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+    handlers.handleUpdateCategoryOrder.mockRejectedValue(
+      new Error('storage unavailable'),
+    )
+    const drag = createCategoryDrag()
+    act(() => result.current.dnd.handleDragStart(drag))
+    await act(async () => {
+      await result.current.dnd.handleCategoryDragEnd(drag)
+    })
+    expect(result.current.dnd.isDraggingCategory).toBe(false)
+    expect(result.current.dnd.draggedCategoryName).toBeNull()
+    expect(success).not.toHaveBeenCalled()
+    expect(logError).toHaveBeenCalled()
+  })
+
   it.each([
     { label: 'category list', order: undefined, expected: ['Second', 'First'] },
     {
@@ -266,7 +342,9 @@ describe('useCustomProjectCard grouped target lifecycle', () => {
       expect(result.current.dnd.isDraggingCategory).toBe(true)
       act(() => result.current.dnd.handleDragOver(drag, currentProject))
       expect(result.current.dnd.draggedOverCategory).toBe('Second')
-      act(() => result.current.dnd.handleCategoryDragEnd(drag))
+      await act(async () => {
+        await result.current.dnd.handleCategoryDragEnd(drag)
+      })
       expect(
         handlers.handleUpdateCategoryOrder,
       ).toHaveBeenCalledExactlyOnceWith(project.id, expected)
@@ -330,16 +408,75 @@ describe('useCustomProjectCard grouped target lifecycle', () => {
       vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(urls),
     )
     await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
-    act(() =>
-      result.current.dnd.handleUrlDragEnd(
+    await act(async () => {
+      await result.current.dnd.handleUrlDragEnd(
         { ...createUrlDrag(), over: null },
         false,
-      ),
-    )
+      )
+    })
     expect(result.current.urls.isLoadingUrls).toBe(false)
     expect(result.current.urls.projectUrls).toEqual(urls)
     expect(handlers.handleReorderUrls).not.toHaveBeenCalled()
     expect(handlers.handleSetUrlCategory).not.toHaveBeenCalled()
+  })
+
+  it('uses URL data when the sortable ID identifies a project membership', async () => {
+    const { result, handlers } = renderProjectHook(
+      vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(urls),
+    )
+    await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+    const drag = createUrlDrag()
+    await act(async () => {
+      await result.current.dnd.handleUrlDragEnd(
+        {
+          ...drag,
+          over: {
+            ...drag.over,
+            id: 'membership-in-project',
+            data: { current: { type: 'url', url: urls[1]?.url } },
+          },
+        },
+        false,
+      )
+    })
+    expect(handlers.handleReorderUrls).toHaveBeenCalledWith(project.id, [
+      urls[1],
+      urls[0],
+    ])
+  })
+
+  it('uses category data for scoped sortable IDs and keeps another project untouched', async () => {
+    const currentProject = { ...project, categories: ['First', 'Second'] }
+    const { result, handlers } = renderProjectHook(
+      vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(urls),
+      currentProject,
+    )
+    await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+    const base = createCategoryDrag()
+    const drag = {
+      ...base,
+      active: {
+        ...base.active,
+        id: 'scoped-first',
+        data: {
+          current: {
+            type: 'category',
+            categoryName: 'First',
+            projectId: project.id,
+          },
+        },
+      },
+      over: { ...base.over, id: 'scoped-second' },
+    }
+    act(() => result.current.dnd.handleDragStart(drag))
+    expect(result.current.dnd.draggedCategoryName).toBe('First')
+    await act(async () => {
+      await result.current.dnd.handleCategoryDragEnd(drag)
+    })
+    expect(handlers.handleUpdateCategoryOrder).toHaveBeenCalledWith(
+      project.id,
+      ['Second', 'First'],
+    )
   })
 
   it('retains the loaded projection and target set when a URL becomes uncategorized', async () => {
@@ -351,7 +488,9 @@ describe('useCustomProjectCard grouped target lifecycle', () => {
       { ...project, categories: ['Old'] },
     )
     await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
-    act(() => result.current.dnd.handleUrlDragEnd(createUrlDrag('Old'), false))
+    await act(async () => {
+      await result.current.dnd.handleUrlDragEnd(createUrlDrag('Old'), false)
+    })
     expect(result.current.urls.isLoadingUrls).toBe(false)
     expect(result.current.urls.projectUrls).toEqual(urls)
     expect(handlers.handleSetUrlCategory).toHaveBeenCalledExactlyOnceWith(

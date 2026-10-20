@@ -19,6 +19,10 @@ const {
   useSensorMock: vi.fn(() => ({})),
 }))
 
+vi.mock('@/features/i18n/context/I18nProvider', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}))
+
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>

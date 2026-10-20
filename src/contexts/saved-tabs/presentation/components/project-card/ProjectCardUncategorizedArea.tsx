@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { ProjectUrlItem } from '@/contexts/saved-tabs/presentation/components/ProjectUrlItem'
+import { getProjectUrlSortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useProjectCard } from './ProjectCardContext'
@@ -26,14 +27,27 @@ export const ProjectCardUncategorizedArea = () => {
   const { urls } = hookState
 
   const uncategorizedItemIds = useMemo(
-    () => urls.uncategorizedUrls.map((item) => item.url),
-    [urls.uncategorizedUrls],
+    () =>
+      urls.uncategorizedUrls.map((item) =>
+        getProjectUrlSortableId(project.id, item.url),
+      ),
+    [project.id, urls.uncategorizedUrls],
   )
 
   const handleEmptyDropClick = useCallback(() => {
     const selectedUrl = window.getSelection()?.toString()
     if (selectedUrl && urls.projectUrls.some((u) => u.url === selectedUrl)) {
-      handlers.handleSetUrlCategory(project.id, selectedUrl, undefined)
+      void Promise.resolve()
+        .then(async () => {
+          await handlers.handleSetUrlCategory(
+            project.id,
+            selectedUrl,
+            undefined,
+          )
+        })
+        .catch((error: unknown) => {
+          console.error('未分類への移動に失敗しました:', error)
+        })
     }
   }, [urls.projectUrls, handlers, project.id])
 

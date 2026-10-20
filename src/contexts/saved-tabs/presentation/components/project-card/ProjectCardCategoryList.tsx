@@ -2,6 +2,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useMemo } from 'react'
 
 import { CustomProjectCategory } from '@/contexts/saved-tabs/presentation/components/CustomProjectCategory'
+import { getProjectCategorySortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 
 import { useProjectCard } from './ProjectCardContext'
@@ -33,6 +34,13 @@ export const ProjectCardCategoryList = () => {
     }
     return buckets
   }, [urls.projectUrls])
+  const categorySortableIds = useMemo(
+    () =>
+      categoryOrder.map((category) =>
+        getProjectCategorySortableId(project.id, category),
+      ),
+    [categoryOrder, project.id],
+  )
 
   if (project.categories.length === 0) {
     return null
@@ -40,7 +48,7 @@ export const ProjectCardCategoryList = () => {
 
   return (
     <SortableContext
-      items={categoryOrder}
+      items={categorySortableIds}
       strategy={verticalListSortingStrategy}
     >
       {categoryOrder.map((categoryName) => (

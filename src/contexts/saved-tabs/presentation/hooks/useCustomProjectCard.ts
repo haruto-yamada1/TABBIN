@@ -27,11 +27,17 @@ type UseCustomProjectCardParams = {
     projectId: string,
     url: string,
     category?: string,
-  ) => void
+  ) => void | Promise<void>
   /** カテゴリ順序更新ハンドラ */
-  handleUpdateCategoryOrder: (projectId: string, newOrder: string[]) => void
+  handleUpdateCategoryOrder: (
+    projectId: string,
+    newOrder: string[],
+  ) => void | Promise<void>
   /** URL並び替えハンドラ */
-  handleReorderUrls: (projectId: string, urls: CustomProject['urls']) => void
+  handleReorderUrls: (
+    projectId: string,
+    urls: CustomProject['urls'],
+  ) => void | Promise<void>
   /**
    * プロジェクト URL 取得 use-case（issue #509）。
    * テストで `useCustomProjectCard` 全体をモックする
@@ -116,6 +122,13 @@ const resolveOverCategory = (
   // eslint-disable-next-line typescript/no-unsafe-return
   return over.data.current?.category
 }
+
+const getDraggedCategoryName = (
+  item: DragEndEvent['active'] | NonNullable<DragEndEvent['over']>,
+): string => {
+  const name: unknown = item.data.current?.categoryName
+  return typeof name === 'string' ? name : String(item.id)
+}
 type UrlToUrlDropResult =
   | {
       kind: 'noop'
@@ -163,7 +176,7 @@ const applyMovedCategoryToUrls = (
       ...(overCategory !== undefined ? { category: overCategory } : {}),
     }
   })
-const handleProcessedUrlDrop = (params: {
+const handleProcessedUrlDrop = async (params: {
   projectId: string
   actualUrl: string
   dragSourceCategory: string | undefined
@@ -175,12 +188,15 @@ const handleProcessedUrlDrop = (params: {
     projectId: string,
     url: string,
     category?: string,
-  ) => void
-  handleReorderUrls: (projectId: string, urls: CustomProject['urls']) => void
+  ) => void | Promise<void>
+  handleReorderUrls: (
+    projectId: string,
+    urls: CustomProject['urls'],
+  ) => void | Promise<void>
   setProjectUrls: Dispatch<SetStateAction<ProjectUrlItem[]>>
   clearDragState: () => void
   language: 'ja' | 'en'
-}): void => {
+}): Promise<void> => {
   const {
     projectId,
     actualUrl,
@@ -195,8 +211,8 @@ const handleProcessedUrlDrop = (params: {
     clearDragState,
     language,
   } = params
-  const moveToUncategorized = () => {
-    handleSetUrlCategory(projectId, actualUrl, undefined)
+  const moveToUncategorized = async () => {
+    await handleSetUrlCategory(projectId, actualUrl, undefined)
     toast.success(getMessage(language, 'savedTabs.tab.movedToUncategorized'))
     clearDragState()
   }
@@ -209,7 +225,7 @@ const handleProcessedUrlDrop = (params: {
       projectId,
     })
   ) {
-    moveToUncategorized()
+    await moveToUncategorized()
     return
   }
   const urlToUrlDropResult = processUrlToUrlDrop({
@@ -220,14 +236,18 @@ const handleProcessedUrlDrop = (params: {
     projectUrls,
   })
   if (urlToUrlDropResult.kind === 'reordered') {
-    handleReorderUrls(projectId, urlToUrlDropResult.reorderedUrls)
+    await handleReorderUrls(projectId, urlToUrlDropResult.reorderedUrls)
     setProjectUrls(urlToUrlDropResult.reorderedUrls)
     toast.success(getMessage(language, 'savedTabs.tab.orderUpdated'))
     clearDragState()
     return
   }
   if (urlToUrlDropResult.kind === 'moved') {
-    handleSetUrlCategory(projectId, actualUrl, urlToUrlDropResult.overCategory)
+    await handleSetUrlCategory(
+      projectId,
+      actualUrl,
+      urlToUrlDropResult.overCategory,
+    )
     setProjectUrls((prev) =>
       applyMovedCategoryToUrls(
         prev,
@@ -250,7 +270,7 @@ const handleProcessedUrlDrop = (params: {
     const targetCategory = over.data.current.categoryName
     if (targetCategory && targetCategory !== dragSourceCategory) {
       // eslint-disable-next-line typescript/no-unsafe-argument
-      handleSetUrlCategory(projectId, actualUrl, targetCategory)
+      await handleSetUrlCategory(projectId, actualUrl, targetCategory)
       toast.success(
         getMessage(language, 'savedTabs.tab.movedToCategory', undefined, {
           // eslint-disable-next-line typescript/no-unsafe-assignment
@@ -295,7 +315,9 @@ const processUrlToUrlDrop = (params: {
     projectUrls,
     dragSourceCategory,
     actualUrl,
-    String(over.id),
+    typeof over.data.current?.url === 'string'
+      ? over.data.current.url
+      : String(over.id),
   )
   if (!reorderedUrls) {
     return {
@@ -397,7 +419,7 @@ export const useCustomProjectCard = ({
 
   // --- URLドラッグ終了時 ---
   const handleUrlDragEnd = useCallback(
-    (event: DragEndEvent, isUncategorizedOver: boolean) => {
+    async (event: DragEndEvent, isUncategorizedOver: boolean) => {
       const { active, over } = event
       // `||` needed: url could be empty string; fallback to active.id
       // eslint-disable-next-line typescript/prefer-nullish-coalescing
@@ -412,22 +434,28 @@ export const useCustomProjectCard = ({
         clearDragState()
         return
       }
-      handleProcessedUrlDrop({
-        // eslint-disable-next-line typescript/no-unsafe-assignment
-        actualUrl,
-        clearDragState,
-        // eslint-disable-next-line typescript/no-unsafe-assignment
-        dragSourceCategory,
-        event,
-        handleReorderUrls,
-        handleSetUrlCategory,
-        isUncategorizedOver,
-        language,
-        over,
-        projectId: project.id,
-        projectUrls,
-        setProjectUrls,
-      })
+      try {
+        await handleProcessedUrlDrop({
+          // eslint-disable-next-line typescript/no-unsafe-assignment
+          actualUrl,
+          clearDragState,
+          // eslint-disable-next-line typescript/no-unsafe-assignment
+          dragSourceCategory,
+          event,
+          handleReorderUrls,
+          handleSetUrlCategory,
+          isUncategorizedOver,
+          language,
+          over,
+          projectId: project.id,
+          projectUrls,
+          setProjectUrls,
+        })
+      } catch (error) {
+        // The persistence handler has already shown the failure notification.
+        console.error('URLドロップの保存に失敗しました:', error)
+        clearDragState()
+      }
     },
     [
       project.id,
@@ -443,21 +471,16 @@ export const useCustomProjectCard = ({
 
   // --- カテゴリドラッグ終了時 ---
   const handleCategoryDragEnd = useCallback(
-    (event: DragEndEvent) => {
+    async (event: DragEndEvent) => {
       const { active, over } = event
       resetDnD()
       if (!over) {
         return
       }
       if (isDraggingCategory && draggedCategoryName && active.id !== over.id) {
-        const activeId = String(active.id)
-        const overId = String(over.id)
-        const oldIndex =
-          project.categoryOrder?.indexOf(activeId) ??
-          project.categories.indexOf(activeId)
-        const newIndex =
-          project.categoryOrder?.indexOf(overId) ??
-          project.categories.indexOf(overId)
+        const currentOrder = project.categoryOrder ?? project.categories
+        const oldIndex = currentOrder.indexOf(getDraggedCategoryName(active))
+        const newIndex = currentOrder.indexOf(getDraggedCategoryName(over))
         if (oldIndex !== -1 && newIndex !== -1) {
           const newOrder = arrayMove(
             // `||` needed: empty array [] categoryOrder should fall through to project.categories
@@ -466,8 +489,13 @@ export const useCustomProjectCard = ({
             oldIndex,
             newIndex,
           )
-          handleUpdateCategoryOrder(project.id, newOrder)
-          toast.success(t('savedTabs.projectCategory.orderUpdated'))
+          try {
+            await handleUpdateCategoryOrder(project.id, newOrder)
+            toast.success(t('savedTabs.projectCategory.orderUpdated'))
+          } catch (error) {
+            // The persistence handler has already shown the failure notification.
+            console.error('カテゴリドロップの保存に失敗しました:', error)
+          }
         }
       }
     },
@@ -485,6 +513,14 @@ export const useCustomProjectCard = ({
 
   // --- Alt+クリックによるカテゴリ解除 ---
   useEffect(() => {
+    const clearCategory = async (url: string) => {
+      try {
+        await handleSetUrlCategoryRef.current(project.id, url, undefined)
+        toast.success(t('savedTabs.tab.categoryClearedAlt'))
+      } catch (error) {
+        console.error('カテゴリ解除の保存に失敗しました:', error)
+      }
+    }
     const handleManualCategoryReset = (e: MouseEvent) => {
       if (e.altKey) {
         const targetElement = document.elementFromPoint(e.clientX, e.clientY)
@@ -498,8 +534,7 @@ export const useCustomProjectCard = ({
           targetElement.getAttribute('data-url') ||
           targetElement.closest('[data-url]')?.getAttribute('data-url')
         if (urlAttr && projectUrlsRef.current.some((u) => u.url === urlAttr)) {
-          handleSetUrlCategoryRef.current(project.id, urlAttr, undefined)
-          toast.success(t('savedTabs.tab.categoryClearedAlt'))
+          void clearCategory(urlAttr)
         }
       }
     }

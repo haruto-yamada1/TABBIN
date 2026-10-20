@@ -10,6 +10,7 @@ import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-
 const { dndContextPropsRef, projectHandlerSpies } = vi.hoisted(() => ({
   dndContextPropsRef: {
     current: {} as {
+      onDragCancel?: (event: unknown) => void
       onDragEnd?: (event: unknown) => void
       onDragOver?: (event: unknown) => void
       onDragStart?: (event: unknown) => void
@@ -38,16 +39,19 @@ vi.mock('@dnd-kit/core', () => ({
     onDragStart,
     onDragOver,
     onDragEnd,
+    onDragCancel,
   }: {
     children: React.ReactNode
     onDragStart?: (event: unknown) => void
     onDragOver?: (event: unknown) => void
     onDragEnd?: (event: unknown) => void
+    onDragCancel?: (event: unknown) => void
   }) => {
     dndContextPropsRef.current = {
       ...(onDragStart !== undefined ? { onDragStart } : {}),
       ...(onDragOver !== undefined ? { onDragOver } : {}),
       ...(onDragEnd !== undefined ? { onDragEnd } : {}),
+      ...(onDragCancel !== undefined ? { onDragCancel } : {}),
     }
     return <div>{children}</div>
   },
@@ -473,5 +477,36 @@ describe('CustomProjectSection additional', () => {
     ])
 
     unmount()
+  })
+
+  it('Escape cancellation clears the overlay and every project drag state without saving', async () => {
+    const props = createProps()
+    render(<CustomProjectSection {...props} />)
+    await act(async () => {
+      dndContextPropsRef.current.onDragStart?.({
+        active: {
+          id: 'https://cancel.example',
+          data: {
+            current: {
+              type: 'url',
+              projectId: 'project-1',
+              title: 'Cancel drag',
+            },
+          },
+        },
+      })
+    })
+    expect(screen.getByText('Cancel drag')).toBeInTheDocument()
+    await act(async () => dndContextPropsRef.current.onDragCancel?.({}))
+    expect(screen.queryByText('Cancel drag')).not.toBeInTheDocument()
+    expect(
+      projectHandlerSpies['project-1']?.clearDragState,
+    ).toHaveBeenCalledOnce()
+    expect(
+      projectHandlerSpies['project-2']?.clearDragState,
+    ).toHaveBeenCalledOnce()
+    expect(props.handleReorderUrls).not.toHaveBeenCalled()
+    expect(props.handleUpdateCategoryOrder).not.toHaveBeenCalled()
+    expect(props.handleMoveUrlBetweenProjects).not.toHaveBeenCalled()
   })
 })

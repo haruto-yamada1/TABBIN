@@ -86,7 +86,10 @@ export const useCategoryDnD = () => {
       setActiveId(event.active)
       setDraggedOverCategory(null)
       setIsDraggingCategory(true)
-      setDraggedCategoryName(String(itemId))
+      const categoryName: unknown = event.active.data.current?.categoryName
+      setDraggedCategoryName(
+        typeof categoryName === 'string' ? categoryName : String(itemId),
+      )
       return
     }
 

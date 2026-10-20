@@ -152,6 +152,7 @@ export const ProjectCardRoot = ({
 
   const {
     attributes,
+    setActivatorNodeRef,
     listeners,
     style,
     setCombinedRefs,
@@ -270,6 +271,7 @@ export const ProjectCardRoot = ({
               title={project.name}
               badges={titleBadges}
               sortableAttributes={attributes}
+              activatorRef={setActivatorNodeRef}
               sortableListeners={listeners}
               className='py-2'
             />

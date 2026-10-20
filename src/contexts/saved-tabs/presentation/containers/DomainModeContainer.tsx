@@ -23,6 +23,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
+import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
@@ -256,6 +257,7 @@ const UncategorizedDomainSection = ({
   reorderTabGroupUrlsUseCase,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
+  const accessibility = useDndAccessibility()
   const uncategorizedSettings = useMemo(
     () => ({
       ...defaultUserSettings,
@@ -367,6 +369,7 @@ const UncategorizedDomainSection = ({
 
       {shouldShowList && (
         <DndKitContext
+          accessibility={accessibility}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
@@ -465,6 +468,7 @@ export const DomainModeContainer = ({
     shouldShowUncategorizedSectionHeader,
   } = state
   const { t } = useI18n()
+  const accessibility = useDndAccessibility()
   const handleDeleteGroupsForCategory = useCallback(
     (ids: string[]) => {
       void handleDeleteGroups?.(ids)
@@ -548,6 +552,7 @@ export const DomainModeContainer = ({
     <>
       {settings.enableCategories && Object.keys(categorized).length > 0 && (
         <DndKitContext
+          accessibility={accessibility}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleCategoryDragEnd}
