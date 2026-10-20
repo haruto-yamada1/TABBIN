@@ -22,7 +22,7 @@ type UseCategoryGroupStateParams = {
   handleUpdateDomainsOrder?: (
     categoryId: string,
     updatedDomains: TabGroup[],
-  ) => void
+  ) => void | Promise<void>
   /** ドメイン削除ハンドラ */
   handleDeleteGroup: (id: string) => void
   /** 親カテゴリ並び替えモード状態 */
@@ -112,15 +112,24 @@ export const useCategoryGroupState = ({
   )
 
   // --- グローバルドラッグ監視 ---
-  const handleGlobalDragStart = useCallback(() => {
-    setIsDraggingGlobal(true)
-  }, [])
-  const handleGlobalDragFinish = useCallback(() => {
-    setIsDraggingGlobal(false)
-    if (!(isReorderMode || isCategoryReorderMode)) {
-      setIsCollapsed(false)
-    }
-  }, [isReorderMode, isCategoryReorderMode, setIsCollapsed])
+  const handleGlobalDragStart = useCallback(
+    (event?: Pick<DragEndEvent, 'activatorEvent'>) => {
+      setIsDraggingGlobal(event?.activatorEvent.type !== 'keydown')
+    },
+    [],
+  )
+  const handleGlobalDragFinish = useCallback(
+    (event?: Pick<DragEndEvent, 'activatorEvent'>) => {
+      setIsDraggingGlobal(false)
+      if (
+        event?.activatorEvent.type !== 'keydown' &&
+        !(isReorderMode || isCategoryReorderMode)
+      ) {
+        setIsCollapsed(false)
+      }
+    },
+    [isReorderMode, isCategoryReorderMode, setIsCollapsed],
+  )
   const dndMonitorHandlers = useMemo(
     () => ({
       onDragCancel: handleGlobalDragFinish,
@@ -247,16 +256,18 @@ export const useCategoryGroupState = ({
   const handleDragStart = useCallback(() => {
     setIsDraggingDomains(true)
   }, [])
+  const handleDragCancel = useCallback(() => {
+    setIsDraggingDomains(false)
+  }, [])
 
   // --- 並び替え確定 ---
-  const handleConfirmReorder = useCallback(() => {
+  const handleConfirmReorder = useCallback(async () => {
     if (!isReorderMode) {
       return
     }
     try {
       if (handleUpdateDomainsOrder) {
-        // eslint-disable-next-line typescript/no-confusing-void-expression
-        handleUpdateDomainsOrder(category.id, tempDomainOrder)
+        await handleUpdateDomainsOrder(category.id, tempDomainOrder)
       }
       setIsReorderMode(false)
       setOriginalDomainOrder([])
@@ -329,6 +340,7 @@ export const useCategoryGroupState = ({
       handleDeleteSingleDomain,
       handleDragEnd,
       handleDragStart,
+      handleDragCancel,
       isDraggingDomains,
       isReorderMode,
       tempDomainOrder,

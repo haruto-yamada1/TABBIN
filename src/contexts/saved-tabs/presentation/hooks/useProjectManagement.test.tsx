@@ -1229,13 +1229,19 @@ describe('useProjectManagement', () => {
       ])
       await result.current.handleAddCategory('project-1', 'Broken')
       await result.current.handleDeleteProjectCategory('project-1', 'Broken')
-      await result.current.handleSetUrlCategory(
-        'project-1',
-        'https://example.com/a',
-        'Broken',
-      )
-      await result.current.handleUpdateCategoryOrder('project-1', ['Broken'])
-      await result.current.handleReorderUrls('project-1', [])
+      await expect(
+        result.current.handleSetUrlCategory(
+          'project-1',
+          'https://example.com/a',
+          'Broken',
+        ),
+      ).rejects.toThrow('set category failed')
+      await expect(
+        result.current.handleUpdateCategoryOrder('project-1', ['Broken']),
+      ).rejects.toThrow('category order failed')
+      await expect(
+        result.current.handleReorderUrls('project-1', []),
+      ).rejects.toThrow('url order failed')
       await result.current.handleReorderProjects(['project-1'])
       await result.current.handleRenameCategory('project-1', 'Old', 'Broken')
     })

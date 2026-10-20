@@ -5,14 +5,12 @@ import {
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
 import {
   SortableContext,
   arrayMove,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -33,6 +31,11 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
+import {
+  customProjectCollisionDetection,
+  customProjectKeyboardCoordinates,
+} from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -175,11 +178,13 @@ const updateCrossProjectDragState = ({
   over,
   setDraggedOverProjectId,
   setIsCrossProjectUrlDragActive,
+  isKeyboardDrag,
 }: {
   activeData: ActiveDragData | null
   over: DragOverEvent['over']
   setDraggedOverProjectId: React.Dispatch<React.SetStateAction<string | null>>
   setIsCrossProjectUrlDragActive: React.Dispatch<React.SetStateAction<boolean>>
+  isKeyboardDrag: boolean
 }) => {
   if (!over || activeData?.type !== 'url') {
     setDraggedOverProjectId((prev) => (prev === null ? prev : null))
@@ -192,7 +197,7 @@ const updateCrossProjectDragState = ({
   if (projectId && sourceProjectId && projectId !== sourceProjectId) {
     // eslint-disable-next-line typescript/no-unsafe-return
     setDraggedOverProjectId((prev) => (prev === projectId ? prev : projectId))
-    setIsCrossProjectUrlDragActive(true)
+    setIsCrossProjectUrlDragActive(!isKeyboardDrag)
     return
   }
 
@@ -329,9 +334,9 @@ const handleDragEndByType = ({
   if (activeData?.type === 'category') {
     const sourceProjectId = activeData.projectId
     if (sourceProjectId && projectDragHandlersRef.current[sourceProjectId]) {
-      projectDragHandlersRef.current[sourceProjectId].handleCategoryDragEnd(
-        event,
-      )
+      void projectDragHandlersRef.current[
+        sourceProjectId
+      ].handleCategoryDragEnd(event)
     }
     return
   }
@@ -432,6 +437,7 @@ const useCustomProjectSectionView = ({
   settings,
 }: CustomProjectSectionProps) => {
   const { t } = useI18n()
+  const accessibility = useDndAccessibility('custom')
   const projectIds = useMemo(
     () => projects.map((project) => project.id),
     [projects],
@@ -482,7 +488,7 @@ const useCustomProjectSectionView = ({
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+      coordinateGetter: customProjectKeyboardCoordinates,
     }),
   )
 
@@ -641,6 +647,7 @@ const useCustomProjectSectionView = ({
         over,
         setDraggedOverProjectId,
         setIsCrossProjectUrlDragActive,
+        isKeyboardDrag: event.activatorEvent instanceof KeyboardEvent,
       })
 
       // 全てのプロジェクトへ伝播させる (hoverが外れたことを伝えるため)
@@ -701,7 +708,7 @@ const useCustomProjectSectionView = ({
           const isUncategorizedOver =
             over?.id === `uncategorized-${targetProjectId ?? ''}` ||
             over?.data.current?.type === 'uncategorized'
-          projectDragHandlersRef.current[sourceProjectId].handleUrlDragEnd(
+          void projectDragHandlersRef.current[sourceProjectId].handleUrlDragEnd(
             event,
             isUncategorizedOver,
           )
@@ -743,6 +750,10 @@ const useCustomProjectSectionView = ({
         projects,
       })
 
+      Object.values(projectDragHandlersRef.current).forEach((handler) =>
+        handler?.clearDragState(),
+      )
+
       resetSectionDragState({
         activeDragDataRef,
         lastDragOverDebugRef,
@@ -763,16 +774,33 @@ const useCustomProjectSectionView = ({
     [handleSubmit, handleCreateProjectSubmit],
   )
 
+  const handleDragCancel = useCallback(() => {
+    Object.values(projectDragHandlersRef.current).forEach((handler) =>
+      handler?.clearDragState(),
+    )
+    resetSectionDragState({
+      activeDragDataRef,
+      lastDragOverDebugRef,
+      setDraggedItem,
+      setDraggedOverProjectId,
+      setDraggedProject,
+      setIsCrossProjectUrlDragActive,
+      setIsProjectReorderMode,
+    })
+  }, [])
+
   return (
     <div>
       {projects.length > 0 ? (
         <DragHandlersContext.Provider value={dragHandlersContextValue}>
           <DndContext
+            accessibility={accessibility}
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={customProjectCollisionDetection}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <SortableContext
               items={projectIds}

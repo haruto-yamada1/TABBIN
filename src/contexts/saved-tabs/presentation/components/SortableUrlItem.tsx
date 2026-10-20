@@ -73,13 +73,20 @@ export const SortableUrlItem = ({
   settings,
 }: SortableUrlItemProps) => {
   const { t } = useI18n()
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({
-      data: {
-        categoryContext, // カテゴリコンテキストをデータに追加
-      },
-      id,
-    })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    data: {
+      name: title,
+      categoryContext, // カテゴリコンテキストをデータに追加
+    },
+    id,
+  })
 
   const isDraggingRef = useRef(false)
   const windowBlurredDuringDragRef = useRef(false)
@@ -235,6 +242,7 @@ export const SortableUrlItem = ({
       >
         <div
           className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
+          ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {

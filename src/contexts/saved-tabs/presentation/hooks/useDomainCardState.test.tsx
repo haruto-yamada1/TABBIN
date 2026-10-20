@@ -690,7 +690,7 @@ describe('useDomainCardState', () => {
     const { params, categoryAssignmentPort, getSavedTabsPageDataQuery } =
       createUseDomainCardStateParams({ group })
     getSavedTabsPageDataQuery.mockResolvedValue({
-      tabGroups: [group],
+      tabGroups: [toTabGroupFromViewModel(group)],
       parentCategories: [],
       userSettings: savedTabsDefaultUserSettings,
     })
@@ -732,6 +732,24 @@ describe('useDomainCardState', () => {
       'カテゴリ順序の更新に失敗しました:',
       expect.any(Error),
     )
+    expect(toast.error).toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(result.current.categoryReorder.isCategoryReorderMode).toBe(true)
+    expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
+      'news',
+      'tech',
+    ])
+
+    await act(async () => {
+      await result.current.categoryReorder.handleConfirmCategoryReorder()
+    })
+    expect(result.current.categoryReorder.isCategoryReorderMode).toBe(true)
+
+    await act(async () => {
+      await result.current.categoryReorder.handleConfirmCategoryReorder()
+    })
+    expect(result.current.categoryReorder.isCategoryReorderMode).toBe(false)
+    expect(toast.success).toHaveBeenCalledOnce()
   })
 
   it('カテゴリ設定とタブの変更を検知して表示順を更新する', async () => {
@@ -1132,6 +1150,17 @@ describe('useDomainCardState', () => {
     })
     expect(result.current.collapse.isCollapsed).toBe(true)
     expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
+  })
+
+  it('keyboard pickup preserves the measured layout and visible controls', () => {
+    const { params } = createUseDomainCardStateParams({ group: createGroup() })
+    const { result } = renderHook(() => useDomainCardState(params))
+    act(() => {
+      result.current.dndMonitorHandlers.onDragStart({
+        activatorEvent: new KeyboardEvent('keydown'),
+      })
+    })
+    expect(result.current.collapse.isCollapsed).toBe(false)
   })
 
   it('drag monitor はユーザーが畳んでいなければ通常終了時に展開する', () => {

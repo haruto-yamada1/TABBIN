@@ -1,5 +1,6 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
 import { backupImportMessages } from './backupImportMessages'
+import { dndMessages } from './dndMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
 import { urlOpeningMessages } from './urlOpeningMessages'
@@ -7,6 +8,7 @@ import { urlOpeningMessages } from './urlOpeningMessages'
 const messages = {
   en: {
     ...backupImportMessages.en,
+    ...dndMessages.en,
     ...analyticsHealthMessages.en,
     ...urlOpeningMessages.en,
     ...organizationActionMessages.en,
@@ -923,6 +925,7 @@ const messages = {
   },
   ja: {
     ...backupImportMessages.ja,
+    ...dndMessages.ja,
     ...analyticsHealthMessages.ja,
     ...urlOpeningMessages.ja,
     ...organizationActionMessages.ja,

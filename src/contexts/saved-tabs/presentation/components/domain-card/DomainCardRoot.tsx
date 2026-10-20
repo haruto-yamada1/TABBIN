@@ -53,8 +53,14 @@ export const DomainCardRoot = ({
   reorderTabGroupUrlsUseCase,
   children,
 }: DomainCardRootProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: group.id })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: group.id, data: { name: group.domain } })
   const savedTabs = useSavedTabsUseCases()
   const categoryPersistence = useMemo(
     () =>
@@ -109,7 +115,7 @@ export const DomainCardRoot = ({
       reorderTabGroupUrlsUseCase,
       searchQuery,
       settings,
-      sortable: { attributes, listeners },
+      sortable: { attributes, listeners, setActivatorNodeRef },
       state,
       visibleSubCategoryCount,
     }),
@@ -122,6 +128,7 @@ export const DomainCardRoot = ({
       visibleSubCategoryCount,
       isReorderMode,
       attributes,
+      setActivatorNodeRef,
       listeners,
       handlers,
       reorderTabGroupUrlsUseCase,

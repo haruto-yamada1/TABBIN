@@ -6,6 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { getProjectUrlSortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsUserSettingsDto as UserSettingsDto,
@@ -39,7 +40,7 @@ type ProjectUrlItemProps = {
     projectId: string,
     url: string,
     category?: string,
-  ) => void
+  ) => void | Promise<void>
   availableCategories?: string[]
   // 追加: 未分類エリア内にあるかどうかのフラグ
   isInUncategorizedArea?: boolean
@@ -96,12 +97,14 @@ const ProjectUrlItemComponent = ({
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
   } = useSortable({
     data: {
       type: 'url',
+      name: item.title || originalUrl,
       url: originalUrl,
       projectId,
       title: item.title || originalUrl.substring(0, MAX_URL_PREVIEW_LENGTH), // タイトルがない場合はURLの一部を使用
@@ -119,7 +122,7 @@ const ProjectUrlItemComponent = ({
         : undefined,
       isInUncategorizedArea, // 未分類エリア内にあるかの情報を追加
     },
-    id: originalUrl,
+    id: getProjectUrlSortableId(projectId, originalUrl),
   })
 
   const style = useMemo(
@@ -249,6 +252,7 @@ const ProjectUrlItemComponent = ({
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
         <div
+          ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {

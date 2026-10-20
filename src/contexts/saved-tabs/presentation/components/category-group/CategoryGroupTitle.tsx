@@ -41,6 +41,7 @@ export const CategoryGroupTitle = () => {
 
   return (
     <CardGroupTitle
+      activatorRef={sortable.setActivatorNodeRef}
       title={category.name}
       badges={badges}
       sortableAttributes={sortable.attributes}

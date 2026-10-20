@@ -86,8 +86,14 @@ export const CategoryGroupRoot = ({
     renameParentCategoryUseCase,
   })
 
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: category.id })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: category.id, data: { name: category.name } })
 
   const style = useMemo(
     () => ({
@@ -124,7 +130,7 @@ export const CategoryGroupRoot = ({
       reorderTabGroupUrlsUseCase,
       searchQuery,
       settings,
-      sortable: { attributes, listeners },
+      sortable: { attributes, listeners, setActivatorNodeRef },
       state,
       visibleDomainsCount,
     }),
@@ -138,6 +144,7 @@ export const CategoryGroupRoot = ({
       visibleDomainsCount,
       allUrls,
       attributes,
+      setActivatorNodeRef,
       listeners,
       handlers,
       reorderTabGroupUrlsUseCase,

@@ -254,7 +254,6 @@ const useCategoryManagement = (
       return
     }
     try {
-      setCategoryOrder(tempCategoryOrder)
       const orderedCategories = categories.toSorted(
         (a, b) =>
           tempCategoryOrder.indexOf(a.id) - tempCategoryOrder.indexOf(b.id),
@@ -276,7 +275,6 @@ const useCategoryManagement = (
     isCategoryReorderMode,
     reorderParentCategoriesUseCase,
     setCategoriesWithOrder,
-    setCategoryOrder,
     t,
     tempCategoryOrder,
   ])
@@ -298,26 +296,33 @@ const useCategoryManagement = (
    * 並び順検証 / 永続化は `ReorderDomainsInCategoryUseCase` 経由
    * (issue #525) で実行し、 presentation 層はイベントハンドラと
    * use-case 呼び出しのオーケストレーションに専念する。
-   * 旧実装と同じく、対象カテゴリが見つからない場合は use-case 側で
-   * no-op として処理される（エラーログは presentation 側で記録）。
+   * 対象カテゴリの消失と保存失敗は呼び出し元へ伝え、未保存の
+   * 並び替えプレビューを維持したままエラーを通知できるようにする。
    */
   const handleUpdateDomainsOrder = useCallback(
     async (categoryId: string, updatedDomains: TabGroup[]): Promise<void> => {
       try {
         const targetCategory = categories.find((cat) => cat.id === categoryId)
         if (!targetCategory) {
-          console.error('更新対象のカテゴリが見つかりません:', categoryId)
-          return
+          throw new Error('更新対象のカテゴリが見つかりません')
         }
         const updatedDomainCategories = await reorderDomainsInCategoryUseCase({
           categoryId,
           updatedDomains: updatedDomains.map(toTabGroupFromViewModel),
         })
+        if (
+          !updatedDomainCategories.some(
+            (category) => category.id === categoryId,
+          )
+        ) {
+          throw new Error('更新対象のカテゴリが見つかりません')
+        }
         setCategoriesWithOrder(
           updatedDomainCategories.map(toStorageParentCategory),
         )
       } catch (error) {
         console.error('カテゴリ内ドメイン順序更新エラー:', error)
+        throw error
       }
     },
     [categories, reorderDomainsInCategoryUseCase, setCategoriesWithOrder],

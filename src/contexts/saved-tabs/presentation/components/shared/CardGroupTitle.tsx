@@ -9,6 +9,7 @@ type CardGroupTitleProps = {
   badges?: React.ReactNode
   sortableAttributes?: DraggableAttributes
   sortableListeners?: DraggableSyntheticListeners
+  activatorRef?: ((node: HTMLElement | null) => void) | undefined
   className?: string
 }
 
@@ -21,9 +22,11 @@ export const CardGroupTitle = ({
   badges,
   sortableAttributes,
   sortableListeners,
+  activatorRef,
   className = '',
 }: CardGroupTitleProps) => (
   <div
+    ref={activatorRef}
     data-testid='card-group-title'
     className={`flex w-full cursor-grab items-center gap-2 text-foreground hover:cursor-grab active:cursor-grabbing ${className}`}
     {...sortableAttributes}
