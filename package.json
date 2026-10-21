@@ -116,7 +116,9 @@
     "agent:issues:pressure": "bun tools/scripts/evaluate-codex-issues.ts pressure",
     "release:reproducibility": "bun tools/scripts/check-build-reproducibility.ts",
     "perf:budget": "playwright test --config playwright.budget.config.ts --repeat-each=3",
-    "perf:report": "bun tools/performance-budget/cli.ts"
+    "perf:report": "bun tools/performance-budget/cli.ts",
+    "test:visual": "playwright test --config playwright.visual.config.ts",
+    "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots=all"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
