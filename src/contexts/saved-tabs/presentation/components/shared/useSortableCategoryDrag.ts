@@ -9,6 +9,7 @@ export const useSortableCategoryDrag = (id: string) => {
   const sortable = useSortable({
     data: {
       type: 'category-section',
+      name: id,
     },
     id,
   })

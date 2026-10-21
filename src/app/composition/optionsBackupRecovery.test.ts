@@ -2,10 +2,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
-import type {
-  PersistenceControlState,
-  PersistenceOperationGatePort,
-} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
+import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceRecoverySnapshotRepositoryPort } from '@/contexts/saved-tabs/application/ports/PersistenceRecoverySnapshotPort'
 import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
@@ -19,16 +16,15 @@ import type {
   PreImportRecoverySnapshotServiceDeps,
   RecoverySnapshotService,
 } from '@/features/options/lib/import-export/v2/PreImportRecoverySnapshotService'
+import { normalizeUserSettingsForStorage } from '@/lib/storage/settings'
 
 import {
   getOptionsBackupRecoveryRuntime,
   resetOptionsBackupRecoveryRuntimeForTesting,
 } from './optionsBackupRecovery'
 
-const createRecoveryListing = (initialState: PersistenceControlState) => {
-  let state = initialState
+const createRecoveryListing = () => {
   const bootstrap = {
-    readState: vi.fn(async () => state),
     ready: vi.fn(async () => undefined),
   }
   const summary = {
@@ -60,6 +56,7 @@ const createRecoveryListing = (initialState: PersistenceControlState) => {
     getBootstrap: () => bootstrap,
     getOperationGate: createReadyPersistenceOperationGateStub,
     idGenerator: { generate: () => 'unused-id' },
+    normalizeUserSettings: normalizeUserSettingsForStorage,
     readUserSettings: unexpected,
     writeUserSettings: unexpected,
   }
@@ -67,9 +64,6 @@ const createRecoveryListing = (initialState: PersistenceControlState) => {
     bootstrap,
     listAvailable,
     runtime: getOptionsBackupRecoveryRuntime(deps),
-    setState: (next: PersistenceControlState) => {
-      state = next
-    },
     summary,
   }
 }
@@ -79,63 +73,25 @@ describe('optionsBackupRecovery composition', () => {
     resetOptionsBackupRecoveryRuntimeForTesting()
   })
 
-  it.each([
-    { status: 'legacy' },
-    { status: 'read-only-emergency', readSource: 'legacy' },
-  ] satisfies PersistenceControlState[])(
-    'does not query IndexedDB recovery snapshots while the authority is $status',
-    async (state) => {
-      const { bootstrap, listAvailable, runtime } = createRecoveryListing(state)
-      await expect(runtime.listRecoverySnapshots()).resolves.toEqual([])
-      expect(bootstrap.ready).toHaveBeenCalledOnce()
-      expect(bootstrap.readState).toHaveBeenCalledOnce()
-      expect(listAvailable).not.toHaveBeenCalled()
-    },
-  )
-
-  it('lists recovery snapshots after a blocked legacy source reaches IndexedDB', async () => {
-    const listing = createRecoveryListing({ status: 'legacy' })
-    await listing.runtime.listRecoverySnapshots()
-    listing.setState({
-      status: 'indexeddb',
-      migrationId: 'migration-1',
-      persistenceGeneration: 2,
-    })
-
-    await expect(listing.runtime.listRecoverySnapshots()).resolves.toEqual([
-      listing.summary,
-    ])
-    expect(listing.listAvailable).toHaveBeenCalledExactlyOnceWith(1_000)
-  })
-
-  it('preserves IndexedDB read-only recovery snapshots', async () => {
-    const { listAvailable, runtime, summary } = createRecoveryListing({
-      status: 'read-only-emergency',
-      readSource: 'indexeddb',
-      migrationId: 'migration-1',
-      persistenceGeneration: 2,
-    })
+  it('lists IndexedDB recovery snapshots without migration state', async () => {
+    const { bootstrap, listAvailable, runtime, summary } =
+      createRecoveryListing()
     await expect(runtime.listRecoverySnapshots()).resolves.toEqual([summary])
-    expect(listAvailable).toHaveBeenCalledOnce()
+    expect(bootstrap.ready).toHaveBeenCalledOnce()
+    expect(listAvailable).toHaveBeenCalledExactlyOnceWith(1_000)
   })
 
   it('propagates an actual IndexedDB listing error after cutover', async () => {
-    const { listAvailable, runtime } = createRecoveryListing({
-      status: 'indexeddb',
-      migrationId: 'migration-1',
-      persistenceGeneration: 2,
-    })
+    const { listAvailable, runtime } = createRecoveryListing()
     const error = new Error('IndexedDB read failed')
     listAvailable.mockRejectedValueOnce(error)
     await expect(runtime.listRecoverySnapshots()).rejects.toBe(error)
   })
 
   it('propagates bootstrap failure without querying recovery snapshots', async () => {
-    const { bootstrap, listAvailable, runtime } = createRecoveryListing({
-      status: 'legacy',
-    })
+    const { bootstrap, listAvailable, runtime } = createRecoveryListing()
     const error = new PersistenceUnavailableError(
-      'PERSISTENCE_MIGRATION_FAILED',
+      'PERSISTENCE_RECOVERY_REQUIRED',
     )
     bootstrap.ready.mockRejectedValueOnce(error)
     await expect(runtime.listRecoverySnapshots()).rejects.toBe(error)
@@ -175,6 +131,7 @@ describe('optionsBackupRecovery composition', () => {
       restore: vi.fn(async () => ({ notification, revision: 14 })),
     }
     const importBackupV2 = vi.fn(async () => ({
+      notification,
       entityCounts: {
         analyticsViews: 0,
         categories: 0,
@@ -210,14 +167,10 @@ describe('optionsBackupRecovery composition', () => {
       estimateStorage: vi.fn(),
       getBootstrap: () => ({
         ready: async () => undefined,
-        readState: async (): Promise<PersistenceControlState> => ({
-          status: 'indexeddb',
-          migrationId: 'migration-1',
-          persistenceGeneration: 2,
-        }),
       }),
       getOperationGate: vi.fn(() => operationGate),
       idGenerator: { generate: vi.fn(() => 'generated-id') },
+      normalizeUserSettings: normalizeUserSettingsForStorage,
       readUserSettings: vi.fn(),
       writeUserSettings: vi.fn(),
     }
@@ -236,6 +189,7 @@ describe('optionsBackupRecovery composition', () => {
       clock: deps.clock,
       estimateStorage: deps.estimateStorage,
       idGenerator: deps.idGenerator,
+      normalizeUserSettings: deps.normalizeUserSettings,
       readUserSettings: deps.readUserSettings,
       replacement,
       repository,
@@ -243,6 +197,9 @@ describe('optionsBackupRecovery composition', () => {
       writeUserSettings: expect.any(Function),
     })
     expect(createImportUseCase).toHaveBeenCalledWith({
+      changePort: deps.changePort,
+      idGenerator: deps.idGenerator,
+      normalizeUserSettings: deps.normalizeUserSettings,
       readUserSettings: deps.readUserSettings,
       recovery: {
         captureBeforeOverwrite: recoveryService.captureBeforeOverwrite,

@@ -14,5 +14,6 @@ export const canonicalUserSettings = {
   openUrlInBackground: false,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
+  showRelativeSavedTime: false,
   showSavedTime: true,
 } as const satisfies UserSettings

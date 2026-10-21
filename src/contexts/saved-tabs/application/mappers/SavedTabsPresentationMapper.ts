@@ -30,6 +30,7 @@ export const toSavedTabsUserSettingsDto = (
     openUrlInBackground: settings.openUrlInBackground,
     removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop,
     removeTabAfterOpen: settings.removeTabAfterOpen,
+    showRelativeSavedTime: settings.showRelativeSavedTime,
     showSavedTime: settings.showSavedTime,
   }
   if (settings.activeAiSystemPromptId !== undefined) {

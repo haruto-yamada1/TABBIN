@@ -6,11 +6,11 @@ import {
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
 
-import type { ChromeStorageLocalPort } from './ChromeUrlRecordRepository'
-import { SavedTabsRepositoryUnavailableError } from './ChromeUrlRecordRepository'
-import { USER_SETTINGS_KEY } from './savedTabsStorageKeys'
-
-type ChromeUserSettingsStoragePort = Pick<ChromeStorageLocalPort, 'get' | 'set'>
+import type { ChromeUserSettingsStoragePort } from './ChromeUserSettingsStorage'
+import {
+  USER_SETTINGS_KEY,
+  UserSettingsRepositoryUnavailableError,
+} from './ChromeUserSettingsStorage'
 
 const getDefaultPort = (): ChromeUserSettingsStoragePort | null => {
   const local = getChromeStorageLocal()
@@ -55,14 +55,14 @@ const createChromeUserSettingsRepositoryImpl = (
  * `UserSettingsDto` を返す (issue #511)。DTO は構造互換なので
  * `chrome.storage.local.set` の payload もそのまま書ける。
  *
- * @throws {SavedTabsRepositoryUnavailableError} chrome.storage.local 不在時
+ * @throws {UserSettingsRepositoryUnavailableError} chrome.storage.local 不在時
  */
 export const createChromeUserSettingsRepository = (
   port: ChromeUserSettingsStoragePort | null = getDefaultPort(),
 ): UserSettingsRepository => {
   if (!port) {
     warnMissingChromeStorage('ChromeUserSettingsRepository')
-    throw new SavedTabsRepositoryUnavailableError(
+    throw new UserSettingsRepositoryUnavailableError(
       'chrome.storage.local が利用できないため ChromeUserSettingsRepository を初期化できません',
     )
   }

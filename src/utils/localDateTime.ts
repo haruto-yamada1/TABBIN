@@ -173,7 +173,10 @@ const isTimestampInLocalMonth = (
 }
 
 const formatFixedDatetime = (timestamp?: number, timeZone?: string): string => {
-  if (!timestamp) {
+  if (
+    timestamp === undefined ||
+    !Number.isFinite(new Date(timestamp).getTime())
+  ) {
     return '-'
   }
 

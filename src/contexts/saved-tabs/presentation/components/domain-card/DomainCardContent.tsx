@@ -1,22 +1,13 @@
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { DndContext, closestCenter } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useCallback } from 'react'
 
 import { CardContent } from '@/components/ui/card'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
 import { SortableCategorySection } from '@/contexts/saved-tabs/presentation/components/SortableCategorySection'
 import { CategorySection } from '@/contexts/saved-tabs/presentation/components/TimeRemaining'
+import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
+import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 import type {
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
@@ -34,7 +25,10 @@ type CategorySectionItemProps = {
   groupId: string
   handleDeleteUrl: (groupId: string, url: string) => void
   handleOpenTab: (url: string) => void
-  handleUpdateUrls: (groupId: string, updatedUrls: TabGroup['urls']) => void
+  handleUpdateUrls: (
+    groupId: string,
+    updatedUrls: TabGroup['urls'],
+  ) => void | Promise<void>
   handleOpenAllTabs: (urls: { url: string; title: string }[]) => void
   handleDeleteAllTabsInCategory: (
     categoryName: string,
@@ -92,6 +86,7 @@ const CategorySectionItem = ({
  * 折りたたみ時は何も表示しない
  */
 export const DomainCardContent = () => {
+  const accessibility = useDndAccessibility('confirm')
   const { t } = useI18n()
   const {
     state,
@@ -104,12 +99,7 @@ export const DomainCardContent = () => {
   const { collapse, categoryReorder, computed, categoryActions } = state
 
   // DnDのセンサー設定
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
+  const sensors = useSavedTabsSensors()
 
   // 親カテゴリの有無に応じてsticky位置を動的に設定
   const categorySectionStickyTop = categoryId ? 'top-20' : 'top-18'
@@ -158,6 +148,7 @@ export const DomainCardContent = () => {
   return (
     <CardContent className='gap-y-1'>
       <DndContext
+        accessibility={accessibility}
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={categoryReorder.handleCategoryDragEnd}

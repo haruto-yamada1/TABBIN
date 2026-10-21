@@ -83,11 +83,14 @@ jobs:
         run: |
           set -euo pipefail
           # path traversal 防止: 固定 allowlist のみ許可
-          ALLOWED_SKILLS="github-pr-review github-issue-implementation commit-push-pr harness-orchestrate check"
-          if ! echo "$ALLOWED_SKILLS" | grep -qw "$SKILL"; then
-            echo "::error::Skill '$SKILL' is not in the allowlist"
-            exit 2
-          fi
+          case "$SKILL" in
+            github-pr-review|github-issue-implementation|commit-push-pr|harness-orchestrate|check)
+              ;;
+            *)
+              echo "::error::Skill is not in the allowlist"
+              exit 2
+              ;;
+          esac
           # real spec ファイルの存在確認
           if [ ! -f "evals/skills/${SKILL}/eval.real.yaml" ]; then
             echo "::error::evals/skills/${SKILL}/eval.real.yaml not found (real-model spec required)"
@@ -195,7 +198,7 @@ jobs:
                 # classification を unsafe_trace_violation に上書き
                 if [ "$CLASSIFICATION" = "success" ]; then
                   echo '{"executed": true, "classification": "unsafe_trace_violation"}' > .waza-results/real-agent-status.json
-                  echo '> classification を `unsafe_trace_violation` に上書きしました。'
+                  echo '> classification を **unsafe_trace_violation** に上書きしました。'
                 fi
               fi
             fi

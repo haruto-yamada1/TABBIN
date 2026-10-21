@@ -1,0 +1,267 @@
+import { describe, expect, it, vi } from 'vitest'
+
+import {
+  resolveLanguage,
+  resolveUiLanguage,
+} from '@/features/i18n/lib/language'
+
+type EvaluationConfiguration = {
+  manifest: (env: {
+    browser: string
+    manifestVersion: number
+  }) => Record<string, unknown>
+}
+
+const configuration: { value?: EvaluationConfiguration } = vi.hoisted(
+  () => ({}),
+)
+
+vi.mock('wxt', () => ({
+  defineConfig: (value: EvaluationConfiguration) => {
+    configuration.value = value
+    return value
+  },
+}))
+vi.mock('@tailwindcss/vite', () => ({ default: () => [] }))
+vi.mock('@wxt-dev/module-react', () => ({}))
+
+const baselineCsp = (manifestVersion: number) =>
+  [
+    "default-src 'self'",
+    manifestVersion === 3
+      ? "script-src 'self' 'wasm-unsafe-eval'"
+      : "script-src 'self'",
+    "object-src 'none'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "media-src 'self' data: blob:",
+    "connect-src 'self' blob: http://localhost:11434 http://127.0.0.1:11434",
+    "worker-src 'self'",
+    "frame-src 'none'",
+    "form-action 'none'",
+    "base-uri 'none'",
+  ].join('; ')
+
+const validFirefoxArtifactManifest = (): Record<string, unknown> => ({
+  manifest_version: 2,
+  default_locale: 'en',
+  content_security_policy: baselineCsp(2),
+  permissions: ['alarms', 'tabs', 'storage'],
+  icons: Object.fromEntries(
+    ['16', '32', '48', '96', '128'].map((size) => [
+      size,
+      `assets/icon-${size}.png`,
+    ]),
+  ),
+  options_ui: { page: 'options.html', open_in_tab: true },
+  background: { scripts: ['entrypoints/background.js'] },
+  browser_specific_settings: {
+    gecko: { data_collection_permissions: { required: ['none'] } },
+  },
+})
+
+const verifierModule = () =>
+  import('../../../../tools/scripts/firefoxArtifactContract')
+
+describe('Issue 675 language policy', () => {
+  it('uses English as the extension default for both supported browsers', async () => {
+    await import('../../../../wxt.config')
+    const config = configuration.value
+    expect(config).toBeDefined()
+    if (!config) {
+      throw new Error('WXT configuration was not exported')
+    }
+    for (const [browser, manifestVersion] of [
+      ['chrome', 3],
+      ['firefox', 2],
+    ] as const) {
+      expect(config.manifest({ browser, manifestVersion }).default_locale).toBe(
+        'en',
+      )
+    }
+  })
+
+  it.each([
+    ['chrome', 3],
+    ['firefox', 2],
+  ] as const)(
+    'preserves the %s manifest network and permission policy',
+    async (browser, manifestVersion) => {
+      await import('../../../../wxt.config')
+      const config = configuration.value
+      if (!config) {
+        throw new Error('WXT configuration was not exported')
+      }
+      const manifest = config.manifest({ browser, manifestVersion })
+      expect(manifest.permissions).toEqual([
+        'alarms',
+        'tabs',
+        'storage',
+        'contextMenus',
+        'notifications',
+        'unlimitedStorage',
+      ])
+      expect(manifest.host_permissions).toEqual([
+        'http://localhost:11434/*',
+        'http://127.0.0.1:11434/*',
+      ])
+      expect(manifest.content_security_policy).toEqual({
+        extension_pages: baselineCsp(manifestVersion),
+      })
+      expect(manifest.incognito).toBe('not_allowed')
+      expect(manifest.options_ui).toEqual({
+        page: 'options.html',
+        open_in_tab: true,
+      })
+      if (browser === 'firefox') {
+        expect(manifest.browser_specific_settings).toEqual({
+          gecko: { data_collection_permissions: { required: ['none'] } },
+        })
+      }
+    },
+  )
+
+  it('resolves supported variants and unsupported or absent browser locales', () => {
+    for (const locale of ['ja-JP', 'JA-jp', ' ja ']) {
+      expect(resolveUiLanguage(locale)).toBe('ja')
+    }
+    for (const locale of ['en-US', 'EN-gb', ' en ']) {
+      expect(resolveUiLanguage(locale)).toBe('en')
+    }
+    for (const locale of ['fr-FR', 'ko-KR', 'zh-CN', '', undefined]) {
+      expect(resolveLanguage('system', locale)).toBe('en')
+      expect(resolveLanguage('ja', locale)).toBe('ja')
+      expect(resolveLanguage('en', locale)).toBe('en')
+    }
+  })
+
+  it('requires the English locale in Firefox artifact verification', async () => {
+    const { collectFirefoxArtifactContractViolations } =
+      await import('../../../../tools/scripts/firefoxArtifactContract')
+    const makeManifest = (defaultLocale: string) => ({
+      default_locale: defaultLocale,
+      manifest_version: 2,
+      permissions: [],
+    })
+    const english = collectFirefoxArtifactContractViolations({
+      manifest: makeManifest('en'),
+      fileExists: () => true,
+    })
+    const japanese = collectFirefoxArtifactContractViolations({
+      manifest: makeManifest('ja'),
+      fileExists: () => true,
+    })
+    expect(
+      english.filter((item) => item.path.endsWith('.default_locale')),
+    ).toEqual([])
+    expect(japanese.some((item) => item.path.endsWith('.default_locale'))).toBe(
+      true,
+    )
+    const missingEnglish = collectFirefoxArtifactContractViolations({
+      manifest: makeManifest('en'),
+      fileExists: (name) => name !== '_locales/en/messages.json',
+    })
+    expect(missingEnglish).toContainEqual(
+      expect.objectContaining({
+        category: 'artifact',
+        path: 'firefox-mv2/_locales/en/messages.json',
+      }),
+    )
+  })
+
+  it('accepts the new locale while retaining the complete Firefox artifact contract', async () => {
+    const {
+      collectFirefoxArtifactContractViolations,
+      assertFirefoxArtifactContract,
+    } = await verifierModule()
+    const params = {
+      manifest: validFirefoxArtifactManifest(),
+      fileExists: () => true,
+    }
+    expect(collectFirefoxArtifactContractViolations(params)).toEqual([])
+    expect(() => assertFirefoxArtifactContract(params)).not.toThrow()
+  })
+
+  it('rejects a non-object Firefox manifest', async () => {
+    const {
+      collectFirefoxArtifactContractViolations,
+      assertFirefoxArtifactContract,
+    } = await verifierModule()
+    const params = { manifest: null, fileExists: () => true }
+    expect(collectFirefoxArtifactContractViolations(params)).toContainEqual(
+      expect.objectContaining({ category: 'manifest', path: 'firefox-mv2' }),
+    )
+    expect(() => assertFirefoxArtifactContract(params)).toThrow()
+  })
+
+  it.each([
+    ['manifest_version', 3, 'firefox-mv2'],
+    [
+      'content_security_policy',
+      { extension_pages: baselineCsp(3) },
+      'firefox-mv2.content_security_policy',
+    ],
+    ['options_ui', { page: 'unsafe.html' }, 'firefox-mv2.options_ui'],
+    ['icons', { '16': 'assets/icon-16.png' }, 'firefox-mv2.icons'],
+    ['permissions', ['tabs', 'debugger'], 'firefox-mv2.permissions'],
+    [
+      'browser_specific_settings',
+      {
+        gecko: {
+          data_collection_permissions: {
+            required: ['technicalAndInteraction'],
+          },
+        },
+      },
+      'firefox-mv2.browser_specific_settings',
+    ],
+    ['background', { scripts: [] }, 'firefox-mv2.background'],
+    [
+      'background',
+      { scripts: ['entrypoints/background.js', 7] },
+      'firefox-mv2.background',
+    ],
+  ] as const)(
+    'retains rejection of invalid Firefox %s',
+    async (field, value, path) => {
+      const {
+        collectFirefoxArtifactContractViolations,
+        assertFirefoxArtifactContract,
+      } = await verifierModule()
+      const manifest = { ...validFirefoxArtifactManifest(), [field]: value }
+      const params = { manifest, fileExists: () => true }
+      expect(collectFirefoxArtifactContractViolations(params)).toContainEqual(
+        expect.objectContaining({ category: 'manifest', path }),
+      )
+      expect(() => assertFirefoxArtifactContract(params)).toThrow()
+    },
+  )
+
+  it.each([
+    'entrypoints/background.js',
+    '_locales/ja/messages.json',
+    'options.html',
+    'assets/icon-16.png',
+    'assets/icon-32.png',
+    'assets/icon-48.png',
+    'assets/icon-96.png',
+    'assets/icon-128.png',
+  ])('retains rejection of missing declared artifact %s', async (missing) => {
+    const {
+      collectFirefoxArtifactContractViolations,
+      assertFirefoxArtifactContract,
+    } = await verifierModule()
+    const params = {
+      manifest: validFirefoxArtifactManifest(),
+      fileExists: (name: string) => name !== missing,
+    }
+    expect(collectFirefoxArtifactContractViolations(params)).toContainEqual(
+      expect.objectContaining({
+        category: 'artifact',
+        path: `firefox-mv2/${missing}`,
+      }),
+    )
+    expect(() => assertFirefoxArtifactContract(params)).toThrow()
+  })
+})

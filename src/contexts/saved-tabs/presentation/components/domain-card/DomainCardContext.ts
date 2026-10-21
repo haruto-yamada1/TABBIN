@@ -23,7 +23,9 @@ export type DomainCardContextType = {
   /** 並び替えモード状態 */
   isReorderMode: boolean
   /** ソート可能な属性・リスナー */
-  sortable: Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>
+  sortable: Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'> & {
+    setActivatorNodeRef?: ReturnType<typeof useSortable>['setActivatorNodeRef']
+  }
   /** 操作ハンドラ */
   handlers: {
     handleOpenAllTabs: SortableDomainCardProps['handleOpenAllTabs']

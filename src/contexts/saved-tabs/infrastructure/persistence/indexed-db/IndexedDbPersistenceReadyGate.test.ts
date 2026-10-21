@@ -12,7 +12,7 @@ const createRejectingGate = (): {
   readonly error: PersistenceUnavailableError
   readonly gate: PersistenceOperationGatePort
 } => {
-  const error = new PersistenceUnavailableError('PERSISTENCE_ROUTE_MISMATCH')
+  const error = new PersistenceUnavailableError('PERSISTENCE_RECOVERY_REQUIRED')
   return {
     error,
     gate: {
@@ -22,8 +22,6 @@ const createRejectingGate = (): {
       runIndexedDbWrite: vi.fn(async () => {
         throw error
       }),
-      runLegacyRead: vi.fn(async (operation) => operation()),
-      runLegacyWrite: vi.fn(async (operation) => operation()),
     },
   }
 }

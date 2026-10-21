@@ -1,5 +1,5 @@
 import { AlertCircle, Upload } from 'lucide-react'
-import { useCallback, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import type { FileRejection } from 'react-dropzone'
 import { toast } from 'sonner'
@@ -17,7 +17,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import {
-  getImportPreview,
+  prepareImportPreview,
   importSettings,
 } from '@/features/options/lib/import-export'
 import {
@@ -25,6 +25,7 @@ import {
   validateBackupSerializedBytes,
 } from '@/lib/persistence/backupResourcePolicy'
 
+import { BackupImportDiffPreview } from './BackupImportDiffPreview'
 import {
   createCloseImportDialogAction,
   createImportDialogOpenChangeHandler,
@@ -33,6 +34,8 @@ import {
   resetImportFileInput,
 } from './importFileDialog.helpers'
 import type { PreviewData } from './importFileDialog.helpers'
+import { ALL_BACKUP_IMPORT_SECTIONS } from './lib/import-export/v2/BackupV2ImportDiff'
+import type { BackupImportSelection } from './lib/import-export/v2/BackupV2ImportDiff'
 
 type ImportSelectStepProps = {
   isDragActive: boolean
@@ -79,16 +82,25 @@ const ImportSelectStep: React.FC<ImportSelectStepProps> = ({
 
 type ImportPreviewStepProps = {
   previewData: PreviewData
+  selection: BackupImportSelection
+  onSelectionChange: (selection: BackupImportSelection) => void
+  disabled: boolean
 }
 
 const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
   previewData,
+  selection,
+  onSelectionChange,
+  disabled,
 }) => {
   const { t } = useI18n()
 
   return (
     <div className='space-y-4'>
-      <div className='rounded-md bg-muted p-3 text-sm'>
+      <details className='rounded-md bg-muted p-3 text-sm'>
+        <summary className='cursor-pointer font-medium'>
+          {t('options.importExport.backupDetails')}
+        </summary>
         <div className='grid grid-cols-2 gap-x-4 gap-y-3'>
           <div>
             <p className='font-medium'>
@@ -133,7 +145,16 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
             </p>
           </div>
         </div>
-      </div>
+      </details>
+
+      {previewData.comparison && (
+        <BackupImportDiffPreview
+          changes={previewData.comparison.changes}
+          selection={selection}
+          onSelectionChange={onSelectionChange}
+          disabled={disabled}
+        />
+      )}
 
       <Alert variant='destructive' className='my-4'>
         <AlertCircle className='size-4' />
@@ -161,7 +182,18 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     importDialogReducer,
     initialImportDialogState,
   )
-  const selectedFileRef = useRef<File | null>(null)
+  const selectedContentRef = useRef<string | null>(null)
+  const previewGeneration = useRef(0)
+  const [selection, setSelection] = useState<BackupImportSelection>(
+    ALL_BACKUP_IMPORT_SECTIONS,
+  )
+
+  useEffect(
+    () => () => {
+      previewGeneration.current += 1
+    },
+    [],
+  )
 
   const handleOpenImportDialog = useCallback(() => {
     dispatchImportDialog({ type: 'OPEN' })
@@ -185,11 +217,16 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
       }
 
       dispatchImportDialog({ type: 'OPEN' })
-      selectedFileRef.current = file
+      const generation = ++previewGeneration.current
+      selectedContentRef.current = null
+      setSelection(ALL_BACKUP_IMPORT_SECTIONS)
 
       const reader = new FileReader()
       // eslint-disable-next-line unicorn/prefer-add-event-listener
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
+        if (generation !== previewGeneration.current) {
+          return
+        }
         try {
           const fileResult = event.target?.result
           const content = typeof fileResult === 'string' ? fileResult : ''
@@ -198,8 +235,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             return
           }
 
-          const result = getImportPreview(content, t)
+          const result = await prepareImportPreview(content, t)
+          if (generation !== previewGeneration.current) {
+            return
+          }
           if (result.success) {
+            selectedContentRef.current = content
             dispatchImportDialog({
               type: 'SET_PREVIEW',
               preview: result.preview,
@@ -207,14 +248,20 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
           } else {
             toast.error(result.message)
           }
-        } catch (error) {
-          console.error('プレビューエラー:', error)
+        } catch {
+          if (generation !== previewGeneration.current) {
+            return
+          }
+          console.error('プレビューエラー')
           toast.error(t('options.importExport.readError'))
         }
       }
 
       // eslint-disable-next-line unicorn/prefer-add-event-listener
       reader.onerror = () => {
+        if (generation !== previewGeneration.current) {
+          return
+        }
         toast.error(t('options.importExport.readError'))
       }
 
@@ -263,7 +310,8 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
   })
 
   const resetFileInput = useCallback(() => {
-    selectedFileRef.current = null
+    previewGeneration.current += 1
+    selectedContentRef.current = null
     resetImportFileInput(fileInputRef.current)
   }, [])
 
@@ -272,55 +320,49 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
     resetFileInput()
   }, [dispatchImportDialog, resetFileInput])
 
-  const handleConfirmImport = useCallback(() => {
+  const handleConfirmImport = useCallback(async () => {
+    const content = selectedContentRef.current
+    const comparison = importDialog.previewData?.comparison
+    if (!content || !comparison || !Object.values(selection).some(Boolean)) {
+      return
+    }
     setIsImporting(true)
     try {
-      const reader = new FileReader()
-      // eslint-disable-next-line unicorn/prefer-add-event-listener
-      reader.onload = async (event) => {
-        try {
-          const fileResult = event.target?.result
-          const content = typeof fileResult === 'string' ? fileResult : ''
-          if (!content) {
-            toast.error(t('options.importExport.readError'))
-            return
-          }
-
-          const result = await importSettings(content, t)
-          if (result.success) {
-            toast.success(result.message)
-            dispatchImportDialog({ type: 'CLOSE' })
-            selectedFileRef.current = null
-            await onImportSuccess()
-          } else {
-            toast.error(result.message)
-          }
-        } catch (error) {
-          console.error('インポートエラー:', error)
-          toast.error(t('options.importExport.importError'))
-        } finally {
-          setIsImporting(false)
-          if (fileInputRef.current) {
-            fileInputRef.current.value = ''
-          }
-        }
+      const result = await importSettings(content, t, {
+        current: comparison.current,
+        selection,
+      })
+      if (result.success) {
+        toast.success(result.message)
+        dispatchImportDialog({ type: 'CLOSE' })
+        resetFileInput()
+        await onImportSuccess()
+      } else {
+        toast.error(result.message)
       }
-      // eslint-disable-next-line unicorn/prefer-add-event-listener
-      reader.onerror = () => {
-        toast.error(t('options.importExport.readError'))
-        setIsImporting(false)
-      }
-      const file = selectedFileRef.current
-      if (!file) {
-        return
-      }
-      reader.readAsText(file) // eslint-disable-line unicorn/prefer-blob-reading-methods
-    } catch (error) {
-      console.error('インポートエラー:', error)
+    } catch {
+      console.error('インポートエラー')
       toast.error(t('options.importExport.importError'))
+    } finally {
       setIsImporting(false)
     }
-  }, [onImportSuccess, t])
+  }, [importDialog.previewData, onImportSuccess, resetFileInput, selection, t])
+
+  const handleConfirmClick = useCallback(() => {
+    void handleConfirmImport()
+  }, [handleConfirmImport])
+  const handleDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (isImporting) {
+        return
+      }
+      createImportDialogOpenChangeHandler({
+        close: createCloseImportDialogAction(dispatchImportDialog),
+        resetFileInput,
+      })(open)
+    },
+    [isImporting, resetFileInput],
+  )
 
   return (
     <>
@@ -346,14 +388,8 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
         className='hidden'
       />
 
-      <Dialog
-        open={importDialog.isOpen}
-        onOpenChange={createImportDialogOpenChangeHandler({
-          close: createCloseImportDialogAction(dispatchImportDialog),
-          resetFileInput,
-        })}
-      >
-        <DialogContent className='flex max-h-[90vh] flex-col gap-3 p-4 sm:max-w-md'>
+      <Dialog open={importDialog.isOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent className='flex max-h-[90vh] flex-col gap-3 p-4 sm:max-w-xl'>
           <DialogHeader className='shrink-0'>
             <DialogTitle>
               {importDialog.step === 'preview'
@@ -378,7 +414,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
               )}
 
               {importDialog.step === 'preview' && importDialog.previewData && (
-                <ImportPreviewStep previewData={importDialog.previewData} />
+                <ImportPreviewStep
+                  previewData={importDialog.previewData}
+                  selection={selection}
+                  onSelectionChange={setSelection}
+                  disabled={isImporting}
+                />
               )}
             </div>
           </ScrollArea>
@@ -396,8 +437,12 @@ export const ImportFileDialog: React.FC<ImportFileDialogProps> = ({
             )}
             {importDialog.step === 'preview' && (
               <Button
-                onClick={handleConfirmImport}
-                disabled={isImporting}
+                onClick={handleConfirmClick}
+                disabled={
+                  isImporting ||
+                  !importDialog.previewData?.comparison ||
+                  !Object.values(selection).some(Boolean)
+                }
                 className='w-full cursor-pointer sm:w-auto'
               >
                 {isImporting

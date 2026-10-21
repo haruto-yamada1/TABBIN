@@ -1,222 +1,52 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { IDBFactory } from 'fake-indexeddb'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import * as chromeStorageModule from '@/lib/browser/chrome-storage'
+import { resetPersistenceBootstrapRuntimeForTesting } from '@/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime'
 
-import {
-  createSavedTabsPresentationComposition,
-  createSavedTabsUseCases,
-} from './createSavedTabsUseCases'
+import { createSavedTabsPresentationComposition } from './createSavedTabsUseCases'
 
-vi.mock('@/lib/browser/chrome-storage', async () => {
-  const actual = await vi.importActual<typeof chromeStorageModule>(
-    '@/lib/browser/chrome-storage',
-  )
-  return {
-    ...actual,
-    getChromeStorageLocal: vi.fn(),
-  }
+afterEach(() => {
+  resetPersistenceBootstrapRuntimeForTesting()
+  vi.unstubAllGlobals()
 })
 
-const getChromeStorageLocal = chromeStorageModule.getChromeStorageLocal
-
-const setChromeApi = (api: unknown) => {
-  ;(globalThis as { chrome?: unknown }).chrome = api
-}
-
-const restoreChromeApi = () => {
-  delete (globalThis as { chrome?: unknown }).chrome
-}
-
-const buildChromeStorageLocal = (state: Record<string, unknown>) =>
-  ({
-    get: async (key: string) => ({ [key]: state[key] }),
-    remove: async (key: string) => {
-      delete state[key]
-    },
-    set: async (value: Record<string, unknown>) => {
-      Object.assign(state, value)
-    },
-    // eslint-disable-next-line typescript/no-explicit-any
-  }) as any
-
-const buildSavedTabsState = () => ({
-  customProjects: [],
-  savedTabs: [
-    {
-      domain: 'example.com',
-      id: 'group-1',
-      urlIds: ['url-1'],
-    },
-  ],
-  urls: [
-    {
-      id: 'url-1',
-      savedAt: 1,
-      title: 'A',
-      url: 'https://example.com/a',
-    },
-  ],
-})
-
-describe('createSavedTabsUseCases (app/composition)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    restoreChromeApi()
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-    restoreChromeApi()
-  })
-
-  it('5 つの use-case 関数を持つバンドルを返す', () => {
-    vi.mocked(getChromeStorageLocal).mockReturnValue(
-      buildChromeStorageLocal({}),
-    )
-    setChromeApi({
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
-      tabs: { create: vi.fn(async () => ({ url: 'https://example.com' })) },
+describe('saved-tabs production composition', () => {
+  it('loads settings through Chrome Storage and persists projects only in IndexedDB', async () => {
+    const get = vi.fn(async (_key: string) => ({
+      userSettings: { openUrlInBackground: true },
+    }))
+    const set = vi.fn()
+    const create = vi.fn(async () => ({ url: 'https://example.com/' }))
+    vi.stubGlobal('indexedDB', new IDBFactory())
+    vi.stubGlobal('navigator', {
+      locks: {
+        request: async (
+          _name: string,
+          _options: unknown,
+          operation: () => Promise<unknown>,
+        ) => operation(),
+      },
     })
-
-    const useCases = createSavedTabsUseCases()
-
-    expect(useCases.openSavedUrl).toBeTypeOf('function')
-    expect(useCases.deleteTabGroup).toBeTypeOf('function')
-    expect(useCases.restoreOpenedUrlsSnapshot).toBeTypeOf('function')
-    expect(useCases.syncCategoryAssignments).toBeTypeOf('function')
-    expect(useCases.removeUnreferencedUrlRecords).toBeTypeOf('function')
-  })
-
-  it('removeUnreferencedUrlRecords のような副作用無しの use-case は何もせずに正常終了する', async () => {
-    const state: Record<string, unknown> = {
-      'tabbin:savedTabs': [],
-      'tabbin:urls': [],
-      'tabbin:parentCategories': [],
-      'tabbin:customProjects': [],
-    }
-    vi.mocked(getChromeStorageLocal).mockReturnValue(
-      buildChromeStorageLocal(state),
-    )
-    setChromeApi({
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
-      tabs: { create: vi.fn(async () => ({ url: 'https://example.com' })) },
+    vi.stubGlobal('chrome', {
+      storage: { local: { get, set } },
+      tabs: { create },
     })
-
-    const useCases = createSavedTabsUseCases()
-    const result = await useCases.removeUnreferencedUrlRecords()
-
-    expect(result).toStrictEqual({ removedCount: 0, removedUrlRecordIds: [] })
-  })
-
-  it('chrome.storage.local 不在環境でバンドル生成が chrome.storage.local 由来のエラーを投げる (eager 検出)', () => {
-    vi.mocked(getChromeStorageLocal).mockReturnValue(null)
-    const warnSpy = vi
-      .spyOn(console, 'warn')
-      .mockImplementation(() => undefined)
-    setChromeApi({})
-
-    try {
-      expect(() => createSavedTabsUseCases()).toThrow(/chrome\.storage\.local/)
-    } finally {
-      warnSpy.mockRestore()
-    }
-  })
-
-  it('options.resolveActive を渡すと openSavedUrl が active 設定を反映する', async () => {
-    const state: Record<string, unknown> = buildSavedTabsState()
-    vi.mocked(getChromeStorageLocal).mockReturnValue(
-      buildChromeStorageLocal(state),
-    )
-    const create = vi.fn(
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
-      async ({ url }: { active?: boolean; url: string }) => ({ url }),
-    )
-    setChromeApi({ tabs: { create } })
-
-    const useCases = createSavedTabsUseCases({
+    const { deps, useCases } = createSavedTabsPresentationComposition({
       resolveActive: () => false,
     })
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const urlRecordId = 'url-1' as unknown as Parameters<
-      typeof useCases.openSavedUrl
-    >[0]['urlRecordId']
-    await useCases.openSavedUrl({
-      origin: 'click',
-      settings: {
-        removeTabAfterExternalDrop: false,
-        removeTabAfterOpen: false,
-      },
-      urlRecordId,
-    })
-
+    const page = await useCases.getSavedTabsPageData()
+    expect(page.tabGroups).toEqual([])
+    expect(page.userSettings.openUrlInBackground).toBe(true)
+    await useCases.createCustomProject({ name: 'Research' })
+    expect(await useCases.getCustomProjects()).toEqual([
+      expect.objectContaining({ name: 'Research' }),
+    ])
+    await deps.browserTabPort.open({ url: 'https://example.com/' })
     expect(create).toHaveBeenCalledWith({
       active: false,
-      url: 'https://example.com/a',
+      url: 'https://example.com/',
     })
-  })
-})
-
-describe('createSavedTabsPresentationComposition (app/composition)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    restoreChromeApi()
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-    restoreChromeApi()
-  })
-
-  it('presentation ports と use-case 群のバンドルを返す', () => {
-    vi.mocked(getChromeStorageLocal).mockReturnValue(
-      buildChromeStorageLocal({}),
-    )
-    setChromeApi({
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
-      tabs: { create: vi.fn(async () => ({ url: 'https://example.com' })) },
-    })
-
-    const composition = createSavedTabsPresentationComposition()
-
-    expect(composition.deps.browserTabPort).toBeTypeOf('object')
-    expect(composition.deps.categoryAssignmentPort).toBeTypeOf('object')
-    expect(composition.deps.messagingPort).toBeTypeOf('object')
-    expect(composition.deps.migrationPort).toBeTypeOf('object')
-    expect(composition.deps.storageChangePort).toBeTypeOf('object')
-    expect(composition.useCases.openSavedUrl).toBeTypeOf('function')
-    expect(composition.useCases.deleteTabGroup).toBeTypeOf('function')
-  })
-
-  it('resolveActive を渡すと use-case に反映される', async () => {
-    const state: Record<string, unknown> = buildSavedTabsState()
-    vi.mocked(getChromeStorageLocal).mockReturnValue(
-      buildChromeStorageLocal(state),
-    )
-    const create = vi.fn(
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
-      async ({ url }: { active?: boolean; url: string }) => ({ url }),
-    )
-    setChromeApi({ tabs: { create } })
-
-    const composition = createSavedTabsPresentationComposition({
-      resolveActive: () => false,
-    })
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    const urlRecordId = 'url-1' as unknown as Parameters<
-      typeof composition.useCases.openSavedUrl
-    >[0]['urlRecordId']
-    await composition.useCases.openSavedUrl({
-      origin: 'click',
-      settings: {
-        removeTabAfterExternalDrop: false,
-        removeTabAfterOpen: false,
-      },
-      urlRecordId,
-    })
-
-    expect(create).toHaveBeenCalledWith({
-      active: false,
-      url: 'https://example.com/a',
-    })
+    expect(get.mock.calls.every(([key]) => key === 'userSettings')).toBe(true)
+    expect(set).not.toHaveBeenCalled()
   })
 })

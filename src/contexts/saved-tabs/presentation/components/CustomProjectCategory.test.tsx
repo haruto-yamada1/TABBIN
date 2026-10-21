@@ -203,6 +203,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,
@@ -258,6 +259,41 @@ describe('CustomProjectCategory', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('gives categories in different projects distinct handles without dragging from controls', () => {
+    const setActivatorNodeRef = vi.fn()
+    const onKeyDown = vi.fn()
+    useSortableMock.mockReturnValue({
+      attributes: { role: 'button', tabIndex: 0 },
+      listeners: { onKeyDown },
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef,
+      transform: null,
+      transition: undefined,
+    })
+    const props = createProps()
+    render(
+      <>
+        <CustomProjectCategory {...props} />
+        <CustomProjectCategory {...props} projectId='project-2' />
+      </>,
+    )
+    expect(
+      new Set(useSortableMock.mock.calls.map(([options]) => options.id)).size,
+    ).toBe(2)
+    const handles = screen.getAllByRole('button', {
+      name: 'ドラッグしてカテゴリ「Work」を並べ替える',
+    })
+    expect(setActivatorNodeRef).toHaveBeenCalledWith(handles[0])
+    const collapse = screen.getAllByRole('button', { name: '折りたたむ' })[0]
+    if (!collapse) {
+      throw new Error('Expected a category collapse control')
+    }
+    // Fire the activator event directly to verify it cannot reach the drag listener.
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.keyDown(collapse, { code: 'Space' })
+    expect(onKeyDown).not.toHaveBeenCalled()
   })
 
   it('カテゴリURLをフィルタして描画し、折りたたみ・ソート・即時一括操作を処理する', async () => {

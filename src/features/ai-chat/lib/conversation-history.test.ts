@@ -1,19 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
-import { resetAiConversationHistoryDataPlaneForTesting } from '@/app/composition/aiConversationHistoryDataPlane'
+const mocked = vi.hoisted(() => ({ read: vi.fn(), replace: vi.fn() }))
 
-const mocked = vi.hoisted(() => ({
-  getChromeStorageLocal: vi.fn(),
-  storageLocal: {
-    get: vi.fn(),
-    set: vi.fn(),
-  },
-  warnMissingChromeStorage: vi.fn(),
-}))
-
-vi.mock('@/lib/browser/chrome-storage', () => ({
-  getChromeStorageLocal: mocked.getChromeStorageLocal,
-  warnMissingChromeStorage: mocked.warnMissingChromeStorage,
+vi.mock('@/app/composition/aiConversationHistoryDataPlane', () => ({
+  getAiConversationHistoryDataPlane: () => ({
+    read: mocked.read,
+    replace: mocked.replace,
+  }),
 }))
 
 import {
@@ -26,10 +19,11 @@ import {
 describe('conversation-history', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    resetAiConversationHistoryDataPlaneForTesting()
-    mocked.getChromeStorageLocal.mockReturnValue(mocked.storageLocal)
-    mocked.storageLocal.get.mockResolvedValue({})
-    mocked.storageLocal.set.mockResolvedValue(undefined)
+    mocked.read.mockResolvedValue({
+      activeConversationId: undefined,
+      conversations: [],
+    })
+    mocked.replace.mockResolvedValue(undefined)
   })
 
   it('最初の user メッセージから会話タイトルを生成する', () => {
@@ -63,9 +57,9 @@ describe('conversation-history', () => {
   })
 
   it('読み込み時に中断された assistant メッセージを正規化して保存し直す', async () => {
-    mocked.storageLocal.get.mockResolvedValue({
-      activeAiChatConversationId: 'conversation-1',
-      aiChatConversations: [
+    mocked.read.mockResolvedValue({
+      activeConversationId: 'conversation-1',
+      conversations: [
         {
           createdAt: 1,
           id: 'conversation-1',
@@ -118,16 +112,16 @@ describe('conversation-history', () => {
       ],
     })
 
-    expect(mocked.storageLocal.set).toHaveBeenCalledWith({
-      activeAiChatConversationId: 'conversation-1',
-      aiChatConversations: history.conversations,
+    expect(mocked.replace).toHaveBeenCalledWith({
+      activeConversationId: 'conversation-1',
+      conversations: history.conversations,
     })
   })
 
   it('本文がある中断 assistant メッセージは本文を残して中断文言を追記する', async () => {
-    mocked.storageLocal.get.mockResolvedValue({
-      activeAiChatConversationId: 'conversation-1',
-      aiChatConversations: [
+    mocked.read.mockResolvedValue({
+      activeConversationId: 'conversation-1',
+      conversations: [
         {
           createdAt: 1,
           id: 'conversation-1',
@@ -154,13 +148,13 @@ describe('conversation-history', () => {
       isStreaming: false,
       role: 'assistant',
     })
-    expect(mocked.storageLocal.set).toHaveBeenCalledTimes(1)
+    expect(mocked.replace).toHaveBeenCalledTimes(1)
   })
 
   it('中断文言が既に含まれる assistant メッセージは追記しない', async () => {
-    mocked.storageLocal.get.mockResolvedValue({
-      activeAiChatConversationId: 'conversation-1',
-      aiChatConversations: [
+    mocked.read.mockResolvedValue({
+      activeConversationId: 'conversation-1',
+      conversations: [
         {
           createdAt: 1,
           id: 'conversation-1',
@@ -191,9 +185,9 @@ describe('conversation-history', () => {
   })
 
   it('通常の履歴は読み込み時に保存し直さない', async () => {
-    mocked.storageLocal.get.mockResolvedValue({
-      activeAiChatConversationId: 'conversation-1',
-      aiChatConversations: [
+    mocked.read.mockResolvedValue({
+      activeConversationId: 'conversation-1',
+      conversations: [
         {
           createdAt: 1,
           id: 'conversation-1',
@@ -213,13 +207,13 @@ describe('conversation-history', () => {
 
     await loadConversationHistory()
 
-    expect(mocked.storageLocal.set).not.toHaveBeenCalled()
+    expect(mocked.replace).not.toHaveBeenCalled()
   })
 
   it('active id が存在しない場合は先頭会話を active にする', async () => {
-    mocked.storageLocal.get.mockResolvedValue({
-      activeAiChatConversationId: 'missing-conversation',
-      aiChatConversations: [
+    mocked.read.mockResolvedValue({
+      activeConversationId: 'missing-conversation',
+      conversations: [
         {
           createdAt: 1,
           id: 'conversation-1',
@@ -235,7 +229,7 @@ describe('conversation-history', () => {
     expect(history.activeConversationId).toBe('conversation-1')
   })
 
-  it('履歴を storage に保存する', async () => {
+  it('履歴をdomain data planeに保存する', async () => {
     const conversation = createConversationRecord({
       id: 'conversation-1',
       messages: [
@@ -252,27 +246,22 @@ describe('conversation-history', () => {
       conversations: [conversation],
     })
 
-    expect(mocked.storageLocal.set).toHaveBeenCalledWith({
-      activeAiChatConversationId: 'conversation-1',
-      aiChatConversations: [conversation],
+    expect(mocked.replace).toHaveBeenCalledWith({
+      activeConversationId: 'conversation-1',
+      conversations: [conversation],
     })
   })
 
-  it('chrome storage がない場合は既定履歴を返し保存は警告だけにする', async () => {
-    mocked.getChromeStorageLocal.mockReturnValue(null)
-
-    const history = await loadConversationHistory('新規')
-
-    expect(history.conversations[0]?.title).toBe('新規')
-    expect(mocked.warnMissingChromeStorage).toHaveBeenCalledWith(
-      'AIチャット履歴の読み込み',
-    )
-
-    await saveConversationHistory(history)
-
-    expect(mocked.warnMissingChromeStorage).toHaveBeenCalledWith(
-      'AIチャット履歴の保存',
-    )
-    expect(mocked.storageLocal.set).not.toHaveBeenCalled()
+  it('IndexedDB failureを空の履歴や保存成功に置き換えず呼び出し元へ返す', async () => {
+    const error = new Error('database unavailable')
+    mocked.read.mockRejectedValueOnce(error)
+    await expect(loadConversationHistory()).rejects.toBe(error)
+    mocked.replace.mockRejectedValueOnce(error)
+    await expect(
+      saveConversationHistory({
+        activeConversationId: 'conversation-1',
+        conversations: [],
+      }),
+    ).rejects.toBe(error)
   })
 })

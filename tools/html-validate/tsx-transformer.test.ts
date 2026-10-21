@@ -20,6 +20,37 @@ function transform(source: string, filename = 'fixture.tsx'): string {
 }
 
 describe('tsx html-validate transformer', () => {
+  it.each(['fixture.tsx', 'fixture.jsx'])(
+    'preserves Unicode JSX and UTF-16 source positions after a BOM in %s',
+    (filename) => {
+      const firstLine = '\uFEFF// 日本語 🚀'
+      const secondLine =
+        'export const View = () => /* 保存 🌟 */ <button title={\'保存 "🚀" <確認> & 続行\'}>日本語 & 🚀</button>'
+      const source = `${firstLine}\r\n${secondLine}`
+      const originalData = `original ${source}`
+
+      expect(
+        transformer({
+          data: source,
+          originalData,
+          filename,
+          line: 1,
+          column: 1,
+          offset: 0,
+        }),
+      ).toStrictEqual([
+        {
+          data: '<button title="保存 &quot;🚀&quot; &lt;確認&gt; &amp; 続行">日本語 &amp; 🚀</button>',
+          filename,
+          line: 2,
+          column: secondLine.indexOf('<button') + 1,
+          offset: source.indexOf('<button'),
+          originalData,
+        },
+      ])
+    },
+  )
+
   it('extracts native JSX elements from TSX source', () => {
     expect(
       transform(`

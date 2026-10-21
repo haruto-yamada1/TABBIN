@@ -1,6 +1,6 @@
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 
-import type { NetworkCallsiteKind } from './production-network-policy'
+import type { NetworkCallsiteKind } from './production-network-policy.ts'
 
 export type AliasScope = {
   bindings: Map<string, ReadonlySet<NetworkCallsiteKind>>
@@ -9,7 +9,13 @@ export type AliasScope = {
   type: 'block' | 'function' | 'source'
 }
 
-export const collectBindingIdentifiers = (name: ts.BindingName): string[] => {
+export const collectBindingIdentifiers = (
+  name: ts.BindingName | undefined,
+): string[] => {
+  // Native ASTs represent array elisions as binding elements without a name.
+  if (name === undefined) {
+    return []
+  }
   if (ts.isIdentifier(name)) {
     return [name.text]
   }

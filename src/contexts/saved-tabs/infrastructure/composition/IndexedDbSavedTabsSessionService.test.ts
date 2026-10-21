@@ -79,6 +79,56 @@ const createUnitOfWork = () => {
 }
 
 describe('IndexedDbSavedTabsSessionService', () => {
+  it('maps only native commit rejection with the already computed result', async () => {
+    const snapshotReaderPort = createSnapshotReaderPort()
+    const { commit, unitOfWork } = createUnitOfWork()
+    const commitError = new Error('native commit failed')
+    commit.mockRejectedValueOnce(commitError)
+    const mappedError = new Error('confirmed operation failed to commit')
+    const onCommitFailure = vi.fn((_error: unknown, _result: string): never => {
+      throw mappedError
+    })
+    const service = new IndexedDbSavedTabsSessionService({
+      snapshotReaderPort,
+      unitOfWorkPort: unitOfWork,
+    })
+
+    await expect(
+      service.run(async (state) => {
+        state.memberships = []
+        state.urls = []
+        return 'confirmed-result'
+      }, onCommitFailure),
+    ).rejects.toBe(mappedError)
+    expect(onCommitFailure).toHaveBeenCalledExactlyOnceWith(
+      commitError,
+      'confirmed-result',
+    )
+  })
+
+  it('does not map failure before the operation returns', async () => {
+    const snapshotReaderPort = createSnapshotReaderPort()
+    const { commit, unitOfWork } = createUnitOfWork()
+    const operationError = new Error(
+      'operation failed before producing a result',
+    )
+    const onCommitFailure = vi.fn((): never => {
+      throw new Error('must not run')
+    })
+    const service = new IndexedDbSavedTabsSessionService({
+      snapshotReaderPort,
+      unitOfWorkPort: unitOfWork,
+    })
+
+    await expect(
+      service.run(async () => {
+        throw operationError
+      }, onCommitFailure),
+    ).rejects.toBe(operationError)
+    expect(onCommitFailure).not.toHaveBeenCalled()
+    expect(commit).not.toHaveBeenCalled()
+  })
+
   it('commits one normalized multi-store plan with expectedRevision CAS', async () => {
     const snapshotReaderPort = createSnapshotReaderPort()
     const { commit, unitOfWork } = createUnitOfWork()

@@ -231,6 +231,7 @@ describe('syncStorageChanges', () => {
       excludePatterns: [],
       enableCategories: true,
       autoDeletePeriod: 'never',
+      showRelativeSavedTime: false,
       showSavedTime: false,
       clickBehavior: 'saveCurrentTab',
       excludePinnedTabs: false,

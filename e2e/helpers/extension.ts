@@ -16,7 +16,9 @@ type ExtensionFixtures = {
   page: Page
 }
 
-const extensionPath = path.join(process.cwd(), '.output', 'chrome-mv3')
+const extensionPath =
+  process.env.TABBIN_E2E_EXTENSION_PATH ??
+  path.join(process.cwd(), '.output', 'chrome-mv3')
 
 export const test = base.extend<ExtensionFixtures>({
   extensionContext: async ({ browserName }, runFixture) => {
@@ -30,6 +32,7 @@ export const test = base.extend<ExtensionFixtures>({
       {
         channel: 'chromium',
         args: [
+          '--enable-unsafe-extension-debugging',
           `--disable-extensions-except=${extensionPath}`,
           `--load-extension=${extensionPath}`,
         ],
@@ -102,14 +105,7 @@ export const defaultUserSettings = {
 }
 
 export const createBaseSeed = (overrides?: Record<string, unknown>) => ({
-  customProjectOrder: [],
-  customProjects: [],
-  domainCategoryMappings: [],
-  domainCategorySettings: [],
-  parentCategories: [],
-  savedTabs: [],
   'tab-manager-theme': 'system',
-  urls: [],
   userSettings: { ...defaultUserSettings },
   viewMode: 'domain',
   ...overrides,
@@ -119,7 +115,7 @@ export const getExtensionUrl = (extensionId: string, pathname: string) =>
   `chrome-extension://${extensionId}/${pathname}`
 
 export const seedStorage = async (
-  serviceWorker: Worker,
+  serviceWorker: Pick<Worker, 'evaluate'>,
   seed: Record<string, unknown>,
 ) => {
   await serviceWorker.evaluate(async (value) => {
@@ -128,7 +124,7 @@ export const seedStorage = async (
   }, seed)
 }
 
-type PersistenceV2SavedTabsSeed = {
+export type PersistenceV2SavedTabsSeed = {
   categories: readonly Record<string, unknown>[]
   collections: readonly Record<string, unknown>[]
   groups: readonly Record<string, unknown>[]
@@ -137,9 +133,10 @@ type PersistenceV2SavedTabsSeed = {
 }
 
 export const seedPersistenceV2SavedTabs = async (
-  serviceWorker: Worker,
+  serviceWorker: Pick<Worker, 'evaluate'>,
   seed: PersistenceV2SavedTabsSeed,
 ) => {
+  await waitForPersistenceV2Ready(serviceWorker)
   await serviceWorker.evaluate(async (value) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open('tabbin-persistence-v2', 1)
@@ -199,8 +196,19 @@ export const seedPersistenceV2SavedTabs = async (
   }, seed)
 }
 
+export const seedSavedTabsFixture = async (
+  serviceWorker: Pick<Worker, 'evaluate'>,
+  seed: {
+    storage: Record<string, unknown>
+    persistence: PersistenceV2SavedTabsSeed
+  },
+) => {
+  await seedStorage(serviceWorker, seed.storage)
+  await seedPersistenceV2SavedTabs(serviceWorker, seed.persistence)
+}
+
 export const readStorage = async <T>(
-  serviceWorker: Worker,
+  serviceWorker: Pick<Worker, 'evaluate'>,
   keys?: string | string[],
 ) =>
   serviceWorker.evaluate(async (value) => {
@@ -237,7 +245,7 @@ type PersistenceV2SavedTabsStoreName =
   | 'urls'
 
 export const readPersistenceV2Store = async <T>(
-  serviceWorker: Worker,
+  serviceWorker: Pick<Worker, 'evaluate'>,
   storeName: PersistenceV2SavedTabsStoreName,
 ): Promise<T[]> =>
   serviceWorker.evaluate(async (value) => {
@@ -266,7 +274,7 @@ export const readPersistenceV2Store = async <T>(
   }, storeName)
 
 export const readPersistenceV2SavedTabsSnapshot = async (
-  serviceWorker: Worker,
+  serviceWorker: Pick<Worker, 'evaluate'>,
 ) =>
   serviceWorker.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -324,25 +332,48 @@ export const readPersistenceV2SavedTabsSnapshot = async (
   })
 
 export const waitForPersistenceV2Ready = async (
-  serviceWorker: Worker,
+  serviceWorker: Pick<Worker, 'evaluate'>,
 ): Promise<void> => {
   await expect
     .poll(async () => {
-      const state = await readStorage<
-        Record<string, { issueCodes?: string[]; status?: string }>
-      >(serviceWorker, [
-        'tabbin:migrationPreflight:v1',
-        'tabbin:persistenceControlState:v2',
-      ])
-      return {
-        control: state['tabbin:persistenceControlState:v2']?.status,
-        issueCodes: state['tabbin:migrationPreflight:v1']?.issueCodes,
-        preflight: state['tabbin:migrationPreflight:v1']?.status,
-      }
+      return serviceWorker.evaluate(async () => {
+        const databases = await indexedDB.databases()
+        return databases.some(
+          ({ name, version }) =>
+            name === 'tabbin-persistence-v2' && version === 1,
+        )
+      })
     })
-    .toEqual({
-      control: 'indexeddb',
-      issueCodes: undefined,
-      preflight: 'healthy',
+    .toBe(true)
+}
+
+export const triggerToolbarAction = async (
+  context: BrowserContext,
+  page: Page,
+  extensionId: string,
+) => {
+  const browser = context.browser()
+  if (!browser) {
+    throw new Error('The Chromium browser is unavailable.')
+  }
+  const cdp = await browser.newBrowserCDPSession()
+  try {
+    const { targetInfos } = await cdp.send('Target.getTargets', {
+      filter: [{ type: 'tab' }, { exclude: true }],
     })
+    const targets = targetInfos.filter(
+      ({ type, url }) => type === 'tab' && url === page.url(),
+    )
+    expect(targets).toHaveLength(1)
+    const [target] = targets
+    if (!target) {
+      throw new Error('The save target tab is unavailable.')
+    }
+    await cdp.send('Extensions.triggerAction', {
+      id: extensionId,
+      targetId: target.targetId,
+    })
+  } finally {
+    await cdp.detach()
+  }
 }

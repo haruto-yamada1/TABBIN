@@ -1,0 +1,285 @@
+diff --git a/src/app/composition/renderRecoveryExport.ts b/src/app/composition/renderRecoveryExport.ts
+new file mode 100644
+index 00000000..92d0cc13
+--- /dev/null
++++ b/src/app/composition/renderRecoveryExport.ts
+@@ -0,0 +1,12 @@
++const ISO_DATE_LENGTH = 10
++
++export const exportRenderRecoveryBackup = async (): Promise<void> => {
++  const [{ exportBackupV2 }, { downloadAsJson }] = await Promise.all([
++    import('./optionsBackupV2Export'),
++    import('@/features/options/lib/import-export'),
++  ])
++  const backup = await exportBackupV2()
++  const date = new Date().toISOString().slice(0, ISO_DATE_LENGTH)
++
++  await downloadAsJson(backup, `tabbin-backup-${date}.json`)
++}
+diff --git a/src/entrypoints/app/main.tsx b/src/entrypoints/app/main.tsx
+index bb79b31a..cfe02250 100644
+--- a/src/entrypoints/app/main.tsx
++++ b/src/entrypoints/app/main.tsx
+@@ -3,6 +3,7 @@ import type { MigrationPreflightControllerResult } from '@/app/composition/creat
+ import { createMigrationPreflightRecoveryDiagnostic } from '@/app/composition/createMigrationPreflightRecoveryDiagnostic'
+ import { getPersistenceRecoveryController } from '@/app/composition/createPersistenceRecoveryController'
+ import { PersistenceRecoveryNotice } from '@/app/composition/PersistenceRecoveryNotice'
++import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
+ import { ThemeProvider } from '@/components/ThemeProvider'
+ import { TooltipProvider } from '@/components/ui/tooltip'
+ import { I18nProvider } from '@/features/i18n/context/I18nProvider'
+@@ -81,6 +82,7 @@ const mountApp = (): void => {
+       <AppPage />
+     </ThemeProvider>,
+     'Failed to find the app container',
++    { onExport: exportRenderRecoveryBackup },
+   )
+ }
+ 
+diff --git a/src/features/navigation/app/AppLayout.tsx b/src/features/navigation/app/AppLayout.tsx
+index 19e3c6ef..abf0836b 100644
+--- a/src/features/navigation/app/AppLayout.tsx
++++ b/src/features/navigation/app/AppLayout.tsx
+@@ -1,8 +1,10 @@
+ import { Outlet, useLocation } from 'react-router-dom'
+ 
++import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
+ import { DocumentTitleSync } from '@/features/i18n/components/DocumentTitleSync'
+ import { resolveTitlePageKeyFromPathname } from '@/features/i18n/lib/title'
+ import { ExtensionPageShell } from '@/features/navigation/components/ExtensionPageShell'
++import { RenderErrorBoundary } from '@/lib/react/RenderErrorBoundary'
+ 
+ export const AppLayout = () => {
+   const location = useLocation()
+@@ -15,7 +17,12 @@ export const AppLayout = () => {
+         className='flex min-h-0 flex-1 flex-col overflow-hidden'
+         data-testid='app-layout'
+       >
+-        <Outlet />
++        <RenderErrorBoundary
++          key={location.pathname}
++          onExport={exportRenderRecoveryBackup}
++        >
++          <Outlet />
++        </RenderErrorBoundary>
+       </div>
+     </ExtensionPageShell>
+   )
+diff --git a/src/lib/react/RenderErrorBoundary.tsx b/src/lib/react/RenderErrorBoundary.tsx
+new file mode 100644
+index 00000000..c425e11d
+--- /dev/null
++++ b/src/lib/react/RenderErrorBoundary.tsx
+@@ -0,0 +1,144 @@
++import { Component, useCallback, useState } from 'react'
++import type { ReactNode } from 'react'
++
++export type RenderRecoveryOptions = {
++  readonly onExport?: (() => Promise<void>) | undefined
++}
++
++type Props = RenderRecoveryOptions & {
++  readonly children?: ReactNode
++}
++
++type State = {
++  readonly failed: boolean
++}
++
++// Recovery must also work when translation, theme, or feature providers fail.
++const getLabels = () =>
++  document.documentElement.lang.startsWith('ja')
++    ? {
++        title: '画面の表示中に問題が発生しました',
++        description: '再試行するか、ページを再読み込みしてください。',
++        retry: '再試行',
++        reload: 'ページを再読み込み',
++        export: 'データをエクスポート',
++        exporting: 'エクスポート中…',
++        privacy:
++          'バックアップには個人データが含まれます。安全に保管してください。',
++        actionFailed: '操作を完了できませんでした。再試行してください。',
++      }
++    : {
++        title: 'Something went wrong while displaying this page',
++        description: 'Try again or reload the page.',
++        retry: 'Retry',
++        reload: 'Reload page',
++        export: 'Export data',
++        exporting: 'Exporting…',
++        privacy: 'The backup contains private data. Store it securely.',
++        actionFailed: 'The action could not be completed. Please try again.',
++      }
++
++const buttonClassName =
++  'rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50'
++
++const RenderErrorFallback = ({
++  onExport,
++  onRetry,
++}: RenderRecoveryOptions & { readonly onRetry: () => void }) => {
++  const [exporting, setExporting] = useState(false)
++  const [actionFailed, setActionFailed] = useState(false)
++  const handleReload = useCallback(() => {
++    try {
++      window.location.reload()
++    } catch {
++      setActionFailed(true)
++    }
++  }, [])
++
++  const handleExport = useCallback(() => {
++    if (exporting || !onExport) {
++      return
++    }
++    setExporting(true)
++    setActionFailed(false)
++    void Promise.resolve()
++      .then(onExport)
++      .catch(() => {
++        setActionFailed(true)
++      })
++      .finally(() => {
++        setExporting(false)
++      })
++  }, [exporting, onExport])
++
++  const labels = getLabels()
++
++  return (
++    <section
++      className='m-6 mx-auto w-full max-w-2xl rounded-xl border border-border bg-background p-6 text-foreground shadow-sm'
++      role='alert'
++    >
++      <h1 className='text-xl font-semibold'>{labels.title}</h1>
++      <p className='mt-2 text-sm'>{labels.description}</p>
++      {onExport ? <p className='mt-2 text-sm'>{labels.privacy}</p> : null}
++      {actionFailed ? (
++        <p className='mt-3 text-sm text-destructive'>{labels.actionFailed}</p>
++      ) : null}
++      <div className='mt-5 flex flex-wrap gap-3'>
++        <button
++          className={buttonClassName}
++          disabled={exporting}
++          onClick={onRetry}
++          type='button'
++        >
++          {labels.retry}
++        </button>
++        <button
++          className={buttonClassName}
++          onClick={handleReload}
++          type='button'
++        >
++          {labels.reload}
++        </button>
++        {onExport ? (
++          <button
++            className={buttonClassName}
++            disabled={exporting}
++            onClick={handleExport}
++            type='button'
++          >
++            {exporting ? labels.exporting : labels.export}
++          </button>
++        ) : null}
++      </div>
++    </section>
++  )
++}
++
++export class RenderErrorBoundary extends Component<Props, State> {
++  constructor(props: Props) {
++    super(props)
++    this.state = { failed: false }
++  }
++
++  static getDerivedStateFromError(): State {
++    return { failed: true }
++  }
++
++  private readonly handleRetry = () => {
++    // eslint-disable-next-line react/no-set-state -- Resetting an Error Boundary requires React's class state API.
++    this.setState({ failed: false })
++  }
++
++  override render(): ReactNode {
++    if (!this.state.failed) {
++      return this.props.children
++    }
++    return (
++      <RenderErrorFallback
++        onExport={this.props.onExport}
++        onRetry={this.handleRetry}
++      />
++    )
++  }
++}
+diff --git a/src/lib/react/render-root.ts b/src/lib/react/render-root.ts
+index fd3c8702..a81d37fa 100644
+--- a/src/lib/react/render-root.ts
++++ b/src/lib/react/render-root.ts
+@@ -1,7 +1,13 @@
++import { createElement } from 'react'
+ import type { ReactNode } from 'react'
+ import { createRoot } from 'react-dom/client'
+ import type { Root } from 'react-dom/client'
+ 
++import { logger } from '@/lib/logging/logger'
++
++import { RenderErrorBoundary } from './RenderErrorBoundary'
++import type { RenderRecoveryOptions } from './RenderErrorBoundary'
++
+ const roots = new WeakMap<HTMLElement, Root>()
+ 
+ const getOrCreateRoot = (container: HTMLElement): Root => {
+@@ -10,19 +16,37 @@ const getOrCreateRoot = (container: HTMLElement): Root => {
+     return existingRoot
+   }
+ 
+-  const root = createRoot(container)
++  // React's default callbacks log the raw error, including private messages.
++  const root = createRoot(container, {
++    onCaughtError: (error) => {
++      logger.error('react_render_caught', error)
++    },
++    onUncaughtError: (error) => {
++      logger.error('react_render_uncaught', error)
++    },
++    onRecoverableError: (error) => {
++      logger.error('react_render_recoverable', error)
++    },
++  })
+   roots.set(container, root)
+   return root
+ }
+ 
+-const renderToRoot = (container: HTMLElement, node: ReactNode) => {
+-  getOrCreateRoot(container).render(node)
++const renderToRoot = (
++  container: HTMLElement,
++  node: ReactNode,
++  recovery: RenderRecoveryOptions = {},
++) => {
++  getOrCreateRoot(container).render(
++    createElement(RenderErrorBoundary, recovery, node),
++  )
+ }
+ 
+ const mountToElement = (
+   containerId: string,
+   node: ReactNode,
+   notFoundMessage: string,
++  recovery?: RenderRecoveryOptions,
+ ) => {
+   const container = document.querySelector(`#${containerId}`)
+   if (!container) {
+@@ -33,7 +57,7 @@ const mountToElement = (
+     throw new Error(`Container #${containerId} is not an HTMLElement`)
+   }
+ 
+-  renderToRoot(container, node)
++  renderToRoot(container, node, recovery)
+ }
+ 
+ export { getOrCreateRoot, mountToElement, renderToRoot }

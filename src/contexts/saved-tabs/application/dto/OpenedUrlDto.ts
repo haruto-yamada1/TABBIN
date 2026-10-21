@@ -5,7 +5,7 @@ import type { SavedTabsUrlRecordDto } from './SavedTabsPresentationDto'
 /**
  * `OpenSavedUrlUseCase` の結果 DTO。
  *
- * `openedUrl` は実際にブラウザで開いた URL 文字列（`BrowserTabPort` の
+ * `openedUrl` はブラウザで作成を確認した要求 URL 文字列（`BrowserTabPort` の
  * 戻り値）。`removedUrlRecordId` は設定と origin に応じて削除された
  * URL レコードの ID（削除されなかった場合は `null`）。
  *

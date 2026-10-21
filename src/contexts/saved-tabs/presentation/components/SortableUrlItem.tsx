@@ -5,14 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import type { SortableUrlItemProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { toSafeSavedUrlHref } from '@/lib/url-filter'
 import { TimeRemaining } from '@/utils/datetime'
-import { formatFixedDatetime as formatDatetime } from '@/utils/localDateTime'
 
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
+import { SavedTime } from './shared/SavedTime'
 
 const ButtonContent = ({
   title,
@@ -23,7 +24,7 @@ const ButtonContent = ({
   title: string
   savedAt?: number | undefined
   autoDeletePeriod?: string | undefined
-  settings: { showSavedTime: boolean }
+  settings: { showSavedTime: boolean; showRelativeSavedTime: boolean }
 }) => (
   <span
     className='flex w-full min-w-0 flex-col overflow-hidden'
@@ -32,12 +33,13 @@ const ButtonContent = ({
     <span className='block truncate text-left' data-testid='url-title-label'>
       {title}
     </span>
-    {savedAt && (
+    {savedAt !== undefined && (
       <span className='flex min-w-0 items-center gap-2 overflow-hidden text-xs'>
         {settings.showSavedTime && (
-          <span className='truncate text-muted-foreground'>
-            {formatDatetime(savedAt)}
-          </span>
+          <SavedTime
+            savedAt={savedAt}
+            relative={settings.showRelativeSavedTime}
+          />
         )}
         {autoDeletePeriod && autoDeletePeriod !== 'never' && (
           <TimeRemaining
@@ -72,13 +74,22 @@ export const SortableUrlItem = ({
   settings,
 }: SortableUrlItemProps) => {
   const { t } = useI18n()
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({
-      data: {
-        categoryContext, // カテゴリコンテキストをデータに追加
-      },
-      id,
-    })
+  const canReorderUrls = useUrlReorderAvailable()
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    disabled: !canReorderUrls,
+    data: {
+      name: title,
+      categoryContext, // カテゴリコンテキストをデータに追加
+    },
+    id,
+  })
 
   const isDraggingRef = useRef(false)
   const windowBlurredDuringDragRef = useRef(false)
@@ -234,6 +245,7 @@ export const SortableUrlItem = ({
       >
         <div
           className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
+          ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {

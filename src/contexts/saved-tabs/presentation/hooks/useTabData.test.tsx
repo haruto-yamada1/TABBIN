@@ -18,27 +18,12 @@ const {
   getSavedTabsPageDataQueryMock,
   getSavedTabsQueryMock,
   repairTabGroupParentCategoryIdsUseCaseMock,
-  migrateParentCategoriesToDomainNamesMock,
-  migrateToUrlsStorageMock,
 } = vi.hoisted(() => ({
   loadTabGroupsWithUrlsUseCaseMock: vi.fn(),
   getSavedTabsPageDataQueryMock: vi.fn(),
   getSavedTabsQueryMock: vi.fn(),
   repairTabGroupParentCategoryIdsUseCaseMock: vi.fn(),
-  migrateParentCategoriesToDomainNamesMock: vi
-    .fn()
-    .mockResolvedValue(undefined),
-  migrateToUrlsStorageMock: vi.fn().mockResolvedValue(undefined),
 }))
-
-const createMigrationPortMock = () => ({
-  migrateParentCategoriesToDomainNames:
-    migrateParentCategoriesToDomainNamesMock,
-  migrateToUrlsStorage: migrateToUrlsStorageMock,
-  migrateDomainStorageToHostname: vi.fn(async () => {}),
-})
-
-let migrationPort: ReturnType<typeof createMigrationPortMock>
 
 const renderUseTabData = (
   onCategoriesLoaded: (categories: ParentCategory[]) => void = vi.fn(),
@@ -51,7 +36,6 @@ const renderUseTabData = (
       getSavedTabsQuery: getSavedTabsQueryMock,
       repairTabGroupParentCategoryIdsUseCase:
         repairTabGroupParentCategoryIdsUseCaseMock as never,
-      migrationPort,
       onCategoriesLoaded,
       onSettingsLoaded,
     }),
@@ -98,11 +82,6 @@ describe('useTabData', () => {
         updated: false,
       }),
     )
-    migrateParentCategoriesToDomainNamesMock.mockReset()
-    migrateParentCategoriesToDomainNamesMock.mockResolvedValue(undefined)
-    migrateToUrlsStorageMock.mockReset()
-    migrateToUrlsStorageMock.mockResolvedValue(undefined)
-    migrationPort = createMigrationPortMock()
   })
 
   it('初期ロードで親カテゴリと保存タブを修復して通知する', async () => {
@@ -157,23 +136,13 @@ describe('useTabData', () => {
         name: 'Legacy',
       } as ParentCategory,
     ]
-    getSavedTabsPageDataQueryMock
-      .mockResolvedValueOnce(
-        buildPageData({
-          tabGroups: savedTabs,
-          parentCategories: [
-            { id: 'invalid', name: 'Invalid' } as ParentCategory,
-          ],
-          userSettings: settings,
-        }),
-      )
-      .mockResolvedValueOnce(
-        buildPageData({
-          tabGroups: savedTabs,
-          parentCategories: repairedCategories,
-          userSettings: settings,
-        }),
-      )
+    getSavedTabsPageDataQueryMock.mockResolvedValueOnce(
+      buildPageData({
+        tabGroups: savedTabs,
+        parentCategories: repairedCategories,
+        userSettings: settings,
+      }),
+    )
 
     // repair use-case は categoryById 修復と categoryByName 修復を行い、
     // `updated: true` を返す
@@ -213,13 +182,7 @@ describe('useTabData', () => {
     )
   })
 
-  it('マイグレーションや保存タブ読み込みの失敗時もロードを終了する', async () => {
-    migrateParentCategoriesToDomainNamesMock.mockRejectedValueOnce(
-      new Error('category migration failed'),
-    )
-    migrateToUrlsStorageMock.mockRejectedValueOnce(
-      new Error('url migration failed'),
-    )
+  it('保存タブ読み込みの失敗時もロードを終了する', async () => {
     getSavedTabsPageDataQueryMock.mockRejectedValueOnce(
       new Error('storage failed'),
     )
@@ -230,14 +193,6 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(console.error).toHaveBeenCalledWith(
-      '親カテゴリ移行エラー:',
-      expect.any(Error),
-    )
-    expect(console.error).toHaveBeenCalledWith(
-      'URL管理マイグレーションエラー:',
-      expect.any(Error),
-    )
     expect(console.error).toHaveBeenCalledWith(
       '保存されたタブの読み込みエラー:',
       expect.any(Error),
@@ -254,7 +209,7 @@ describe('useTabData', () => {
     expect(result.current.tabGroups).toStrictEqual([])
   })
 
-  it('親カテゴリが有効な場合は再マイグレーションせずそのまま読み込む', async () => {
+  it('親カテゴリを一度だけ読み込む', async () => {
     const validCategories: ParentCategory[] = [
       {
         id: 'category-1',
@@ -275,7 +230,6 @@ describe('useTabData', () => {
       expect(result.current.isLoading).toBe(false)
     })
 
-    expect(migrateParentCategoriesToDomainNamesMock).toHaveBeenCalledTimes(1)
     expect(getSavedTabsPageDataQueryMock).toHaveBeenCalledTimes(1)
   })
 

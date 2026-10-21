@@ -10,6 +10,23 @@ describe('Url 値オブジェクト', () => {
     expect(urlToString(url)).toBe('https://example.com/docs')
   })
 
+  it('WHATWG URL が受理する空白を含めて原文の identity を保持する', () => {
+    const source = '  https://EXAMPLE.com:443/a?b=1#c  '
+    expect(urlToString(createUrl(source))).toBe(source)
+  })
+
+  it.each([null, undefined, 1, {}, ['https://example.com']])(
+    'runtime の非文字列入力 %j を domain error として拒否する',
+    (input) => {
+      const error = collectThrownError(() =>
+        Reflect.apply(createUrl, undefined, [input]),
+      )
+
+      expect(error).toBeInstanceOf(SavedTabsDomainError)
+      expect(error).toMatchObject({ code: 'INVALID_URL' })
+    },
+  )
+
   it('空文字列は INVALID_URL で拒否する', () => {
     const error = collectThrownError(() => createUrl(''))
     expect(error).toBeInstanceOf(SavedTabsDomainError)

@@ -7,6 +7,7 @@ import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 import '@wxt-dev/module-react' // eslint-disable-line
 
 import { PRODUCTION_EXTENSION_PERMISSIONS } from './src/constants/extensionPermissions'
+import { DEFAULT_LANGUAGE } from './src/constants/language'
 import {
   PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
   createProductionExtensionCsp,
@@ -37,6 +38,11 @@ const vitePlugins = tailwindcss()
 export default defineConfig({
   srcDir: 'src',
   publicDir: 'src/public',
+  dev: {
+    server: {
+      strictPort: process.env.TABBIN_PARALLEL_WORKTREE === '1',
+    },
+  },
   zip: {
     dotSources: true,
     includeSources: [
@@ -54,7 +60,7 @@ export default defineConfig({
     excludeSources: ['src/**/.*'],
   },
   manifest: (env) => ({
-    default_locale: 'ja',
+    default_locale: DEFAULT_LANGUAGE,
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     version: APP_VERSION,

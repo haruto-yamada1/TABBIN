@@ -482,6 +482,72 @@ describe('useCategoryKeywordModal', () => {
     consoleError.mockRestore()
   })
 
+  it('閉じている間は読まず、再表示時に最新の親カテゴリをカードへ同期する', async () => {
+    const storage = setupChromeStorage({
+      parentCategories: createParentCategories(),
+      savedTabs: [createGroup()],
+    })
+    const onUpdateParentCategories = vi.fn()
+    const group = createGroup()
+    const deps = {
+      categoryAssignmentPort: storage.categoryAssignmentPort,
+      getSavedTabsPageDataQuery: storage.getSavedTabsPageDataQuery,
+    }
+    const { result, rerender } = renderHook(
+      ({ isOpen }) =>
+        useCategoryKeywordModal({
+          deps,
+          group,
+          initialParentCategories: [],
+          isOpen,
+          onDeleteCategory: vi.fn(),
+          onSave: vi.fn(),
+          onUpdateParentCategories,
+        }),
+      { initialProps: { isOpen: false } },
+    )
+
+    expect(storage.getSavedTabsPageDataQuery).not.toHaveBeenCalled()
+    expect(result.current.parentCategory.internalParentCategories).toEqual([])
+
+    rerender({ isOpen: true })
+    await waitFor(() => {
+      expect(result.current.parentCategory.internalParentCategories).toEqual(
+        createParentCategories(),
+      )
+      expect(result.current.parentCategory.selectedParentCategory).toBe(
+        'parent-1',
+      )
+    })
+    expect(storage.getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
+    expect(onUpdateParentCategories).toHaveBeenLastCalledWith(
+      createParentCategories(),
+    )
+
+    rerender({ isOpen: false })
+    const updatedCategories: ParentCategory[] = [
+      {
+        collections: [{ id: 'group-1', domain: 'example.com' }],
+        id: 'parent-2',
+        name: 'Updated parent',
+      },
+    ]
+    storage.state.parentCategories = updatedCategories
+    expect(storage.getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
+
+    rerender({ isOpen: true })
+    await waitFor(() => {
+      expect(result.current.parentCategory.internalParentCategories).toEqual(
+        updatedCategories,
+      )
+      expect(result.current.parentCategory.selectedParentCategory).toBe(
+        'parent-2',
+      )
+    })
+    expect(storage.getSavedTabsPageDataQuery).toHaveBeenCalledTimes(2)
+    expect(onUpdateParentCategories).toHaveBeenLastCalledWith(updatedCategories)
+  })
+
   it('キーワードを追加し重複と空白入力は保存しない', async () => {
     const onSave = vi.fn()
     const { result } = renderModalHook({

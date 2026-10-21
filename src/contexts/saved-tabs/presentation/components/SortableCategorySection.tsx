@@ -1,3 +1,4 @@
+import type { DragStartEvent } from '@dnd-kit/core'
 import { useDndMonitor } from '@dnd-kit/core'
 import {
   ArrowUpDown,
@@ -164,8 +165,14 @@ const useSortableCategorySectionView = ({
   ...props
 }: SortableCategorySectionViewProps) => {
   const { t } = useI18n()
-  const { attributes, listeners, setNodeRef, isDragging, style } =
-    useSortableCategoryDrag(id)
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    isDragging,
+    style,
+  } = useSortableCategoryDrag(id)
 
   const [isDeleting, setIsDeleting] = useState(false)
   // Sort order state: 'default' preserves manual drag order
@@ -295,8 +302,8 @@ const useSortableCategorySectionView = ({
   useDndMonitor({
     onDragCancel: handleDragEndOrCancel,
     onDragEnd: handleDragEndOrCancel,
-    onDragStart: () => {
-      setIsDragCollapsed(true)
+    onDragStart: (event?: Pick<DragStartEvent, 'activatorEvent'>) => {
+      setIsDragCollapsed(event?.activatorEvent.type !== 'keydown')
     },
   })
 
@@ -333,6 +340,7 @@ const useSortableCategorySectionView = ({
           {/* ドラッグハンドル部分 */}
           <div
             className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
+            ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
             aria-label={t('savedTabs.category.dragHandleAria', undefined, {

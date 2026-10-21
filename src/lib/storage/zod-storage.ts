@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { OLLAMA_BASE_URL_VALUES } from '@/constants/productionNetworkPolicy'
+
 export const aiSystemPromptPresetSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -140,6 +142,7 @@ export const UserSettingsSchema = z.object({
   excludePatterns: z.array(z.string()),
   enableCategories: z.boolean(),
   autoDeletePeriod: autoDeletePeriodField,
+  showRelativeSavedTime: z.boolean(),
   showSavedTime: z.boolean(),
   clickBehavior: z.enum([
     'saveCurrentTab',
@@ -155,6 +158,7 @@ export const UserSettingsSchema = z.object({
   fontSizePercent: z.number().optional(),
   colors: z.record(z.string(), z.string()).optional(),
   ollamaModel: z.string().optional(),
+  ollamaBaseUrl: z.enum(OLLAMA_BASE_URL_VALUES).optional(),
   aiSystemPrompts: z.array(aiSystemPromptPresetSchema).optional(),
   activeAiSystemPromptId: z.string().optional(),
 })
@@ -183,6 +187,7 @@ export const storedUserSettingsSchema = z.object({
     .catch(undefined),
   enableCategories: z.boolean().optional().catch(undefined),
   autoDeletePeriod: autoDeletePeriodField.catch(undefined),
+  showRelativeSavedTime: z.boolean().optional().catch(undefined),
   showSavedTime: z.boolean().optional().catch(undefined),
   clickBehavior: z
     .enum([
@@ -201,6 +206,7 @@ export const storedUserSettingsSchema = z.object({
   fontSizePercent: z.number().optional().catch(undefined),
   colors: z.record(z.string(), z.string()).optional().catch(undefined),
   ollamaModel: z.string().optional().catch(undefined),
+  ollamaBaseUrl: z.enum(OLLAMA_BASE_URL_VALUES).optional().catch(undefined),
   aiSystemPrompts: z
     .preprocess((val) => {
       if (!Array.isArray(val)) {

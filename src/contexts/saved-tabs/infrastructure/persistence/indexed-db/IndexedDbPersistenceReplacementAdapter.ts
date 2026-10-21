@@ -1,3 +1,4 @@
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type {
   PersistenceV2ReplacementErrorCode,
@@ -11,6 +12,7 @@ import {
 } from '@/contexts/saved-tabs/domain/services/PersistenceIntegrityChecker'
 
 import type { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
+import { toIndexedDbError } from './IndexedDbError'
 import { queueIndexedDbTransaction } from './IndexedDbTransaction'
 import { PERSISTENCE_STORE_NAMES } from './persistenceDatabaseSchema'
 import {
@@ -51,6 +53,7 @@ const REPLACEMENT_ERROR_MESSAGES = {
   ORPHAN_MESSAGE_CONVERSATION:
     'Backup replacement contains an invalid message relation.',
   REVISION_NOT_COMMITTED: 'Backup replacement revision was not committed.',
+  REVISION_CONFLICT: 'Persistence changed since import confirmation.',
   REVISION_OVERFLOW: 'Persistence revision cannot be incremented safely.',
   TRANSACTION_FAILED: 'Backup replacement transaction failed.',
   UNHEALTHY_SAVED_TABS:
@@ -234,13 +237,17 @@ export class IndexedDbPersistenceReplacementAdapter implements PersistenceV2Repl
 
   async replaceAll(
     input: PersistenceV2ReplacementTarget,
+    options?: { readonly expectedRevision: number },
   ): Promise<PersistenceV2ReplacementResult> {
     const target = validateReplacementTarget(input)
 
     return this.operationGate.runIndexedDbWrite(async () => {
       const database = await this.connectionManager.open()
       let committedRevision: number | undefined
-      let transactionError: PersistenceV2ReplacementError | undefined
+      let transactionError:
+        | PersistenceV2ReplacementError
+        | PersistenceUnavailableError
+        | undefined
 
       try {
         await queueIndexedDbTransaction(
@@ -270,6 +277,9 @@ export class IndexedDbPersistenceReplacementAdapter implements PersistenceV2Repl
                     'INVALID_STORED_REVISION',
                   )
                 }
+                if (options && currentRevision !== options.expectedRevision) {
+                  throw new PersistenceV2ReplacementError('REVISION_CONFLICT')
+                }
                 if (currentRevision === Number.MAX_SAFE_INTEGER) {
                   throw new PersistenceV2ReplacementError('REVISION_OVERFLOW')
                 }
@@ -290,19 +300,30 @@ export class IndexedDbPersistenceReplacementAdapter implements PersistenceV2Repl
                   value: committedRevision,
                 })
               } catch (error) {
+                const failure = toIndexedDbError(
+                  error,
+                  REPLACEMENT_ERROR_MESSAGES.TRANSACTION_FAILED,
+                )
                 transactionError =
-                  error instanceof PersistenceV2ReplacementError
-                    ? error
+                  failure instanceof PersistenceV2ReplacementError ||
+                  failure instanceof PersistenceUnavailableError
+                    ? failure
                     : new PersistenceV2ReplacementError('TRANSACTION_FAILED')
                 transaction.abort()
               }
             })
           },
         )
-      } catch {
+      } catch (error) {
+        const failure = toIndexedDbError(
+          error,
+          REPLACEMENT_ERROR_MESSAGES.TRANSACTION_FAILED,
+        )
         throw (
           transactionError ??
-          new PersistenceV2ReplacementError('TRANSACTION_FAILED')
+          (failure instanceof PersistenceUnavailableError
+            ? failure
+            : new PersistenceV2ReplacementError('TRANSACTION_FAILED'))
         )
       }
 

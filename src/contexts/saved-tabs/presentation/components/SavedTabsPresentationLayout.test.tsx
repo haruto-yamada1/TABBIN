@@ -166,13 +166,6 @@ const buildLayoutComposition = () => {
 
       saveAll: async () => undefined,
     },
-    migrationPort: {
-      migrateParentCategoriesToDomainNames: vi
-        .fn()
-        .mockResolvedValue(undefined),
-      migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
-      migrateDomainStorageToHostname: vi.fn().mockResolvedValue(undefined),
-    },
     categoriesCommandService: {
       updateCollectionCategories: vi.fn().mockResolvedValue(undefined),
     },

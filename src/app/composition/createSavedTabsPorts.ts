@@ -3,6 +3,7 @@ import type { BrowserWindowPort } from '@/contexts/saved-tabs/application/ports/
 import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type { NotificationPort } from '@/contexts/saved-tabs/application/ports/NotificationPort'
 import type { StorageChangePort } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
+import { getBrowserCreationApi } from '@/contexts/saved-tabs/infrastructure/browser/BrowserCreationApi'
 import { createChromeBrowserTabAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import type { ChromeApiLike } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter'
 import { createChromeBrowserWindowAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeBrowserWindowAdapter'
@@ -106,11 +107,11 @@ export const createSavedTabsPorts = (
   options: CreateSavedTabsPortsOptions = {},
 ): SavedTabsPorts => ({
   browserTabPort: createChromeBrowserTabAdapter(
-    { getApi: () => getChromeApi() },
+    { getApi: getBrowserCreationApi },
     options.resolveActive ? { resolveActive: options.resolveActive } : {},
   ),
   browserWindowPort: createChromeBrowserWindowAdapter({
-    getApi: () => getChromeApi(),
+    getApi: getBrowserCreationApi,
   }),
   messagingPort: createChromeMessagingAdapter({
     getApi: getChromeMessagingApi,

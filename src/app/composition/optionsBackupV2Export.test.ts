@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type {
   PersistenceBootstrapPort,
-  PersistenceControlStateRepositoryPort,
   PersistenceCoordinationPort,
   PersistenceOperationGatePort,
   PersistenceRecoveryReporterPort,
@@ -22,7 +21,7 @@ import {
 } from './optionsBackupV2Export'
 
 const envelope = {
-  appVersion: '2.0.17',
+  appVersion: '2.0.18',
   data: {
     analyticsViews: [],
     conversations: [],
@@ -45,6 +44,7 @@ const envelope = {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: false,
+      showRelativeSavedTime: false,
       showSavedTime: false,
     },
   },
@@ -79,7 +79,7 @@ describe('optionsBackupV2Export composition', () => {
       createConnectionManager,
       createExportUseCase,
       createSnapshotReader,
-      getAppVersion: vi.fn(() => '2.0.17'),
+      getAppVersion: vi.fn(() => '2.0.18'),
       getOperationGate: vi.fn(() => operationGate),
       now: vi.fn(() => new Date('2026-07-28T00:00:00.000Z')),
       preparePersistence,
@@ -115,20 +115,8 @@ describe('optionsBackupV2Export composition', () => {
   })
 
   it('exports Backup V2 through the real gate while IndexedDB is read-only', async () => {
-    const state = {
-      migrationId: 'migration-1',
-      persistenceGeneration: 2,
-      readSource: 'indexeddb',
-      status: 'read-only-emergency',
-    } as const
     const bootstrap: PersistenceBootstrapPort = {
-      migrate: vi.fn(async () => undefined),
-      readState: vi.fn(async () => state),
       ready: vi.fn(async () => undefined),
-    }
-    const controlStateRepository: PersistenceControlStateRepositoryPort = {
-      read: vi.fn(async () => state),
-      transition: vi.fn(),
     }
     const coordination: PersistenceCoordinationPort = {
       runExclusive: async (operation) => operation(),
@@ -139,12 +127,11 @@ describe('optionsBackupV2Export composition', () => {
     }
     const operationGate = new PersistenceOperationGateService({
       bootstrap,
-      controlStateRepository,
       coordination,
       recovery,
     })
     const connectionManager = new IndexedDbConnectionManager({
-      databaseName: 'read-only-backup-v2-export',
+      databaseName: 'indexeddb-only-backup-v2-export',
       indexedDb: new IDBFactory(),
     })
 
@@ -153,7 +140,7 @@ describe('optionsBackupV2Export composition', () => {
       createExportUseCase: createExportBackupV2UseCase,
       createSnapshotReader: (manager, gate) =>
         new IndexedDbPersistenceSnapshotReader(manager, gate),
-      getAppVersion: () => '2.0.17',
+      getAppVersion: () => '2.0.18',
       getOperationGate: () => operationGate,
       now: () => new Date('2026-08-01T00:00:00.000Z'),
       preparePersistence: vi.fn(async () => undefined),
@@ -162,7 +149,7 @@ describe('optionsBackupV2Export composition', () => {
 
     const backup = await runtime.exportBackupV2()
     expect(backup).toMatchObject({
-      appVersion: '2.0.17',
+      appVersion: '2.0.18',
       data: {
         savedTabs: {
           categories: [],

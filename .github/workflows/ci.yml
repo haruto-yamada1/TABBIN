@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  FLAKE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 permissions:
   contents: read
 
@@ -8,6 +11,11 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+
+concurrency:
+  # A unique group also avoids replacing pending pushes when cancellation is off.
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint-typecheck:
@@ -45,7 +53,10 @@ jobs:
         run: bun run compile
 
       - name: Run formatter check
-        run: bun run check
+        run: bun run format:check
+
+      - name: Run lint
+        run: bun run lint
 
       - name: Run architecture check
         run: bun run arch:check
@@ -117,65 +128,24 @@ jobs:
       - name: Verify Firefox artifact contract
         run: bun run verify:firefox-artifact
 
-  run-tests-shard-1:
+  # Keep the existing required check name; coverage runs the full suite.
+  run-tests:
     name: Run Vitest Tests
     runs-on: ubuntu-latest
-
+    needs: [coverage]
+    if: ${{ !cancelled() }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: '.node-version'
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: '.bun-version'
-
-      - name: Verify toolchain versions
-        run: bun run verify:toolchain-versions
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run unit tests (shard 1/2)
-        run: bun run test --shard=1/2
-
-  run-tests-shard-2:
-    name: Run Vitest Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: '.node-version'
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: '.bun-version'
-
-      - name: Verify toolchain versions
-        run: bun run verify:toolchain-versions
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run unit tests (shard 2/2)
-        run: bun run test --shard=2/2
+      - name: Require the complete covered suite to pass
+        env:
+          COVERAGE_RESULT: ${{ needs.coverage.result }}
+        run: test "$COVERAGE_RESULT" = success
 
   coverage:
     name: Coverage Thresholds
     runs-on: ubuntu-latest
+    env:
+      FLAKE_REPORT_PATH: test-results/flake-coverage.json
+      FLAKE_SUITE: coverage
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -201,9 +171,21 @@ jobs:
       - name: Run coverage with thresholds
         run: bun run test:coverage
 
+      - name: Upload normalized flake observations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-current-coverage
+          path: test-results/flake-coverage.json
+          if-no-files-found: warn
+          retention-days: 14
+
   indexeddb-browser-semantics:
     name: IndexedDB Browser Semantics
     runs-on: ubuntu-latest
+    env:
+      FLAKE_REPORT_PATH: test-results/flake-indexeddb-browser-semantics.json
+      FLAKE_SUITE: indexeddb-browser-semantics
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -226,15 +208,66 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        id: playwright-browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ci-perf-v1-${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('.bun-version', 'bun.lock') }}
+
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium firefox
 
       - name: Run IndexedDB browser semantics
         run: bun run test:indexeddb:browsers
 
+      - name: Run MV3 persistence worker restart
+        env:
+          FLAKE_REPORT_PATH: test-results/mv3-worker/flake-mv3-worker.json
+          FLAKE_SUITE: persistence-mv3-worker
+        run: bunx playwright test --project=extension e2e/persistence-worker-restart.extension.spec.ts --output=test-results/mv3-worker
+
+      - name: Upload normalized flake observations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-current-indexeddb-browser-semantics
+          path: test-results/flake-indexeddb-browser-semantics.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload MV3 worker flake observations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-current-persistence-mv3-worker
+          path: test-results/mv3-worker/flake-mv3-worker.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Check failure evidence budget
+        id: flake-evidence
+        if: ${{ !cancelled() }}
+        run: bun tools/testing/check-flake-evidence.ts test-results
+
+      - name: Upload bounded failure evidence
+        if: ${{ !cancelled() && steps.flake-evidence.outputs.available == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-evidence-indexeddb-browser-semantics
+          path: |
+            test-results/**/trace.zip
+            test-results/**/*.png
+            test-results/**/*.webm
+          if-no-files-found: warn
+          retention-days: 7
+
   e2e-accessibility:
     name: E2E Accessibility (axe)
     runs-on: ubuntu-latest
+    env:
+      FLAKE_REPORT_PATH: test-results/flake-e2e-accessibility.json
+      FLAKE_SUITE: e2e-accessibility
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -263,10 +296,39 @@ jobs:
       - name: Run axe accessibility E2E tests
         run: bun run e2e:a11y
 
+      - name: Upload normalized flake observations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-current-e2e-accessibility
+          path: test-results/flake-e2e-accessibility.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Check failure evidence budget
+        id: flake-evidence
+        if: ${{ !cancelled() }}
+        run: bun tools/testing/check-flake-evidence.ts test-results
+
+      - name: Upload bounded failure evidence
+        if: ${{ !cancelled() && steps.flake-evidence.outputs.available == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-evidence-e2e-accessibility
+          path: |
+            test-results/**/trace.zip
+            test-results/**/*.png
+            test-results/**/*.webm
+          if-no-files-found: warn
+          retention-days: 7
+
   firefox-extension-smoke:
     name: Firefox Extension Smoke
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
+    env:
+      FLAKE_REPORT_PATH: test-results/flake-firefox-extension-smoke.json
+      FLAKE_SUITE: firefox-extension-smoke
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -303,7 +365,9 @@ jobs:
 
       - name: Resolve Playwright Firefox executable
         id: firefox-executable
-        run: echo "path=$(bun -e \"import { firefox } from '@playwright/test'; console.log(firefox.executablePath())\")" >> "$GITHUB_OUTPUT"
+        run: |
+          FIREFOX_EXECUTABLE_PATH=$(bun -e "import { firefox } from '@playwright/test'; console.log(firefox.executablePath())")
+          printf 'path=%s\n' "$FIREFOX_EXECUTABLE_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Build Firefox artifact
         run: bun run build:firefox
@@ -317,18 +381,195 @@ jobs:
           FIREFOX_EXTENSION_SMOKE: '1'
 
       - name: Run Firefox Persistence v2 migration smoke
-        run: bun run test:firefox:migration-smoke
+        run: bun run test:firefox:indexeddb-smoke
         env:
           FIREFOX_EXECUTABLE_PATH: ${{ steps.firefox-executable.outputs.path }}
           GECKODRIVER_PATH: /tmp/geckodriver
 
-      - name: Upload Firefox smoke test results on failure
-        if: failure()
+      - name: Upload normalized flake observations
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: firefox-smoke-test-results
+          name: flake-current-firefox-extension-smoke
+          path: test-results/flake-firefox-extension-smoke.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Check failure evidence budget
+        id: flake-evidence
+        if: ${{ !cancelled() }}
+        run: bun tools/testing/check-flake-evidence.ts test-results
+
+      - name: Upload bounded failure evidence
+        if: ${{ !cancelled() && steps.flake-evidence.outputs.available == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-evidence-firefox-extension-smoke
           path: |
-            test-results/
-            playwright-report/
-          if-no-files-found: ignore
+            test-results/**/trace.zip
+            test-results/**/*.png
+            test-results/**/*.webm
+          if-no-files-found: warn
           retention-days: 7
+
+  performance-budget:
+    name: Saved Tabs Performance Budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ci-perf-v1-${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('.bun-version', 'bun.lock') }}
+
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Measure representative Saved Tabs workloads
+        run: xvfb-run -a bun run perf:budget
+
+      - name: Evaluate performance budgets
+        if: ${{ !cancelled() }}
+        run: bun run perf:report --input test-results/budget --output reports/performance-budget --baseline docs/testing/performance-budget-baseline.json
+
+      - name: Upload performance observations
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: saved-tabs-performance-budget
+          path: |
+            test-results/budget/**/budget-samples.json
+            reports/performance-budget
+          if-no-files-found: error
+          retention-days: 30
+
+  storybook-visual:
+    name: Storybook Visual Regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Install Bun extraction dependency
+        run: apt-get update && apt-get install -y --no-install-recommends unzip
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Match Actions home owner to container user
+        run: chown "$(id -u):$(id -g)" /github/home
+
+      - name: Compare Storybook screens and check repeatability
+        run: bun run test:visual --repeat-each=3
+
+      - name: Upload visual comparisons
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: storybook-visual-comparisons
+          path: |
+            playwright-report/visual
+            test-results/visual
+            test-results/visual-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+  flake-diagnostics:
+    name: Flaky Test Diagnostics
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+    needs:
+      - coverage
+      - indexeddb-browser-semantics
+      - e2e-accessibility
+      - firefox-extension-smoke
+    continue-on-error: true
+    env:
+      FLAKE_PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+    permissions:
+      contents: read
+      # Read only retained normalized artifacts; fork PRs need no extra secret.
+      actions: read
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+
+      - name: Install dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Download current normalized observations
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: flake-current-*
+          path: reports/flakes/current
+          merge-multiple: true
+
+      - name: Fetch bounded recent history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun tools/testing/fetch-flake-history.ts reports/flakes/history
+
+      - name: Summarize flaky test candidates
+        if: ${{ !cancelled() }}
+        run: bun tools/testing/report-flakes.ts --current reports/flakes/current --history reports/flakes/history --output reports/flakes
+
+      - name: Upload normalized flake summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flake-summary
+          path: |
+            reports/flakes/summary.json
+            reports/flakes/report.md
+          if-no-files-found: warn
+          retention-days: 14

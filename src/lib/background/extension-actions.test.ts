@@ -103,6 +103,7 @@ const buildSettings = (override: Partial<UserSettings> = {}): UserSettings => ({
   excludePatterns: ['about:', 'chrome://', 'ignore.example'],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveWindowTabs',
   excludePinnedTabs: true,

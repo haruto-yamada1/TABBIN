@@ -4,7 +4,6 @@ import { createHealthyPersistenceV2Snapshot } from './domain/testing/persistence
 import {
   checkPersistenceIntegrity,
   createStorageRepairPlan,
-  mapLegacyStorageToPersistenceV2,
 } from './public-api'
 
 describe('saved-tabs public persistence integrity API', () => {
@@ -19,6 +18,5 @@ describe('saved-tabs public persistence integrity API', () => {
       operations: [],
       unresolvedIssues: [],
     })
-    expect(mapLegacyStorageToPersistenceV2).toBeTypeOf('function')
   })
 })

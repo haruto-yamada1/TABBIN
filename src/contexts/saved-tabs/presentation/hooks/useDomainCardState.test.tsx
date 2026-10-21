@@ -131,6 +131,22 @@ const createGroup = (): TabGroup => ({
 })
 
 describe('useDomainCardState', () => {
+  it('一覧表示と折りたたみではモーダル専用の親カテゴリを読み取らない', async () => {
+    const { params, getSavedTabsPageDataQuery } =
+      createUseDomainCardStateParams({ group: createGroup() })
+    const { result } = renderHook(() => useDomainCardState(params))
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
+
+    act(() => result.current.collapse.setUserCollapsedState(true))
+    act(() => result.current.collapse.setUserCollapsedState(false))
+    expect(result.current.collapse.isCollapsed).toBe(false)
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -151,41 +167,28 @@ describe('useDomainCardState', () => {
     } as unknown as typeof chrome
   })
 
-  it('差し替え前の親カテゴリ query の遅い結果を破棄する', async () => {
-    type PageData = Awaited<ReturnType<GetSavedTabsPageDataQuery>>
-    const older = Promise.withResolvers<PageData>()
-    const newer = Promise.withResolvers<PageData>()
+  it('query 差し替え後もモーダルから同期した親カテゴリを維持する', () => {
     const { params } = createUseDomainCardStateParams({ group: createGroup() })
+    const older = vi.fn<GetSavedTabsPageDataQuery>()
+    const newer = vi.fn<GetSavedTabsPageDataQuery>()
     const { result, rerender } = renderHook(
       ({ query }) =>
         useDomainCardState({ ...params, getSavedTabsPageDataQuery: query }),
       {
-        initialProps: {
-          query: vi
-            .fn<GetSavedTabsPageDataQuery>()
-            .mockReturnValue(older.promise),
-        },
+        initialProps: { query: older },
       },
     )
-    rerender({
-      query: vi.fn<GetSavedTabsPageDataQuery>().mockReturnValue(newer.promise),
+    act(() => {
+      result.current.parentCategories.handleUpdateParentCategories([
+        { id: 'from-modal', name: 'From modal', collections: [] },
+      ])
     })
-    const pageData = (id: string): PageData => ({
-      parentCategories: [{ id, name: id, collections: [] }],
-      tabGroups: [],
-      userSettings: savedTabsDefaultUserSettings,
-    })
-    await act(async () => {
-      newer.resolve(pageData('newer'))
-      await newer.promise
-    })
-    await act(async () => {
-      older.resolve(pageData('older'))
-      await older.promise
-    })
+    rerender({ query: newer })
     expect(
       result.current.parentCategories.categories.map(({ id }) => id),
-    ).toEqual(['newer'])
+    ).toEqual(['from-modal'])
+    expect(older).not.toHaveBeenCalled()
+    expect(newer).not.toHaveBeenCalled()
   })
 
   it('helper は legacy URL とカテゴリ順序を安全に処理する', () => {
@@ -267,9 +270,10 @@ describe('useDomainCardState', () => {
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
-    })
+    expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      'news',
+      'tech',
+    ])
 
     await act(async () => {
       await result.current.categoryActions.handleDeleteAllTabsInCategory(
@@ -286,6 +290,7 @@ describe('useDomainCardState', () => {
       'https://example.com/news-1',
       'https://example.com/news-2',
     ])
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 
   it('bulk delete handler がないときは deleteSingleUrl フォールバックを使う', async () => {
@@ -298,9 +303,10 @@ describe('useDomainCardState', () => {
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
-    })
+    expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      'news',
+      'tech',
+    ])
 
     await act(async () => {
       await result.current.categoryActions.handleDeleteAllTabsInCategory(
@@ -323,6 +329,7 @@ describe('useDomainCardState', () => {
       'group-1',
       'https://example.com/news-2',
     )
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 
   it('削除対象 URL が空なら何もしない', async () => {
@@ -335,9 +342,10 @@ describe('useDomainCardState', () => {
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
-    })
+    expect(result.current.categoryReorder.allCategoryIds).toEqual([
+      'news',
+      'tech',
+    ])
 
     await act(async () => {
       await result.current.categoryActions.handleDeleteAllTabsInCategory(
@@ -347,9 +355,10 @@ describe('useDomainCardState', () => {
     })
 
     expect(handleDeleteUrls).not.toHaveBeenCalled()
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 
-  it('URLを保存時刻で昇順/降順に並べてカテゴリ別に返す', async () => {
+  it('URLを保存時刻で昇順/降順に並べてカテゴリ別に返す', () => {
     const group: TabGroup = {
       ...createGroup(),
       subCategories: ['news'],
@@ -373,14 +382,13 @@ describe('useDomainCardState', () => {
         },
       ],
     }
-    const { params, getSavedTabsPageDataQuery } =
-      createUseDomainCardStateParams({ group })
+    const { params } = createUseDomainCardStateParams({ group })
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalled()
-    })
+    expect(
+      result.current.computed.categorizedUrls.news?.map((item) => item.title),
+    ).toEqual(['Newer', 'Older'])
 
     act(() => {
       result.current.sort.setSortOrder('asc')
@@ -582,7 +590,7 @@ describe('useDomainCardState', () => {
     })
   })
 
-  it('URL と subCategories が未定義でも空のカテゴリ順として扱う', async () => {
+  it('URL と subCategories が未定義でも空のカテゴリ順として扱う', () => {
     const group: TabGroup = {
       domain: 'empty.example.com',
       id: 'empty-group',
@@ -593,14 +601,11 @@ describe('useDomainCardState', () => {
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
-    })
-
     expect(result.current.computed.categorizedUrls).toStrictEqual({
       __uncategorized: [],
     })
     expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([])
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 
   it('保存済みカテゴリ順から不要な未分類を除き不足カテゴリを末尾に補う', async () => {
@@ -685,7 +690,7 @@ describe('useDomainCardState', () => {
     const { params, categoryAssignmentPort, getSavedTabsPageDataQuery } =
       createUseDomainCardStateParams({ group })
     getSavedTabsPageDataQuery.mockResolvedValue({
-      tabGroups: [group],
+      tabGroups: [toTabGroupFromViewModel(group)],
       parentCategories: [],
       userSettings: savedTabsDefaultUserSettings,
     })
@@ -727,6 +732,24 @@ describe('useDomainCardState', () => {
       'カテゴリ順序の更新に失敗しました:',
       expect.any(Error),
     )
+    expect(toast.error).toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(result.current.categoryReorder.isCategoryReorderMode).toBe(true)
+    expect(result.current.categoryReorder.allCategoryIds).toStrictEqual([
+      'news',
+      'tech',
+    ])
+
+    await act(async () => {
+      await result.current.categoryReorder.handleConfirmCategoryReorder()
+    })
+    expect(result.current.categoryReorder.isCategoryReorderMode).toBe(true)
+
+    await act(async () => {
+      await result.current.categoryReorder.handleConfirmCategoryReorder()
+    })
+    expect(result.current.categoryReorder.isCategoryReorderMode).toBe(false)
+    expect(toast.success).toHaveBeenCalledOnce()
   })
 
   it('カテゴリ設定とタブの変更を検知して表示順を更新する', async () => {
@@ -898,9 +921,8 @@ describe('useDomainCardState', () => {
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalled()
-    })
+    expect(result.current.parentCategories.categories).toEqual([])
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
 
     act(() => {
       result.current.keywordModal.setShowKeywordModal(true)
@@ -961,6 +983,7 @@ describe('useDomainCardState', () => {
         id: 'parent-2',
       }),
     ])
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 
   it('カテゴリ削除ハンドラがない場合と各種失敗を扱う', async () => {
@@ -972,7 +995,6 @@ describe('useDomainCardState', () => {
       assignDomainToCategoryUseCase,
     } = createUseDomainCardStateParams({ group })
 
-    getSavedTabsPageDataQuery.mockRejectedValueOnce(new Error('load failed'))
     vi.mocked(createParentCategoryUseCase).mockRejectedValueOnce(
       new Error('create failed'),
     )
@@ -983,15 +1005,11 @@ describe('useDomainCardState', () => {
       .fn()
       .mockRejectedValueOnce(new Error('delete failed'))
     params.deleteSingleUrl = deleteSingleUrl
+    delete params.handleDeleteCategory
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        '親カテゴリの読み込みに失敗しました:',
-        expect.any(Error),
-      )
-    })
+    expect(result.current.parentCategories.categories).toEqual([])
 
     act(() => {
       result.current.categoryActions.handleCategoryDelete('group-1', 'news')
@@ -1030,6 +1048,7 @@ describe('useDomainCardState', () => {
       'ドメイン割り当てエラー:',
       expect.any(Error),
     )
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 
   it('optional dependency がない場合は repository fallback せず no-op/throw する', async () => {
@@ -1087,7 +1106,7 @@ describe('useDomainCardState', () => {
     })
   })
 
-  it('drag monitor はドラッグ中に折りたたみ、通常終了時にユーザー状態へ戻す', async () => {
+  it('drag monitor はドラッグ中に折りたたみ、通常終了時にユーザー状態へ戻す', () => {
     const { params, getSavedTabsPageDataQuery } =
       createUseDomainCardStateParams({ group: createGroup() })
     const { result, rerender } = renderHook(
@@ -1099,9 +1118,7 @@ describe('useDomainCardState', () => {
       },
     )
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
-    })
+    expect(result.current.collapse.isCollapsed).toBe(false)
 
     act(() => {
       result.current.collapse.setUserCollapsedState(true)
@@ -1132,17 +1149,27 @@ describe('useDomainCardState', () => {
       result.current.dndMonitorHandlers.onDragCancel()
     })
     expect(result.current.collapse.isCollapsed).toBe(true)
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 
-  it('drag monitor はユーザーが畳んでいなければ通常終了時に展開する', async () => {
+  it('keyboard pickup preserves the measured layout and visible controls', () => {
+    const { params } = createUseDomainCardStateParams({ group: createGroup() })
+    const { result } = renderHook(() => useDomainCardState(params))
+    act(() => {
+      result.current.dndMonitorHandlers.onDragStart({
+        activatorEvent: new KeyboardEvent('keydown'),
+      })
+    })
+    expect(result.current.collapse.isCollapsed).toBe(false)
+  })
+
+  it('drag monitor はユーザーが畳んでいなければ通常終了時に展開する', () => {
     const { params, getSavedTabsPageDataQuery } =
       createUseDomainCardStateParams({ group: createGroup() })
 
     const { result } = renderHook(() => useDomainCardState(params))
 
-    await waitFor(() => {
-      expect(getSavedTabsPageDataQuery).toHaveBeenCalledTimes(1)
-    })
+    expect(result.current.collapse.isCollapsed).toBe(false)
 
     act(() => {
       result.current.dndMonitorHandlers.onDragStart()
@@ -1163,5 +1190,6 @@ describe('useDomainCardState', () => {
       result.current.dndMonitorHandlers.onDragCancel()
     })
     expect(result.current.collapse.isCollapsed).toBe(false)
+    expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 })

@@ -1,14 +1,8 @@
 import { Plus, X } from 'lucide-react'
+import type { ComponentProps } from 'react'
 import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
@@ -23,16 +17,23 @@ import type {
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { CategoryModal } from './CategoryModal'
+import { HeaderCounts } from './HeaderCounts'
+import { NewProjectDialog } from './NewProjectDialog'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from './shared/SavedTabsResponsive'
+import { UrlOpeningResult } from './UrlOpeningResult'
 import { ViewModeToggle } from './ViewModeToggle'
 
 const EMPTY_CUSTOM_PROJECTS: CustomProject[] = []
 const noopCreateProject = () => {}
 
 type HeaderProps = {
+  openingOperation?: ComponentProps<typeof UrlOpeningResult>['operation']
+  onRetryOpening?: () => Promise<void>
+  onCancelOpening?: () => void
+  onResumeOpening?: () => Promise<void>
   tabGroups: TabGroup[]
   filteredTabGroups?: TabGroup[]
   currentMode: ViewMode
@@ -56,9 +57,12 @@ type HeaderProps = {
   assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
 
-// eslint-disable-next-line eslint/complexity
 export const Header = ({
   // eslint-disable-line eslint/max-lines-per-function
+  openingOperation,
+  onRetryOpening,
+  onCancelOpening,
+  onResumeOpening,
   tabGroups,
   filteredTabGroups,
   currentMode,
@@ -77,82 +81,6 @@ export const Header = ({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCustomProjectModalOpen, setIsCustomProjectModalOpen] =
     useState(false)
-  const [newProjectName, setNewProjectName] = useState('')
-  const normalizedSearchQuery = searchQuery.trim()
-  const groupsForDisplay = filteredTabGroups ?? tabGroups
-  const customGroupsForDisplay = filteredCustomProjects ?? customProjects
-  const handleNewProjectNameInputRef = useCallback(
-    (node: HTMLInputElement | null) => {
-      if (node && isCustomProjectModalOpen) {
-        node.focus()
-      }
-    },
-    [isCustomProjectModalOpen],
-  )
-  const domainTabCount = groupsForDisplay.reduce((sum, group) => {
-    if (group.urls) {
-      return sum + group.urls.length
-    }
-    if (group.memberships) {
-      return sum + group.memberships.length
-    }
-    return sum
-  }, 0)
-
-  const customTabCount = customGroupsForDisplay.reduce((sum, project) => {
-    if (normalizedSearchQuery.length === 0 && project.memberships) {
-      return sum + project.memberships.length
-    }
-    if (project.urls) {
-      return sum + project.urls.length
-    }
-    if (project.memberships) {
-      return sum + project.memberships.length
-    }
-    return sum
-  }, 0)
-
-  const tabCount = currentMode === 'custom' ? customTabCount : domainTabCount
-
-  const handleCustomProjectEnter = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key !== 'Enter') {
-        return
-      }
-
-      const isComposing =
-        event.nativeEvent.isComposing ||
-        ('isComposing' in event &&
-          Boolean(Reflect.get(event, 'isComposing'))) ||
-        false
-      if (isComposing) {
-        return
-      }
-
-      event.preventDefault()
-      event.stopPropagation()
-
-      const name = newProjectName.trim()
-      if (!name) {
-        toast.error(t('savedTabs.projectNameRequired'))
-        return
-      }
-
-      const exists = customProjects.some(
-        (project) => project.name.toLowerCase() === name.toLowerCase(),
-      )
-      if (exists) {
-        toast.error(t('savedTabs.projectNameDuplicate'))
-        return
-      }
-
-      onCreateProject(name)
-      toast.success(t('savedTabs.projectAdded', undefined, { name }))
-      setNewProjectName('')
-      setIsCustomProjectModalOpen(false)
-    },
-    [newProjectName, customProjects, onCreateProject, t],
-  )
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,15 +105,8 @@ export const Header = ({
     setIsModalOpen(false)
   }, [])
 
-  const handleNewProjectNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setNewProjectName(e.target.value)
-    },
-    [],
-  )
-
   return (
-    <div className='mb-4 flex items-center gap-4'>
+    <div className='mb-4 flex flex-wrap items-center gap-4'>
       <div className='flex flex-1 items-center gap-1'>
         <div className='relative w-full min-w-24'>
           <Input
@@ -252,26 +173,23 @@ export const Header = ({
           </Tooltip>
         )}
         <ViewModeToggle currentMode={currentMode} onChange={onModeChange} />
-        <div className='space-x-4 text-sm text-muted-foreground'>
-          <p>
-            {t('savedTabs.tabCount', undefined, { count: String(tabCount) })}
-          </p>
-          {currentMode === 'custom' ? (
-            <p>
-              {t('savedTabs.projectsCount', undefined, {
-                count: String(customGroupsForDisplay.length),
-              })}
-            </p>
-          ) : (
-            <p>
-              {t('savedTabs.domainsCount', undefined, {
-                count: String(groupsForDisplay.length),
-              })}
-            </p>
-          )}
-        </div>
+        <HeaderCounts
+          currentMode={currentMode}
+          searchQuery={searchQuery}
+          tabGroups={tabGroups}
+          filteredTabGroups={filteredTabGroups}
+          customProjects={customProjects}
+          filteredCustomProjects={filteredCustomProjects}
+        />
       </div>
-
+      {onRetryOpening && (
+        <UrlOpeningResult
+          operation={openingOperation ?? null}
+          onRetry={onRetryOpening}
+          onCancel={onCancelOpening}
+          onResume={onResumeOpening}
+        />
+      )}
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
           onClose={handleCloseModal}
@@ -288,26 +206,12 @@ export const Header = ({
           getSavedTabsPageDataQuery={getSavedTabsPageDataQuery}
         />
       )}
-      {currentMode === 'custom' && isCustomProjectModalOpen && (
-        <Dialog
-          open={isCustomProjectModalOpen}
-          onOpenChange={setIsCustomProjectModalOpen}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('savedTabs.newProjectTitle')}</DialogTitle>
-            </DialogHeader>
-            <Input
-              ref={handleNewProjectNameInputRef}
-              value={newProjectName}
-              onChange={handleNewProjectNameChange}
-              onKeyDown={handleCustomProjectEnter}
-              placeholder={t('savedTabs.newProjectPlaceholder')}
-              className='mb-2 w-full'
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <NewProjectDialog
+        open={currentMode === 'custom' && isCustomProjectModalOpen}
+        onOpenChange={setIsCustomProjectModalOpen}
+        customProjects={customProjects}
+        onCreateProject={onCreateProject}
+      />
     </div>
   )
 }

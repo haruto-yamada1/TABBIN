@@ -1,0 +1,214 @@
+const { createSearchFixture, installInputProbe } = await import(
+  path.join(repoRoot, 'e2e/helpers/search-performance.ts')
+)
+const { seedSavedTabsFixture } = await import(
+  path.join(repoRoot, 'e2e/helpers/extension.ts')
+)
+const root = await mkdtemp('/private/tmp/issue-900-native-')
+const profile = path.join(root, 'profile')
+await mkdir(profile)
+const addon = await createSmokeAddon(root)
+const port = await reservePort()
+const baseUrl = `http://127.0.0.1:${port}`
+const driver = spawn(
+  process.env.GECKODRIVER_PATH ?? 'geckodriver',
+  ['--port', String(port), '--allow-system-access'],
+  { stdio: 'ignore' },
+)
+let session
+let driverFailure
+driver.once('error', (error) => {
+  driverFailure = error
+})
+try {
+  await waitForDriver(baseUrl, () => driverFailure)
+  session = await createSession(baseUrl, profile)
+  await installAddon(session, addon)
+  const uuid = await resolveExtensionUuid(profile)
+  const app = `moz-extension://${uuid}/app.html`
+  await sessionCommand(session, '/timeouts', { script: 60000, pageLoad: 60000 })
+  const evaluate = async (fn, arg) => {
+    const result = await sessionCommand(session, '/execute/async', {
+      args: [arg ?? null],
+      script: `const done=arguments[arguments.length-1];Promise.resolve((${fn.toString()})(arguments[0])).then(value=>done({ok:true,value:value??null}),error=>done({ok:false,error:String(error)}))`,
+    })
+    if (!result.ok) throw Error(result.error)
+    return result.value
+  }
+  const evaluator = { evaluate }
+  const poll = async (fn, expected, timeout = 60000) => {
+    const until = Date.now() + timeout
+    let actual
+    do {
+      actual = await fn()
+      if (JSON.stringify(actual) === JSON.stringify(expected)) return actual
+      await delay(100)
+    } while (Date.now() < until)
+    throw Error(
+      `Expected ${JSON.stringify(expected).slice(0, 100)}, received ${JSON.stringify(actual).slice(0, 200)}`,
+    )
+  }
+  const rows = () =>
+    evaluate(() =>
+      Array.from(
+        document.querySelectorAll('a[href^="https://search-benchmark-"]'),
+        (a) => a.href,
+      ).sort(),
+    )
+  const url = (index) =>
+    `https://search-benchmark-${index % 20}.example/item/${index}`
+  const input = async (query) => {
+    const element = await sessionCommand(session, '/element', {
+      using: 'css selector',
+      value: 'input[aria-label="検索"]',
+    })
+    const id = element['element-6066-11e4-a52e-4f735466cecf']
+    await sessionCommand(session, `/element/${id}/click`, {})
+    await sessionCommand(session, '/actions', {
+      actions: [
+        {
+          type: 'key',
+          id: 'search-keyboard',
+          actions: [
+            { type: 'keyDown', value: '\uE03D' },
+            { type: 'keyDown', value: 'a' },
+            { type: 'keyUp', value: 'a' },
+            { type: 'keyUp', value: '\uE03D' },
+            ...Array.from(query).flatMap((value) => [
+              { type: 'keyDown', value },
+              { type: 'keyUp', value },
+            ]),
+          ],
+        },
+      ],
+    })
+  }
+  const summary = (values) => {
+    const s = values.toSorted((a, b) => a - b)
+    return {
+      count: s.length,
+      p50: s[Math.ceil(s.length * 0.5) - 1],
+      p95: s[Math.ceil(s.length * 0.95) - 1],
+      max: s.at(-1),
+    }
+  }
+  const reports = []
+  for (const size of [1000, 10000])
+    for (const mode of ['domain', 'custom']) {
+      await sessionCommand(session, '/url', { url: `${app}#/options` })
+      await seedSavedTabsFixture(evaluator, createSearchFixture(size))
+      await sessionCommand(session, '/url', {
+        url: `${app}#/saved-tabs?mode=${mode}`,
+      })
+      await poll(async () => (await rows()).length, size)
+      await input('琥')
+      await poll(rows, [url(0)])
+      await installInputProbe(evaluator)
+      const samples = []
+      for (let index = 0; index < 12; index++) {
+        const target = index % 2 === 0 ? 1 : 0
+        const query = target === 0 ? '琥' : '渓'
+        await evaluate(
+          ({ query, expected }) =>
+            window.tabbinSearchProbe.arm(query, expected),
+          { query, expected: [url(target)] },
+        )
+        await input(query)
+        await poll(
+          async () =>
+            evaluate(
+              () =>
+                window.tabbinSearchProbe.sample?.readWorkSettledMs !== null &&
+                window.tabbinSearchProbe.sample?.readWorkSettledMs !==
+                  undefined,
+            ),
+          true,
+        )
+        const sample = await evaluate(() => window.tabbinSearchProbe.sample)
+        assert.equal(sample.trusted, true)
+        assert.equal(sample.renderedRows, 1)
+        assert.ok(sample.observedBodyMutations > 0)
+        samples.push(sample)
+      }
+      await input('HAYSTACK')
+      await poll(rows, [url(0)])
+      if (mode === 'domain') {
+        await input('体観測')
+        await poll(
+          rows,
+          Array.from({ length: size / 20 }, (_, i) => url(i * 20)).sort(),
+        )
+      }
+      await input('')
+      // Select all + Backspace emits a real input for clearing.
+      await sessionCommand(session, '/actions', {
+        actions: [
+          {
+            type: 'key',
+            id: 'search-keyboard',
+            actions: [
+              { type: 'keyDown', value: '\uE003' },
+              { type: 'keyUp', value: '\uE003' },
+            ],
+          },
+        ],
+      })
+      await poll(async () => (await rows()).length, size)
+      await input('琥')
+      await input('渓')
+      await poll(rows, [url(1)])
+      const report = {
+        schemaVersion: 1,
+        browser: 'firefox',
+        browserVersion: session.version,
+        mode,
+        fixture: {
+          uniqueUrls: size,
+          domains: 20,
+          projects: 5,
+          memberships: size * 2,
+          syntheticOnly: true,
+        },
+        scenario:
+          'Warm one-character Japanese title replacement via native WebDriver key actions; alternating distinct one-row results',
+        methodology:
+          'Shared Playwright fixture data and browser probe; trusted Meta+A then one Japanese key. Page performance.now; double rAF paint opportunities and exact result URL set. Same page-local readonly transaction probe. Different input transport and query length from Chromium; compare before/after within each browser.',
+        milliseconds: Object.fromEntries(
+          [
+            'nextPaintOpportunityMs',
+            'resultDomMs',
+            'resultPaintOpportunityMs',
+            'readWorkSettledMs',
+          ].map((key) => [key, summary(samples.map((s) => s[key]))]),
+        ),
+        readonlyIndexedDbTransactions: summary(
+          samples.map((s) => s.readonlyTransactions),
+        ),
+        observedBodyMutationRecords: summary(
+          samples.map((s) => s.observedBodyMutations),
+        ),
+        resultRows: summary(samples.map((s) => s.renderedRows)),
+      }
+      reports.push(report)
+      console.log(
+        JSON.stringify({
+          mode,
+          size,
+          paint: report.milliseconds.nextPaintOpportunityMs.p50,
+          result: report.milliseconds.resultDomMs.p50,
+          reads: report.readonlyIndexedDbTransactions.p50,
+        }),
+      )
+      await writeFile(
+        process.env.SEARCH_REPORT_PATH ?? '/tmp/issue-900-native-firefox.json',
+        JSON.stringify(reports, null, 2),
+      )
+    }
+} finally {
+  try {
+    if (session) await deleteSession(session)
+  } finally {
+    driver.kill('SIGTERM')
+    await rm(root, { recursive: true, force: true })
+  }
+}

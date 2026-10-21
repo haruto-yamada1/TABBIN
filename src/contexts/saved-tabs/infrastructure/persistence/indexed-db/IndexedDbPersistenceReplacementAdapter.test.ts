@@ -1,6 +1,7 @@
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { assert, afterEach, describe, expect, it, vi } from 'vitest'
 
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceV2ReplacementTarget } from '@/contexts/saved-tabs/application/ports/PersistenceV2ReplacementPort'
 import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
@@ -224,6 +225,76 @@ afterEach(() => {
 })
 
 describe('IndexedDbPersistenceReplacementAdapter', () => {
+  it.each([6, 8])(
+    'rejects expected revision %s without changing any store or revision',
+    async (expectedRevision) => {
+      const operationGate = createReadyPersistenceOperationGateStub()
+      const manager = new IndexedDbConnectionManager({
+        databaseName: `backup-replacement-stale-${expectedRevision}`,
+        indexedDb: new IDBFactory(),
+      })
+      const oldTarget = createTarget('old')
+      await seedDatabase(manager, oldTarget)
+      const adapter = new IndexedDbPersistenceReplacementAdapter(
+        manager,
+        operationGate,
+      )
+
+      await expect(
+        adapter.replaceAll(createTarget('next'), { expectedRevision }),
+      ).rejects.toMatchObject({ code: 'REVISION_CONFLICT' })
+
+      manager.close()
+      const database = await manager.open()
+      await expect(
+        new IndexedDbPersistenceSnapshotReader(
+          manager,
+          operationGate,
+        ).readConsistentSnapshot(),
+      ).resolves.toEqual({ ...oldTarget, revision: 7 })
+      await expect(
+        readRecord(
+          database,
+          PERSISTENCE_STORE_NAMES.metadata,
+          'migration-state',
+        ),
+      ).resolves.toEqual({ key: 'migration-state', value: 'preserve' })
+      await expect(
+        readRecord(
+          database,
+          PERSISTENCE_STORE_NAMES.recoverySnapshots,
+          'recovery-1',
+        ),
+      ).resolves.toMatchObject({ id: 'recovery-1', value: { revision: 7 } })
+      manager.close()
+    },
+  )
+
+  it('commits the whole replacement when the expected revision matches', async () => {
+    const operationGate = createReadyPersistenceOperationGateStub()
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'backup-replacement-matched-revision',
+      indexedDb: new IDBFactory(),
+    })
+    const nextTarget = createTarget('next')
+    await seedDatabase(manager, createTarget('old'))
+    await expect(
+      new IndexedDbPersistenceReplacementAdapter(
+        manager,
+        operationGate,
+      ).replaceAll(nextTarget, { expectedRevision: 7 }),
+    ).resolves.toEqual({ revision: 8 })
+
+    manager.close()
+    await expect(
+      new IndexedDbPersistenceSnapshotReader(
+        manager,
+        operationGate,
+      ).readConsistentSnapshot(),
+    ).resolves.toEqual({ ...nextTarget, revision: 8 })
+    manager.close()
+  })
+
   it('8 logical storeを1 strict transactionで全置換しrevisionだけ更新する', async () => {
     const { operationGate, runIndexedDbWrite } = createOperationGateSpy()
     const manager = new IndexedDbConnectionManager({
@@ -330,6 +401,69 @@ describe('IndexedDbPersistenceReplacementAdapter', () => {
       operationGate,
     ).readConsistentSnapshot()
     expect(snapshot).toEqual({ ...oldTarget, revision: 7 })
+    manager.close()
+  })
+
+  it('preserves a quota failure for recovery while rolling back the replacement', async () => {
+    const operationGate = createReadyPersistenceOperationGateStub()
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'backup-replacement-quota',
+      indexedDb: new IDBFactory(),
+    })
+    const oldTarget = createTarget('old')
+    const nextTarget = createTarget('next')
+    await seedDatabase(manager, oldTarget)
+    const cause = new DOMException(
+      'private backup payload',
+      'QuotaExceededError',
+    )
+    const originalPut = IDBObjectStore.prototype.put
+    const putSpy = vi
+      .spyOn(IDBObjectStore.prototype, 'put')
+      .mockImplementation(function putWithQuotaFailure(
+        this: IDBObjectStore,
+        value,
+        key,
+      ) {
+        if (this.name === PERSISTENCE_STORE_NAMES.urls) {
+          throw cause
+        }
+        return key === undefined
+          ? originalPut.call(this, value)
+          : originalPut.call(this, value, key)
+      })
+    const adapter = new IndexedDbPersistenceReplacementAdapter(
+      manager,
+      operationGate,
+    )
+
+    const error: unknown = await adapter
+      .replaceAll(nextTarget)
+      .catch((error: unknown) => error)
+
+    expect(error).toBeInstanceOf(PersistenceUnavailableError)
+    expect(error).toMatchObject({
+      code: 'PERSISTENCE_RECOVERY_REQUIRED',
+      cause,
+    })
+    expect(String(error)).not.toContain(cause.message)
+    expect(JSON.stringify(error)).not.toContain(cause.message)
+    putSpy.mockRestore()
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
+    await expect(reader.readConsistentSnapshot()).resolves.toEqual({
+      ...oldTarget,
+      revision: 7,
+    })
+    await expect(adapter.replaceAll(nextTarget)).resolves.toEqual({
+      revision: 8,
+    })
+    await expect(reader.readConsistentSnapshot()).resolves.toEqual({
+      ...nextTarget,
+      revision: 8,
+    })
     manager.close()
   })
 

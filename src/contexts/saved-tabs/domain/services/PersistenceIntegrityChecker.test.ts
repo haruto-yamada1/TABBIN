@@ -23,6 +23,77 @@ describe('checkPersistenceIntegrity', () => {
     expect(snapshot).toStrictEqual(before)
   })
 
+  it.each([0, 1, Number.MAX_SAFE_INTEGER])(
+    'accepts uncategorized insertion position %s independently of category count',
+    (position) => {
+      const snapshot = createHealthyPersistenceV2Snapshot()
+      Object.assign(snapshot.collections[0], {
+        uncategorizedCategoryPosition: position,
+      })
+      const before = structuredClone(snapshot)
+
+      expect(checkPersistenceIntegrity(snapshot)).toStrictEqual({
+        isHealthy: true,
+        issues: [],
+      })
+      expect(snapshot).toStrictEqual(before)
+    },
+  )
+
+  it.each([
+    -1,
+    0.5,
+    Number.MAX_SAFE_INTEGER + 1,
+    '0',
+    Number.NaN,
+    undefined,
+    -0,
+    Number.POSITIVE_INFINITY,
+    null,
+  ])('rejects invalid uncategorized insertion position %s', (value) => {
+    const snapshot = createHealthyPersistenceV2Snapshot()
+    Object.assign(snapshot.collections[0], {
+      uncategorizedCategoryPosition: value,
+    })
+
+    expect(
+      checkPersistenceIntegrity(snapshot).issues.find(
+        ({ code }) => code === 'INVALID_COLLECTION_ORDER',
+      ),
+    ).toStrictEqual({
+      code: 'INVALID_COLLECTION_ORDER',
+      collectionId: 'collection-domain',
+      repairability: 'requires-review',
+      severity: 'error',
+    })
+  })
+
+  it.each([
+    [undefined, 'undefined'],
+    [Number.NaN, 'non-finite-number'],
+    [-0, 'negative-zero'],
+  ])(
+    'retains the non-JSON-safe boundary for uncategorized position %s',
+    (value, typeClass) => {
+      const snapshot = createHealthyPersistenceV2Snapshot()
+      Object.assign(snapshot.collections[0], {
+        uncategorizedCategoryPosition: value,
+      })
+
+      expect(
+        checkPersistenceIntegrity(snapshot).issues.find(
+          ({ code }) => code === 'NON_JSON_SAFE_VALUE',
+        ),
+      ).toStrictEqual({
+        code: 'NON_JSON_SAFE_VALUE',
+        path: 'collections[0].uncategorizedCategoryPosition',
+        repairability: 'not-repairable',
+        severity: 'error',
+        typeClass,
+      })
+    },
+  )
+
   it('detects the corrupted fixture invariants required by Issue #712', () => {
     const report = checkPersistenceIntegrity(
       createCorruptedPersistenceV2Snapshot(),

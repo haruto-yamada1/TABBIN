@@ -1,3 +1,5 @@
+import { prefersReducedMotion } from '@/lib/reducedMotion'
+
 type ScrollTargetType = 'parent' | 'project' | 'domain' | 'child'
 type ScrollDirection = 'previous' | 'next'
 
@@ -119,7 +121,7 @@ const scrollContainerToTarget = (
   )
 
   container.scrollTo({
-    behavior: 'smooth',
+    behavior: prefersReducedMotion() ? 'instant' : 'smooth',
     top: nextScrollTop,
   })
 }

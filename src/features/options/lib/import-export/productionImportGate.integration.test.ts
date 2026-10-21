@@ -10,7 +10,7 @@ import { importBackupV2WithRecovery } from '@/app/composition/optionsBackupRecov
 import { getImportPreview, importSettings } from './flows'
 
 const currentV2 = {
-  appVersion: '2.0.17',
+  appVersion: '2.0.18',
   data: {
     analyticsViews: [],
     conversations: [],
@@ -59,6 +59,14 @@ describe('current Backup V2 production import boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(importBackupV2WithRecovery).mockResolvedValue({
+      notification: {
+        kind: 'committed_and_published',
+        event: {
+          changeId: 'test-import',
+          revision: 2,
+          scopes: ['collections'],
+        },
+      },
       entityCounts: {
         analyticsViews: 0,
         categories: 0,
@@ -118,7 +126,7 @@ describe('current Backup V2 production import boundary', () => {
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-09-01T00:00:00.000Z',
-        version: '2.0.17',
+        version: '2.0.18',
       },
     })
   })

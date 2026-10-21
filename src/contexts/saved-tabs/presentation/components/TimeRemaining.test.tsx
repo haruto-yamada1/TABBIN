@@ -61,7 +61,19 @@ vi.mock('./SortableUrlItem', () => ({
   ),
 }))
 
+import { toast } from 'sonner'
+
+import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
+
 import { CategorySection } from './TimeRemaining'
+
+vi.mock('@/features/i18n/context/I18nProvider', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}))
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}))
 
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
@@ -69,6 +81,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,
@@ -175,6 +188,8 @@ describe('CategorySection', () => {
       ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
     })
     expect(props.handleUpdateUrls).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
   })
 
   it('overがない場合と同一IDドロップでは並び替えを実行しない', () => {
@@ -202,4 +217,22 @@ describe('CategorySection', () => {
         .map((node) => node.textContent),
     ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
   })
+})
+
+it('日時ソート表示中のドロップでは保存済み手動順を変更しない', async () => {
+  reorderTabGroupUrlsUseCaseMock.mockClear()
+  const props = createProps()
+  render(
+    <UrlReorderAvailabilityContext value={false}>
+      <CategorySection {...props} />
+    </UrlReorderAvailabilityContext>,
+  )
+  await act(async () => {
+    await dndContextHandlersRef.current.onDragEnd?.({
+      active: { id: 'https://a.com' },
+      over: { id: 'https://c.com' },
+    })
+  })
+  expect(reorderTabGroupUrlsUseCaseMock).not.toHaveBeenCalled()
+  expect(props.handleUpdateUrls).not.toHaveBeenCalled()
 })

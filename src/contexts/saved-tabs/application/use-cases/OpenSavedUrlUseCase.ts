@@ -1,6 +1,7 @@
 import type { OpenSavedUrlCommand } from '@/contexts/saved-tabs/application/commands/OpenSavedUrlCommand'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { OpenedUrlDto } from '@/contexts/saved-tabs/application/dto/OpenedUrlDto'
+import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import {
   toSavedTabsCustomProjectDto,
   toSavedTabsTabGroupDto,
@@ -70,94 +71,98 @@ export const createOpenSavedUrlUseCase = (
 
     const opened = await deps.browserTabPort.open({ url: urlRecord.url })
 
-    const idsToRemove = decideUrlRecordIdsToRemoveAfterOpen({
-      openedUrls: [{ origin: command.origin, urlRecordId: urlRecord.id }],
-      settings: command.settings,
-    })
-    if (idsToRemove.size === 0) {
+    try {
+      const idsToRemove = decideUrlRecordIdsToRemoveAfterOpen({
+        openedUrls: [{ origin: command.origin, urlRecordId: urlRecord.id }],
+        settings: command.settings,
+      })
+      if (idsToRemove.size === 0) {
+        return {
+          openedUrl: opened.url,
+          removedUrlRecord: null,
+          removedUrlRecordId: null,
+          snapshot: null,
+        }
+      }
+
+      const previousTabGroups = allTabGroups
+      const previousCustomProjects = allCustomProjects
+      const previousUrlRecord = urlRecord
+
+      const updatedTabGroups = removeUrlRecordIdsFromTabGroups({
+        tabGroups: allTabGroups,
+        urlRecordIdsToRemove: idsToRemove,
+      })
+      // CustomProject は空になっても削除せず保持する。
+      // ユーザーがあとから手動で整理できるようにするため、副作用は最小化する。
+      const updatedCustomProjects = previousCustomProjects.map((project) => {
+        const remaining = project.memberships.filter(
+          ({ urlId }) => !idsToRemove.has(urlId),
+        )
+        if (remaining.length === project.memberships.length) {
+          return project
+        }
+        return { ...project, memberships: remaining }
+      })
+
+      const urlRecordIdsToDelete = new Set(
+        filterUnreferencedUrlRecords({
+          customProjects: updatedCustomProjects,
+          tabGroups: updatedTabGroups,
+          urlRecords: [urlRecord],
+        }).map(({ id }) => id),
+      )
+
+      if (updatedTabGroups.length !== previousTabGroups.length) {
+        await deps.tabGroupRepository.saveAll(updatedTabGroups)
+      } else {
+        // length が同じでも、グループ内の urlIds が変わった場合は
+        // saveAll で書き戻す必要がある。`removeUrlRecordIdsFromTabGroups` は
+        // 変更があったグループだけ新しい object を返すので reference 比較で
+        // 検出できる。
+        const hasTabGroupContentChanged = updatedTabGroups.some(
+          (group, index) => group !== previousTabGroups[index],
+        )
+        if (hasTabGroupContentChanged) {
+          await deps.tabGroupRepository.saveAll(updatedTabGroups)
+        }
+      }
+      const hasCustomProjectChanged = updatedCustomProjects.some(
+        (project, index) => project !== previousCustomProjects[index],
+      )
+      if (hasCustomProjectChanged) {
+        await deps.customProjectRepository.saveAll(updatedCustomProjects)
+      }
+      if (urlRecordIdsToDelete.size > 0) {
+        await deps.urlRecordRepository.removeByIds(
+          Array.from(urlRecordIdsToDelete),
+        )
+      }
+
+      const removedId = urlRecordIdsToDelete.has(urlRecord.id)
+        ? urlRecord.id
+        : null
+      const removedRecord: typeof urlRecord | null =
+        removedId !== null ? previousUrlRecord : null
+
+      const snapshot: OpenedUrlsRestoreSnapshot = {
+        customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
+        savedTabs: previousTabGroups.map(toSavedTabsTabGroupDto),
+        urlRecords: removedRecord
+          ? [toSavedTabsUrlRecordDto(previousUrlRecord)]
+          : [],
+      }
+
       return {
         openedUrl: opened.url,
-        removedUrlRecord: null,
-        removedUrlRecordId: null,
-        snapshot: null,
+        removedUrlRecord: removedRecord
+          ? toSavedTabsUrlRecordDto(removedRecord)
+          : null,
+        removedUrlRecordId: removedId,
+        snapshot,
       }
-    }
-
-    const previousTabGroups = allTabGroups
-    const previousCustomProjects = allCustomProjects
-    const previousUrlRecord = urlRecord
-
-    const updatedTabGroups = removeUrlRecordIdsFromTabGroups({
-      tabGroups: allTabGroups,
-      urlRecordIdsToRemove: idsToRemove,
-    })
-    // CustomProject は空になっても削除せず保持する。
-    // ユーザーがあとから手動で整理できるようにするため、副作用は最小化する。
-    const updatedCustomProjects = previousCustomProjects.map((project) => {
-      const remaining = project.memberships.filter(
-        ({ urlId }) => !idsToRemove.has(urlId),
-      )
-      if (remaining.length === project.memberships.length) {
-        return project
-      }
-      return { ...project, memberships: remaining }
-    })
-
-    const urlRecordIdsToDelete = new Set(
-      filterUnreferencedUrlRecords({
-        customProjects: updatedCustomProjects,
-        tabGroups: updatedTabGroups,
-        urlRecords: [urlRecord],
-      }).map(({ id }) => id),
-    )
-
-    if (updatedTabGroups.length !== previousTabGroups.length) {
-      await deps.tabGroupRepository.saveAll(updatedTabGroups)
-    } else {
-      // length が同じでも、グループ内の urlIds が変わった場合は
-      // saveAll で書き戻す必要がある。`removeUrlRecordIdsFromTabGroups` は
-      // 変更があったグループだけ新しい object を返すので reference 比較で
-      // 検出できる。
-      const hasTabGroupContentChanged = updatedTabGroups.some(
-        (group, index) => group !== previousTabGroups[index],
-      )
-      if (hasTabGroupContentChanged) {
-        await deps.tabGroupRepository.saveAll(updatedTabGroups)
-      }
-    }
-    const hasCustomProjectChanged = updatedCustomProjects.some(
-      (project, index) => project !== previousCustomProjects[index],
-    )
-    if (hasCustomProjectChanged) {
-      await deps.customProjectRepository.saveAll(updatedCustomProjects)
-    }
-    if (urlRecordIdsToDelete.size > 0) {
-      await deps.urlRecordRepository.removeByIds(
-        Array.from(urlRecordIdsToDelete),
-      )
-    }
-
-    const removedId = urlRecordIdsToDelete.has(urlRecord.id)
-      ? urlRecord.id
-      : null
-    const removedRecord: typeof urlRecord | null =
-      removedId !== null ? previousUrlRecord : null
-
-    const snapshot: OpenedUrlsRestoreSnapshot = {
-      customProjects: previousCustomProjects.map(toSavedTabsCustomProjectDto),
-      savedTabs: previousTabGroups.map(toSavedTabsTabGroupDto),
-      urlRecords: removedRecord
-        ? [toSavedTabsUrlRecordDto(previousUrlRecord)]
-        : [],
-    }
-
-    return {
-      openedUrl: opened.url,
-      removedUrlRecord: removedRecord
-        ? toSavedTabsUrlRecordDto(removedRecord)
-        : null,
-      removedUrlRecordId: removedId,
-      snapshot,
+    } catch {
+      throw new UrlOpeningPostProcessingError([opened.url])
     }
   }
 }

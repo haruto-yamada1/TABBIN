@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-10-18T07:20:30+09:00",
+  "baselineCommit": "18412755b7f434d720b6383be917e02b3fcba09f",
+  "command": "bun run test:indexeddb:browsers --reporter=json",
+  "suite": {
+    "passed": 60,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "durationMs": 85839.187
+  },
+  "method": {
+    "rss": "Sum of dedicated browser PID and descendant RSS; shared pages may be counted more than once.",
+    "samplingIntervalMs": 100,
+    "scope": "Synthetic fixture generation through scenario completion; explicit retry is outside the measured interval.",
+    "iterationsPerScenario": 1
+  },
+  "measurements": [
+    {
+      "browser": "chromium",
+      "test": "reads and validates a real file one byte below the serialized limit",
+      "bytes": 134217727,
+      "counts": {
+        "analyticsViews": 0,
+        "categories": 0,
+        "collections": 1,
+        "conversations": 0,
+        "groups": 0,
+        "memberships": 128,
+        "messages": 0,
+        "urls": 128
+      },
+      "status": "fulfilled",
+      "timings": {
+        "readMs": 123.09999999962747,
+        "parseSchemaMs": 70.20000000018626,
+        "resourceMs": 176.5
+      },
+      "memory": {
+        "baselineRssBytes": 292814848,
+        "peakRssBytes": 1641938944,
+        "samples": 7
+      },
+      "runtime": {
+        "browserVersion": "153.0.8010.12",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "chromium",
+      "test": "too-many-urls rejects a large input without changing persisted data",
+      "aborted": false,
+      "bytes": 45537748,
+      "code": "BACKUP_RESOURCE_LIMIT_EXCEEDED",
+      "completedUrlWrites": 0,
+      "phase": "resource",
+      "status": "rejected",
+      "timings": {
+        "readMs": 38.09999999962747,
+        "parseSchemaMs": 151.5,
+        "failedPhaseMs": 213.90000000037253
+      },
+      "memory": {
+        "baselineRssBytes": 292732928,
+        "peakRssBytes": 706609152,
+        "samples": 5
+      },
+      "runtime": {
+        "browserVersion": "153.0.8010.12",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "chromium",
+      "test": "truncated rejects a large input without changing persisted data",
+      "aborted": false,
+      "bytes": 45537285,
+      "code": "INVALID_BACKUP",
+      "completedUrlWrites": 0,
+      "phase": "parse-schema",
+      "status": "rejected",
+      "timings": {
+        "readMs": 36.10000000055879,
+        "failedPhaseMs": 56.39999999944121
+      },
+      "memory": {
+        "baselineRssBytes": 292831232,
+        "peakRssBytes": 678887424,
+        "samples": 3
+      },
+      "runtime": {
+        "browserVersion": "153.0.8010.12",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "chromium",
+      "test": "invalid-structure rejects a large input without changing persisted data",
+      "aborted": false,
+      "bytes": 45537253,
+      "code": "INVALID_BACKUP",
+      "completedUrlWrites": 0,
+      "phase": "parse-schema",
+      "status": "rejected",
+      "timings": {
+        "readMs": 36.60000000055879,
+        "failedPhaseMs": 150.79999999981374
+      },
+      "memory": {
+        "baselineRssBytes": 292929536,
+        "peakRssBytes": 680017920,
+        "samples": 3
+      },
+      "runtime": {
+        "browserVersion": "153.0.8010.12",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "chromium",
+      "test": "imports 100,000 URLs with verified readback and reopens native storage",
+      "bytes": 45537286,
+      "counts": {
+        "analyticsViews": 0,
+        "categories": 0,
+        "collections": 1,
+        "conversations": 0,
+        "groups": 0,
+        "memberships": 100000,
+        "messages": 0,
+        "urls": 100000
+      },
+      "status": "fulfilled",
+      "timings": {
+        "readMs": 38.5,
+        "parseSchemaMs": 149.70000000018626,
+        "resourceMs": 209,
+        "overwriteMs": 6882.700000000186
+      },
+      "memory": {
+        "baselineRssBytes": 291766272,
+        "peakRssBytes": 2280800256,
+        "samples": 63
+      },
+      "runtime": {
+        "browserVersion": "153.0.8010.12",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "chromium",
+      "test": "aborts after 5,000 native URL writes, restores all data and supports an explicit retry",
+      "aborted": true,
+      "bytes": 45537286,
+      "code": "PERSISTENCE_REPLACEMENT_FAILED",
+      "completedUrlWrites": 5002,
+      "phase": "overwrite",
+      "status": "rejected",
+      "timings": {
+        "readMs": 28,
+        "parseSchemaMs": 149.1000000005588,
+        "resourceMs": 212.8999999994412,
+        "failedPhaseMs": 5359.5
+      },
+      "memory": {
+        "baselineRssBytes": 292618240,
+        "peakRssBytes": 2627502080,
+        "samples": 52
+      },
+      "runtime": {
+        "browserVersion": "153.0.8010.12",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "firefox",
+      "test": "reads and validates a real file one byte below the serialized limit",
+      "bytes": 134217727,
+      "counts": {
+        "analyticsViews": 0,
+        "categories": 0,
+        "collections": 1,
+        "conversations": 0,
+        "groups": 0,
+        "memberships": 128,
+        "messages": 0,
+        "urls": 128
+      },
+      "status": "fulfilled",
+      "timings": {
+        "readMs": 106,
+        "parseSchemaMs": 72,
+        "resourceMs": 64
+      },
+      "memory": {
+        "baselineRssBytes": 1017544704,
+        "peakRssBytes": 2354348032,
+        "samples": 4
+      },
+      "runtime": {
+        "browserVersion": "155.0",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "firefox",
+      "test": "too-many-urls rejects a large input without changing persisted data",
+      "aborted": false,
+      "bytes": 45537748,
+      "code": "BACKUP_RESOURCE_LIMIT_EXCEEDED",
+      "completedUrlWrites": 0,
+      "phase": "resource",
+      "status": "rejected",
+      "timings": {
+        "readMs": 27,
+        "parseSchemaMs": 296,
+        "failedPhaseMs": 34
+      },
+      "memory": {
+        "baselineRssBytes": 1013514240,
+        "peakRssBytes": 1304936448,
+        "samples": 5
+      },
+      "runtime": {
+        "browserVersion": "155.0",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "firefox",
+      "test": "truncated rejects a large input without changing persisted data",
+      "aborted": false,
+      "bytes": 45537285,
+      "code": "INVALID_BACKUP",
+      "completedUrlWrites": 0,
+      "phase": "parse-schema",
+      "status": "rejected",
+      "timings": {
+        "readMs": 25,
+        "failedPhaseMs": 106
+      },
+      "memory": {
+        "baselineRssBytes": 1012187136,
+        "peakRssBytes": 1296187392,
+        "samples": 3
+      },
+      "runtime": {
+        "browserVersion": "155.0",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "firefox",
+      "test": "invalid-structure rejects a large input without changing persisted data",
+      "aborted": false,
+      "bytes": 45537253,
+      "code": "INVALID_BACKUP",
+      "completedUrlWrites": 0,
+      "phase": "parse-schema",
+      "status": "rejected",
+      "timings": {
+        "readMs": 24,
+        "failedPhaseMs": 294
+      },
+      "memory": {
+        "baselineRssBytes": 1012580352,
+        "peakRssBytes": 1303576576,
+        "samples": 5
+      },
+      "runtime": {
+        "browserVersion": "155.0",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "firefox",
+      "test": "imports 100,000 URLs with verified readback and reopens native storage",
+      "bytes": 45537286,
+      "counts": {
+        "analyticsViews": 0,
+        "categories": 0,
+        "collections": 1,
+        "conversations": 0,
+        "groups": 0,
+        "memberships": 100000,
+        "messages": 0,
+        "urls": 100000
+      },
+      "status": "fulfilled",
+      "timings": {
+        "readMs": 24,
+        "parseSchemaMs": 295,
+        "resourceMs": 31,
+        "overwriteMs": 12203
+      },
+      "memory": {
+        "baselineRssBytes": 1039187968,
+        "peakRssBytes": 2678587392,
+        "samples": 114
+      },
+      "runtime": {
+        "browserVersion": "155.0",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    },
+    {
+      "browser": "firefox",
+      "test": "aborts after 5,000 native URL writes, restores all data and supports an explicit retry",
+      "aborted": true,
+      "bytes": 45537286,
+      "code": "PERSISTENCE_REPLACEMENT_FAILED",
+      "completedUrlWrites": 5002,
+      "phase": "overwrite",
+      "status": "rejected",
+      "timings": {
+        "readMs": 25,
+        "parseSchemaMs": 295,
+        "resourceMs": 32,
+        "failedPhaseMs": 10259
+      },
+      "memory": {
+        "baselineRssBytes": 1013252096,
+        "peakRssBytes": 2620227584,
+        "samples": 97
+      },
+      "runtime": {
+        "browserVersion": "155.0",
+        "nodeVersion": "v24.17.0",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "cpu": "Apple M4",
+        "totalMemoryBytes": 17179869184
+      }
+    }
+  ]
+}

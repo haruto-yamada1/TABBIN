@@ -1,3 +1,4 @@
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type {
   PersistenceRecoverySnapshotRecord,
@@ -10,6 +11,7 @@ import { measureSerializedBytes } from '@/lib/persistence/capacity'
 import { isJsonValue } from '@/lib/persistence/jsonValue'
 
 import type { IndexedDbConnectionManager } from './IndexedDbConnectionManager'
+import { toIndexedDbError } from './IndexedDbError'
 import { queueIndexedDbTransaction } from './IndexedDbTransaction'
 import { PERSISTENCE_STORE_NAMES } from './persistenceDatabaseSchema'
 import { readIndexedDbRequestResult } from './PersistenceRecordDecoders'
@@ -238,15 +240,20 @@ const selectRetainedSnapshots = (
 
 type RecoverySaveTransactionState = {
   committedRevision?: number
-  error?: PersistenceRecoverySnapshotRepositoryError
+  error?:
+    | PersistenceRecoverySnapshotRepositoryError
+    | PersistenceUnavailableError
 }
 
 const toRepositoryError = (
   error: unknown,
-): PersistenceRecoverySnapshotRepositoryError =>
-  error instanceof PersistenceRecoverySnapshotRepositoryError
-    ? error
+): PersistenceRecoverySnapshotRepositoryError | PersistenceUnavailableError => {
+  const failure = toIndexedDbError(error, ERROR_MESSAGES.TRANSACTION_FAILED)
+  return failure instanceof PersistenceRecoverySnapshotRepositoryError ||
+    failure instanceof PersistenceUnavailableError
+    ? failure
     : new PersistenceRecoverySnapshotRepositoryError('TRANSACTION_FAILED')
+}
 
 const abortRecoverySave = (
   transaction: IDBTransaction,
@@ -459,11 +466,8 @@ export class IndexedDbPersistenceRecoverySnapshotRepository implements Persisten
             })
           },
         )
-      } catch {
-        throw (
-          state.error ??
-          new PersistenceRecoverySnapshotRepositoryError('TRANSACTION_FAILED')
-        )
+      } catch (error) {
+        throw state.error ?? toRepositoryError(error)
       }
 
       if (state.error) {

@@ -31,6 +31,7 @@ const userSettings = {
   openUrlInBackground: false,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
+  showRelativeSavedTime: false,
   showSavedTime: true,
 } satisfies UserSettings
 
@@ -156,6 +157,191 @@ const createLogicalSnapshot = (reverse = false): PersistenceLogicalSnapshot => {
 }
 
 describe('Backup V2 schemas', () => {
+  it('imports older Backup V2 settings with relative saved time disabled', () => {
+    const data = BackupMapper.toBackupData(
+      createLogicalSnapshot(),
+      userSettings,
+    )
+    const { showRelativeSavedTime: _relative, ...legacySettings } = {
+      ...data.userSettings,
+      showRelativeSavedTime: true,
+    }
+    const parsed = BackupDataV2Schema.parse({
+      ...data,
+      userSettings: legacySettings,
+    })
+
+    expect(parsed.userSettings).toMatchObject({
+      showRelativeSavedTime: false,
+      showSavedTime: true,
+    })
+  })
+
+  it('round-trips relative saved time independently of its parent setting', () => {
+    const settings = {
+      ...userSettings,
+      showRelativeSavedTime: true,
+      showSavedTime: false,
+    }
+    const data = BackupMapper.toBackupData(createLogicalSnapshot(), settings)
+    const serialized = JSON.stringify(data)
+    const parsed: unknown = JSON.parse(serialized)
+
+    expect(BackupDataV2Schema.parse(parsed).userSettings).toMatchObject({
+      showRelativeSavedTime: true,
+      showSavedTime: false,
+    })
+  })
+
+  it.each(['true', 1, null])(
+    'rejects invalid relative saved time %j in backups',
+    (value) => {
+      const data = BackupMapper.toBackupData(
+        createLogicalSnapshot(),
+        userSettings,
+      )
+
+      expect(
+        BackupDataV2Schema.safeParse({
+          ...data,
+          userSettings: { ...data.userSettings, showRelativeSavedTime: value },
+        }).success,
+      ).toBe(false)
+    },
+  )
+
+  it('preserves omitted optional metadata without adding undefined properties', () => {
+    const url = {
+      firstSavedAt: 0,
+      id: 'url-1',
+      lastSavedAt: 0,
+      normalizedUrl: 'https://example.test/',
+      title: 'Example',
+      updatedAt: 0,
+      url: 'https://example.test/',
+    }
+    const collection = {
+      createdAt: 0,
+      definition: { domain: 'example.test', type: 'domain' },
+      id: 'collection-1',
+      name: 'Example',
+      sortOrder: 0,
+      updatedAt: 0,
+    }
+    const membership = {
+      addedAt: 0,
+      collectionId: 'collection-1',
+      sortOrder: 0,
+      updatedAt: 0,
+      urlId: 'url-1',
+    }
+
+    expect(PersistenceV2UrlSchema.parse(url)).toStrictEqual(url)
+    expect(PersistenceV2CollectionSchema.parse(collection)).toStrictEqual(
+      collection,
+    )
+    expect(
+      PersistenceV2CollectionMembershipSchema.parse(membership),
+    ).toStrictEqual(membership)
+  })
+
+  it.each([0, Number.MAX_SAFE_INTEGER])(
+    'preserves valid epoch boundary %s and optional saved metadata',
+    (timestamp) => {
+      const url = {
+        ...createSavedTabs().urls[0],
+        favIconUrl: 'https://example.test/favicon.ico',
+        firstSavedAt: timestamp,
+        lastSavedAt: timestamp,
+        updatedAt: timestamp,
+      }
+      const membership = {
+        ...createSavedTabs().memberships[0],
+        addedAt: timestamp,
+        categoryId: 'category-1',
+        updatedAt: timestamp,
+      }
+
+      expect(PersistenceV2UrlSchema.parse(url)).toStrictEqual(url)
+      expect(
+        PersistenceV2CollectionMembershipSchema.parse(membership),
+      ).toStrictEqual(membership)
+    },
+  )
+
+  it.each([0, 1, Number.MAX_SAFE_INTEGER])(
+    'round-trips uncategorized insertion position %s through Backup V2',
+    (position) => {
+      const snapshot = createLogicalSnapshot()
+      const sourceCollection = snapshot.savedTabs.collections[0]
+      if (!sourceCollection) {
+        throw new Error('Expected collection fixture')
+      }
+      const collection = {
+        ...sourceCollection,
+        uncategorizedCategoryPosition: position,
+      }
+      const data = BackupMapper.toBackupData(
+        {
+          ...snapshot,
+          savedTabs: { ...snapshot.savedTabs, collections: [collection] },
+        },
+        userSettings,
+      )
+      const envelope = BackupEnvelopeV2Schema.parse({
+        appVersion: '2026.10.3',
+        data,
+        exportedAt: '2026-10-03T00:00:00.000Z',
+        schemaVersion: 2,
+      })
+      const serialized = JSON.stringify(envelope)
+      const parsed: unknown = JSON.parse(serialized)
+      const restored = BackupMapper.toLogicalSnapshot(
+        BackupEnvelopeV2Schema.parse(parsed).data,
+        42,
+      )
+
+      expect(restored.savedTabs.collections).toStrictEqual([collection])
+      expect(restored.savedTabs.categories).toStrictEqual(
+        snapshot.savedTabs.categories,
+      )
+      expect(envelope.schemaVersion).toBe(2)
+    },
+  )
+
+  it.each([
+    -1,
+    0.5,
+    Number.MAX_SAFE_INTEGER + 1,
+    '0',
+    Number.NaN,
+    undefined,
+    -0,
+    Number.POSITIVE_INFINITY,
+    null,
+  ])('rejects invalid uncategorized insertion position %s', (value) => {
+    expect(
+      PersistenceV2CollectionSchema.safeParse({
+        ...createSavedTabs().collections[0],
+        uncategorizedCategoryPosition: value,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('keeps field-absent Backup V2 collections compatible without inventing a position', () => {
+    const snapshot = createLogicalSnapshot()
+    const data = BackupDataV2Schema.parse(
+      BackupMapper.toBackupData(snapshot, userSettings),
+    )
+
+    expect(data.savedTabs.collections).toStrictEqual(
+      snapshot.savedTabs.collections,
+    )
+    expect(data.savedTabs.collections[0]).not.toHaveProperty(
+      'uncategorizedCategoryPosition',
+    )
+  })
+
   it('separates schema and app versions and round-trips JSON', () => {
     const data = BackupMapper.toBackupData(
       createLogicalSnapshot(),

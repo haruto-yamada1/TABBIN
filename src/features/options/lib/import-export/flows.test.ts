@@ -5,10 +5,12 @@ const mocks = vi.hoisted(() => ({
   assertProductionImportAllowed: vi.fn(),
   importBackupV2WithRecovery: vi.fn(),
   loggerError: vi.fn(),
+  readBackupImportCurrent: vi.fn(),
 }))
 
 vi.mock('@/app/composition/optionsBackupRecovery', () => ({
   importBackupV2WithRecovery: mocks.importBackupV2WithRecovery,
+  readBackupImportCurrent: mocks.readBackupImportCurrent,
 }))
 vi.mock('@/lib/logging/logger', () => ({
   logger: { error: mocks.loggerError },
@@ -18,14 +20,26 @@ vi.mock('./productionImportGate', async (importOriginal) => ({
   assertProductionImportAllowed: mocks.assertProductionImportAllowed,
 }))
 
-import { downloadAsJson, getImportPreview, importSettings } from './flows'
+import { normalizeUserSettingsForStorage } from '@/lib/storage/settings'
+
+import {
+  downloadAsJson,
+  getImportPreview,
+  importSettings,
+  prepareImportPreview,
+} from './flows'
 import { ProductionBackupImportError } from './productionImportGate'
+import { BackupMapper } from './v2/BackupMapper'
+import { ALL_BACKUP_IMPORT_SECTIONS } from './v2/BackupV2ImportDiff'
+import { inspectBackupV2 } from './v2/BackupV2Inspector'
+import backupFixture from './v2/fixtures/backup-v2-current.json'
 
 describe('production import flow', () => {
   beforeEach(() => {
     mocks.assertProductionImportAllowed.mockReset()
-    mocks.importBackupV2WithRecovery.mockReset().mockResolvedValue(undefined)
+    mocks.importBackupV2WithRecovery.mockReset().mockResolvedValue({})
     mocks.loggerError.mockReset()
+    mocks.readBackupImportCurrent.mockReset()
   })
 
   afterEach(() => {
@@ -33,10 +47,91 @@ describe('production import flow', () => {
     vi.unstubAllGlobals()
   })
 
+  it('prepares a read-only comparison using the actual normalized restore target', async () => {
+    const inspection = inspectBackupV2(backupFixture)
+    const current = {
+      data: BackupMapper.toBackupData(
+        BackupMapper.toLogicalSnapshot(inspection.data, 0),
+        normalizeUserSettingsForStorage(inspection.data.userSettings),
+      ),
+      revision: 3,
+    }
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection,
+      kind: 'v2-overwrite',
+    })
+    mocks.readBackupImportCurrent.mockResolvedValue(current)
+    const result = await prepareImportPreview('{}')
+    expect(result).toMatchObject({
+      success: true,
+      preview: { comparison: { current, changes: [] } },
+    })
+    expect(mocks.importBackupV2WithRecovery).not.toHaveBeenCalled()
+    await importSettings('{}', undefined, {
+      current,
+      selection: ALL_BACKUP_IMPORT_SECTIONS,
+    })
+    expect(mocks.importBackupV2WithRecovery).toHaveBeenCalledWith(inspection, {
+      current,
+      selection: ALL_BACKUP_IMPORT_SECTIONS,
+    })
+  })
+
+  it('reports a committed import with a later concurrent change as success', async () => {
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection: inspectBackupV2(backupFixture),
+      kind: 'v2-overwrite',
+    })
+    mocks.importBackupV2WithRecovery.mockResolvedValue({
+      concurrentChange: true,
+    })
+    await expect(importSettings('{}', (key) => key)).resolves.toMatchObject({
+      success: true,
+      message: 'options.importExport.importConcurrentChange',
+    })
+  })
+
+  it('fails closed when the current snapshot cannot be read', async () => {
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection: inspectBackupV2(backupFixture),
+      kind: 'v2-overwrite',
+    })
+    mocks.readBackupImportCurrent.mockRejectedValue(
+      new Error('private content'),
+    )
+    await expect(prepareImportPreview('{}')).resolves.toMatchObject({
+      success: false,
+      diagnostic: { stage: 'v2-overwrite' },
+    })
+    expect(mocks.importBackupV2WithRecovery).not.toHaveBeenCalled()
+    expect(mocks.loggerError).not.toHaveBeenCalled()
+  })
+
+  it('does not read current data for invalid input and explains a stale confirmation', async () => {
+    mocks.assertProductionImportAllowed.mockImplementationOnce(() => {
+      throw new ProductionBackupImportError('INVALID_BACKUP')
+    })
+    await expect(prepareImportPreview('{}')).resolves.toMatchObject({
+      success: false,
+    })
+    expect(mocks.readBackupImportCurrent).not.toHaveBeenCalled()
+    mocks.assertProductionImportAllowed.mockReturnValue({
+      inspection: inspectBackupV2(backupFixture),
+      kind: 'v2-overwrite',
+    })
+    mocks.importBackupV2WithRecovery.mockRejectedValue({
+      code: 'IMPORT_PREVIEW_STALE',
+    })
+    await expect(importSettings('{}', (key) => key)).resolves.toMatchObject({
+      success: false,
+      message: 'options.importExport.previewStale',
+    })
+  })
+
   it('routes a current backup through recovery-backed overwrite', async () => {
     const inspection = {
       preview: {
-        appVersion: '2.0.17',
+        appVersion: '2.0.18',
         exportedAt: '2026-09-01T00:00:00.000Z',
       },
     }
@@ -44,7 +139,7 @@ describe('production import flow', () => {
       inspection,
       kind: 'v2-overwrite',
     })
-    mocks.importBackupV2WithRecovery.mockResolvedValue(undefined)
+    mocks.importBackupV2WithRecovery.mockResolvedValue({})
 
     await expect(importSettings('{}')).resolves.toMatchObject({
       success: true,
@@ -147,7 +242,7 @@ describe('production import flow', () => {
     mocks.assertProductionImportAllowed.mockReturnValue({
       inspection: {
         preview: {
-          appVersion: '2.0.17',
+          appVersion: '2.0.18',
           exportedAt: '2026-09-01T00:00:00.000Z',
         },
       },
@@ -162,14 +257,14 @@ describe('production import flow', () => {
     expect(translate).toHaveBeenCalledWith(
       'options.importExport.replaceSuccess',
       undefined,
-      expect.objectContaining({ version: '2.0.17' }),
+      expect.objectContaining({ version: '2.0.18' }),
     )
   })
 
   it.each([
     [
       'UNSUPPORTED_LEGACY_BACKUP',
-      'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。',
+      'このバックアップ形式はサポートされていません。',
     ],
     [
       'UNSUPPORTED_FUTURE_SCHEMA',
@@ -234,7 +329,7 @@ describe('production import flow', () => {
           },
         },
         preview: {
-          appVersion: '2.0.17',
+          appVersion: '2.0.18',
           entityCounts: {
             analyticsViews: 1,
             categories: 2,
@@ -255,7 +350,7 @@ describe('production import flow', () => {
         hasAnalytics: true,
         projectsCount: 1,
         timestamp: '2026-09-01T00:00:00.000Z',
-        version: '2.0.17',
+        version: '2.0.18',
       },
       success: true,
     })

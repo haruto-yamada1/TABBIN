@@ -30,6 +30,7 @@ export const defaultUserSettings: UserSettingsDto = {
   excludePatterns: [...DEFAULT_EXCLUDE_PATTERNS],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: true,
@@ -131,6 +132,9 @@ const toUserSettingsBehaviorPatch = (
     : {}),
   ...(settings.removeTabAfterOpen !== undefined
     ? { removeTabAfterOpen: settings.removeTabAfterOpen }
+    : {}),
+  ...(settings.showRelativeSavedTime !== undefined
+    ? { showRelativeSavedTime: settings.showRelativeSavedTime }
     : {}),
   ...(settings.showSavedTime !== undefined
     ? { showSavedTime: settings.showSavedTime }

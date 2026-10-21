@@ -1,6 +1,6 @@
 {
   "databaseVersion": 1,
-  "minimumCompatibleAppVersion": "2.0.17",
+  "minimumCompatibleAppVersion": "2.0.18",
   "persistenceGeneration": 2,
   "rollbackCompatibility": {
     "databaseDowngradeCompatible": true,

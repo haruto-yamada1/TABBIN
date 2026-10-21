@@ -101,8 +101,20 @@ vi.mock('@/contexts/saved-tabs/presentation/components/CategoryGroup', () => ({
 vi.mock(
   '@/contexts/saved-tabs/presentation/components/SortableDomainCard',
   () => ({
-    SortableDomainCard: ({ group }: { group: TabGroup }) => (
-      <div>sortable-domain-card:{group.domain}</div>
+    SortableDomainCard: ({
+      group,
+      settings,
+    }: {
+      group: TabGroup
+      settings: UserSettingsDto
+    }) => (
+      <div
+        data-testid='domain-card'
+        data-saved-time={String(settings.showSavedTime)}
+        data-relative-time={String(settings.showRelativeSavedTime)}
+      >
+        sortable-domain-card:{group.domain}
+      </div>
     ),
   }),
 )
@@ -115,6 +127,7 @@ const defaultSettings: UserSettingsDto = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,
@@ -200,6 +213,36 @@ describe('DomainModeContainer', () => {
     vi.restoreAllMocks()
     vi.clearAllMocks()
     domainModeI18nState.language = 'ja'
+  })
+
+  it('未分類ドメインへ親子の日時設定と変更を渡す', () => {
+    const props = {
+      ...createProps(),
+      state: { ...createProps().state, shouldShowUncategorizedList: true },
+      uncategorizedForDisplay: uncategorizedGroups,
+    }
+    const view = render(<DomainModeContainer {...props} />)
+    for (const [parent, child] of [
+      [true, false],
+      [true, true],
+      [false, true],
+      [false, false],
+    ]) {
+      view.rerender(
+        <DomainModeContainer
+          {...props}
+          settings={{
+            ...defaultSettings,
+            showSavedTime: Boolean(parent),
+            showRelativeSavedTime: Boolean(child),
+          }}
+        />,
+      )
+      for (const card of screen.getAllByTestId('domain-card')) {
+        expect(card).toHaveAttribute('data-saved-time', String(parent))
+        expect(card).toHaveAttribute('data-relative-time', String(child))
+      }
+    }
   })
 
   it('renders English empty-state copy when the display language is en', () => {

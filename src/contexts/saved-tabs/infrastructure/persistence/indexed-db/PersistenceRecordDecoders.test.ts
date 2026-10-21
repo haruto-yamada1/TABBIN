@@ -14,7 +14,56 @@ import {
 
 const timestamps = { createdAt: 1, updatedAt: 1 }
 
+const collection = {
+  ...timestamps,
+  definition: { domain: 'example.com', type: 'domain' },
+  id: 'collection-1',
+  name: 'Collection',
+  sortOrder: 1024,
+}
+
 describe('PersistenceRecordDecoders', () => {
+  it.each([0, 1, Number.MAX_SAFE_INTEGER])(
+    'preserves uncategorized insertion position %s when decoding collections',
+    (position) => {
+      const record = {
+        ...collection,
+        uncategorizedCategoryPosition: position,
+      }
+
+      expect(
+        decodePersistenceRecords(
+          [record],
+          isPersistenceV2Collection,
+          'collections',
+        ),
+      ).toStrictEqual([record])
+    },
+  )
+
+  it.each([
+    -1,
+    0.5,
+    Number.MAX_SAFE_INTEGER + 1,
+    '0',
+    Number.NaN,
+    undefined,
+    -0,
+    Number.POSITIVE_INFINITY,
+    null,
+  ])('rejects invalid uncategorized insertion position %s', (value) => {
+    const record = { ...collection, uncategorizedCategoryPosition: value }
+
+    expect(isPersistenceV2Collection(record)).toBe(false)
+    expect(() =>
+      decodePersistenceRecords(
+        [record],
+        isPersistenceV2Collection,
+        'collections',
+      ),
+    ).toThrow('IndexedDB collections contains an invalid persistence record')
+  })
+
   it('全store recordのruntime shapeを検証する', () => {
     expect(
       isPersistenceV2Url({

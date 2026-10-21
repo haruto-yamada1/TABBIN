@@ -19,6 +19,7 @@ vi.mock('@/lib/storage/settings', () => {
     excludePatterns: ['chrome-extension://', 'chrome://'],
     enableCategories: true,
     autoDeletePeriod: 'never',
+    showRelativeSavedTime: false,
     showSavedTime: false,
     clickBehavior: 'saveSameDomainTabs',
     excludePinnedTabs: true,

@@ -253,6 +253,35 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(buttons.length).toBeGreaterThan(0)
   })
 
+  it('rechecks reduced motion for each top/bottom scroll and keeps announcements', async () => {
+    let matches = true
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches })),
+    )
+    const user = userEvent.setup()
+    const container = renderWithContainer('domain')
+    const scrollTo = vi.fn()
+    Object.defineProperty(container, 'scrollTo', { value: scrollTo })
+
+    await user.click(screen.getByLabelText('Scroll to bottom'))
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      behavior: 'instant',
+      top: container?.scrollHeight,
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Scroll to bottom')
+    await user.click(screen.getByLabelText('Scroll to top'))
+    expect(scrollTo).toHaveBeenLastCalledWith({ behavior: 'instant', top: 0 })
+    expect(screen.getByRole('status')).toHaveTextContent('Scroll to top')
+
+    matches = false
+    await user.click(screen.getByLabelText('Scroll to bottom'))
+    expect(scrollTo).toHaveBeenLastCalledWith({
+      behavior: 'smooth',
+      top: container?.scrollHeight,
+    })
+  })
+
   it('Scroll to top ボタン押下で container.scrollTo({ top: 0, behavior: "smooth" }) を呼ぶ', async () => {
     const user = userEvent.setup()
     const container = renderWithContainer('domain')

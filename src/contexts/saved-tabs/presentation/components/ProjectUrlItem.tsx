@@ -6,6 +6,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
+import { getProjectUrlSortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsUserSettingsDto as UserSettingsDto,
@@ -39,7 +41,7 @@ type ProjectUrlItemProps = {
     projectId: string,
     url: string,
     category?: string,
-  ) => void
+  ) => void | Promise<void>
   availableCategories?: string[]
   // 追加: 未分類エリア内にあるかどうかのフラグ
   isInUncategorizedArea?: boolean
@@ -90,18 +92,22 @@ const ProjectUrlItemComponent = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
+  const canReorderUrls = useUrlReorderAvailable()
 
   // ドラッグアンドドロップの設定を強化
   const {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
   } = useSortable({
+    disabled: !canReorderUrls,
     data: {
       type: 'url',
+      name: item.title || originalUrl,
       url: originalUrl,
       projectId,
       title: item.title || originalUrl.substring(0, MAX_URL_PREVIEW_LENGTH), // タイトルがない場合はURLの一部を使用
@@ -119,7 +125,7 @@ const ProjectUrlItemComponent = ({
         : undefined,
       isInUncategorizedArea, // 未分類エリア内にあるかの情報を追加
     },
-    id: originalUrl,
+    id: getProjectUrlSortableId(projectId, originalUrl),
   })
 
   const style = useMemo(
@@ -249,6 +255,7 @@ const ProjectUrlItemComponent = ({
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
         <div
+          ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {

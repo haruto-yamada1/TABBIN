@@ -63,6 +63,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: '1day',
+  showRelativeSavedTime: false,
   showSavedTime: true,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,
@@ -74,6 +75,38 @@ const defaultSettings: UserSettings = {
 }
 
 describe('SortableUrlItem', () => {
+  it.each([
+    [false, false, null],
+    [false, true, null],
+    [true, false, '2026/06/02 12:34'],
+    [true, true, '2 時間前'],
+  ] as const)('親%s/子%sの保存日時を表示する', (parent, child, expected) => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-02T14:34:56.000Z'))
+    render(
+      <SortableUrlItem
+        url='https://example.com/'
+        title='Example'
+        id='url'
+        groupId='group'
+        savedAt={Date.parse('2026-06-02T12:34:56.000Z')}
+        settings={{
+          ...defaultSettings,
+          showSavedTime: parent,
+          showRelativeSavedTime: child,
+        }}
+        handleDeleteUrl={vi.fn()}
+        handleOpenTab={vi.fn()}
+        handleUpdateUrls={vi.fn()}
+      />,
+    )
+    const column = screen.getByTestId('url-text-column')
+    expect(column.textContent).toBe(`Example${expected ?? ''}`)
+    expect(screen.queryAllByTitle('2026/06/02 12:34')).toHaveLength(
+      Number(parent && child),
+    )
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     useSortableMock.mockReturnValue({
@@ -87,6 +120,7 @@ describe('SortableUrlItem', () => {
 
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
   })
 
   it('長いタイトルでも縮小可能なclassを維持し、クリックと削除を処理する', async () => {

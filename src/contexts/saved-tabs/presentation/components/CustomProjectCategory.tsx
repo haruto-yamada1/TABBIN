@@ -11,6 +11,10 @@ import { memo, useCallback, useMemo, useReducer, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
+import {
+  getProjectCategorySortableId,
+  getProjectUrlSortableId,
+} from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -57,6 +61,7 @@ const getReorderStyle = (isReorderTarget: boolean): React.CSSProperties => {
 type CategoryHeaderMainProps = {
   attributes: ReturnType<typeof useSortable>['attributes']
   listeners: ReturnType<typeof useSortable>['listeners']
+  setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef']
   category: string
   isCollapsed: boolean
   isCollapseDisabled: boolean
@@ -70,6 +75,7 @@ type CategoryHeaderMainProps = {
 const CategoryHeaderMain = ({
   attributes,
   listeners,
+  setActivatorNodeRef,
   category,
   isCollapsed,
   isCollapseDisabled,
@@ -79,6 +85,7 @@ const CategoryHeaderMain = ({
   setUserCollapsedState,
   setSortOrder,
 }: CategoryHeaderMainProps) => {
+  const { t } = useI18n()
   const handleCollapsePointerDown = useCallback((event: React.PointerEvent) => {
     event.stopPropagation()
   }, [])
@@ -88,11 +95,7 @@ const CategoryHeaderMain = ({
   }, [])
 
   return (
-    <div
-      {...attributes}
-      {...listeners}
-      className='flex grow cursor-grab items-center gap-2 overflow-hidden hover:cursor-grab active:cursor-grabbing'
-    >
+    <div className='flex grow items-center gap-2 overflow-hidden'>
       <CardCollapseControl
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -106,9 +109,18 @@ const CategoryHeaderMain = ({
         onPointerDown={handleSortPointerDown}
       />
 
-      <div className='shrink-0 text-muted-foreground'>
+      <button
+        type='button'
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        aria-label={t('savedTabs.category.dragHandleAria', undefined, {
+          name: category,
+        })}
+        className='shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing'
+      >
         <GripVertical size={16} aria-hidden='true' />
-      </div>
+      </button>
       <h3 className='m-0 border-none bg-transparent p-0 text-lg font-medium'>
         {category}
       </h3>
@@ -129,7 +141,11 @@ type CategoryContentProps = {
   setDroppableRef: (node: HTMLElement | null) => void
   onOpenUrl: (url: string) => void
   onDeleteUrl: (projectId: string, url: string) => void
-  onSetUrlCategory: (projectId: string, url: string, category?: string) => void
+  onSetUrlCategory: (
+    projectId: string,
+    url: string,
+    category?: string,
+  ) => void | Promise<void>
   settings: CustomProjectCategoryProps['settings']
 }
 
@@ -205,20 +221,28 @@ const useCustomProjectCategoryView = ({
   handleRenameCategory,
 }: CustomProjectCategoryProps) => {
   const { t } = useI18n()
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({
-      data: {
-        ...dragData,
-        categoryName: category,
-        isCategory: true,
-        projectId,
-      },
-      id: category,
-    })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    data: {
+      ...dragData,
+      categoryName: category,
+      name: category,
+      isCategory: true,
+      projectId,
+    },
+    id: getProjectCategorySortableId(projectId, category),
+  })
 
   const categoryDropId = `category-drop-${projectId}-${category}`
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     data: {
+      name: category,
       categoryName: category,
       isCategory: true,
       isDropArea: true,
@@ -234,8 +258,11 @@ const useCustomProjectCategoryView = ({
     [urls, sortOrder],
   )
   const sortedCategoryUrlIds = useMemo(
-    () => sortedCategoryUrls.map((item) => item.url),
-    [sortedCategoryUrls],
+    () =>
+      sortedCategoryUrls.map((item) =>
+        getProjectUrlSortableId(projectId, item.url),
+      ),
+    [projectId, sortedCategoryUrls],
   )
   const [userCollapsedState, setUserCollapsedState] = useState(false)
   const [showManageDialog, setShowManageDialog] = useState(false)
@@ -396,6 +423,7 @@ const useCustomProjectCategoryView = ({
           <CategoryHeaderMain
             attributes={attributes}
             listeners={listeners}
+            setActivatorNodeRef={setActivatorNodeRef}
             category={category}
             isCollapsed={isCollapsed}
             isCollapseDisabled={isCollapseDisabled}

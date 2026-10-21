@@ -21,6 +21,7 @@
     ]
   },
   "ignorePatterns": [
+    ".worktrees/**",
     ".output/**",
     ".wxt/**",
     ".apm/**",

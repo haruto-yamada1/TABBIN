@@ -35,6 +35,7 @@ describe('SavedTabsDtosMapper.toUserSettingsDto', () => {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
       removeTabAfterOpen: true,
+      showRelativeSavedTime: true,
       showSavedTime: false,
     }
     const dto = toUserSettingsDto(storage)
@@ -53,6 +54,7 @@ describe('SavedTabsDtosMapper.toUserSettingsDto', () => {
       openUrlInBackground: false,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: false,
+      showRelativeSavedTime: true,
       showSavedTime: false,
     })
     expect(dto.excludePatterns).toStrictEqual(['about:'])
@@ -72,6 +74,7 @@ describe('SavedTabsDtosMapper.toStorageUserSettings', () => {
       openUrlInBackground: false,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: true,
+      showRelativeSavedTime: true,
       showSavedTime: true,
     }
     const dto = toUserSettingsDto(original)
@@ -93,6 +96,7 @@ describe('SavedTabsDtosMapper.toStorageUserSettings', () => {
       openUrlInBackground: false,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: false,
+      showRelativeSavedTime: true,
       showSavedTime: false,
     })
     expect(storage.aiSystemPrompts).toBeUndefined()
@@ -156,6 +160,7 @@ describe('SavedTabsDtosMapper round-trip', () => {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: true,
+      showRelativeSavedTime: true,
       showSavedTime: true,
     })
 
@@ -190,6 +195,7 @@ describe('SavedTabsDtosMapper round-trip', () => {
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
       removeTabAfterOpen: true,
+      showRelativeSavedTime: true,
       showSavedTime: false,
     }
     expect(toStorageUserSettings(toUserSettingsDto(original))).toStrictEqual(

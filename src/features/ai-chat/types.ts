@@ -38,6 +38,7 @@ export type AiSavedUrlPageOptions = {
 }
 
 export type AiSavedUrlToolItem = {
+  id: string
   url: string
   title: string
   domain: string

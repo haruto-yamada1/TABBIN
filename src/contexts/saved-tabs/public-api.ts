@@ -14,23 +14,16 @@
 
 export { normalizeDomainString } from './domain/value-objects/DomainName'
 
-export { mapLegacyStorageToPersistenceV2 } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
-export type { LegacyMigrationIssueCode } from './application/mappers/LegacyStorageToPersistenceV2Mapper'
+export { savedTabsOrganizationProposalSchema } from './application/dto/SavedTabsOrganizationDto'
 export type {
-  RawLegacyStorageSnapshot,
-  RawLegacyStorageValue,
-} from './application/ports/RawLegacyStorageReaderPort'
-export type {
-  CustomProject,
-  DomainCategorySettings,
-  DomainParentCategoryMapping,
-  LegacyChromeStorageDto,
-  ParentCategory,
-  ProjectKeywordSettings,
-  SubCategoryKeyword,
-  TabGroup,
-  UrlRecord,
-} from './application/dto/LegacyChromeStorageDto'
+  SavedTabsOrganizationCatalogDto,
+  SavedTabsOrganizationExecuteResultDto,
+  SavedTabsOrganizationPreviewDto,
+  SavedTabsOrganizationProposal,
+  SavedTabsOrganizationUndoResultDto,
+} from './application/dto/SavedTabsOrganizationDto'
+export type { SavedTabsOrganizationService } from './application/services/SavedTabsOrganizationService'
+
 export type { ClockPort } from './application/ports/ClockPort'
 export type { IdGeneratorPort } from './application/ports/IdGeneratorPort'
 export type {

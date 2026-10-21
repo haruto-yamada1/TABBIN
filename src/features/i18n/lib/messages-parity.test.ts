@@ -94,22 +94,9 @@ describe('i18n message parity', () => {
     expect(mismatches).toEqual([])
   })
 
-  it('cutoff後のbackup copyをja/enで保持し期限前keyを残さない', () => {
+  it('obsolete backup keys and cutoff dates are absent from ja/en', () => {
     const en = getMessages('en') as Record<string, string>
     const ja = getMessages('ja') as Record<string, string>
-
-    expect(en['options.importExport.compatibilityWarning']).toBe(
-      'Only the current backup format can be imported.',
-    )
-    expect(en['options.importExport.compatibilityAction']).toBe(
-      'Backups created with older versions are not supported.',
-    )
-    expect(ja['options.importExport.compatibilityWarning']).toBe(
-      '現在のバックアップ形式のみインポートできます。',
-    )
-    expect(ja['options.importExport.compatibilityAction']).toBe(
-      '旧形式のバックアップはサポートされていません。',
-    )
 
     for (const messages of [en, ja]) {
       const keys = Object.keys(messages)

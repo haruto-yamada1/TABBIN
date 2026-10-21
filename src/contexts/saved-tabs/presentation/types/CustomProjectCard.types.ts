@@ -28,7 +28,7 @@ export type CustomProjectCardProps = {
     projectId: string,
     url: string,
     category?: string,
-  ) => void
+  ) => void | Promise<void>
   handleUpdateCategoryOrder: (projectId: string, newOrder: string[]) => void
   handleReorderUrls: (projectId: string, urls: CustomProject['urls']) => void
   handleOpenAllUrls?: (urls: { url: string; title: string }[]) => void

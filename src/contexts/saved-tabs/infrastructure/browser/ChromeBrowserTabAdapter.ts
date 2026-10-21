@@ -1,3 +1,7 @@
+import { BrowserOpenError } from '@/contexts/saved-tabs/application/errors/BrowserOpenError'
+
+import { classifyBrowserOpenError } from './browserOpenError'
+
 /**
  * `chrome.tabs` 依存を `BrowserTabPort` interface に適合させる adapter。
  *
@@ -31,6 +35,7 @@ export type ChromeApiLike = {
 export type ChromeTabsLike = {
   readonly create?: (createProperties: {
     readonly active?: boolean
+    readonly windowId?: number
     readonly url: string
   }) => Promise<{ readonly url?: string } | undefined> | undefined
 }
@@ -39,7 +44,7 @@ type ChromeBrowserTabAdapterOptions = {
   /**
    * 新規タブをアクティブ（前面）にするかを port 利用側（open saved url use-case）が
    * 決められるよう、`active` を返す関数を委譲できる。
-   * 未指定なら `active: true` で開く。
+   * open の active が未指定の場合に評価し、関数も未指定なら true で開く。
    */
   readonly resolveActive?: () => boolean
 }
@@ -69,15 +74,34 @@ export const createChromeBrowserTabAdapter = (
 ) => {
   return {
     [CHROME_BROWSER_TAB_ADAPTER_MARKER]: true,
-    open: async (input: { readonly url: string }) => {
+    open: async (input: {
+      readonly url: string
+      readonly active?: boolean
+      readonly windowId?: number
+    }) => {
       const api = deps.getApi()
       const tabs = api?.tabs
-      const active = options.resolveActive?.() ?? true
+      const active = input.active ?? options.resolveActive?.() ?? true
       if (!tabs?.create) {
-        throw new Error('chrome.tabs.create is not available')
+        throw new BrowserOpenError('unavailable')
       }
-      const result = await tabs.create({ active, url: input.url })
-      return { url: result?.url ?? input.url }
+      try {
+        const result = await tabs.create({
+          active,
+          url: input.url,
+          ...(input.windowId === undefined ? {} : { windowId: input.windowId }),
+        })
+        if (!result) {
+          throw new BrowserOpenError('unknown')
+        }
+        // Creation is confirmed before navigation; Firefox may still report about:blank.
+        return { url: input.url }
+      } catch (error) {
+        if (error instanceof BrowserOpenError) {
+          throw error
+        }
+        throw classifyBrowserOpenError(error)
+      }
     },
   }
 }

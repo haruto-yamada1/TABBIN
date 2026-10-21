@@ -19,7 +19,7 @@ const ciWorkflowPath = path.join(projectRoot, '.github/workflows/ci.yml')
 const oxlintConfigPath = path.join(projectRoot, '.oxlintrc.json')
 const depcruisePath = path.join(
   projectRoot,
-  'node_modules/.bin/dependency-cruise',
+  'tools/legacy-tooling/arch-check.mjs',
 )
 const fixtureDirectories: string[] = []
 
@@ -53,8 +53,15 @@ const cruise = (files: FixtureFiles) => {
 
   try {
     execFileSync(
-      depcruisePath,
-      ['--config', '.dependency-cruiser.cjs', 'src', '--output-type', 'err'],
+      process.execPath,
+      [
+        depcruisePath,
+        '--config',
+        '.dependency-cruiser.cjs',
+        'src',
+        '--output-type',
+        'err',
+      ],
       { cwd: fixtureRoot, encoding: 'utf8', stdio: 'pipe' },
     )
     return { status: 0, output: '' }

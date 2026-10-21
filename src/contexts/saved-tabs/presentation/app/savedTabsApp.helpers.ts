@@ -51,6 +51,7 @@ export {
 export type {
   NotifyDeleteFailureParams,
   ShowOpenedUrlsUndoToastParams,
+  OpenedUrlsUndoScope,
 } from '@/contexts/saved-tabs/presentation/services/savedTabsUndoNotificationService'
 
 export {
@@ -84,3 +85,5 @@ export { syncStorageChanges } from '@/contexts/saved-tabs/presentation/services/
 type OpenedUrlsStorageSnapshot = OpenedUrlsRestoreSnapshot
 
 export type { OpenedUrlsStorageSnapshot }
+
+export { useSavedTabsStorageSync } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsStorageSync'

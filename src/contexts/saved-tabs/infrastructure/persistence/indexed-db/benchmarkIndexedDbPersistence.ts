@@ -18,8 +18,6 @@ import {
 const benchmarkOperationGate: PersistenceOperationGatePort = {
   runIndexedDbRead: async (operation) => operation(),
   runIndexedDbWrite: async (operation) => operation(),
-  runLegacyRead: async (operation) => operation(),
-  runLegacyWrite: async (operation) => operation(),
 }
 
 const readNumberOption = (name: string, fallback: number): number => {

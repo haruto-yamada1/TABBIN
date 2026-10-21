@@ -1,3 +1,4 @@
+import type { DragStartEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -16,6 +17,8 @@ import type {
   SavedTabsTabGroupDto as TabGroup,
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+
+import { useSavedTabsSortOrder } from './useSavedTabsSortOrder'
 
 /** UseDomainCardState フックの引数 */
 type UseDomainCardStateParams = {
@@ -41,8 +44,7 @@ type UseDomainCardStateParams = {
   categoryAssignmentPort?: CategoryAssignmentPort
   /**
    * 保存タブページ全体 query (issue #510)。
-   * 親カテゴリ読み込み (`parentCategoryRepository.findAll` 直叩き)
-   * を 1 つの query に集約する。
+   * カテゴリ順序を保存するときに最新のタブグループを取得する。
    */
   getSavedTabsPageDataQuery?: GetSavedTabsPageDataQuery
   /**
@@ -187,10 +189,13 @@ const persistCategoryOrder = async ({
     } catch (error) {
       if (!signal?.aborted) {
         console.error('カテゴリ順序の更新に失敗しました:', error)
+        if (!signal) {
+          throw error
+        }
       }
     }
   })
-  saveQueue.current = pending
+  saveQueue.current = pending.catch(() => undefined)
   await pending
 }
 
@@ -206,8 +211,8 @@ const useDomainCardCollapse = (isReorderMode: boolean) => {
       onDragEnd: () => {
         setIsDraggingGlobal(false)
       },
-      onDragStart: () => {
-        setIsDraggingGlobal(true)
+      onDragStart: (event?: Pick<DragStartEvent, 'activatorEvent'>) => {
+        setIsDraggingGlobal(event?.activatorEvent.type !== 'keydown')
       },
     }),
     [],
@@ -244,9 +249,11 @@ export const useDomainCardState = ({
   // --- 基本状態 ---
   const [showKeywordModal, setShowKeywordModal] = useState(false)
   const { collapse, dndMonitorHandlers } = useDomainCardCollapse(isReorderMode)
-  const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>(
-    'default',
-  )
+  const {
+    sortOrder,
+    setSortOrder,
+    isPending: isSortPending,
+  } = useSavedTabsSortOrder({ scope: 'domain', id: group.id })
   const [allCategoryIds, setAllCategoryIds] = useState<string[]>([])
   const [categoryUpdateTrigger, setCategoryUpdateTrigger] = useState(0)
   const [parentCategories, setParentCategories] = useState<ParentCategory[]>([])
@@ -352,7 +359,6 @@ export const useDomainCardState = ({
 
   const handleUpdateCategoryOrder = useCallback(
     async (updatedOrder: string[], updatedAllOrder: string[]) => {
-      setAllCategoryIds(updatedAllOrder)
       await persistCategoryOrder({
         saveQueue: categoryOrderSaveQueue,
         categoryAssignmentPort,
@@ -467,12 +473,16 @@ export const useDomainCardState = ({
     const updatedCategoryOrder = tempCategoryOrder.filter(
       (id) => id !== '__uncategorized' && subCategories.has(id),
     )
-    await handleUpdateCategoryOrder(updatedCategoryOrder, tempCategoryOrder)
-    setAllCategoryIds(tempCategoryOrder)
-    setIsCategoryReorderMode(false)
-    setOriginalCategoryOrder([])
-    setTempCategoryOrder([])
-    toast.success(t('savedTabs.subCategory.reorderUpdated'))
+    try {
+      await handleUpdateCategoryOrder(updatedCategoryOrder, tempCategoryOrder)
+      setAllCategoryIds(tempCategoryOrder)
+      setIsCategoryReorderMode(false)
+      setOriginalCategoryOrder([])
+      setTempCategoryOrder([])
+      toast.success(t('savedTabs.subCategory.reorderUpdated'))
+    } catch {
+      toast.error(t('savedTabs.dnd.saveError'))
+    }
   }, [
     isCategoryReorderMode,
     tempCategoryOrder,
@@ -553,33 +563,9 @@ export const useDomainCardState = ({
     [group.id, handleDeleteUrls, deleteSingleUrl],
   )
 
-  // --- 親カテゴリ読み込み ---
-  useEffect(() => {
-    let cancelled = false
-    const loadParentCategories = async () => {
-      if (!getSavedTabsPageDataQuery) {
-        return
-      }
-      try {
-        const fromQuery = (
-          await getSavedTabsPageDataQuery()
-        ).parentCategories.map(toStorageParentCategory)
-        if (cancelled) {
-          return
-        }
-        setParentCategories(fromQuery)
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-        console.error('親カテゴリの読み込みに失敗しました:', error)
-      }
-    }
-    void loadParentCategories()
-    return () => {
-      cancelled = true
-    }
-  }, [getSavedTabsPageDataQuery])
+  // 親カテゴリは CategoryKeywordModal が開いたときに読み取り、
+  // handleUpdateParentCategories で同期する。各カードの初期表示では
+  // モーダル専用データのためにページ全体の query を繰り返さない。
 
   // --- 親カテゴリ作成ハンドラ ---
   const handleCreateParentCategory = useCallback(
@@ -662,6 +648,7 @@ export const useDomainCardState = ({
     },
     /** ソート関連 */
     sort: {
+      isSortPending,
       setSortOrder,
       sortOrder,
     },

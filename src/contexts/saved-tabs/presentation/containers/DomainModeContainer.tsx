@@ -23,6 +23,7 @@ import {
   SavedTabsResponsiveTooltipContent,
 } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
+import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
@@ -185,6 +186,8 @@ const deleteVisibleUrlsForGroups = async (
 }
 
 type UncategorizedDomainSectionState = {
+  showSavedTime: boolean
+  showRelativeSavedTime: boolean
   shouldShowSectionHeader: boolean
   hasVisibleCategoryGroups: boolean
   confirmDeleteAll: boolean
@@ -226,6 +229,8 @@ const UncategorizedDomainSection = ({
     shouldShowSectionHeader,
     hasVisibleCategoryGroups,
     confirmDeleteAll,
+    showSavedTime,
+    showRelativeSavedTime,
     isReorderMode,
     shouldShowList,
   },
@@ -252,12 +257,15 @@ const UncategorizedDomainSection = ({
   reorderTabGroupUrlsUseCase,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
+  const accessibility = useDndAccessibility()
   const uncategorizedSettings = useMemo(
     () => ({
       ...defaultUserSettings,
       confirmDeleteAll,
+      showSavedTime,
+      showRelativeSavedTime,
     }),
-    [confirmDeleteAll],
+    [confirmDeleteAll, showSavedTime, showRelativeSavedTime],
   )
 
   const uncategorizedDomainIds = useMemo(
@@ -361,6 +369,7 @@ const UncategorizedDomainSection = ({
 
       {shouldShowList && (
         <DndKitContext
+          accessibility={accessibility}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
@@ -459,6 +468,7 @@ export const DomainModeContainer = ({
     shouldShowUncategorizedSectionHeader,
   } = state
   const { t } = useI18n()
+  const accessibility = useDndAccessibility()
   const handleDeleteGroupsForCategory = useCallback(
     (ids: string[]) => {
       void handleDeleteGroups?.(ids)
@@ -518,6 +528,8 @@ export const DomainModeContainer = ({
       shouldShowSectionHeader: shouldShowUncategorizedSectionHeader,
       hasVisibleCategoryGroups,
       confirmDeleteAll: settings.confirmDeleteAll,
+      showSavedTime: settings.showSavedTime,
+      showRelativeSavedTime: settings.showRelativeSavedTime,
       isReorderMode: isUncategorizedReorderMode,
       shouldShowList: shouldShowUncategorizedList,
     }),
@@ -525,6 +537,8 @@ export const DomainModeContainer = ({
       shouldShowUncategorizedSectionHeader,
       hasVisibleCategoryGroups,
       settings.confirmDeleteAll,
+      settings.showSavedTime,
+      settings.showRelativeSavedTime,
       isUncategorizedReorderMode,
       shouldShowUncategorizedList,
     ],
@@ -538,6 +552,7 @@ export const DomainModeContainer = ({
     <>
       {settings.enableCategories && Object.keys(categorized).length > 0 && (
         <DndKitContext
+          accessibility={accessibility}
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleCategoryDragEnd}

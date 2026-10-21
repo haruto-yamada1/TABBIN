@@ -91,6 +91,14 @@ export const PersistenceV2CollectionSchema: z.ZodType<PersistenceV2Collection> =
       id: z.string(),
       name: z.string(),
       sortOrder: z.number(),
+      uncategorizedCategoryPosition: z
+        .number()
+        .refine(
+          (value) =>
+            Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0),
+          { error: 'Expected non-negative category insertion position' },
+        )
+        .optional(),
       updatedAt: BackupV2EpochMillisecondsSchema,
     })
     .refine(isJsonValue, { error: 'Expected a JSON-safe collection' })
@@ -101,6 +109,9 @@ export const PersistenceV2CollectionSchema: z.ZodType<PersistenceV2Collection> =
       id: value.id,
       name: value.name,
       sortOrder: value.sortOrder,
+      ...(value.uncategorizedCategoryPosition !== undefined
+        ? { uncategorizedCategoryPosition: value.uncategorizedCategoryPosition }
+        : {}),
       updatedAt: value.updatedAt,
     }))
 
@@ -186,6 +197,8 @@ const BackupUserSettingsSchema: z.ZodType<UserSettings> = z
   .strictObject({
     ...UserSettingsSchema.shape,
     aiSystemPrompts: z.array(backupAiSystemPromptPresetSchema).optional(),
+    // Older V2 backups predate this opt-in display setting.
+    showRelativeSavedTime: z.boolean().default(false),
   })
   .refine(isJsonValue, {
     error: 'Expected JSON-safe user settings',

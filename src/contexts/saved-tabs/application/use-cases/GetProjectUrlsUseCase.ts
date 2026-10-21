@@ -20,6 +20,11 @@ export const createGetProjectUrlsUseCase = (
   deps: GetProjectUrlsUseCaseDeps,
 ): GetProjectUrlsUseCase => {
   return async (project) => {
+    if (project.memberships.length === 0) {
+      return []
+    }
+    const records = await deps.urlRecordRepository.findAll()
+    const recordsById = new Map(records.map((record) => [record.id, record]))
     const categoryNameById = new Map(
       project.collectionCategories.map((category) => [
         category.id,
@@ -29,29 +34,25 @@ export const createGetProjectUrlsUseCase = (
     const orderedMemberships = project.memberships.toSorted(
       (left, right) => left.sortOrder - right.sortOrder,
     )
-    const entries = await Promise.all(
-      orderedMemberships.map(async (membership) => {
-        const record = await deps.urlRecordRepository.findById(
-          createUrlRecordId(membership.urlId),
-        )
-        if (!record) {
-          return null
-        }
-        const category = membership.categoryId
-          ? categoryNameById.get(membership.categoryId)
-          : undefined
-        const entry: ProjectUrlEntry = {
-          ...(category ? { category } : {}),
-          ...(record.favIconUrl ? { favIconUrl: record.favIconUrl } : {}),
-          id: record.id,
-          ...(membership.notes ? { notes: membership.notes } : {}),
-          savedAt: record.savedAt,
-          title: record.title,
-          url: record.url,
-        }
-        return entry
-      }),
-    )
+    const entries = orderedMemberships.map((membership) => {
+      const record = recordsById.get(createUrlRecordId(membership.urlId))
+      if (!record) {
+        return null
+      }
+      const category = membership.categoryId
+        ? categoryNameById.get(membership.categoryId)
+        : undefined
+      const entry: ProjectUrlEntry = {
+        ...(category ? { category } : {}),
+        ...(record.favIconUrl ? { favIconUrl: record.favIconUrl } : {}),
+        id: record.id,
+        ...(membership.notes ? { notes: membership.notes } : {}),
+        savedAt: record.savedAt,
+        title: record.title,
+        url: record.url,
+      }
+      return entry
+    })
     return entries.flatMap((entry) => (entry ? [entry] : []))
   }
 }

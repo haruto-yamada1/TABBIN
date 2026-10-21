@@ -46,6 +46,7 @@ const createUserSettings = (): UserSettings => ({
   openUrlInBackground: true,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
+  showRelativeSavedTime: false,
   showSavedTime: true,
 })
 
@@ -212,6 +213,12 @@ const createDeps = (
   }
 
   return {
+    changePort: {
+      publish: vi.fn(async () => undefined),
+      subscribe: () => () => {},
+    },
+    idGenerator: { generate: () => 'import-change' },
+    normalizeUserSettings: (settings) => settings,
     readUserSettings: vi.fn(async () => {
       events.push('read-settings')
       return structuredClone(
@@ -251,7 +258,98 @@ const captureImportError = async (
   throw new Error('Expected BackupV2ImportError')
 }
 
+const expectNoImportSideEffects = (
+  deps: ImportBackupV2UseCaseDeps,
+  events: readonly string[],
+): void => {
+  expect(events).toEqual([])
+  expect(deps.recovery?.captureBeforeOverwrite).not.toHaveBeenCalled()
+  expect(deps.recovery?.restore).not.toHaveBeenCalled()
+  expect(deps.replacement.replaceAll).not.toHaveBeenCalled()
+  expect(deps.writeUserSettings).not.toHaveBeenCalled()
+  expect(deps.changePort.publish).not.toHaveBeenCalled()
+}
+
 describe('createImportBackupV2UseCase', () => {
+  it('rejects a stale confirmed preview before recovery capture or writes', async () => {
+    const events: string[] = []
+    const deps = createDeps(events)
+    await expect(
+      createImportBackupV2UseCase(deps)(createInspection(), {
+        current: { data: createInspection().data, revision: 76 },
+        selection: {
+          savedTabs: true,
+          userSettings: true,
+          aiChat: true,
+          analyticsViews: true,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'IMPORT_PREVIEW_STALE' })
+    expect(deps.recovery?.captureBeforeOverwrite).not.toHaveBeenCalled()
+    expect(deps.replacement.replaceAll).not.toHaveBeenCalled()
+  })
+
+  it('rejects an empty restore selection without mutations', async () => {
+    const events: string[] = []
+    const deps = createDeps(events)
+    await expect(
+      createImportBackupV2UseCase(deps)(createInspection(), {
+        current: { data: createInspection().data, revision: 77 },
+        selection: {
+          savedTabs: false,
+          userSettings: false,
+          aiChat: false,
+          analyticsViews: false,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'IMPORT_SELECTION_EMPTY' })
+    expectNoImportSideEffects(deps, events)
+  })
+
+  it('publishes only metadata after verified import; notification failure never restores committed data', async () => {
+    const events: string[] = []
+    let eventsAtPublication: string[] = []
+    const publish = vi.fn(async () => {
+      eventsAtPublication = [...events]
+      throw new Error('private notification failure')
+    })
+    const deps = {
+      ...createDeps(events),
+      changePort: { publish, subscribe: () => () => {} },
+      idGenerator: { generate: () => 'import-change' },
+    }
+    const result = await createImportBackupV2UseCase(deps)(createInspection())
+    expect(eventsAtPublication).toEqual([
+      'capture',
+      'replace',
+      'write-settings',
+      'read-snapshot',
+      'read-settings',
+    ])
+    expect(publish).toHaveBeenCalledExactlyOnceWith({
+      changeId: 'import-change',
+      revision: 77,
+      scopes: [
+        'analyticsViews',
+        'categories',
+        'collections',
+        'conversations',
+        'groups',
+        'memberships',
+        'recoverySnapshots',
+        'urls',
+      ],
+    })
+    expect(result).toMatchObject({
+      revision: 77,
+      notification: {
+        kind: 'commit_succeeded_notification_failed',
+        diagnostic: { revision: 77, stage: 'change_publication' },
+      },
+    })
+    expect(deps.recovery?.restore).not.toHaveBeenCalled()
+  })
+
   it('imports a normalized current inspection and verifies readback', async () => {
     const events: string[] = []
     const deps = createDeps(events)
@@ -260,6 +358,23 @@ describe('createImportBackupV2UseCase', () => {
     const result = await createImportBackupV2UseCase(deps)(inspection)
 
     expect(result).toEqual({
+      notification: {
+        kind: 'committed_and_published',
+        event: {
+          changeId: 'import-change',
+          revision: 77,
+          scopes: [
+            'analyticsViews',
+            'categories',
+            'collections',
+            'conversations',
+            'groups',
+            'memberships',
+            'recoverySnapshots',
+            'urls',
+          ],
+        },
+      },
       entityCounts: inspection.preview.entityCounts,
       revision: 77,
     })
@@ -292,6 +407,37 @@ describe('createImportBackupV2UseCase', () => {
       .calls[0] ?? [undefined]
     expect(replacementTarget?.savedTabs.urls).toContainEqual(
       inspection.data.savedTabs.urls.find(({ id }) => id === 'url-orphan'),
+    )
+    expect(deps.recovery?.restore).not.toHaveBeenCalled()
+  })
+
+  it('preserves older V2 records without optional provenance or category positions', async () => {
+    const events: string[] = []
+    const inspection = createInspection()
+    const originalData = structuredClone(inspection.data)
+    const deps = createDeps(events)
+
+    await expect(
+      createImportBackupV2UseCase(deps)(inspection),
+    ).resolves.toMatchObject({ revision: 77 })
+
+    expect(deps.replacement.replaceAll).toHaveBeenCalledWith(
+      expect.objectContaining({ savedTabs: originalData.savedTabs }),
+    )
+    expect(inspection.data).toStrictEqual(originalData)
+    const [replacement] = vi.mocked(deps.replacement.replaceAll).mock
+      .calls[0] ?? [undefined]
+    expect(replacement?.savedTabs.urls[0]).not.toHaveProperty(
+      'firstSavedAtProvenance',
+    )
+    expect(replacement?.savedTabs.urls[0]).not.toHaveProperty(
+      'lastSavedAtProvenance',
+    )
+    expect(replacement?.savedTabs.memberships[0]).not.toHaveProperty(
+      'addedAtProvenance',
+    )
+    expect(replacement?.savedTabs.collections[0]).not.toHaveProperty(
+      'uncategorizedCategoryPosition',
     )
     expect(deps.recovery?.restore).not.toHaveBeenCalled()
   })
@@ -339,6 +485,20 @@ describe('createImportBackupV2UseCase', () => {
     expect(events).toEqual([])
     expect(deps.replacement.replaceAll).not.toHaveBeenCalled()
     expect(deps.writeUserSettings).not.toHaveBeenCalled()
+  })
+
+  it('rejects a settings normalization failure before recovery or writes', async () => {
+    const events: string[] = []
+    const deps = createDeps(events, {
+      normalizeUserSettings: () => {
+        throw new Error(SECRET_VALUES[3])
+      },
+    })
+
+    await expect(
+      createImportBackupV2UseCase(deps)(createInspection()),
+    ).rejects.toMatchObject({ code: 'INVALID_BACKUP' })
+    expect(events).toEqual([])
   })
 
   it('does not mutate or restore when recovery capture fails', async () => {
@@ -526,23 +686,69 @@ describe('createImportBackupV2UseCase', () => {
     expect(events).toEqual([])
   })
 
-  it('rejects unhealthy saved-tab relations before recovery capture', async () => {
+  it.each([
+    {
+      name: 'missing URL',
+      corrupt: (savedTabs: PersistenceLogicalSnapshot['savedTabs']) => ({
+        ...savedTabs,
+        urls: [],
+      }),
+    },
+    {
+      name: 'missing collection',
+      corrupt: (savedTabs: PersistenceLogicalSnapshot['savedTabs']) => ({
+        ...savedTabs,
+        collections: [],
+      }),
+    },
+    {
+      name: 'missing category',
+      corrupt: (savedTabs: PersistenceLogicalSnapshot['savedTabs']) => ({
+        ...savedTabs,
+        memberships: savedTabs.memberships.map((membership) => ({
+          ...membership,
+          categoryId: 'missing-category',
+        })),
+      }),
+    },
+    {
+      name: 'missing group',
+      corrupt: (savedTabs: PersistenceLogicalSnapshot['savedTabs']) => ({
+        ...savedTabs,
+        collections: savedTabs.collections.map((collection) => ({
+          ...collection,
+          groupId: 'missing-group',
+        })),
+      }),
+    },
+    {
+      name: 'orphan category',
+      corrupt: (savedTabs: PersistenceLogicalSnapshot['savedTabs']) => ({
+        ...savedTabs,
+        categories: [
+          {
+            collectionId: 'missing-collection',
+            createdAt: 1,
+            id: 'orphan-category',
+            keywords: [],
+            name: 'Orphan category',
+            sortOrder: 1024,
+            updatedAt: 1,
+          },
+        ],
+      }),
+    },
+  ])('rejects $name before any import side effect', async ({ corrupt }) => {
     const events: string[] = []
     const inspection = createInspection()
-    const membership = inspection.data.savedTabs.memberships[0]
-    if (membership === undefined) {
-      throw new Error('Missing test membership')
-    }
     const unhealthyInspection: BackupV2Inspection = {
       ...inspection,
       data: {
         ...inspection.data,
-        savedTabs: {
-          ...inspection.data.savedTabs,
-          memberships: [{ ...membership, urlId: 'missing-url-id' }],
-        },
+        savedTabs: corrupt(inspection.data.savedTabs),
       },
     }
+    const originalData = structuredClone(unhealthyInspection.data)
     const deps = createDeps(events)
 
     const error = await captureImportError(async () =>
@@ -550,8 +756,62 @@ describe('createImportBackupV2UseCase', () => {
     )
 
     expect(error.code).toBe('BACKUP_INTEGRITY_FAILED')
-    expect(events).toEqual([])
+    expectNoImportSideEffects(deps, events)
+    expect(unhealthyInspection.data).toStrictEqual(originalData)
+    for (const secret of SECRET_VALUES) {
+      expect(error.message).not.toContain(secret)
+      expect(JSON.stringify(error)).not.toContain(secret)
+    }
   })
+
+  it.each(
+    [
+      {
+        name: 'saved URL',
+        field: 'firstSavedAt',
+        selectRecord: (inspection: BackupV2Inspection) =>
+          inspection.data.savedTabs.urls[0],
+      },
+      {
+        name: 'collection',
+        field: 'createdAt',
+        selectRecord: (inspection: BackupV2Inspection) =>
+          inspection.data.savedTabs.collections[0],
+      },
+      {
+        name: 'membership',
+        field: 'addedAt',
+        selectRecord: (inspection: BackupV2Inspection) =>
+          inspection.data.savedTabs.memberships[0],
+      },
+    ].flatMap((recordCase) =>
+      ['1', '2026-07-28T00:00:00.000Z', null].map((timestamp) => ({
+        ...recordCase,
+        timestamp,
+      })),
+    ),
+  )(
+    'rejects nonnumeric $name timestamp $timestamp before any import side effect',
+    async ({ field, selectRecord, timestamp }) => {
+      const events: string[] = []
+      const inspection = createInspection()
+      const record = selectRecord(inspection)
+      if (record === undefined) {
+        throw new Error('Missing timestamp test record')
+      }
+      Object.assign(record, { [field]: timestamp })
+      const originalData = structuredClone(inspection.data)
+      const deps = createDeps(events)
+
+      const error = await captureImportError(async () =>
+        createImportBackupV2UseCase(deps)(inspection),
+      )
+
+      expect(error.code).toBe('INVALID_BACKUP')
+      expectNoImportSideEffects(deps, events)
+      expect(inspection.data).toStrictEqual(originalData)
+    },
+  )
 
   it('strictly rejects internal envelope data before recovery capture', async () => {
     const events: string[] = []

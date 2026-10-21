@@ -1,22 +1,19 @@
 import type { DragEndEvent } from '@dnd-kit/core'
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
+import { DndContext, closestCenter } from '@dnd-kit/core'
 import {
   SortableContext,
   arrayMove,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
+import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
+import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 import type { CategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { SortableUrlItem } from './SortableUrlItem'
 
@@ -40,6 +37,9 @@ export const CategorySection = ({
    */
   reorderTabGroupUrlsUseCase?: ReorderTabGroupUrlsUseCase
 }) => {
+  const canReorderUrls = useUrlReorderAvailable()
+  const accessibility = useDndAccessibility('immediate')
+  const { t } = useI18n()
   const urlsKey = urls.map((item) => item.url).join('\0')
   const [optimisticOrder, setOptimisticOrder] = useState<{
     sourceKey: string
@@ -49,16 +49,14 @@ export const CategorySection = ({
     optimisticOrder?.sourceKey === urlsKey ? optimisticOrder.urls : urls
 
   // DnDのセンサー設定
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
+  const sensors = useSavedTabsSensors()
 
   // カテゴリ内でのドラッグ&ドロップハンドラ（新形式対応）
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      if (!canReorderUrls) {
+        return
+      }
       const { active, over } = event
 
       if (over && active.id !== over.id) {
@@ -83,15 +81,19 @@ export const CategorySection = ({
             })
 
             // 親コンポーネントに通知してUIを更新
-            handleUpdateUrls(groupId, newUrls)
+            await handleUpdateUrls(groupId, newUrls)
+            toast.success(t('savedTabs.dnd.saved'))
           } catch (error) {
             console.error('URL順序の保存に失敗しました:', error)
             setOptimisticOrder({ sourceKey: urlsKey, urls: previousUrls })
+            toast.error(t('savedTabs.dnd.saveError'))
           }
         }
       }
     },
     [
+      t,
+      canReorderUrls,
       displayUrls,
       urlsKey,
       groupId,
@@ -111,6 +113,7 @@ export const CategorySection = ({
       data-saved-tabs-scroll-target={scrollTarget ? 'child' : undefined}
     >
       <DndContext
+        accessibility={accessibility}
         sensors={sensors}
         collisionDetection={closestCenter}
         // eslint-disable-next-line typescript/no-misused-promises

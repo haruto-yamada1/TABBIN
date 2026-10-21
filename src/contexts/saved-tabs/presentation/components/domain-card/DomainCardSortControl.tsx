@@ -9,6 +9,9 @@ export const DomainCardSortControl = () => {
 
   return (
     <CardSortControl
+      disabled={
+        sort.isSortPending || state.categoryReorder.isCategoryReorderMode
+      }
       sortOrder={sort.sortOrder}
       setSortOrder={sort.setSortOrder}
       targetName={group.domain}

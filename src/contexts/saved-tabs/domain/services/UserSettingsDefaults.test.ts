@@ -27,6 +27,20 @@ describe('normalizeUserSettings', () => {
     },
   )
 
+  it('相対保存日時は未設定や不正値で無効、明示値は親設定と独立して保持する', () => {
+    for (const showRelativeSavedTime of [undefined, 'true', null]) {
+      expect(
+        normalizeUserSettings({ userSettings: { showRelativeSavedTime } })
+          .normalized,
+      ).toMatchObject({ showRelativeSavedTime: false })
+    }
+    expect(
+      normalizeUserSettings({
+        userSettings: { showRelativeSavedTime: true, showSavedTime: false },
+      }).normalized,
+    ).toMatchObject({ showRelativeSavedTime: true, showSavedTime: false })
+  })
+
   it('旧 AI 設定キーを除去し、既定値と保存値をマージする', () => {
     const result = normalizeUserSettings({
       userSettings: {
