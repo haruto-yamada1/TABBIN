@@ -124,20 +124,18 @@ const sortedRows = (page: Page) =>
       '[data-testid="url-title-label"], [data-testid="project-url-title"]',
     )
 
-for (const { mode, target, scope, id, screenshotPath } of [
+for (const { mode, target, scope, id } of [
   {
     mode: 'domain',
     target: 'zeta.example',
     scope: 'domain',
     id: 'domain-0',
-    screenshotPath: '/private/tmp/issue916-sort-preferences.png',
   },
   {
     mode: 'custom',
     target: undefined,
     scope: 'project',
     id: 'project-sort',
-    screenshotPath: '/private/tmp/issue916-custom-sort-preferences.png',
   },
 ]) {
   test(`${mode} date sorting survives reload and route revisit, synchronizes pages, and preserves manual order`, async ({
@@ -182,11 +180,6 @@ for (const { mode, target, scope, id, screenshotPath } of [
       { exact: true },
     )
     await expect(dragHandle).toHaveAttribute('aria-disabled', 'true')
-    await page.setViewportSize({ width: 1280, height: 900 })
-    await page.screenshot({
-      path: screenshotPath,
-      animations: 'disabled',
-    })
 
     await sortButton(page, target, 'Saved date descending').click()
     await expect(sortedRows(page)).toHaveText(manualTitles)
