@@ -28,6 +28,7 @@ AI Chat は完了済みの固定メッセージを使用し、ストリーミン
 HTML report、JSON の件数・所要時間、失敗時の trace と画像は 14 日保持します。
 
 基準環境は **Linux amd64 / Playwright 1.63.0 Noble image** です。
+CI では最小 image にない `unzip` を Bun セットアップ前にインストールします。
 OS やフォント描画が異なる macOS の画像を Linux 基準として commit しないでください。
 環境差については [Playwright の画像比較](https://playwright.dev/docs/test-snapshots) と
 [公式 Docker image](https://playwright.dev/docs/docker) の説明も参照できます。

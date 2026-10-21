@@ -19,6 +19,18 @@ describe('visual regression CI boundary', () => {
     expect(commands.join('\n')).not.toContain('test:visual:update')
   })
 
+  it('installs the extraction dependency before setting up Bun in the minimal image', () => {
+    const steps = workflow.jobs['storybook-visual'].steps
+    const unzipIndex = steps.findIndex((step: { run?: string }) =>
+      step.run?.includes('apt-get install -y --no-install-recommends unzip'),
+    )
+    const bunIndex = steps.findIndex((step: { uses?: string }) =>
+      step.uses?.startsWith('oven-sh/setup-bun@'),
+    )
+    expect(unzipIndex).toBeGreaterThanOrEqual(0)
+    expect(unzipIndex).toBeLessThan(bunIndex)
+  })
+
   it('uses the locked browser environment and retains failed comparisons', () => {
     const job = workflow.jobs['storybook-visual']
     const { version }: { version: string } = JSON.parse(
