@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import type { SortableUrlItemProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { toSafeSavedUrlHref } from '@/lib/url-filter'
@@ -73,6 +74,7 @@ export const SortableUrlItem = ({
   settings,
 }: SortableUrlItemProps) => {
   const { t } = useI18n()
+  const canReorderUrls = useUrlReorderAvailable()
   const {
     attributes,
     listeners,
@@ -81,6 +83,7 @@ export const SortableUrlItem = ({
     transform,
     transition,
   } = useSortable({
+    disabled: !canReorderUrls,
     data: {
       name: title,
       categoryContext, // カテゴリコンテキストをデータに追加

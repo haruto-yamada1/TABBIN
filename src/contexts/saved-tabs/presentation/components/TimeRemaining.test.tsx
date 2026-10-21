@@ -63,6 +63,8 @@ vi.mock('./SortableUrlItem', () => ({
 
 import { toast } from 'sonner'
 
+import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
+
 import { CategorySection } from './TimeRemaining'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
@@ -215,4 +217,22 @@ describe('CategorySection', () => {
         .map((node) => node.textContent),
     ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
   })
+})
+
+it('日時ソート表示中のドロップでは保存済み手動順を変更しない', async () => {
+  reorderTabGroupUrlsUseCaseMock.mockClear()
+  const props = createProps()
+  render(
+    <UrlReorderAvailabilityContext value={false}>
+      <CategorySection {...props} />
+    </UrlReorderAvailabilityContext>,
+  )
+  await act(async () => {
+    await dndContextHandlersRef.current.onDragEnd?.({
+      active: { id: 'https://a.com' },
+      over: { id: 'https://c.com' },
+    })
+  })
+  expect(reorderTabGroupUrlsUseCaseMock).not.toHaveBeenCalled()
+  expect(props.handleUpdateUrls).not.toHaveBeenCalled()
 })

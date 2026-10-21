@@ -7,7 +7,9 @@ import { CardCollapseControl } from '@/contexts/saved-tabs/presentation/componen
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import { CardGroupTitle } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupTitle'
 import { CardSortControl } from '@/contexts/saved-tabs/presentation/components/shared/CardSortControl'
+import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
+import { useSavedTabsSortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSortOrder'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -119,6 +121,12 @@ export const ProjectCardRoot = ({
   children,
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
+  const {
+    sortOrder,
+    setSortOrder,
+    isPending: isSortPending,
+    canReorderUrls,
+  } = useSavedTabsSortOrder({ scope: 'project', id: project.id })
   const hookState = useCustomProjectCard({
     ...(getProjectUrlsUseCase !== undefined ? { getProjectUrlsUseCase } : {}),
     handleDeleteUrl: hookHandlers.handleDeleteUrl,
@@ -126,10 +134,11 @@ export const ProjectCardRoot = ({
     handleSetUrlCategory: hookHandlers.handleSetUrlCategory,
     handleUpdateCategoryOrder: hookHandlers.handleUpdateCategoryOrder,
     project,
+    allowUrlReorder: canReorderUrls,
   })
 
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false)
-  const [sortOrder, setSortOrder] = useState<SortOrder>('default')
+
   const [userCollapsedState, setUserCollapsedState] = useState(false)
 
   const handleOpenManagement = useCallback(() => {
@@ -264,6 +273,7 @@ export const ProjectCardRoot = ({
               isDisabled={isProjectReorderMode}
             />
             <CardSortControl
+              disabled={isSortPending || isProjectReorderMode}
               sortOrder={sortOrder}
               setSortOrder={setSortOrder}
             />
@@ -310,7 +320,9 @@ export const ProjectCardRoot = ({
               isEmpty={urls.projectUrls.length === 0}
               isExternalItemOver={isExternalItemOver}
             >
-              {children}
+              <UrlReorderAvailabilityContext value={canReorderUrls}>
+                {children}
+              </UrlReorderAvailabilityContext>
             </ProjectCardBody>
           )}
         </CardContent>

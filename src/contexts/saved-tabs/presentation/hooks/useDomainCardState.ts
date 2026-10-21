@@ -18,6 +18,8 @@ import type {
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
+import { useSavedTabsSortOrder } from './useSavedTabsSortOrder'
+
 /** UseDomainCardState フックの引数 */
 type UseDomainCardStateParams = {
   /** タブグループデータ */
@@ -247,9 +249,11 @@ export const useDomainCardState = ({
   // --- 基本状態 ---
   const [showKeywordModal, setShowKeywordModal] = useState(false)
   const { collapse, dndMonitorHandlers } = useDomainCardCollapse(isReorderMode)
-  const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>(
-    'default',
-  )
+  const {
+    sortOrder,
+    setSortOrder,
+    isPending: isSortPending,
+  } = useSavedTabsSortOrder({ scope: 'domain', id: group.id })
   const [allCategoryIds, setAllCategoryIds] = useState<string[]>([])
   const [categoryUpdateTrigger, setCategoryUpdateTrigger] = useState(0)
   const [parentCategories, setParentCategories] = useState<ParentCategory[]>([])
@@ -644,6 +648,7 @@ export const useDomainCardState = ({
     },
     /** ソート関連 */
     sort: {
+      isSortPending,
       setSortOrder,
       sortOrder,
     },

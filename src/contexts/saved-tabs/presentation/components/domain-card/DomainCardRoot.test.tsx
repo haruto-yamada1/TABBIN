@@ -74,6 +74,7 @@ const createState = (): DomainCardContextType['state'] => {
       setUserCollapsedState: vi.fn(),
     },
     sort: {
+      isSortPending: false,
       sortOrder: 'default',
       setSortOrder: vi.fn(),
     },
