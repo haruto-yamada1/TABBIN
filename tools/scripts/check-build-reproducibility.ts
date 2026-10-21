@@ -82,9 +82,12 @@ export const checkBuildReproducibility = (
   }).trim()
   const configuredNode = git(source, ['show', `${revision}:.node-version`])
   const configuredBun = git(source, ['show', `${revision}:.bun-version`])
-  if (node.split('.')[0] !== `v${configuredNode}` || bun !== configuredBun) {
+  const nodeMatches = /^\d+$/u.test(configuredNode)
+    ? node.split('.')[0] === `v${configuredNode}`
+    : node === `v${configuredNode}`
+  if (!nodeMatches || bun !== configuredBun) {
     throw new Error(
-      `Toolchain mismatch: require Node ${configuredNode}.x / Bun ${configuredBun}; got ${node} / ${bun}`,
+      `Toolchain mismatch: require Node ${configuredNode} / Bun ${configuredBun}; got ${node} / ${bun}`,
     )
   }
   mkdirSync(output, { recursive: true })
