@@ -491,6 +491,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Match Actions home owner to container user
+        run: chown "$(id -u):$(id -g)" /github/home
+
       - name: Compare Storybook screens and check repeatability
         run: bun run test:visual --repeat-each=3
 

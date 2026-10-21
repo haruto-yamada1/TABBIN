@@ -31,6 +31,19 @@ describe('visual regression CI boundary', () => {
     expect(unzipIndex).toBeLessThan(bunIndex)
   })
 
+  it('matches the ephemeral Actions home owner before launching Firefox', () => {
+    const steps = workflow.jobs['storybook-visual'].steps
+    const ownerIndex = steps.findIndex((step: { run?: string }) =>
+      step.run?.includes('chown "$(id -u):$(id -g)" /github/home'),
+    )
+    const comparisonIndex = steps.findIndex(
+      (step: { run?: string }) =>
+        step.run === 'bun run test:visual --repeat-each=3',
+    )
+    expect(ownerIndex).toBeGreaterThanOrEqual(0)
+    expect(ownerIndex).toBeLessThan(comparisonIndex)
+  })
+
   it('uses the locked browser environment and retains failed comparisons', () => {
     const job = workflow.jobs['storybook-visual']
     const { version }: { version: string } = JSON.parse(
