@@ -1,11 +1,4 @@
 import {
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -28,6 +21,7 @@ import { useCategoryManagement } from '@/contexts/saved-tabs/presentation/hooks/
 import { useCategorySync } from '@/contexts/saved-tabs/presentation/hooks/useCategorySync'
 import { useFilteredCustomProjects } from '@/contexts/saved-tabs/presentation/hooks/useFilteredCustomProjects'
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
+import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
 import {
   toSavedTabsTabGroupViewModel,
@@ -226,12 +220,7 @@ const useSavedTabsAppView = ({
     t,
   })
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
+  const sensors = useSavedTabsSensors()
 
   // タブグループをカテゴリごとに整理する関数を強化
   const organizeTabGroups = useCallback((): {

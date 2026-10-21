@@ -1,16 +1,5 @@
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { DndContext, closestCenter } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useCallback } from 'react'
 
 import { CardContent } from '@/components/ui/card'
@@ -18,6 +7,7 @@ import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/applicati
 import { SortableCategorySection } from '@/contexts/saved-tabs/presentation/components/SortableCategorySection'
 import { CategorySection } from '@/contexts/saved-tabs/presentation/components/TimeRemaining'
 import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
+import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 import type {
   SavedTabsTabGroupDto as TabGroup,
   SavedTabsUserSettingsDto as UserSettingsDto,
@@ -109,12 +99,7 @@ export const DomainCardContent = () => {
   const { collapse, categoryReorder, computed, categoryActions } = state
 
   // DnDのセンサー設定
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
+  const sensors = useSavedTabsSensors()
 
   // 親カテゴリの有無に応じてsticky位置を動的に設定
   const categorySectionStickyTop = categoryId ? 'top-20' : 'top-18'

@@ -1,21 +1,11 @@
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { DndContext, closestCenter } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useMemo } from 'react'
 
 import { CardContent } from '@/components/ui/card'
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
 import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
+import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 
 import { useCategoryGroup } from './CategoryGroupContext'
 
@@ -37,12 +27,7 @@ export const CategoryGroupContent = () => {
   const { collapse, sort, reorder } = state
 
   // DnDのセンサー設定
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
+  const sensors = useSavedTabsSensors()
 
   const displayDomains = reorder.isReorderMode
     ? reorder.tempDomainOrder

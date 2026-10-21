@@ -14,6 +14,27 @@ const mockTop = (element: Element, top: number) => {
 }
 
 describe('scroll-controls', () => {
+  it('uses instant scrolling when the OS requests reduced motion', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true })),
+    )
+    const container = document.createElement('div')
+    const target = document.createElement('div')
+    const scrollTo = vi.fn()
+    Object.defineProperties(container, {
+      clientHeight: { value: 100 },
+      scrollHeight: { value: 500 },
+      scrollTo: { value: scrollTo },
+    })
+    mockTop(container, 0)
+    mockTop(target, 250)
+
+    scrollContainerToTarget(container, target)
+
+    expect(scrollTo).toHaveBeenCalledWith({ behavior: 'instant', top: 154 })
+  })
+
   it('最上部では上方向のターゲットを返さない', () => {
     const container = document.createElement('div')
     const firstTarget = document.createElement('div')
