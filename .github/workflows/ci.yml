@@ -462,6 +462,53 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  storybook-visual:
+    name: Storybook Visual Regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Install Bun extraction dependency
+        run: apt-get update && apt-get install -y --no-install-recommends unzip
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Match Actions home owner to container user
+        run: chown "$(id -u):$(id -g)" /github/home
+
+      - name: Compare Storybook screens and check repeatability
+        run: bun run test:visual --repeat-each=3
+
+      - name: Upload visual comparisons
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: storybook-visual-comparisons
+          path: |
+            playwright-report/visual
+            test-results/visual
+            test-results/visual-report.json
+          if-no-files-found: error
+          retention-days: 14
+
   flake-diagnostics:
     name: Flaky Test Diagnostics
     runs-on: ubuntu-latest

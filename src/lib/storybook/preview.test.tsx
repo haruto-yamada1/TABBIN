@@ -2,11 +2,30 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'
+
 import { StorybookTestHarness, createPreview } from './preview'
 
 afterEach(cleanup)
 
+const LanguageProbe = () => {
+  const { language } = useI18n()
+  return <div>{language}</div>
+}
+
 describe('Storybook preview helpers', () => {
+  it('loads the selected locale before rendering localized stories', async () => {
+    render(
+      <StorybookTestHarness locale='ja'>
+        <I18nProvider>
+          <LanguageProbe />
+        </I18nProvider>
+      </StorybookTestHarness>,
+    )
+
+    expect(await screen.findByText('ja')).toBeTruthy()
+  })
+
   it('provides decorators and global theme toolbar', () => {
     const preview = createPreview()
 

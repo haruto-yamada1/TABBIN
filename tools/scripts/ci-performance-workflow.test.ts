@@ -21,6 +21,7 @@ describe('CI performance quality and scheduling contract', () => {
       'bun run test:indexeddb:browsers',
       'bun run test:firefox:smoke',
       'bun run test:firefox:indexeddb-smoke',
+      'bun run test:visual --repeat-each=3',
     ])
     expect(workflow.jobs.coverage.name).toBe('Coverage Thresholds')
     expect(workflow.jobs.coverage['continue-on-error']).toBeUndefined()

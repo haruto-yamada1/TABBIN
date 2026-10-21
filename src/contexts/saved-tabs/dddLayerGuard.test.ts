@@ -1773,18 +1773,36 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
 
   describe('issue #861: production IndexedDB-only boundary', () => {
     const sourceRoot = resolve(repoRoot, 'src')
-    const productionFiles = collectSourceFiles(sourceRoot).filter(
-      (path) =>
-        !/\.(?:fixture|test|testing)\.tsx?$/.test(path) &&
-        !path.includes(`${sep}testing${sep}`),
-    )
+    const isProductionSource = (path: string) =>
+      !/\.(?:fixture|test|testing|story|stories)\.tsx?$/.test(path) &&
+      !path.includes(`${sep}testing${sep}`)
+    const productionFiles =
+      collectSourceFiles(sourceRoot).filter(isProductionSource)
 
     // production source が testing 専用 seam を import しないことを検証する正規表現。
     // 静的 import (from / side-effect import) と動的 import('...') の両方を検出し、
-    // /testing/<path> ディレクトリと .testing / .fixture 接尾辞をカバーする。
+    // /testing/<path> と .testing / .fixture / .story / .stories 接尾辞をカバーし、
+    // production から story 経由で fixture を取り込む経路も拒否する。
     // ガード自体が将来壊れないよう、下方の self-test で検出対象を明示する。
     const testOnlySeamImportPattern =
-      /(?:from\s+|import\s+|import\s*\()['"][^'"]*(?:\/testing\/[^'"]*|\.(?:fixture|testing))['"]/
+      /(?:from\s+|import\s+|import\s*\()['"][^'"]*(?:\/testing\/[^'"]*|\.(?:fixture|testing|story|stories)(?:\.tsx?)?)['"]/
+
+    it.each([
+      ['app/composition/VisualRegression.stories.tsx', false],
+      ['features/options/Options.story.ts', false],
+      ['app/composition/VisualRegression.fixture.ts', false],
+      ['features/options/Options.test.tsx', false],
+      ['app/composition/Options.testing.ts', false],
+      ['app/composition/testing/Options.ts', false],
+      ['entrypoints/background.ts', true],
+      ['lib/storybook/runtime.ts', true],
+      ['features/options/stories.ts', true],
+      ['features/options/Options.stories.helpers.ts', true],
+      ['features/options/Options.storyStore.ts', true],
+      ['lib/testing-utils/runtime.ts', true],
+    ])('classifies %s as production=%s', (path, expected) => {
+      expect(isProductionSource(resolve(sourceRoot, path))).toBe(expected)
+    })
 
     it('does not retain legacy cutover policy or migration routing in production', () => {
       for (const absolutePath of productionFiles) {
@@ -1845,6 +1863,13 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         "import('./foo.testing')",
         "import { x } from './foo.fixture'",
         "import('./foo.fixture')",
+        "import { x } from './foo.story'",
+        "import('./foo.story')",
+        "import { x } from './foo.stories'",
+        "import './foo.stories'",
+        "import('./foo.stories')",
+        "import { x } from './foo.stories.tsx'",
+        "import('./foo.story.ts')",
       ]
       for (const source of forbidden) {
         expect(
@@ -1858,6 +1883,8 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         "import { x } from '@/contexts/saved-tabs/application/foo'",
         "import { x } from '@/contexts/saved-tabs/infrastructure/foo'",
         "import { x } from '@/lib/testing-utils/foo'",
+        "import { x } from '@/lib/storybook/runtime'",
+        "import { x } from './foo.stories.helpers'",
         "import { x } from 'react'",
       ]
       for (const source of allowed) {
