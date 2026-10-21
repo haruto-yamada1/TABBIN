@@ -6,8 +6,9 @@ CI の必須 gate や `release:zip` の一部にはしていません。
 
 ## 実行
 
-`.node-version` の Node major と `.bun-version` の Bun を PATH 上に用意します。
-Node は major だけでなく実際の patch version もレポートに記録します。
+対象 commit の `.node-version` と `.bun-version` が指定する Node / Bun を PATH 上に用意します。
+Node の完全なバージョン指定は patch まで一致が必要です。過去の commit が major のみを
+指定している場合は同じ major を使い、実際の patch version もレポートに記録します。
 
 ```sh
 bun run release:reproducibility
