@@ -30,6 +30,7 @@ import type {
 } from '@/contexts/saved-tabs/presentation/lib/scroll-controls'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { useI18nText } from '@/features/i18n/lib/useI18nText'
+import { prefersReducedMotion } from '@/lib/reducedMotion'
 
 const HIGHLIGHT_CLASS_NAME = 'saved-tabs-scroll-highlight'
 const HIGHLIGHT_DURATION_MS = 1200
@@ -240,7 +241,7 @@ const useSavedTabsScrollControlsView = ({
 
   const scrollToTop = useCallback(() => {
     scrollContainerRef.current?.scrollTo({
-      behavior: 'smooth',
+      behavior: prefersReducedMotion() ? 'instant' : 'smooth',
       top: 0,
     })
     announce(scrollToTopLabel)
@@ -252,7 +253,7 @@ const useSavedTabsScrollControlsView = ({
       return
     }
     container.scrollTo({
-      behavior: 'smooth',
+      behavior: prefersReducedMotion() ? 'instant' : 'smooth',
       top: container.scrollHeight,
     })
     announce(scrollToBottomLabel)

@@ -1,13 +1,6 @@
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
 // DnDのインポートを追加
-import {
-  DndContext,
-  DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
+import { DndContext, DragOverlay } from '@dnd-kit/core'
 import {
   SortableContext,
   arrayMove,
@@ -32,6 +25,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
+import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 import {
   customProjectCollisionDetection,
   customProjectKeyboardCoordinates,
@@ -39,6 +33,7 @@ import {
 import type { CustomProjectSectionProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectSection.types'
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 import { CustomProjectCard } from './CustomProjectCard'
 import { DragHandlersContext } from './DragHandlersContext'
@@ -438,6 +433,7 @@ const useCustomProjectSectionView = ({
 }: CustomProjectSectionProps) => {
   const { t } = useI18n()
   const accessibility = useDndAccessibility('custom')
+  const reducedMotion = useReducedMotion()
   const projectIds = useMemo(
     () => projects.map((project) => project.id),
     [projects],
@@ -485,12 +481,7 @@ const useCustomProjectSectionView = ({
   const [draggedOverProjectId, setDraggedOverProjectId] = useState<
     string | null
   >(null)
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: customProjectKeyboardCoordinates,
-    }),
-  )
+  const sensors = useSavedTabsSensors(customProjectKeyboardCoordinates)
 
   const projectDragHandlersRef = useRef<
     Partial<Record<string, ProjectDragHandlers>>
@@ -854,7 +845,12 @@ const useCustomProjectSectionView = ({
               </div>
             </SortableContext>
             {/* ドラッグ中の要素のオーバーレイ */}
-            <DragOverlay style={DRAG_OVERLAY_STYLE}>
+            <DragOverlay
+              {...(reducedMotion
+                ? { dropAnimation: null, transition: 'none' }
+                : {})}
+              style={DRAG_OVERLAY_STYLE}
+            >
               {draggedItem && (
                 <div className='max-w-[300px] truncate rounded-md border bg-background p-2 shadow-md'>
                   {draggedItem.title || draggedItem.url}

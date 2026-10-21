@@ -2,6 +2,7 @@ import { DragOverlay } from '@dnd-kit/core'
 import type { CSSProperties } from 'react'
 
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 import { useProjectCard } from './ProjectCardContext'
 
@@ -14,6 +15,7 @@ const DRAG_OVERLAY_STYLE: CSSProperties = { pointerEvents: 'none' }
 export const ProjectCardDragOverlay = () => {
   const { t } = useI18n()
   const { hookState } = useProjectCard()
+  const reducedMotion = useReducedMotion()
   const { urls, dnd } = hookState
 
   if (!dnd.activeId) {
@@ -30,7 +32,10 @@ export const ProjectCardDragOverlay = () => {
   }
 
   return (
-    <DragOverlay style={DRAG_OVERLAY_STYLE}>
+    <DragOverlay
+      {...(reducedMotion ? { dropAnimation: null, transition: 'none' } : {})}
+      style={DRAG_OVERLAY_STYLE}
+    >
       <div className='rounded border bg-secondary p-2'>
         {activeUrl.title || t('sidebar.tabList')}
       </div>
