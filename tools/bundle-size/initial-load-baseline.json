@@ -1,0 +1,1173 @@
+{
+  "schemaVersion": 1,
+  "scenario": "fresh-profile-empty-en-v1",
+  "method": "parsed-module-sources-v1",
+  "revision": "e4154a9479f3fb8c4797767dcd8891e8f686ff71",
+  "environment": "darwin/arm64; Node 24.22.1; Bun 1.3.14",
+  "browsers": {
+    "chrome": {
+      "browserVersion": "153.0.8010.12",
+      "artifactSha256": "fbddeb9021ef00258c1f32c19e9ae47afdb1c63dc2cb2b6dda3bc11fbb1db49a",
+      "sizes": {
+        "features": {
+          "saved-tabs": {
+            "javascriptBytes": 1200490,
+            "sharedJavascriptBytes": 842348,
+            "files": [
+              {
+                "path": "chunks/ConversationHistoryErrorNotice-AjWyISIv.js",
+                "bytes": 353
+              },
+              {
+                "path": "chunks/LazySavedTabsChatWidget-CxLd349k.js",
+                "bytes": 3241
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SavedTabsRoute-BJ-7ZSd5.js",
+                "bytes": 358142
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/alert-dialog-CoWtQ5SH.js",
+                "bytes": 3749
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/card-C9JtY4q1.js",
+                "bytes": 903
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/checkbox-BL6YEMKv.js",
+                "bytes": 4711
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dialog-Dtr4itir.js",
+                "bytes": 2682
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/domain-normalize-CHxHBSDA.js",
+                "bytes": 314
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/loading-state-BNNBcPyI.js",
+                "bytes": 356
+              },
+              {
+                "path": "chunks/localDateTime-DsgpGddr.js",
+                "bytes": 1648
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/sonner-DQ53tAzB.js",
+                "bytes": 1681
+              },
+              {
+                "path": "chunks/spinner-BrMyPx-k.js",
+                "bytes": 448
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/trash-DUdi8N0W.js",
+                "bytes": 376
+              },
+              {
+                "path": "chunks/url-filter-BdOiSrIf.js",
+                "bytes": 533
+              },
+              {
+                "path": "chunks/use-copy-state-BTX7LMbs.js",
+                "bytes": 893
+              }
+            ]
+          },
+          "options": {
+            "javascriptBytes": 973582,
+            "sharedJavascriptBytes": 873027,
+            "files": [
+              {
+                "path": "chunks/BackupV2ResourceUsage-DJBUyKG4.js",
+                "bytes": 13540
+              },
+              {
+                "path": "chunks/OptionsRoute-CgDvS4X9.js",
+                "bytes": 49764
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/aiChatLimits-DKZeOEft.js",
+                "bytes": 29
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/alert-dialog-CoWtQ5SH.js",
+                "bytes": 3749
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/checkbox-BL6YEMKv.js",
+                "bytes": 4711
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dialog-Dtr4itir.js",
+                "bytes": 2682
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/dropdown-menu-DKw1TxnG.js",
+                "bytes": 21792
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/import-export-B6zpiQvz.js",
+                "bytes": 33169
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/loading-state-BNNBcPyI.js",
+                "bytes": 356
+              },
+              {
+                "path": "chunks/localDateTime-DsgpGddr.js",
+                "bytes": 1648
+              },
+              {
+                "path": "chunks/optionsBackupV2Export-C70zEwwy.js",
+                "bytes": 1379
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/runtime-DZhrca1M.js",
+                "bytes": 1793
+              },
+              {
+                "path": "chunks/scroll-area-BWYMvzLS.js",
+                "bytes": 13678
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/sonner-DQ53tAzB.js",
+                "bytes": 1681
+              },
+              {
+                "path": "chunks/spinner-BrMyPx-k.js",
+                "bytes": 448
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/useSettings-BRz2Rsa6.js",
+                "bytes": 2703
+              }
+            ]
+          },
+          "ai-chat": {
+            "javascriptBytes": 2014913,
+            "sharedJavascriptBytes": 878862,
+            "files": [
+              {
+                "path": "chunks/AiChartRenderer-BX0yhr0S.js",
+                "bytes": 15099
+              },
+              {
+                "path": "chunks/AiChatRoute-DUHR8in1.js",
+                "bytes": 4420
+              },
+              {
+                "path": "chunks/ConversationHistoryErrorNotice-AjWyISIv.js",
+                "bytes": 353
+              },
+              {
+                "path": "chunks/SavedTabsChatWidget-BIMHazo0.js",
+                "bytes": 1114181
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/aiChatLimits-DKZeOEft.js",
+                "bytes": 29
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/card-C9JtY4q1.js",
+                "bytes": 903
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dialog-Dtr4itir.js",
+                "bytes": 2682
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/dropdown-menu-DKw1TxnG.js",
+                "bytes": 21792
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/loading-state-BNNBcPyI.js",
+                "bytes": 356
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/runtime-DZhrca1M.js",
+                "bytes": 1793
+              },
+              {
+                "path": "chunks/savedTabsOrganization-BeBxNqqt.js",
+                "bytes": 8200
+              },
+              {
+                "path": "chunks/scroll-area-BWYMvzLS.js",
+                "bytes": 13678
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/spinner-BrMyPx-k.js",
+                "bytes": 448
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/trash-DUdi8N0W.js",
+                "bytes": 376
+              },
+              {
+                "path": "chunks/use-copy-state-BTX7LMbs.js",
+                "bytes": 893
+              },
+              {
+                "path": "chunks/useSharedAiChatHistory-bvazz0C8.js",
+                "bytes": 9250
+              }
+            ]
+          },
+          "analytics": {
+            "javascriptBytes": 918894,
+            "sharedJavascriptBytes": 863828,
+            "files": [
+              {
+                "path": "chunks/AiChartRenderer-BX0yhr0S.js",
+                "bytes": 15099
+              },
+              {
+                "path": "chunks/AnalyticsRoute-BMIFfI9H.js",
+                "bytes": 46931
+              },
+              {
+                "path": "chunks/ConversationHistoryErrorNotice-AjWyISIv.js",
+                "bytes": 353
+              },
+              {
+                "path": "chunks/LazySavedTabsChatWidget-CxLd349k.js",
+                "bytes": 3241
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/alert-dialog-CoWtQ5SH.js",
+                "bytes": 3749
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/backgroundSavedTabsDataPlane-DKyfvEF5.js",
+                "bytes": 8135
+              },
+              {
+                "path": "chunks/card-C9JtY4q1.js",
+                "bytes": 903
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/domain-normalize-CHxHBSDA.js",
+                "bytes": 314
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/localDateTime-DsgpGddr.js",
+                "bytes": 1648
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/runtime-DZhrca1M.js",
+                "bytes": 1793
+              },
+              {
+                "path": "chunks/scroll-area-BWYMvzLS.js",
+                "bytes": 13678
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/sonner-DQ53tAzB.js",
+                "bytes": 1681
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/trash-DUdi8N0W.js",
+                "bytes": 376
+              },
+              {
+                "path": "chunks/url-filter-BdOiSrIf.js",
+                "bytes": 533
+              }
+            ]
+          }
+        },
+        "uniqueJavascriptBytes": 2544553,
+        "sharedJavascriptBytes": 894739
+      }
+    },
+    "firefox": {
+      "browserVersion": "155.0",
+      "artifactSha256": "167aac2a007299bae256c5d160f818be6345fe2d2cf69c8c9166706358541c81",
+      "sizes": {
+        "features": {
+          "saved-tabs": {
+            "javascriptBytes": 1200490,
+            "sharedJavascriptBytes": 842348,
+            "files": [
+              {
+                "path": "chunks/ConversationHistoryErrorNotice-AjWyISIv.js",
+                "bytes": 353
+              },
+              {
+                "path": "chunks/LazySavedTabsChatWidget-CxLd349k.js",
+                "bytes": 3241
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SavedTabsRoute-BJ-7ZSd5.js",
+                "bytes": 358142
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/alert-dialog-CoWtQ5SH.js",
+                "bytes": 3749
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/card-C9JtY4q1.js",
+                "bytes": 903
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/checkbox-BL6YEMKv.js",
+                "bytes": 4711
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dialog-Dtr4itir.js",
+                "bytes": 2682
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/domain-normalize-CHxHBSDA.js",
+                "bytes": 314
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/loading-state-BNNBcPyI.js",
+                "bytes": 356
+              },
+              {
+                "path": "chunks/localDateTime-DsgpGddr.js",
+                "bytes": 1648
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/sonner-DQ53tAzB.js",
+                "bytes": 1681
+              },
+              {
+                "path": "chunks/spinner-BrMyPx-k.js",
+                "bytes": 448
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/trash-DUdi8N0W.js",
+                "bytes": 376
+              },
+              {
+                "path": "chunks/url-filter-BdOiSrIf.js",
+                "bytes": 533
+              },
+              {
+                "path": "chunks/use-copy-state-BTX7LMbs.js",
+                "bytes": 893
+              }
+            ]
+          },
+          "options": {
+            "javascriptBytes": 973582,
+            "sharedJavascriptBytes": 873027,
+            "files": [
+              {
+                "path": "chunks/BackupV2ResourceUsage-DJBUyKG4.js",
+                "bytes": 13540
+              },
+              {
+                "path": "chunks/OptionsRoute-CgDvS4X9.js",
+                "bytes": 49764
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/aiChatLimits-DKZeOEft.js",
+                "bytes": 29
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/alert-dialog-CoWtQ5SH.js",
+                "bytes": 3749
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/checkbox-BL6YEMKv.js",
+                "bytes": 4711
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dialog-Dtr4itir.js",
+                "bytes": 2682
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/dropdown-menu-DKw1TxnG.js",
+                "bytes": 21792
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/import-export-B6zpiQvz.js",
+                "bytes": 33169
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/loading-state-BNNBcPyI.js",
+                "bytes": 356
+              },
+              {
+                "path": "chunks/localDateTime-DsgpGddr.js",
+                "bytes": 1648
+              },
+              {
+                "path": "chunks/optionsBackupV2Export-C70zEwwy.js",
+                "bytes": 1379
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/runtime-DZhrca1M.js",
+                "bytes": 1793
+              },
+              {
+                "path": "chunks/scroll-area-BWYMvzLS.js",
+                "bytes": 13678
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/sonner-DQ53tAzB.js",
+                "bytes": 1681
+              },
+              {
+                "path": "chunks/spinner-BrMyPx-k.js",
+                "bytes": 448
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/useSettings-BRz2Rsa6.js",
+                "bytes": 2703
+              }
+            ]
+          },
+          "ai-chat": {
+            "javascriptBytes": 2014913,
+            "sharedJavascriptBytes": 878862,
+            "files": [
+              {
+                "path": "chunks/AiChartRenderer-BX0yhr0S.js",
+                "bytes": 15099
+              },
+              {
+                "path": "chunks/AiChatRoute-DUHR8in1.js",
+                "bytes": 4420
+              },
+              {
+                "path": "chunks/ConversationHistoryErrorNotice-AjWyISIv.js",
+                "bytes": 353
+              },
+              {
+                "path": "chunks/SavedTabsChatWidget-BIMHazo0.js",
+                "bytes": 1114181
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/aiChatLimits-DKZeOEft.js",
+                "bytes": 29
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/card-C9JtY4q1.js",
+                "bytes": 903
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dialog-Dtr4itir.js",
+                "bytes": 2682
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/dropdown-menu-DKw1TxnG.js",
+                "bytes": 21792
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/loading-state-BNNBcPyI.js",
+                "bytes": 356
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/runtime-DZhrca1M.js",
+                "bytes": 1793
+              },
+              {
+                "path": "chunks/savedTabsOrganization-BeBxNqqt.js",
+                "bytes": 8200
+              },
+              {
+                "path": "chunks/scroll-area-BWYMvzLS.js",
+                "bytes": 13678
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/spinner-BrMyPx-k.js",
+                "bytes": 448
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/trash-DUdi8N0W.js",
+                "bytes": 376
+              },
+              {
+                "path": "chunks/use-copy-state-BTX7LMbs.js",
+                "bytes": 893
+              },
+              {
+                "path": "chunks/useSharedAiChatHistory-bvazz0C8.js",
+                "bytes": 9250
+              }
+            ]
+          },
+          "analytics": {
+            "javascriptBytes": 918894,
+            "sharedJavascriptBytes": 863828,
+            "files": [
+              {
+                "path": "chunks/AiChartRenderer-BX0yhr0S.js",
+                "bytes": 15099
+              },
+              {
+                "path": "chunks/AnalyticsRoute-BMIFfI9H.js",
+                "bytes": 46931
+              },
+              {
+                "path": "chunks/ConversationHistoryErrorNotice-AjWyISIv.js",
+                "bytes": 353
+              },
+              {
+                "path": "chunks/LazySavedTabsChatWidget-CxLd349k.js",
+                "bytes": 3241
+              },
+              {
+                "path": "chunks/SavedTabsDomainError-D2oxQo-D.js",
+                "bytes": 119
+              },
+              {
+                "path": "chunks/SystemIdGeneratorAdapter-Dg1p8EKB.js",
+                "bytes": 2544
+              },
+              {
+                "path": "chunks/alert-N8u16Toa.js",
+                "bytes": 1736
+              },
+              {
+                "path": "chunks/alert-dialog-CoWtQ5SH.js",
+                "bytes": 3749
+              },
+              {
+                "path": "chunks/app-BCz95qUw.js",
+                "bytes": 162782
+              },
+              {
+                "path": "chunks/backgroundSavedTabsDataPlane-DKyfvEF5.js",
+                "bytes": 8135
+              },
+              {
+                "path": "chunks/card-C9JtY4q1.js",
+                "bytes": 903
+              },
+              {
+                "path": "chunks/check-CF3x7Up5.js",
+                "bytes": 154
+              },
+              {
+                "path": "chunks/chrome-global-CsUSTsRF.js",
+                "bytes": 117
+              },
+              {
+                "path": "chunks/dist-BXyxWKDQ.js",
+                "bytes": 4847
+              },
+              {
+                "path": "chunks/dist-C2_RWlT4.js",
+                "bytes": 59976
+              },
+              {
+                "path": "chunks/dist-j13zwLkC.js",
+                "bytes": 18282
+              },
+              {
+                "path": "chunks/domain-normalize-CHxHBSDA.js",
+                "bytes": 314
+              },
+              {
+                "path": "chunks/es2015-DWm9ST4U.js",
+                "bytes": 16774
+              },
+              {
+                "path": "chunks/global-P_yHDaTy.js",
+                "bytes": 251394
+              },
+              {
+                "path": "chunks/jsx-runtime-NZYk81nU.js",
+                "bytes": 435
+              },
+              {
+                "path": "chunks/localDateTime-DsgpGddr.js",
+                "bytes": 1648
+              },
+              {
+                "path": "chunks/pageNavigation-AaBggOcG.js",
+                "bytes": 1659
+              },
+              {
+                "path": "chunks/persistenceBootstrapRuntime-BCMWJVLe.js",
+                "bytes": 19810
+              },
+              {
+                "path": "chunks/react-COu3VKh5.js",
+                "bytes": 7860
+              },
+              {
+                "path": "chunks/rolldown-runtime-hePW80VL.js",
+                "bytes": 716
+              },
+              {
+                "path": "chunks/runtime-DZhrca1M.js",
+                "bytes": 1793
+              },
+              {
+                "path": "chunks/scroll-area-BWYMvzLS.js",
+                "bytes": 13678
+              },
+              {
+                "path": "chunks/select-tRyHYxnL.js",
+                "bytes": 30050
+              },
+              {
+                "path": "chunks/settings-CsUISV8k.js",
+                "bytes": 99232
+              },
+              {
+                "path": "chunks/sonner-DQ53tAzB.js",
+                "bytes": 1681
+              },
+              {
+                "path": "chunks/title-C-gMLsrj.js",
+                "bytes": 141973
+              },
+              {
+                "path": "chunks/trash-DUdi8N0W.js",
+                "bytes": 376
+              },
+              {
+                "path": "chunks/url-filter-BdOiSrIf.js",
+                "bytes": 533
+              }
+            ]
+          }
+        },
+        "uniqueJavascriptBytes": 2544553,
+        "sharedJavascriptBytes": 894739
+      }
+    }
+  }
+}
