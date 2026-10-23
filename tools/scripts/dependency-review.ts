@@ -36,9 +36,13 @@ export const allowedLicenses = [
   'Zlib',
 ]
 
-// Explicitly reviewed conjunction of two already allowed licenses (SWC native
-// packages). Do not infer acceptance of other SPDX expressions.
-const allowedLicenseExpressions = new Set(['Apache-2.0 AND MIT', 'MIT AND ISC'])
+// Explicitly reviewed conjunctions and DOMPurify's Apache-2.0 distribution
+// choice. Do not infer acceptance of other SPDX expressions or MPL-only use.
+const allowedLicenseExpressions = new Set([
+  'Apache-2.0 AND MIT',
+  'MIT AND ISC',
+  '(MPL-2.0 OR Apache-2.0)',
+])
 
 const lockSchema = z.object({
   lockfileVersion: z.literal(1),

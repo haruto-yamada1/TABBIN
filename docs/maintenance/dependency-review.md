@@ -22,7 +22,9 @@ Renovate の依存更新 PR も同じ検査を受け、automerge は引き続き
   license は下記の個別承認に一致するものを除き Bun 検査で失敗する。
   複合式は自動で互換性を推測しない。SWC native packages の
   `Apache-2.0 AND MIT` と、原文も確認した victory-vendor の `MIT AND ISC` は、
-  既に許容しているライセンスの両方に従う式として明示登録する。それ以外の複合式は拒否する。
+  既に許容しているライセンスの両方に従う式として明示登録する。
+  DOMPurify の `(MPL-2.0 OR Apache-2.0)` は原文を確認し、配布時に許容済みの
+  Apache-2.0 を選択する式として明示登録する。それ以外の複合式と MPL 単独は許可しない。
   `MIT-0`（[MIT No Attribution](https://spdx.org/licenses/MIT-0.html)）も許容する。
 - HTTP error、timeout、invalid JSON / schema、advisory pagination による
   不完全な結果、registry の name / version 不一致は失敗とする。

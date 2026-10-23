@@ -210,7 +210,12 @@ describe('reviewed React Doctor npm identities', () => {
 })
 
 describe('Bun dependency changes', () => {
-  it.each(['MIT-0', 'Apache-2.0 AND MIT', 'MIT AND ISC'])(
+  it.each([
+    'MIT-0',
+    'Apache-2.0 AND MIT',
+    'MIT AND ISC',
+    '(MPL-2.0 OR Apache-2.0)',
+  ])(
     'accepts the explicitly reviewed permissive license %s',
     async (license) => {
       const request = vi
@@ -229,27 +234,29 @@ describe('Bun dependency changes', () => {
     },
   )
 
-  it.each(['MIT OR GPL-3.0-only', 'MIT AND UNKNOWN', 'MIT AND Apache-2.0'])(
-    'rejects the unreviewed compound expression %s',
-    async (license) => {
-      const request = vi
-        .fn<ReviewRequest>()
-        .mockImplementation(async (url) =>
-          url.startsWith('https://api.github.com/')
-            ? response([])
-            : response({ name: 'foo', version: '1.0.0', license }),
+  it.each([
+    'MIT OR GPL-3.0-only',
+    'MIT AND UNKNOWN',
+    'MIT AND Apache-2.0',
+    '(MPL-2.0 OR GPL-3.0-only)',
+  ])('rejects the unreviewed compound expression %s', async (license) => {
+    const request = vi
+      .fn<ReviewRequest>()
+      .mockImplementation(async (url) =>
+        url.startsWith('https://api.github.com/')
+          ? response([])
+          : response({ name: 'foo', version: '1.0.0', license }),
+      )
+    expect(
+      (
+        await reviewDependencyChanges(
+          lock({}),
+          lock({ foo: entry('foo', '1.0.0') }),
+          request,
         )
-      expect(
-        (
-          await reviewDependencyChanges(
-            lock({}),
-            lock({ foo: entry('foo', '1.0.0') }),
-            request,
-          )
-        ).findings,
-      ).toEqual([`license: foo@1.0.0: ${license}`])
-    },
-  )
+      ).findings,
+    ).toEqual([`license: foo@1.0.0: ${license}`])
+  })
 
   it('accepts the reviewed React Doctor distribution while retaining advisory checks', async () => {
     const name = 'react-doctor'
