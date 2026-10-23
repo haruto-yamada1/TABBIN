@@ -11,6 +11,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { toSafeSavedUrlHref } from '@/lib/url-filter'
 import { TimeRemaining } from '@/utils/datetime'
 
+import { useSavedTabSelectionItem } from './selection/SavedTabsSelectionProvider'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
 import { SavedTime } from './shared/SavedTime'
@@ -74,7 +75,9 @@ export const SortableUrlItem = ({
   settings,
 }: SortableUrlItemProps) => {
   const { t } = useI18n()
-  const canReorderUrls = useUrlReorderAvailable()
+  const selection = useSavedTabSelectionItem({ groupId, url, title })
+  const reorderAvailable = useUrlReorderAvailable()
+  const canReorderUrls = reorderAvailable && !selection.isSelectionMode
   const {
     attributes,
     listeners,
@@ -202,6 +205,9 @@ export const SortableUrlItem = ({
 
   const handleOpenTabClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (selection.handleSelectionClick(event)) {
+        return
+      }
       if (!isManagedLinkActivation(event)) {
         return
       }
@@ -209,7 +215,7 @@ export const SortableUrlItem = ({
       event.preventDefault()
       handleOpenTab(url)
     },
-    [handleOpenTab, url],
+    [selection, handleOpenTab, url],
   )
 
   const safeHref = toSafeSavedUrlHref(url)
@@ -243,6 +249,7 @@ export const SortableUrlItem = ({
         data-category-context={categoryContext}
         data-testid='sortable-url-item'
       >
+        {selection.checkbox}
         <div
           className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
           ref={setActivatorNodeRef}
@@ -260,7 +267,7 @@ export const SortableUrlItem = ({
               asChild
               variant='ghost'
               size='sm'
-              draggable
+              draggable={!selection.isSelectionMode}
               onDragStart={handleItemDragStart}
               onDragEnd={handleDragEnd}
               className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
@@ -270,6 +277,7 @@ export const SortableUrlItem = ({
                 target='_blank'
                 rel='noopener noreferrer'
                 onClick={handleOpenTabClick}
+                onAuxClick={handleOpenTabClick}
               >
                 {buttonContent}
               </a>
@@ -283,6 +291,7 @@ export const SortableUrlItem = ({
             variant='ghost'
             size='icon'
             onClick={handleDeleteButtonClick}
+            disabled={selection.isSelectionMode}
             className='pointer-events-none invisible absolute top-0 right-0 bottom-0 my-auto shrink-0 cursor-pointer opacity-0 transition-opacity group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:visible focus-visible:opacity-100'
             title={t('savedTabs.url.deleteAria')}
             aria-label={t('savedTabs.url.deleteAria')}

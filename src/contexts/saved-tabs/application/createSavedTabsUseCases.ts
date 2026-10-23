@@ -18,6 +18,7 @@ import { createDeleteCustomProjectUseCase } from './use-cases/DeleteCustomProjec
 import { createDeleteParentCategoryUseCase } from './use-cases/DeleteParentCategoryUseCase'
 import { createDeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
+import { createDeleteSelectedSavedUrlsUseCase } from './use-cases/DeleteSelectedSavedUrlsUseCase'
 import { createDeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
 import { createFindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUseCase'
@@ -128,6 +129,12 @@ export const createSavedTabsUseCases = (
   }),
   deleteSavedUrls: createDeleteSavedUrlsUseCase({
     customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  deleteSelectedSavedUrls: createDeleteSelectedSavedUrlsUseCase({
+    customProjectRepository: deps.customProjectRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),

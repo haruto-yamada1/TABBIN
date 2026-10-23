@@ -41,6 +41,7 @@ import {
   useTabOpeningHandlers,
   useUncategorizedReorderHandlers,
 } from './handlers'
+import { useSelectedSavedTabsDeletion } from './handlers/useSelectedSavedTabsDeletion'
 import {
   buildPresentationCategoryLookup,
   createCategorizedDisplayState,
@@ -221,6 +222,13 @@ const useSavedTabsAppView = ({
   })
 
   const sensors = useSavedTabsSensors()
+  const handleDeleteSelectedUrls = useSelectedSavedTabsDeletion({
+    savedTabsUseCases,
+    refreshTabGroupsWithUrls,
+    setCustomProjects,
+    setCategories,
+    t,
+  })
 
   // タブグループをカテゴリごとに整理する関数を強化
   const organizeTabGroups = useCallback((): {
@@ -473,6 +481,7 @@ const useSavedTabsAppView = ({
         handleDeleteGroups={handleDeleteGroups}
         handleDeleteUrl={handleDeleteUrl}
         handleDeleteUrls={handleDeleteUrls}
+        handleDeleteSelectedUrls={handleDeleteSelectedUrls}
         handleOpenTab={handleOpenTab}
         handleUpdateUrls={handleUpdateUrls}
         handleUpdateDomainsOrder={handleUpdateDomainsOrder}

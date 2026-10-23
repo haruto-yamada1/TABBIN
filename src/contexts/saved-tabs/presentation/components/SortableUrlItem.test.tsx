@@ -12,6 +12,17 @@ const { useSortableMock } = vi.hoisted(() => ({
 const sortableUrlItemI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
+const selectionState = vi.hoisted(() => ({ active: false, click: vi.fn() }))
+vi.mock('./selection/SavedTabsSelectionProvider', () => ({
+  useSavedTabSelectionItem: () => ({
+    checkbox: selectionState.active ? (
+      <input type='checkbox' aria-label='Select Example' />
+    ) : null,
+    handleSelectionClick: selectionState.click,
+    isSelectionMode: selectionState.active,
+    isSelectionBusy: false,
+  }),
+}))
 
 vi.mock('@dnd-kit/sortable', () => ({
   useSortable: useSortableMock,
@@ -109,6 +120,8 @@ describe('SortableUrlItem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    selectionState.active = false
+    selectionState.click.mockReturnValue(false)
     useSortableMock.mockReturnValue({
       attributes: {},
       listeners: {},
@@ -121,6 +134,44 @@ describe('SortableUrlItem', () => {
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
+  })
+
+  it('uses selection instead of opening or dragging the URL in selection mode', async () => {
+    selectionState.active = true
+    selectionState.click.mockImplementation((event: React.MouseEvent) => {
+      event.preventDefault()
+      return true
+    })
+    const open = vi.fn()
+    render(
+      <SortableUrlItem
+        url='https://example.com/'
+        title='Example'
+        id='url'
+        groupId='group'
+        settings={defaultSettings}
+        handleDeleteUrl={vi.fn()}
+        handleOpenTab={open}
+        handleUpdateUrls={vi.fn()}
+      />,
+    )
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('link', { name: 'Example' }))
+    expect(open).not.toHaveBeenCalled()
+    const middleClick = new MouseEvent('auxclick', {
+      button: 1,
+      bubbles: true,
+      cancelable: true,
+    })
+    screen.getByRole('link').dispatchEvent(middleClick)
+    expect(middleClick.defaultPrevented).toBe(true)
+    expect(
+      screen.getByRole('checkbox', { name: 'Select Example' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link')).toHaveAttribute('draggable', 'false')
+    expect(useSortableMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ disabled: true }),
+    )
   })
 
   it('長いタイトルでも縮小可能なclassを維持し、クリックと削除を処理する', async () => {

@@ -1,0 +1,393 @@
+const { createServer: createHttpServer } = await import('node:http')
+const {
+  createSelectionSeed,
+  createOpeningSelectionSeed,
+  selectionSnapshotRestorationContent,
+} = await import(path.join(repoRoot, 'e2e/helpers/selection.ts'))
+const { seedSavedTabsFixture, readPersistenceV2SavedTabsSnapshot } =
+  await import(path.join(repoRoot, 'e2e/helpers/extension.ts'))
+const titles = [
+  'Alpha guide',
+  'Alpha loose tab',
+  'Charlie first tab',
+  'Charlie second tab',
+  'Bravo guide',
+  'Bravo loose tab',
+]
+const root = await mkdtemp(path.join(os.tmpdir(), 'tabbin-897-selection-'))
+const profile = path.join(root, 'profile')
+await mkdir(profile)
+const addonDir = path.join(root, 'addon')
+await cp(firefoxArtifactDir, addonDir, { recursive: true })
+const manifestFile = path.join(addonDir, 'manifest.json')
+const manifest = JSON.parse(await readFile(manifestFile, 'utf8'))
+manifest.browser_specific_settings.gecko.id = EXTENSION_ID
+await writeFile(manifestFile, JSON.stringify(manifest))
+const addon = path.join(root, 'selection.xpi')
+assert.equal(spawnSync('zip', ['-qr', addon, '.'], { cwd: addonDir }).status, 0)
+const port = await reservePort()
+const baseUrl = `http://127.0.0.1:${port}`
+const driver = spawn(
+  process.env.GECKODRIVER_PATH ?? 'geckodriver',
+  ['--port', String(port), '--allow-system-access'],
+  { stdio: 'ignore' },
+)
+let session
+let driverFailure
+let httpServer
+const results = []
+driver.once('error', (error) => {
+  driverFailure = error
+})
+try {
+  await waitForDriver(baseUrl, () => driverFailure)
+  session = await createSession(baseUrl, profile)
+  await installAddon(session, addon)
+  const uuid = await resolveExtensionUuid(profile)
+  const appUrl = `moz-extension://${uuid}/app.html#/saved-tabs?mode=domain`
+  const optionsUrl = `moz-extension://${uuid}/options.html`
+  const command = (url, body) => sessionCommand(session, url, body)
+  await command('/timeouts', { script: 60000, pageLoad: 60000 })
+  const evaluate = async (fn, arg) => {
+    const result = await command('/execute/async', {
+      args: [arg ?? null],
+      script: `const done=arguments[arguments.length-1]; Promise.resolve((${fn.toString()})(arguments[0])).then(value=>done({ok:true,value:value??null}),error=>done({ok:false,error:String(error.stack||error)}));`,
+    })
+    if (!result.ok) throw Error(result.error)
+    return result.value
+  }
+  const worker = { evaluate }
+  const poll = async (read, expected, label) => {
+    const until = Date.now() + 10000
+    let actual
+    do {
+      actual = await read()
+      if (JSON.stringify(actual) === JSON.stringify(expected)) return actual
+      await delay(50)
+    } while (Date.now() < until)
+    throw Error(
+      `${label}: expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`,
+    )
+  }
+  const rows = () =>
+    evaluate(() =>
+      Array.from(
+        document.querySelectorAll('[data-testid="sortable-url-item"] a'),
+        (node) => node.textContent,
+      ),
+    )
+  const selected = () =>
+    evaluate(() =>
+      Array.from(
+        document.querySelectorAll('[role="checkbox"][aria-checked="true"]'),
+        (node) => node.getAttribute('aria-label').replace(/^Select /u, ''),
+      ),
+    )
+  const element = async (target) => {
+    const result = await command('/execute/sync', {
+      args: [target],
+      script: `const t=arguments[0];return [...document.querySelectorAll(t.selector)].find(n=>t.label?n.getAttribute('aria-label')===t.label:t.text?n.textContent.trim()===t.text:true)??null`,
+    })
+    assert.ok(result, `UI target missing: ${JSON.stringify(target)}`)
+    return result
+  }
+  const button = (text, dialog = false) => ({
+    selector: dialog ? '[role="alertdialog"] button' : 'button',
+    text,
+  })
+  const check = (title) => ({
+    selector: '[role="checkbox"]',
+    label: `Select ${title}`,
+  })
+  const link = (title) => ({
+    selector: '[data-testid="sortable-url-item"] a',
+    text: title,
+  })
+  const click = async (target, modifier) => {
+    const el = await element(target)
+    await command('/execute/sync', {
+      args: [el],
+      script:
+        'arguments[0].scrollIntoView({block:"center",behavior:"instant"})',
+    })
+    await poll(
+      async () =>
+        command('/execute/sync', {
+          args: [el],
+          script:
+            'const e=arguments[0],r=e.getBoundingClientRect();return !e.disabled&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))',
+        }),
+      true,
+      `unobscured UI target ${JSON.stringify(target)}`,
+    )
+    if (!modifier) {
+      await command(
+        `/element/${el['element-6066-11e4-a52e-4f735466cecf']}/click`,
+        {},
+      )
+      return
+    }
+    const code =
+      modifier === 'Shift'
+        ? '\uE008'
+        : process.platform === 'darwin'
+          ? '\uE03D'
+          : '\uE009'
+    await command('/execute/sync', {
+      args: [el],
+      script:
+        'arguments[0].scrollIntoView({block:"center",behavior:"instant"})',
+    })
+    await command('/actions', {
+      actions: [
+        {
+          type: 'key',
+          id: 'selection-key',
+          actions: [
+            { type: 'keyDown', value: code },
+            { type: 'pause' },
+            { type: 'pause' },
+            { type: 'keyUp', value: code },
+          ],
+        },
+        {
+          type: 'pointer',
+          id: 'selection-pointer',
+          parameters: { pointerType: 'mouse' },
+          actions: [
+            { type: 'pointerMove', origin: el, x: 0, y: 0 },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pointerUp', button: 0 },
+          ],
+        },
+      ],
+    })
+  }
+  const start = async (confirm) => {
+    await command('/url', { url: optionsUrl })
+    await seedSavedTabsFixture(worker, createSelectionSeed(confirm))
+    await command('/url', { url: appUrl })
+    await poll(rows, titles, 'rendered parent/domain/category order')
+    await poll(
+      () =>
+        evaluate(() => document.querySelectorAll('[role="checkbox"]').length),
+      0,
+      'default inactive',
+    )
+    await click(button('Select tabs'))
+    await poll(selected, [], 'empty selection')
+  }
+  const snapshot = () => readPersistenceV2SavedTabsSnapshot(worker)
+  await start(true)
+  const original = await snapshot()
+  await click(check(titles[1]))
+  await click(check(titles[4]), 'Shift')
+  await poll(
+    selected,
+    titles.slice(1, 5),
+    'cross-parent/domain/category Shift range',
+  )
+  await click(check(titles[2]), 'ControlOrMeta')
+  await click(check(titles[3]))
+  await poll(selected, [titles[1], titles[4]], 'modifier/plain toggle')
+  await click(link(titles[5]))
+  await poll(
+    selected,
+    [titles[1], titles[4], titles[5]],
+    'selection link toggle',
+  )
+  await click(link(titles[5]), 'ControlOrMeta')
+  await poll(selected, [titles[1], titles[4]], 'modifier link toggle')
+  const screenshot = await command('/screenshot')
+  await writeFile(
+    '/private/tmp/issue897-native-firefox-selection.png',
+    Buffer.from(screenshot, 'base64'),
+  )
+  await click(button('Delete selected'))
+  await poll(
+    () =>
+      evaluate(
+        () =>
+          document
+            .querySelector('[role="alertdialog"]')
+            ?.textContent.includes('Delete 2 selected tabs?') ?? false,
+      ),
+    true,
+    'accurate delete confirmation',
+  )
+  await click(button('Cancel', true))
+  await poll(selected, [titles[1], titles[4]], 'cancel retains selection')
+  assert.deepEqual(await snapshot(), original)
+  await click(button('Delete selected'))
+  await click(button('Delete selected', true))
+  const removedIds = new Set(['alpha-loose', 'bravo-guide'])
+  await poll(
+    async () => (await snapshot()).urls.map(({ id }) => id).sort(),
+    original.urls
+      .filter(({ id }) => !removedIds.has(id))
+      .map(({ id }) => id)
+      .sort(),
+    'selected-only committed URLs',
+  )
+  const deleted = await snapshot()
+  assert.deepEqual(
+    deleted.memberships,
+    original.memberships.filter(({ urlId }) => !removedIds.has(urlId)),
+  )
+  assert.equal(deleted.revision, original.revision + 1)
+  await poll(
+    rows,
+    [titles[0], titles[2], titles[3], titles[5]],
+    'unrelated URLs survive',
+  )
+  await poll(
+    () =>
+      evaluate(
+        () =>
+          [...document.querySelectorAll('button')].filter(
+            (node) => node.textContent.trim() === 'Undo',
+          ).length,
+      ),
+    1,
+    'one Undo',
+  )
+  await click(button('Undo'))
+  await poll(
+    async () => selectionSnapshotRestorationContent(await snapshot()),
+    selectionSnapshotRestorationContent(original),
+    'full semantic snapshot restored',
+  )
+  assert.equal((await snapshot()).revision, original.revision + 2)
+  await command('/refresh', {})
+  await poll(rows, titles, 'Undo survives reload')
+  results.push(
+    'rendered Shift range, modifier and link toggles, confirmation cancel, atomic cross-domain deletion and one full Undo',
+  )
+
+  await start(false)
+  await click(check(titles[0]))
+  await click({ selector: 'button', label: 'Collapse "alpha.example"' })
+  await poll(selected, [], 'collapse prunes selection')
+  await click(button('Select all visible'))
+  await poll(selected, titles.slice(2), 'select all excludes collapsed URLs')
+  await click(button('Clear selection'))
+  await click({ selector: 'button', label: 'Expand "alpha.example"' })
+  await click(check(titles[0]))
+  const input = async (query) => {
+    const el = await element({ selector: 'input[placeholder="Search"]' })
+    const id = el['element-6066-11e4-a52e-4f735466cecf']
+    await command(`/element/${id}/clear`, {})
+    await command(`/element/${id}/value`, { text: query })
+  }
+  await input('Bravo')
+  await poll(selected, [], 'search prunes old IDs')
+  await poll(
+    () =>
+      evaluate(
+        () =>
+          [...document.querySelectorAll('button')].find(
+            (node) => node.textContent.trim() === 'Delete selected',
+          )?.disabled,
+      ),
+    true,
+    'stale delete disabled',
+  )
+  await click(check(titles[4]))
+  await input('Alpha')
+  await poll(selected, [], 'second search clears previous selection')
+  await click(button('Select all visible'))
+  await poll(
+    selected,
+    titles.slice(0, 2),
+    'visible-only selection after search',
+  )
+  await click(button('Delete selected'))
+  await poll(
+    () =>
+      evaluate(() => document.querySelectorAll('[role="alertdialog"]').length),
+    0,
+    'confirmation disabled in settings',
+  )
+  await poll(
+    async () => (await snapshot()).urls.map(({ title }) => title).sort(),
+    titles.slice(2).sort(),
+    'only filtered selected tabs deleted',
+  )
+  await input('')
+  await command('/refresh', {})
+  await poll(rows, titles.slice(2), 'unrelated URLs survive delete and reload')
+  results.push(
+    'collapse and search prune stale IDs, visible-only select all, settings skip confirmation, unrelated persistence after reload',
+  )
+
+  httpServer = createHttpServer((_request, response) => {
+    response.setHeader('Content-Type', 'text/html')
+    response.end('<title>Selection opened fixture</title>')
+  })
+  await new Promise((resolve, reject) => {
+    httpServer.once('error', reject)
+    httpServer.listen(0, '127.0.0.1', resolve)
+  })
+  const address = httpServer.address()
+  assert.ok(address && typeof address !== 'string')
+  const openingSeed = createOpeningSelectionSeed(
+    `http://127.0.0.1:${address.port}`,
+  )
+  await command('/url', { url: optionsUrl })
+  await seedSavedTabsFixture(worker, openingSeed)
+  await command('/url', { url: appUrl })
+  await poll(rows, [titles[0], titles[1], titles[4]], 'opening fixture order')
+  const readOpened = () =>
+    evaluate(async () =>
+      (await browser.tabs.query({}))
+        .map(({ url }) => url)
+        .filter((url) => url?.startsWith('http://'))
+        .sort(),
+    )
+  await click(link(titles[0]))
+  await poll(
+    readOpened,
+    [openingSeed.persistence.urls[0].url],
+    'inactive normal link opens',
+  )
+  await evaluate(async () => {
+    for (const tab of await browser.tabs.query({}))
+      if (tab.url?.startsWith('http://')) await browser.tabs.remove(tab.id)
+  })
+  await click(button('Select tabs'))
+  await click(check(titles[0]))
+  await click(check(titles[4]))
+  const beforeOpening = await snapshot()
+  await click(button('Open selected'))
+  await poll(
+    readOpened,
+    [
+      openingSeed.persistence.urls[0].url,
+      openingSeed.persistence.urls[2].url,
+    ].sort(),
+    'only selected URLs opened',
+  )
+  assert.deepEqual(await snapshot(), beforeOpening)
+  results.push(
+    'inactive normal link plus exact selected-only cross-domain browser tab opening with persistence retained',
+  )
+  const report = {
+    status: 'passed',
+    firefoxVersion: session.version,
+    flows: results,
+    screenshot: '/private/tmp/issue897-native-firefox-selection.png',
+  }
+  await writeFile(
+    '/private/tmp/issue897-native-firefox.json',
+    JSON.stringify(report, null, 2),
+  )
+  console.log(JSON.stringify(report, null, 2))
+} finally {
+  if (session) await deleteSession(session).catch(() => {})
+  driver.kill('SIGTERM')
+  if (httpServer) {
+    httpServer.closeAllConnections()
+    await new Promise((resolve) => httpServer.close(resolve))
+  }
+  await rm(root, { recursive: true, force: true })
+}

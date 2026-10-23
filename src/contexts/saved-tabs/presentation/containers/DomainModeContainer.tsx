@@ -17,6 +17,8 @@ import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
+import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
+import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import {
   SavedTabsResponsiveLabel,
@@ -130,6 +132,7 @@ type DomainModeContainerProps = {
   handleDeleteGroups?: (ids: string[]) => Promise<void>
   handleDeleteUrl: (groupId: string, url: string) => Promise<void>
   handleDeleteUrls?: (groupId: string, urls: string[]) => Promise<void>
+  handleDeleteSelectedUrls?: (items: SavedTabSelectionItem[]) => Promise<void>
   handleOpenTab: (url: string) => Promise<void>
   handleUpdateUrls: (
     groupId: string,
@@ -444,6 +447,7 @@ export const DomainModeContainer = ({
   handleDeleteGroups,
   handleDeleteUrl,
   handleDeleteUrls,
+  handleDeleteSelectedUrls,
   handleOpenTab,
   handleUpdateUrls,
   handleUpdateDomainsOrder,
@@ -548,7 +552,7 @@ export const DomainModeContainer = ({
     return <LoadingState />
   }
 
-  return (
+  const content = (
     <>
       {settings.enableCategories && Object.keys(categorized).length > 0 && (
         <DndKitContext
@@ -646,5 +650,18 @@ export const DomainModeContainer = ({
         reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
       />
     </>
+  )
+
+  return handleDeleteSelectedUrls ? (
+    <SavedTabsSelectionProvider
+      scopeKey={`${searchQuery}\0${String(isCategoryReorderMode)}\0${String(isUncategorizedReorderMode)}`}
+      confirmDeleteAll={settings.confirmDeleteAll}
+      onOpen={handleOpenAllTabs}
+      onDelete={handleDeleteSelectedUrls}
+    >
+      {content}
+    </SavedTabsSelectionProvider>
+  ) : (
+    content
   )
 }
