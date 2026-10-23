@@ -26,6 +26,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
+    "size:loads": "playwright test --config playwright.loads.config.ts",
     "size:report": "bun tools/scripts/report-artifact-size.ts",
     "release:check": "git diff --exit-code && bun run verify:dependency-licenses && bun run security:audit && bun run quality:check && bun run build && bun run build:firefox && bun run verify:third-party-licenses && bun run verify:production-logging && bun run verify:app-version && bun run verify:persistence-release-compatibility && bun run verify:production-network-policy && bun run verify:firefox-artifact && bun run verify:firefox-source && bun run release:e2e && git diff --exit-code",
     "release:e2e": "bun run e2e:release && bun run test:firefox:indexeddb-smoke",

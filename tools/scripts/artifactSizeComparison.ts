@@ -55,7 +55,7 @@ export const parseSizeReport = (value: unknown): SizeReport =>
 export const parseSizePolicy = (value: unknown): SizePolicy =>
   policySchema.parse(value)
 
-const escapeCell = (value: string): string =>
+export const escapeCell = (value: string): string =>
   value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -129,7 +129,7 @@ const table = (headers: string[], rows: string[][]): string =>
     .map((cells) => `| ${cells.join(' | ')} |`)
     .join('\n')
 
-const comparisonTable = (
+export const comparisonTable = (
   current: Record<string, number>,
   baseline: Record<string, number>,
   policy: SizePolicy,
