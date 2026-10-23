@@ -27,6 +27,200 @@ const verify = (changes: readonly PatchChange[]) =>
     changes,
   )
 
+const forgeId = 'node-forge@github:digitalbazaar/forge#ceba344'
+const forgePath = 'patches/node-forge-null-parameters.patch'
+const forgeSource =
+  'github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65'
+const forgeContent = readFileSync(forgePath, 'utf8')
+const forgeEntry = z
+  .object({ packages: z.record(z.string(), z.unknown()) })
+  .parse(JSON5.parse<unknown>(readFileSync('bun.lock', 'utf8'))).packages[
+  'node-forge'
+]
+const forgeBase = {
+  packages: {},
+  patchedDependencies: {},
+  workspaces: { '': { devDependencies: { 'node-forge': forgeSource } } },
+  overrides: { 'node-forge': forgeSource },
+}
+const forgeHead = {
+  ...forgeBase,
+  packages: { 'node-forge': forgeEntry },
+  patchedDependencies: { [forgeId]: forgePath },
+}
+const forgeChange = {
+  path: forgePath,
+  content: forgeContent,
+  status: 'A',
+  mode: '100644',
+}
+const forgeContents = { [forgePath]: forgeContent }
+const verifyForge = (
+  changes: readonly PatchChange[] = [forgeChange],
+  snapshot: unknown = forgeHead,
+) =>
+  verifyDependencyPatchSnapshots(
+    JSON.stringify(forgeBase),
+    JSON.stringify(snapshot),
+    changes,
+  )
+
+describe('reviewed node-forge backport patch boundaries', () => {
+  it('accepts the approved Git backport addition beside the Stryker addition', () => {
+    expect(() => verifyForge()).not.toThrow()
+    expect(() =>
+      verifyDependencyPatchSnapshots(
+        JSON.stringify({ ...forgeBase, packages: { runner: entry } }),
+        JSON.stringify({
+          ...forgeHead,
+          packages: { ...forgeHead.packages, runner: entry },
+          patchedDependencies: { ...forgeHead.patchedDependencies, [id]: path },
+        }),
+        [forgeChange, change],
+      ),
+    ).not.toThrow()
+  })
+
+  it('accepts unchanged approved bytes with all nested resolutions bound', () => {
+    const nestedHead = {
+      ...forgeHead,
+      packages: {
+        ...forgeHead.packages,
+        'nested/node-forge': forgeEntry,
+        alias: forgeEntry,
+      },
+    }
+    expect(() =>
+      verifyDependencyPatchSnapshots(
+        JSON.stringify(nestedHead),
+        JSON.stringify(nestedHead),
+        [],
+        forgeContents,
+      ),
+    ).not.toThrow()
+  })
+
+  it.each(['M', 'D', 'R100'])(
+    'rejects existing node-forge patch file status %s',
+    (status) => {
+      expect(() => verifyForge([{ ...forgeChange, status }])).toThrow(/patch/)
+    },
+  )
+
+  it.each(['100755', '120000'])(
+    'rejects node-forge executable or symlink mode %s',
+    (mode) => {
+      expect(() => verifyForge([{ ...forgeChange, mode }])).toThrow(/patch/)
+    },
+  )
+
+  it('rejects changed bytes and orphaned node-forge file/map additions', () => {
+    expect(() =>
+      verifyForge([{ ...forgeChange, content: `${forgeContent}\n` }]),
+    ).toThrow(/patch/)
+    expect(() => verifyForge([])).toThrow(/patch/)
+    expect(() =>
+      verifyForge([forgeChange], {
+        ...forgeHead,
+        patchedDependencies: {},
+      }),
+    ).toThrow(/patch/)
+  })
+
+  it('rejects the backport resolution or retained patch without its map', () => {
+    const missingMap = { ...forgeHead, patchedDependencies: {} }
+    expect(() => verifyForge([], missingMap)).toThrow(/patch/)
+    expect(() =>
+      verifyDependencyPatchSnapshots(
+        JSON.stringify(forgeBase),
+        JSON.stringify(forgeBase),
+        [],
+        forgeContents,
+      ),
+    ).toThrow(/patch/)
+  })
+
+  it('rejects edits and deletion of the approved node-forge map', () => {
+    for (const patchedDependencies of [
+      {},
+      { [forgeId]: 'patches/elsewhere.patch' },
+    ]) {
+      expect(() =>
+        verifyDependencyPatchSnapshots(
+          JSON.stringify(forgeHead),
+          JSON.stringify({ ...forgeHead, patchedDependencies }),
+          [],
+          forgeContents,
+        ),
+      ).toThrow(/patch/)
+    }
+  })
+
+  it('rejects missing and mismatched top-level or nested node-forge tuples', () => {
+    const tuple = z.array(z.unknown()).parse(forgeEntry)
+    const wrongTuples = [
+      ['node-forge@1.3.1', '', {}, 'sha512-registry'],
+      [tuple[0], { dependencies: { injected: '*' } }, ...tuple.slice(2)],
+      [tuple[0], [], ...tuple.slice(2)],
+      [tuple[0], {}, 'digitalbazaar-forge-changed', tuple[3]],
+      [...tuple.slice(0, 3), 'sha512-changed'],
+      [...tuple, 'extra'],
+      null,
+    ]
+    expect(() =>
+      verifyForge([forgeChange], { ...forgeHead, packages: {} }),
+    ).toThrow(/patch/)
+    for (const bad of wrongTuples) {
+      for (const key of ['node-forge', 'nested/node-forge']) {
+        expect(() =>
+          verifyForge([forgeChange], {
+            ...forgeHead,
+            packages: { 'node-forge': forgeEntry, [key]: bad },
+          }),
+        ).toThrow(/patch/)
+      }
+    }
+    expect(() =>
+      verifyForge([forgeChange], {
+        ...forgeHead,
+        packages: {
+          'node-forge': forgeEntry,
+          alias: [...tuple.slice(0, 3), 'sha512-changed'],
+        },
+      }),
+    ).toThrow(/patch/)
+  })
+
+  it('ignores scoped names that are not node-forge resolutions', () => {
+    expect(() =>
+      verifyForge([forgeChange], {
+        ...forgeHead,
+        packages: {
+          ...forgeHead.packages,
+          '@types/node-forge': ['@types/node-forge@1.3.14', '', {}, 'types'],
+          'nested/@types/node-forge': null,
+        },
+      }),
+    ).not.toThrow()
+  })
+
+  it('rejects missing or changed full Git source and override pins', () => {
+    for (const snapshot of [
+      { ...forgeHead, workspaces: undefined },
+      { ...forgeHead, overrides: undefined },
+      { ...forgeHead, overrides: { 'node-forge': '^1.3.1' } },
+      {
+        ...forgeHead,
+        workspaces: {
+          '': { devDependencies: { 'node-forge': `${forgeSource}changed` } },
+        },
+      },
+    ]) {
+      expect(() => verifyForge([forgeChange], snapshot)).toThrow(/patch/)
+    }
+  })
+})
+
 describe('reviewed dependency patch boundaries', () => {
   it.each(['__proto__', 'constructor', 'toString'])(
     'rejects unknown own-key patch mapping %s',

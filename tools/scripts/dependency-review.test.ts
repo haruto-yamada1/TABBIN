@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 
 import JSON5 from 'json5'
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
+import { reviewedNodeForgeBackport } from './dependency-patch-policy'
 import { reviewDependencyChanges } from './dependency-review'
 import type { ReviewRequest } from './dependency-review'
 
@@ -34,7 +36,254 @@ const reviewedLock = (patched: boolean, packages = { runner: reviewedEntry }) =>
     patchedDependencies: patched ? { [reviewedId]: reviewedPath } : {},
   })
 
+const doctorLicense = readFileSync('node_modules/react-doctor/LICENSE', 'utf8')
+const doctorIntegrity = (version: string) =>
+  `sha512-${createHash('sha512').update(version).digest('base64')}`
+const doctorEntry = (version: string) => [
+  `react-doctor@${version}`,
+  '',
+  {},
+  doctorIntegrity(version),
+]
+const doctorRequest = (metadata: unknown) =>
+  vi
+    .fn<ReviewRequest>()
+    .mockImplementation(async (url) =>
+      url.startsWith('https://api.github.com/')
+        ? response([])
+        : response(metadata),
+    )
+const reviewDoctor = async (
+  base: Record<string, unknown>,
+  head: Record<string, unknown>,
+  metadata: unknown,
+  contents = { 'react-doctor@0.9.17': doctorLicense },
+) =>
+  reviewDependencyChanges(
+    lock(base),
+    lock(head),
+    doctorRequest(metadata),
+    {},
+    contents,
+    new Date('2026-10-22T00:00:00Z'),
+  )
+
+describe('reviewed React Doctor npm identities', () => {
+  const metadata = () => ({
+    name: 'react-doctor',
+    version: '0.9.17',
+    license: 'SEE LICENSE IN LICENSE',
+    dist: { integrity: doctorIntegrity('0.9.17') },
+  })
+
+  it('accepts a same-LICENSE version upgrade with npm-matching integrity', async () => {
+    expect(
+      await reviewDoctor(
+        { 'react-doctor': doctorEntry('0.9.16') },
+        { 'react-doctor': doctorEntry('0.9.17') },
+        metadata(),
+      ),
+    ).toEqual({ dependencies: ['react-doctor@0.9.17'], findings: [] })
+  })
+
+  it('applies the same exact-version npm check to the reviewed plugin', async () => {
+    const name = 'oxlint-plugin-react-doctor'
+    const version = '0.9.17'
+    const result = await reviewDependencyChanges(
+      lock({}),
+      lock({
+        [name]: [`${name}@${version}`, '', {}, doctorIntegrity(version)],
+      }),
+      doctorRequest({ ...metadata(), name }),
+      {},
+      { [`${name}@${version}`]: doctorLicense },
+      new Date('2026-10-22T00:00:00Z'),
+    )
+    expect(result).toEqual({
+      dependencies: [`${name}@${version}`],
+      findings: [],
+    })
+  })
+
+  it.each([
+    undefined,
+    {},
+    { integrity: 'sha512-bad' },
+    { integrity: doctorIntegrity('different') },
+  ])(
+    'rejects missing, malformed and changed npm distribution integrity (%s)',
+    async (dist) => {
+      await expect(
+        reviewDoctor(
+          {},
+          { 'react-doctor': doctorEntry('0.9.17') },
+          { ...metadata(), dist },
+        ),
+      ).rejects.toThrow(/integrity|distribution|Invalid/)
+    },
+  )
+
+  it('checks unchanged reviewed IDs and every same-version nested integrity variant', async () => {
+    const packages = {
+      'react-doctor': doctorEntry('0.9.17'),
+      'nested/react-doctor': [
+        'react-doctor@0.9.17',
+        '',
+        {},
+        doctorIntegrity('different'),
+      ],
+    }
+    await expect(reviewDoctor(packages, packages, metadata())).rejects.toThrow(
+      /integrity|distribution/,
+    )
+    const request = doctorRequest(metadata())
+    const valid = lock({ 'react-doctor': doctorEntry('0.9.17') })
+    expect(
+      await reviewDependencyChanges(
+        valid,
+        valid,
+        request,
+        {},
+        { 'react-doctor@0.9.17': doctorLicense },
+        new Date('2026-10-22T00:00:00Z'),
+      ),
+    ).toEqual({ dependencies: [], findings: [] })
+    expect(request).toHaveBeenCalledTimes(1)
+    expect(request.mock.calls[0]?.[0]).toBe(
+      'https://registry.npmjs.org/react-doctor/0.9.17',
+    )
+  })
+
+  it('requires every unchanged nested version to have approved LICENSE bytes', async () => {
+    const packages = {
+      'react-doctor': doctorEntry('0.9.17'),
+      'nested/react-doctor': doctorEntry('0.9.18'),
+    }
+    const request = vi.fn<ReviewRequest>().mockImplementation(async (url) => {
+      const version = url.endsWith('/0.9.18') ? '0.9.18' : '0.9.17'
+      return response({
+        ...metadata(),
+        version,
+        dist: { integrity: doctorIntegrity(version) },
+      })
+    })
+    const result = await reviewDependencyChanges(
+      lock(packages),
+      lock(packages),
+      request,
+      {},
+      {
+        'react-doctor@0.9.17': doctorLicense,
+        'react-doctor@0.9.18': `${doctorLicense}\n`,
+      },
+      new Date('2026-10-22T00:00:00Z'),
+    )
+    expect(result.findings).toEqual([
+      'license: react-doctor@0.9.18: SEE LICENSE IN LICENSE',
+    ])
+  })
+
+  it.each(['MIT', 'UNKNOWN', undefined])(
+    'never bypasses the reviewed content gate via changed npm license %s',
+    async (license) => {
+      const result = await reviewDoctor(
+        {},
+        { 'react-doctor': doctorEntry('0.9.17') },
+        { ...metadata(), license },
+      )
+      expect(result.findings).toHaveLength(1)
+    },
+  )
+
+  it.each([{ name: 'other' }, { version: '0.9.18' }])(
+    'rejects registry identity changes %s',
+    async (changed) => {
+      await expect(
+        reviewDoctor(
+          {},
+          { 'react-doctor': doctorEntry('0.9.17') },
+          { ...metadata(), ...changed },
+        ),
+      ).rejects.toThrow(/identity mismatch/)
+    },
+  )
+})
+
 describe('Bun dependency changes', () => {
+  it.each(['MIT-0', 'Apache-2.0 AND MIT', 'MIT AND ISC'])(
+    'accepts the explicitly reviewed permissive license %s',
+    async (license) => {
+      const request = vi
+        .fn<ReviewRequest>()
+        .mockImplementation(async (url) =>
+          url.startsWith('https://api.github.com/')
+            ? response([])
+            : response({ name: 'foo', version: '1.0.0', license }),
+        )
+      const result = await reviewDependencyChanges(
+        lock({}),
+        lock({ foo: entry('foo', '1.0.0') }),
+        request,
+      )
+      expect(result.findings).toEqual([])
+    },
+  )
+
+  it.each(['MIT OR GPL-3.0-only', 'MIT AND UNKNOWN', 'MIT AND Apache-2.0'])(
+    'rejects the unreviewed compound expression %s',
+    async (license) => {
+      const request = vi
+        .fn<ReviewRequest>()
+        .mockImplementation(async (url) =>
+          url.startsWith('https://api.github.com/')
+            ? response([])
+            : response({ name: 'foo', version: '1.0.0', license }),
+        )
+      expect(
+        (
+          await reviewDependencyChanges(
+            lock({}),
+            lock({ foo: entry('foo', '1.0.0') }),
+            request,
+          )
+        ).findings,
+      ).toEqual([`license: foo@1.0.0: ${license}`])
+    },
+  )
+
+  it('accepts the reviewed React Doctor distribution while retaining advisory checks', async () => {
+    const name = 'react-doctor'
+    const resolution = z
+      .tuple([z.string(), z.string(), z.unknown(), z.string()])
+      .parse(installedLock.packages[name])
+    const id = resolution[0]
+    const version = id.slice(`${name}@`.length)
+    const request = vi.fn<ReviewRequest>().mockImplementation(async (url) =>
+      url.startsWith('https://api.github.com/')
+        ? response([
+            { ghsa_id: 'GHSA-doctor', severity: 'high', withdrawn_at: null },
+          ])
+        : response({
+            name,
+            version,
+            license: 'SEE LICENSE IN LICENSE',
+            dist: {
+              integrity: resolution[3],
+            },
+          }),
+    )
+    const result = await reviewDependencyChanges(
+      lock({}),
+      lock({ [name]: installedLock.packages[name] }),
+      request,
+      {},
+      { [id]: doctorLicense },
+      new Date('2026-10-22T00:00:00Z'),
+    )
+    expect(result.dependencies).toEqual([id])
+    expect(result.findings).toEqual(['high: GHSA-doctor'])
+  })
+
   it.each([
     { license: 'Apache-2.0', severity: 'low', expected: [] },
     {
@@ -247,26 +496,45 @@ describe('Bun dependency changes', () => {
     expect(request).toHaveBeenCalledTimes(2)
   })
 
-  it('preserves only the unchanged node-forge snapshot and rejects patch/source changes', async () => {
-    const forge = [
-      'node-forge@github:digitalbazaar/forge#ceba344',
-      {},
-      'digitalbazaar-forge-ceba344',
-      'sha512-fixture',
-    ]
-    const base = lock({ 'node-forge': forge })
+  it('accepts the approved backport on its first main release and rejects patch/source changes', async () => {
+    const {
+      dependency,
+      path,
+      resolution: forge,
+      source,
+    } = reviewedNodeForgeBackport
+    const base = JSON.stringify({
+      lockfileVersion: 1,
+      workspaces: { '': { devDependencies: { 'node-forge': source } } },
+      overrides: { 'node-forge': source },
+      packages: { 'node-forge': forge },
+      patchedDependencies: { [dependency]: path },
+    })
+    const contents = { [path]: readFileSync(path, 'utf8') }
     const request = vi.fn<ReviewRequest>()
-    expect(await reviewDependencyChanges(base, base, request)).toEqual({
+    expect(
+      await reviewDependencyChanges(lock({}), base, request, contents),
+    ).toEqual({
+      dependencies: [],
+      findings: [],
+    })
+    expect(
+      await reviewDependencyChanges(base, base, request, contents),
+    ).toEqual({
       dependencies: [],
       findings: [],
     })
     await expect(
       reviewDependencyChanges(
         base,
-        lock({ 'node-forge': [...forge.slice(0, 3), 'sha512-changed'] }),
+        JSON.stringify({
+          ...JSON.parse(base),
+          packages: { 'node-forge': [...forge.slice(0, 3), 'sha512-changed'] },
+        }),
         request,
+        contents,
       ),
-    ).rejects.toThrow('Unsupported')
+    ).rejects.toThrow(/patch/)
     await expect(
       reviewDependencyChanges(
         base,
@@ -275,6 +543,7 @@ describe('Bun dependency changes', () => {
           patchedDependencies: { forge: 'new-patch' },
         }),
         request,
+        contents,
       ),
     ).rejects.toThrow('patch changes')
     expect(request).not.toHaveBeenCalled()

@@ -1,7 +1,17 @@
 import JSON5 from 'json5'
 import { z } from 'zod'
 
-import { verifyReviewedPatchAdditions } from './dependency-patch-policy'
+import {
+  isNpmIntegrity,
+  isReviewedLicense,
+  isReviewedLicenseDependency,
+  reviewedLicenseResolutions,
+} from './dependency-license-policy'
+import type { LicenseContents } from './dependency-license-policy'
+import {
+  reviewedNodeForgeBackport,
+  verifyReviewedPatchAdditions,
+} from './dependency-patch-policy'
 import type { PatchContents } from './dependency-patch-policy'
 import { extractNameAndVersion } from './generate-release-provenance'
 
@@ -19,17 +29,23 @@ export const allowedLicenses = [
   'CC-BY-4.0',
   'ISC',
   'MIT',
+  'MIT-0',
   'OFL-1.1',
   'Python-2.0',
   'Unlicense',
   'Zlib',
 ]
 
+// Explicitly reviewed conjunction of two already allowed licenses (SWC native
+// packages). Do not infer acceptance of other SPDX expressions.
+const allowedLicenseExpressions = new Set(['Apache-2.0 AND MIT', 'MIT AND ISC'])
+
 const lockSchema = z.object({
   lockfileVersion: z.literal(1),
   workspaces: z.record(z.string(), z.unknown()),
   packages: z.record(z.string(), z.unknown()),
   patchedDependencies: z.record(z.string(), z.unknown()).optional(),
+  overrides: z.record(z.string(), z.unknown()).optional(),
 })
 const advisoriesSchema = z.array(
   z.object({
@@ -42,6 +58,7 @@ const packageSchema = z.object({
   name: z.string(),
   version: z.string(),
   license: z.union([z.string(), z.object({ type: z.string() })]).optional(),
+  dist: z.unknown().optional(),
 })
 
 const npmEntrySchema = z.tuple([
@@ -62,7 +79,6 @@ const readLock = (content: string) =>
 
 const dependencies = (
   lock: ReturnType<typeof readLock>,
-  base: ReturnType<typeof readLock>,
 ): Map<string, Dependency> => {
   const result = new Map<string, Dependency>()
   for (const [key, value] of Object.entries(lock.packages)) {
@@ -86,8 +102,11 @@ const dependencies = (
     // The existing patched snapshot is verified by security:audit, not npm
     // version matching. Any source/integrity change requires a new decision.
     if (
-      raw[0] === 'node-forge@github:digitalbazaar/forge#ceba344' &&
-      JSON.stringify(raw) === JSON.stringify(base.packages[key])
+      raw[0] === reviewedNodeForgeBackport.dependency &&
+      JSON.stringify(raw) ===
+        JSON.stringify(reviewedNodeForgeBackport.resolution) &&
+      lock.patchedDependencies?.[reviewedNodeForgeBackport.dependency] ===
+        reviewedNodeForgeBackport.path
     ) {
       continue
     }
@@ -128,19 +147,24 @@ export const reviewDependencyChanges = async (
   headContent: string,
   request: ReviewRequest = fetch,
   patchContents: PatchContents = {},
+  licenseContents: LicenseContents = {},
+  now = new Date(),
 ): Promise<{ dependencies: string[]; findings: string[] }> => {
   const base = readLock(baseContent)
   const head = readLock(headContent)
   const newlyPatched = verifyReviewedPatchAdditions(base, head, patchContents)
-  const previous = dependencies(base, base)
-  const current = dependencies(head, base)
+  const previous = dependencies(base)
+  const current = dependencies(head)
+  const reviewedResolutions = reviewedLicenseResolutions(head.packages)
   const changed = [...current].filter(
     ([key, entry]) => previous.get(key)?.fingerprint !== entry.fingerprint,
   )
   const added = [
     ...new Set([
       ...changed.map(([, entry]) => `${entry.name}@${entry.version}`),
-      ...newlyPatched,
+      ...newlyPatched.filter(
+        (id) => id !== reviewedNodeForgeBackport.dependency,
+      ),
     ]),
   ].toSorted()
   // Batch the public Advisory API instead of making one request per package.
@@ -170,7 +194,12 @@ export const reviewDependencyChanges = async (
     return findings
   }, Promise.resolve<string[]>([]))
   // Sequence requests to keep npm/GitHub secondary rate limits bounded.
-  const licenseFindings = await added.reduce(async (previous, id) => {
+  // The Graph action excludes these package names irrespective of version.
+  // Recheck all their current resolutions even when base/head are identical.
+  const licenseIds = [
+    ...new Set([...added, ...reviewedResolutions.keys()]),
+  ].toSorted()
+  const licenseFindings = await licenseIds.reduce(async (previous, id) => {
     const findings = await previous
     const { name, version } = extractNameAndVersion(id)
     const metadata = packageSchema.parse(
@@ -186,7 +215,29 @@ export const reviewDependencyChanges = async (
       typeof metadata.license === 'string'
         ? metadata.license
         : metadata.license?.type
-    if (license === undefined || !allowedLicenses.includes(license)) {
+    const reviewed = isReviewedLicenseDependency(name)
+    const resolutions = reviewedResolutions.get(id) ?? []
+    if (reviewed) {
+      const distribution = z
+        .object({ integrity: z.custom<string>(isNpmIntegrity) })
+        .safeParse(metadata.dist)
+      if (
+        !distribution.success ||
+        !resolutions.length ||
+        resolutions.some(
+          (entry) =>
+            !Array.isArray(entry) || entry[3] !== distribution.data.integrity,
+        )
+      ) {
+        throw new Error(`Registry distribution integrity mismatch: ${id}`)
+      }
+    }
+    const accepted = reviewed
+      ? isReviewedLicense(id, license, resolutions, licenseContents, now)
+      : license !== undefined &&
+        (allowedLicenses.includes(license) ||
+          allowedLicenseExpressions.has(license))
+    if (!accepted) {
       findings.push(`license: ${id}: ${license ?? 'UNKNOWN'}`)
     }
     return findings

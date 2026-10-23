@@ -86,12 +86,42 @@ describe('distribution release gate', () => {
 
   it('validates the backport deadline and RSA probe before the unfiltered High audit', () => {
     const result = runRelease()
-    expect(result.commands.slice(0, 4)).toEqual([
+    expect(result.commands.slice(0, 5)).toEqual([
+      'verify:dependency-licenses',
       'security:audit',
       'verify:security-audit-policy',
       'verify:node-forge-backport',
       'bun audit --audit-level=high',
     ])
+  })
+
+  it('rejects an invalid license review before audit or build execution', () => {
+    const result = runRelease(
+      'verify:dependency-licenses',
+      'release:zip',
+      'LICENSE changed or review expired',
+    )
+    expect(result.status).toBe(23)
+    expect(result.stderr).toContain('LICENSE changed or review expired')
+    expect(result.commands).not.toContain('security:audit')
+    expect(result.commands).not.toContain('build')
+    expect(result.commands).not.toContain('zip')
+  })
+
+  it('rejects missing build notices before browser flows and packaging', () => {
+    const result = runRelease('verify:third-party-licenses', 'release:zip')
+    expect(result.status).toBe(23)
+    expect(result.commands).toContain('build:firefox')
+    expect(result.commands).not.toContain('release:e2e')
+    expect(result.commands).not.toContain('zip')
+  })
+
+  it('requires both ZIPs to pass license verification before recording provenance', () => {
+    const result = runRelease('verify:third-party-license-zips', 'release:zip')
+    expect(result.status).toBe(23)
+    expect(result.commands).toContain('zip')
+    expect(result.commands).toContain('zip:firefox')
+    expect(result.commands).not.toContain('release:provenance')
   })
 
   it.each([

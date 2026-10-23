@@ -95,6 +95,9 @@ jobs:
       - name: Build and package Firefox extension
         run: bun run zip:firefox
 
+      - name: Verify packaged third-party licenses and corresponding sources
+        run: bun run verify:third-party-license-zips
+
       - name: Report extension artifact size
         run: bun run size:report
 

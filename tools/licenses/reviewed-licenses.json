@@ -1,0 +1,183 @@
+[
+  {
+    "name": "@ai-sdk/provider-utils",
+    "version": "5.0.53",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://raw.githubusercontent.com/vercel/ai/eb93c81f2d6200e0732745d0cd582600fe4c5055/LICENSE",
+    "packageIntegrity": "sha512-VVe6UDd0y0/B4TfauuKKzcppqvhTmSluwwUVT4WG2/8h7gFbyFm7PM4UGM+ZXe3/RI6bv+Vl1cw/7aiBoQqdxg==",
+    "files": [
+      {
+        "path": "ai-sdk-provider-utils-5.0.53/LICENSE",
+        "sha256": "b4f9adb7c568904834d0dd6cc98d16c390d21ca32fc17ae7a267715269bd5529",
+        "originalPath": "LICENSE",
+        "sourceUrl": "https://raw.githubusercontent.com/vercel/ai/eb93c81f2d6200e0732745d0cd582600fe4c5055/LICENSE"
+      }
+    ],
+    "provenanceNote": "Original repository-root copyright and Apache-2.0 application notice from the matching upstream release commit. The published package contains only the vendored zod3-to-json-schema MIT license and omits its own Apache notice. Preserve the nested MIT text; complete the original Apache header with the separately verified canonical Apache 2.0 terms."
+  },
+  {
+    "name": "@workflow/serde",
+    "version": "4.1.0",
+    "license": "Apache-2.0",
+    "sourceUrl": "https://raw.githubusercontent.com/vercel/workflow/4e435e03329c0b4f8dba9608e3fc6ea4058b67fa/LICENSE.md",
+    "packageIntegrity": "sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==",
+    "files": [
+      {
+        "path": "workflow-serde-4.1.0/LICENSE.md",
+        "sha256": "1478317a3aa0506e6d2ed3b23b2c8b3f8d08af491c6f666325a1a4e2f9d59163",
+        "originalPath": "LICENSE.md",
+        "sourceUrl": "https://raw.githubusercontent.com/vercel/workflow/4e435e03329c0b4f8dba9608e3fc6ea4058b67fa/LICENSE.md"
+      }
+    ],
+    "provenanceNote": "Official npm provenance identifies the pinned upstream commit. The published package LICENSE.md refers to this complete repository-root LICENSE.md, including its original Vercel copyright notice.",
+    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@workflow%2fserde@4.1.0"
+  },
+  {
+    "name": "@wxt-dev/browser",
+    "version": "0.3.0",
+    "license": "MIT",
+    "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/c77c9c4ce080cfa4e742763f7d99500b7796fa5c/LICENSE",
+    "packageIntegrity": "sha512-GlqW+uqJP8s/pwqfR1buA2DckxC/mttCudDKBmop5iCerTtPZ6emd9bOAEpUdp3yIVdQCBfHT6iIRKPZsqddjw==",
+    "files": [
+      {
+        "path": "wxt-dev-browser-0.3.0/LICENSE",
+        "sha256": "7b0b00fcdbc6a036078aad84d0bc0fae240ac67144b86c911149c2daa37c9f85",
+        "originalPath": "LICENSE",
+        "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/c77c9c4ce080cfa4e742763f7d99500b7796fa5c/LICENSE"
+      }
+    ],
+    "provenanceNote": "Official npm provenance identifies the pinned upstream commit; the published package omits its root LICENSE.",
+    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@wxt-dev%2fbrowser@0.3.0"
+  },
+  {
+    "name": "@wxt-dev/storage",
+    "version": "1.2.9",
+    "license": "MIT",
+    "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/ddf1fc60bd182a64c1602e6fb9a1a1a5caa68003/LICENSE",
+    "packageIntegrity": "sha512-dh9TJwvLBM2x4wyy9nE7eYE3wA8pgz1TXSyz7RbdjkJxLfFfWkbeIqiU7VkGy7Vx8sJBmQjoSpk9zSUb3Bjy0Q==",
+    "files": [
+      {
+        "path": "wxt-dev-storage-1.2.9/LICENSE",
+        "sha256": "7b0b00fcdbc6a036078aad84d0bc0fae240ac67144b86c911149c2daa37c9f85",
+        "originalPath": "LICENSE",
+        "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/ddf1fc60bd182a64c1602e6fb9a1a1a5caa68003/LICENSE"
+      }
+    ],
+    "provenanceNote": "Official npm provenance identifies the pinned upstream commit; the published package omits its root LICENSE.",
+    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@wxt-dev%2fstorage@1.2.9"
+  },
+  {
+    "name": "fastdom",
+    "version": "1.0.12",
+    "license": "MIT",
+    "sourceUrl": "https://registry.npmjs.org/fastdom/-/fastdom-1.0.12.tgz",
+    "packageIntegrity": "sha512-LB+xjSTEbjHE1cWsxu+tN2Xqr1kpi+V9aADI7sVM5ZMaXyYGPHULQMzpJMYqOTULK/73pUkWVzzObFRBkPr+hg==",
+    "files": [
+      {
+        "path": "fastdom-1.0.12/LICENSE-from-README.txt",
+        "sha256": "50c0de64f5cd5e39859b43f7eca7f5843fb3c3d5ac7e34a453e27419ad51e08c",
+        "originalPath": "package/README.md (complete License section)",
+        "sourceUrl": "https://registry.npmjs.org/fastdom/-/fastdom-1.0.12.tgz"
+      }
+    ],
+    "provenanceNote": "Exact published npm tarball verified against packageIntegrity. Its complete README license section is reproduced byte-for-byte; the npm gitHead is unavailable from the official repository."
+  },
+  {
+    "name": "khroma",
+    "version": "2.1.0",
+    "license": "MIT",
+    "sourceUrl": "https://registry.npmjs.org/khroma/-/khroma-2.1.0.tgz",
+    "packageIntegrity": "sha512-Ls993zuzfayK269Svk9hzpeGUKob/sIgZzyHYdjQoAdQetRKpOLj+k/QQQ/6Qi0Yz65mlROrfd+Ev+1+7dz9Kw==",
+    "files": [
+      {
+        "path": "khroma-2.1.0/license",
+        "sha256": "66b333b0f66759a0b710459e03f7029abe17f4358114a128d2c972e642961b49",
+        "originalPath": "package/license",
+        "sourceUrl": "https://registry.npmjs.org/khroma/-/khroma-2.1.0.tgz"
+      }
+    ],
+    "provenanceNote": "Exact published npm tarball verified against packageIntegrity. The package omits SPDX metadata but contains the complete original MIT license and copyright notice."
+  },
+  {
+    "name": "react-remove-scroll-bar",
+    "version": "2.3.8",
+    "license": "MIT",
+    "sourceUrl": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
+    "packageIntegrity": "sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==",
+    "files": [
+      {
+        "path": "react-remove-scroll-bar-2.3.8/LICENSE",
+        "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84",
+        "originalPath": "LICENSE",
+        "sourceUrl": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE"
+      }
+    ],
+    "provenanceNote": "The exact published 2.3.8 npm tarball was verified against packageIntegrity. Its manifest and README declare MIT and identify Anton Korzunov <thekashey@gmail.com>, matching the official repository owner and license author; it contains no legal notice file. npm gitHead b3b1287aad81def2e2ae707274b74531b61ddbaf is unreachable in the official repository. The pinned official source manifest says 2.3.7, so this is the project-wide MIT grant, not a claim of exact published source. Official LICENSE history contains one introduction commit, 7301c160fda44cb8cf2b9fdfde61efad35736196 (2025-05-21, chore: add LICENSE file); the original copyright year 2025 is preserved. Review remains bound to exact npm 2.3.8 and packageIntegrity."
+  },
+  {
+    "name": "rehype-katex",
+    "version": "7.0.1",
+    "license": "MIT",
+    "sourceUrl": "https://raw.githubusercontent.com/remarkjs/remark-math/88a9497e1ede93b958237c85edbf5651faeca7af/license",
+    "packageIntegrity": "sha512-OiM2wrZ/wuhKkigASodFoo8wimG3H12LWQaH8qSPVJn9apWKFSH3YOCtbKpBorTVw/eI7cuT21XBbvwEswbIOA==",
+    "files": [
+      {
+        "path": "rehype-katex-7.0.1/license",
+        "sha256": "cb992262f361a5359e6771c28740d33c7041e15332ae8537fae40538992591a9",
+        "originalPath": "license",
+        "sourceUrl": "https://raw.githubusercontent.com/remarkjs/remark-math/88a9497e1ede93b958237c85edbf5651faeca7af/license"
+      }
+    ],
+    "provenanceNote": "Official npm gitHead and matching release tag identify the pinned upstream commit; the published package omits the repository-root license."
+  },
+  {
+    "name": "remark-math",
+    "version": "6.0.0",
+    "license": "MIT",
+    "sourceUrl": "https://raw.githubusercontent.com/remarkjs/remark-math/d5d0660b150810a535bbb07eac6cc96a4510aa24/license",
+    "packageIntegrity": "sha512-MMqgnP74Igy+S3WwnhQ7kqGlEerTETXMvJhrUzDikVZ2/uogJCb+WHUg97hK9/jcfc0dkD73s3LN8zU49cTEtA==",
+    "files": [
+      {
+        "path": "remark-math-6.0.0/license",
+        "sha256": "cb992262f361a5359e6771c28740d33c7041e15332ae8537fae40538992591a9",
+        "originalPath": "license",
+        "sourceUrl": "https://raw.githubusercontent.com/remarkjs/remark-math/d5d0660b150810a535bbb07eac6cc96a4510aa24/license"
+      }
+    ],
+    "provenanceNote": "Official npm gitHead and matching release tag identify the pinned upstream commit; the published package omits the repository-root license."
+  },
+  {
+    "name": "victory-vendor",
+    "version": "37.3.6",
+    "license": "MIT AND ISC",
+    "sourceUrl": "https://raw.githubusercontent.com/FormidableLabs/victory/d9d9ca2d5038d6ef9de91f2cef39e6fb2733baa6/LICENSE.txt",
+    "packageIntegrity": "sha512-SbPDPdDBYp+5MJHhBCAyI7wKM3d5ivekigc2Dk2s7pgbZ9wIgIBYGVw4zGHBml/qTFbexrofXW6Gu4noGxrOwQ==",
+    "files": [
+      {
+        "path": "victory-vendor-37.3.6/LICENSE.txt",
+        "sha256": "34dee5fd5e5cc756efb5ad4d64652bce719bdf5e900ca5d7538253e737930bc4",
+        "originalPath": "LICENSE.txt",
+        "sourceUrl": "https://raw.githubusercontent.com/FormidableLabs/victory/d9d9ca2d5038d6ef9de91f2cef39e6fb2733baa6/LICENSE.txt"
+      }
+    ],
+    "provenanceNote": "Repository-root MIT license for the victory-vendor wrapper. Preserve the separately installed lib-vendor/**/LICENSE texts as well.",
+    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/victory-vendor@37.3.6"
+  },
+  {
+    "name": "wxt",
+    "version": "0.21.4",
+    "license": "MIT",
+    "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/9cb69c8695e22ad781216e20f58658352321c7b6/LICENSE",
+    "packageIntegrity": "sha512-iyVMTXb37BQAbsPHCuPzrK3ZxnO9pZmvbKl7VJWIHe3RG40On2NyP2FOjArtOITO96plEYnh3o+iUlRp9qE90w==",
+    "files": [
+      {
+        "path": "wxt-0.21.4/LICENSE",
+        "sha256": "7b0b00fcdbc6a036078aad84d0bc0fae240ac67144b86c911149c2daa37c9f85",
+        "originalPath": "LICENSE",
+        "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/9cb69c8695e22ad781216e20f58658352321c7b6/LICENSE"
+      }
+    ],
+    "provenanceNote": "Official npm provenance identifies the pinned upstream commit; the published package omits its root LICENSE.",
+    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/wxt@0.21.4"
+  }
+]
