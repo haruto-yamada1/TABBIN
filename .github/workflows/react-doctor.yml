@@ -44,7 +44,7 @@ jobs:
           bun-version-file: '.bun-version'
       - name: Require approved dependency patches before installation
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || github.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: bun tools/scripts/verify-dependency-patches.ts
       - name: Install the locked project toolchain without lifecycle scripts

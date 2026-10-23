@@ -76,6 +76,63 @@ describe('reviewed React Doctor npm identities', () => {
     dist: { integrity: doctorIntegrity('0.9.17') },
   })
 
+  it.each([
+    ['react-doctor', 'high'],
+    ['react-doctor', 'critical'],
+    ['react-doctor', 'unknown'],
+    ['oxlint-plugin-react-doctor', 'high'],
+    ['oxlint-plugin-react-doctor', 'critical'],
+    ['oxlint-plugin-react-doctor', 'unknown'],
+  ])(
+    'checks unchanged %s versions for %s advisories',
+    async (name, severity) => {
+      const versions = ['0.9.17', '0.9.18']
+      const packages = Object.fromEntries(
+        versions.map((version, index) => [
+          index ? `nested/${name}` : name,
+          [`${name}@${version}`, '', {}, doctorIntegrity(version)],
+        ]),
+      )
+      const request = vi.fn<ReviewRequest>().mockImplementation(async (url) => {
+        if (url.startsWith('https://api.github.com/')) {
+          return response([
+            { ghsa_id: 'GHSA-unchanged', severity, withdrawn_at: null },
+          ])
+        }
+        const version = new URL(url).pathname.split('/').at(-1) ?? ''
+        return response({
+          ...metadata(),
+          name,
+          version,
+          dist: { integrity: doctorIntegrity(version) },
+        })
+      })
+      const result = await reviewDependencyChanges(
+        lock(packages),
+        lock(packages),
+        request,
+        {},
+        Object.fromEntries(
+          versions.map((version) => [`${name}@${version}`, doctorLicense]),
+        ),
+        new Date('2026-10-22T00:00:00Z'),
+      )
+      expect(result).toEqual({
+        dependencies: [],
+        findings: [`${severity}: GHSA-unchanged`],
+      })
+      const advisoryRequests = request.mock.calls.filter(([url]) =>
+        url.startsWith('https://api.github.com/'),
+      )
+      expect(advisoryRequests).toHaveLength(1)
+      expect(
+        new URL(advisoryRequests[0]?.[0] ?? '').searchParams
+          .get('affects')
+          ?.split(','),
+      ).toEqual(versions.map((version) => `${name}@${version}`))
+    },
+  )
+
   it('accepts a same-LICENSE version upgrade with npm-matching integrity', async () => {
     expect(
       await reviewDoctor(
@@ -148,8 +205,11 @@ describe('reviewed React Doctor npm identities', () => {
         new Date('2026-10-22T00:00:00Z'),
       ),
     ).toEqual({ dependencies: [], findings: [] })
-    expect(request).toHaveBeenCalledTimes(1)
-    expect(request.mock.calls[0]?.[0]).toBe(
+    expect(request).toHaveBeenCalledTimes(2)
+    expect(
+      new URL(request.mock.calls[0]?.[0] ?? '').searchParams.get('affects'),
+    ).toBe('react-doctor@0.9.17')
+    expect(request.mock.calls[1]?.[0]).toBe(
       'https://registry.npmjs.org/react-doctor/0.9.17',
     )
   })
@@ -160,6 +220,9 @@ describe('reviewed React Doctor npm identities', () => {
       'nested/react-doctor': doctorEntry('0.9.18'),
     }
     const request = vi.fn<ReviewRequest>().mockImplementation(async (url) => {
+      if (url.startsWith('https://api.github.com/')) {
+        return response([])
+      }
       const version = url.endsWith('/0.9.18') ? '0.9.18' : '0.9.17'
       return response({
         ...metadata(),

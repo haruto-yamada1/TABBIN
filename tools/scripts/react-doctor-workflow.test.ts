@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { runInNewContext } from 'node:vm'
 
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
@@ -43,6 +44,36 @@ const gate = job?.steps.find(
 const githubExpression = (value: string) => `\${{ ${value} }}`
 
 describe('React Doctor merge gate', () => {
+  it.each([
+    ['pull request', 'a'.repeat(40), 'b'.repeat(40), 'a'.repeat(40)],
+    ['normal push', '', 'b'.repeat(40), 'b'.repeat(40)],
+    ['first push', '', '0'.repeat(40), 'c'.repeat(40)],
+    ['missing before', '', '', 'c'.repeat(40)],
+    [
+      'pull request with zero before',
+      'a'.repeat(40),
+      '0'.repeat(40),
+      'a'.repeat(40),
+    ],
+  ])(
+    'selects an existing comparison base for %s',
+    (_event, prBase, before, expected) => {
+      const patchGuard = job?.steps.find(
+        (step) => step.run === 'bun tools/scripts/verify-dependency-patches.ts',
+      )
+      const expression = patchGuard?.env?.BASE_SHA
+      expect(expression).toMatch(/^\$\{\{ .* \}\}$/)
+      expect(
+        runInNewContext(expression?.slice(3, -2) ?? '', {
+          github: {
+            event: { pull_request: { base: { sha: prBase } }, before },
+            sha: 'c'.repeat(40),
+          },
+        }),
+      ).toBe(expected)
+    },
+  )
+
   it('runs a full scan for every PR and checks the real scan output even on failure', () => {
     expect(workflow.on.pull_request).toBeDefined()
     expect(workflow.on.pull_request).not.toHaveProperty('paths')

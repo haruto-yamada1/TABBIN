@@ -171,10 +171,15 @@ export const reviewDependencyChanges = async (
       ),
     ]),
   ].toSorted()
+  // The Graph action excludes these package names irrespective of version.
+  // Recheck all their current resolutions even when base/head are identical.
+  const reviewIds = [
+    ...new Set([...added, ...reviewedResolutions.keys()]),
+  ].toSorted()
   // Batch the public Advisory API instead of making one request per package.
   const batches = Array.from(
-    { length: Math.ceil(added.length / 25) },
-    (_, index) => added.slice(index * 25, index * 25 + 25),
+    { length: Math.ceil(reviewIds.length / 25) },
+    (_, index) => reviewIds.slice(index * 25, index * 25 + 25),
   )
   const advisoryFindings = await batches.reduce(async (previous, batch) => {
     const findings = await previous
@@ -198,12 +203,7 @@ export const reviewDependencyChanges = async (
     return findings
   }, Promise.resolve<string[]>([]))
   // Sequence requests to keep npm/GitHub secondary rate limits bounded.
-  // The Graph action excludes these package names irrespective of version.
-  // Recheck all their current resolutions even when base/head are identical.
-  const licenseIds = [
-    ...new Set([...added, ...reviewedResolutions.keys()]),
-  ].toSorted()
-  const licenseFindings = await licenseIds.reduce(async (previous, id) => {
+  const licenseFindings = await reviewIds.reduce(async (previous, id) => {
     const findings = await previous
     const { name, version } = extractNameAndVersion(id)
     const metadata = packageSchema.parse(
