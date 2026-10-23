@@ -37,6 +37,8 @@
     "GEMINI.md",
     "wxt.config.ts",
     "node_modules/**",
+    "tools/licenses/reviewed/**",
+    "tools/licenses/sources/**",
     "apm_modules/**",
     "coverage/**",
     "test-results/**",

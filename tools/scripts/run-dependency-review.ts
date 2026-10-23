@@ -1,5 +1,11 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
+import JSON5 from 'json5'
+
+import {
+  readReviewedLicenseContents,
+  verifyDependencyLicensePolicy,
+} from './dependency-license-policy'
 import { readReviewedPatchContents } from './dependency-patch-policy'
 import { reviewDependencyChanges } from './dependency-review'
 import type { ReviewRequest } from './dependency-review'
@@ -23,11 +29,20 @@ const request: ReviewRequest = async (url, init) => {
   })
 }
 
+const headContent = readFileSync('bun.lock', 'utf8')
+const headLock = JSON5.parse<unknown>(headContent)
+const licenseContents = readReviewedLicenseContents(headLock)
+verifyDependencyLicensePolicy(
+  JSON.parse(readFileSync('package.json', 'utf8')),
+  headLock,
+  licenseContents,
+)
 const result = await reviewDependencyChanges(
   readFileSync(basePath, 'utf8'),
-  readFileSync('bun.lock', 'utf8'),
+  headContent,
   request,
   readReviewedPatchContents(),
+  licenseContents,
 )
 // JSON avoids treating untrusted dependency metadata as workflow commands.
 const report = JSON.stringify(result, null, 2)

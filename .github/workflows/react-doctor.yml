@@ -26,31 +26,45 @@ jobs:
   react-doctor:
     permissions:
       contents: read
-      # React Doctor posts the existing PR summary and inline review comments.
-      pull-requests: write # Needed for React Doctor inline review comments
-      issues: write # Needed for React Doctor sticky PR summaries
     name: React Doctor Score 100
     runs-on: ubuntu-latest
+    outputs:
+      review: ${{ steps.summary.outputs.review }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 0
-
-      - uses: millionco/react-doctor@8a8ab66c1200ed5eb0f7249b9ed7a4fdaceba261 # v2
-        id: doctor
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          blocking: error
-          scope: full
-          # Use the job result for branch protection; the action's own status
-          # only reflects blocking severity and can succeed below 100.
-          commit-status: false
-
+          node-version-file: '.node-version'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+      - name: Require approved dependency patches before installation
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || github.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: bun tools/scripts/verify-dependency-patches.ts
+      - name: Install the locked project toolchain without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Verify the approved development license before scanning
+        run: bun run verify:dependency-licenses
+      - name: Prepare project aliases
+        run: bun run postinstall
+      - name: Run the verified project CLI
+        id: doctor
+        run: bun run doctor . --scope full --blocking error --json --json-compact > "$RUNNER_TEMP/react-doctor-report.json"
+      - name: Validate and summarize the complete scan
+        id: summary
+        if: ${{ !cancelled() }}
+        run: bun tools/scripts/summarize-react-doctor.ts "$RUNNER_TEMP/react-doctor-report.json"
       - name: Require React Doctor score 100
         if: ${{ always() }}
         shell: bash
         env:
-          REACT_DOCTOR_SCORE: ${{ steps.doctor.outputs.score }}
+          REACT_DOCTOR_SCORE: ${{ steps.summary.outputs.score }}
           REACT_DOCTOR_OUTCOME: ${{ steps.doctor.outcome }}
         run: |
           if [[ "$REACT_DOCTOR_OUTCOME" != 'success' ]]; then
@@ -62,3 +76,76 @@ jobs:
             exit 1
           fi
           echo "React Doctor score: 100/100"
+
+  publish-review:
+    name: Publish React Doctor review
+    needs: react-doctor
+    if: ${{ always() && github.event_name == 'pull_request' && needs.react-doctor.outputs.review != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      # No checkout or execution of repository code in this writable job.
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          DOCTOR_REVIEW_JSON: ${{ needs.react-doctor.outputs.review }}
+          SCAN_RESULT: ${{ needs.react-doctor.result }}
+        with:
+          script: |
+            const review = JSON.parse(process.env.DOCTOR_REVIEW_JSON);
+            const pull = context.payload.pull_request;
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const marker = '<!-- react-doctor:summary -->';
+            const inlineMarker = '<!-- react-doctor:review -->';
+            const plain = value => typeof value === 'string'
+              ? value.slice(0, 2000).replaceAll('`', 'ˋ').replaceAll('@', '＠') : '';
+            const count = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
+            const score = Number.isInteger(review.score) && review.score >= 0 && review.score <= 100
+              ? `${review.score}/100` : 'unavailable';
+            try {
+              const current = await github.rest.pulls.get({ ...repo, pull_number: pull.number });
+              if (current.data.head.sha !== pull.head.sha) {
+                core.notice('Ignoring a scan for an outdated PR revision.');
+                return;
+              }
+              const body = `${marker}\n## React Doctor\n\nScore: **${score}**\n\nScan: ${process.env.SCAN_RESULT === 'success' ? 'completed' : 'failed'}; errors: ${count(review.errorCount)}; warnings: ${count(review.warningCount)}.\n\nCommit: ${pull.head.sha}`;
+              const existing = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: pull.number, per_page: 100 });
+              const previous = existing.find(item => item.user?.type === 'Bot' && item.body?.startsWith(marker));
+              if (previous) await github.rest.issues.updateComment({ ...repo, comment_id: previous.id, body });
+              else await github.rest.issues.createComment({ ...repo, issue_number: pull.number, body });
+              const files = await github.paginate(github.rest.pulls.listFiles, { ...repo, pull_number: pull.number, per_page: 100 });
+              const diagnostics = Array.isArray(review.diagnostics) ? review.diagnostics.slice(0, 50) : [];
+              const oldInline = await github.paginate(github.rest.pulls.listReviewComments, { ...repo, pull_number: pull.number, per_page: 100 });
+              const comments = [];
+              const seen = new Set();
+              for (const diagnostic of diagnostics) {
+                if (!diagnostic || !Number.isInteger(diagnostic.line) || diagnostic.line < 1) continue;
+                const file = files.find(item => item.filename === diagnostic.path);
+                if (!file) continue;
+                let line = 0;
+                const allowed = new Set();
+                for (const patchLine of String(file.patch ?? '').split('\n')) {
+                  const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(patchLine);
+                  if (hunk) line = Number(hunk[1]);
+                  else if (patchLine.startsWith('+') || patchLine.startsWith(' ')) allowed.add(line++);
+                }
+                const key = `${file.filename}:${diagnostic.line}:${plain(diagnostic.plugin)}/${plain(diagnostic.rule)}`;
+                if (!allowed.has(diagnostic.line) || seen.has(key)) continue;
+                seen.add(key);
+                const severity = diagnostic.severity === 'error' ? 'error' : 'warning';
+                comments.push({ path: file.filename, line: diagnostic.line, side: 'RIGHT', body: `${inlineMarker}\n**React Doctor ${severity}**\n\n${'```'}text\n${plain(diagnostic.plugin)}/${plain(diagnostic.rule)}\n${plain(diagnostic.message)}\n${plain(diagnostic.help)}\n${'```'}` });
+              }
+              if (comments.length) await github.rest.pulls.createReview({ ...repo, pull_number: pull.number, commit_id: pull.head.sha, event: 'COMMENT', comments });
+              if (comments.length || (diagnostics.length === 0 && process.env.SCAN_RESULT === 'success')) {
+                for (const comment of oldInline) {
+                  if (comment.user?.type === 'Bot' && comment.body?.startsWith(inlineMarker)) {
+                    await github.rest.pulls.deleteReviewComment({ ...repo, comment_id: comment.id });
+                  }
+                }
+              }
+            } catch (error) {
+              // Fork tokens are read-only; a publishing failure never changes the scan gate.
+              core.warning(`React Doctor review publishing failed (${error.status ?? 'unavailable'}).`);
+            }

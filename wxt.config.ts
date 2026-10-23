@@ -12,6 +12,12 @@ import {
   PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
   createProductionExtensionCsp,
 } from './src/constants/productionNetworkPolicy'
+import {
+  addThirdPartyLicenseFilesToSourceZip,
+  verifyThirdPartyLicenseFiles,
+  verifyThirdPartyLicenseZip,
+  writeThirdPartyLicenseFiles,
+} from './tools/licenses/thirdPartyLicenses'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -43,10 +49,37 @@ export default defineConfig({
       strictPort: process.env.TABBIN_PARALLEL_WORKTREE === '1',
     },
   },
+  hooks: {
+    'build:done': async (wxt, output) => {
+      if (wxt.config.command === 'serve') {
+        return
+      }
+      const moduleIds = output.steps.flatMap((step) =>
+        step.chunks.flatMap((chunk) => chunk.type === 'chunk' ? chunk.moduleIds : []),
+      )
+      await writeThirdPartyLicenseFiles({
+        outDir: wxt.config.outDir,
+        moduleIds,
+        projectRoot: wxt.config.root,
+      })
+      await verifyThirdPartyLicenseFiles(wxt.config.outDir)
+    },
+    'zip:extension:done': async (_wxt, zipPath) => {
+      await verifyThirdPartyLicenseZip(zipPath)
+    },
+    'zip:sources:done': async (wxt, zipPath) => {
+      await addThirdPartyLicenseFilesToSourceZip(zipPath, wxt.config.outDir)
+      await verifyThirdPartyLicenseZip(zipPath)
+    },
+  },
   zip: {
     dotSources: true,
     includeSources: [
       'src',
+      'tools/licenses',
+      'tools/legacy-tooling',
+      'tools/scripts/verify-third-party-licenses.ts',
+      'patches',
       'package.json',
       'bun.lock',
       'wxt.config.ts',

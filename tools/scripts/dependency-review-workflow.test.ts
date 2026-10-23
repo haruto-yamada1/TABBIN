@@ -198,6 +198,21 @@ describe('Dependency Review workflow permissions and policy', () => {
     expect(review.with['warn-only']).toBe(false)
     expect(review.with['comment-summary-in-pr']).toBe('never')
     expect(review.with['allow-ghsas']).toBeUndefined()
-    expect(review.with['allow-dependencies-licenses']).toBeUndefined()
+    expect(review.with['allow-dependencies-licenses']).toBe(
+      'pkg:npm/react-doctor',
+    )
+    const licenseGuardIndex = steps.findIndex(
+      (step: { run?: string }) =>
+        step.run === 'bun tools/scripts/verify-dependency-licenses.ts',
+    )
+    const graphIndex = steps.indexOf(review)
+    expect(licenseGuardIndex).toBeGreaterThan(0)
+    expect(licenseGuardIndex).toBeLessThan(graphIndex)
+    const guard = steps[licenseGuardIndex]
+    expect(guard.if).toBeUndefined()
+    expect(guard['continue-on-error']).toBeUndefined()
+    expect(steps.map((step: { run?: string }) => step.run)).toContain(
+      'bun run verify:security-audit-policy && bun run verify:node-forge-backport',
+    )
   })
 })

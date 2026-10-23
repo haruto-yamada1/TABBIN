@@ -1,0 +1,13 @@
+[
+  {
+    "name": "webextension-polyfill",
+    "version": "0.12.0",
+    "license": "MPL-2.0",
+    "path": "sources/webextension-polyfill-0.12.0.tar.gz",
+    "sha256": "bbd67713ead1cb7164ef2f18ab64de9468f2afc6c78ac53bb3dab7ea3044d8ca",
+    "sourceUrl": "https://codeload.github.com/mozilla/webextension-polyfill/tar.gz/1649d84ad93c6ebb7225a3db44e96c33e6bbb4a7",
+    "sourceCommit": "1649d84ad93c6ebb7225a3db44e96c33e6bbb4a7",
+    "packageIntegrity": "sha512-97TBmpoWJEE+3nFBQ4VocyCdLKfw54rFaJ6EVQYLBCXqCIpLSZkwGgASpv4oPt9gdKCJ80RJlcmNzNn008Ag6Q==",
+    "provenanceNote": "Official 0.12.0 release tag and npm gitHead agree with this commit. Archive package.json is version 0.12.0 and includes LICENSE, src/browser-polyfill.js, api-metadata.json, Gruntfile.js and scripts/babel-transform-to-umd-module.js. Applying the documented Grunt source/metadata/version/timestamp substitutions exactly reproduces the published npm dist source-map sourcesContent, checked against the npm tarball packageIntegrity. The full preferred source is supplied offline; the npm package itself includes only generated dist files."
+  }
+]
