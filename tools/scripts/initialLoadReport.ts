@@ -138,3 +138,8 @@ export const renderInitialLoadReport = (
 export const initialLoadReadyScript = `
   return document.readyState === 'complete' && document.documentElement.lang === 'en' && Boolean(document.querySelector(arguments[0]));
 `
+
+export const isInitialLoadReady = (selector: string): boolean =>
+  document.readyState === 'complete' &&
+  document.documentElement.lang === 'en' &&
+  Boolean(document.querySelector(selector))

@@ -12,6 +12,7 @@ import { fingerprintArtifact } from './artifactSizeReport'
 import { withFirefoxExtension } from './firefoxExtensionSession'
 import {
   initialLoadReadyScript,
+  isInitialLoadReady,
   loadScenarios,
   parseLoadObservations,
 } from './initialLoadReport'
@@ -87,11 +88,7 @@ const measureChrome = async (
     // Fresh document and module map per feature; no earlier feature navigation.
     await page.goto(`${origin}/${route}`)
     const files = await pollSnapshot(async () =>
-      tracker.snapshot(
-        await page.evaluate(
-          `(function(){${initialLoadReadyScript}}).apply(null, ${JSON.stringify([ready])})`,
-        ),
-      ),
+      tracker.snapshot(await page.evaluate(isInitialLoadReady, ready)),
     )
     if (errors.length) {
       throw new Error(`Initial load JavaScript error: ${errors.join('; ')}`)
