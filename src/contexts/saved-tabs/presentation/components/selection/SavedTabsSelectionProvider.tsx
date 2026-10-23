@@ -58,6 +58,10 @@ const SelectionConfirmation = ({
 }) => {
   const { t } = useI18n()
   const deleting = confirmation?.operation === 'delete'
+  const count = confirmation?.items.length ?? 0
+  const titleKey = deleting
+    ? 'savedTabs.selection.deleteConfirmTitle'
+    : 'savedTabs.selection.openConfirmTitle'
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
@@ -74,13 +78,9 @@ const SelectionConfirmation = ({
       open={Boolean(confirmation)}
       onOpenChange={handleOpenChange}
       onConfirm={handleConfirm}
-      title={t(
-        deleting
-          ? 'savedTabs.selection.deleteConfirmTitle'
-          : 'savedTabs.selection.openConfirmTitle',
-        undefined,
-        { count: String(confirmation?.items.length ?? 0) },
-      )}
+      title={t(`${titleKey}.${count === 1 ? 'one' : 'other'}`, undefined, {
+        count: String(count),
+      })}
       description={t(
         deleting
           ? 'savedTabs.selection.deleteConfirmDescription'
@@ -154,9 +154,13 @@ const SelectionToolbar = ({
               aria-atomic='true'
               className='mr-2 text-sm font-medium'
             >
-              {t('savedTabs.selection.count', undefined, {
-                count: String(state.selected.size),
-              })}
+              {t(
+                state.selected.size === 1
+                  ? 'savedTabs.selection.count.one'
+                  : 'savedTabs.selection.count.other',
+                undefined,
+                { count: String(state.selected.size) },
+              )}
             </output>
             <Button size='sm' variant='outline' onClick={handleSelectAll}>
               {t('savedTabs.selection.selectAll')}

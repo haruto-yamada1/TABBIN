@@ -40,6 +40,9 @@ driver.once('error', (error) => {
   driverFailure = error
 })
 try {
+  const outputDir = os.tmpdir()
+  const screenshotPath = path.join(outputDir, 'issue897-native-firefox-selection.png')
+  const reportPath = path.join(outputDir, 'issue897-native-firefox.json')
   await waitForDriver(baseUrl, () => driverFailure)
   session = await createSession(baseUrl, profile)
   await installAddon(session, addon)
@@ -200,7 +203,7 @@ try {
   await poll(selected, [titles[1], titles[4]], 'modifier link toggle')
   const screenshot = await command('/screenshot')
   await writeFile(
-    '/private/tmp/issue897-native-firefox-selection.png',
+    screenshotPath,
     Buffer.from(screenshot, 'base64'),
   )
   await click(button('Delete selected'))
@@ -375,10 +378,10 @@ try {
     status: 'passed',
     firefoxVersion: session.version,
     flows: results,
-    screenshot: '/private/tmp/issue897-native-firefox-selection.png',
+    screenshot: screenshotPath,
   }
   await writeFile(
-    '/private/tmp/issue897-native-firefox.json',
+    reportPath,
     JSON.stringify(report, null, 2),
   )
   console.log(JSON.stringify(report, null, 2))

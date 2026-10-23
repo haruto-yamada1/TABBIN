@@ -157,7 +157,7 @@ const expectSelected = async (
   await expect.poll(async () => selectedTitles(page)).toEqual(expected)
   await expect(
     page.getByRole('status').filter({
-      hasText: `${expected.length} tabs selected`,
+      hasText: `${expected.length} ${expected.length === 1 ? 'tab' : 'tabs'} selected`,
     }),
   ).toBeVisible()
 }

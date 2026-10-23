@@ -37,5 +37,7 @@ Custom への一括追加は Issue #283 の対象です。
 `GECKODRIVER_PATH` と `FIREFOX_EXECUTABLE_PATH` を指定し、
 `python3 docs/testing/reproduce-firefox-selection.py --run` で同じ seed を使った
 実際の UI 操作・IndexedDB・Undo を検証できます。先に `bun run build:firefox` を実行してください。
+スクリーンショット `issue897-native-firefox-selection.png` と結果
+`issue897-native-firefox.json` は、実行環境の `os.tmpdir()` に出力します。
 
 ![通常一覧の複数選択](../screenshots/issue-897-selection.png)

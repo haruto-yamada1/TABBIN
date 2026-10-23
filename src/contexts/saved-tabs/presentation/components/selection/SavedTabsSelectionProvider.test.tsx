@@ -181,7 +181,21 @@ describe('saved tab selection', () => {
     await clickLink('Alpha', { ctrlKey: true })
     expect(checkbox('Alpha')).toBeChecked()
     expect(onNavigate).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('status')).toHaveTextContent('1 tabs selected')
+    expect(screen.getByRole('status')).toHaveTextContent('1 tab selected')
+  })
+
+  it('announces zero, one and multiple selected tabs with the matching count', async () => {
+    setup()
+    await enterSelection()
+    expect(screen.getByRole('status')).toHaveTextContent('0 tabs selected')
+    await user.click(checkbox('Alpha'))
+    expect(screen.getByRole('status')).toHaveTextContent('1 tab selected')
+    await user.click(checkbox('Beta'))
+    expect(screen.getByRole('status')).toHaveTextContent('2 tabs selected')
+    await user.click(checkbox('Alpha'))
+    expect(screen.getByRole('status')).toHaveTextContent('1 tab selected')
+    await user.click(checkbox('Beta'))
+    expect(screen.getByRole('status')).toHaveTextContent('0 tabs selected')
   })
 
   it('extends forward and reverse ranges in current DOM order after rows reorder', async () => {
@@ -234,7 +248,7 @@ describe('saved tab selection', () => {
     await user.click(screen.getByRole('button', { name: 'Select all visible' }))
     result.update([beta])
     await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('1 tabs selected'),
+      expect(screen.getByRole('status')).toHaveTextContent('1 tab selected'),
     )
     result.update([beta], 'new-search')
     expect(checkbox('Beta')).not.toBeChecked()
@@ -372,6 +386,23 @@ describe('saved tab selection', () => {
       expect(screen.queryByText('private details')).not.toBeInTheDocument()
     },
   )
+
+  it('confirms a single selected tab before deleting that exact target', async () => {
+    const result = setup({ confirmDeleteAll: true })
+    await enterSelection()
+    await clickLink('Alpha')
+    await user.click(screen.getByRole('button', { name: 'Delete selected' }))
+    const dialog = screen.getByRole('alertdialog', {
+      name: 'Delete 1 selected tab?',
+    })
+    expect(result.onDelete).not.toHaveBeenCalled()
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Delete selected' }),
+    )
+    await waitFor(() => expect(result.onDelete).toHaveBeenCalledWith([alpha]))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('0 tabs selected')
+  })
 
   it('freezes the selected delete targets while confirming, cancels safely, then submits the exact count', async () => {
     const user = userEvent.setup()
