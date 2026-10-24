@@ -3,6 +3,7 @@ import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
+import { selectionMessages } from './selectionMessages'
 import { urlOpeningMessages } from './urlOpeningMessages'
 
 const messages = {
@@ -13,6 +14,7 @@ const messages = {
     ...urlOpeningMessages.en,
     ...organizationActionMessages.en,
     ...reviewReminderMessages.en,
+    ...selectionMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
     'aiChat.attachments.defaultName': 'attachment',
@@ -689,7 +691,6 @@ const messages = {
       'Create a parent category to show it as a project',
     'savedTabs.customProjects.emptyTitle': 'No projects',
     'savedTabs.customProjects.nameLabel': 'Project name *',
-    'savedTabs.deleteAll': 'Delete all',
     'savedTabs.deleteAllConfirmDescription':
       'Delete all tabs in "{{categoryName}}". This action cannot be undone.',
     'savedTabs.deleteAllConfirmDescriptionWithCount':
@@ -729,13 +730,11 @@ const messages = {
     'savedTabs.manageSubcategories': 'Manage subcategories',
     'savedTabs.newProjectPlaceholder': 'e.g. Work, Research, Read later',
     'savedTabs.newProjectTitle': 'Add a new project',
-    'savedTabs.openAll': 'Open all',
     'savedTabs.openAllConfirmDescription':
       'You are about to open {{count}} or more tabs. Continue?',
     'savedTabs.openAllConfirmDescriptionWithName':
       'Open {{count}} tabs for "{{name}}". Continue?',
     'savedTabs.openAllConfirmTitle': 'Open all tabs?',
-    'savedTabs.openAllTabs': 'Open all tabs',
     'savedTabs.project.deleteAllItemName': 'tabs in this project',
     'savedTabs.project.deleteAllWarning':
       'Delete all tabs in this project. This action cannot be undone.',
@@ -930,6 +929,7 @@ const messages = {
     ...urlOpeningMessages.ja,
     ...organizationActionMessages.ja,
     ...reviewReminderMessages.ja,
+    ...selectionMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
     'aiChat.attachments.defaultName': '添付ファイル',
@@ -1599,7 +1599,6 @@ const messages = {
       '親カテゴリを作成するとプロジェクトとして表示されます',
     'savedTabs.customProjects.emptyTitle': 'プロジェクトがありません',
     'savedTabs.customProjects.nameLabel': 'プロジェクト名 *',
-    'savedTabs.deleteAll': 'すべて削除',
     'savedTabs.deleteAllConfirmDescription':
       '「{{categoryName}}」のタブをすべて削除します。この操作は元に戻せません。',
     'savedTabs.deleteAllConfirmDescriptionWithCount':
@@ -1639,13 +1638,11 @@ const messages = {
     'savedTabs.manageSubcategories': '子カテゴリ管理',
     'savedTabs.newProjectPlaceholder': '例: 仕事、調査、後で読む',
     'savedTabs.newProjectTitle': '新しいプロジェクトを追加',
-    'savedTabs.openAll': 'すべて開く',
     'savedTabs.openAllConfirmDescription':
       '{{count}}個以上のタブを開こうとしています。続行しますか？',
     'savedTabs.openAllConfirmDescriptionWithName':
       '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
     'savedTabs.openAllConfirmTitle': 'タブをすべて開きますか？',
-    'savedTabs.openAllTabs': 'すべてのタブを開く',
     'savedTabs.project.deleteAllItemName': 'このプロジェクトのタブ',
     'savedTabs.project.deleteAllWarning':
       'このプロジェクト内のすべてのタブを削除します。この操作は元に戻せません。',

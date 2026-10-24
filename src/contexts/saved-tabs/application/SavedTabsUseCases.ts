@@ -15,6 +15,7 @@ import type { DeleteCustomProjectUseCase } from './use-cases/DeleteCustomProject
 import type { DeleteParentCategoryUseCase } from './use-cases/DeleteParentCategoryUseCase'
 import type { DeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
 import type { DeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
+import type { DeleteSelectedSavedUrlsUseCase } from './use-cases/DeleteSelectedSavedUrlsUseCase'
 import type { DeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import type { DeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
 import type { FindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUseCase'
@@ -96,6 +97,7 @@ export type SavedTabsUseCases = {
   readonly prepareTabGroupsDeletion: PrepareTabGroupsDeletionUseCase
   readonly deleteSavedUrl: DeleteSavedUrlUseCase
   readonly deleteSavedUrls: DeleteSavedUrlsUseCase
+  readonly deleteSelectedSavedUrls: DeleteSelectedSavedUrlsUseCase
   readonly restoreOpenedUrlsSnapshot: RestoreOpenedUrlsSnapshotUseCase
   readonly restoreOpenedUrlsSnapshotView: RestoreOpenedUrlsSnapshotViewUseCase
   readonly syncCategoryAssignments: SyncCategoryAssignmentsUseCase
