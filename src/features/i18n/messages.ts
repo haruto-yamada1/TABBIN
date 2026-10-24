@@ -892,6 +892,7 @@ const messages = {
     'savedTabs.undo.restored': 'Restored saved data',
     'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
     'savedTabs.url.deleteAria': 'Delete tab',
+    'savedTabs.url.openNow': 'Open now',
     'savedTabs.url.deleteConfirmDescription':
       'Delete this tab. This action cannot be undone.',
     'savedTabs.url.deleteConfirmTitle': 'Delete this tab?',
@@ -1801,6 +1802,7 @@ const messages = {
     'savedTabs.undo.restored': '保存データを復元しました',
     'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
     'savedTabs.url.deleteAria': 'タブを削除',
+    'savedTabs.url.openNow': '開いています',
     'savedTabs.url.deleteConfirmDescription':
       'このタブを削除します。この操作は元に戻せません。',
     'savedTabs.url.deleteConfirmTitle': 'タブを削除しますか？',

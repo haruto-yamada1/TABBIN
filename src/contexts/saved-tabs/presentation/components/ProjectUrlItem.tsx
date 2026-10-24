@@ -21,6 +21,7 @@ import {
 } from './projectUrlItemHelpers'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
+import { OpenTabBadge } from './shared/OpenTabBadge'
 
 const MAX_URL_PREVIEW_LENGTH = 30
 
@@ -297,6 +298,7 @@ const ProjectUrlItemComponent = ({
             </span>
           )}
         </div>
+        <OpenTabBadge url={originalUrl} />
         {/* ボタン群 */}
         <div
           className='flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100'

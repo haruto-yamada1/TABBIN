@@ -1,5 +1,7 @@
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
+import { createOpenSavedTabsService } from '@/contexts/saved-tabs/application/services/OpenSavedTabsService'
+import { createChromeOpenTabsAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeOpenTabsAdapter'
 import { createChromeSavedTabsSortPreferences } from '@/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSortPreferencesAdapter'
 import type { CreateSavedTabsUseCasesDepsOptions } from '@/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps'
 import {
@@ -37,6 +39,9 @@ export const createSavedTabsPresentationComposition = (
   })
   return {
     deps: {
+      openSavedTabsPort: createOpenSavedTabsService(
+        createChromeOpenTabsAdapter(),
+      ),
       sortPreferencesPort: createChromeSavedTabsSortPreferences(),
       browserTabPort: native.deps.browserTabPort,
       messagingPort: native.deps.messagingPort,
