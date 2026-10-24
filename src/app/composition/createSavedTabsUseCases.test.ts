@@ -34,6 +34,7 @@ describe('saved-tabs production composition', () => {
     const { deps, useCases } = createSavedTabsPresentationComposition({
       resolveActive: () => false,
     })
+    expect(deps.openSavedTabsPort).toBeDefined()
     const page = await useCases.getSavedTabsPageData()
     expect(page.tabGroups).toEqual([])
     expect(page.userSettings.openUrlInBackground).toBe(true)

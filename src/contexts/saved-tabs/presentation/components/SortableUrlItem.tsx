@@ -14,6 +14,7 @@ import { TimeRemaining } from '@/utils/datetime'
 import { useSavedTabSelectionItem } from './selection/SavedTabsSelectionProvider'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
+import { OpenTabBadge } from './shared/OpenTabBadge'
 import { SavedTime } from './shared/SavedTime'
 
 const ButtonContent = ({
@@ -299,6 +300,7 @@ export const SortableUrlItem = ({
             <X size={14} />
           </Button>
         </div>
+        <OpenTabBadge url={url} />
       </li>
 
       <DeleteUrlConfirmDialog
