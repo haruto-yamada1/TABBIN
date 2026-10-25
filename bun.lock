@@ -154,7 +154,7 @@
     "lodash-es": "4.18.1",
     "node-forge": "github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65",
     "postcss": "8.5.28",
-    "rollup": "4.62.2",
+    "rollup": "4.62.5",
     "shell-quote": "1.11.0",
     "smol-toml": "1.7.1",
     "source-map-js": "1.2.2",
