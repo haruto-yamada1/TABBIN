@@ -1,8 +1,8 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
 import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
+import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
-import { reviewReminderMessages } from './reviewReminderMessages'
 import { selectionMessages } from './selectionMessages'
 import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
@@ -12,8 +12,8 @@ const messages = {
     ...dndMessages.en,
     ...analyticsHealthMessages.en,
     ...organizationActionMessages.en,
-    ...reviewReminderMessages.en,
     ...selectionMessages.en,
+    ...optionsMessages.en,
     ...tabOpeningErrorMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
@@ -892,6 +892,7 @@ const messages = {
     'savedTabs.undo.restored': 'Restored saved data',
     'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
     'savedTabs.url.deleteAria': 'Delete tab',
+    'savedTabs.url.openNow': 'Open now',
     'savedTabs.url.deleteConfirmDescription':
       'Delete this tab. This action cannot be undone.',
     'savedTabs.url.deleteConfirmTitle': 'Delete this tab?',
@@ -927,8 +928,8 @@ const messages = {
     ...dndMessages.ja,
     ...analyticsHealthMessages.ja,
     ...organizationActionMessages.ja,
-    ...reviewReminderMessages.ja,
     ...selectionMessages.ja,
+    ...optionsMessages.ja,
     ...tabOpeningErrorMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
@@ -1801,6 +1802,7 @@ const messages = {
     'savedTabs.undo.restored': '保存データを復元しました',
     'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
     'savedTabs.url.deleteAria': 'タブを削除',
+    'savedTabs.url.openNow': '開いています',
     'savedTabs.url.deleteConfirmDescription':
       'このタブを削除します。この操作は元に戻せません。',
     'savedTabs.url.deleteConfirmTitle': 'タブを削除しますか？',

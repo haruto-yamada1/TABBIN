@@ -5,8 +5,8 @@ permission, where each one is used, and how the generated manifest is verified.
 It is the review surface for store submissions, security reviews, and future
 permission additions.
 
-The typed permission allowlist lives in
-`src/constants/extensionPermissions.ts` and the host permission allowlist lives
+The typed required and optional permission allowlists live in
+`src/constants/extensionPermissions.ts`; required outbound host permissions live
 in `src/constants/productionNetworkPolicy.ts`. WXT reads these constants in
 `wxt.config.ts`, so the generated Chrome and Firefox manifests are derived from
 a single source of truth. The generated-manifest verifier in
@@ -14,9 +14,10 @@ a single source of truth. The generated-manifest verifier in
 the same allowlists, plus the security invariants in
 [Generated manifest security invariants](#generated-manifest-security-invariants).
 
-TABBIN is local-first. The only outbound network destination is the user's own
-local Ollama service. No permission here grants remote server, telemetry, or
-user-content transmission access. The production outbound network policy is
+TABBIN is local-first. Production code and the extension CSP permit outbound
+network requests only to the user's own local Ollama service. Optional page
+access below is used only to mark tab titles and adds no outbound call site.
+The production outbound network policy is
 documented in
 [`production-network-policy.md`](production-network-policy.md).
 
@@ -59,8 +60,9 @@ Primary usage sites:
   — saved-tabs feature read/write paths.
 
 Review notes: `tabs` grants access to tab metadata (URL, title) for tabs the
-user is already viewing. TABBIN does not read tab content or inject scripts into
-pages. Tab data stays local and is never transmitted off-device.
+user is already viewing. The optional saved-title marker below additionally
+changes document titles after explicit permission. Tab data stays local and is
+never transmitted off-device.
 
 ### `storage`
 
@@ -132,7 +134,42 @@ access without a database-creation prompt. Every store submission that changes
 the permission allowlist must re-check the current Chrome and Firefox review
 surfaces.
 
-## Host permissions
+## Optional saved-title marker access
+
+`scripting`, `http://*/*`, and `https://*/*` are optional capabilities for an
+off-by-default setting that prefixes saved native-tab titles with `✓ `. They
+are requested together, directly from the user's enable gesture in
+`src/features/options/SavedTabTitleSettings.tsx`. Enabling is persisted only
+after permission grant and `permissions.contains` confirmation. Startup,
+imports, and permission removal never request access. The background checks
+both the local preference and current permission before title-changing injection; removal
+disables the feature, and turning it off restores markers where access remains.
+Restricted browser pages and non-HTTP(S) pages are excluded.
+
+The function is injected programmatically in the isolated world, with no
+manifest `content_scripts`, external message surface, or accessible extension
+assets. It changes and observes only the title, retaining page title updates
+while marked, and restores the latest page-owned title. It does not read page
+body content, send runtime requests, access extension storage, or make network calls.
+The title change is observable by website scripts and therefore reveals saved
+membership for that page while the feature is enabled. The options description
+discloses this behavior.
+
+The device-local `savedTabTitleIndicatorEnabled` boolean is kept separately
+from `userSettings`, Backup V2, and recovery snapshots. Importing data cannot
+grant site access or opt this feature in. See the reviewed untrusted injected
+context and sender checks in
+[`messaging-trust-boundary.md`](messaging-trust-boundary.md).
+
+Chrome MV3 stores these capabilities as `optional_permissions: ['scripting']`
+and `optional_host_permissions: ['http://*/*', 'https://*/*']`. The Firefox MV2
+manifest explicitly combines these in one `optional_permissions` array. The exact
+optional sets are pinned by `src/constants/extensionPermissions.ts` and the
+generated-manifest verifier; no extra origins, schemes, API permissions, or
+duplicate entries are accepted. Required permissions and the outbound CSP stay
+unchanged; optional page access is not an approved outbound destination.
+
+## Required host permissions
 
 ### `http://localhost:11434/*` and `http://127.0.0.1:11434/*`
 
@@ -189,11 +226,11 @@ The verifier `assertManifestMatchesProductionNetworkPolicy` in
 `.output/chrome-mv3/manifest.json` and `.output/firefox-mv2/manifest.json`. It
 checks, per manifest:
 
-- `permissions` matches the approved API permission allowlist exactly (no added,
-  missing, or optional permissions).
+- Required `permissions` matches the approved API permission allowlist exactly.
 - `host_permissions` (Chrome MV3) or host patterns inside `permissions`
   (Firefox MV2) matches the approved host permission allowlist exactly.
-- `optional_permissions` / `optional_host_permissions` are empty.
+- The optional API and host permissions match exactly the reviewed saved-title
+  marker sets above, including the Firefox MV2 conversion.
 - `content_security_policy.extension_pages` matches the production CSP exactly,
   including `connect-src` pinned to the Ollama loopback origins, `object-src`,
   `frame-src`, and `form-action` set to `'none'`, and no unexpected directives.
@@ -218,7 +255,7 @@ checks, per manifest:
 
 The `assertChromeFirefoxManifestDelta` verifier checks that Chrome MV3 and
 Firefox MV2 differ only on the expected manifest-version-driven structure.
-`manifest_version`, `permissions`, `host_permissions`, and
+`manifest_version`, `permissions`, `host_permissions`, optional permission keys, and
 `content_security_policy` differ by manifest version and are verified per
 manifest. `action` / `browser_action`, `background`, and
 `browser_specific_settings` are normalized to a common representation
@@ -254,3 +291,10 @@ start this checklist.
 
 For JS/TS data-flow analysis and alert triage alongside these manifest checks,
 see [`code-scanning.md`](code-scanning.md).
+
+For an explicit save operation, `src/lib/browser/prove-unmarked-tab-title.ts`
+may also run a read-only isolated-world ownership probe when site access is
+still granted, including after the display preference is turned off. It checks
+only the current URL, title and marker ownership; it never changes the page.
+If the captured title might contain TABBIN's mark and ownership cannot be
+verified, saving stops before persistence or tab closure so the user can retry.

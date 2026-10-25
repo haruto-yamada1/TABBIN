@@ -44,6 +44,9 @@ const aiChatHistoryMessageSchema = z.object({
 })
 
 export const backgroundMessageSchema = z.discriminatedUnion('action', [
+  z.strictObject({
+    action: z.literal('refreshNativeSavedTabTitles'),
+  }),
   z.object({
     action: z.literal('urlDragStarted'),
     groupId: z.string().optional(),

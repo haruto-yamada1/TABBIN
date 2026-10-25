@@ -92,6 +92,14 @@ export const Options: Story = {
         name: messages['options.importExport.import'],
       }),
     ).toBeEnabled()
+    const titleIndicator = canvas.getByRole('checkbox', {
+      name: messages['options.savedTabTitle.enable'],
+    })
+    await expect(titleIndicator).toBeEnabled()
+    await expect(titleIndicator).not.toBeChecked()
+    await expect(
+      canvas.queryByText(messages['options.savedTabTitle.loadError']),
+    ).not.toBeInTheDocument()
     markReady(canvasElement, 'options')
   },
   render: () => <OptionsRoute />,

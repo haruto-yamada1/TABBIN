@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { PRODUCTION_EXTENSION_PERMISSIONS } from '#extension-permissions'
+import {
+  PRODUCTION_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_HOST_PERMISSIONS,
+} from '#extension-permissions'
 import { PRODUCTION_OUTBOUND_HOST_PERMISSIONS } from '#production-network-policy'
 import * as ts from '#typescript-parser'
 
@@ -607,6 +611,43 @@ export const assertProductionNetworkCallsiteInventory = (
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
+const assertOptionalTitleIndicatorPermissions = (
+  manifest: Record<string, unknown>,
+  label: string,
+  isManifestV2: boolean,
+): void => {
+  const hostProperty = isManifestV2
+    ? 'optional_permissions'
+    : 'optional_host_permissions'
+  const hosts = readStringArray(manifest, hostProperty, label)
+  const actualHosts = (
+    isManifestV2 ? hosts.filter(isHostPermission) : hosts
+  ).toSorted()
+  const expectedHosts = [...PRODUCTION_OPTIONAL_HOST_PERMISSIONS].toSorted()
+  if (JSON.stringify(actualHosts) !== JSON.stringify(expectedHosts)) {
+    throw new Error(
+      `${label} ${hostProperty} host patterns do not match the reviewed optional title-indicator access: ${JSON.stringify(actualHosts)}; expected ${JSON.stringify(expectedHosts)}`,
+    )
+  }
+  const permissions = readStringArray(manifest, 'optional_permissions', label)
+  const actualApi = (
+    isManifestV2
+      ? permissions.filter((permission) => !isHostPermission(permission))
+      : permissions
+  ).toSorted()
+  const expectedApi = [...PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS].toSorted()
+  if (JSON.stringify(actualApi) !== JSON.stringify(expectedApi)) {
+    throw new Error(
+      `${label} optional_permissions API permissions do not match the reviewed optional title-indicator access: ${JSON.stringify(actualApi)}; expected ${JSON.stringify(expectedApi)}`,
+    )
+  }
+  if (isManifestV2 && 'optional_host_permissions' in manifest) {
+    throw new Error(
+      `${label} optional_host_permissions must be absent in MV2; reviewed origins belong in optional_permissions`,
+    )
+  }
+}
+
 export const assertManifestMatchesProductionNetworkPolicy = (
   manifest: unknown,
   label: string,
@@ -622,9 +663,6 @@ export const assertManifestMatchesProductionNetworkPolicy = (
   const hostPermissionProperty = isManifestV2
     ? 'permissions'
     : 'host_permissions'
-  const optionalHostPermissionProperty = isManifestV2
-    ? 'optional_permissions'
-    : 'optional_host_permissions'
   const actual = readStringArray(manifest, hostPermissionProperty, label)
     .filter(isHostPermission)
     .toSorted()
@@ -634,18 +672,7 @@ export const assertManifestMatchesProductionNetworkPolicy = (
       `${label} ${hostPermissionProperty} host patterns do not match the production allowlist: ${JSON.stringify(actual)}; expected ${JSON.stringify(expected)}`,
     )
   }
-  if (optionalHostPermissionProperty in manifest) {
-    const optionalPermissions = readStringArray(
-      manifest,
-      optionalHostPermissionProperty,
-      label,
-    ).filter(isHostPermission)
-    if (optionalPermissions.length !== 0) {
-      throw new Error(
-        `${label} ${optionalHostPermissionProperty} host patterns must be empty: ${JSON.stringify(optionalPermissions)}`,
-      )
-    }
-  }
+  assertOptionalTitleIndicatorPermissions(manifest, label, isManifestV2)
   assertExtensionCspMatchesProductionNetworkPolicy(
     manifest,
     label,
@@ -665,19 +692,6 @@ export const assertManifestMatchesProductionNetworkPolicy = (
     throw new Error(
       `${label} permissions do not match the approved extension permission allowlist: ${JSON.stringify(actualApiPermissions)}; expected ${JSON.stringify(expectedApiPermissions)}`,
     )
-  }
-
-  if ('optional_permissions' in manifest) {
-    const optionalApiPermissions = readStringArray(
-      manifest,
-      'optional_permissions',
-      label,
-    ).filter((permission) => !isHostPermission(permission))
-    if (optionalApiPermissions.length !== 0) {
-      throw new Error(
-        `${label} optional_permissions API permissions must be empty: ${JSON.stringify(optionalApiPermissions)}`,
-      )
-    }
   }
 
   assertGeneratedManifestSecurityInvariants(manifest, label)

@@ -15,6 +15,7 @@ import {
   reconcileReviewReminderAlarm,
   registerReviewReminderListeners,
 } from '@/lib/background/review-reminders'
+import { registerSavedTabTitleIndicator } from '@/lib/background/saved-tab-title-indicator'
 import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
 import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
@@ -25,6 +26,7 @@ export default defineBackground(() => {
   // eslint-disable-line import/no-default-export
   // MV3 wake events must be registered before the first asynchronous bootstrap.
   registerReviewReminderListeners()
+  registerSavedTabTitleIndicator()
   // 拡張機能インストール・更新時の処理
   // eslint-disable-next-line typescript/no-misused-promises
   chrome.runtime.onInstalled.addListener(async (details) => {

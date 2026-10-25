@@ -1,11 +1,12 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { X } from 'lucide-react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
+import { useOpenSavedTab } from '@/contexts/saved-tabs/presentation/controllers/useOpenSavedTab'
 import type { SortableUrlItemProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { toSafeSavedUrlHref } from '@/lib/url-filter'
@@ -14,6 +15,7 @@ import { TimeRemaining } from '@/utils/datetime'
 import { useSavedTabSelectionItem } from './selection/SavedTabsSelectionProvider'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
+import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
 import { SavedTime } from './shared/SavedTime'
 
 const ButtonContent = ({
@@ -75,6 +77,8 @@ export const SortableUrlItem = ({
   settings,
 }: SortableUrlItemProps) => {
   const { t } = useI18n()
+  const isOpen = useOpenSavedTab(url)
+  const openStateDescriptionId = useId()
   const selection = useSavedTabSelectionItem({ groupId, url, title })
   const reorderAvailable = useUrlReorderAvailable()
   const canReorderUrls = reorderAvailable && !selection.isSelectionMode
@@ -255,11 +259,20 @@ export const SortableUrlItem = ({
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
+          aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+          aria-describedby={
+            isOpen
+              ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+              : attributes['aria-describedby']
+          }
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {
             name: title,
           })}
         >
-          <GripVertical size={16} aria-hidden='true' />
+          <SavedTabDragHandleIcon
+            isOpen={isOpen}
+            descriptionId={openStateDescriptionId}
+          />
         </div>
         <div className='relative min-w-0 flex-1 overflow-hidden'>
           {safeHref ? (
