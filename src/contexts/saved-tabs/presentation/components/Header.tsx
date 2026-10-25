@@ -1,5 +1,4 @@
 import { Plus, X } from 'lucide-react'
-import type { ComponentProps } from 'react'
 import { useCallback, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -23,17 +22,12 @@ import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
 } from './shared/SavedTabsResponsive'
-import { UrlOpeningResult } from './UrlOpeningResult'
 import { ViewModeToggle } from './ViewModeToggle'
 
 const EMPTY_CUSTOM_PROJECTS: CustomProject[] = []
 const noopCreateProject = () => {}
 
 type HeaderProps = {
-  openingOperation?: ComponentProps<typeof UrlOpeningResult>['operation']
-  onRetryOpening?: () => Promise<void>
-  onCancelOpening?: () => void
-  onResumeOpening?: () => Promise<void>
   tabGroups: TabGroup[]
   filteredTabGroups?: TabGroup[]
   currentMode: ViewMode
@@ -59,10 +53,6 @@ type HeaderProps = {
 
 export const Header = ({
   // eslint-disable-line eslint/max-lines-per-function
-  openingOperation,
-  onRetryOpening,
-  onCancelOpening,
-  onResumeOpening,
   tabGroups,
   filteredTabGroups,
   currentMode,
@@ -182,14 +172,6 @@ export const Header = ({
           filteredCustomProjects={filteredCustomProjects}
         />
       </div>
-      {onRetryOpening && (
-        <UrlOpeningResult
-          operation={openingOperation ?? null}
-          onRetry={onRetryOpening}
-          onCancel={onCancelOpening}
-          onResume={onResumeOpening}
-        />
-      )}
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
           onClose={handleCloseModal}

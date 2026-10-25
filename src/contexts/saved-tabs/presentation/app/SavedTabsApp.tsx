@@ -187,14 +187,7 @@ const useSavedTabsAppView = ({
     () => buildPresentationCategoryLookup(categories),
     [categories],
   )
-  const {
-    handleOpenTab,
-    handleOpenAllTabs,
-    openingOperation,
-    retryFailedUrls,
-    cancelOpening,
-    resumeCancelledUrls,
-  } = useTabOpeningHandlers({
+  const { handleOpenTab, handleOpenAllTabs } = useTabOpeningHandlers({
     savedTabsUseCases,
     deps,
     settings,
@@ -536,10 +529,6 @@ const useSavedTabsAppView = ({
       >
         <h1 className='sr-only'>{t('sidebar.tabList')}</h1>
         <Header
-          openingOperation={openingOperation}
-          onRetryOpening={retryFailedUrls}
-          onCancelOpening={cancelOpening}
-          onResumeOpening={resumeCancelledUrls}
           tabGroups={tabGroups}
           filteredTabGroups={headerFilteredTabGroups}
           customProjects={customProjectsForHeader}

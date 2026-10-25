@@ -4,17 +4,17 @@ import { dndMessages } from './dndMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
 import { selectionMessages } from './selectionMessages'
-import { urlOpeningMessages } from './urlOpeningMessages'
+import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
 const messages = {
   en: {
     ...backupImportMessages.en,
     ...dndMessages.en,
     ...analyticsHealthMessages.en,
-    ...urlOpeningMessages.en,
     ...organizationActionMessages.en,
     ...reviewReminderMessages.en,
     ...selectionMessages.en,
+    ...tabOpeningErrorMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
     'aiChat.attachments.defaultName': 'attachment',
@@ -926,10 +926,10 @@ const messages = {
     ...backupImportMessages.ja,
     ...dndMessages.ja,
     ...analyticsHealthMessages.ja,
-    ...urlOpeningMessages.ja,
     ...organizationActionMessages.ja,
     ...reviewReminderMessages.ja,
     ...selectionMessages.ja,
+    ...tabOpeningErrorMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
     'aiChat.attachments.defaultName': '添付ファイル',
