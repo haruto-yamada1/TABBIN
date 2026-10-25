@@ -4,7 +4,10 @@
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { getMessage } from '@/features/i18n/lib/language'
-import { normalizeSavedTabTitles } from '@/lib/browser/normalize-saved-tab-titles'
+import {
+  NativeSavedTabTitleCaptureError,
+  normalizeSavedTabTitles,
+} from '@/lib/browser/normalize-saved-tab-titles'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { getUserSettings } from '@/lib/storage/settings'
 import { normalizeUrlCandidate } from '@/lib/url-filter'
@@ -85,7 +88,19 @@ const saveTabsInBothModes = async (
   if (tabs.length === 0) {
     return tabs
   }
-  const normalizedTabs = await normalizeSavedTabTitles(tabs)
+  let normalizedTabs: chrome.tabs.Tab[]
+  try {
+    normalizedTabs = await normalizeSavedTabTitles(tabs)
+  } catch (error) {
+    if (error instanceof NativeSavedTabTitleCaptureError) {
+      const language = await getBackgroundLanguage()
+      await showNotification(
+        getMessage(language, 'background.saveTabs.titleCaptureErrorTitle'),
+        getMessage(language, 'background.saveTabs.titleCaptureErrorMessage'),
+      )
+    }
+    throw error
+  }
   await getBackgroundSavedTabsDataPlane().saveTabs(
     normalizedTabs.map(({ title, url, ...tabMetadata }) => ({
       ...tabMetadata,

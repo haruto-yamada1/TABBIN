@@ -71,11 +71,17 @@ import {
   handleSaveWindowTabs,
 } from './extension-actions'
 
+type SendTabMessage = (
+  id: number,
+  message: unknown,
+  options?: { frameId: number },
+) => Promise<unknown>
+
 type TabsHarness = {
   query: ReturnType<typeof vi.fn>
   remove: ReturnType<typeof vi.fn>
   getAllWindows: ReturnType<typeof vi.fn>
-  sendMessage: ReturnType<typeof vi.fn>
+  sendMessage: ReturnType<typeof vi.fn<SendTabMessage>>
 }
 const createChromeTabsHarness = (): TabsHarness => {
   const query = vi.fn()
@@ -83,7 +89,7 @@ const createChromeTabsHarness = (): TabsHarness => {
   const remove = vi.fn(async () => undefined)
 
   const getAllWindows = vi.fn(async () => [])
-  const sendMessage = vi.fn(async () => undefined)
+  const sendMessage = vi.fn<SendTabMessage>(async () => undefined)
   ;(
     globalThis as {
       chrome?: typeof chrome
@@ -224,7 +230,10 @@ describe('extension-actions モジュール', () => {
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
       expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
-      expect(mocked.showNotification).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブを保存できませんでした',
+        'タブのタイトルを確認できませんでした。タブの保存やクローズは行っていません。もう一度保存してください。',
+      )
     },
   )
 
@@ -256,10 +265,104 @@ describe('extension-actions モジュール', () => {
       expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
       expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
-      expect(mocked.showNotification).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブを保存できませんでした',
+        'タブのタイトルを確認できませんでした。タブの保存やクローズは行っていません。もう一度保存してください。',
+      )
     },
   )
 
+  it.each([
+    'saveCurrentTab',
+    'saveWindowTabs',
+    'saveSameDomainTabs',
+    'saveAllWindowsTabs',
+  ] as const)(
+    'toolbar capture failure gives one localized retry notification without saving or closing: %s',
+    async (clickBehavior) => {
+      mocked.getUserSettings.mockResolvedValue(
+        buildSettings({ language: 'en', clickBehavior }),
+      )
+      const tabs = createChromeTabsHarness()
+      const marked = {
+        ...tab({
+          id: 10,
+          url: 'https://example.test/old',
+          title: '✓ Private title',
+        }),
+        incognito: false,
+      }
+      tabs.query.mockResolvedValue([marked])
+      tabs.getAllWindows.mockResolvedValue([{ tabs: [marked] }])
+      tabs.sendMessage.mockRejectedValue(
+        new Error('private browser diagnostic'),
+      )
+      await handleExtensionActionClick()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'Tabs were not saved',
+        'Could not confirm a tab title. No tabs were saved or closed by TABBIN. Retry saving the tab.',
+      )
+      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
+      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+      expect(tabs.remove).not.toHaveBeenCalled()
+      expect(JSON.stringify(mocked.showNotification.mock.calls)).not.toContain(
+        'Private title',
+      )
+      expect(JSON.stringify(mocked.showNotification.mock.calls)).not.toContain(
+        'https:',
+      )
+    },
+  )
+
+  it('one uncertain title aborts the whole batch with one retry notice and a later retry can succeed', async () => {
+    mocked.getUserSettings.mockResolvedValue(buildSettings({ language: 'en' }))
+    const tabs = createChromeTabsHarness()
+    const captures = [
+      {
+        ...tab({
+          id: 10,
+          url: 'https://example.test/first',
+          title: 'First document',
+        }),
+        incognito: false,
+      },
+      {
+        ...tab({
+          id: 11,
+          url: 'https://example.test/second',
+          title: '✓ Second document',
+        }),
+        incognito: false,
+      },
+    ]
+    tabs.query.mockResolvedValue(captures)
+    tabs.sendMessage.mockImplementation(async (id: number) =>
+      id === 10
+        ? {
+            baseTitle: 'First document',
+            displayTitle: 'First document',
+            url: captures[0]?.url,
+          }
+        : undefined,
+    )
+    await expect(handleSaveWindowTabs()).rejects.toThrow('Retry saving the tab')
+    expect(mocked.showNotification).toHaveBeenCalledTimes(1)
+    expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
+    expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+    expect(tabs.remove).not.toHaveBeenCalled()
+    tabs.sendMessage.mockImplementation(async (id: number) => ({
+      baseTitle: id === 10 ? 'First document' : 'Second document',
+      displayTitle: captures[id === 10 ? 0 : 1]?.title,
+      url: captures[id === 10 ? 0 : 1]?.url,
+    }))
+    expect(await handleSaveWindowTabs()).toEqual([
+      { url: captures[0]?.url, title: 'First document' },
+      { url: captures[1]?.url, title: 'Second document' },
+    ])
+    expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledTimes(1)
+    expect(tabs.remove).toHaveBeenCalledExactlyOnceWith([10, 11])
+    expect(mocked.showNotification).toHaveBeenCalledTimes(2)
+  })
   describe('handleSaveCurrentTab関数', () => {
     it('フィルタ後にタブが残らない場合は空を返す', async () => {
       const chromeTabs = createChromeTabsHarness()

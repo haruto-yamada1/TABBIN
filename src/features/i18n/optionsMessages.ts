@@ -3,6 +3,9 @@ import { reviewReminderMessages } from './reviewReminderMessages'
 export const optionsMessages = {
   en: {
     ...reviewReminderMessages.en,
+    'background.saveTabs.titleCaptureErrorTitle': 'Tabs were not saved',
+    'background.saveTabs.titleCaptureErrorMessage':
+      'Could not confirm a tab title. No tabs were saved or closed by TABBIN. Retry saving the tab.',
     'options.savedTabTitle.title': 'Saved marks on browser tabs',
     'options.savedTabTitle.enable': 'Show ✓ in saved tab titles',
     'options.savedTabTitle.description':
@@ -16,6 +19,9 @@ export const optionsMessages = {
   },
   ja: {
     ...reviewReminderMessages.ja,
+    'background.saveTabs.titleCaptureErrorTitle': 'タブを保存できませんでした',
+    'background.saveTabs.titleCaptureErrorMessage':
+      'タブのタイトルを確認できませんでした。タブの保存やクローズは行っていません。もう一度保存してください。',
     'options.savedTabTitle.title': 'ブラウザタブの保存済みマーク',
     'options.savedTabTitle.enable': '保存済みタブのタイトルに ✓ を表示する',
     'options.savedTabTitle.description':
