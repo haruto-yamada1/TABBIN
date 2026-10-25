@@ -1,0 +1,75 @@
+name: Dependency Security Audit
+
+on:
+  schedule:
+    # Daily at 12:23 JST; avoid the busiest start of the UTC hour.
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/security-audit.yml'
+      - 'tools/scripts/security-audit-workflow.test.ts'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Audit dependencies and expiring backport policy
+        id: audit
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run security:audit 2>&1 | tee "$RUNNER_TEMP/security-audit.log"
+      - name: Report audit outcome
+        id: report
+        if: ${{ !cancelled() }}
+        env:
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+        shell: bash
+        run: |
+          case "$AUDIT_OUTCOME" in
+            success)
+              echo '### Audit passed' >> "$GITHUB_STEP_SUMMARY"
+              echo 'Backport policy/probe passed; no High or Critical advisories.' >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            failure)
+              echo '::error title=Dependency security audit failed::Inspect the audit step and security-audit-log artifact. High/Critical findings, expired policy, and audit unavailability all require triage.'
+              echo '### Audit failed' >> "$GITHUB_STEP_SUMMARY"
+              echo 'Inspect the audit step and security-audit-log artifact for advisory details, backport policy/probe failures, or registry/network errors. No exceptions are added automatically.' >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo '::error title=Dependency security audit incomplete::The audit did not run. Inspect checkout, toolchain and install steps; restore service and rerun.'
+              echo '### Audit did not run' >> "$GITHUB_STEP_SUMMARY"
+              echo 'Setup failed before the audit. Inspect checkout, toolchain and install steps; this run does not prove dependencies safe.' >> "$GITHUB_STEP_SUMMARY"
+              ;;
+          esac
+      - name: Retain audit evidence
+        if: ${{ !cancelled() && steps.audit.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: security-audit-log
+          path: ${{ runner.temp }}/security-audit.log
+          if-no-files-found: error
+          retention-days: 14
