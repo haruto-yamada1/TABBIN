@@ -26,6 +26,7 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  * ```
  */
 export type UrlRecord = {
+  readonly isFavorite?: boolean
   readonly id: UrlRecordId
   readonly url: Url
   readonly title: string
@@ -34,6 +35,7 @@ export type UrlRecord = {
 }
 
 type CreateUrlRecordInput = {
+  isFavorite?: boolean
   id: string
   url: string
   title: string
@@ -48,6 +50,12 @@ type CreateUrlRecordInput = {
  * `title` は `string` であることだけ確認し、空文字列も許容する。
  */
 export const createUrlRecord = (input: CreateUrlRecordInput): UrlRecord => {
+  if (input.isFavorite !== undefined && typeof input.isFavorite !== 'boolean') {
+    throw new SavedTabsDomainError(
+      'UrlRecord の isFavorite は真偽値で指定してください',
+      'INVALID_URL_RECORD',
+    )
+  }
   if (typeof input.title !== 'string') {
     throw new SavedTabsDomainError(
       'UrlRecord の title は文字列で指定してください',
@@ -61,6 +69,7 @@ export const createUrlRecord = (input: CreateUrlRecordInput): UrlRecord => {
     )
   }
   return {
+    ...(input.isFavorite !== undefined ? { isFavorite: input.isFavorite } : {}),
     id: createUrlRecordId(input.id),
     url: createUrl(input.url),
     title: input.title,

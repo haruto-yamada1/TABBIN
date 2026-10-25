@@ -190,6 +190,20 @@ export const createSavedTabsUiTestDeps = ({
         }),
     }
   return {
+    setSavedUrlFavoritePort: {
+      setFavorite: async ({ url, isFavorite }) => {
+        const current = await urls()
+        if (!current.some((record) => record.url === url)) {
+          return false
+        }
+        await write({
+          urls: current.map((record) =>
+            record.url === url ? { ...record, isFavorite } : record,
+          ),
+        })
+        return true
+      },
+    },
     tabGroupRepository,
     parentCategoryRepository,
     customProjectRepository: {

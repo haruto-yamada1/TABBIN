@@ -287,10 +287,11 @@ describe.each(['domain', 'project'] as const)(
       const fake = createOpenTabsFake()
       fake.setOpen(url, true)
       render(withPort(fake))
-      expect(screen.getByRole('button', { name: /Example/ })).toHaveAttribute(
-        'aria-description',
-        '開いています',
-      )
+      expect(
+        screen.getByRole('button', {
+          name: 'ドラッグしてタブ「Example」を並べ替える',
+        }),
+      ).toHaveAttribute('aria-description', '開いています')
       expectNoInlineStatus('開いています')
     })
   },

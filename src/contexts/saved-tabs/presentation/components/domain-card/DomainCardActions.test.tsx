@@ -414,6 +414,24 @@ describe('DomainCardActions', () => {
     expect(log).toHaveBeenCalled()
   })
 
+  it('空のお気に入りフィルタで隠れている group を削除しない', async () => {
+    const user = userEvent.setup()
+    const handleDeleteGroup = vi.fn()
+    const handleDeleteUrls = vi.fn()
+    useDomainCardMock.mockReturnValue({
+      ...createContext({ handleDeleteGroup, handleDeleteUrls, urls: [] }),
+      favoriteFilter: { only: true, hasFavorites: false, setOnly: vi.fn() },
+    })
+    render(<DomainCardActions />)
+    await user.click(
+      screen.getByRole('button', {
+        name: '「example.com」のすべてのタブを削除',
+      }),
+    )
+    expect(handleDeleteGroup).not.toHaveBeenCalled()
+    expect(handleDeleteUrls).not.toHaveBeenCalled()
+  })
+
   it('検索中でも URL が無ければ group 削除へ fallback する', async () => {
     const user = userEvent.setup()
     const handleDeleteGroup = vi.fn()

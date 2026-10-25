@@ -31,6 +31,7 @@ import {
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
 import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
+import { SavedUrlFavoriteButton } from './shared/SavedUrlFavoriteButton'
 
 const MAX_URL_PREVIEW_LENGTH = 30
 
@@ -287,6 +288,11 @@ const ProjectUrlItemComponent = ({
             descriptionId={openStateDescriptionId}
           />
         </div>
+        <SavedUrlFavoriteButton
+          url={originalUrl}
+          title={item.title}
+          isFavorite={item.isFavorite ?? false}
+        />
         {/* タイトル＋バッジ部 */}
         <div className='flex min-w-0 flex-1 items-center'>
           {safeHref ? (

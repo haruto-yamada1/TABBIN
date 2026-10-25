@@ -1193,3 +1193,21 @@ describe('useDomainCardState', () => {
     expect(getSavedTabsPageDataQuery).not.toHaveBeenCalled()
   })
 })
+
+describe('favorite priority', () => {
+  it.each(['default', 'asc', 'desc'] as const)(
+    'pins favorites before %s sorting without mutating manual order',
+    (order) => {
+      const urls = [
+        { url: 'a', title: 'A', savedAt: 1 },
+        { url: 'b', title: 'B', savedAt: 2, isFavorite: true },
+        { url: 'c', title: 'C', savedAt: 3 },
+      ]
+      const before = structuredClone(urls)
+      expect(sortUrlsByOrder(urls, order)?.map(({ url }) => url)).toEqual(
+        order === 'desc' ? ['b', 'c', 'a'] : ['b', 'a', 'c'],
+      )
+      expect(urls).toEqual(before)
+    },
+  )
+})

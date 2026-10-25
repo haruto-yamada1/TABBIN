@@ -52,6 +52,7 @@ const isCollectionDefinition = (
 
 export const isPersistenceV2Url = (value: unknown): value is PersistenceV2Url =>
   isJsonRecord(value) &&
+  (value.isFavorite === undefined || typeof value.isFavorite === 'boolean') &&
   isOptionalString(value.favIconUrl) &&
   typeof value.firstSavedAt === 'number' &&
   isOptionalTimestampProvenance(value.firstSavedAtProvenance) &&

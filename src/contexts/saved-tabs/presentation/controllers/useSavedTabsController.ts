@@ -178,6 +178,9 @@ const copyRestoreSnapshot = (
   ...(snapshot.urlRecords !== undefined
     ? {
         urlRecords: snapshot.urlRecords.map((record) => ({
+          ...(record.isFavorite !== undefined
+            ? { isFavorite: record.isFavorite }
+            : {}),
           id: record.id,
           savedAt: record.savedAt,
           title: record.title,

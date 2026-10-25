@@ -18,10 +18,12 @@ import type { NotificationPort } from './ports/NotificationPort'
 import type { RemoveSubCategoryFromTabGroupPort } from './ports/RemoveSubCategoryFromTabGroupPort'
 import type { SavedTabsTabGroupReadPort } from './ports/SavedTabsTabGroupReadPort'
 import type { SetCategoryKeywordsPort } from './ports/SetCategoryKeywordsPort'
+import type { SetSavedUrlFavoritePort } from './ports/SetSavedUrlFavoritePort'
 import type { StorageChangePort } from './ports/StorageChangePort'
 
 /** Dependencies required to construct and present the saved-tabs use cases. */
 export type SavedTabsUseCasesDeps = {
+  readonly setSavedUrlFavoritePort: SetSavedUrlFavoritePort
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
   readonly categoriesCommandService: CategoriesCommandService

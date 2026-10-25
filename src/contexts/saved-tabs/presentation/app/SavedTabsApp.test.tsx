@@ -632,6 +632,7 @@ describe('SavedTabsApp custom search', () => {
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
       savedTabsUseCases: {
+        setSavedUrlFavorite: vi.fn(),
         addDomainToParentCategory: vi.fn(),
         assignDomainToCategory: vi.fn(),
         buildSavedTabsSnapshot: vi.fn(),
@@ -712,6 +713,7 @@ describe('SavedTabsApp custom search', () => {
     await notifyDeleteFailure({
       refreshTabGroupsWithUrls,
       savedTabsUseCases: {
+        setSavedUrlFavorite: vi.fn(),
         addDomainToParentCategory: vi.fn(),
         assignDomainToCategory: vi.fn(),
         buildSavedTabsSnapshot: vi.fn(),

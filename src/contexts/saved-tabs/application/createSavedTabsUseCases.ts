@@ -54,6 +54,7 @@ import { createSaveCustomProjectOrderUseCase } from './use-cases/SaveCustomProje
 import { createSaveCustomProjectsUseCase } from './use-cases/SaveCustomProjectsUseCase'
 import { createSetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
 import { createSetCustomProjectUrlCategoryUseCase } from './use-cases/SetCustomProjectUrlCategoryUseCase'
+import { createSetSavedUrlFavoriteUseCase } from './use-cases/SetSavedUrlFavoriteUseCase'
 import { createSyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
 import { createUpdateCustomProjectCategoryOrderUseCase } from './use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import { createUpdateCustomProjectKeywordsUseCase } from './use-cases/UpdateCustomProjectKeywordsUseCase'
@@ -87,6 +88,9 @@ export type { SavedTabsUseCases }
 export const createSavedTabsUseCases = (
   deps: SavedTabsUseCasesDeps,
 ): SavedTabsUseCases => ({
+  setSavedUrlFavorite: createSetSavedUrlFavoriteUseCase({
+    setSavedUrlFavoritePort: deps.setSavedUrlFavoritePort,
+  }),
   addDomainToParentCategory: createAddDomainToParentCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,
   }),

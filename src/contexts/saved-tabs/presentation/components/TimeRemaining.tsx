@@ -40,7 +40,9 @@ export const CategorySection = ({
   const canReorderUrls = useUrlReorderAvailable()
   const accessibility = useDndAccessibility('immediate')
   const { t } = useI18n()
-  const urlsKey = urls.map((item) => item.url).join('\0')
+  const urlsKey = JSON.stringify(
+    urls.map((item) => [item.url, item.isFavorite ?? false]),
+  )
   const [optimisticOrder, setOptimisticOrder] = useState<{
     sourceKey: string
     urls: typeof urls
@@ -124,6 +126,7 @@ export const CategorySection = ({
           <ul className='space-y-0.5'>
             {displayUrls.map((item) => (
               <SortableUrlItem
+                isFavorite={item.isFavorite ?? false}
                 url={item.url}
                 title={item.title}
                 id={item.url}

@@ -87,6 +87,7 @@ vi.mock('./SavedTabsChatWidgetBridge', () => ({
  */
 const buildLayoutComposition = () => {
   const deps: SavedTabsUseCasesDeps = {
+    setSavedUrlFavoritePort: { setFavorite: async () => false },
     browserTabPort: {
       open: async (input: { url: string }) => ({ url: input.url }),
     },

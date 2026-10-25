@@ -239,6 +239,35 @@ const createProps = (
 })
 
 describe('CustomProjectCategory', () => {
+  it('keeps favorites ahead of date ordering inside a category', async () => {
+    const user = userEvent.setup()
+    render(
+      <CustomProjectCategory
+        {...createProps({
+          urls: [
+            { url: 'https://a.com', title: 'A', category: 'Work', savedAt: 1 },
+            {
+              url: 'https://b.com',
+              title: 'B',
+              category: 'Work',
+              savedAt: 2,
+              isFavorite: true,
+            },
+            { url: 'https://c.com', title: 'C', category: 'Work', savedAt: 3 },
+          ],
+        })}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'デフォルト' }))
+    expect(screen.getAllByTestId('project-url-item')[0]).toHaveTextContent(
+      'https://b.com',
+    )
+    await user.click(screen.getByRole('button', { name: '保存日時の昇順' }))
+    expect(screen.getAllByTestId('project-url-item')[0]).toHaveTextContent(
+      'https://b.com',
+    )
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     customProjectCategoryI18nState.language = 'ja'

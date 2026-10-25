@@ -45,6 +45,9 @@ export const createGetProjectUrlsUseCase = (
       const entry: ProjectUrlEntry = {
         ...(category ? { category } : {}),
         ...(record.favIconUrl ? { favIconUrl: record.favIconUrl } : {}),
+        ...(record.isFavorite !== undefined
+          ? { isFavorite: record.isFavorite }
+          : {}),
         id: record.id,
         ...(membership.notes ? { notes: membership.notes } : {}),
         savedAt: record.savedAt,

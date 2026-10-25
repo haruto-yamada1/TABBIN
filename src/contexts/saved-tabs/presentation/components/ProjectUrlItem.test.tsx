@@ -236,7 +236,7 @@ describe('ProjectUrlItem', () => {
     expect(link).toHaveAttribute('href', item.url)
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
     const titleLabel = screen.getByTestId('project-url-title')
     expect(titleLabel?.className).toContain('min-w-0')
     expect(titleLabel?.className).toContain('truncate')

@@ -512,6 +512,9 @@ const removeExpiredUrls = (
       continue
     }
     sourceCount += 1
+    if (urls.get(membership.urlId)?.isFavorite) {
+      continue
+    }
     const savedAt =
       urls.get(membership.urlId)?.lastSavedAt ?? collection.createdAt
     if (savedAt < cutoffTime) {

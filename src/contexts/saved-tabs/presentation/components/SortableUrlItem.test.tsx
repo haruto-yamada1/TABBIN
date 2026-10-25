@@ -209,7 +209,7 @@ describe('SortableUrlItem', () => {
     )
     expect(openLink).toHaveAttribute('target', '_blank')
     expect(openLink).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
 
     const textColumn = screen.getByTestId('url-text-column')
     expect(textColumn).toHaveClass('min-w-0')

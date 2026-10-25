@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { CardCollapseControl } from '@/contexts/saved-tabs/presentation/components/shared/CardCollapseControl'
+import { CardFavoriteFilter } from '@/contexts/saved-tabs/presentation/components/shared/CardFavoriteFilter'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import { CardGroupTitle } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupTitle'
 import { CardSortControl } from '@/contexts/saved-tabs/presentation/components/shared/CardSortControl'
@@ -11,6 +12,10 @@ import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentatio
 import { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
 import { useSavedTabsSortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSortOrder'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
+import {
+  canReorderFavoriteDisplay,
+  getFavoriteDisplayUrls,
+} from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -25,13 +30,14 @@ const BULK_OPEN_THRESHOLD = 10
 const sortProjectUrls = <
   T extends {
     savedAt?: number
+    isFavorite?: boolean
   },
 >(
   urls: T[],
   sortOrder: SortOrder,
 ) => {
   if (sortOrder === 'default') {
-    return urls
+    return getFavoriteDisplayUrls(urls)
   }
 
   const sortedUrls = [...urls]
@@ -40,7 +46,7 @@ const sortProjectUrls = <
     sortedUrls.reverse()
   }
 
-  return sortedUrls
+  return getFavoriteDisplayUrls(sortedUrls)
 }
 
 /** ProjectCardRoot の props */
@@ -121,6 +127,7 @@ export const ProjectCardRoot = ({
   children,
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
   const {
     sortOrder,
     setSortOrder,
@@ -151,8 +158,12 @@ export const ProjectCardRoot = ({
 
   const { urls, dnd, categoryOrder } = hookState
   const sortedProjectUrls = useMemo(
-    () => sortProjectUrls(urls.projectUrls, sortOrder),
-    [urls.projectUrls, sortOrder],
+    () =>
+      getFavoriteDisplayUrls(
+        sortProjectUrls(urls.projectUrls, sortOrder),
+        favoritesOnly,
+      ),
+    [urls.projectUrls, sortOrder, favoritesOnly],
   )
   const sortedUncategorizedUrls = useMemo(
     () => sortedProjectUrls.filter((url) => !url.category),
@@ -277,6 +288,12 @@ export const ProjectCardRoot = ({
               sortOrder={sortOrder}
               setSortOrder={setSortOrder}
             />
+            <CardFavoriteFilter
+              only={favoritesOnly}
+              setOnly={setFavoritesOnly}
+              name={project.name}
+              hasFavorites={urls.projectUrls.some((url) => url.isFavorite)}
+            />
             <CardGroupTitle
               title={project.name}
               badges={titleBadges}
@@ -320,7 +337,13 @@ export const ProjectCardRoot = ({
               isEmpty={urls.projectUrls.length === 0}
               isExternalItemOver={isExternalItemOver}
             >
-              <UrlReorderAvailabilityContext value={canReorderUrls}>
+              <UrlReorderAvailabilityContext
+                value={canReorderFavoriteDisplay(
+                  urls.projectUrls,
+                  favoritesOnly,
+                  canReorderUrls,
+                )}
+              >
                 {children}
               </UrlReorderAvailabilityContext>
             </ProjectCardBody>

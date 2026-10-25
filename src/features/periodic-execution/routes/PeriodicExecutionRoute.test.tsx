@@ -178,7 +178,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'options.autoDelete.openAfterDescription':
             'When enabled, a saved tab is removed from the list after you open it. When disabled, the tab stays in the list.',
           'options.autoDelete.periodDescription':
-            'Saved tabs are deleted automatically when they exceed the selected period. Applying the setting deletes tabs that have already expired.',
+            'Saved tabs are deleted automatically when they exceed the selected period. Applying the setting deletes tabs that have already expired. Favorites are excluded.',
           'options.autoDelete.periodLabel': 'Auto-delete period for tabs',
           'options.autoDelete.apply': 'Apply',
           'options.autoDelete.disabled': 'Disabled auto delete',

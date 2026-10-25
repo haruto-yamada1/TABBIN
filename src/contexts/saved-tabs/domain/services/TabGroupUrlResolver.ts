@@ -100,6 +100,9 @@ export const resolveGroupUrls = ({
       : undefined
     return [
       {
+        ...(record.isFavorite !== undefined
+          ? { isFavorite: record.isFavorite }
+          : {}),
         id: recordId,
         savedAt: record.savedAt,
         title: record.title,

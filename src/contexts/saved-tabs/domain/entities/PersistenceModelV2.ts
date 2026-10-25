@@ -17,6 +17,8 @@ export type PersistenceV2CollectionDefinition =
     }
 
 export type PersistenceV2Url = {
+  /** Absent in older databases and backups; treated as false. */
+  readonly isFavorite?: boolean
   readonly favIconUrl?: string
   readonly firstSavedAt: number
   readonly firstSavedAtProvenance?: PersistenceTimestampProvenance

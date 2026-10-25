@@ -51,6 +51,7 @@ import type { SaveCustomProjectOrderUseCase } from './use-cases/SaveCustomProjec
 import type { SaveCustomProjectsUseCase } from './use-cases/SaveCustomProjectsUseCase'
 import type { SetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
 import type { SetCustomProjectUrlCategoryUseCase } from './use-cases/SetCustomProjectUrlCategoryUseCase'
+import type { SetSavedUrlFavoriteUseCase } from './use-cases/SetSavedUrlFavoriteUseCase'
 import type { SyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
 import type { UpdateCustomProjectCategoryOrderUseCase } from './use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import type { UpdateCustomProjectKeywordsUseCase } from './use-cases/UpdateCustomProjectKeywordsUseCase'
@@ -76,6 +77,7 @@ import type { UpdateCustomProjectNameUseCase } from './use-cases/UpdateCustomPro
  * および `src/app/composition/createSavedTabsUseCases.ts` が提供する。
  */
 export type SavedTabsUseCases = {
+  readonly setSavedUrlFavorite: SetSavedUrlFavoriteUseCase
   readonly openSavedUrl: OpenSavedUrlUseCase
   readonly openAllSavedUrls: OpenAllSavedUrlsUseCase
   readonly deleteTabGroup: DeleteTabGroupUseCase

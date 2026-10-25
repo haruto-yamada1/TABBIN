@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { savedTabsDefaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
@@ -248,5 +249,66 @@ describe('DomainCardRoot', () => {
     )
 
     expect(screen.getByText('0')).toBeTruthy()
+  })
+})
+
+const FavoriteConsumer = () => {
+  const { state, favoriteFilter } = useDomainCard()
+  const toggle = () => favoriteFilter?.setOnly(!favoriteFilter.only)
+  return (
+    <>
+      <button type='button' onClick={toggle}>
+        Filter favorites
+      </button>
+      <div data-testid='visible-favorites'>
+        {Object.values(state.computed.categorizedUrls)
+          .flat()
+          .map(({ title }) => title)
+          .join(',')}
+      </div>
+    </>
+  )
+}
+
+describe('favorite filter category safety', () => {
+  it('filters only the display projection, keeping the complete category state for persistence', async () => {
+    useSortableMock.mockReturnValue({
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+    })
+    const state = createState()
+    state.computed.categorizedUrls.news = [
+      { url: 'https://example.com/news', title: 'News', isFavorite: true },
+    ]
+    useDomainCardStateMock.mockReturnValue(state)
+    const group = {
+      id: 'group-1',
+      domain: 'example.com',
+      subCategories: ['news', 'tech'],
+      urls: Object.values(state.computed.categorizedUrls).flat(),
+    }
+    render(
+      <DomainCardRoot
+        group={group}
+        settings={savedTabsDefaultUserSettings}
+        handlers={defaultHandlers}
+        reorderTabGroupUrlsUseCase={vi.fn()}
+      >
+        <FavoriteConsumer />
+      </DomainCardRoot>,
+    )
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Filter favorites' }))
+    expect(screen.getByTestId('visible-favorites')).toHaveTextContent('News')
+    expect(screen.getByTestId('visible-favorites')).not.toHaveTextContent(
+      'Tech',
+    )
+    expect(useDomainCardStateMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ group }),
+    )
+    expect(state.computed.categorizedUrls.tech).toHaveLength(1)
+    cleanup()
   })
 })

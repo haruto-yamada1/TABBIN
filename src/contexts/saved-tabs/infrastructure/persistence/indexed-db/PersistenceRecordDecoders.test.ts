@@ -23,6 +23,34 @@ const collection = {
 }
 
 describe('PersistenceRecordDecoders', () => {
+  it('rejects malformed favorite metadata without coercing it to false', () => {
+    const url = {
+      id: 'url',
+      url: 'https://example.com/',
+      normalizedUrl: 'https://example.com/',
+      title: 'Example',
+      firstSavedAt: 1,
+      lastSavedAt: 1,
+      updatedAt: 1,
+    }
+    for (const isFavorite of [true, false, undefined]) {
+      expect(
+        isPersistenceV2Url(
+          isFavorite === undefined ? url : { ...url, isFavorite },
+        ),
+      ).toBe(true)
+    }
+    for (const isFavorite of ['true', null, 1]) {
+      expect(() =>
+        decodePersistenceRecords(
+          [{ ...url, isFavorite }],
+          isPersistenceV2Url,
+          'urls',
+        ),
+      ).toThrow(PersistenceRecordDecodeError)
+    }
+  })
+
   it.each([0, 1, Number.MAX_SAFE_INTEGER])(
     'preserves uncategorized insertion position %s when decoding collections',
     (position) => {

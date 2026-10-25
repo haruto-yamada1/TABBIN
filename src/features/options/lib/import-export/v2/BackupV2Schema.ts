@@ -53,6 +53,7 @@ const persistenceV2CollectionDefinitionSchema = z.discriminatedUnion('type', [
 
 export const PersistenceV2UrlSchema: z.ZodType<PersistenceV2Url> = z
   .strictObject({
+    isFavorite: z.boolean().optional(),
     favIconUrl: z.string().optional(),
     firstSavedAt: BackupV2EpochMillisecondsSchema,
     firstSavedAtProvenance: z.enum(['exact', 'legacy-fallback']).optional(),
@@ -66,6 +67,7 @@ export const PersistenceV2UrlSchema: z.ZodType<PersistenceV2Url> = z
   })
   .refine(isJsonValue, { error: 'Expected a JSON-safe saved URL' })
   .transform((value): PersistenceV2Url => ({
+    ...(value.isFavorite !== undefined ? { isFavorite: value.isFavorite } : {}),
     ...(value.favIconUrl !== undefined ? { favIconUrl: value.favIconUrl } : {}),
     firstSavedAt: value.firstSavedAt,
     ...(value.firstSavedAtProvenance !== undefined

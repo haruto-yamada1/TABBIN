@@ -136,6 +136,9 @@ export const toSavedTabsUrlRecordDto = (
   record: UrlRecord,
 ): SavedTabsUrlRecordDto => {
   const dto: Mutable<SavedTabsUrlRecordDto> = {
+    ...(record.isFavorite !== undefined
+      ? { isFavorite: record.isFavorite }
+      : {}),
     id: record.id,
     savedAt: record.savedAt,
     title: record.title,
