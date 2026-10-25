@@ -4,6 +4,7 @@
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { getMessage } from '@/features/i18n/lib/language'
+import { normalizeSavedTabTitles } from '@/lib/browser/normalize-saved-tab-titles'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { getUserSettings } from '@/lib/storage/settings'
 import { normalizeUrlCandidate } from '@/lib/url-filter'
@@ -78,17 +79,21 @@ const toResultItems = (
     return items
   }, [])
 
-const saveTabsInBothModes = async (tabs: chrome.tabs.Tab[]): Promise<void> => {
+const saveTabsInBothModes = async (
+  tabs: chrome.tabs.Tab[],
+): Promise<chrome.tabs.Tab[]> => {
   if (tabs.length === 0) {
-    return
+    return tabs
   }
+  const normalizedTabs = await normalizeSavedTabTitles(tabs)
   await getBackgroundSavedTabsDataPlane().saveTabs(
-    tabs.map(({ title, url, ...tabMetadata }) => ({
+    normalizedTabs.map(({ title, url, ...tabMetadata }) => ({
       ...tabMetadata,
       ...(url !== undefined ? { url } : {}),
       ...(title !== undefined ? { title } : {}),
     })),
   )
+  return normalizedTabs
 }
 
 const notifyAndCloseTabs = async (
@@ -177,11 +182,13 @@ export const handleSaveCurrentTab = async (): Promise<
   console.log(`現在のタブを保存: ${redactUrlForLog(activeTab.url)}`)
 
   // タブを保存
-  const [, notificationTitle, notificationMessage] = await Promise.all([
-    saveTabsInBothModes([activeTab]),
-    getBackgroundText('background.saveTabs.notificationTitle'),
-    getBackgroundText('background.saveTabs.currentTabSaved'),
-  ])
+  const [savedTabs, notificationTitle, notificationMessage] = await Promise.all(
+    [
+      saveTabsInBothModes([activeTab]),
+      getBackgroundText('background.saveTabs.notificationTitle'),
+      getBackgroundText('background.saveTabs.currentTabSaved'),
+    ],
+  )
 
   await showNotification(notificationTitle, notificationMessage)
   if (activeTab.id) {
@@ -194,7 +201,7 @@ export const handleSaveCurrentTab = async (): Promise<
         console.error('タブを閉じる際にエラー:', error)
       })
   }
-  return toResultItems([activeTab])
+  return toResultItems(savedTabs)
 }
 /**
  * 現在のドメインのタブをすべて保存
@@ -246,7 +253,7 @@ export const handleSaveSameDomainTabs = async (): Promise<
     console.log(`同じドメインのタブ数: ${filteredTabs.length}`)
 
     // タブを保存
-    const [, settings, notificationTitle, notificationMessage] =
+    const [savedTabs, settings, notificationTitle, notificationMessage] =
       await Promise.all([
         saveTabsInBothModes(filteredTabs),
         getUserSettings(),
@@ -272,7 +279,7 @@ export const handleSaveSameDomainTabs = async (): Promise<
       notificationMessage,
       tabIdsToClose,
     )
-    return toResultItems(filteredTabs)
+    return toResultItems(savedTabs)
   } catch (error) {
     console.error('ドメインタブ保存エラー:', error)
     return []
@@ -303,7 +310,7 @@ export const handleSaveAllWindowsTabs = async (): Promise<
     console.log(`保存対象タブ数: ${filteredTabs.length}`)
 
     // タブを保存
-    const [, notificationTitle, notificationMessage, savedTabsTabId] =
+    const [savedTabs, notificationTitle, notificationMessage, savedTabsTabId] =
       await Promise.all([
         saveTabsInBothModes(filteredTabs),
         getBackgroundText('background.saveTabs.notificationTitle'),
@@ -325,7 +332,7 @@ export const handleSaveAllWindowsTabs = async (): Promise<
       notificationMessage,
       tabIdsToClose,
     )
-    return toResultItems(filteredTabs)
+    return toResultItems(savedTabs)
   } catch (error) {
     console.error('すべてのタブ保存エラー:', error)
     return []
@@ -356,7 +363,7 @@ export const handleSaveWindowTabs = async (): Promise<
   console.log(`保存対象タブ: ${filteredTabs.length}個`)
 
   // タブを保存して自動カテゴライズする
-  await saveTabsInBothModes(filteredTabs)
+  const savedTabs = await saveTabsInBothModes(filteredTabs)
   console.log('タブの保存と自動カテゴライズが完了しました')
   const [savedTabsTabId, settings, notificationTitle, notificationMessage] =
     await Promise.all([
@@ -400,5 +407,5 @@ export const handleSaveWindowTabs = async (): Promise<
   } else {
     console.log('閉じるべきタブはありません')
   }
-  return toResultItems(filteredTabs)
+  return toResultItems(savedTabs)
 }

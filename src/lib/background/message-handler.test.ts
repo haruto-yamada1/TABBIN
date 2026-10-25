@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import { logger } from '@/lib/logging/logger'
+import { backgroundMessageSchema } from '@/types/background'
 
 const mocked = vi.hoisted(() => ({
   checkAndRemoveExpiredTabs: vi.fn(),
@@ -12,6 +13,7 @@ const mocked = vi.hoisted(() => ({
   listLocalOllamaModels: vi.fn(),
   removeUrlRecordsFromStorage: vi.fn(),
   removeUrlFromStorage: vi.fn(),
+  refreshSavedTabTitleIndicator: vi.fn(),
   runAiChatRequest: vi.fn(),
   updateTabTimestamps: vi.fn(),
 }))
@@ -35,15 +37,39 @@ vi.mock('./ai-chat', () => ({
   runAiChatRequest: mocked.runAiChatRequest,
 }))
 
+vi.mock('./saved-tab-title-indicator', () => ({
+  refreshSavedTabTitleIndicator: mocked.refreshSavedTabTitleIndicator,
+}))
+
 import { setupMessageListener } from './message-handler'
 
 type ChromeMessageListener = (
   message: unknown,
-  sender: chrome.runtime.MessageSender,
+  sender: unknown,
   sendResponse: (response: unknown) => void,
 ) => boolean
 
 type ChromePortListener = (port: chrome.runtime.Port) => void
+
+const trustedSender: chrome.runtime.MessageSender = {
+  id: 'test-extension-id',
+  url: 'chrome-extension://test-extension-id/app.html',
+}
+
+const rejectedSenders = [
+  undefined,
+  null,
+  {},
+  { id: 'test-extension-id' },
+  { url: trustedSender.url },
+  { ...trustedSender, id: 'foreign-extension-id' },
+  { ...trustedSender, url: 'https://example.com/app.html' },
+  { ...trustedSender, url: 'chrome-extension://foreign/app.html' },
+  { ...trustedSender, url: 'chrome-extension://test-extension-id/frame.html' },
+  { ...trustedSender, origin: 'https://example.com' },
+  { ...trustedSender, frameId: 1 },
+  { ...trustedSender, tab: { incognito: true } },
+]
 
 describe('setupMessageListener', () => {
   const setupListener = () => {
@@ -59,6 +85,9 @@ describe('setupMessageListener', () => {
         get: vi.fn((_name, callback) => callback?.(null)), // eslint-disable-line
       },
       runtime: {
+        getURL: (path: string) =>
+          `chrome-extension://test-extension-id/${path}`,
+        id: 'test-extension-id',
         onConnect: {
           addListener: vi.fn((callback) => {
             // eslint-disable-line
@@ -99,6 +128,157 @@ describe('setupMessageListener', () => {
     vi.clearAllMocks()
   })
 
+  it.each(rejectedSenders)(
+    'rejects every privileged message from an untrusted sender: %j',
+    (sender) => {
+      const { listener } = setupListener()
+      mocked.handleUrlDropped.mockResolvedValue('removed')
+      mocked.removeUrlFromStorage.mockResolvedValue(undefined)
+      mocked.removeUrlRecordsFromStorage.mockResolvedValue(1)
+      mocked.checkAndRemoveExpiredTabs.mockResolvedValue(undefined)
+      mocked.updateTabTimestamps.mockResolvedValue(undefined)
+      mocked.listLocalOllamaModels.mockResolvedValue([])
+      mocked.runAiChatRequest.mockResolvedValue({ answer: '', recordCount: 0 })
+
+      const messages = [
+        { action: 'urlDragStarted', url: 'https://example.com' },
+        {
+          action: 'urlDropped',
+          url: 'https://example.com',
+          fromExternal: true,
+        },
+        { action: 'removeUrlFromStorage', url: 'https://example.com' },
+        { action: 'removeUrlRecordsFromStorage', urlIds: ['record'] },
+        {
+          action: 'calculateTimeRemaining',
+          autoDeletePeriod: '1day',
+          savedAt: 1,
+        },
+        { action: 'checkExpiredTabs' },
+        { action: 'updateTabTimestamps' },
+        { action: 'getAlarmStatus' },
+        { action: 'listOllamaModels' },
+        { action: 'runAiChat', history: [], prompt: 'private saved data' },
+        { action: 'refreshNativeSavedTabTitles' },
+      ]
+
+      for (const message of messages) {
+        const sendResponse = vi.fn()
+        expect(listener(message, sender, sendResponse)).toBe(false)
+        expect(sendResponse).toHaveBeenCalledWith({ status: 'forbidden' })
+      }
+
+      expect(mocked.refreshSavedTabTitleIndicator).not.toHaveBeenCalled()
+      expect(mocked.handleUrlDragStarted).not.toHaveBeenCalled()
+      expect(mocked.handleUrlDropped).not.toHaveBeenCalled()
+      expect(mocked.removeUrlFromStorage).not.toHaveBeenCalled()
+      expect(mocked.removeUrlRecordsFromStorage).not.toHaveBeenCalled()
+      expect(mocked.getExpirationPeriodMs).not.toHaveBeenCalled()
+      expect(mocked.checkAndRemoveExpiredTabs).not.toHaveBeenCalled()
+      expect(mocked.updateTabTimestamps).not.toHaveBeenCalled()
+      expect(chrome.alarms.get).not.toHaveBeenCalled()
+      expect(mocked.listLocalOllamaModels).not.toHaveBeenCalled()
+      expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(rejectedSenders)(
+    'disconnects untrusted streaming ports before registering a handler: %j',
+    (sender) => {
+      const { portListener } = setupListener()
+      const port = {
+        disconnect: vi.fn(),
+        name: 'ai-chat-stream',
+        onDisconnect: { addListener: vi.fn() },
+        onMessage: { addListener: vi.fn() },
+        postMessage: vi.fn(),
+        sender,
+      } as unknown as chrome.runtime.Port
+
+      portListener(port)
+
+      expect(port.disconnect).toHaveBeenCalledOnce()
+      expect(port.onMessage.addListener).not.toHaveBeenCalled()
+      expect(port.onDisconnect.addListener).not.toHaveBeenCalled()
+      expect(port.postMessage).not.toHaveBeenCalled()
+      expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
+    },
+  )
+
+  it('accepts only the no-payload title refresh action', () => {
+    expect(
+      backgroundMessageSchema.safeParse({
+        action: 'refreshNativeSavedTabTitles',
+      }).success,
+    ).toBe(true)
+    expect(
+      backgroundMessageSchema.safeParse({
+        action: 'refreshNativeSavedTabTitles',
+        url: 'https://private.example',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('rejects title refresh messages carrying extra payload without refreshing', () => {
+    const { listener } = setupListener()
+    const sendResponse = vi.fn()
+    expect(
+      listener(
+        {
+          action: 'refreshNativeSavedTabTitles',
+          url: 'https://private.example',
+        },
+        trustedSender,
+        sendResponse,
+      ),
+    ).toBe(false)
+    expect(sendResponse).toHaveBeenCalledWith({ status: 'invalid_message' })
+    expect(mocked.refreshSavedTabTitleIndicator).not.toHaveBeenCalled()
+  })
+
+  it('waits for title refresh before replying with success', async () => {
+    const { listener } = setupListener()
+    let finish: (() => void) | undefined
+    mocked.refreshSavedTabTitleIndicator.mockImplementationOnce(
+      async () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        }),
+    )
+    const sendResponse = vi.fn()
+    expect(
+      listener(
+        { action: 'refreshNativeSavedTabTitles' },
+        trustedSender,
+        sendResponse,
+      ),
+    ).toBe(true)
+    expect(mocked.refreshSavedTabTitleIndicator).toHaveBeenCalledOnce()
+    expect(sendResponse).not.toHaveBeenCalled()
+    finish?.()
+    await vi.waitFor(() =>
+      expect(sendResponse).toHaveBeenCalledWith({ status: 'ok' }),
+    )
+  })
+
+  it('returns a fixed error when title refresh fails', async () => {
+    const { listener } = setupListener()
+    mocked.refreshSavedTabTitleIndicator.mockRejectedValueOnce(
+      new Error('private saved URL'),
+    )
+    const sendResponse = vi.fn()
+    expect(
+      listener(
+        { action: 'refreshNativeSavedTabTitles' },
+        trustedSender,
+        sendResponse,
+      ),
+    ).toBe(true)
+    await vi.waitFor(() =>
+      expect(sendResponse).toHaveBeenCalledWith({ status: 'error' }),
+    )
+  })
+
   it('listOllamaModels を受けたらモデル一覧を返す', async () => {
     const { listener } = setupListener()
     mocked.listLocalOllamaModels.mockResolvedValue([
@@ -113,7 +293,7 @@ describe('setupMessageListener', () => {
       {
         action: 'listOllamaModels',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       sendResponse,
     )
 
@@ -179,7 +359,7 @@ describe('setupMessageListener', () => {
         history: [],
         prompt: 'test',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       sendResponse,
     )
 
@@ -255,7 +435,7 @@ describe('setupMessageListener', () => {
           ],
           prompt: 'secret prompt',
         },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         vi.fn(),
       )
 
@@ -279,9 +459,7 @@ describe('setupMessageListener', () => {
     const invalidAiChatHistoryResponse = vi.fn()
     const unknownResponse = vi.fn()
 
-    expect(
-      listener(null, {} as chrome.runtime.MessageSender, invalidResponse),
-    ).toBe(false)
+    expect(listener(null, trustedSender, invalidResponse)).toBe(false)
     expect(invalidResponse).toHaveBeenCalledWith({
       status: 'invalid_message',
     })
@@ -289,7 +467,7 @@ describe('setupMessageListener', () => {
     expect(
       listener(
         { action: 'removeUrlFromStorage', url: 1 },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         invalidRemoveResponse,
       ),
     ).toBe(false)
@@ -301,7 +479,7 @@ describe('setupMessageListener', () => {
     expect(
       listener(
         { action: 'removeUrlRecordsFromStorage', urlIds: 'invalid' },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         invalidBulkRemoveResponse,
       ),
     ).toBe(false)
@@ -317,7 +495,7 @@ describe('setupMessageListener', () => {
           history: [],
           prompt: 1,
         },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         invalidAiChatPromptResponse,
       ),
     ).toBe(false)
@@ -333,7 +511,7 @@ describe('setupMessageListener', () => {
           history: 'invalid',
           prompt: 'test',
         },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         invalidAiChatHistoryResponse,
       ),
     ).toBe(false)
@@ -343,11 +521,7 @@ describe('setupMessageListener', () => {
     expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
 
     expect(
-      listener(
-        { action: 'unknown' },
-        {} as chrome.runtime.MessageSender,
-        unknownResponse,
-      ),
+      listener({ action: 'unknown' }, trustedSender, unknownResponse),
     ).toBe(false)
     expect(unknownResponse).toHaveBeenCalledWith({
       status: 'unknown_action',
@@ -366,7 +540,7 @@ describe('setupMessageListener', () => {
     expect(
       listener(
         { action: 'urlDragStarted', url: 'https://example.com' },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         dragStartedResponse,
       ),
     ).toBe(true)
@@ -381,7 +555,7 @@ describe('setupMessageListener', () => {
         fromExternal: true,
         url: 'https://example.com',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       droppedResponse,
     )
     await vi.waitFor(() => {
@@ -396,7 +570,7 @@ describe('setupMessageListener', () => {
         fromExternal: false,
         url: 'https://example.com',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       internalResponse,
     )
     expect(internalResponse).toHaveBeenCalledWith({
@@ -408,7 +582,7 @@ describe('setupMessageListener', () => {
         action: 'removeUrlFromStorage',
         url: 'https://example.com',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       removeResponse,
     )
     await vi.waitFor(() => {
@@ -425,7 +599,7 @@ describe('setupMessageListener', () => {
         fromExternal: true,
         url: 'https://example.com',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       dropErrorResponse,
     )
     await vi.waitFor(() => {
@@ -442,7 +616,7 @@ describe('setupMessageListener', () => {
         action: 'removeUrlFromStorage',
         url: 'https://example.com',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       removeErrorResponse,
     )
     await vi.waitFor(() => {
@@ -471,7 +645,7 @@ describe('setupMessageListener', () => {
         action: 'removeUrlRecordsFromStorage',
         urlIds: ['url-1', 'url-2'],
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       bulkRemoveResponse,
     )
     await vi.waitFor(() => {
@@ -490,7 +664,7 @@ describe('setupMessageListener', () => {
         action: 'removeUrlRecordsFromStorage',
         urlIds: [],
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       emptyBulkRemoveResponse,
     )
     await vi.waitFor(() => {
@@ -505,7 +679,7 @@ describe('setupMessageListener', () => {
         action: 'removeUrlRecordsFromStorage',
         urlIds: ['url-1'],
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       bulkRemoveErrorResponse,
     )
     await vi.waitFor(() => {
@@ -520,7 +694,7 @@ describe('setupMessageListener', () => {
         action: 'removeUrlRecordsFromStorage',
         urlIds: ['url-2'],
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       errorObjectResponse,
     )
     await vi.waitFor(() => {
@@ -544,7 +718,7 @@ describe('setupMessageListener', () => {
         autoDeletePeriod: 'never',
         savedAt: 10,
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       nullResponse,
     )
     expect(nullResponse).toHaveBeenCalledWith({
@@ -558,7 +732,7 @@ describe('setupMessageListener', () => {
         autoDeletePeriod: 'custom',
         savedAt: 10,
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       invalidResponse,
     )
     expect(invalidResponse).toHaveBeenCalledWith({
@@ -574,7 +748,7 @@ describe('setupMessageListener', () => {
         autoDeletePeriod: '1day',
         savedAt: 10,
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       successResponse,
     )
     expect(successResponse).toHaveBeenCalledWith({
@@ -590,7 +764,7 @@ describe('setupMessageListener', () => {
         autoDeletePeriod: '1day',
         savedAt: 10,
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       zeroResponse,
     )
     expect(zeroResponse).toHaveBeenCalledWith({
@@ -606,7 +780,7 @@ describe('setupMessageListener', () => {
         autoDeletePeriod: '1day',
         savedAt: 10,
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       errorResponse,
     )
     expect(errorResponse).toHaveBeenCalledWith({
@@ -631,7 +805,7 @@ describe('setupMessageListener', () => {
           autoDeletePeriod: '1day',
           savedAt: 10,
         },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         nonErrorResponse,
       )
       expect(nonErrorResponse).toHaveBeenCalledWith({
@@ -652,7 +826,7 @@ describe('setupMessageListener', () => {
           autoDeletePeriod: '1day',
           savedAt: 10,
         },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         nullishResponse,
       )
       expect(nullishResponse).toHaveBeenCalledWith({
@@ -677,7 +851,7 @@ describe('setupMessageListener', () => {
         autoDeletePeriod: '1day',
         savedAt: 10,
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       hostileResponse,
     )
     expect(hostileResponse).toHaveBeenCalledWith({
@@ -702,7 +876,7 @@ describe('setupMessageListener', () => {
         updateTimestamps: true,
         period: '1day',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       checkResponse,
     )
     await vi.waitFor(() => {
@@ -717,7 +891,7 @@ describe('setupMessageListener', () => {
         action: 'updateTabTimestamps',
         period: '1day',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       updateResponse,
     )
     await vi.waitFor(() => {
@@ -733,7 +907,7 @@ describe('setupMessageListener', () => {
       {
         action: 'checkExpiredTabs',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       checkOnlySuccessResponse,
     )
     await vi.waitFor(() => {
@@ -750,7 +924,7 @@ describe('setupMessageListener', () => {
         action: 'checkExpiredTabs',
         updateTimestamps: true,
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       checkWithoutPeriodResponse,
     )
     await vi.waitFor(() => {
@@ -770,7 +944,7 @@ describe('setupMessageListener', () => {
         updateTimestamps: true,
         period: '1day',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       checkNestedErrorResponse,
     )
     await vi.waitFor(() => {
@@ -788,7 +962,7 @@ describe('setupMessageListener', () => {
         updateTimestamps: true,
         period: '1day',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       updateTimestampsErrorResponse,
     )
     await vi.waitFor(() => {
@@ -806,7 +980,7 @@ describe('setupMessageListener', () => {
         {
           action: 'checkExpiredTabs',
         },
-        {} as chrome.runtime.MessageSender,
+        trustedSender,
         checkErrorResponse,
       )
       await vi.waitFor(() => {
@@ -829,7 +1003,7 @@ describe('setupMessageListener', () => {
         action: 'updateTabTimestamps',
         period: '1day',
       },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       updateErrorResponse,
     )
     await vi.waitFor(() => {
@@ -858,6 +1032,9 @@ describe('setupMessageListener', () => {
         ),
       },
       runtime: {
+        getURL: (path: string) =>
+          `chrome-extension://test-extension-id/${path}`,
+        id: 'test-extension-id',
         onMessage: {
           addListener: vi.fn((callback) => {
             // eslint-disable-line
@@ -885,24 +1062,16 @@ describe('setupMessageListener', () => {
     const listResponse = vi.fn()
     const aiResponse = vi.fn()
 
-    listener(
-      { action: 'getAlarmStatus' },
-      {} as chrome.runtime.MessageSender,
-      alarmResponse,
-    )
+    listener({ action: 'getAlarmStatus' }, trustedSender, alarmResponse)
     expect(alarmResponse).toHaveBeenCalledWith({
       exists: true,
       scheduledTime: 123,
     })
 
-    listener(
-      { action: 'listOllamaModels' },
-      {} as chrome.runtime.MessageSender,
-      listResponse,
-    )
+    listener({ action: 'listOllamaModels' }, trustedSender, listResponse)
     listener(
       { action: 'runAiChat', history: [], prompt: 'test' },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       aiResponse,
     )
 
@@ -938,23 +1107,15 @@ describe('setupMessageListener', () => {
     const modelsResponse = vi.fn()
     const aiResponse = vi.fn()
 
-    listener(
-      { action: 'getAlarmStatus' },
-      {} as chrome.runtime.MessageSender,
-      alarmResponse,
-    )
+    listener({ action: 'getAlarmStatus' }, trustedSender, alarmResponse)
     expect(alarmResponse).toHaveBeenCalledWith({
       exists: false,
     })
 
-    listener(
-      { action: 'listOllamaModels' },
-      {} as chrome.runtime.MessageSender,
-      modelsResponse,
-    )
+    listener({ action: 'listOllamaModels' }, trustedSender, modelsResponse)
     listener(
       { action: 'runAiChat', history: [], prompt: 'test' },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       aiResponse,
     )
 
@@ -998,14 +1159,10 @@ describe('setupMessageListener', () => {
     const modelsResponse = vi.fn()
     const aiResponse = vi.fn()
 
-    listener(
-      { action: 'listOllamaModels' },
-      {} as chrome.runtime.MessageSender,
-      modelsResponse,
-    )
+    listener({ action: 'listOllamaModels' }, trustedSender, modelsResponse)
     listener(
       { action: 'runAiChat', history: [], prompt: 'test' },
-      {} as chrome.runtime.MessageSender,
+      trustedSender,
       aiResponse,
     )
 
@@ -1044,6 +1201,7 @@ describe('setupMessageListener', () => {
     const port = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn(),
       },
@@ -1200,6 +1358,7 @@ describe('setupMessageListener', () => {
     const port = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn((listener: () => void) => {
           onPortDisconnect = listener
@@ -1256,6 +1415,7 @@ describe('setupMessageListener', () => {
     const port = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn((listener: () => void) => {
           onPortDisconnect = listener
@@ -1304,6 +1464,7 @@ describe('setupMessageListener', () => {
     const firstPort = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn((listener: () => void) => {
           firstOnDisconnect = listener
@@ -1319,6 +1480,7 @@ describe('setupMessageListener', () => {
     const secondPort = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn((listener: () => void) => {
           secondOnDisconnect = listener
@@ -1402,6 +1564,7 @@ describe('setupMessageListener', () => {
     const streamPort = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn(),
       },
@@ -1442,6 +1605,7 @@ describe('setupMessageListener', () => {
     const streamPort = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn(),
       },
@@ -1477,6 +1641,7 @@ describe('setupMessageListener', () => {
     const streamPort = {
       disconnect: vi.fn(),
       name: 'ai-chat-stream',
+      sender: trustedSender,
       onDisconnect: {
         addListener: vi.fn(),
       },

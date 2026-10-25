@@ -1,8 +1,8 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
 import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
+import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
-import { reviewReminderMessages } from './reviewReminderMessages'
 import { selectionMessages } from './selectionMessages'
 import { urlOpeningMessages } from './urlOpeningMessages'
 
@@ -13,8 +13,8 @@ const messages = {
     ...analyticsHealthMessages.en,
     ...urlOpeningMessages.en,
     ...organizationActionMessages.en,
-    ...reviewReminderMessages.en,
     ...selectionMessages.en,
+    ...optionsMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
     'aiChat.attachments.defaultName': 'attachment',
@@ -929,8 +929,8 @@ const messages = {
     ...analyticsHealthMessages.ja,
     ...urlOpeningMessages.ja,
     ...organizationActionMessages.ja,
-    ...reviewReminderMessages.ja,
     ...selectionMessages.ja,
+    ...optionsMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
     'aiChat.attachments.defaultName': '添付ファイル',
