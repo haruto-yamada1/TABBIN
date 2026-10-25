@@ -6,7 +6,11 @@ import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
 
-import { PRODUCTION_EXTENSION_PERMISSIONS } from './src/constants/extensionPermissions'
+import {
+  PRODUCTION_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_HOST_PERMISSIONS,
+} from './src/constants/extensionPermissions'
 import { DEFAULT_LANGUAGE } from './src/constants/language'
 import {
   PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
@@ -103,6 +107,17 @@ export default defineConfig({
     },
     host_permissions: PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
     permissions: [...PRODUCTION_EXTENSION_PERMISSIONS],
+    ...(env.manifestVersion === 2
+      ? {
+          optional_permissions: [
+            ...PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS,
+            ...PRODUCTION_OPTIONAL_HOST_PERMISSIONS,
+          ],
+        }
+      : {
+          optional_permissions: [...PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS],
+          optional_host_permissions: [...PRODUCTION_OPTIONAL_HOST_PERMISSIONS],
+        }),
     action: {
       default_title: '__MSG_extensionName__',
     },

@@ -3,6 +3,7 @@
  */
 
 import type { AiChatAttachment } from '@/features/ai-chat/types'
+import { isTrustedExtensionPageSender } from '@/lib/browser/trusted-extension-sender'
 import { logger } from '@/lib/logging/logger'
 import type {
   AiChatResponse,
@@ -28,6 +29,7 @@ import {
   isAutoDeletePeriod,
   updateTabTimestamps,
 } from './expired-tabs'
+import { refreshSavedTabTitleIndicator } from './saved-tab-title-indicator'
 import {
   handleUrlDragStarted,
   handleUrlDropped,
@@ -170,7 +172,14 @@ const isAiChatStreamRunMessage = (
  */
 const setupMessageListener = (): void => {
   // eslint-disable-next-line eslint/complexity
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!isTrustedExtensionPageSender(sender, chrome.runtime)) {
+      logger.warn('background_message_rejected', {
+        errorCode: 'UNTRUSTED_SENDER',
+      })
+      sendResponse({ status: 'forbidden' })
+      return false
+    }
     const parsedMessage = parseBackgroundMessage(message)
     if (parsedMessage.status === 'invalid_message') {
       logger.warn('background_message_rejected', {
@@ -197,6 +206,17 @@ const setupMessageListener = (): void => {
       action: typedMessage.action,
     })
     switch (typedMessage.action) {
+      case 'refreshNativeSavedTabTitles': {
+        void refreshSavedTabTitleIndicator().then(
+          () => {
+            sendResponse({ status: 'ok' })
+          },
+          () => {
+            sendResponse({ status: 'error' })
+          },
+        )
+        return true
+      }
       case 'urlDragStarted': {
         handleUrlDragStartedMessage(typedMessage.url, sendResponse)
         return true
@@ -278,6 +298,12 @@ const setupMessageListener = (): void => {
 
   onConnect.addListener((port) => {
     if (port.name !== AI_CHAT_STREAM_PORT_NAME) {
+      return
+    }
+
+    if (!isTrustedExtensionPageSender(port.sender, chrome.runtime)) {
+      logger.warn('background_port_rejected', { errorCode: 'UNTRUSTED_SENDER' })
+      port.disconnect()
       return
     }
 

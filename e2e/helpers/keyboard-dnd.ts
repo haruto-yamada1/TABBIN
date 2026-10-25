@@ -101,7 +101,7 @@ const createParentCategorySeed = () => ({
 // Reach controls using the same Tab path as a keyboard-only user. A missing
 // focus target fails with its accessible locator instead of silently focusing it.
 /* eslint-disable no-await-in-loop -- keyboard focus must advance sequentially */
-const tabTo = async (page: Page, target: Locator): Promise<void> => {
+export const tabTo = async (page: Page, target: Locator): Promise<void> => {
   await expect(target).toBeVisible()
   for (let index = 0; index < 100; index += 1) {
     if (
@@ -125,7 +125,7 @@ const tabTo = async (page: Page, target: Locator): Promise<void> => {
 }
 /* eslint-enable no-await-in-loop */
 
-const expectInstructions = async (handle: Locator): Promise<void> => {
+export const expectInstructions = async (handle: Locator): Promise<void> => {
   const instructions = await handle.evaluate((element) =>
     (element.getAttribute('aria-describedby') ?? '')
       .split(/\s+/u)
@@ -140,7 +140,10 @@ const expectInstructions = async (handle: Locator): Promise<void> => {
   expect(instructions).toMatch(/escape/iu)
 }
 
-const expectAnnouncement = async (page: Page, name: string): Promise<void> => {
+export const expectAnnouncement = async (
+  page: Page,
+  name: string,
+): Promise<void> => {
   await expect
     .poll(async () =>
       (
@@ -152,7 +155,7 @@ const expectAnnouncement = async (page: Page, name: string): Promise<void> => {
     .toContain(name)
 }
 
-const startKeyboardDrag = async (
+export const startKeyboardDrag = async (
   page: Page,
   handle: Locator,
   key: 'Space' | 'Enter',
@@ -173,7 +176,7 @@ const startKeyboardDrag = async (
   await expectAnnouncement(page, ' is over ')
 }
 
-const waitForRestoredFocus = async (
+export const waitForRestoredFocus = async (
   page: Page,
   handle: Locator,
 ): Promise<void> => {

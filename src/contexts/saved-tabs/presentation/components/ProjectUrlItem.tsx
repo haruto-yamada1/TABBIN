@@ -1,12 +1,21 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronRight, GripVertical, X } from 'lucide-react'
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronRight, X } from 'lucide-react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
+import { useOpenSavedTab } from '@/contexts/saved-tabs/presentation/controllers/useOpenSavedTab'
 import { getProjectUrlSortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
@@ -21,6 +30,7 @@ import {
 } from './projectUrlItemHelpers'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
+import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
 
 const MAX_URL_PREVIEW_LENGTH = 30
 
@@ -81,6 +91,8 @@ const ProjectUrlItemComponent = ({
   const { t } = useI18n()
   // 実際のURLを保存（元のURL）
   const originalUrl = item.url
+  const isOpen = useOpenSavedTab(originalUrl)
+  const openStateDescriptionId = useId()
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const isDraggingRef = useRef(false)
@@ -258,16 +270,21 @@ const ProjectUrlItemComponent = ({
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
+          aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+          aria-describedby={
+            isOpen
+              ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+              : attributes['aria-describedby']
+          }
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {
             name: item.title || originalUrl,
           })}
           className='cursor-grab p-1 active:cursor-grabbing'
           data-testid='project-url-drag-handle'
         >
-          <GripVertical
-            size={16}
-            aria-hidden='true'
-            className='text-muted-foreground'
+          <SavedTabDragHandleIcon
+            isOpen={isOpen}
+            descriptionId={openStateDescriptionId}
           />
         </div>
         {/* タイトル＋バッジ部 */}

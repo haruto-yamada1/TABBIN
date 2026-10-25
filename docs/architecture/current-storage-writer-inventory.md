@@ -106,6 +106,8 @@ returns to the default order; preferences for absent IDs remain inert.
 
 | REVIEW-REMINDER-SCHEDULE | reviewReminderAlarmTimeZone | scheduled maintenance | background | saveReviewReminderAlarmTimeZone | `src/lib/storage/review-reminders.ts` | alarm timezone | alarm timezone | No | Serialized background flow | None | One timezone string | Settings independent | None | Chrome control state |
 
+| UI-SAVED-TAB-TITLE | savedTabTitleIndicatorEnabled | ui sync | options/background | setSavedTabTitleEnabled | `src/lib/storage/saved-tab-title-indicator.ts` | One boolean preference | One boolean preference | No | Single-key write | UI state | One boolean | Device-local; explicit user grant before enabling; permission revocation disables | Chrome onChanged | Chrome UI preference; excluded from userSettings, Backup V2 and recovery |
+
 The three IndexedDB mutation files below are shared physical boundaries.
 Saved-tabs, AI-history, and analytics writer rows intentionally point to the
 same UnitOfWork; their compositions select the appropriate logical changes.
@@ -127,6 +129,7 @@ Replacement and recovery snapshot writers have separate transactions.
 - `src/features/options/hooks/useColorSettings.ts`
 - `src/lib/storage/settings.ts`
 - `src/lib/storage/review-reminders.ts`
+- `src/lib/storage/saved-tab-title-indicator.ts`
 
 This appendix and writer table are checked by
 `tools/scripts/verify-storage-writer-inventory.ts`. The source detector covers

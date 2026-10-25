@@ -63,6 +63,7 @@ const CURRENT_WRITER_IDS = [
   'UI-COLOR-RESET',
   'UI-ROUTE-CLEANUP',
   'UI-SAVED-TABS-SORT',
+  'UI-SAVED-TAB-TITLE',
   'RELEASE-CONTROL',
   'SETTINGS-REPAIR',
   'SETTINGS-SAVE',
@@ -239,6 +240,7 @@ describe('verifyStorageWriterInventory', () => {
   test.each([
     'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
     'src/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSortPreferencesAdapter.ts',
+    'src/lib/storage/saved-tab-title-indicator.ts',
   ])('discovers and maps the real storage writer %s', (relativePath) => {
     const sourceCode = readFileSync(
       path.join(process.cwd(), relativePath),
@@ -316,7 +318,7 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 18 rows, found 17')
+    ).toThrow('Writer ID baseline mismatch: expected 19 rows, found 18')
   })
 
   test.each([

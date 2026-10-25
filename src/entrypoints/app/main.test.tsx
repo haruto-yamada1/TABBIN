@@ -21,8 +21,14 @@ const mocked = vi.hoisted(() => {
     renderRoot: vi.fn(),
     reportUnavailable,
     ready,
+    startNativeTitleIndicatorRelay: vi.fn(),
+    stopNativeTitleIndicatorRelay: vi.fn(),
   }
 })
+
+vi.mock('@/app/composition/nativeTitleIndicatorRelay', () => ({
+  startNativeTitleIndicatorRelay: mocked.startNativeTitleIndicatorRelay,
+}))
 
 vi.mock('@/app/composition/persistenceBootstrap', () => ({
   getPersistenceBootstrapRuntime: mocked.getPersistenceBootstrapRuntime,
@@ -82,6 +88,9 @@ const importModule = async () => {
 describe('app bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocked.startNativeTitleIndicatorRelay.mockReturnValue(
+      mocked.stopNativeTitleIndicatorRelay,
+    )
     document.body.innerHTML = ''
   })
 
@@ -124,6 +133,32 @@ describe('app bootstrap', () => {
       }),
     )
     expect(mocked.ready).toHaveBeenCalledOnce()
+    expect(mocked.startNativeTitleIndicatorRelay).toHaveBeenCalledOnce()
+    expect(
+      mocked.startNativeTitleIndicatorRelay.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
+  })
+
+  it('cleans up the relay on pagehide and restarts it on pageshow', async () => {
+    const handlers = new Map<string, EventListener>()
+    vi.spyOn(window, 'addEventListener').mockImplementation(((
+      type: string,
+      callback: EventListenerOrEventListenerObject | null,
+    ) => {
+      if (
+        (type === 'pagehide' || type === 'pageshow') &&
+        typeof callback === 'function'
+      ) {
+        handlers.set(type, callback)
+      }
+    }) as typeof window.addEventListener)
+    await importModule()
+
+    expect(mocked.startNativeTitleIndicatorRelay).toHaveBeenCalledOnce()
+    handlers.get('pagehide')?.(new Event('pagehide'))
+    expect(mocked.stopNativeTitleIndicatorRelay).toHaveBeenCalledOnce()
+    handlers.get('pageshow')?.(new Event('pageshow'))
+    expect(mocked.startNativeTitleIndicatorRelay).toHaveBeenCalledTimes(2)
   })
 
   it('IndexedDB が完了するまで route を mount しない', async () => {

@@ -1,4 +1,5 @@
 import { getPersistenceRecoveryController } from '@/app/composition/createPersistenceRecoveryController'
+import { startNativeTitleIndicatorRelay } from '@/app/composition/nativeTitleIndicatorRelay'
 import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
 import { PersistenceRecoveryNotice } from '@/app/composition/PersistenceRecoveryNotice'
 import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
@@ -10,6 +11,14 @@ import { mountToElement } from '@/lib/react/render-root'
 
 // eslint-disable-next-line import/no-unassigned-import
 import '@/assets/global.css'
+
+let stopNativeTitleIndicatorRelay = startNativeTitleIndicatorRelay()
+window.addEventListener('pagehide', () => {
+  stopNativeTitleIndicatorRelay()
+})
+window.addEventListener('pageshow', () => {
+  stopNativeTitleIndicatorRelay = startNativeTitleIndicatorRelay()
+})
 
 const initializePersistence = async (): Promise<void> => {
   try {

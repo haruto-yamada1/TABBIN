@@ -49,6 +49,10 @@ vi.mock('@/features/options/ImportExportSettings', () => ({
   ImportExportSettings: () => <div>import-export-settings</div>,
 }))
 
+vi.mock('@/features/options/SavedTabTitleSettings', () => ({
+  SavedTabTitleSettings: () => <h2>options.savedTabTitle.title</h2>,
+}))
+
 vi.mock(
   '@/features/periodic-execution/components/ReviewReminderSettings',
   () => ({

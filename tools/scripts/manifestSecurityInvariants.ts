@@ -453,6 +453,43 @@ export const assertChromeFirefoxManifestDelta = (
     )
   }
 
+  const chromeOptionalApi = readStringArray(
+    chromeManifest,
+    'optional_permissions',
+    chromeLabel,
+  ).toSorted()
+  const firefoxOptionalApi = readStringArray(
+    firefoxManifest,
+    'optional_permissions',
+    firefoxLabel,
+  )
+    .filter((permission) => !isHostPermission(permission))
+    .toSorted()
+  const chromeOptionalHosts = readStringArray(
+    chromeManifest,
+    'optional_host_permissions',
+    chromeLabel,
+  ).toSorted()
+  const firefoxOptionalHosts = readStringArray(
+    firefoxManifest,
+    'optional_permissions',
+    firefoxLabel,
+  )
+    .filter(isHostPermission)
+    .toSorted()
+  if (canonicalJson(chromeOptionalApi) !== canonicalJson(firefoxOptionalApi)) {
+    throw new Error(
+      `Chrome and Firefox optional API permissions diverge: chrome=${canonicalJson(chromeOptionalApi)} firefox=${canonicalJson(firefoxOptionalApi)}`,
+    )
+  }
+  if (
+    canonicalJson(chromeOptionalHosts) !== canonicalJson(firefoxOptionalHosts)
+  ) {
+    throw new Error(
+      `Chrome and Firefox optional host permissions diverge: chrome=${canonicalJson(chromeOptionalHosts)} firefox=${canonicalJson(firefoxOptionalHosts)}`,
+    )
+  }
+
   assertManifestSurfaceDelta(
     chromeManifest,
     firefoxManifest,
@@ -471,6 +508,8 @@ export const assertChromeFirefoxManifestDelta = (
     'manifest_version',
     'permissions',
     'host_permissions',
+    'optional_permissions',
+    'optional_host_permissions',
     'content_security_policy',
     'action',
     'browser_action',
