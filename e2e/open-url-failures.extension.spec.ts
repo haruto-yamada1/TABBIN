@@ -19,8 +19,6 @@ import {
 } from './helpers/extension'
 
 type OpenFailureState = {
-  copiedUrls: string[]
-  copyFailure: boolean
   rejectUrls: string[]
   rejectWindow: boolean
   tabCalls: string[]
@@ -113,8 +111,6 @@ const installOpeningFailures = async (
   await page.addInitScript(
     ({ rejectedUrls, rejectWindow, heldUrls }) => {
       const state: OpenFailureState = {
-        copiedUrls: [],
-        copyFailure: false,
         rejectUrls: [...rejectedUrls],
         rejectWindow,
         tabCalls: [],
@@ -160,17 +156,6 @@ const installOpeningFailures = async (
           return createWindow(properties)
         },
       })
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: {
-          writeText: async (value: string) => {
-            if (state.copyFailure) {
-              throw new Error('Clipboard permission denied')
-            }
-            state.copiedUrls.push(value)
-          },
-        },
-      })
     },
     { rejectedUrls, rejectWindow, heldUrls },
   )
@@ -187,7 +172,6 @@ const readOpeningCalls = async (page: Page) =>
   page.evaluate(() => {
     const state = (globalThis as OpenFailureRuntime).__tabbinOpenFailureTest
     return {
-      copiedUrls: state.copiedUrls,
       tabCalls: state.tabCalls,
       windowCalls: state.windowCalls,
     }
@@ -196,7 +180,19 @@ const readOpeningCalls = async (page: Page) =>
 const openSavedTabs = async (page: Page, extensionId: string) =>
   page.goto(getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'))
 
-test('a single failure preserves IndexedDB, exposes a safe copy fallback, and can be retried', async ({
+const expectNoOpeningResult = async (page: Page) => {
+  await expect(
+    page.getByRole('region', { name: 'URL opening result' }),
+  ).toHaveCount(0)
+  await expect(page.getByRole('progressbar')).toHaveCount(0)
+  await expect(
+    page.getByRole('button', {
+      name: /^(Cancel opening|Retry failed URLs|Resume unopened URLs)$/,
+    }),
+  ).toHaveCount(0)
+}
+
+test('a single failure keeps the URL saved and can be retried from the list without a result panel', async ({
   extensionContext,
   extensionId,
   localOrigin,
@@ -204,7 +200,6 @@ test('a single failure preserves IndexedDB, exposes a safe copy fallback, and ca
   serviceWorker,
 }) => {
   const savedUrl = `${localOrigin.replace('http://', 'http://saved-user:private-password@')}/single?token=private-query#section`
-  const displayUrl = `${localOrigin}/single?token=private-query#section`
   await seedSavedTabsFixture(serviceWorker, createOpeningSeed([savedUrl]))
   const original = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
   await installOpeningFailures(page, [savedUrl])
@@ -213,57 +208,31 @@ test('a single failure preserves IndexedDB, exposes a safe copy fallback, and ca
   await openSavedTabs(page, extensionId)
   const savedLink = page.getByRole('link', { name: 'Saved URL 1', exact: true })
   await savedLink.click()
-  const result = page.getByRole('region', { name: 'URL opening result' })
-  await expect(result).toContainText('0 / 1 URLs opened')
-  await expect(result).toContainText(
-    'The browser denied permission to open this URL.',
+  const failureMessage = page.getByText(
+    'Could not open the URL. It remains saved.',
+    { exact: true },
   )
-  const failedUrl = result.getByRole('textbox', {
-    name: 'Failed URL',
-    exact: true,
-  })
-  await expect(failedUrl).toHaveValue(displayUrl)
-  await expect(failedUrl).toHaveAttribute('readonly')
-  await expect(result).not.toContainText('private-password')
-  await result.getByRole('button', { name: 'Copy URL', exact: true }).click()
-  expect((await readOpeningCalls(page)).copiedUrls).toEqual([savedUrl])
-  await page.evaluate(() => {
-    ;(globalThis as OpenFailureRuntime).__tabbinOpenFailureTest.copyFailure =
-      true
-  })
-  await result.getByRole('button', { name: 'Copy URL', exact: true }).click()
-  await expect(
-    page.getByText('Could not copy the URL. Select and copy it manually.', {
-      exact: true,
-    }),
-  ).toBeVisible()
-  await expect(failedUrl).toHaveValue(displayUrl)
+  await expect(failureMessage).toBeVisible()
+  await expectNoOpeningResult(page)
+  await expect(page.locator('body')).not.toContainText('private-password')
+  await expect(page.locator('body')).not.toContainText(
+    'Permission denied while opening the saved URL',
+  )
   expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
     original,
   )
-  await page.setViewportSize({ width: 1280, height: 900 })
-  await page.screenshot({
-    path: test.info().outputPath('single-url-opening-failure.png'),
-    fullPage: true,
-  })
   await page.reload()
   await expect(savedLink).toBeVisible()
   expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
     original,
   )
   await savedLink.click()
-  await expect(result).toContainText('0 / 1 URLs opened')
+  await expect(failureMessage).toBeVisible()
   await allowRetry(page)
   const openedPromise = extensionContext.waitForEvent('page')
-  await result
-    .getByRole('button', { name: 'Retry failed URLs', exact: true })
-    .click()
+  await savedLink.click()
   const opened = await openedPromise
   await expect(opened).toHaveTitle('Opened saved URL')
-  await expect(result).toContainText('1 / 1 URLs opened')
-  await expect(result.getByRole('textbox', { name: 'Failed URL' })).toHaveCount(
-    0,
-  )
   await expect(savedLink).toBeHidden()
   await expect
     .poll(
@@ -271,11 +240,12 @@ test('a single failure preserves IndexedDB, exposes a safe copy fallback, and ca
         (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls,
     )
     .toEqual([])
+  await expectNoOpeningResult(page)
   expect((await readOpeningCalls(page)).tabCalls).toEqual([savedUrl, savedUrl])
   expect(pageErrors).toEqual([])
 })
 
-test('bulk opening removes confirmed successes and retries only failed URLs', async ({
+test('bulk opening removes confirmed successes and opens the remaining saved URL through the normal action', async ({
   extensionContext,
   extensionId,
   localOrigin,
@@ -290,20 +260,20 @@ test('bulk opening removes confirmed successes and retries only failed URLs', as
   )
   await installOpeningFailures(page, [failedUrl])
   await openSavedTabs(page, extensionId)
+  const openAll = page.getByRole('button', {
+    name: 'Open all tabs for "127.0.0.1"',
+    exact: true,
+  })
   const firstOpenedPromise = extensionContext.waitForEvent('page')
-  await page
-    .getByRole('button', {
-      name: 'Open all tabs for "127.0.0.1"',
-      exact: true,
-    })
-    .click()
+  await openAll.click()
   const firstOpened = await firstOpenedPromise
   await expect(firstOpened).toHaveURL(openedUrl)
-  const result = page.getByRole('region', { name: 'URL opening result' })
-  await expect(result).toContainText('1 / 2 URLs opened')
-  await expect(result.getByRole('textbox', { name: 'Failed URL' })).toHaveValue(
-    failedUrl,
-  )
+  await expect(
+    page.getByText('Some URLs could not be opened. They remain saved.', {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expectNoOpeningResult(page)
   await expect(
     page.getByRole('link', { name: 'Saved URL 1', exact: true }),
   ).toBeHidden()
@@ -321,20 +291,16 @@ test('bulk opening removes confirmed successes and retries only failed URLs', as
     .toEqual({ urlIds: ['opening-1'], membershipUrlIds: ['opening-1'] })
   await allowRetry(page)
   const retriedPromise = extensionContext.waitForEvent('page')
-  await result
-    .getByRole('button', { name: 'Retry failed URLs', exact: true })
-    .click()
+  await openAll.click()
   const retried = await retriedPromise
   await expect(retried).toHaveURL(failedUrl)
-  await expect(result.getByRole('textbox', { name: 'Failed URL' })).toHaveCount(
-    0,
-  )
   await expect
     .poll(
       async () =>
         (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls,
     )
     .toEqual([])
+  await expectNoOpeningResult(page)
   expect((await readOpeningCalls(page)).tabCalls).toEqual([
     openedUrl,
     failedUrl,
@@ -342,7 +308,7 @@ test('bulk opening removes confirmed successes and retries only failed URLs', as
   ])
 })
 
-test('a rejected new window retains every saved URL and membership after reload', async ({
+test('a rejected new window retains every saved URL and membership after reload without a result panel', async ({
   extensionId,
   localOrigin,
   page,
@@ -359,19 +325,16 @@ test('a rejected new window retains every saved URL and membership after reload'
       exact: true,
     })
     .click()
-  const result = page.getByRole('region', { name: 'URL opening result' })
-  await expect(result).toContainText('0 / 2 URLs opened')
-  await expect(result).toContainText(
-    'Could not confirm that the URL opened. Check your browser before retrying.',
-  )
-  await expect(result.getByRole('textbox', { name: 'Failed URL' })).toHaveCount(
-    2,
-  )
+  await expect(
+    page.getByText('Some URLs could not be opened. They remain saved.', {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expectNoOpeningResult(page)
   expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
     original,
   )
   expect(await readOpeningCalls(page)).toEqual({
-    copiedUrls: [],
     tabCalls: [],
     windowCalls: [urls],
   })
@@ -387,7 +350,7 @@ test('a rejected new window retains every saved URL and membership after reload'
   )
 })
 
-test('bulk progress can be cancelled, failed URLs retried, and unopened URLs resumed without duplicates', async ({
+test('bulk opening has no progress or result panel and preserves confirmation, bounded work, and Undo', async ({
   extensionId,
   localOrigin,
   page,
@@ -398,8 +361,7 @@ test('bulk progress can be cancelled, failed URLs retried, and unopened URLs res
     (_, index) => `${localOrigin}/staged-${index}`,
   )
   await seedSavedTabsFixture(serviceWorker, createOpeningSeed(urls))
-  const failedUrl = `${localOrigin}/staged-1`
-  await installOpeningFailures(page, [failedUrl], false, urls.slice(2))
+  await installOpeningFailures(page, [], false, urls.slice(2))
   await openSavedTabs(page, extensionId)
   await page
     .getByRole('button', {
@@ -412,12 +374,6 @@ test('bulk progress can be cancelled, failed URLs retried, and unopened URLs res
     'Open 12 tabs for "127.0.0.1". Continue?',
   )
   await preview.getByRole('button', { name: 'Open', exact: true }).click()
-  const result = page.getByRole('region', { name: 'URL opening result' })
-  await expect(result.getByRole('progressbar')).toHaveAttribute(
-    'aria-valuenow',
-    '2',
-  )
-  await expect(result).toContainText('1 opened, 1 failed')
   const requested = async () =>
     page.evaluate(
       () =>
@@ -425,12 +381,10 @@ test('bulk progress can be cancelled, failed URLs retried, and unopened URLs res
           .requested,
     )
   await expect.poll(requested).toEqual(urls.slice(0, 7))
-  await result
-    .getByRole('button', { name: 'Cancel opening', exact: true })
-    .click()
-  await expect(
-    result.getByRole('button', { name: 'Cancelling…', exact: true }),
-  ).toBeDisabled()
+  await expectNoOpeningResult(page)
+  expect(
+    (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls,
+  ).toHaveLength(12)
   await page.evaluate(() => {
     const state = (globalThis as StagedOpeningRuntime).__tabbinStagedOpeningTest
     state.released = true
@@ -438,55 +392,15 @@ test('bulk progress can be cancelled, failed URLs retried, and unopened URLs res
       resolve()
     }
   })
-  await expect(result.getByRole('progressbar')).toHaveCount(0)
-  expect(await requested()).toEqual(urls.slice(0, 7))
-  await expect
-    .poll(async () =>
-      (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls
-        .map(({ id }) => id)
-        .toSorted((a, b) => a.localeCompare(b)),
-    )
-    .toEqual(
-      [
-        'opening-1',
-        ...Array.from({ length: 5 }, (_, index) => `opening-${index + 7}`),
-      ].toSorted(),
-    )
-  await page.setViewportSize({ width: 1280, height: 900 })
-  const screenshot = test.info().outputPath('staged-opening-cancelled.png')
-  await page.screenshot({ path: screenshot, fullPage: true })
-  await test.info().attach('Staged opening cancelled', {
-    path: screenshot,
-    contentType: 'image/png',
-  })
-  await allowRetry(page)
-  await result
-    .getByRole('button', { name: 'Retry failed URLs', exact: true })
-    .click()
-  await expect.poll(requested).toEqual([...urls.slice(0, 7), failedUrl])
-  await expect
-    .poll(
-      async () =>
-        (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls.length,
-    )
-    .toBe(5)
-  await result
-    .getByRole('button', { name: 'Resume unopened URLs', exact: true })
-    .click()
-  await expect
-    .poll(requested)
-    .toEqual([...urls.slice(0, 7), failedUrl, ...urls.slice(7)])
+  await expect.poll(requested).toEqual(urls)
   await expect
     .poll(
       async () =>
         (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls,
     )
     .toEqual([])
-  expect((await readOpeningCalls(page)).tabCalls).toEqual([
-    ...urls.slice(0, 7),
-    failedUrl,
-    ...urls.slice(7),
-  ])
+  await expectNoOpeningResult(page)
+  expect((await readOpeningCalls(page)).tabCalls).toEqual(urls)
   const undo = page.getByRole('button', { name: 'Undo', exact: true })
   await expect(undo).toHaveCount(1)
   await undo.click()

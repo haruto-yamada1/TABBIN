@@ -51,7 +51,6 @@ export {
 export type {
   NotifyDeleteFailureParams,
   ShowOpenedUrlsUndoToastParams,
-  OpenedUrlsUndoScope,
 } from '@/contexts/saved-tabs/presentation/services/savedTabsUndoNotificationService'
 
 export {

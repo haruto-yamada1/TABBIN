@@ -21,7 +21,6 @@ import {
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
 type UndoToastOptions = {
-  readonly id?: string | number
   readonly action: { readonly onClick: () => Promise<void> }
 }
 const notifications = vi.hoisted(() => ({
@@ -42,12 +41,12 @@ const gate: PersistenceOperationGatePort = {
   runIndexedDbWrite: async (operation) => operation(),
 }
 
-describe('bulk opening recovery Undo boundary', () => {
-  it.each(['retry-first', 'resume-first'] as const)(
-    'uses one cumulative Undo across cancellation and both recovery partitions (%s)',
-    async (order) => {
+describe('bulk opening Undo boundary', () => {
+  it.each([false, true])(
+    'removes only confirmed successes and restores their URLs and memberships (partial failure: %s)',
+    async (partialFailure) => {
       const manager = new IndexedDbConnectionManager({
-        databaseName: `bulk-undo-${order}`,
+        databaseName: `bulk-undo-${String(partialFailure)}`,
         indexedDb: new IDBFactory(),
       })
       const records = Array.from({ length: 8 }, (_, i) =>
@@ -75,33 +74,26 @@ describe('bulk opening recovery Undo boundary', () => {
       }
       transaction.objectStore('metadata').put({ key: 'revision', value: 1 })
       await waitForIndexedDbTransaction(transaction)
-      let failOnce = true
-      let holdRecovery = false
-      const recoveryStarted = Promise.withResolvers<undefined>()
-      const recoveryReleased = Promise.withResolvers<undefined>()
+      const open = vi.fn(async ({ url }: { url: string }) => {
+        if (partialFailure && url.endsWith('/1')) {
+          throw new Error('Permission denied')
+        }
+        return { url }
+      })
       vi.stubGlobal('chrome', {
         storage: {
           local: { get: async () => ({}), set: vi.fn(), remove: vi.fn() },
         },
         tabs: {
-          create: async ({ url }: { url: string }) => {
-            if (holdRecovery) {
-              recoveryStarted.resolve(undefined)
-              await recoveryReleased.promise
-            }
-            if (url.endsWith('/1') && failOnce) {
-              failOnce = false
-              throw new Error('Permission denied')
-            }
-            return { url }
-          },
+          create: open,
         },
       })
       const useCases = createIndexedDbSavedTabsUseCases({
         connectionManager: manager,
         operationGate: gate,
       })
-      const nativeOpen = useCases.openAllSavedUrls
+      const reader = new IndexedDbPersistenceSnapshotReader(manager, gate)
+      const beforeOpening = await reader.readConsistentSnapshot()
       const { result } = renderHook(() =>
         useTabOpeningHandlers({
           categories: [],
@@ -110,19 +102,7 @@ describe('bulk opening recovery Undo boundary', () => {
             buildSavedTabsSnapshot: useCases.buildSavedTabsSnapshot,
             restoreOpenedUrlsSnapshotView:
               useCases.restoreOpenedUrlsSnapshotView,
-            openAllSavedUrls: async (command, options) =>
-              nativeOpen(command, {
-                ...options,
-                onProgress: (progress) => {
-                  options?.onProgress?.(progress)
-                  if (
-                    command.urls.length === 8 &&
-                    progress.opened + progress.failed > 0
-                  ) {
-                    result.current.cancelOpening()
-                  }
-                },
-              }),
+            openAllSavedUrls: useCases.openAllSavedUrls,
           }),
           settings: {
             ...savedTabsDefaultUserSettings,
@@ -139,64 +119,65 @@ describe('bulk opening recovery Undo boundary', () => {
             records.map(({ url, title }) => ({ url, title })),
           )
         })
-        expect(result.current.openingOperation).toMatchObject({
-          opened: 4,
-          failedUrls: [{ url: records[1]?.url, reason: 'permission' }],
-          cancelledUrls: records.slice(5).map(({ url }) => url),
-        })
-        const reader = new IndexedDbPersistenceSnapshotReader(manager, gate)
-        const initialUndo = notifications.info.mock.calls[0]?.[1]
-        assert.isDefined(initialUndo)
-        const beforeRecovery = await reader.readConsistentSnapshot()
-        holdRecovery = true
-        let recovery: Promise<void> | undefined
-        await act(async () => {
-          recovery =
-            order === 'retry-first'
-              ? result.current.retryFailedUrls()
-              : result.current.resumeCancelledUrls()
-          await recoveryStarted.promise
-        })
-        // A stale Undo action cannot mutate persistence while the partition is opening.
-        await act(async () => {
-          await initialUndo.action.onClick()
-        })
-        expect((await reader.readConsistentSnapshot()).revision).toBe(
-          beforeRecovery.revision,
+        expect(open.mock.calls.map(([{ url }]) => url)).toEqual(
+          records.map(({ url }) => url),
+        )
+        const afterOpening = await reader.readConsistentSnapshot()
+        const remainingIds = partialFailure ? ['url-1'] : []
+        expect(afterOpening.savedTabs.urls.map(({ id }) => id)).toEqual(
+          remainingIds,
+        )
+        expect(afterOpening.savedTabs.memberships).toEqual(
+          beforeOpening.savedTabs.memberships.filter(({ urlId }) =>
+            remainingIds.includes(urlId),
+          ),
+        )
+        expect(notifications.error).toHaveBeenCalledTimes(
+          partialFailure ? 1 : 0,
+        )
+        expect(notifications.info).toHaveBeenCalledTimes(1)
+        const undo = notifications.info.mock.calls[0]
+        assert.isDefined(undo)
+        expect(undo[0]).toBe(
+          `savedTabs.undo.removedAfterOpen:${partialFailure ? 7 : 8}`,
         )
         await act(async () => {
-          holdRecovery = false
-          recoveryReleased.resolve(undefined)
-          await recovery
-          if (order === 'retry-first') {
-            await result.current.resumeCancelledUrls()
-          } else {
-            await result.current.retryFailedUrls()
-          }
-        })
-        expect(
-          (await reader.readConsistentSnapshot()).savedTabs.urls,
-        ).toHaveLength(0)
-        expect(notifications.info).toHaveBeenCalledTimes(3)
-        const first = notifications.info.mock.calls[0]?.[1]
-        const last = notifications.info.mock.calls.at(-1)
-        assert.isDefined(first)
-        assert.isDefined(last)
-        expect(first.id).toBeDefined()
-        expect(
-          new Set(
-            notifications.info.mock.calls.map(([, options]) => options.id),
-          ).size,
-        ).toBe(1)
-        expect(last[0]).toBe('savedTabs.undo.removedAfterOpen:8')
-        await act(async () => {
-          await first.action.onClick()
+          await Promise.all([
+            undo[1].action.onClick(),
+            undo[1].action.onClick(),
+          ])
         })
         const restored = await reader.readConsistentSnapshot()
-        expect(restored.savedTabs.urls).toHaveLength(8)
-        expect(restored.savedTabs.memberships).toHaveLength(16)
+        expect(
+          restored.savedTabs.urls.map(({ id, title, url }) => ({
+            id,
+            title,
+            url,
+          })),
+        ).toEqual(records.map(({ id, title, url }) => ({ id, title, url })))
+        expect(
+          restored.savedTabs.memberships.map(
+            ({ collectionId, sortOrder, urlId }) => ({
+              collectionId,
+              sortOrder,
+              urlId,
+            }),
+          ),
+        ).toEqual(
+          beforeOpening.savedTabs.memberships.map(
+            ({ collectionId, sortOrder, urlId }) => ({
+              collectionId,
+              sortOrder,
+              urlId,
+            }),
+          ),
+        )
+        expect(notifications.success).toHaveBeenCalledWith(
+          'savedTabs.undo.restored:',
+        )
+        expect(notifications.success).toHaveBeenCalledTimes(1)
         await act(async () => {
-          await last[1].action.onClick()
+          await undo[1].action.onClick()
         })
         expect((await reader.readConsistentSnapshot()).revision).toBe(
           restored.revision,
