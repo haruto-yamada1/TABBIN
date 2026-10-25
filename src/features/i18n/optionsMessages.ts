@@ -6,7 +6,7 @@ export const optionsMessages = {
     'options.savedTabTitle.title': 'Saved marks on browser tabs',
     'options.savedTabTitle.enable': 'Show ✓ in saved tab titles',
     'options.savedTabTitle.description':
-      'Off by default. Adds ✓ before the title of saved HTTP and HTTPS tabs. Enabling asks for optional site access. Restricted browser pages are excluded. Websites can see title changes. This preference stays on this device and is not included in backups.',
+      'Adds ✓ before the title of saved HTTP and HTTPS tabs. Enabling asks for optional site access. Restricted browser pages are excluded. Websites can see title changes. This preference stays on this device and is not included in backups.',
     'options.savedTabTitle.permissionError':
       'Site access was not granted. Turn this on again and allow the requested access to show saved marks.',
     'options.savedTabTitle.storageError':
@@ -19,7 +19,7 @@ export const optionsMessages = {
     'options.savedTabTitle.title': 'ブラウザタブの保存済みマーク',
     'options.savedTabTitle.enable': '保存済みタブのタイトルに ✓ を表示する',
     'options.savedTabTitle.description':
-      '初期状態はオフです。保存済みの HTTP / HTTPS タブのタイトル先頭に ✓ を付けます。有効にすると任意のサイトアクセス権限を確認します。ブラウザの保護されたページは対象外です。サイト側もタイトルの変更を確認できます。この設定は端末内のみで保持し、バックアップに含めません。',
+      '保存済みの HTTP / HTTPS タブのタイトル先頭に ✓ を付けます。有効にすると任意のサイトアクセス権限を確認します。ブラウザの保護されたページは対象外です。サイト側もタイトルの変更を確認できます。この設定は端末内のみで保持し、バックアップに含めません。',
     'options.savedTabTitle.permissionError':
       'サイトアクセスが許可されませんでした。もう一度オンにして、権限を許可すると保存済みマークを表示できます。',
     'options.savedTabTitle.storageError':

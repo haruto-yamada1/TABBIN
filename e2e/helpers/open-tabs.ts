@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import type { BrowserContext, Page } from '@playwright/test'
+import type { BrowserContext, Locator, Page } from '@playwright/test'
 
 import {
   createCustomCollectionFixture,
@@ -12,8 +12,16 @@ import {
   createBaseSeed,
   defaultUserSettings,
   readPersistenceV2SavedTabsSnapshot,
+  readPersistenceV2Store,
   seedSavedTabsFixture,
 } from './extension'
+import {
+  expectAnnouncement,
+  expectInstructions,
+  startKeyboardDrag,
+  tabTo,
+  waitForRestoredFocus,
+} from './keyboard-dnd'
 
 declare global {
   // eslint-disable-next-line typescript/consistent-type-definitions -- test-only browser probe
@@ -62,6 +70,72 @@ const row = (page: Page, title: string) =>
     has: page.getByRole('link', { name: title, exact: true }),
   })
 
+const dragHandle = (targetRow: Locator) =>
+  targetRow.getByRole('button', {
+    name: /^(Drag to reorder tab|ドラッグしてタブ)/u,
+  })
+
+const expectOpenState = async (
+  targetRow: Locator,
+  isOpen: boolean,
+  label = 'Open now',
+) => {
+  const handle = dragHandle(targetRow)
+  const icon = handle.locator('svg')
+  const stateText = targetRow.getByText(label, { exact: true })
+  await expect(
+    targetRow.page().getByRole('tooltip', { name: label, exact: true }),
+  ).toBeHidden()
+  await expect(handle).toHaveAccessibleDescription(
+    /Space.*Enter.*(?:arrow|矢印キー).*Escape/iu,
+  )
+  if (isOpen) {
+    await expect(stateText).toHaveCount(1)
+    await expect(stateText).toHaveClass(/\bsr-only\b/u)
+    await expect(handle).toHaveAttribute('aria-description', label)
+    await expect(handle).toHaveAccessibleDescription(
+      /Space.*Enter.*(?:arrow|矢印キー).*Escape.*(?:Open now|開いています)/iu,
+    )
+    await expect(icon).toHaveClass(/\btext-emerald-600\b/u)
+    await expect(icon).toHaveClass(/\bdark:text-emerald-400\b/u)
+  } else {
+    await expect(stateText).toHaveCount(0)
+    await expect(handle).not.toHaveAttribute('aria-description')
+    await expect(icon).toHaveClass(/\btext-muted-foreground\b/u)
+    await expect(icon).not.toHaveClass(/\btext-emerald-600\b/u)
+  }
+}
+
+const expectHoverTooltip = async (
+  page: Page,
+  handle: Locator,
+  label = 'Open now',
+) => {
+  await page.bringToFront()
+  const tooltip = page.getByRole('tooltip', { name: label, exact: true })
+  await expect(tooltip).toBeHidden()
+  // Hover the actual activator's center, where its nested grip icon is drawn.
+  await handle.hover()
+  await expect(tooltip).toHaveText(label)
+  const viewport = page.viewportSize()
+  if (!viewport) {
+    throw new Error(
+      'Open-tab scenarios require a viewport to move the pointer away',
+    )
+  }
+  await page.mouse.move(viewport.width - 1, viewport.height - 1, { steps: 12 })
+  await expect(tooltip).toBeHidden()
+}
+
+const routeOpenTabFixture = async (context: BrowserContext) => {
+  await context.route('https://open-tabs.example.test/**', async (route) => {
+    await route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><title>Local tab fixture</title><h1>Article</h1>',
+    })
+  })
+}
+
 export const verifyOpenTabs = async ({
   page,
   context,
@@ -75,12 +149,7 @@ export const verifyOpenTabs = async ({
   mode: 'domain' | 'custom'
   screenshots?: { desktop: string; narrow: string }
 }) => {
-  await context.route('https://open-tabs.example.test/**', async (route) => {
-    await route.fulfill({
-      contentType: 'text/html',
-      body: '<!doctype html><title>Local tab fixture</title><h1>Article</h1>',
-    })
-  })
+  await routeOpenTabFixture(context)
   await page.goto(`${appUrl}#/options`)
   await seedSavedTabsFixture(page, createOpenTabsFixture())
   const persistenceBefore = await readPersistenceV2SavedTabsSnapshot(page)
@@ -118,29 +187,30 @@ export const verifyOpenTabs = async ({
   const firstRow = row(page, 'Saved article')
   const secondRow = row(page, 'Other saved article')
   const hashRow = row(page, 'Article section')
-  await expect(firstRow.getByText('Open now', { exact: true })).toBeVisible()
-  await expect(secondRow.getByText('Open now', { exact: true })).toBeHidden()
-  await expect(hashRow.getByText('Open now', { exact: true })).toBeHidden()
+  await expectOpenState(firstRow, true)
+  await expectOpenState(secondRow, false)
+  await expectOpenState(hashRow, false)
+  await expectHoverTooltip(page, dragHandle(firstRow))
   expect(await page.evaluate(() => window.__openTabsQueryCount)).toBe(1)
 
-  // A second matching browser tab keeps the badge after either tab is closed.
+  // A second matching browser tab keeps the green grip after either closes.
   const duplicate = await context.newPage()
   await duplicate.goto(firstUrl)
   await existing.close()
-  await expect(firstRow.getByText('Open now', { exact: true })).toBeVisible()
+  await expectOpenState(firstRow, true)
   await duplicate.close()
-  await expect(firstRow.getByText('Open now', { exact: true })).toBeHidden()
+  await expectOpenState(firstRow, false)
 
   const live = await context.newPage()
   await live.goto(firstUrl)
-  await expect(firstRow.getByText('Open now', { exact: true })).toBeVisible()
+  await expectOpenState(firstRow, true)
   await live.goto(secondUrl)
-  await expect(firstRow.getByText('Open now', { exact: true })).toBeHidden()
-  await expect(secondRow.getByText('Open now', { exact: true })).toBeVisible()
+  await expectOpenState(firstRow, false)
+  await expectOpenState(secondRow, true)
   await live.goto(hashUrl)
-  await expect(secondRow.getByText('Open now', { exact: true })).toBeHidden()
-  await expect(hashRow.getByText('Open now', { exact: true })).toBeVisible()
-  await expect(firstRow.getByText('Open now', { exact: true })).toBeHidden()
+  await expectOpenState(secondRow, false)
+  await expectOpenState(hashRow, true)
+  await expectOpenState(firstRow, false)
   // Neither title/status events nor membership changes re-query every tab.
   await live.evaluate(() => {
     document.title = 'Updated article title'
@@ -148,8 +218,9 @@ export const verifyOpenTabs = async ({
   expect(await page.evaluate(() => window.__openTabsQueryCount)).toBe(1)
 
   await page.reload()
-  await expect(hashRow.getByText('Open now', { exact: true })).toBeVisible()
-  await expect(firstRow.getByText('Open now', { exact: true })).toBeHidden()
+  await expectOpenState(hashRow, true)
+  await expectOpenState(firstRow, false)
+  await expectHoverTooltip(page, dragHandle(hashRow))
   expect(await page.evaluate(() => window.__openTabsQueryCount)).toBe(1)
 
   if (screenshots) {
@@ -162,15 +233,170 @@ export const verifyOpenTabs = async ({
       })
     })
     await page.setViewportSize({ width: 420, height: 900 })
-    await expect(
-      hashRow.getByText('開いています', { exact: true }),
-    ).toBeVisible()
+    await expectOpenState(hashRow, true, '開いています')
+    await expectHoverTooltip(page, dragHandle(hashRow), '開いています')
     await page.screenshot({ path: screenshots.narrow })
   }
 
   await live.close()
-  await expect(hashRow.getByText(/^(Open now|開いています)$/u)).toBeHidden()
+  await expectOpenState(
+    hashRow,
+    false,
+    screenshots ? '開いています' : 'Open now',
+  )
   expect(await readPersistenceV2SavedTabsSnapshot(page)).toEqual(
     persistenceBefore,
   )
+}
+
+export const verifyOpenTabDragging = async ({
+  page,
+  context,
+  appUrl,
+  mode,
+}: {
+  page: Page
+  context: BrowserContext
+  appUrl: string
+  mode: 'domain' | 'custom'
+}) => {
+  await routeOpenTabFixture(context)
+  await page.goto(`${appUrl}#/options`)
+  await seedSavedTabsFixture(page, createOpenTabsFixture())
+  const before = await readPersistenceV2SavedTabsSnapshot(page)
+  const readMemberships = async () =>
+    readPersistenceV2Store<ReturnType<typeof createMembershipFixture>>(
+      page,
+      'collectionMemberships',
+    )
+  const beforeMemberships = await readMemberships()
+  const beforeCollections = await readPersistenceV2Store<
+    | ReturnType<typeof createCustomCollectionFixture>
+    | ReturnType<typeof createDomainCollectionFixture>
+  >(page, 'collections')
+  const opened = await context.newPage()
+  await opened.goto(firstUrl)
+  await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
+  await page.bringToFront()
+
+  const collectionId = mode === 'domain' ? 'open-domain' : 'open-project'
+  const rows = page.getByTestId(
+    mode === 'domain' ? 'sortable-url-item' : 'project-url-item',
+  )
+  const links = rows.getByRole('link')
+  const firstRow = row(page, 'Saved article')
+  const handle = dragHandle(firstRow)
+  const secondHandle = dragHandle(row(page, 'Other saved article'))
+  const originalTitles = [
+    'Saved article',
+    'Other saved article',
+    'Article section',
+  ]
+  const pointerTitles = [
+    'Other saved article',
+    'Saved article',
+    'Article section',
+  ]
+  const readOrder = async () => {
+    const memberships = await readMemberships()
+    return memberships
+      .filter((membership) => membership.collectionId === collectionId)
+      .toSorted((left, right) => left.sortOrder - right.sortOrder)
+      .map(({ urlId }) => urlId)
+  }
+
+  await expect(links).toHaveText(originalTitles)
+  await expectOpenState(firstRow, true)
+  await expectInstructions(handle)
+  await expectHoverTooltip(page, handle)
+  await handle.hover()
+  await expect(
+    page.getByRole('tooltip', { name: 'Open now', exact: true }),
+  ).toHaveText('Open now')
+  const source = await handle.boundingBox()
+  const target = await secondHandle.boundingBox()
+  if (!source || !target) {
+    throw new Error('Opened URL drag handles must have visible rectangles')
+  }
+  await page.mouse.move(
+    source.x + source.width / 2,
+    source.y + source.height / 2,
+  )
+  await page.mouse.down()
+  await expect(handle).toHaveAttribute('aria-pressed', 'true')
+  await page.mouse.move(
+    target.x + target.width / 2,
+    target.y + target.height / 2,
+    {
+      steps: 12,
+    },
+  )
+  await expectAnnouncement(page, 'Other saved article')
+  await page.mouse.up()
+  await expect(links).toHaveText(pointerTitles)
+  await expect
+    .poll(readOrder)
+    .toEqual(['open-second', 'open-first', 'open-hash'])
+  await page.mouse.move(0, 0, { steps: 12 })
+  await expect(
+    page.getByRole('tooltip', { name: 'Open now', exact: true }),
+  ).toBeHidden()
+  await page.reload()
+  await expect(links).toHaveText(pointerTitles)
+  await expectOpenState(firstRow, true)
+
+  await tabTo(page, handle)
+  await expectInstructions(handle)
+  await handle.hover()
+  await expect(
+    page.getByRole('tooltip', { name: 'Open now', exact: true }),
+  ).toHaveText('Open now')
+  await startKeyboardDrag(page, handle, 'Space')
+  await page.keyboard.press('ArrowUp')
+  await expectAnnouncement(page, 'Other saved article')
+  await page.keyboard.press('Escape')
+  await waitForRestoredFocus(page, handle)
+  await expect(handle).not.toHaveAttribute('aria-pressed', 'true')
+  await expect(links).toHaveText(pointerTitles)
+  expect(await readOrder()).toEqual(['open-second', 'open-first', 'open-hash'])
+
+  await startKeyboardDrag(page, handle, 'Space')
+  await page.keyboard.press('ArrowUp')
+  await expectAnnouncement(page, 'Other saved article')
+  await page.keyboard.press('Enter')
+  await waitForRestoredFocus(page, handle)
+  await expect(links).toHaveText(originalTitles)
+  await expect
+    .poll(readOrder)
+    .toEqual(['open-first', 'open-second', 'open-hash'])
+  await page.reload()
+  await expect(links).toHaveText(originalTitles)
+  await expectOpenState(firstRow, true)
+  await expectInstructions(handle)
+
+  const after = await readPersistenceV2SavedTabsSnapshot(page)
+  expect(after.urls).toEqual(before.urls)
+  expect(after.categories).toEqual(before.categories)
+  expect(after.groups).toEqual(before.groups)
+  // Reordering a custom project legitimately touches its modified timestamp.
+  expect(after.collections).toEqual(
+    beforeCollections.map((collection) =>
+      collection.id === collectionId
+        ? { ...collection, updatedAt: expect.any(Number) }
+        : collection,
+    ),
+  )
+  const afterMemberships = await readMemberships()
+  expect(afterMemberships).toHaveLength(beforeMemberships.length)
+  expect(
+    afterMemberships.filter(
+      (membership) => membership.collectionId !== collectionId,
+    ),
+  ).toEqual(
+    beforeMemberships.filter(
+      (membership) => membership.collectionId !== collectionId,
+    ),
+  )
+  await opened.close()
+  await expectOpenState(firstRow, false)
 }
