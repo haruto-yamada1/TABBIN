@@ -234,12 +234,48 @@ alerts、Renovate vulnerability PR、OSV、`bun audit` の結果を突き合わ�
 一時 ignore が必要な場合は advisory、dependency path、影響、upstream status、期限、
 owner をこの文書または専用 Issue に残し、恒久的な ignore にしない。
 
+### 定期監査と通知
+
+Issue #908 の `.github/workflows/security-audit.yml` は毎日 **03:23 UTC
+（12:23 JST）** に default branch の現在の lockfile を監査する。`workflow_dispatch`
+からも実行でき、workflow / 契約テストの変更 PR では同じ job を検証する。
+Node / Bun は repository pin、install は `--frozen-lockfile` を使い、
+`security:audit` の policy 検証 → backport probe → `bun audit --audit-level=high`
+をそのまま実行する。High / Critical、期限切れ・不正な例外記録、probe 失敗、
+registry / network 等による監査不能はすべて失敗とし、ログ保存のために終了コードを
+握りつぶさない。setup failure も「監査未実行」として表示し、安全とは扱わない。
+ブラウザ設定・権限・データモデル、既存 CI / release gate は変更しない。
+
+通知は GitHub Actions の **failed workflow run notification** を使う。
+dependency maintenance 担当者は GitHub 個人設定の Notifications → Actions で
+email / web 通知を有効にし、必要なら failed runs のみを選ぶ。定期実行の通知先は
+workflow 作成者で、cron 変更者または無効化後の再有効化者へ変わることがある。
+手動実行は実行者が通知を受け取る。リポジトリを Watch するだけで全保守担当者への
+配信を保証する仕組みではないため、cron 変更・担当交代時は通知先と設定を確認する。
+PR 作成だけでは schedule は有効にならず、workflow が default branch に入る必要がある。
+GitHub 側で schedule が遅延・無効化されることもあるため、Actions の実行履歴で
+日次 run を確認し、必要なら再有効化・手動実行する。
+
+失敗通知から該当 run の job summary と失敗 step を開く。audit 実行後の生ログは
+`security-audit-log` artifact に14日保存する。setup failure には audit artifact が
+ないため setup step のログを確認する。advisory は既存の Renovate vulnerability PR /
+Dependency Dashboard と照合して一つの修正へ集約し、監査障害は復旧後に再実行する。
+この workflow は検知専用で Issue / PR / コメントを自動作成せず、write token や
+通知サービスの secret を要求しない。例外の根拠・担当・追跡 Issue・期限は前節の
+policy verifier で継続検証し、期限の自動延長や新しい ignore は行わない。
+
+参考: [GitHub Actions の通知先と設定](https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs)、
+[schedule の実行条件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)。
+
 ### Release audit と Renovate の役割
 
 `release:check` / `release:zip` は直前に同じ `security:audit` を実行する。
 監査不能（registry / network / authentication / lockfile / process failure）も
 非ゼロ終了として配布を止め、障害復旧後に gate 全体を再実行する。
 通常 CI と Issue #908 の定期監査は早期検知、release gate は配布時点の合否を担う。
+完了済みの Issue #924 はこの release gate、Issue #940 は PR の依存差分 review、
+Issue #935 は CodeQL のソース解析を担当する。定期監査はコード変更がない日にも
+現在の全 lockfile と backport の期限を調べるため、それぞれの gate を維持する。
 
 監査が advisory を報告したら、依存経路と production / tooling への影響を確認し、
 Renovate の vulnerability PR / Dependency Dashboard の OSV 情報と突き合わせる。
