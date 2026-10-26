@@ -29,6 +29,7 @@ import {
   getScopedObjectActionLabel,
   getScopedSortLabel,
 } from '@/contexts/saved-tabs/presentation/lib/accessibility'
+import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableCategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -182,14 +183,14 @@ const useSortableCategorySectionView = ({
   // Derive sorted urls by savedAt (default = original order)
   const sortedUrls = useMemo(() => {
     if (sortOrder === 'default') {
-      return urls
+      return getFavoriteDisplayUrls(urls)
     }
     const arr = [...urls]
     arr.sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))
     if (sortOrder === 'desc') {
       arr.reverse()
     }
-    return arr
+    return getFavoriteDisplayUrls(arr)
   }, [urls, sortOrder])
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)

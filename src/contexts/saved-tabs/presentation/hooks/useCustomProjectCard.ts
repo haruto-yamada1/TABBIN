@@ -445,7 +445,8 @@ export const useCustomProjectCard = ({
         await handleProcessedUrlDrop({
           // eslint-disable-next-line typescript/no-unsafe-assignment
           actualUrl,
-          allowUrlReorder,
+          allowUrlReorder:
+            allowUrlReorder && !projectUrls.some((url) => url.isFavorite),
           clearDragState,
           // eslint-disable-next-line typescript/no-unsafe-assignment
           dragSourceCategory,

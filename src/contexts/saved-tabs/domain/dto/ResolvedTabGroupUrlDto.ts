@@ -8,6 +8,7 @@
  */
 export type ResolvedTabGroupUrlDto = {
   id?: string
+  isFavorite?: boolean
   url: string
   title: string
   subCategory?: string

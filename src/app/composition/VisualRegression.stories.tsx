@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useMemo } from 'react'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 
 import { SavedTabsPage } from '@/contexts/saved-tabs/presentation/pages/SavedTabsPage'
 import { SavedTabsChatPanel } from '@/features/ai-chat/components/SavedTabsChatPanel'
@@ -118,7 +118,10 @@ export const Import: Story = {
       'dialog',
       { name: messages['options.importExport.dialogTitle'] },
     )
-    await expect(within(dialog).getByTestId('import-dropzone')).toBeVisible()
+    // The portal mounts before its opening animation becomes visible.
+    await waitFor(async () => {
+      await expect(within(dialog).getByTestId('import-dropzone')).toBeVisible()
+    })
     markReady(canvasElement, 'import')
   },
   render: () => <OptionsRoute />,

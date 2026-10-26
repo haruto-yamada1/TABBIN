@@ -15,6 +15,7 @@ import {
   getProjectCategorySortableId,
   getProjectUrlSortableId,
 } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
+import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -36,7 +37,7 @@ const sortCategoryUrls = (
   sortOrder: SortOrder,
 ): CategoryUrl[] => {
   if (sortOrder === 'default') {
-    return categoryUrls
+    return getFavoriteDisplayUrls(categoryUrls)
   }
 
   const sorted = [...categoryUrls]
@@ -44,7 +45,7 @@ const sortCategoryUrls = (
   if (sortOrder === 'desc') {
     sorted.reverse()
   }
-  return sorted
+  return getFavoriteDisplayUrls(sorted)
 }
 
 const getReorderStyle = (isReorderTarget: boolean): React.CSSProperties => {

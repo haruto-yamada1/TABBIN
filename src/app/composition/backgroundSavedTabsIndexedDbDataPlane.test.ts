@@ -260,6 +260,23 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     ])
   })
 
+  it('protects favorite URLs from expiration until explicitly unmarked', async () => {
+    const state = createState()
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
+    const { dataPlane } = createDataPlane(state)
+    const before = structuredClone(state)
+    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+      removedCount: 0,
+      sourceCount: 1,
+    })
+    expect(state).toEqual(before)
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: false }))
+    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+      removedCount: 1,
+      sourceCount: 1,
+    })
+  })
+
   it('propagates a native session failure without another backend attempt', async () => {
     const error = new Error('indexeddb failed')
     const session = {

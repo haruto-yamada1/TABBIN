@@ -6,6 +6,7 @@ export type ResolvedCustomProjectUrlDto = {
   readonly category?: string
   readonly favIconUrl?: string
   readonly id: string
+  isFavorite?: boolean
   readonly notes?: string
   readonly savedAt: number
   readonly title: string

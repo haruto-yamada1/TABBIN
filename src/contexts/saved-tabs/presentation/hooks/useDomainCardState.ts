@@ -7,6 +7,7 @@ import type { CategoryAssignmentPort } from '@/contexts/saved-tabs/application/p
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
+import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import { toTabGroupFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import {
   toPresentationTabGroups,
@@ -59,6 +60,7 @@ type UseDomainCardStateParams = {
   assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
 type CategorizedUrlItem = {
+  isFavorite?: boolean
   id?: string
   url: string
   title: string
@@ -85,14 +87,14 @@ const sortUrlsByOrder = (
 ): TabGroup['urls'] => {
   const sourceUrls = urls ?? []
   if (sortOrder === 'default') {
-    return sourceUrls
+    return getFavoriteDisplayUrls(sourceUrls)
   }
   const sortedUrls = [...sourceUrls]
   sortedUrls.sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))
   if (sortOrder === 'desc') {
     sortedUrls.reverse()
   }
-  return sortedUrls
+  return getFavoriteDisplayUrls(sortedUrls)
 }
 const buildCategorizedUrls = (
   urls: TabGroup['urls'],

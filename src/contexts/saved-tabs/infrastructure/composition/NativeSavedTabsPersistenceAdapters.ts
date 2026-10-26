@@ -383,6 +383,7 @@ const createUrlRecordRepository = (
     state.urls.map((url) =>
       createUrlRecord({
         ...(url.favIconUrl !== undefined ? { favIconUrl: url.favIconUrl } : {}),
+        ...(url.isFavorite !== undefined ? { isFavorite: url.isFavorite } : {}),
         id: url.id,
         savedAt: url.lastSavedAt,
         title: url.title,
@@ -403,6 +404,9 @@ const createUrlRecordRepository = (
         const existing = existingById.get(record.id)
         return {
           ...(record.favIconUrl ? { favIconUrl: record.favIconUrl } : {}),
+          ...(record.isFavorite !== undefined
+            ? { isFavorite: record.isFavorite }
+            : {}),
           firstSavedAt: existing?.firstSavedAt ?? record.savedAt,
           firstSavedAtProvenance: existing
             ? (existing.firstSavedAtProvenance ?? 'legacy-fallback')
@@ -749,6 +753,27 @@ export const createNativeSavedTabsPersistenceAdapters = (
   }
   return {
     ...external,
+    setSavedUrlFavoritePort: {
+      setFavorite: async ({ url, isFavorite }) => {
+        const current = state.urls.find((record) => record.url === url)
+        if (!current) {
+          return false
+        }
+        if ((current.isFavorite ?? false) === isFavorite) {
+          return true
+        }
+        state.urls = state.urls.map((record) =>
+          record.id === current.id
+            ? {
+                ...record,
+                isFavorite,
+                updatedAt: Math.max(now(), record.updatedAt),
+              }
+            : record,
+        )
+        return true
+      },
+    },
     categoriesCommandService: {
       updateCollectionCategories: async (collection, categories) => {
         state.collections = state.collections.map((candidate) =>
@@ -875,6 +900,9 @@ export const createNativeSavedTabsPersistenceAdapters = (
                 {
                   ...(category ? { category: category.name } : {}),
                   ...(url.favIconUrl ? { favIconUrl: url.favIconUrl } : {}),
+                  ...(url.isFavorite !== undefined
+                    ? { isFavorite: url.isFavorite }
+                    : {}),
                   id: url.id,
                   ...(membership.notes ? { notes: membership.notes } : {}),
                   savedAt: url.lastSavedAt,

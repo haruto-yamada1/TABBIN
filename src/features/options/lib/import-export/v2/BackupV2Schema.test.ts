@@ -157,6 +157,42 @@ const createLogicalSnapshot = (reverse = false): PersistenceLogicalSnapshot => {
 }
 
 describe('Backup V2 schemas', () => {
+  it.each([true, false])(
+    'roundtrips favorite %s without changing old backups',
+    (isFavorite) => {
+      const snapshot = createLogicalSnapshot()
+      const data = BackupMapper.toBackupData(
+        {
+          ...snapshot,
+          savedTabs: {
+            ...snapshot.savedTabs,
+            urls: snapshot.savedTabs.urls.map((url) => ({
+              ...url,
+              isFavorite,
+            })),
+          },
+        },
+        userSettings,
+      )
+      const serialized = JSON.stringify(data)
+      const restored = BackupDataV2Schema.parse(JSON.parse(serialized))
+      expect(
+        restored.savedTabs.urls.every((url) => url.isFavorite === isFavorite),
+      ).toBe(true)
+      expect(
+        BackupDataV2Schema.parse(
+          BackupMapper.toBackupData(snapshot, userSettings),
+        ).savedTabs.urls[0],
+      ).not.toHaveProperty('isFavorite')
+      expect(
+        PersistenceV2UrlSchema.safeParse({
+          ...snapshot.savedTabs.urls[0],
+          isFavorite: 'true',
+        }).success,
+      ).toBe(false)
+    },
+  )
+
   it('imports older Backup V2 settings with relative saved time disabled', () => {
     const data = BackupMapper.toBackupData(
       createLogicalSnapshot(),

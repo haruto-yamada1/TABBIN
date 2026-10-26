@@ -17,6 +17,7 @@ import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
 import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
 import { SavedTime } from './shared/SavedTime'
+import { SavedUrlFavoriteButton } from './shared/SavedUrlFavoriteButton'
 
 const ButtonContent = ({
   title,
@@ -69,6 +70,7 @@ export const SortableUrlItem = ({
   title,
   id,
   groupId,
+  isFavorite = false,
   savedAt,
   autoDeletePeriod,
   handleDeleteUrl,
@@ -227,7 +229,7 @@ export const SortableUrlItem = ({
     <ButtonContent
       title={title}
       savedAt={savedAt}
-      autoDeletePeriod={autoDeletePeriod}
+      autoDeletePeriod={isFavorite ? undefined : autoDeletePeriod}
       settings={settings}
     />
   )
@@ -274,6 +276,12 @@ export const SortableUrlItem = ({
             descriptionId={openStateDescriptionId}
           />
         </div>
+        <SavedUrlFavoriteButton
+          url={url}
+          title={title}
+          isFavorite={isFavorite}
+          disabled={selection.isSelectionMode}
+        />
         <div className='relative min-w-0 flex-1 overflow-hidden'>
           {safeHref ? (
             <Button

@@ -198,6 +198,35 @@ const createProps = (
 })
 
 describe('SortableCategorySection', () => {
+  it('keeps favorites ahead of date ordering inside a category', async () => {
+    const user = userEvent.setup()
+    render(
+      <SortableCategorySection
+        {...createProps({
+          urls: [
+            { url: 'https://a.com', title: 'A', savedAt: 1 },
+            { url: 'https://b.com', title: 'B', savedAt: 2, isFavorite: true },
+            { url: 'https://c.com', title: 'C', savedAt: 3 },
+          ],
+        })}
+      />,
+    )
+    await user.click(
+      screen.getByRole('button', { name: '「未分類」の並び順: デフォルト' }),
+    )
+    expect(screen.getByTestId('category-section')).toHaveTextContent(
+      'https://b.com,https://a.com,https://c.com',
+    )
+    await user.click(
+      screen.getByRole('button', {
+        name: '「未分類」の並び順: 保存日時の昇順',
+      }),
+    )
+    expect(screen.getByTestId('category-section')).toHaveTextContent(
+      'https://b.com,https://c.com,https://a.com',
+    )
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     dndMonitorHandlers.current = {}

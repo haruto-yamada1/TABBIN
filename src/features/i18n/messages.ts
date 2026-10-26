@@ -1,6 +1,7 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
 import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
+import { favoriteMessages } from './favoriteMessages'
 import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { selectionMessages } from './selectionMessages'
@@ -14,6 +15,7 @@ const messages = {
     ...organizationActionMessages.en,
     ...selectionMessages.en,
     ...optionsMessages.en,
+    ...favoriteMessages.en,
     ...tabOpeningErrorMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
@@ -382,8 +384,6 @@ const messages = {
       'When enabled, a confirmation dialog appears before deleting a tab.',
     'options.autoDelete.confirmMessage':
       'Set auto-delete period to "{{periodLabel}}".\n\n{{warningMessage}}\n\nContinue?',
-    'options.autoDelete.description':
-      'Saved tabs are deleted automatically after the selected period.',
     'options.autoDelete.disabled': 'Disabled auto delete',
     'options.autoDelete.enabled': 'Set auto-delete period to "{{periodLabel}}"',
     'options.autoDelete.excludePinned': 'Exclude pinned tabs',
@@ -397,8 +397,6 @@ const messages = {
       'Delete automatically after opening a saved tab',
     'options.autoDelete.openAfterDescription':
       'When enabled, a saved tab is removed from the list after you open it. When disabled, the tab stays in the list.',
-    'options.autoDelete.periodDescription':
-      'Saved tabs are deleted automatically when they exceed the selected period. Applying the setting deletes tabs that have already expired.',
     'options.autoDelete.periodLabel': 'Auto-delete period for tabs',
     'options.autoDelete.saveError': 'Failed to save settings',
     'options.autoDelete.saveInBackground': 'Open in background tabs',
@@ -930,6 +928,7 @@ const messages = {
     ...organizationActionMessages.ja,
     ...selectionMessages.ja,
     ...optionsMessages.ja,
+    ...favoriteMessages.ja,
     ...tabOpeningErrorMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
@@ -1295,8 +1294,6 @@ const messages = {
       'オンにすると、タブを削除する前に確認ダイアログを表示します。',
     'options.autoDelete.confirmMessage':
       '自動削除期間を「{{periodLabel}}」に設定します。\n\n{{warningMessage}}\n\n続行しますか？',
-    'options.autoDelete.description':
-      '保存されたタブが指定した期間を超えると自動的に削除されます。',
     'options.autoDelete.disabled': '自動削除を無効にしました',
     'options.autoDelete.enabled':
       '自動削除期間を「{{periodLabel}}」に設定しました',
@@ -1311,8 +1308,6 @@ const messages = {
       '保存したタブを開いた後、リストから自動的に削除する',
     'options.autoDelete.openAfterDescription':
       'オンにすると、保存したタブを開いた後、そのタブは保存リストから自動的に削除されます。オフにすると、保存したタブを開いても、リストからは削除されません。',
-    'options.autoDelete.periodDescription':
-      '保存されたタブが指定した期間を超えると自動的に削除されます。設定を適用すると、その時点で期限切れのタブは削除されます。',
     'options.autoDelete.periodLabel': 'タブの自動削除期間',
     'options.autoDelete.saveError': '設定の保存に失敗しました',
     'options.autoDelete.saveInBackground': 'バックグラウンドタブで開く',

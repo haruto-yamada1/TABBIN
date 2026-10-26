@@ -80,6 +80,7 @@ export type SortableCategorySectionProps = CategorySectionProps & {
 
 // URL項目用のソータブルコンポーネント
 export type SortableUrlItemProps = {
+  isFavorite?: boolean
   url: string
   title: string
   id: string

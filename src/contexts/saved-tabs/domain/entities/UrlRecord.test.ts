@@ -12,6 +12,13 @@ const baseInput = {
 }
 
 describe('UrlRecord entity', () => {
+  it('お気に入り属性を保持し、省略時は既存レコードと互換を保つ', () => {
+    expect(createUrlRecord({ ...baseInput, isFavorite: true })).toEqual(
+      expect.objectContaining({ isFavorite: true }),
+    )
+    expect(createUrlRecord(baseInput)).not.toHaveProperty('isFavorite')
+  })
+
   it('正常な入力からエンティティを生成できる', () => {
     const record = createUrlRecord(baseInput)
     expect(record.id).toBe('record-1')
@@ -20,6 +27,12 @@ describe('UrlRecord entity', () => {
     expect(record.savedAt).toBe(1_700_000_000_000)
     expect(record.favIconUrl).toBeUndefined()
     expect(Object.hasOwn(record, 'favIconUrl')).toBe(false)
+  })
+
+  it('rejects a malformed favorite flag', () => {
+    const input = { ...baseInput, isFavorite: true }
+    Object.defineProperty(input, 'isFavorite', { value: 'true' })
+    expect(() => createUrlRecord(input)).toThrow(SavedTabsDomainError)
   })
 
   it('title が空文字列でも許容する（タイトル未取得ケース）', () => {
