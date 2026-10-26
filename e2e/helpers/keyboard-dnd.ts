@@ -477,7 +477,7 @@ export const verifyTouchDomainCategories = async ({
     return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
   }
   const session = await page.context().newCDPSession(page)
-  const point = await center(handle)
+  const point = await center(handle.locator('[data-saved-tabs-drag-handle]'))
   await session.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
     touchPoints: [point],
@@ -510,6 +510,88 @@ export const verifyTouchDomainCategories = async ({
     .toEqual(categoryNames.toReversed())
   await page.reload()
   await expect(headings).toHaveText(categoryNames.toReversed())
+}
+
+export const verifyCategoryTouchScrolling = async ({
+  page,
+  serviceWorker,
+  appUrl,
+  targetPart,
+  parent,
+}: KeyboardScenario & {
+  targetPart: 'title' | 'badge'
+  parent: boolean
+}): Promise<void> => {
+  const seed = parent ? createParentCategorySeed() : createSeed('domain', true)
+  const membership = seed.persistence.memberships[0]
+  if (!membership) {
+    throw new Error('Touch scrolling fixture needs a source membership')
+  }
+  const now = Date.now()
+  const extraUrls = Array.from({ length: 8 }, (_, index) =>
+    createUrlFixture(
+      `scroll-${index}`,
+      `https://example.com/scroll-${index}`,
+      `Scroll tab ${index}`,
+      now,
+    ),
+  )
+  seed.persistence.urls.push(...extraUrls)
+  seed.persistence.memberships.push(
+    ...extraUrls.map((url, index) => ({
+      ...membership,
+      urlId: url.id,
+      sortOrder: (index + 2) * 1024,
+    })),
+  )
+  await seedSavedTabsFixture(serviceWorker, seed)
+  await page.setViewportSize({ width: 1280, height: 350 })
+  await page.goto(appUrl)
+  const { handle: row } = getDomainCategoryControls(page, parent)
+  const target =
+    targetPart === 'title'
+      ? row.getByRole('heading', { name: 'Alpha', exact: true })
+      : row.getByText(String(extraUrls.length + 1), { exact: true }).first()
+  const box = await target.boundingBox()
+  if (!box) {
+    throw new Error('Category touch target is not visible')
+  }
+  const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  const pane = page.getByTestId('saved-tabs-left-pane')
+  await expect
+    .poll(async () =>
+      pane.evaluate((node) => node.scrollHeight - node.clientHeight),
+    )
+    .toBeGreaterThan(90)
+  const session = await page.context().newCDPSession(page)
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [point],
+  })
+  await expect(page.locator('[data-drop-state="source"]')).toHaveCount(0)
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: point.x, y: point.y - 20 }],
+  })
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: point.x, y: point.y - 90 }],
+  })
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  })
+  await expect
+    .poll(async () =>
+      page
+        .getByTestId('saved-tabs-left-pane')
+        .evaluate((node) => node.scrollTop),
+    )
+    .toBeGreaterThan(30)
+  await expect(
+    page.locator('[data-drop-state="source"], [data-drop-state="over"]'),
+  ).toHaveCount(0)
+  expect(await readCategoryOrder(serviceWorker, parent)).toEqual(categoryNames)
 }
 
 export const verifyKeyboardCustomCategories = async ({

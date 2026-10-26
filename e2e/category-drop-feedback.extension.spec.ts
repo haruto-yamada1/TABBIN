@@ -14,7 +14,10 @@ import {
   seedSavedTabsFixture,
   test,
 } from './helpers/extension'
-import { verifyTouchDomainCategories } from './helpers/keyboard-dnd'
+import {
+  verifyTouchDomainCategories,
+  verifyCategoryTouchScrolling,
+} from './helpers/keyboard-dnd'
 
 const createSeed = (extraCategories = 0) => {
   const now = Date.now()
@@ -231,4 +234,26 @@ for (const parent of [false, true]) {
     })
     await expect(page.locator('[data-drop-state="over"]')).toHaveCount(0)
   })
+}
+
+for (const parent of [false, true]) {
+  for (const targetPart of ['title', 'badge'] as const) {
+    test(`domain ${parent ? 'parent' : 'child'} category ${targetPart} touch gesture scrolls without dragging`, async ({
+      page,
+      extensionId,
+      serviceWorker,
+    }) => {
+      await verifyCategoryTouchScrolling({
+        page,
+        serviceWorker,
+        parent,
+        targetPart,
+        appUrl: getExtensionUrl(
+          extensionId,
+          'app.html#/saved-tabs?mode=domain',
+        ),
+      })
+      await expect(page.locator('[data-drop-state="source"]')).toHaveCount(0)
+    })
+  }
 }

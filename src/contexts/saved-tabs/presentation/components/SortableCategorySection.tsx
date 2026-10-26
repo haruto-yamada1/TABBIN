@@ -37,6 +37,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
+import { getTouchHandleListeners } from './shared/touchDragHandle'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
 import { CategorySection } from './TimeRemaining'
 
@@ -344,16 +345,21 @@ const useSortableCategorySectionView = ({
           />
           {/* ドラッグハンドル部分 */}
           <div
-            className={`flex grow touch-none items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
+            className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
             ref={setActivatorNodeRef}
             {...attributes}
-            {...listeners}
+            {...getTouchHandleListeners(listeners)}
             aria-label={t('savedTabs.category.dragHandleAria', undefined, {
               name: displayedCategoryName,
             })}
           >
             <div className='text-muted-foreground'>
-              <GripVertical size={16} aria-hidden='true' />
+              <GripVertical
+                size={16}
+                aria-hidden='true'
+                data-saved-tabs-drag-handle='true'
+                className='touch-none'
+              />
             </div>
             <h3 className='font-medium text-foreground'>
               {displayedCategoryName}

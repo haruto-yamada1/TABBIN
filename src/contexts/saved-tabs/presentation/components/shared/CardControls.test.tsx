@@ -136,6 +136,69 @@ describe('CardCollapseControl', () => {
 })
 
 describe('CardGroupTitle', () => {
+  it('keeps touch dragging on the grip while preserving mouse and keyboard row activation', async () => {
+    const user = userEvent.setup()
+    const onPointerDown = vi.fn()
+    const onKeyDown = vi.fn()
+    const activatorRef = vi.fn()
+    render(
+      <CardGroupTitle
+        title='Work'
+        badges={<span data-testid='category-count'>2</span>}
+        touchHandleOnly
+        sortableAttributes={{
+          role: 'button',
+          tabIndex: 0,
+          'aria-disabled': false,
+          'aria-pressed': false,
+          'aria-roledescription': 'sortable',
+          'aria-describedby': 'drag-instructions',
+        }}
+        sortableListeners={{ onPointerDown, onKeyDown }}
+        activatorRef={activatorRef}
+      />,
+    )
+    const row = screen.getByTestId('card-group-title')
+    const heading = screen.getByRole('heading', { name: 'Work' })
+    const badge = screen.getByTestId('category-count')
+    const grip = screen.getByTestId('drag-handle')
+    await user.pointer([
+      { target: heading, keys: '[TouchA>]' },
+      { keys: '[/TouchA]' },
+    ])
+    await user.pointer([
+      { target: badge, keys: '[TouchA>]' },
+      { keys: '[/TouchA]' },
+    ])
+    expect(onPointerDown).not.toHaveBeenCalled()
+    await user.pointer([
+      { target: grip, keys: '[TouchA>]' },
+      { keys: '[/TouchA]' },
+    ])
+    expect(onPointerDown).toHaveBeenCalledTimes(1)
+    await user.pointer({ target: heading, keys: '[MouseLeft]' })
+    expect(onPointerDown).toHaveBeenCalledTimes(2)
+    await user.click(row)
+    await user.keyboard(' ')
+    expect(onKeyDown).toHaveBeenCalledTimes(1)
+    expect(activatorRef).toHaveBeenCalledWith(row)
+    expect(row).not.toHaveClass('touch-none')
+    expect(grip).toHaveClass('touch-none')
+  })
+
+  it('preserves default row listeners when touch restriction is not requested', async () => {
+    const user = userEvent.setup()
+    const onPointerDown = vi.fn()
+    render(
+      <CardGroupTitle title='Work' sortableListeners={{ onPointerDown }} />,
+    )
+    await user.pointer({
+      target: screen.getByRole('heading', { name: 'Work' }),
+      keys: '[TouchA]',
+    })
+    expect(onPointerDown).toHaveBeenCalledTimes(1)
+  })
+
   it('ドラッグハンドルを muted foreground 色で描画する', () => {
     render(<CardGroupTitle title='動画' />)
 
