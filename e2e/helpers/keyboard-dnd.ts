@@ -369,6 +369,15 @@ export const verifyKeyboardDomainCategories = async (
   await page.goto(appUrl)
 
   const { headings, handle } = getDomainCategoryControls(page, parent)
+  const targets = parent
+    ? page.locator('[data-saved-tabs-scroll-target="parent"]')
+    : page.getByTestId('sortable-category-section')
+  const source = targets.filter({
+    has: page.getByRole('heading', { name: 'Alpha', exact: true }),
+  })
+  const destination = targets.filter({
+    has: page.getByRole('heading', { name: 'Beta', exact: true }),
+  })
   const cancel = page.getByRole('button', {
     name: 'Cancel parent category reordering',
     exact: true,
@@ -383,11 +392,17 @@ export const verifyKeyboardDomainCategories = async (
 
   await startKeyboardDrag(page, handle, 'Space')
   await expectAnnouncement(page, 'Alpha')
+  await expect(source).toHaveAttribute('data-drop-state', 'source')
+  await expect(destination).toHaveAttribute('data-drop-state', 'available')
+  await expect(destination).toHaveCSS('outline-style', 'dashed')
 
   await page.keyboard.press('ArrowDown')
 
   await expectAnnouncement(page, 'Beta')
+  await expect(destination).toHaveAttribute('data-drop-state', 'over')
+  await expect(destination).toHaveCSS('outline-style', 'solid')
   await page.keyboard.press('Escape')
+  await expect(destination).toHaveAttribute('data-drop-state', 'idle')
   await expect(headings).toHaveText(categoryNames)
   await waitForRestoredFocus(page, handle)
   await expect(confirm).toBeHidden()
@@ -435,6 +450,68 @@ export const verifyKeyboardDomainCategories = async (
   await expect(headings).toHaveText(categoryNames.toReversed())
 }
 
+export const verifyTouchDomainCategories = async ({
+  page,
+  serviceWorker,
+  appUrl,
+  parent,
+}: KeyboardScenario & { parent: boolean }): Promise<void> => {
+  await seedSavedTabsFixture(
+    serviceWorker,
+    parent ? createParentCategorySeed() : createSeed('domain', true),
+  )
+  await page.goto(appUrl)
+  const { headings, handle } = getDomainCategoryControls(page, parent)
+  await expect(headings).toHaveText(categoryNames)
+  const targets = parent
+    ? page.locator('[data-saved-tabs-scroll-target="parent"]')
+    : page.getByTestId('sortable-category-section')
+  const destination = targets.filter({
+    has: page.getByRole('heading', { name: 'Beta', exact: true }),
+  })
+  const center = async (target: Locator) => {
+    const box = await target.boundingBox()
+    if (!box) {
+      throw new Error('Touch drag target is not visible')
+    }
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  }
+  const session = await page.context().newCDPSession(page)
+  const point = await center(handle)
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [point],
+  })
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: point.x + 4, y: point.y + 4 }],
+  })
+  await expect(destination).toHaveAttribute('data-drop-state', 'available')
+  const next = await center(destination)
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [next],
+  })
+  await expect(destination).toHaveAttribute('data-drop-state', 'over')
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  })
+  await expect(headings).toHaveText(categoryNames.toReversed())
+  const confirm = page.getByRole('button', {
+    name: 'Confirm parent category reordering',
+    exact: true,
+  })
+  await tabTo(page, confirm)
+  await page.keyboard.press('Enter')
+  await expect(confirm).toBeHidden()
+  await expect
+    .poll(async () => readCategoryOrder(serviceWorker, parent))
+    .toEqual(categoryNames.toReversed())
+  await page.reload()
+  await expect(headings).toHaveText(categoryNames.toReversed())
+}
+
 export const verifyKeyboardCustomCategories = async ({
   page,
   serviceWorker,
@@ -448,14 +525,22 @@ export const verifyKeyboardCustomCategories = async ({
     name: 'Drag to reorder category "Alpha"',
     exact: true,
   })
+  const source = page.locator('[data-drop-state][data-category="Alpha"]')
+  const destination = page.locator('[data-drop-state][data-category="Beta"]')
   await expect(headings).toHaveText(categoryNames)
   await tabTo(page, handle)
   await expectInstructions(handle)
   await startKeyboardDrag(page, handle, 'Space')
   await expectAnnouncement(page, 'Alpha')
+  await expect(source).toHaveAttribute('data-drop-state', 'source')
+  await expect(destination).toHaveAttribute('data-drop-state', 'available')
+  await expect(destination).toHaveCSS('outline-style', 'dashed')
   await page.keyboard.press('ArrowDown')
   await expectAnnouncement(page, 'Beta')
+  await expect(destination).toHaveAttribute('data-drop-state', 'over')
+  await expect(destination).toHaveCSS('outline-style', 'solid')
   await page.keyboard.press('Escape')
+  await expect(destination).toHaveAttribute('data-drop-state', 'idle')
   await expect(headings).toHaveText(categoryNames)
   await waitForRestoredFocus(page, handle)
   expect(await readCategoryOrder(serviceWorker, false)).toEqual(categoryNames)
@@ -571,10 +656,19 @@ export const verifyKeyboardCustomHierarchy = async ({
   ): Promise<void> => {
     await tabTo(page, handle)
     await startKeyboardDrag(page, handle, 'Space')
+    await expect(archive).toHaveAttribute('data-drop-state', /available|over/)
+    await expect(archive).toHaveCSS('outline-style', /dashed|solid/)
     /* eslint-disable no-await-in-loop -- explicit keyboard navigation steps must run sequentially */
     for (const { key, targetName } of steps) {
       await page.keyboard.press(key)
       await expectAnnouncement(page, targetName)
+      if (targetName === 'Archive') {
+        await expect(archive).toHaveAttribute('data-drop-state', 'over')
+        await expect(archive).toHaveCSS('outline-style', 'solid')
+      }
+      if (targetName === 'Uncategorized tabs') {
+        await expect(uncategorized).toHaveAttribute('data-drop-state', 'over')
+      }
     }
     /* eslint-enable no-await-in-loop */
 

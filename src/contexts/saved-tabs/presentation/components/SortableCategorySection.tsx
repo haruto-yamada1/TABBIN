@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
 import {
   getScopedNounActionLabel,
   getScopedObjectActionLabel,
@@ -175,6 +176,8 @@ const useSortableCategorySectionView = ({
     style,
   } = useSortableCategoryDrag(id)
 
+  const feedback = useDropTargetFeedback({ id, accepts: 'category-section' })
+
   const [isDeleting, setIsDeleting] = useState(false)
   // Sort order state: 'default' preserves manual drag order
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
@@ -313,7 +316,8 @@ const useSortableCategorySectionView = ({
       <div
         ref={setNodeRef}
         style={style}
-        className={sectionClassName}
+        className={`${sectionClassName} ${feedback.className}`}
+        data-drop-state={feedback.state}
         data-saved-tabs-scroll-target='child'
         data-testid='sortable-category-section'
       >
@@ -340,7 +344,7 @@ const useSortableCategorySectionView = ({
           />
           {/* ドラッグハンドル部分 */}
           <div
-            className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
+            className={`flex grow touch-none items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}

@@ -24,7 +24,10 @@ const dragData = (value: unknown): DragData => {
   }
 }
 
-const isDropTarget = (active: Active, target: Container): boolean => {
+export const isCustomProjectDropTarget = (
+  active: Active,
+  target: Container,
+): boolean => {
   const source = dragData(active.data.current)
   const destination = dragData(target.data.current)
   if (source.type === 'project') {
@@ -52,7 +55,7 @@ const isDropTarget = (active: Active, target: Container): boolean => {
 
 export const customProjectCollisionDetection: CollisionDetection = (args) => {
   const droppableContainers = args.droppableContainers.filter((target) =>
-    isDropTarget(args.active, target),
+    isCustomProjectDropTarget(args.active, target),
   )
   // Nested cards overlap their URL rows. An actual pointer over a row should
   // retain the row as its reorder/category target instead of the parent card.
@@ -88,7 +91,7 @@ export const customProjectKeyboardCoordinates: KeyboardCoordinateGetter = (
   }
   const targets = droppableContainers
     .getEnabled()
-    .filter((target) => isDropTarget(active, target))
+    .filter((target) => isCustomProjectDropTarget(active, target))
   const source = dragData(active.data.current)
   const isVertical = event.code === 'ArrowUp' || event.code === 'ArrowDown'
   const bucketTargets =

@@ -16,11 +16,22 @@ const customProjectCategoryI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
 
-const { useSortableMock, useDroppableMock, projectUrlItemSpy } = vi.hoisted(
+const {
+  useSortableMock,
+  useDroppableMock,
+  useDropTargetFeedbackMock,
+  projectUrlItemSpy,
+} = vi.hoisted(() => ({
+  useSortableMock: vi.fn(),
+  useDroppableMock: vi.fn(),
+  useDropTargetFeedbackMock: vi.fn(),
+  projectUrlItemSpy: vi.fn(),
+}))
+
+vi.mock(
+  '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback',
   () => ({
-    useSortableMock: vi.fn(),
-    useDroppableMock: vi.fn(),
-    projectUrlItemSpy: vi.fn(),
+    useDropTargetFeedback: useDropTargetFeedbackMock,
   }),
 )
 
@@ -282,6 +293,12 @@ describe('CustomProjectCategory', () => {
       setNodeRef: vi.fn(),
       isOver: false,
     })
+    useDropTargetFeedbackMock.mockImplementation(
+      ({ isOver }: { isOver?: boolean }) => ({
+        state: isOver ? 'over' : 'idle',
+        className: isOver ? 'shared-drop-over' : '',
+      }),
+    )
     vi.spyOn(window, 'open').mockImplementation(vi.fn() as never)
   })
 
@@ -289,6 +306,49 @@ describe('CustomProjectCategory', () => {
     cleanup()
     vi.restoreAllMocks()
   })
+
+  it('exposes the shared drop state when a category is highlighted', () => {
+    render(<CustomProjectCategory {...createProps({ isHighlighted: true })} />)
+
+    expect(screen.getByTestId('card')).toHaveAttribute(
+      'data-drop-state',
+      'over',
+    )
+    expect(useDropTargetFeedbackMock).toHaveBeenCalledWith({
+      id: JSON.stringify(['project-category', 'project-1', 'Work']),
+      accepts: 'custom',
+      isOver: true,
+    })
+    expect(screen.getByTestId('category-url-list')).toHaveClass('bg-primary/5')
+    expect(screen.getByTestId('category-url-list')).not.toHaveClass('p-1')
+  })
+
+  it.each(['available', 'unavailable', 'source', 'idle'])(
+    'uses the shared %s state without highlighting an invalid or stale hover',
+    (state) => {
+      useDropTargetFeedbackMock.mockReturnValue({
+        state,
+        className: `shared-drop-${state}`,
+      })
+
+      render(
+        <CustomProjectCategory
+          {...createProps({ isHighlighted: true, urls: [] })}
+        />,
+      )
+
+      expect(screen.getByTestId('card')).toHaveAttribute(
+        'data-drop-state',
+        state,
+      )
+      expect(screen.getByTestId('card')).toHaveClass(`shared-drop-${state}`)
+      expect(screen.getByTestId('empty-state')).not.toHaveClass(
+        'border-primary',
+      )
+      expect(screen.getByTestId('card')).not.toHaveClass('border-2')
+      expect(screen.getByTestId('card').style.backgroundColor).toBe('')
+    },
+  )
 
   it('gives categories in different projects distinct handles without dragging from controls', () => {
     const setActivatorNodeRef = vi.fn()
@@ -551,9 +611,10 @@ describe('CustomProjectCategory', () => {
         })}
       />,
     )
-    expect(
-      screen.getByTestId('card').className.includes('border-primary'),
-    ).toBe(true)
+    expect(screen.getByTestId('card')).toHaveAttribute(
+      'data-drop-state',
+      'over',
+    )
 
     rerender(
       <CustomProjectCategory
@@ -710,7 +771,10 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    expect(screen.getByTestId('card')).toHaveClass('border-2')
+    expect(screen.getByTestId('card')).toHaveAttribute(
+      'data-drop-state',
+      'over',
+    )
     expect(screen.getByTestId('category-url-list')).toHaveClass('bg-primary/5')
 
     rerender(
