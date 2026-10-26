@@ -256,12 +256,6 @@ export const SortableUrlItem = ({
         data-testid='sortable-url-item'
       >
         {selection.checkbox}
-        <SavedUrlFavoriteButton
-          url={url}
-          title={title}
-          isFavorite={isFavorite}
-          disabled={selection.isSelectionMode}
-        />
         <div
           className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
           ref={setActivatorNodeRef}
@@ -282,6 +276,12 @@ export const SortableUrlItem = ({
             descriptionId={openStateDescriptionId}
           />
         </div>
+        <SavedUrlFavoriteButton
+          url={url}
+          title={title}
+          isFavorite={isFavorite}
+          disabled={selection.isSelectionMode}
+        />
         <div className='relative min-w-0 flex-1 overflow-hidden'>
           {safeHref ? (
             <Button
