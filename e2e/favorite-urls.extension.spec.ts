@@ -30,7 +30,7 @@ test('favorites synchronize modes, retain manual order, roundtrip Backup V2 and 
   extensionId,
   page,
   serviceWorker,
-}) => {
+}, testInfo) => {
   const savedAt = Date.now() - 3 * 86_400_000
   const urls = titles.map((title, index) =>
     createUrlFixture(
@@ -136,7 +136,10 @@ test('favorites synchronize modes, retain manual order, roundtrip Backup V2 and 
 
   await page.setViewportSize({ width: 1100, height: 760 })
   await page.screenshot({
-    path: 'docs/testing/assets/issue-912-favorites.png',
+    path:
+      process.env.UPDATE_DOC_ASSETS === '1'
+        ? 'docs/testing/assets/issue-912-favorites.png'
+        : testInfo.outputPath('issue-912-favorites.png'),
     fullPage: true,
   })
   await serviceWorker.evaluate(async (settings) => {

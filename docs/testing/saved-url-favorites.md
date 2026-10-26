@@ -34,6 +34,13 @@
 bunx playwright test e2e/favorite-urls.extension.spec.ts --project=extension --workers=1
 ```
 
+通常実行のスクリーンショットは Playwright のテスト出力ディレクトリに保存する。
+ドキュメント用の追跡画像を更新するときだけ、次を明示的に実行し、画像差分を確認する。
+
+```sh
+UPDATE_DOC_ASSETS=1 bunx playwright test e2e/favorite-urls.extension.spec.ts --project=extension --workers=1
+```
+
 この回帰は実際のIndexedDBと拡張UIで、星の同期、再読み込み、固定表示、
 空のフィルタで隠れたURLを削除しないこと、Backup V2 往復、background の
 期限チェック、星の解除後の期限処理を確認する。unit/integration は拒否された
