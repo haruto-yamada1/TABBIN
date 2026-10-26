@@ -441,7 +441,8 @@ jobs:
   performance-budget:
     name: Saved Tabs Performance Budget
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The full measurement can take 30 minutes; retain time for report/upload.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
