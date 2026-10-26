@@ -4,6 +4,8 @@ import type {
 } from '@dnd-kit/core'
 import { GripVertical } from 'lucide-react'
 
+import { getTouchHandleListeners } from './touchDragHandle'
+
 type CardGroupTitleProps = {
   title: string
   badges?: React.ReactNode
@@ -11,6 +13,7 @@ type CardGroupTitleProps = {
   sortableListeners?: DraggableSyntheticListeners
   activatorRef?: ((node: HTMLElement | null) => void) | undefined
   className?: string
+  touchHandleOnly?: boolean
 }
 
 /**
@@ -24,19 +27,23 @@ export const CardGroupTitle = ({
   sortableListeners,
   activatorRef,
   className = '',
+  touchHandleOnly = false,
 }: CardGroupTitleProps) => (
   <div
     ref={activatorRef}
     data-testid='card-group-title'
     className={`flex w-full cursor-grab items-center gap-2 text-foreground hover:cursor-grab active:cursor-grabbing ${className}`}
     {...sortableAttributes}
-    {...sortableListeners}
+    {...(touchHandleOnly
+      ? getTouchHandleListeners(sortableListeners)
+      : sortableListeners)}
   >
     <GripVertical
       size={16}
       aria-hidden='true'
       data-testid='drag-handle'
-      className='shrink-0 text-muted-foreground'
+      data-saved-tabs-drag-handle='true'
+      className={`shrink-0 text-muted-foreground ${touchHandleOnly ? 'touch-none' : ''}`}
     />
     <div className='flex min-w-0 items-center gap-2'>
       <h2 className='truncate text-xl font-semibold text-foreground'>

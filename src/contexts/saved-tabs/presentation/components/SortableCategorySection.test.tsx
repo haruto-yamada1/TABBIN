@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // esli
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableCategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
-const { useSortableMock, dndMonitorHandlers, categorySectionSpy } = vi.hoisted(
-  () => ({
+const { useSortableMock, dndMonitorHandlers, categorySectionSpy, dndContext } =
+  vi.hoisted(() => ({
     useSortableMock: vi.fn(),
     dndMonitorHandlers: {
       current: {} as {
@@ -17,8 +17,15 @@ const { useSortableMock, dndMonitorHandlers, categorySectionSpy } = vi.hoisted(
       },
     },
     categorySectionSpy: vi.fn(),
-  }),
-)
+    dndContext: {
+      active: null as null | {
+        id: string
+        data: { current: { type: string } }
+      },
+      over: null as null | { id: string },
+      droppableContainers: new Map(),
+    },
+  }))
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
@@ -68,6 +75,7 @@ vi.mock('@dnd-kit/sortable', () => ({
 }))
 
 vi.mock('@dnd-kit/core', () => ({
+  useDndContext: () => dndContext,
   useDndMonitor: (handlers: {
     onDragStart?: () => void
     onDragEnd?: () => void
@@ -230,6 +238,8 @@ describe('SortableCategorySection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     dndMonitorHandlers.current = {}
+    dndContext.active = null
+    dndContext.over = null
     useSortableMock.mockReturnValue({
       attributes: {},
       listeners: {},
@@ -244,6 +254,27 @@ describe('SortableCategorySection', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('shows eligible category targets before hover and clears them on cancel', () => {
+    const props = createProps()
+    const view = render(<SortableCategorySection {...props} />)
+    const section = screen.getByTestId('sortable-category-section')
+    dndContext.active = {
+      id: 'other-category',
+      data: { current: { type: 'category-section' } },
+    }
+    view.rerender(<SortableCategorySection {...props} />)
+    expect(section).toHaveAttribute('data-drop-state', 'available')
+    expect(section).toHaveClass('outline-dashed')
+    dndContext.over = { id: 'cat-1' }
+    view.rerender(<SortableCategorySection {...props} />)
+    expect(section).toHaveAttribute('data-drop-state', 'over')
+    expect(section).toHaveClass('outline-solid')
+    dndContext.active = null
+    view.rerender(<SortableCategorySection {...props} />)
+    expect(section).toHaveAttribute('data-drop-state', 'idle')
+    expect(section).not.toHaveClass('outline-dashed', 'outline-solid')
   })
 
   it('カテゴリ名表示・折りたたみ・ソート切替・即時でのすべて開くを処理する', async () => {

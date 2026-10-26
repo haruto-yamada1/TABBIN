@@ -10,6 +10,7 @@ import { memo, useCallback, useMemo, useReducer, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
 import {
   getProjectCategorySortableId,
@@ -46,17 +47,6 @@ const sortCategoryUrls = (
     sorted.reverse()
   }
   return getFavoriteDisplayUrls(sorted)
-}
-
-const getReorderStyle = (isReorderTarget: boolean): React.CSSProperties => {
-  if (!isReorderTarget) {
-    return {}
-  }
-  return {
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderColor: 'rgb(59, 130, 246)',
-    borderWidth: '2px',
-  }
 }
 
 type CategoryHeaderMainProps = {
@@ -118,7 +108,7 @@ const CategoryHeaderMain = ({
         aria-label={t('savedTabs.category.dragHandleAria', undefined, {
           name: category,
         })}
-        className='shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing'
+        className='shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing'
       >
         <GripVertical size={16} aria-hidden='true' />
       </button>
@@ -174,7 +164,7 @@ const CategoryContent = (props: CategoryContentProps) => {
           strategy={verticalListSortingStrategy}
         >
           <ul
-            className={`gap-y-1 ${props.isOver ? 'rounded bg-primary/5 p-1' : ''}`}
+            className={`gap-y-1 ${props.isOver ? 'rounded bg-primary/5' : ''}`}
             data-testid='category-url-list'
           >
             {props.urls.map((item) => (
@@ -276,13 +266,12 @@ const useCustomProjectCategoryView = ({
   const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
   const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false)
 
-  const isDropTarget = isHighlighted || isOver
+  const feedback = useDropTargetFeedback({
+    id: getProjectCategorySortableId(projectId, category),
+    accepts: 'custom',
+    isOver: isHighlighted || isOver,
+  })
   const isSelfDragging = isDraggingCategory && draggedCategoryName === category
-  const isReorderTarget =
-    isDraggingCategory &&
-    draggedCategoryName !== null &&
-    draggedCategoryName !== category &&
-    isDropTarget
   const isCollapsed =
     isDraggingCategory || isCategoryReorder || userCollapsedState
 
@@ -293,21 +282,7 @@ const useCustomProjectCategoryView = ({
     }),
     [transform, transition],
   )
-  const cardStyle = useMemo(
-    () => ({
-      ...style,
-      ...(isOver
-        ? {
-            backgroundColor: 'rgba(0, 255, 0, 0.05)',
-          }
-        : {}),
-      ...getReorderStyle(isReorderTarget),
-    }),
-    [style, isOver, isReorderTarget],
-  )
-  const cardClassName = `mb-2 overflow-x-hidden ${
-    isDropTarget ? 'border-2 border-primary bg-primary/5' : ''
-  } ${isSelfDragging ? 'opacity-50' : ''}`
+  const cardClassName = `mb-2 overflow-x-hidden ${feedback.className} ${isSelfDragging ? 'opacity-50' : ''}`
   const categoryDisplayName =
     category === '__uncategorized' ? t('savedTabs.uncategorized') : category
   const showManageActions = Boolean(
@@ -406,8 +381,9 @@ const useCustomProjectCategoryView = ({
     <>
       <Card
         ref={setNodeRef}
-        style={cardStyle}
+        style={style}
         className={cardClassName}
+        data-drop-state={feedback.state}
         id={categoryDropId}
         data-category={category}
         data-is-drop-target='true'
@@ -447,7 +423,7 @@ const useCustomProjectCategoryView = ({
           <CategoryContent
             urls={sortedCategoryUrls}
             urlIds={sortedCategoryUrlIds}
-            isOver={isOver}
+            isOver={feedback.state === 'over'}
             category={category}
             projectId={projectId}
             categoryDropId={categoryDropId}

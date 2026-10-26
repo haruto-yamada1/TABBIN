@@ -10,6 +10,13 @@ const customProjectCategoryAdditionalI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
 
+vi.mock(
+  '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback',
+  () => ({
+    useDropTargetFeedback: () => ({ state: 'idle', className: '' }),
+  }),
+)
+
 vi.mock('@dnd-kit/core', () => ({
   useDroppable: vi.fn(() => ({
     setNodeRef: vi.fn(),
