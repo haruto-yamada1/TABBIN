@@ -54,5 +54,4 @@ export type UserSettingsDto = {
   ollamaModel?: string
   aiSystemPrompts?: AiSystemPromptPresetDto[]
   activeAiSystemPromptId?: string
-  savedSearches?: { id: string; name: string; query: string }[]
 }

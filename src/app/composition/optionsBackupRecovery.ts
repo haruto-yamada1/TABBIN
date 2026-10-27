@@ -35,9 +35,8 @@ import type { PersistenceStorageEstimatePort } from '@/lib/persistence/capacity'
 import {
   normalizeUserSettingsForStorage,
   readUserSettingsWithoutRepair,
-  replaceUserSettingsWhileLocked,
+  saveUserSettings,
 } from '@/lib/storage/settings'
-import { withUserSettingsLock } from '@/lib/storage/userSettingsLock'
 
 export type OptionsBackupRecoveryRuntime = {
   readonly importBackupV2: ImportBackupV2UseCase
@@ -79,7 +78,6 @@ export type OptionsBackupRecoveryRuntimeDeps = {
   readonly normalizeUserSettings: ImportBackupV2UseCaseDeps['normalizeUserSettings']
   readonly readUserSettings: ImportBackupV2UseCaseDeps['readUserSettings']
   readonly writeUserSettings: ImportBackupV2UseCaseDeps['writeUserSettings']
-  readonly runSettingsExclusive?: <T>(operation: () => Promise<T>) => Promise<T>
 }
 
 type ManagedOptionsBackupRecoveryRuntime = OptionsBackupRecoveryRuntime & {
@@ -156,7 +154,7 @@ const defaultDeps: OptionsBackupRecoveryRuntimeDeps = {
   idGenerator: createSystemIdGenerator(),
   normalizeUserSettings: normalizeUserSettingsForStorage,
   readUserSettings: readUserSettingsWithoutRepair,
-  writeUserSettings: replaceUserSettingsWhileLocked,
+  writeUserSettings: saveUserSettings,
 }
 
 const createRuntime = (
@@ -218,12 +216,7 @@ const createRuntime = (
     close: () => {
       connectionManager.close()
     },
-    importBackupV2: async (inspection, options) =>
-      (deps.runSettingsExclusive ?? withUserSettingsLock)(async () =>
-        options
-          ? importBackupV2(inspection, options)
-          : importBackupV2(inspection),
-      ),
+    importBackupV2,
     readImportCurrent: async () => {
       await deps.getBootstrap().ready()
       const snapshot = await snapshotReader.readConsistentSnapshot()
@@ -239,9 +232,7 @@ const createRuntime = (
       return recoveryService.listAvailable()
     },
     restoreRecoverySnapshot: async (id) =>
-      (deps.runSettingsExclusive ?? withUserSettingsLock)(async () =>
-        recoveryService.restore(id, { captureCurrent: true }),
-      ),
+      recoveryService.restore(id, { captureCurrent: true }),
   }
 }
 

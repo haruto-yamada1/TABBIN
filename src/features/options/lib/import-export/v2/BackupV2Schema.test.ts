@@ -213,21 +213,6 @@ describe('Backup V2 schemas', () => {
     })
   })
 
-  it('preserves saved searches in Backup V2 and reads older backups', () => {
-    const searches = [{ id: 'search-1', name: 'Work', query: 'example' }]
-    const data = BackupMapper.toBackupData(createLogicalSnapshot(), {
-      ...userSettings,
-      savedSearches: searches,
-    })
-    expect(data.userSettings).toHaveProperty('savedSearches', searches)
-    const legacySettings = { ...data.userSettings }
-    Reflect.deleteProperty(legacySettings, 'savedSearches')
-    expect(
-      BackupDataV2Schema.parse({ ...data, userSettings: legacySettings })
-        .userSettings.savedSearches,
-    ).toBeUndefined()
-  })
-
   it('round-trips relative saved time independently of its parent setting', () => {
     const settings = {
       ...userSettings,

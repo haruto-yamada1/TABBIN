@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
 import { createHealthyPersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/testing/persistenceV2IntegrityFixtures'
-import { createChromeSavedSearchesAdapter } from '@/contexts/saved-tabs/infrastructure/browser/ChromeSavedSearchesAdapter'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceRecoverySnapshotRepository } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceRecoverySnapshotRepository'
 import { IndexedDbPersistenceReplacementAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceReplacementAdapter'
@@ -21,10 +20,8 @@ import {
   defaultSettings,
   normalizeUserSettingsForStorage,
   readUserSettingsWithoutRepair,
-  replaceUserSettingsWhileLocked,
   saveUserSettings,
 } from '@/lib/storage/settings'
-import { withUserSettingsLock } from '@/lib/storage/userSettingsLock'
 import { canonicalUserSettings } from '@/test/arbitraries/persistence/backupArbitrary'
 import type { UserSettings } from '@/types/storage'
 
@@ -33,10 +30,7 @@ import {
   resetOptionsBackupRecoveryRuntimeForTesting,
 } from './optionsBackupRecovery'
 
-const createRuntime = (
-  corruptImportedSettings = false,
-  useRealLock = false,
-) => {
+const createRuntime = (corruptImportedSettings = false) => {
   let storedSettings: unknown
   vi.stubGlobal('chrome', {
     i18n: { getUILanguage: () => 'en' },
@@ -65,7 +59,7 @@ const createRuntime = (
     manager,
     gate,
   )
-  const writeUserSettings = vi.fn(replaceUserSettingsWhileLocked)
+  const writeUserSettings = vi.fn(saveUserSettings)
   let nextId = 0
   const runtime = getOptionsBackupRecoveryRuntime({
     changePort: { publish: async () => undefined, subscribe: () => () => {} },
@@ -82,9 +76,6 @@ const createRuntime = (
     idGenerator: { generate: () => `settings-recovery-${++nextId}` },
     normalizeUserSettings: normalizeUserSettingsForStorage,
     readUserSettings: readUserSettingsWithoutRepair,
-    runSettingsExclusive: useRealLock
-      ? withUserSettingsLock
-      : async (operation) => operation(),
     writeUserSettings,
   })
   const reopen = async () => {
@@ -96,10 +87,6 @@ const createRuntime = (
     replacement,
     repository,
     runtime,
-    seedRawSettings: (value: unknown) => {
-      storedSettings = structuredClone(value)
-    },
-    readRawSettings: () => structuredClone(storedSettings),
     snapshotReader,
     writeUserSettings,
   }
@@ -236,91 +223,16 @@ describe('Backup V2 with production settings storage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('refuses import before overwriting malformed saved searches', async () => {
-    const { runtime, seedRawSettings, readRawSettings } = createRuntime()
-    const inspection = await createInspection(defaultSettings)
-    const original = {
-      ...defaultSettings,
-      savedSearches: [{ id: 'damaged', name: 'Name', query: 42 }],
-    }
-    seedRawSettings(original)
-    await expect(runtime.importBackupV2(inspection)).rejects.toBeInstanceOf(
-      Error,
-    )
-    expect(readRawSettings()).toEqual(original)
-    expect(await runtime.listRecoverySnapshots()).toHaveLength(0)
-  })
-
-  it('refuses recovery before overwriting malformed saved searches', async () => {
-    const { runtime, seedRawSettings, readRawSettings } = createRuntime()
-    await replaceUserSettingsWhileLocked(defaultSettings)
-    await runtime.importBackupV2(await createInspection(defaultSettings))
-    const [snapshot] = await runtime.listRecoverySnapshots()
-    expect(snapshot).toBeDefined()
-    const original = { ...defaultSettings, savedSearches: 'invalid' }
-    seedRawSettings(original)
-    await expect(
-      runtime.restoreRecoverySnapshot(snapshot?.id ?? ''),
-    ).rejects.toBeInstanceOf(Error)
-    expect(readRawSettings()).toEqual(original)
-  })
-
-  it('does not overwrite a saved search created after the import preview', async () => {
-    const { runtime } = createRuntime(false, true)
-    await replaceUserSettingsWhileLocked(defaultSettings)
-    const current = await runtime.readImportCurrent()
-    const inspection = await createInspection({
-      ...defaultSettings,
-      language: 'ja',
-    })
-    const searches = createChromeSavedSearchesAdapter({
-      createId: () => 'new-search',
-    })
-    let save!: Promise<unknown>
-    let importing!: Promise<unknown>
-    await withUserSettingsLock(async () => {
-      save = searches.save('New', 'query')
-      importing = runtime.importBackupV2(inspection, {
-        current,
-        selection: {
-          userSettings: true,
-          savedTabs: false,
-          aiChat: false,
-          analyticsViews: false,
-        },
-      })
-      // Attach rejection handlers before releasing the lock.
-      void importing.catch(() => {})
-    })
-    await expect(save).resolves.toEqual([
-      { id: 'new-search', name: 'New', query: 'query' },
-    ])
-    await expect(importing).rejects.toMatchObject({
-      code: 'IMPORT_PREVIEW_STALE',
-    })
-    expect(await searches.list()).toEqual([
-      { id: 'new-search', name: 'New', query: 'query' },
-    ])
-  })
-
   it.each(['savedTabs', 'userSettings', 'aiChat', 'analyticsViews'] as const)(
     'imports only selected %s and preserves the other sections after reopening',
     async (selectedSection) => {
       const { reopen, replacement, runtime, writeUserSettings } =
         createRuntime()
-      await replaceUserSettingsWhileLocked({
-        ...defaultSettings,
-        language: 'en',
-        savedSearches: [{ id: 'current', name: 'Current', query: 'one' }],
-      })
+      await saveUserSettings({ ...defaultSettings, language: 'en' })
       await replacement.replaceAll(createSelectionSnapshot('current'))
       const current = await runtime.readImportCurrent()
       const inspection = await createInspection(
-        {
-          ...defaultSettings,
-          language: 'ja',
-          savedSearches: [{ id: 'incoming', name: 'Incoming', query: 'two' }],
-        },
+        { ...defaultSettings, language: 'ja' },
         createSelectionSnapshot('incoming'),
       )
       const selection = {
