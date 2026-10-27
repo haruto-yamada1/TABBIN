@@ -7,7 +7,6 @@ import type { CSSProperties } from 'react'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
-import { canReorderFavoriteDisplay } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 
@@ -141,6 +140,7 @@ export const DomainCardRoot = ({
     () => ({
       ...(categoryId !== undefined ? { categoryId } : {}),
       group: displayGroup,
+      manualUrls: group.urls,
       favoriteFilter: {
         only: favoritesOnly,
         setOnly: setFavoritesOnly,
@@ -158,6 +158,7 @@ export const DomainCardRoot = ({
     [
       displayState,
       displayGroup,
+      group.urls,
       favoritesOnly,
       hasFavorites,
       settings,
@@ -190,9 +191,7 @@ export const DomainCardRoot = ({
       >
         <UrlReorderAvailabilityContext
           value={
-            state.sort.sortOrder === 'default' &&
-            !state.sort.isSortPending &&
-            canReorderFavoriteDisplay(group.urls, favoritesOnly)
+            state.sort.sortOrder === 'default' && !state.sort.isSortPending
           }
         >
           {children}

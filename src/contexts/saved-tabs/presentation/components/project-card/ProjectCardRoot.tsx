@@ -12,10 +12,7 @@ import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentatio
 import { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
 import { useSavedTabsSortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSortOrder'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
-import {
-  canReorderFavoriteDisplay,
-  getFavoriteDisplayUrls,
-} from '@/contexts/saved-tabs/presentation/lib/favorite-display'
+import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -337,13 +334,7 @@ export const ProjectCardRoot = ({
               isEmpty={urls.projectUrls.length === 0}
               isExternalItemOver={isExternalItemOver}
             >
-              <UrlReorderAvailabilityContext
-                value={canReorderFavoriteDisplay(
-                  urls.projectUrls,
-                  favoritesOnly,
-                  canReorderUrls,
-                )}
-              >
+              <UrlReorderAvailabilityContext value={canReorderUrls}>
                 {children}
               </UrlReorderAvailabilityContext>
             </ProjectCardBody>

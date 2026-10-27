@@ -56,6 +56,7 @@ export type SortableDomainCardProps = DomainCardActionHandlers & {
 
 // カテゴリセクションコンポーネント
 export type CategorySectionProps = {
+  manualUrls?: TabGroup['urls']
   categoryName: string
   urls: TabGroup['urls']
   groupId: string

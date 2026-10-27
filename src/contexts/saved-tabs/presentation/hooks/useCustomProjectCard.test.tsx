@@ -193,6 +193,57 @@ describe('useCustomProjectCard resolved target lifecycle', () => {
     expect(handlers.handleSetUrlCategory).not.toHaveBeenCalled()
   })
 
+  it.each([true, false])(
+    'reorders URLs with favorite=%s while retaining the other bucket slots',
+    async (favorite) => {
+      const [first, second] = urls
+      if (!first || !second) {
+        throw new Error('Reorder fixture requires two URLs')
+      }
+      const source = { ...first, isFavorite: favorite }
+      const target = { ...second, isFavorite: favorite }
+      const other = {
+        ...source,
+        id: 'other',
+        url: 'https://example.com/other',
+        isFavorite: !favorite,
+      }
+      const mixed = [source, other, target]
+      const { result, handlers } = renderProjectHook(
+        vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(mixed),
+      )
+      await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+      await act(async () => {
+        await result.current.dnd.handleUrlDragEnd(createUrlDrag(), false)
+      })
+      expect(handlers.handleReorderUrls).toHaveBeenCalledExactlyOnceWith(
+        project.id,
+        [target, other, source],
+      )
+      expect(result.current.urls.projectUrls).toEqual([target, other, source])
+    },
+  )
+
+  it.each([true, false])(
+    'rejects a URL drop from favorite=%s onto the opposite bucket',
+    async (favorite) => {
+      const mixed = urls.map((url, index) => ({
+        ...url,
+        isFavorite: index === 0 ? favorite : !favorite,
+      }))
+      const { result, handlers } = renderProjectHook(
+        vi.fn<GetProjectUrlsUseCase>().mockResolvedValue(mixed),
+      )
+      await waitFor(() => expect(result.current.urls.isLoadingUrls).toBe(false))
+      await act(async () => {
+        await result.current.dnd.handleUrlDragEnd(createUrlDrag(), false)
+      })
+      expect(handlers.handleReorderUrls).not.toHaveBeenCalled()
+      expect(handlers.handleSetUrlCategory).not.toHaveBeenCalled()
+      expect(result.current.urls.projectUrls).toEqual(mixed)
+    },
+  )
+
   it('preserves the resolved projection when a URL moves to another category', async () => {
     const categorizedUrls = urls.map((url) => ({ ...url, category: 'Old' }))
     const { result, handlers } = renderProjectHook(

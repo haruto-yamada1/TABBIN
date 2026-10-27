@@ -8,7 +8,12 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 
 type Container =
   Parameters<CollisionDetection>[0]['droppableContainers'][number]
-type DragData = { type?: string; projectId?: string; category?: string }
+type DragData = {
+  type?: string
+  projectId?: string
+  category?: string
+  isFavorite?: boolean
+}
 
 const dragData = (value: unknown): DragData => {
   if (!value || typeof value !== 'object') {
@@ -18,6 +23,7 @@ const dragData = (value: unknown): DragData => {
   const projectId: unknown = Reflect.get(value, 'projectId')
   const category: unknown = Reflect.get(value, 'category')
   return {
+    isFavorite: Reflect.get(value, 'isFavorite') === true,
     ...(typeof type === 'string' ? { type } : {}),
     ...(typeof projectId === 'string' ? { projectId } : {}),
     ...(typeof category === 'string' ? { category } : {}),
@@ -42,7 +48,8 @@ export const isCustomProjectDropTarget = (
   }
   if (source.type === 'url') {
     return (
-      destination.type === 'url' ||
+      (destination.type === 'url' &&
+        Boolean(source.isFavorite) === Boolean(destination.isFavorite)) ||
       destination.type === 'uncategorized' ||
       (destination.type === 'category' &&
         target.data.current?.isDropArea !== true) ||
@@ -65,12 +72,13 @@ export const customProjectCollisionDetection: CollisionDetection = (args) => {
   ) {
     const urlCollisions = pointerWithin({
       ...args,
-      droppableContainers: droppableContainers.filter(
+      droppableContainers: args.droppableContainers.filter(
         (target) => dragData(target.data.current).type === 'url',
       ),
     })
     if (urlCollisions.length > 0) {
-      return urlCollisions
+      const allowed = new Set(droppableContainers.map((target) => target.id))
+      return urlCollisions.filter((collision) => allowed.has(collision.id))
     }
     const areaCollisions = pointerWithin({ ...args, droppableContainers })
     if (areaCollisions.length > 0) {

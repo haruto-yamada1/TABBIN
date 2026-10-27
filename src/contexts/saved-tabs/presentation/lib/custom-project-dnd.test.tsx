@@ -8,7 +8,12 @@ import { describe, expect, it } from 'vitest'
 import {
   customProjectCollisionDetection,
   customProjectKeyboardCoordinates,
+  isCustomProjectDropTarget,
 } from './custom-project-dnd'
+import {
+  favoriteUrlCollisionDetection,
+  favoriteUrlKeyboardCoordinates,
+} from './favorite-dnd'
 
 type Container =
   Parameters<CollisionDetection>[0]['droppableContainers'][number]
@@ -75,6 +80,45 @@ const keyboardArgs = (
 })
 
 describe('Custom drag keyboard targets', () => {
+  it.each([true, false])(
+    'excludes opposite favorite states from URL targets (%s)',
+    (isFavorite) => {
+      const current = active({ type: 'url', projectId: 'one', isFavorite })
+      const wrong = item('wrong', 40, {
+        type: 'url',
+        projectId: 'one',
+        isFavorite: !isFavorite,
+      })
+      const right = item('right', 80, {
+        type: 'url',
+        projectId: 'one',
+        isFavorite,
+      })
+      expect(isCustomProjectDropTarget(current, wrong)).toBe(false)
+      expect(isCustomProjectDropTarget(current, right)).toBe(true)
+      const args = keyboardArgs(current, [
+        item('active', 0, { type: 'url', projectId: 'one', isFavorite }),
+        wrong,
+        right,
+      ])
+      expect(
+        customProjectKeyboardCoordinates(
+          new KeyboardEvent('keydown', { code: 'ArrowDown' }),
+          args,
+        ),
+      ).toEqual({ x: 0, y: 80 })
+      expect(
+        customProjectCollisionDetection({
+          active: current,
+          collisionRect: rect(40),
+          droppableRects: args.context.droppableRects,
+          droppableContainers: [wrong, right],
+          pointerCoordinates: { x: 10, y: 45 },
+        }),
+      ).toEqual([])
+    },
+  )
+
   it('keeps project reorder targets separate from nested cards and URLs', () => {
     const current = active({ type: 'project', projectId: 'active' })
     const targets = [
@@ -241,4 +285,52 @@ describe('Custom drag keyboard targets', () => {
       ).toEqual({ x: 0, y: 40 })
     }
   })
+})
+
+describe('Domain favorite drag targets', () => {
+  it.each([true, false])(
+    'keeps keyboard and pointer drops inside favorite=%s',
+    (isFavorite) => {
+      const current = active({ isFavorite })
+      const wrong = item('wrong', 40, { isFavorite: !isFavorite })
+      const right = item('right', 80, { isFavorite })
+      const args = keyboardArgs(current, [
+        item('active', 0, { type: 'url', projectId: 'one', isFavorite }),
+        wrong,
+        right,
+      ])
+      expect(
+        favoriteUrlKeyboardCoordinates(
+          new KeyboardEvent('keydown', { code: 'ArrowDown' }),
+          args,
+        ),
+      ).toEqual({ x: 0, y: 80 })
+      const collisionArgs = {
+        active: current,
+        collisionRect: rect(40),
+        droppableRects: args.context.droppableRects,
+        droppableContainers: [wrong, right],
+        pointerCoordinates: { x: 10, y: 45 },
+      }
+      expect(favoriteUrlCollisionDetection(collisionArgs)).toEqual([])
+      expect(
+        favoriteUrlCollisionDetection({
+          ...collisionArgs,
+          collisionRect: rect(80),
+        })[0]?.id,
+      ).toBe('right')
+      expect(
+        favoriteUrlCollisionDetection({
+          ...collisionArgs,
+          droppableContainers: [],
+        }),
+      ).toEqual([])
+      expect(
+        favoriteUrlKeyboardCoordinates(
+          new KeyboardEvent('keydown', { code: 'ArrowDown' }),
+          { ...args, context: { ...args.context, active: null } },
+        ),
+      ).toBeUndefined()
+    },
+  )
 })

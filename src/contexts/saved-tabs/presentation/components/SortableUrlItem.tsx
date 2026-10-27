@@ -94,6 +94,7 @@ export const SortableUrlItem = ({
   } = useSortable({
     disabled: !canReorderUrls,
     data: {
+      isFavorite,
       name: title,
       categoryContext, // カテゴリコンテキストをデータに追加
     },

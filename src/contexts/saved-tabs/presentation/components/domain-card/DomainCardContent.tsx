@@ -21,6 +21,7 @@ const EMPTY_CATEGORY_URLS: TabGroup['urls'] = []
 
 type CategorySectionItemProps = {
   categoryName: string
+  manualUrls?: TabGroup['urls']
   urls: TabGroup['urls']
   groupId: string
   handleDeleteUrl: (groupId: string, url: string) => void
@@ -42,6 +43,7 @@ type CategorySectionItemProps = {
 
 const CategorySectionItem = ({
   categoryName,
+  manualUrls,
   urls,
   groupId,
   handleDeleteUrl,
@@ -66,6 +68,7 @@ const CategorySectionItem = ({
       id={categoryName}
       categoryName={categoryName}
       urls={urls}
+      {...(manualUrls !== undefined ? { manualUrls } : {})}
       groupId={groupId}
       handleDeleteUrl={handleDeleteUrl}
       handleOpenTab={handleOpenTab}
@@ -91,6 +94,7 @@ export const DomainCardContent = () => {
   const {
     state,
     group,
+    manualUrls,
     settings,
     categoryId,
     handlers,
@@ -132,6 +136,7 @@ export const DomainCardContent = () => {
       <CardContent className='gap-y-1'>
         <CategorySection
           categoryName={singleCategoryName}
+          {...(manualUrls !== undefined ? { manualUrls } : {})}
           urls={computed.categorizedUrls[singleCategoryName]}
           groupId={group.id}
           handleDeleteUrl={handlers.handleDeleteUrl}
@@ -166,6 +171,7 @@ export const DomainCardContent = () => {
             return (
               <CategorySectionItem
                 key={categoryName}
+                {...(manualUrls !== undefined ? { manualUrls } : {})}
                 categoryName={categoryName}
                 urls={urls}
                 groupId={group.id}

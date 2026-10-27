@@ -113,6 +113,7 @@ const createProps = () => ({
 describe('CategorySection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    reorderTabGroupUrlsUseCaseMock.mockReset()
     dndContextHandlersRef.current = {}
   })
 
@@ -216,6 +217,82 @@ describe('CategorySection', () => {
         .getAllByTestId('sortable-url-item')
         .map((node) => node.textContent),
     ).toStrictEqual(['https://a.com', 'https://b.com', 'https://c.com'])
+  })
+
+  it.each([
+    ['https://a.com', 'https://b.com'],
+    ['https://b.com', 'https://a.com'],
+  ])(
+    'お気に入り境界をまたぐドロップ %s → %s を保存しない',
+    async (source, target) => {
+      const props = createProps()
+      render(
+        <CategorySection
+          {...props}
+          urls={props.urls.map((url, index) => ({
+            ...url,
+            isFavorite: index === 0,
+          }))}
+        />,
+      )
+      await act(async () => {
+        await dndContextHandlersRef.current.onDragEnd?.({
+          active: { id: source },
+          over: { id: target },
+        })
+      })
+      expect(reorderTabGroupUrlsUseCaseMock).not.toHaveBeenCalled()
+      expect(props.handleUpdateUrls).not.toHaveBeenCalled()
+      expect(toast.success).not.toHaveBeenCalled()
+    },
+  )
+
+  it('お気に入りのみの並べ替えでも非表示URLと他カテゴリの位置を保持する', async () => {
+    const props = createProps()
+    const [normal, first, second] = props.urls
+    if (!normal || !first || !second) {
+      throw new Error('Reorder fixture requires three URLs')
+    }
+    const favoriteOne = { ...first, isFavorite: true }
+    const favoriteTwo = { ...second, isFavorite: true }
+    const manualUrls = [
+      normal,
+      favoriteOne,
+      {
+        url: 'https://hidden.com',
+        title: 'Hidden',
+        isFavorite: true,
+        subCategory: 'Other',
+      },
+      favoriteTwo,
+    ]
+    render(
+      <CategorySection
+        {...props}
+        manualUrls={manualUrls}
+        urls={[favoriteOne, favoriteTwo]}
+      />,
+    )
+    await act(async () => {
+      await dndContextHandlersRef.current.onDragEnd?.({
+        active: { id: 'https://b.com' },
+        over: { id: 'https://c.com' },
+      })
+    })
+    expect(reorderTabGroupUrlsUseCaseMock).toHaveBeenCalledExactlyOnceWith({
+      tabGroupId: 'group-1',
+      newUrlOrder: [
+        'https://a.com',
+        'https://c.com',
+        'https://hidden.com',
+        'https://b.com',
+      ],
+    })
+    expect(
+      screen
+        .getAllByTestId('sortable-url-item')
+        .map((node) => node.textContent),
+    ).toEqual(['https://c.com', 'https://b.com'])
   })
 })
 
