@@ -81,6 +81,9 @@ type ParsedStoredUserSettings = ReturnType<typeof parseStoredUserSettings>
 const toUserSettingsPresentationPatch = (
   settings: ParsedStoredUserSettings,
 ): Partial<UserSettingsDto> => ({
+  ...(settings.savedSearches !== undefined
+    ? { savedSearches: settings.savedSearches }
+    : {}),
   ...(settings.activeAiSystemPromptId !== undefined
     ? { activeAiSystemPromptId: settings.activeAiSystemPromptId }
     : {}),
@@ -192,6 +195,7 @@ const fromNormalizedStorageUserSettings = (
     fontSizePercent,
     language,
     ollamaModel,
+    savedSearches,
     ...settings
   } = storage
   return {
@@ -206,6 +210,7 @@ const fromNormalizedStorageUserSettings = (
     ...(fontSizePercent !== undefined ? { fontSizePercent } : {}),
     ...(language !== undefined ? { language } : {}),
     ...(ollamaModel !== undefined ? { ollamaModel } : {}),
+    ...(savedSearches !== undefined ? { savedSearches } : {}),
   }
 }
 

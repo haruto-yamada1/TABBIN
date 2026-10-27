@@ -30,6 +30,55 @@ describe('settings storage', () => {
     vi.clearAllMocks()
   })
 
+  it('preserves saved searches when an older settings screen writes its state', async () => {
+    const { defaultSettings, saveUserSettings } = await loadModule()
+    const searches = [{ id: 'id', name: 'Name', query: 'private query' }]
+    let storedValue: unknown = { ...defaultSettings, savedSearches: searches }
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({ userSettings: storedValue })),
+      set: vi.fn(async ({ userSettings }: { userSettings: unknown }) => {
+        storedValue = userSettings
+      }),
+    })
+    vi.stubGlobal('navigator', {
+      locks: {
+        request: async (
+          _name: string,
+          _options: unknown,
+          operation: () => Promise<unknown>,
+        ) => operation(),
+      },
+    })
+    try {
+      await saveUserSettings({ ...defaultSettings, language: 'en' })
+      expect(storedValue).toMatchObject({
+        language: 'en',
+        savedSearches: searches,
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('returns existing settings even if the repair lock is unavailable', async () => {
+    const { getUserSettings } = await loadModule()
+    const set = vi.fn()
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({
+        userSettings: { language: 'en', aiProvider: 'legacy' },
+      })),
+      set,
+    })
+    vi.stubGlobal('navigator', {})
+    using _error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(getUserSettings()).resolves.toMatchObject({ language: 'en' })
+      expect(set).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('相対保存日時は未設定で無効になり、親設定と独立して保存・再読み込みできる', async () => {
     const { defaultSettings, getUserSettings, saveUserSettings } =
       await loadModule()
@@ -305,6 +354,7 @@ describe('settings storage', () => {
 
   it('保存時も excludePatterns に既定の内部ページ除外を補完する', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -382,6 +432,7 @@ describe('settings storage', () => {
 
   it('設定保存時に正規化した値を書き込む', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -407,6 +458,7 @@ describe('settings storage', () => {
     expect(mocks.warnMissingChromeStorage).toHaveBeenCalledWith('設定保存')
 
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => {
         throw new Error('write failed')
       }),
@@ -510,6 +562,7 @@ describe('settings storage', () => {
 
   it('saveUserSettings は未正規化の clickBehavior を default に正規化して保存する', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -530,6 +583,7 @@ describe('settings storage', () => {
 
   it('saveUserSettings は未正規化の autoDeletePeriod を default に正規化して保存する', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)

@@ -4,11 +4,13 @@ import { dndMessages } from './dndMessages'
 import { favoriteMessages } from './favoriteMessages'
 import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
+import { savedSearchMessages } from './savedSearchMessages'
 import { selectionMessages } from './selectionMessages'
 import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
 const messages = {
   en: {
+    ...savedSearchMessages.en,
     ...backupImportMessages.en,
     ...dndMessages.en,
     ...analyticsHealthMessages.en,
@@ -922,6 +924,7 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...savedSearchMessages.ja,
     ...backupImportMessages.ja,
     ...dndMessages.ja,
     ...analyticsHealthMessages.ja,

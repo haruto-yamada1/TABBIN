@@ -14,8 +14,10 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
+import { withUserSettingsLock } from '@/lib/storage/userSettingsLock'
 import {
   parseStoredUserSettings,
+  savedSearchesSchema,
   UserSettingsSchema,
 } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
@@ -44,6 +46,36 @@ const mergeStoredUserSettings = (
 
 type GetUserSettingsOptions = {
   readonly repairStoredSettings?: boolean
+}
+
+const storedSearches = (raw: unknown): { savedSearches?: unknown } => {
+  if (raw === undefined) {
+    return {}
+  }
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new Error('Stored user settings are invalid')
+  }
+  return 'savedSearches' in raw ? { savedSearches: raw.savedSearches } : {}
+}
+
+const repairSettings = async (
+  storage: NonNullable<ReturnType<typeof getChromeStorageLocal>>,
+) => {
+  try {
+    await withUserSettingsLock(async () => {
+      const current = await storage.get(['userSettings'])
+      const raw: unknown = Reflect.get(current, 'userSettings')
+      const sanitized = parseStoredUserSettings(stripLegacyUserSettings(raw))
+      const repaired = normalizeAiSystemPromptSettings(
+        mergeStoredUserSettings(sanitized),
+      )
+      await storage.set({
+        userSettings: { ...repaired, ...storedSearches(raw) },
+      })
+    })
+  } catch (error) {
+    console.error('設定の修復エラー:', error)
+  }
 }
 
 // デフォルト設定
@@ -85,7 +117,6 @@ export const getUserSettings = async (
   options: GetUserSettingsOptions = {},
 ): Promise<UserSettings> => {
   try {
-    console.log('ユーザー設定を取得中...')
     const storageLocal = getChromeStorageLocal()
     if (!storageLocal) {
       warnMissingChromeStorage('設定読み込み')
@@ -94,9 +125,7 @@ export const getUserSettings = async (
       }
     }
     const data = await storageLocal.get(['userSettings'])
-    console.log('取得した設定データ:', data)
     if (Object.hasOwn(data, 'userSettings')) {
-      console.log('保存された設定を使用:', data.userSettings)
       const sanitizedStoredSettings = parseStoredUserSettings(
         stripLegacyUserSettings(data.userSettings),
       )
@@ -113,14 +142,11 @@ export const getUserSettings = async (
           JSON.stringify(sanitizedStoredSettings.excludePatterns ?? []) !==
             JSON.stringify(mergedStoredSettings.excludePatterns))
       ) {
-        await storageLocal.set({
-          userSettings: normalizedSettings,
-        })
+        await repairSettings(storageLocal)
       }
       // デフォルト値とマージして返す
       return { ...normalizedSettings }
     }
-    console.log('設定が見つからないためデフォルト値を使用')
     return {
       ...normalizeAiSystemPromptSettings({
         ...defaultSettings,
@@ -136,8 +162,21 @@ export const getUserSettings = async (
   }
 }
 
-export const readUserSettingsWithoutRepair = async (): Promise<UserSettings> =>
-  getUserSettings({ repairStoredSettings: false })
+export const readUserSettingsWithoutRepair =
+  async (): Promise<UserSettings> => {
+    const storage = getChromeStorageLocal()
+    if (!storage) {
+      throw new Error('User settings storage is unavailable')
+    }
+    const data = await storage.get(['userSettings'])
+    const raw: unknown = Reflect.get(data, 'userSettings')
+    const searches = storedSearches(raw)
+    if ('savedSearches' in searches) {
+      savedSearchesSchema.parse(searches.savedSearches)
+    }
+    const settings = parseStoredUserSettings(stripLegacyUserSettings(raw))
+    return normalizeAiSystemPromptSettings(mergeStoredUserSettings(settings))
+  }
 
 /** Returns the settings that the storage writer will persist. */
 export const normalizeUserSettingsForStorage = (
@@ -156,18 +195,33 @@ export const saveUserSettings = async (
 ): Promise<void> => {
   try {
     const normalizedSettings = normalizeUserSettingsForStorage(settings)
-    console.log('ユーザー設定を保存:', normalizedSettings)
     const storageLocal = getChromeStorageLocal()
     if (!storageLocal) {
       warnMissingChromeStorage('設定保存')
       return
     }
-    await storageLocal.set({
-      userSettings: normalizedSettings,
+    await withUserSettingsLock(async () => {
+      const current = await storageLocal.get(['userSettings'])
+      const raw: unknown = Reflect.get(current, 'userSettings')
+      const { savedSearches: _savedSearches, ...otherSettings } =
+        normalizedSettings
+      await storageLocal.set({
+        userSettings: { ...otherSettings, ...storedSearches(raw) },
+      })
     })
-    console.log('設定を保存しました')
   } catch (error) {
     console.error('設定保存エラー:', error)
     throw error
   }
+}
+
+/** Caller must hold the settings lock for the entire import or recovery. */
+export const replaceUserSettingsWhileLocked = async (
+  settings: UserSettings,
+): Promise<void> => {
+  const storage = getChromeStorageLocal()
+  if (!storage) {
+    throw new Error('User settings storage is unavailable')
+  }
+  await storage.set({ userSettings: normalizeUserSettingsForStorage(settings) })
 }

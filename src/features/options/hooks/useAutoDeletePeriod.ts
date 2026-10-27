@@ -3,11 +3,8 @@ import { toast } from 'sonner'
 
 import { autoDeleteOptions } from '@/constants/autoDeleteOptions'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import {
-  getChromeStorageLocal,
-  warnMissingChromeStorage,
-} from '@/lib/browser/chrome-storage'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
+import { saveUserSettings } from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
 import { isPeriodShortening } from '@/utils/isPeriodShortening'
 
@@ -128,14 +125,7 @@ export const useAutoDeletePeriod = (
         autoDeletePeriod: periodToApply,
       }
 
-      // ストレージに直接保存
-      const storageLocal = getChromeStorageLocal()
-      if (!storageLocal) {
-        warnMissingChromeStorage('自動削除期間の保存')
-        return
-      }
-      await storageLocal.set({ userSettings: newSettings })
-      console.log('設定を保存しました:', newSettings)
+      await saveUserSettings(newSettings)
 
       // UI状態を更新
       setSettings(newSettings)

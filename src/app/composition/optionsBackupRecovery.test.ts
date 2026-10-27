@@ -152,6 +152,7 @@ describe('optionsBackupRecovery composition', () => {
     const createRecoveryService = vi.fn(
       (_deps: PreImportRecoverySnapshotServiceDeps) => recoveryService,
     )
+    const recordSettingsLock = vi.fn()
     const deps = {
       changePort: {
         publish: vi.fn(),
@@ -172,6 +173,10 @@ describe('optionsBackupRecovery composition', () => {
       idGenerator: { generate: vi.fn(() => 'generated-id') },
       normalizeUserSettings: normalizeUserSettingsForStorage,
       readUserSettings: vi.fn(),
+      runSettingsExclusive: async <T>(operation: () => Promise<T>) => {
+        recordSettingsLock()
+        return operation()
+      },
       writeUserSettings: vi.fn(),
     }
 
@@ -229,6 +234,7 @@ describe('optionsBackupRecovery composition', () => {
     expect(recoveryService.restore).toHaveBeenLastCalledWith('recovery-id')
 
     await first.restoreRecoverySnapshot('recovery-id')
+    expect(recordSettingsLock).toHaveBeenCalledTimes(2)
     expect(recoveryService.restore).toHaveBeenLastCalledWith('recovery-id', {
       captureCurrent: true,
     })

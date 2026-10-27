@@ -5,6 +5,7 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
+import { withUserSettingsLock } from '@/lib/storage/userSettingsLock'
 
 import type { ChromeUserSettingsStoragePort } from './ChromeUserSettingsStorage'
 import {
@@ -35,7 +36,25 @@ const createChromeUserSettingsRepositoryImpl = (
     const normalized = normalizeUserSettings({
       userSettings: settings,
     }).normalized
-    await port.set({ [USER_SETTINGS_KEY]: normalized })
+    await withUserSettingsLock(async () => {
+      const current = (await port.get(USER_SETTINGS_KEY))[USER_SETTINGS_KEY]
+      if (
+        current !== undefined &&
+        (typeof current !== 'object' ||
+          current === null ||
+          Array.isArray(current))
+      ) {
+        throw new Error('Stored user settings are invalid')
+      }
+      const savedSearches =
+        current && 'savedSearches' in current
+          ? { savedSearches: current.savedSearches }
+          : {}
+      const { savedSearches: _savedSearches, ...otherSettings } = normalized
+      await port.set({
+        [USER_SETTINGS_KEY]: { ...otherSettings, ...savedSearches },
+      })
+    })
   }
 
   return { findAll, save }

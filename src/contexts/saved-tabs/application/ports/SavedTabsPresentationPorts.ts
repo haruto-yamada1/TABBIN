@@ -2,6 +2,7 @@ import type { BrowserTabPort } from './BrowserTabPort'
 import type { CategoryAssignmentPort } from './CategoryAssignmentPort'
 import type { MessagingPort } from './MessagingPort'
 import type { OpenSavedTabsPort } from './OpenSavedTabsPort'
+import type { SavedSearchesPort } from './SavedSearchesPort'
 import type { SavedTabsSortPreferencesPort } from './SavedTabsSortPreferencesPort'
 import type { StorageChangePort } from './StorageChangePort'
 
@@ -9,6 +10,7 @@ import type { StorageChangePort } from './StorageChangePort'
 export type SavedTabsPresentationPorts = {
   readonly openSavedTabsPort?: OpenSavedTabsPort
   readonly sortPreferencesPort?: SavedTabsSortPreferencesPort
+  readonly savedSearchesPort?: SavedSearchesPort
   readonly browserTabPort: BrowserTabPort
   readonly categoryAssignmentPort: CategoryAssignmentPort
   readonly messagingPort: MessagingPort

@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
 import { OLLAMA_BASE_URL_VALUES } from '@/constants/productionNetworkPolicy'
+import {
+  SAVED_SEARCH_NAME_MAX_LENGTH,
+  SAVED_SEARCH_QUERY_MAX_LENGTH,
+  SAVED_SEARCHES_MAX_COUNT,
+} from '@/constants/savedSearches'
 
 export const aiSystemPromptPresetSchema = z.object({
   id: z.string().min(1),
@@ -135,6 +140,27 @@ const autoDeletePeriodField = z
  * `aiSystemPrompts` の各 preset は id / name が空文字でないことを確認する。
  * 出力型は `UserSettings` と構造完全一致するため、`z.infer` で型を導出できる。
  */
+export const savedSearchSchema = z.strictObject({
+  id: z.string().min(1),
+  name: z
+    .string()
+    .min(1)
+    .max(SAVED_SEARCH_NAME_MAX_LENGTH)
+    .refine((name) => name.trim() === name),
+  query: z
+    .string()
+    .max(SAVED_SEARCH_QUERY_MAX_LENGTH)
+    .refine((query) => query.trim().length > 0),
+})
+
+export const savedSearchesSchema = z
+  .array(savedSearchSchema)
+  .max(SAVED_SEARCHES_MAX_COUNT)
+  .refine(
+    (searches) =>
+      new Set(searches.map((search) => search.id)).size === searches.length,
+  )
+
 export const UserSettingsSchema = z.object({
   language: z.enum(['system', 'ja', 'en']).optional(),
   removeTabAfterOpen: z.boolean(),
@@ -161,6 +187,7 @@ export const UserSettingsSchema = z.object({
   ollamaBaseUrl: z.enum(OLLAMA_BASE_URL_VALUES).optional(),
   aiSystemPrompts: z.array(aiSystemPromptPresetSchema).optional(),
   activeAiSystemPromptId: z.string().optional(),
+  savedSearches: savedSearchesSchema.optional(),
 })
 
 /**
@@ -220,6 +247,7 @@ export const storedUserSettingsSchema = z.object({
     }, z.array(aiSystemPromptPresetSchema).optional())
     .catch(undefined),
   activeAiSystemPromptId: z.string().optional().catch(undefined),
+  savedSearches: savedSearchesSchema.optional().catch(undefined),
 })
 /* eslint-enable unicorn/prefer-top-level-await */
 

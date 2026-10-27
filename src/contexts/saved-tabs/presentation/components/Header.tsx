@@ -4,10 +4,12 @@ import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { SavedSearchesPort } from '@/contexts/saved-tabs/application/ports/SavedSearchesPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { AssignDomainToCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AssignDomainToCategoryUseCase'
 import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
+import { useSavedSearches } from '@/contexts/saved-tabs/presentation/hooks/useSavedSearches'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
@@ -18,6 +20,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { CategoryModal } from './CategoryModal'
 import { HeaderCounts } from './HeaderCounts'
 import { NewProjectDialog } from './NewProjectDialog'
+import { SavedSearches } from './SavedSearches'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -34,6 +37,7 @@ type HeaderProps = {
   onModeChange: (mode: ViewMode) => void
   searchQuery: string
   onSearchChange: (query: string) => void
+  savedSearchesPort?: SavedSearchesPort | undefined
   onOpenFilter?: () => void
   customProjects?: CustomProject[]
   filteredCustomProjects?: CustomProject[]
@@ -59,6 +63,7 @@ export const Header = ({
   onModeChange,
   searchQuery,
   onSearchChange,
+  savedSearchesPort,
   customProjects = EMPTY_CUSTOM_PROJECTS,
   filteredCustomProjects,
   onCreateProject = noopCreateProject,
@@ -68,6 +73,14 @@ export const Header = ({
   assignDomainToCategoryUseCase,
 }: HeaderProps) => {
   const { t } = useI18n()
+  const {
+    searches,
+    loading,
+    loadError,
+    handleSave,
+    handleRename,
+    handleRemove,
+  } = useSavedSearches(savedSearchesPort)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCustomProjectModalOpen, setIsCustomProjectModalOpen] =
     useState(false)
@@ -82,6 +95,13 @@ export const Header = ({
   const handleSearchClear = useCallback(() => {
     onSearchChange('')
   }, [onSearchChange])
+
+  const handleApplySearch = useCallback(
+    (query: string) => {
+      onSearchChange(query)
+    },
+    [onSearchChange],
+  )
 
   const handleOpenModal = useCallback(() => {
     setIsModalOpen(true)
@@ -120,6 +140,18 @@ export const Header = ({
             </Button>
           )}
         </div>
+        {savedSearchesPort && (
+          <SavedSearches
+            searchQuery={searchQuery}
+            searches={searches}
+            loading={loading}
+            loadError={loadError}
+            onSave={handleSave}
+            onRename={handleRename}
+            onRemove={handleRemove}
+            onApply={handleApplySearch}
+          />
+        )}
       </div>
       <div className='flex shrink-0 items-center gap-1 whitespace-nowrap'>
         {currentMode === 'domain' && (

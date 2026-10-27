@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { StorybookTestHarness, createPreview } from './preview'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 const LanguageProbe = () => {
   const { language } = useI18n()
@@ -15,6 +18,16 @@ const LanguageProbe = () => {
 
 describe('Storybook preview helpers', () => {
   it('loads the selected locale before rendering localized stories', async () => {
+    vi.stubGlobal('navigator', {
+      language: 'en',
+      locks: {
+        request: async (
+          _name: string,
+          _options: unknown,
+          operation: () => Promise<unknown>,
+        ) => operation(),
+      },
+    })
     render(
       <StorybookTestHarness locale='ja'>
         <I18nProvider>
