@@ -6,6 +6,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
+import { reorderFavoriteUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import { toCustomProjectFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
@@ -92,12 +93,10 @@ const reorderUrlsInBucket = (
   overId: string,
 ): ProjectUrlItem[] | null => {
   const urlsInTarget = projectUrls.filter((u) => u.category === sourceCategory)
-  const oldIndex = urlsInTarget.findIndex((u) => u.url === actualUrl)
-  const newIndex = urlsInTarget.findIndex((u) => u.url === overId)
-  if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+  const moved = reorderFavoriteUrls(urlsInTarget, actualUrl, overId)
+  if (!moved) {
     return null
   }
-  const moved = arrayMove(urlsInTarget, oldIndex, newIndex)
   const movedIterator = moved.values()
   return projectUrls.map((u) => {
     if (u.category === sourceCategory) {
@@ -441,12 +440,24 @@ export const useCustomProjectCard = ({
         clearDragState()
         return
       }
+      if (over.data.current?.type === 'url') {
+        const source = projectUrls.find((url) => url.url === actualUrl)
+        const targetUrl: unknown = over.data.current.url ?? String(over.id)
+        const target = projectUrls.find((url) => url.url === targetUrl)
+        if (
+          source &&
+          target &&
+          Boolean(source.isFavorite) !== Boolean(target.isFavorite)
+        ) {
+          clearDragState()
+          return
+        }
+      }
       try {
         await handleProcessedUrlDrop({
           // eslint-disable-next-line typescript/no-unsafe-assignment
           actualUrl,
-          allowUrlReorder:
-            allowUrlReorder && !projectUrls.some((url) => url.isFavorite),
+          allowUrlReorder,
           clearDragState,
           // eslint-disable-next-line typescript/no-unsafe-assignment
           dragSourceCategory,

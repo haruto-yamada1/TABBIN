@@ -119,6 +119,7 @@ const ProjectUrlItemComponent = ({
   } = useSortable({
     disabled: !canReorderUrls,
     data: {
+      isFavorite: item.isFavorite ?? false,
       type: 'url',
       name: item.title || originalUrl,
       url: originalUrl,

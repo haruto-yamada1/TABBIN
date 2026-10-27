@@ -8,6 +8,8 @@ import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** DomainCard のコンテキスト型 */
 export type DomainCardContextType = {
+  /** Complete manual order, including URLs hidden by the favorite filter. */
+  manualUrls?: SortableDomainCardProps['group']['urls']
   favoriteFilter?: {
     only: boolean
     setOnly: (only: boolean) => void
