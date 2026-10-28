@@ -177,11 +177,17 @@ export const createChromeSavedTabsSearchHistory = (
   ): Promise<string[]> =>
     (deps.runExclusive ?? withLock)(async () => {
       throwIfAborted(signal)
-      const previous = await read(signal)
+      const storageLocal = deps.storage ?? getChromeStorageLocal()
+      if (!storageLocal) {
+        throw new Error('Search history storage is unavailable')
+      }
+      const previous = parse(
+        (await abortableRead(storageLocal.get(KEY), signal))[KEY],
+      )
       throwIfAborted(signal)
       const next = parse(change(previous))
       if (JSON.stringify(next) !== JSON.stringify(previous)) {
-        await storage().set({ [KEY]: next })
+        await storageLocal.set({ [KEY]: next })
       }
       return next
     }, signal)

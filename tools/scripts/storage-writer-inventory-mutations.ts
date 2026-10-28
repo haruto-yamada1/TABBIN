@@ -59,11 +59,27 @@ const collectBindingNames = (
 
 const isChromeStorageLocalInitializer = (
   initializer: ts.Expression | undefined,
-): boolean =>
-  initializer !== undefined &&
-  ts.isCallExpression(initializer) &&
-  ts.isIdentifier(initializer.expression) &&
-  STORAGE_LOCAL_FACTORY_NAMES.has(initializer.expression.text)
+): boolean => {
+  if (initializer === undefined) {
+    return false
+  }
+  const expression = unwrapParentheses(initializer)
+  if (
+    ts.isBinaryExpression(expression) &&
+    (expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+      expression.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+  ) {
+    return (
+      isChromeStorageLocalInitializer(expression.left) ||
+      isChromeStorageLocalInitializer(expression.right)
+    )
+  }
+  return (
+    ts.isCallExpression(expression) &&
+    ts.isIdentifier(expression.expression) &&
+    STORAGE_LOCAL_FACTORY_NAMES.has(expression.expression.text)
+  )
+}
 
 const getStorageScopeType = (
   node: ts.Node,
