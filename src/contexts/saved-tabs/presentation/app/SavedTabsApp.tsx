@@ -540,6 +540,7 @@ const useSavedTabsAppView = ({
           onModeChange={handleViewModeChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          searchHistoryPort={deps.searchHistoryPort}
           getSavedTabsPageDataQuery={savedTabsUseCases.getSavedTabsPageData}
           createParentCategoryUseCase={savedTabsUseCases.createParentCategory}
           deleteParentCategoryUseCase={savedTabsUseCases.deleteParentCategory}

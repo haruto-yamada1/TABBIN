@@ -4,6 +4,7 @@ import { dndMessages } from './dndMessages'
 import { favoriteMessages } from './favoriteMessages'
 import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
+import { searchHistoryMessages } from './searchHistoryMessages'
 import { selectionMessages } from './selectionMessages'
 import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
@@ -14,6 +15,7 @@ const messages = {
     ...analyticsHealthMessages.en,
     ...organizationActionMessages.en,
     ...selectionMessages.en,
+    ...searchHistoryMessages.en,
     ...optionsMessages.en,
     ...favoriteMessages.en,
     ...tabOpeningErrorMessages.en,
@@ -927,6 +929,7 @@ const messages = {
     ...analyticsHealthMessages.ja,
     ...organizationActionMessages.ja,
     ...selectionMessages.ja,
+    ...searchHistoryMessages.ja,
     ...optionsMessages.ja,
     ...favoriteMessages.ja,
     ...tabOpeningErrorMessages.ja,

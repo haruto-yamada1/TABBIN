@@ -63,6 +63,7 @@ const CURRENT_WRITER_IDS = [
   'UI-COLOR-RESET',
   'UI-ROUTE-CLEANUP',
   'UI-SAVED-TABS-SORT',
+  'UI-SAVED-TABS-SEARCH-HISTORY',
   'UI-SAVED-TAB-TITLE',
   'RELEASE-CONTROL',
   'SETTINGS-REPAIR',
@@ -318,7 +319,9 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 19 rows, found 18')
+    ).toThrow(
+      `Writer ID baseline mismatch: expected ${CURRENT_WRITER_IDS.length} rows, found ${CURRENT_WRITER_IDS.length - 1}`,
+    )
   })
 
   test.each([
@@ -811,6 +814,15 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
         'const persistedState = getChromeStorageLocal()\nawait persistedState?.clear()',
     },
     {
+      name: 'injected storage with a Chrome Storage fallback',
+      relativePath:
+        'src/contexts/example/infrastructure/browser/ChromeHistory.ts',
+      sourceCode: [
+        'const storageLocal = deps.storage ?? getChromeStorageLocal()',
+        'await storageLocal.set({ history: [] })',
+      ].join('\n'),
+    },
+    {
       name: 'getChromeStorageLocal arbitrary alias from a nested closure',
       relativePath: 'src/lib/storage/resolved.ts',
       sourceCode: [
@@ -869,6 +881,17 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
     expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(true)
   })
 
+  test('detects the production search-history writer', () => {
+    const relativePath =
+      'src/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSearchHistory.ts'
+    expect(
+      containsStorageMutationBoundary(
+        readFileSync(relativePath, 'utf8'),
+        relativePath,
+      ),
+    ).toBe(true)
+  })
+
   test.each([
     {
       name: 'regex literal',
@@ -893,6 +916,20 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
     {
       name: 'unrelated local alias setter',
       sourceCode: 'const local = otherFactory()\nawait local.set({ urls: [] })',
+    },
+    {
+      name: 'injected fallback to an unrelated Map',
+      sourceCode:
+        'const local = deps.storage ?? new Map()\nlocal.set("key", "value")',
+    },
+    {
+      name: 'parameter shadowing an injected Chrome Storage fallback',
+      sourceCode: [
+        'const local = deps.storage ?? getChromeStorageLocal()',
+        'function update(local: Map<string, unknown>) {',
+        '  local.set("key", "value")',
+        '}',
+      ].join('\n'),
     },
     {
       name: 'storageLocal parameter shadowing the resolved storage binding',
