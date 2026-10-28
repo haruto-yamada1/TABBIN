@@ -9,6 +9,7 @@ import {
   createUrlFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
+import { exportFullBackup } from './helpers/backup-export'
 import {
   createBaseSeed,
   defaultUserSettings,
@@ -114,7 +115,7 @@ test('favorites synchronize modes, retain manual order, roundtrip Backup V2 and 
   const options = await extensionContext.newPage()
   await options.goto(`${appUrl}#/options`)
   const downloadPromise = options.waitForEvent('download')
-  await options.getByRole('button', { name: /export/i }).click()
+  await exportFullBackup(options)
   const downloadPath = await (await downloadPromise).path()
   assert.ok(downloadPath)
   const content = await readFile(downloadPath, 'utf8')

@@ -10,6 +10,7 @@ import {
   createMembershipFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
+import { exportFullBackup } from './backup-export'
 import {
   createBaseSeed,
   readPersistenceV2SavedTabsSnapshot,
@@ -183,7 +184,7 @@ export const verifyCrossContextSync = async (
   await expect(custom.getByText('Example Home', { exact: true })).toBeVisible()
 
   const download = options.waitForEvent('download')
-  await options.getByRole('button', { name: /export/i }).click()
+  await exportFullBackup(options)
   const backup = BackupEnvelopeV2Schema.parse(
     JSON.parse(await readFile(await (await download).path(), 'utf8')),
   )

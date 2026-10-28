@@ -10,6 +10,7 @@ import {
   obsoletePersistenceStorageFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
+import { exportFullBackup } from './helpers/backup-export'
 import {
   createBaseSeed,
   expect,
@@ -251,7 +252,7 @@ test.describe('extension options', () => {
     await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
     await waitForPersistenceV2Ready(serviceWorker)
     const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: /export/i }).click()
+    await exportFullBackup(page)
     const downloadPath = await (await downloadPromise).path()
     expect(downloadPath).toBeTruthy()
     const fileContent = await readFile(downloadPath as string, 'utf8')
@@ -275,7 +276,7 @@ test.describe('extension options', () => {
       await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
       await waitForPersistenceV2Ready(serviceWorker)
       const downloadPromise = page.waitForEvent('download')
-      await page.getByRole('button', { name: /export/i }).click()
+      await exportFullBackup(page)
       const downloadPath = await (await downloadPromise).path()
       expect(downloadPath).toBeTruthy()
       const fileContent = await readFile(downloadPath as string, 'utf8')

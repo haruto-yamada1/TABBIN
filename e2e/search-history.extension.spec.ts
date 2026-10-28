@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
+import { exportFullBackup } from './helpers/backup-export'
 import {
   expect,
   getExtensionUrl,
@@ -79,7 +80,7 @@ test('search history remains device-local and is excluded from Backup V2', async
   await seedSavedTabsFixture(serviceWorker, createSearchHistoryFixture())
   await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: /export/i }).click()
+  await exportFullBackup(page)
   const path = await (await download).path()
   assert.ok(path)
   expect(await readFile(path, 'utf8')).not.toContain('savedTabsSearchHistory')

@@ -1,4 +1,5 @@
 import { analyticsHealthMessages } from './analyticsHealthMessages'
+import { backupExportMessages } from './backupExportMessages'
 import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
 import { favoriteMessages } from './favoriteMessages'
@@ -10,6 +11,7 @@ import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
 const messages = {
   en: {
+    ...backupExportMessages.en,
     ...backupImportMessages.en,
     ...dndMessages.en,
     ...analyticsHealthMessages.en,
@@ -924,6 +926,7 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...backupExportMessages.ja,
     ...backupImportMessages.ja,
     ...dndMessages.ja,
     ...analyticsHealthMessages.ja,
