@@ -151,6 +151,24 @@ const renderWithMessagingPort = (
 }
 
 describe('ProjectUrlItem', () => {
+  it.each([
+    'https://example.com/長いパス?q=%E6%A4%9C%E7%B4%A2#fragment',
+    ['java', 'script:alert(1)'].join(''),
+  ])('リンクを起動せず保存URL %s を全文確認できる', async (url) => {
+    const user = userEvent.setup()
+    const props = createProps({ item: { url, title: 'Example' } })
+    render(<ProjectUrlItem {...props} />)
+    const trigger = screen.getByRole('button', { name: 'URLを確認: Example' })
+    await user.click(trigger)
+    expect(screen.getByRole('dialog', { name: 'URLの全文' })).toBeVisible()
+    expect(screen.getByRole('textbox', { name: 'URLの全文' })).toHaveValue(url)
+    expect(props.handleOpenUrl).not.toHaveBeenCalled()
+    expect(props.handleDeleteUrl).not.toHaveBeenCalled()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     sendMessageMock.mockResolvedValue(undefined)
@@ -236,7 +254,7 @@ describe('ProjectUrlItem', () => {
     expect(link).toHaveAttribute('href', item.url)
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(screen.getAllByRole('button')).toHaveLength(3)
     const titleLabel = screen.getByTestId('project-url-title')
     expect(titleLabel?.className).toContain('min-w-0')
     expect(titleLabel?.className).toContain('truncate')

@@ -87,6 +87,37 @@ const defaultSettings: UserSettings = {
 
 describe('SortableUrlItem', () => {
   it.each([
+    'https://example.com/長いパス?q=%E6%A4%9C%E7%B4%A2#fragment',
+    ['java', 'script:alert(1)'].join(''),
+  ])('リンクを起動せず保存URL %s をキーボードで全文確認できる', async (url) => {
+    const user = userEvent.setup()
+    const handleOpenTab = vi.fn()
+    const handleDeleteUrl = vi.fn()
+    render(
+      <SortableUrlItem
+        url={url}
+        title='Example'
+        id='url'
+        groupId='group'
+        settings={defaultSettings}
+        handleDeleteUrl={handleDeleteUrl}
+        handleOpenTab={handleOpenTab}
+        handleUpdateUrls={vi.fn()}
+      />,
+    )
+    const trigger = screen.getByRole('button', { name: 'URLを確認: Example' })
+    trigger.focus()
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('dialog', { name: 'URLの全文' })).toBeVisible()
+    expect(screen.getByRole('textbox', { name: 'URLの全文' })).toHaveValue(url)
+    expect(handleOpenTab).not.toHaveBeenCalled()
+    expect(handleDeleteUrl).not.toHaveBeenCalled()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it.each([
     [false, false, null],
     [false, true, null],
     [true, false, '2026/06/02 12:34'],
@@ -209,7 +240,7 @@ describe('SortableUrlItem', () => {
     )
     expect(openLink).toHaveAttribute('target', '_blank')
     expect(openLink).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getAllByRole('button')).toHaveLength(2)
+    expect(screen.getAllByRole('button')).toHaveLength(3)
 
     const textColumn = screen.getByTestId('url-text-column')
     expect(textColumn).toHaveClass('min-w-0')

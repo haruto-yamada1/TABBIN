@@ -17,6 +17,7 @@ import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
 import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
 import { SavedTime } from './shared/SavedTime'
+import { SavedUrlDetailsPopover } from './shared/SavedUrlDetailsPopover'
 import { SavedUrlFavoriteButton } from './shared/SavedUrlFavoriteButton'
 
 const ButtonContent = ({
@@ -292,7 +293,7 @@ export const SortableUrlItem = ({
               draggable={!selection.isSelectionMode}
               onDragStart={handleItemDragStart}
               onDragEnd={handleDragEnd}
-              className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
+              className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-20 text-foreground hover:text-foreground'
             >
               <a
                 href={safeHref}
@@ -305,10 +306,15 @@ export const SortableUrlItem = ({
               </a>
             </Button>
           ) : (
-            <span className='ml-2 flex w-full min-w-0 items-center justify-start gap-1 overflow-hidden px-1 py-2 pr-8 text-foreground'>
+            <span className='ml-2 flex w-full min-w-0 items-center justify-start gap-1 overflow-hidden px-1 py-2 pr-20 text-foreground'>
               {buttonContent}
             </span>
           )}
+          <SavedUrlDetailsPopover
+            url={url}
+            title={title}
+            className='absolute top-0 right-10 bottom-0 my-auto'
+          />
           <Button
             variant='ghost'
             size='icon'

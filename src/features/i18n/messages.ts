@@ -4,6 +4,7 @@ import { dndMessages } from './dndMessages'
 import { favoriteMessages } from './favoriteMessages'
 import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
+import { savedUrlDetailsMessages } from './savedUrlDetailsMessages'
 import { searchHistoryMessages } from './searchHistoryMessages'
 import { selectionMessages } from './selectionMessages'
 import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
@@ -18,6 +19,7 @@ const messages = {
     ...searchHistoryMessages.en,
     ...optionsMessages.en,
     ...favoriteMessages.en,
+    ...savedUrlDetailsMessages.en,
     ...tabOpeningErrorMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
@@ -932,6 +934,7 @@ const messages = {
     ...searchHistoryMessages.ja,
     ...optionsMessages.ja,
     ...favoriteMessages.ja,
+    ...savedUrlDetailsMessages.ja,
     ...tabOpeningErrorMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
