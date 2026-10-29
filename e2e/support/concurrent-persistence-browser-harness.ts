@@ -99,7 +99,7 @@ const createBackupActions = (
   })
   return {
     exportBackup: createExportBackupV2UseCase({
-      getAppVersion: () => '2.0.18',
+      getAppVersion: () => '2.0.19',
       now: () => new Date(),
       readUserSettings,
       snapshotReader: reader,

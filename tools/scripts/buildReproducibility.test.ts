@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { compareBuildZips } from './buildReproducibility'
 
 const files = {
-  'manifest.json': strToU8('{"manifest_version":3,"version":"2.0.18"}'),
+  'manifest.json': strToU8('{"manifest_version":3,"version":"2.0.19"}'),
   'background.js': strToU8('const value = 1'),
   'chunks/options-abcdefgh.js': strToU8('export default 1'),
   'persistence-release.json': strToU8('{"databaseVersion":1}'),
