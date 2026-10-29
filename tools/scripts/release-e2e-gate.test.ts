@@ -69,6 +69,19 @@ bun() {
 }
 
 describe('distribution release gate', () => {
+  it('stops before costly checks and builds when the Firefox runtime is missing', () => {
+    const result = runRelease(
+      'verify:firefox-smoke-environment',
+      'release:check',
+      'FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE: geckodriver',
+    )
+    expect(result.status).toBe(23)
+    expect(result.stderr).toContain(
+      'FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE',
+    )
+    expect(result.commands).toEqual(['verify:firefox-smoke-environment'])
+  })
+
   it('audits dependencies before building release artifacts', () => {
     const result = runRelease()
     expect(result.commands).toContain('security:audit')
@@ -86,7 +99,11 @@ describe('distribution release gate', () => {
 
   it('validates the backport deadline and RSA probe before the unfiltered High audit', () => {
     const result = runRelease()
-    expect(result.commands.slice(0, 5)).toEqual([
+    expect(
+      result.commands
+        .filter((command) => command !== 'verify:firefox-smoke-environment')
+        .slice(0, 5),
+    ).toEqual([
       'verify:dependency-licenses',
       'security:audit',
       'verify:security-audit-policy',

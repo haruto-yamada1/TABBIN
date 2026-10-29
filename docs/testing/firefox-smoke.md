@@ -127,6 +127,14 @@ Import が保護 snapshot を保存した後で失敗した場合、その snaps
 必要なら `FIREFOX_EXECUTABLE_PATH` へ Developer Edition / Unbranded Firefox、
 `GECKODRIVER_PATH` へ geckodriver を指定する。
 
+`bun run verify:firefox-smoke-environment` で、build 前に両実行ファイルを確認できる。
+`release:check` と `test:firefox:indexeddb-smoke` も同じ確認を高コストの処理前に行う。
+指定済みの環境変数が無効なら別 binary へ黙って切り替えず、設定名を示して失敗する。
+未指定時は PATH、macOS の既存 Firefox アプリ、インストール済み Playwright Firefox の
+順で探し、実際の smoke も同じ解決済みパスを使う。自動インストールはしない。
+この確認は通常ファイルと実行権限の検査であり、browser 起動・再起動の成功保証ではない。
+起動権限や profile による失敗は引き続き実際の smoke で検出する。
+
 Chrome の artifact update 検証には `tools/scripts/production-artifact-upgrade-smoke.ts`
 を使う。変更前の IndexedDB 対応 artifact に native rows を保存し、同じ profile と
 extension ID のまま現行 artifact へ更新して再起動する。全 IndexedDB store の snapshot

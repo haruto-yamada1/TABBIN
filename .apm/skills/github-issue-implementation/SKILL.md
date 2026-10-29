@@ -147,6 +147,12 @@ rollback を検討します。重大な仕様判断が必要な場合だけ bloc
 
 ## 5. 検証する
 
+必要な gate の実行環境は、高コストの build / 全体検証の前に確認します。
+native Firefox smoke を含む場合は `bun run verify:firefox-smoke-environment` を使います。
+browser の権限エラー・対象選択・再実行範囲は `e2e-testing`、引用付き引数と原文ログ保持は
+`rtk` に従います。binary 不足や未実行 gate を skip / 成功扱いに変えず、実装 review の
+結果と release-ready の可否を分けて報告します。
+
 変更に最も近い test から開始し、関連する主要 flow と acceptance criteria へ広げます。
 
 - logic: `test:node` または対象 Vitest

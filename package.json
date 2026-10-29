@@ -28,7 +28,7 @@
     "zip:firefox": "wxt zip -b firefox",
     "size:loads": "playwright test --config playwright.loads.config.ts",
     "size:report": "bun tools/scripts/report-artifact-size.ts",
-    "release:check": "git diff --exit-code && bun run verify:dependency-licenses && bun run security:audit && bun run quality:check && bun run build && bun run build:firefox && bun run verify:third-party-licenses && bun run verify:production-logging && bun run verify:app-version && bun run verify:persistence-release-compatibility && bun run verify:production-network-policy && bun run verify:firefox-artifact && bun run verify:firefox-source && bun run release:e2e && git diff --exit-code",
+    "release:check": "git diff --exit-code && bun run verify:firefox-smoke-environment && bun run verify:dependency-licenses && bun run security:audit && bun run quality:check && bun run build && bun run build:firefox && bun run verify:third-party-licenses && bun run verify:production-logging && bun run verify:app-version && bun run verify:persistence-release-compatibility && bun run verify:production-network-policy && bun run verify:firefox-artifact && bun run verify:firefox-source && bun run release:e2e && git diff --exit-code",
     "release:e2e": "bun run e2e:release && bun run test:firefox:indexeddb-smoke",
     "release:zip": "bun run release:check && bun run zip && bun run zip:firefox && bun run verify:third-party-license-zips && bun run release:provenance",
     "compile": "node node_modules/typescript/bin/tsc --noEmit",
@@ -92,12 +92,12 @@
     "waza:adversarial": "bun tools/scripts/run-waza-eval.ts adversarial",
     "storybook": "BROWSER=none storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "e2e": "playwright test e2e",
+    "e2e": "playwright test",
     "e2e:release": "playwright test --config playwright.release.config.ts",
     "e2e:a11y": "playwright test e2e --project=extension --grep 'accessibility'",
     "test:firefox:smoke": "playwright test --config playwright.firefox.config.ts",
     "build:firefox:indexeddb-smoke-harness": "bun build e2e/support/firefox-persistence-indexeddb-harness.ts --outfile=.output/firefox-persistence-indexeddb-harness.js --target=browser --format=iife --define 'import.meta.env={\"DEV\":false,\"PROD\":true,\"MODE\":\"test\"}'",
-    "test:firefox:indexeddb-smoke": "bun run build:firefox && bun run build:firefox:indexeddb-smoke-harness && bun tools/scripts/firefox-persistence-indexeddb-smoke.ts",
+    "test:firefox:indexeddb-smoke": "bun run verify:firefox-smoke-environment && bun run build:firefox && bun run build:firefox:indexeddb-smoke-harness && bun tools/scripts/firefox-persistence-indexeddb-smoke.ts",
     "test:production-artifact-upgrade": "bun tools/scripts/production-artifact-upgrade-smoke.ts",
     "knip": "knip",
     "doctor": "bun tools/scripts/run-react-doctor.ts",
@@ -123,7 +123,8 @@
     "perf:budget": "playwright test --config playwright.budget.config.ts --repeat-each=3",
     "perf:report": "bun tools/performance-budget/cli.ts",
     "test:visual": "playwright test --config playwright.visual.config.ts",
-    "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots=all"
+    "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots=all",
+    "verify:firefox-smoke-environment": "bun tools/scripts/verify-firefox-smoke-environment.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

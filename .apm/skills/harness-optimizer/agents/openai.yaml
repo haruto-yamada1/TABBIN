@@ -1,4 +1,4 @@
 interface:
   display_name: "Harness Optimizer"
-  short_description: "harness review から learning candidate を抽出します"
-  default_prompt: "ACTIVE harness run の Evaluator 指摘と governance event を確認し、learning.json に再発防止候補を整理してください。"
+  short_description: "作業中のつまずきを分析し再発防止を実装・検証します"
+  default_prompt: "作業中のつまずきと harness の検証証跡を自発的に点検し、許可範囲内の可逆な再発防止を修正・検証まで進めてください。run があれば原因・対応・検証結果を learning.json に記録し、公開操作の許可境界を維持してください。"

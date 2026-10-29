@@ -228,8 +228,8 @@ local_deployed_file_hashes:
   .claude/commands/code-style.md: sha256:92e72362699c129acd601ee5d1f68291e5bd6376b7026f84b54deedc68cca2a4
   .claude/commands/comment-rule.md: sha256:3b98a5328af95a4c48044587e834c15344c974c6e0fda468fd371fc62185aa15
   .claude/commands/harness-evaluator.md: sha256:e424ad92a1f09aa3d3a437b48347e2e74313923b339f52378e21a6e6a709657d
-  .claude/commands/harness-ops.md: sha256:391669ff6494095e43a9f9e1411de3019e39753b3ccd0acb7775347336deadd0
-  .claude/commands/harness-orchestrate.md: sha256:1108a6cadd82a5940c4dfd40f891eea4f1000ae71bb19a56bf418bf3f9eea13d
+  .claude/commands/harness-ops.md: sha256:d23fccd009849dc767ad0df16e82fca1772669ebce997520caa21f02961df906
+  .claude/commands/harness-orchestrate.md: sha256:b7ef502756dbfa67b24b180fe0caf65ca13c53b51edca1c70ed38ee0c9857b5c
   .claude/hooks/TABBIN/scripts/format-check-on-edit.sh: sha256:5fefea49a434b1ccc8135a0d77acb2ac8103062af377dfffe2aef851382e172e
   .claude/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
   .claude/hooks/TABBIN/scripts/harness-event-capture.sh: sha256:3aa71ec6526e78a3c0f5afa8df2ee06d0f7b09477e91d8675d792e82713254b2
@@ -244,7 +244,7 @@ local_deployed_file_hashes:
   .claude/hooks/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
   .claude/rules/02-vitest-local-development.md: sha256:13860c83ab91205f33f126eaf2a774eda6603cd90bd56ebeb5788feb0e8dcacf
   .claude/rules/03-github-pr-review.md: sha256:f333259dd7142d56f25de8e34b32a35e8fbe2d10f6ef6681e8f5ba6ec7469006
-  .claude/rules/harness.md: sha256:b49a644a74c96085f5475b29baec70b5007b3f469a1b0ed0a2146705927d932f
+  .claude/rules/harness.md: sha256:0923cde5785558060d08d524be1d3f11c4e8a9c771ae9179cbc4b5392f0d95ad
   .claude/rules/repository-guidelines.md: sha256:4be07906c4072db29c50f36f626e3e4773106e77ab541d17c05a97d3f3d30dbe
   .codex/hooks/TABBIN/scripts/format-check-on-edit.sh: sha256:5fefea49a434b1ccc8135a0d77acb2ac8103062af377dfffe2aef851382e172e
   .codex/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
@@ -262,8 +262,8 @@ local_deployed_file_hashes:
   .cursor/commands/code-style.md: sha256:92e72362699c129acd601ee5d1f68291e5bd6376b7026f84b54deedc68cca2a4
   .cursor/commands/comment-rule.md: sha256:3b98a5328af95a4c48044587e834c15344c974c6e0fda468fd371fc62185aa15
   .cursor/commands/harness-evaluator.md: sha256:e424ad92a1f09aa3d3a437b48347e2e74313923b339f52378e21a6e6a709657d
-  .cursor/commands/harness-ops.md: sha256:391669ff6494095e43a9f9e1411de3019e39753b3ccd0acb7775347336deadd0
-  .cursor/commands/harness-orchestrate.md: sha256:1108a6cadd82a5940c4dfd40f891eea4f1000ae71bb19a56bf418bf3f9eea13d
+  .cursor/commands/harness-ops.md: sha256:d23fccd009849dc767ad0df16e82fca1772669ebce997520caa21f02961df906
+  .cursor/commands/harness-orchestrate.md: sha256:b7ef502756dbfa67b24b180fe0caf65ca13c53b51edca1c70ed38ee0c9857b5c
   .cursor/hooks/TABBIN/scripts/format-check-on-edit.sh: sha256:5fefea49a434b1ccc8135a0d77acb2ac8103062af377dfffe2aef851382e172e
   .cursor/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
   .cursor/hooks/TABBIN/scripts/harness-event-capture.sh: sha256:3aa71ec6526e78a3c0f5afa8df2ee06d0f7b09477e91d8675d792e82713254b2
@@ -278,14 +278,14 @@ local_deployed_file_hashes:
   .cursor/hooks/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
   .cursor/rules/02-vitest-local-development.mdc: sha256:e160057e26c893c134e59b9e137956ad442e0be3d0b9cfde3c223a3947a0061f
   .cursor/rules/03-github-pr-review.mdc: sha256:b6494c7c943fdda6014790232677aac4b5a910fc618148c1fc7403694b5452ff
-  .cursor/rules/harness.mdc: sha256:b66655fe6ac886d7a49a445209ccfac591d8d41f0ad63da4c51a75b9c857df2b
+  .cursor/rules/harness.mdc: sha256:ac0542b0579866b1e27512bfe462ebb00b933772730b000d6d4fbb92559ef038
   .cursor/rules/repository-guidelines.mdc: sha256:57258402651eb1d6c1ec7c856f4d6ec22ba1b06b3c1aca2fdb2bab914afcaf64
   .gemini/commands/agent-automation-recommendations.toml: sha256:ce578d722cab82c16a65ed4a38696e8570a9205b38e99a84a8fbfc362375876a
   .gemini/commands/code-style.toml: sha256:997fa8f57d7d440eff082e262255697e8d7cf9613e4b4a23852f3665877dbb16
   .gemini/commands/comment-rule.toml: sha256:4a448d0c0d7234702958fd7a5dca43882a81a256a70b69021ae5306648480dcc
   .gemini/commands/harness-evaluator.toml: sha256:b0748224d373ddf2777ee6969db265ec708e0f670039d886267a9b03121585df
-  .gemini/commands/harness-ops.toml: sha256:ad61eddb375bfa9a05e02f5d20e78d13294134715907db1da1b8a030384ca4dd
-  .gemini/commands/harness-orchestrate.toml: sha256:3daf90f9c4a1687d216040c27246daf0588ed54b9934ee553a884c197cb181f7
+  .gemini/commands/harness-ops.toml: sha256:b0d76633548e5784a918ef316e5716ecd0d0b2651ac03785701bb98044667684
+  .gemini/commands/harness-orchestrate.toml: sha256:3b42b04c65f18e3468f192badbb20b5eab85632dd99e0a0ad3158e79a2c063b7
   .gemini/hooks/TABBIN/scripts/format-check-on-edit.sh: sha256:5fefea49a434b1ccc8135a0d77acb2ac8103062af377dfffe2aef851382e172e
   .gemini/hooks/TABBIN/scripts/harness-config-protection.sh: sha256:778777f95a8dc1ca748575dbee60c05b1fcec82f814965f4b6c1410fd04e3d87
   .gemini/hooks/TABBIN/scripts/harness-event-capture.sh: sha256:3aa71ec6526e78a3c0f5afa8df2ee06d0f7b09477e91d8675d792e82713254b2
@@ -313,17 +313,17 @@ local_deployed_file_hashes:
   .github/hooks/scripts/TABBIN/scripts/track-edit.sh: sha256:28434ed9f80d0ab53032cac5d98644dd5c624db4420a8d8d71454665ed4008b0
   .github/instructions/02-vitest-local-development.instructions.md: sha256:2c09e3c81ae78142d90e80206edb63dfcd7ff305f1676f361a719988cb8ddd19
   .github/instructions/03-github-pr-review.instructions.md: sha256:b44658cb3b040102f3c646c88d8be7ce0e03d755768b52dc3fbab0e99076d1fc
-  .github/instructions/harness.instructions.md: sha256:6665c576a56e222a079d8f47b67435fcf5cdf49a5393e9d2bba551a899d7251b
+  .github/instructions/harness.instructions.md: sha256:ae234fdea84854ce9c508da7382eb092694ab723d06d4ecb914befcb45afa899
   .github/instructions/repository-guidelines.instructions.md: sha256:5bbab41848f71b7e3473e28d24ec36a6bbdf59d58ba5587ff60a39599d2baf23
   .github/prompts/agent-automation-recommendations.prompt.md: sha256:4a5126ce538fa571ff76f84ca2e099a416ed4f00cde623fd498cbb62275f5d3c
   .github/prompts/code-style.prompt.md: sha256:bc5e6b6d5618fc04434f748cc0d121a5baaed2ff0b95992f0aa2301caf4ca0b9
   .github/prompts/comment-rule.prompt.md: sha256:891b46ab9aae6f4188397fad4b22425b55e928f0bcacb64007b4378912760f12
   .github/prompts/harness-evaluator.prompt.md: sha256:51e53a1c1299a5e2f9a4311d989e425950170bd1c6180a9f71759000adaaa7a9
-  .github/prompts/harness-ops.prompt.md: sha256:8c3fd09a4a7509d78160d3f1b49735453393b31683ad034a0a3682a3e1827a26
-  .github/prompts/harness-orchestrate.prompt.md: sha256:7afb74320501992c8bba13f827266d1dde2c9aa136fba4e9b63f60804a6ffa08
+  .github/prompts/harness-ops.prompt.md: sha256:3625237421def510f11755d676946c06b173e20056c053f35d8b007318c40fd4
+  .github/prompts/harness-orchestrate.prompt.md: sha256:05dec56c19f167ec31de28d3068b4832132e8f1c465fd530987652e0d02e5acd
   .opencode/commands/agent-automation-recommendations.md: sha256:f6a4ff4422ee67a743a174f2eba7fd3d9f5571bc0b800344fb85e15e6e64f033
   .opencode/commands/code-style.md: sha256:92e72362699c129acd601ee5d1f68291e5bd6376b7026f84b54deedc68cca2a4
   .opencode/commands/comment-rule.md: sha256:3b98a5328af95a4c48044587e834c15344c974c6e0fda468fd371fc62185aa15
   .opencode/commands/harness-evaluator.md: sha256:e424ad92a1f09aa3d3a437b48347e2e74313923b339f52378e21a6e6a709657d
-  .opencode/commands/harness-ops.md: sha256:391669ff6494095e43a9f9e1411de3019e39753b3ccd0acb7775347336deadd0
-  .opencode/commands/harness-orchestrate.md: sha256:1108a6cadd82a5940c4dfd40f891eea4f1000ae71bb19a56bf418bf3f9eea13d
+  .opencode/commands/harness-ops.md: sha256:d23fccd009849dc767ad0df16e82fca1772669ebce997520caa21f02961df906
+  .opencode/commands/harness-orchestrate.md: sha256:b7ef502756dbfa67b24b180fe0caf65ca13c53b51edca1c70ed38ee0c9857b5c
