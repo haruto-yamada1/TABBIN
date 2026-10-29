@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
+import { exportFullBackup } from './helpers/backup-export'
 import {
   expect,
   getExtensionUrl,
@@ -283,7 +284,7 @@ test.describe('native title persistence lifecycle', () => {
 
     await page.goto(`${appUrl}#/options`)
     const downloading = page.waitForEvent('download')
-    await page.getByRole('button', { name: /export/i }).click()
+    await exportFullBackup(page)
     const backupPath = await (await downloading).path()
     assert.ok(backupPath, 'Backup download missing')
     const content = await readFile(backupPath, 'utf8')

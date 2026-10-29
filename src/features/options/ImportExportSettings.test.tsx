@@ -193,6 +193,7 @@ const recoverySnapshot = {
 describe('ImportExportSettingsコンポーネント', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(downloadAsJson).mockResolvedValue(undefined)
     vi.mocked(prepareImportPreview).mockResolvedValue({
       success: true,
       message: 'ok',
@@ -275,7 +276,7 @@ describe('ImportExportSettingsコンポーネント', () => {
     vi.unstubAllGlobals()
   })
 
-  it('データをエクスポートしてバックアップファイルをダウンロードする', async () => {
+  it('プレビューで明示選択してから確認したバックアップをダウンロードする', async () => {
     const user = userEvent.setup()
     render(<ImportExportSettings />)
 
@@ -286,6 +287,19 @@ describe('ImportExportSettingsコンポーネント', () => {
     await waitFor(() => {
       expect(exportBackupV2).toHaveBeenCalledTimes(1)
     })
+
+    expect(downloadAsJson).not.toHaveBeenCalled()
+    const dialog = await screen.findByRole('dialog')
+    const confirm = within(dialog).getByRole('button', {
+      name: 'options.importExport.confirmExport',
+    })
+    expect(confirm).toBeDisabled()
+    await user.click(
+      within(dialog).getByRole('checkbox', {
+        name: 'options.importExport.section.savedTabs',
+      }),
+    )
+    await user.click(confirm)
 
     expect(downloadAsJson).toHaveBeenCalledTimes(1)
     expect(vi.mocked(downloadAsJson).mock.calls[0]?.[1]).toMatch(

@@ -11,6 +11,7 @@ import {
   createUrlFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
+import { exportFullBackup } from './helpers/backup-export'
 import {
   createBaseSeed,
   defaultUserSettings,
@@ -253,7 +254,7 @@ test('category name sorting is local, survives Backup V2 import, and leaves manu
   const options = await extensionContext.newPage()
   await options.goto(`${appUrl}#/options`)
   const downloadPromise = options.waitForEvent('download')
-  await options.getByRole('button', { name: /export/i }).click()
+  await exportFullBackup(options)
   const downloadPath = await (await downloadPromise).path()
   assert.ok(downloadPath, 'Backup download did not provide a file')
   const content = await readFile(downloadPath, 'utf8')
