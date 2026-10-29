@@ -131,7 +131,7 @@ describe('production import flow', () => {
   it('routes a current backup through recovery-backed overwrite', async () => {
     const inspection = {
       preview: {
-        appVersion: '2.0.18',
+        appVersion: '2.0.19',
         exportedAt: '2026-09-01T00:00:00.000Z',
       },
     }
@@ -242,7 +242,7 @@ describe('production import flow', () => {
     mocks.assertProductionImportAllowed.mockReturnValue({
       inspection: {
         preview: {
-          appVersion: '2.0.18',
+          appVersion: '2.0.19',
           exportedAt: '2026-09-01T00:00:00.000Z',
         },
       },
@@ -257,7 +257,7 @@ describe('production import flow', () => {
     expect(translate).toHaveBeenCalledWith(
       'options.importExport.replaceSuccess',
       undefined,
-      expect.objectContaining({ version: '2.0.18' }),
+      expect.objectContaining({ version: '2.0.19' }),
     )
   })
 
@@ -329,7 +329,7 @@ describe('production import flow', () => {
           },
         },
         preview: {
-          appVersion: '2.0.18',
+          appVersion: '2.0.19',
           entityCounts: {
             analyticsViews: 1,
             categories: 2,
@@ -350,7 +350,7 @@ describe('production import flow', () => {
         hasAnalytics: true,
         projectsCount: 1,
         timestamp: '2026-09-01T00:00:00.000Z',
-        version: '2.0.18',
+        version: '2.0.19',
       },
       success: true,
     })

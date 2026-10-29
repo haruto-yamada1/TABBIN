@@ -141,7 +141,7 @@ bun run size:report --write-load-baseline tools/bundle-size/initial-load-baselin
 拡張機能のコードを変更せず、2026-09-15 に次の commit から採取した。
 
 - Revision: `3d3adc67f3be86b7acbcb2afa7785b39aa2ff4a0`
-- Version: `2.0.18`
+- Version: `2.0.19`
 - Runtime / platform: `tools/bundle-size/baseline.json` の `environment`
 
 | Metric                            |      Chrome |     Firefox |
