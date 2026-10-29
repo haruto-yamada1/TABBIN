@@ -31,6 +31,23 @@ Headroom はセッション開始時に起動し、Skill の呼び出しごと�
 履歴・compaction・直結復旧、比較上の利益が必要です。正常な応答や doctor の
 表示だけで採用せず、利益が確認できない端末は直結を維持します。
 
+### 検証引数と失敗ログの保持
+
+`rtk test` などの filter に、空白や `|` を含む正規表現・引用付き引数を渡すと、
+command の再構成で意味が変わる場合があります。そのような実行は native tool、
+または同じ argv の保持を確認済みの `rtk proxy` を使います。二重 escape で補修しません。
+
+長時間の coverage / E2E / release gate は、最初から許可された作業固有の一時ログへ
+原文を保存し、終了コードを維持します。RTK の私有 tee 保存先は sandbox から書けない
+場合があるため、失敗後に必ず原文が残るとは仮定しません。ログがあれば `rg` / `tail` で
+原因を読み、表示不足だけを理由に suite 全体を再実行しません。具体的な保存例は
+[RTK skill 原本](../../.apm/skills/rtk/SKILL.md) にあります。
+
+E2E の対象は同じ引数の `--list` で確認します。browser 起動の `EPERM` などは test の
+assertion と分け、利用可能な実行 tool の権限付き再実行で切り分けます。sandbox の無効化や
+`--no-sandbox` で回避しません。native Firefox を含む gate は build 前に
+`bun run verify:firefox-smoke-environment` で前提を確認し、未完了 gate を成功と報告しません。
+
 ## 検証した版と事前棚卸し
 
 2026-10-10〜11 の実機検証:

@@ -10,6 +10,7 @@ const requiredFiles = {
   harness: 'e2e/support/firefox-persistence-indexeddb-harness.ts',
   package: 'package.json',
   runner: 'tools/scripts/firefox-persistence-indexeddb-smoke.ts',
+  environment: 'tools/scripts/firefoxSmokeEnvironment.ts',
 } as const
 
 const readRequired = (relativePath: string): string => {
@@ -23,7 +24,10 @@ describe('Firefox IndexedDB persistence smoke contract', () => {
     const runner = readRequired(requiredFiles.runner)
 
     expect(runner).not.toMatch(/\.skip\s*\(|test\.fixme/u)
-    expect(runner).toContain('GECKODRIVER_PATH')
+    expect(runner).toContain('resolveFirefoxSmokeEnvironment')
+    expect(readRequired(requiredFiles.environment)).toContain(
+      'GECKODRIVER_PATH',
+    )
     expect(runner).toContain("runHarnessPhase(session, 'fresh')")
     expect(runner).toContain("runHarnessPhase(session, 'verify')")
     expect(runner).toContain('deleteSession')
@@ -47,7 +51,9 @@ describe('Firefox IndexedDB persistence smoke contract', () => {
   it('reports an explicit unsupported executable blocker instead of skipping', () => {
     const runner = readRequired(requiredFiles.runner)
 
-    expect(runner).toContain('FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE')
+    expect(readRequired(requiredFiles.environment)).toContain(
+      'FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE',
+    )
     expect(runner).not.toContain('isFirefoxExtensionSmokeEnabled')
   })
 

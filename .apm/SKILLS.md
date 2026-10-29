@@ -43,6 +43,12 @@ bun run harness:audit
 fresh-context Evaluator を起動するための `evaluator.json` を準備するだけです。
 hook も Evaluator や Orchestrator を自動起動せず、状態表示、警告、記録、軽量検証だけを行います。
 
+作業中と完了前の自己点検は、ユーザーからの振り返り依頼を待たずに行います。
+繰り返す手順・tooling の問題を見つけたら `harness-optimizer` で原因を確認し、
+現在の作業に関係する可逆な改善を実装・検証します。run があれば観測と対応を
+governance / learning に残します。改善のためだけに小さい作業へ run や変更を強制せず、
+公開操作の許可境界と既存の品質・権限・レビュー保護を維持します。
+
 ## ハーネス関連 command
 
 | command | 用途 |
@@ -94,7 +100,7 @@ Planner / Generator / Optimizer は prompt を持たず、skill として配布�
 | `harness-planner` | ハーネス run の要件、制約、検証方針を分解し、`planner.json` と `orchestrator.json` を更新します。 |
 | `harness-generator` | Planner の plan に沿って実装し、checkpoint と検証証跡を `generator.json` に残します。 |
 | `harness-evaluator` | fresh-context で成果物、証跡、source-of-truth を評価し、`evaluator.json` に判断を書きます。 |
-| `harness-optimizer` | Evaluator 指摘や governance event から `learning.json` に再発防止候補を整理します。 |
+| `harness-optimizer` | 作業中のつまずきから、許可範囲内の再発防止の実装・検証と `learning.json` の記録まで進めます。 |
 | `agent-automation-recommender` | Codex、Cursor、Claude などの automation 改善候補を repo 固有に監査します。 |
 | `agent-introspection-debugging` | エージェントがループ、矛盾、source-of-truth 逸脱、tool/context 起因の失敗を起こすときに使います。 |
 | `dispatching-parallel-agents` | 共有状態に依存しない 2 つ以上の独立タスクを並列 agent に分担します。 |
@@ -233,7 +239,7 @@ TABBIN の skill は、意図的に「workflow の入口」と「専門補助」
 | `caveman-commit` / `commit-push-pr` | `commit-push-pr` は Issue → PR / publish / staged-only の commit workflow の入口。`caveman-commit` は commit message を caveman 形式で圧縮生成する formatter で、workflow ではなく形式指定が欲しいときだけ併用します。 |
 | `caveman-review` / `github-pr-review` / `receiving-code-review` | `github-pr-review` は review workflow、`receiving-code-review` は指摘の検証原則、`caveman-review` は review comment を 1 行圧縮で出す formatter で、workflow ではなくコメント形式を圧縮したいときだけ併用します。 |
 | `create-skill` / `find-skills` / `migrate-to-skills` | `find-skills` は探す、`create-skill` は作る＋品質よく書く（旧 `writing-skills` の TDD 執筆手法を統合）、`migrate-to-skills` は既存 rule / command から移行する役割です。 |
-| `agent-automation-recommender` / `harness-optimizer` / `agent-introspection-debugging` | `agent-automation-recommender` は repo 全体の自動化提案、`harness-optimizer` は harness run 後の学習候補整理、`agent-introspection-debugging` は agent の失敗原因調査です。 |
+| `agent-automation-recommender` / `harness-optimizer` / `agent-introspection-debugging` | `agent-automation-recommender` は repo 全体の自動化提案、`harness-optimizer` は作業中の再発防止の実装・検証と記録、`agent-introspection-debugging` は agent の失敗原因調査です。 |
 | `animation-best-practices` / `web-design-guidelines` / `vercel-react-best-practices` | `animation-best-practices` は動き、`web-design-guidelines` は UX / accessibility / visual quality、`vercel-react-best-practices` は React 性能と実装品質です。 |
 
 ### 削除ではなく残す理由

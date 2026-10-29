@@ -10,10 +10,12 @@ import path from 'node:path'
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
 import type { StagedOpeningMeasurement } from '../../e2e/support/staged-url-opening-measurements'
+import {
+  FirefoxIndexedDbSmokeUnsupportedError,
+  resolveFirefoxSmokeEnvironment,
+} from './firefoxSmokeEnvironment'
 import { parseStagedOpeningMeasurements } from './stagedOpeningMeasurementContract'
 
-const FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE =
-  'FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE'
 const EXTENSION_ID = 'tabbin@local'
 const SMOKE_PAGE = 'firefox-persistence-indexeddb-smoke.html'
 const DRIVER_START_TIMEOUT_MS = 15_000
@@ -73,18 +75,6 @@ type SmokeResult = {
   }
   readonly savedTabsReadCount?: number
   readonly storageIndependent: boolean
-}
-
-class FirefoxIndexedDbSmokeUnsupportedError extends Error {
-  readonly code = FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE
-
-  constructor(message: string, options?: ErrorOptions) {
-    super(
-      `${FIREFOX_INDEXEDDB_SMOKE_UNSUPPORTED_EXECUTABLE}: ${message}`,
-      options,
-    )
-    this.name = 'FirefoxIndexedDbSmokeUnsupportedError'
-  }
 }
 
 class WebDriverCommandError extends Error {
@@ -232,8 +222,8 @@ const waitForDriver = async (
 const createSession = async (
   baseUrl: string,
   profileDir: string,
+  binary: string,
 ): Promise<WebDriverSession> => {
-  const binary = process.env.FIREFOX_EXECUTABLE_PATH
   const headless = process.env.FIREFOX_INDEXEDDB_HEADLESS !== '0'
   const firefoxOptions: JsonRecord = {
     args: [...(headless ? ['-headless'] : []), '-profile', profileDir],
@@ -247,7 +237,7 @@ const createSession = async (
       'extensions.update.enabled': false,
       'xpinstall.signatures.required': false,
     },
-    ...(binary ? { binary } : {}),
+    binary,
   }
   let created: unknown
   try {
@@ -580,6 +570,7 @@ const assertVerifyResult = (
 }
 
 const run = async (): Promise<void> => {
+  const executables = resolveFirefoxSmokeEnvironment()
   const temporaryRoot = await mkdtemp(
     path.join(os.tmpdir(), 'tabbin-firefox-persistence-indexeddb-'),
   )
@@ -591,7 +582,7 @@ const run = async (): Promise<void> => {
   const driverLogs: string[] = []
   let driverFailure: Error | undefined
   const geckodriver = spawn(
-    process.env.GECKODRIVER_PATH ?? 'geckodriver',
+    executables.geckodriverPath,
     ['--port', String(port), '--allow-system-access', '--log', 'info'],
     { stdio: ['ignore', 'pipe', 'pipe'] },
   )
@@ -613,7 +604,7 @@ const run = async (): Promise<void> => {
   let session: WebDriverSession | undefined
   try {
     await waitForDriver(baseUrl, () => driverFailure)
-    session = await createSession(baseUrl, profileDir)
+    session = await createSession(baseUrl, profileDir, executables.firefoxPath)
     await installAddon(session, xpiPath)
     const fresh = await runHarnessPhase(session, 'fresh')
     const obsoleteStorageBefore = assertFreshResult(fresh)
@@ -626,7 +617,7 @@ const run = async (): Promise<void> => {
     await deleteSession(session)
     session = undefined
 
-    session = await createSession(baseUrl, profileDir)
+    session = await createSession(baseUrl, profileDir, executables.firefoxPath)
     await installAddon(session, xpiPath)
     const verified = await runHarnessPhase(session, 'verify')
     assertVerifyResult(verified, obsoleteStorageBefore, fresh.backup)

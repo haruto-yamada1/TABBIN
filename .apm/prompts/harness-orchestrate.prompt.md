@@ -46,6 +46,11 @@ bun tools/scripts/harness.ts start --run <run-id> --task "<ユーザー依頼の
 - 複数 Worker を使う場合は、write set が衝突しないように分ける。
 - 進捗と判断を `orchestrator.json` に残す。
 - 実装をメインセッションまたは Worker の成果物として統合する。
+- 作業中と完了前に自分でつまずきを点検し、ユーザーの質問を待たず Optimizer として
+  再発防止を進める。現在の作業に関係する、原因と効果を検証できる可逆なローカル改善は
+  候補記録だけで止めず、修正・生成同期・検証まで行い、最終 Evaluator の対象に含める。
+  観測と対応は run の governance / learning に記録し、未解決は理由を残す。
+  具体的な手順と許可境界は `.apm/skills/harness-optimizer/SKILL.md` に従う。
 - 最後に `bun run harness:audit` と `bun run harness:validate` を確認する。
 
 ## サブエージェント方針
@@ -96,6 +101,8 @@ bun tools/scripts/harness.ts start --run <run-id> --task "<ユーザー依頼の
 
 - `orchestrator.json` の plan が完了または明示的に延期されている。
 - `generator.json` に実装と検証証跡がある。
+- 作業中の手順・tooling の問題を点検し、該当時は改善結果または未解決理由を
+  `learning.json` に記録している。原因や効果が不明な変更は加えない。
 - 必要な場合は `evaluator.json` が `approved` になっている。
 - `bun run harness:validate` が通っている。
 - `bun run harness:audit` で未解決の blocker がない。

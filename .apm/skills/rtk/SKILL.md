@@ -41,14 +41,41 @@ rtk pytest -q
 厳密な diff、ID・件数・値の確認、JSON をコードへ渡す場面では、native tools または
 `rtk proxy <cmd>` で原文を保持します。少量の `gh --json` もこの扱いです。
 
+引用が必要な引数、空白を含む path、`|` を含む `--grep` などの正規表現は native tool で
+実行します。RTK の filter が argv を shell command へ再構成すると、引用が失われて
+別 command として解釈され得ます。二重 escape で補修せず、検証済みの
+`rtk proxy` または native tool で引数をそのまま渡します。
+
 ## 詳細確認と未導入時の fallback
 
 - RTK が PATH にない場合は native tools を使います。導入待ちで作業を止めません。
 - 圧縮結果が空、不自然に短い、または失敗の原因行が不足する場合は
-  `rtk proxy <cmd>`、保存したログ、対象を絞った読み取りから詳細を確認します。
+  まず保存済みの raw log を読みます。RTK の tee / recall が sandbox 外へ書き込めない
+  場合もあるため、その保存先が必ず利用できるとは仮定しません。ログがない場合に限り、
+  必要最小限の対象を native tool で再実行して詳細を保存します。
 - 圧縮表示だけで成功を判断せず、元の終了コードと必要な検証結果を確認します。
 - 大量の集計・検索が必要なら、利用可能な `context-mode` Skill を明示的に選べます。
   短いコマンドの実行前に context-mode の存在確認を繰り返す必要はありません。
+
+長時間かかる gate や失敗診断が重要な command は、最初から許可された作業固有の
+一時ディレクトリへ原文を保存します。例えば次は引用付き引数と終了コードを保ちます。
+
+```sh
+umask 077
+verification_dir="$(mktemp -d "${TMPDIR:-/tmp}/tabbin-verification.XXXXXX")"
+if bun run e2e --project=extension --grep 'backup|import preview' --workers=1 \
+  > "$verification_dir/output.log" 2>&1; then
+  verification_status=0
+else
+  verification_status=$?
+fi
+printf 'exit=%s log=%s\n' "$verification_status" "$verification_dir/output.log"
+exit "$verification_status"
+```
+
+保存後は `rg` / `tail` で必要な箇所だけ確認し、要約が短いことだけを理由に高コストの
+command 全体を再実行しません。ログは私有の検証証拠として扱い、secret、URL、実会話を
+repository / Issue / PR へ転記しません。
 
 ## メタコマンド
 
