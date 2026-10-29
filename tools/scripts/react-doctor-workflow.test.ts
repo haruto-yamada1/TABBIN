@@ -136,7 +136,7 @@ describe('React Doctor merge gate', () => {
     expect(steps[guard]?.if).toBeUndefined()
     expect(steps[guard]?.['continue-on-error']).toBeUndefined()
     const manifest = JSON.parse(readFileSync('package.json', 'utf8'))
-    expect(manifest.devDependencies['react-doctor']).toBe('^0.9.16')
+    expect(manifest.devDependencies['react-doctor']).toBe('^0.9.18')
     expect(manifest.scripts.doctor).toBe(
       'bun tools/scripts/run-react-doctor.ts',
     )

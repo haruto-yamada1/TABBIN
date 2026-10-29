@@ -232,6 +232,7 @@ function reviewedDocuments(
 function completeStandardApache(
   legalDir: string,
   documents: DocumentWithText[],
+  id: string,
 ) {
   const text = documents
     .map((document) => document.text)
@@ -246,7 +247,7 @@ function completeStandardApache(
     !/https?:\/\/(?:www\.)?apache\.org\/licenses\/LICENSE-2\.0/i.test(text)
   ) {
     throw new Error(
-      'Missing explicit standard Apache-2.0 notice or full license text',
+      `Missing explicit standard Apache-2.0 notice or full license text: ${id}`,
     )
   }
   const contents = readContainedFile(
@@ -307,7 +308,7 @@ function collectPackage(
   ]
   const documents = (
     license === 'Apache-2.0'
-      ? completeStandardApache(legalDir, originals)
+      ? completeStandardApache(legalDir, originals, id)
       : originals
   ).toSorted((a, b) => a.path.localeCompare(b.path, 'en'))
   if (

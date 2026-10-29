@@ -83,6 +83,26 @@ breaking change に伴う application migration と実動作確認は人間ま�
 [Motion upgrade guide](https://motion.dev/docs/upgrade-guide)、
 [@streamdown/code 2 release](https://github.com/vercel/streamdown/releases/tag/%40streamdown%2Fcode%402.0.0)。
 
+### Local refresh (2026-10-29)
+
+- `deps:check` / `deps:update` の7日 cooldown を適用し、React 19.3.1、
+  Radix UI、AI SDK 7.0.148、Vitest 5.0.5、Storybook 10.6.3、
+  Playwright 1.64.1 などを更新した。PostCSS の override も 8.5.31 に揃える。
+- Node 24 / Bun 1.3.14、ルート TypeScript 7.0.2 と legacy tooling の
+  TypeScript 6.0.3 は維持する。`@types/node` は24系の 24.19.2 を採用する。
+- [Resolvers 6](https://github.com/react-hook-form/resolvers/releases/tag/v6.0.0)
+  の破壊変更は Effect v4 向けで、使用中の Zod resolver の移行は不要。
+  Radix の optional props に合わせ、Button は `asChild={undefined}` を許容する。
+- [Playwright 1.64](https://playwright.dev/docs/release-notes#version-164)
+  は device descriptor の `screen` を反映する。対応する Chromium を取得し、
+  拡張機能 E2E で検証する。
+- `@ai-sdk/provider-utils@5.0.65` の欠落した Apache notice は、npm provenance の
+  commit と integrity に結び付けた原文を `tools/licenses/reviewed/` に保存する。
+  nested MIT と完全な Apache terms の同梱も維持する。
+- React Doctor 0.9.18 と同梱 plugin の LICENSE は承認済み SHA-256 と同一。
+  旧版の Bun store が残り identity 検査に失敗する場合は、`node_modules` を退避し、
+  `bun install --frozen-lockfile` でクリーンに再作成する。検査を無効化しない。
+
 ### CI
 
 - `bun install --frozen-lockfile`

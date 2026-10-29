@@ -95,7 +95,7 @@ const rejectedConflict = async (operation: Promise<unknown>) => {
   }
   expect(result.reason).toBeInstanceOf(PersistenceRevisionConflictError)
   if (!(result.reason instanceof PersistenceRevisionConflictError)) {
-    throw new Error('Unexpected rejection')
+    throw new TypeError('Unexpected rejection')
   }
   return result.reason
 }

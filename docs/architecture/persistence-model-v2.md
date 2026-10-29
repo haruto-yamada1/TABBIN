@@ -480,7 +480,9 @@ The shared logical contract is:
 type JsonPrimitive = string | number | boolean | null
 
 type JsonValue =
-  JsonPrimitive | readonly JsonValue[] | { readonly [key: string]: JsonValue }
+  | JsonPrimitive
+  | readonly JsonValue[]
+  | { readonly [key: string]: JsonValue }
 ```
 
 The required flow is:

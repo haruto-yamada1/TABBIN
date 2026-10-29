@@ -67,7 +67,7 @@ change.
 - `bun run test:node` checks the AST inventory and policy URL behavior. A new
   detected call site fails until it is explicitly reviewed and inventoried.
 - `bun run build && bun run build:firefox && bun run
-verify:production-network-policy` checks both generated manifests. Required
+  verify:production-network-policy` checks both generated manifests. Required
   host permissions must exactly match the required allowlist, optional permissions
   must exactly match the reviewed saved-title marker capability, and `connect-src` must contain only the extension
   itself, local `blob:` data, and the two Ollama origins.

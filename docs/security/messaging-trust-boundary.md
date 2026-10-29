@@ -160,7 +160,7 @@ Policy:
 - When `content_scripts` is introduced, a storage access boundary review is
   required in addition to the messaging trust-boundary review. On Chrome,
   evaluate `chrome.storage.local.setAccessLevel({ accessLevel:
-'TRUSTED_CONTEXTS' })` to keep control-plane storage off-limits to content
+  'TRUSTED_CONTEXTS' })` to keep control-plane storage off-limits to content
   scripts; confirm Firefox capability parity and encapsulate the difference in
   the browser adapter.
 - Fail-closed: when a storage access boundary is unsupported, the policy must
