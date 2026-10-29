@@ -63,6 +63,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,
@@ -167,6 +168,31 @@ describe('ProjectUrlItem', () => {
     cleanup()
   })
 
+  it('keeps identical URLs in separate projects independently draggable and restores focus to the handle', () => {
+    const setActivatorNodeRef = vi.fn()
+    useSortableMock.mockReturnValue({
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef,
+      transform: null,
+      transition: undefined,
+      isDragging: false,
+    })
+    const props = createProps()
+    render(
+      <>
+        <ProjectUrlItem {...props} />
+        <ProjectUrlItem {...props} projectId='project-2' />
+      </>,
+    )
+    const ids = useSortableMock.mock.calls.map(([options]) => options.id)
+    expect(new Set(ids).size).toBe(2)
+    expect(setActivatorNodeRef).toHaveBeenCalledWith(
+      screen.getAllByTestId('project-url-drag-handle')[0],
+    )
+  })
+
   // eslint-disable-next-line eslint/complexity
   it('未分類URLを描画しリンククリックと即時削除を処理する', async () => {
     const user = userEvent.setup()
@@ -210,7 +236,7 @@ describe('ProjectUrlItem', () => {
     expect(link).toHaveAttribute('href', item.url)
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
     const titleLabel = screen.getByTestId('project-url-title')
     expect(titleLabel?.className).toContain('min-w-0')
     expect(titleLabel?.className).toContain('truncate')
@@ -222,7 +248,7 @@ describe('ProjectUrlItem', () => {
 
     expect(useSortableMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: item.url,
+        id: JSON.stringify(['project-url', 'project-1', item.url]),
         data: expect.objectContaining({
           type: 'url',
           url: item.url,

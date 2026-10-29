@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
+import { createSetSavedUrlFavoriteUseCase } from '@/contexts/saved-tabs/application/use-cases/SetSavedUrlFavoriteUseCase'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 import type { IndexedDbSavedTabsMutableState } from './IndexedDbSavedTabsSessionService'
@@ -257,6 +258,35 @@ describe('createNativeSavedTabsPersistenceAdapters timestamp provenance', () => 
         collectionId: 'target',
         updatedAt: 100,
       }),
+    ])
+  })
+})
+
+describe('favorite mutation metadata scope', () => {
+  it('changes only the target favorite and updatedAt, preserving empty icons and absent provenance', async () => {
+    const state = createState()
+    state.urls = ['a', 'b'].map((id) => ({
+      id,
+      url: `https://example.com/${id}`,
+      normalizedUrl: `https://example.com/${id}`,
+      title: id,
+      firstSavedAt: 1,
+      lastSavedAt: 2,
+      updatedAt: 3,
+      favIconUrl: '',
+    }))
+    const before = structuredClone(state.urls)
+    const adapters = createNativeSavedTabsPersistenceAdapters(
+      state,
+      createExternalDeps(),
+    )
+    await createSetSavedUrlFavoriteUseCase(adapters)({
+      url: 'https://example.com/a',
+      isFavorite: true,
+    })
+    expect(state.urls).toEqual([
+      { ...before[0], isFavorite: true, updatedAt: 100 },
+      before[1],
     ])
   })
 })

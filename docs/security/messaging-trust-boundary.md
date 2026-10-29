@@ -14,17 +14,51 @@ worker. Messages are validated with Zod schemas in `src/types/background.ts`
 (`backgroundMessageSchema`, `messageActionSchema`) before any handler runs. The
 background handler lives in `src/lib/background/message-handler.ts`.
 
-There are currently no content scripts, no `externally_connectable` surface, and
-no `onMessageExternal` listener. The generated manifest verifier in
+There are no manifest-declared content scripts, no `externally_connectable`
+surface, and no `onMessageExternal` listener. The optional saved-title marker
+uses programmatic isolated-world injection as reviewed below. The generated manifest verifier in
 `tools/scripts/production-network-policy.ts` enforces this by rejecting
 `externally_connectable` and non-empty `content_scripts` in the generated
 Chrome and Firefox manifests.
+
+### Optional saved-title injection
+
+The saved-title marker runs only after the user enables it and grants optional
+`scripting` plus HTTP(S) site access. This is an untrusted page-adjacent context.
+Its injected function changes/observes only document titles, and accepts only
+same-extension ownership inspection and restoration requests. It has no outgoing runtime
+requests, extension-storage calls, network calls, page-body reads, or HTML
+rendering. Page scripts can observe title changes. It does not register a
+persistent or manifest content script, and arbitrary non-HTTP(S), restricted,
+or incognito pages are excluded.
+
+The background message listener requires a trusted same-extension page sender
+before dispatching privileged actions. A matching extension ID alone is not
+sufficient: content scripts carry the extension ID too. The sender must use a
+known same-extension page URL at the top frame and have a matching extension ID
+and origin when supplied. Web-page URLs, foreign extensions, subframes, and
+incognito tabs are rejected. A known extension page opened in a normal tab is
+allowed. An extension-page
+refresh relay carries no URL or other page content and only asks the background
+to recompute the existing local saved-status projection. Injected contexts
+cannot use it to read or mutate saved data. There is no external message surface
+or web-accessible resource change.
+
+Chrome's storage access-level API is not relied on as a portable Firefox
+boundary: injected code contains no storage access path or storage-bearing
+messages, while the background independently rejects page-adjacent senders.
+Adding a storage call or privileged outgoing message to injected code requires
+a new trust-boundary review. An explicit save may run a read-only isolated-world
+ownership probe while site access remains granted, even if title display is off;
+it reads no page body and sends no page-initiated message. Uncertain marked
+captures stop before persistence or closure. The opt-in boolean remains device-local and is
+excluded from Backup V2 and recovery snapshots.
 
 ## Sender types and trust levels
 
 | Sender type                                     | Transport                                                 | Trust level                     | Validation required                                                                      |
 | ----------------------------------------------- | --------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
-| Extension page (options, saved-tabs, changelog) | `chrome.runtime.sendMessage` / `chrome.runtime.connect`   | Trusted extension context       | Zod payload schema (current policy)                                                      |
+| Extension page (options, saved-tabs, changelog) | `chrome.runtime.sendMessage` / `chrome.runtime.connect`   | Trusted extension context       | Same-extension page sender guard + Zod payload schema                                    |
 | Background service worker (self)                | direct calls                                              | Trusted extension context       | internal function contracts                                                              |
 | Content script                                  | `chrome.runtime.sendMessage` from injected content script | Untrusted page-adjacent context | Zod payload schema + sender origin allowlist + privileged-action sender policy           |
 | External web page                               | `chrome.runtime.sendMessage` via `externally_connectable` | Untrusted external context      | Zod payload schema + sender origin/extension allowlist + privileged-action sender policy |
@@ -64,9 +98,9 @@ senders.
 
 ## Sender policy for untrusted contexts
 
-When `content_scripts`, `externally_connectable`, or `onMessageExternal` is
-introduced, the message handler must distinguish sender types before dispatching
-privileged actions. The minimum policy:
+The programmatic saved-title injection introduces an untrusted context, so
+the background now distinguishes trusted extension pages before dispatching
+messages or connecting AI stream ports. The minimum policy remains:
 
 1. Validate every message with the existing Zod schema regardless of sender.
 2. For untrusted senders, check the sender against an explicit allowlist:
@@ -78,16 +112,17 @@ privileged actions. The minimum policy:
 4. Never relax the Zod schema for untrusted senders. Untrusted senders get the
    same schema plus the sender allowlist, not a weaker schema.
 
-This is a policy definition, not a blanket instruction to add sender allowlists
-to every current internal message today. Internal messages between extension
-pages and the background service worker remain trusted and do not need a sender
-allowlist until an untrusted sender type is introduced.
+The current same-extension page guard applies to every message and AI stream
+port. No injected context is allowed to dispatch an action, including the
+metadata-free title refresh. External messaging remains disabled.
 
 ## Trust-boundary review triggers
 
 The following changes require a trust-boundary review before merge:
 
 - Adding any `content_scripts` entry to the manifest or `wxt.config.ts`.
+- Adding programmatic script injection or changing the injected function's API,
+  storage, messaging, or page-content access.
 - Adding `externally_connectable` to the manifest or `wxt.config.ts`.
 - Adding an `onMessageExternal` listener in source.
 - Adding a `chrome.runtime.onConnectExternal` listener in source.
@@ -125,7 +160,7 @@ Policy:
 - When `content_scripts` is introduced, a storage access boundary review is
   required in addition to the messaging trust-boundary review. On Chrome,
   evaluate `chrome.storage.local.setAccessLevel({ accessLevel:
-'TRUSTED_CONTEXTS' })` to keep control-plane storage off-limits to content
+  'TRUSTED_CONTEXTS' })` to keep control-plane storage off-limits to content
   scripts; confirm Firefox capability parity and encapsulate the difference in
   the browser adapter.
 - Fail-closed: when a storage access boundary is unsupported, the policy must

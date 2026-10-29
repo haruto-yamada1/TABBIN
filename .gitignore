@@ -10,6 +10,11 @@ stats.html
 stats-*.json
 
 # Test artifacts
+.stryker-tmp/
+/reports/mutation/
+/reports/flakes/
+/reports/ci-performance/
+/reports/performance-budget/
 /test-results/
 /playwright-report/
 /blob-report/
@@ -62,6 +67,10 @@ web-ext.config.ts
 .waza-cache/
 .waza-results/
 .codex/waza-results/
+.codex-issue-results/
 
 # APM dependencies
 apm_modules/
+
+# Pinned workflow auditors
+.cache/ci-audit/

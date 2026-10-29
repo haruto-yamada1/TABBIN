@@ -39,10 +39,13 @@ Issue URL が会話にあることや `commit-push-pr` skill が利用可能な�
 repository instructions と実際に利用可能な tool を先に確認し、次の recovery ladder を上から
 順に進めます。ある段が利用不可なら、その事実を記録して次へ進みます。
 
-1. repository が network command の routing tool を指定している場合は、それを使います。
-   TABBIN で context-mode が利用可能なら、plain shell ではなく `ctx_batch_execute` 内で
-   `rtk gh issue view <number> --repo <owner>/<repo>
-   --json title,body,state,labels,comments,url` を実行します。
+1. repository が network command の routing を指定している場合は、その client と端末への
+   適用条件を確認します。TABBIN の Codex は採用確認済み端末の Headroom 経路を利用し、
+   未導入端末は native tools で続けます。少量の Issue JSON は raw の
+   `gh issue view <number> --repo <owner>/<repo>
+   --json title,body,state,labels,comments,url` または `rtk proxy gh issue view ...` で
+   原文を保持します。大量の comments や横断集計が必要な場合だけ、利用可能な
+   `ctx_batch_execute` 等を明示的に選びます。他 client はその環境の routing / hook に従います。
 2. routing 指定がなければ、purpose-built GitHub connector / MCP が利用可能ならそれを使い、
    Issue 本文と comments を取得します。
 3. `gh` が利用可能なら、`gh auth status` を前提 gate にせず、上記の `gh issue view` を直接
@@ -57,8 +60,9 @@ repository instructions と実際に利用可能な tool を先に確認し、�
    approval tool を呼べる場合、ユーザーへ手動 command を案内する前に agent 自身が approval
    request を発行します。
 6. CLI 経路が使えず Issue が public なら、許可された fetch / browser tool で公式 GitHub の
-   Issue page または REST API の Issue と comments を取得します。TABBIN では raw
-   `curl` / `wget` を使わず、`ctx_fetch_and_index` と `ctx_search` を使います。
+   Issue page または REST API の Issue と comments を取得します。大量資料の索引化が
+   有効な場合は、利用可能な `ctx_fetch_and_index` と `ctx_search` を明示的に選べます。
+   raw `curl` / `wget` やインライン HTTP は使わず、sandbox / network approval を迂回しません。
 
 一つの `gh auth status` 失敗、sandbox 内の DNS failure、credential helper の空結果は、単独では
 blocker ではありません。利用可能な network-capable transport または escalated retry を最低一つ
@@ -142,6 +146,12 @@ user data、permission、public behavior、security に関わる変更は migrat
 rollback を検討します。重大な仕様判断が必要な場合だけ blocker として返します。
 
 ## 5. 検証する
+
+必要な gate の実行環境は、高コストの build / 全体検証の前に確認します。
+native Firefox smoke を含む場合は `bun run verify:firefox-smoke-environment` を使います。
+browser の権限エラー・対象選択・再実行範囲は `e2e-testing`、引用付き引数と原文ログ保持は
+`rtk` に従います。binary 不足や未実行 gate を skip / 成功扱いに変えず、実装 review の
+結果と release-ready の可否を分けて報告します。
 
 変更に最も近い test から開始し、関連する主要 flow と acceptance criteria へ広げます。
 

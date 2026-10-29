@@ -22,6 +22,7 @@ export type SavedTabsUrlRecordDto = ApplicationSavedTabsUrlRecordDto
 export type SavedTabsUserSettingsDto = ApplicationSavedTabsUserSettingsDto
 
 export type SavedTabsCustomProjectUrlDto = {
+  isFavorite?: boolean
   id?: string
   url: string
   title: string

@@ -14,15 +14,16 @@ import type { ClockPort } from './ports/ClockPort'
 import type { CustomProjectsCommandService } from './ports/CustomProjectsCommandService'
 import type { IdGeneratorPort } from './ports/IdGeneratorPort'
 import type { MessagingPort } from './ports/MessagingPort'
-import type { MigrationPort } from './ports/MigrationPort'
 import type { NotificationPort } from './ports/NotificationPort'
 import type { RemoveSubCategoryFromTabGroupPort } from './ports/RemoveSubCategoryFromTabGroupPort'
 import type { SavedTabsTabGroupReadPort } from './ports/SavedTabsTabGroupReadPort'
 import type { SetCategoryKeywordsPort } from './ports/SetCategoryKeywordsPort'
+import type { SetSavedUrlFavoritePort } from './ports/SetSavedUrlFavoritePort'
 import type { StorageChangePort } from './ports/StorageChangePort'
 
 /** Dependencies required to construct and present the saved-tabs use cases. */
 export type SavedTabsUseCasesDeps = {
+  readonly setSavedUrlFavoritePort: SetSavedUrlFavoritePort
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
   readonly categoriesCommandService: CategoriesCommandService
@@ -34,7 +35,6 @@ export type SavedTabsUseCasesDeps = {
   readonly domainCategoryMappingRepository: DomainCategoryMappingRepository
   readonly domainCategorySettingsRepository: DomainCategorySettingsRepository
   readonly messagingPort: MessagingPort
-  readonly migrationPort: MigrationPort
   readonly notificationPort: NotificationPort
   readonly parentCategoryRepository: ParentCategoryRepository
   readonly removeSubCategoryFromTabGroupPort: RemoveSubCategoryFromTabGroupPort

@@ -14,10 +14,20 @@ describe('language helpers', () => {
     expect(resolveLanguage('system', 'ja-JP')).toBe('ja')
   })
 
-  it('system 設定時は未対応ロケールを en にフォールバックする', () => {
-    expect(resolveLanguage('system', 'fr')).toBe('en')
-    expect(resolveLanguage('system', undefined)).toBe('en')
-  })
+  it.each(['en', 'en-US', 'en-GB'])(
+    'system 設定時は %s を en に解決する',
+    (locale) => {
+      expect(resolveLanguage('system', locale)).toBe('en')
+    },
+  )
+
+  it.each(['fr', 'fr-FR', 'ko', 'ko-KR', 'zh', 'zh-CN', '', '  ', undefined])(
+    '未対応または空のロケール %s は en にフォールバックする',
+    (locale) => {
+      expect(resolveUiLanguage(locale)).toBe('en')
+      expect(resolveLanguage('system', locale)).toBe('en')
+    },
+  )
 
   it('明示設定があればその言語を優先する', () => {
     expect(resolveLanguage('en', 'ja')).toBe('en')

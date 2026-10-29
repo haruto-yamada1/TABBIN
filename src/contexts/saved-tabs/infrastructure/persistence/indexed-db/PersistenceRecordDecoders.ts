@@ -1,3 +1,4 @@
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type {
   PersistenceJsonRecord,
   PersistenceMessageRecord,
@@ -51,6 +52,7 @@ const isCollectionDefinition = (
 
 export const isPersistenceV2Url = (value: unknown): value is PersistenceV2Url =>
   isJsonRecord(value) &&
+  (value.isFavorite === undefined || typeof value.isFavorite === 'boolean') &&
   isOptionalString(value.favIconUrl) &&
   typeof value.firstSavedAt === 'number' &&
   isOptionalTimestampProvenance(value.firstSavedAtProvenance) &&
@@ -72,6 +74,10 @@ export const isPersistenceV2Collection = (
   typeof value.id === 'string' &&
   typeof value.name === 'string' &&
   typeof value.sortOrder === 'number' &&
+  (!Object.hasOwn(value, 'uncategorizedCategoryPosition') ||
+    (typeof value.uncategorizedCategoryPosition === 'number' &&
+      Number.isSafeInteger(value.uncategorizedCategoryPosition) &&
+      value.uncategorizedCategoryPosition >= 0)) &&
   typeof value.updatedAt === 'number'
 
 export const isPersistenceV2Membership = (
@@ -126,9 +132,11 @@ export const isPersistenceMessageRecord = (
   typeof value.id === 'string' &&
   isJsonValue(value.value)
 
-export class PersistenceRecordDecodeError extends Error {
+export class PersistenceRecordDecodeError extends PersistenceUnavailableError {
   constructor(storeName: string) {
-    super(`IndexedDB ${storeName} contains an invalid persistence record.`)
+    super('PERSISTENCE_RECOVERY_REQUIRED', {
+      message: `IndexedDB ${storeName} contains an invalid persistence record.`,
+    })
     this.name = 'PersistenceRecordDecodeError'
   }
 }

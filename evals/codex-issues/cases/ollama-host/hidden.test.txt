@@ -1,0 +1,137 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import {
+  listLocalOllamaModels,
+  runAiChatRequest,
+} from '@/lib/background/ai-chat'
+import {
+  defaultSettings,
+  getUserSettings,
+  saveUserSettings,
+} from '@/lib/storage/settings'
+
+const local = vi.hoisted(() => ({
+  values: {} as Record<string, unknown>,
+  get: vi.fn(async () => local.values),
+  set: vi.fn(async (values: Record<string, unknown>) => {
+    Object.assign(local.values, values)
+  }),
+  createOllama: vi.fn(),
+  generateText: vi.fn(),
+}))
+
+vi.mock('@/lib/browser/chrome-storage', () => ({
+  getChromeStorageLocal: () => ({ get: local.get, set: local.set }),
+  warnMissingChromeStorage: vi.fn(),
+}))
+vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
+  getBackgroundSavedTabsDataPlane: () => ({
+    readInsightRecords: async () => [],
+    readAnalyticsRecords: async () => [],
+  }),
+}))
+vi.mock('ai-sdk-ollama', () => ({ createOllama: local.createOllama }))
+vi.mock('ai', () => ({
+  generateText: local.generateText,
+  isStepCount: (count: number) => count,
+  tool: (definition: unknown) => definition,
+}))
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.spyOn(console, 'log').mockImplementation(() => undefined)
+  vi.stubGlobal('chrome', {
+    runtime: { id: 'evaluation-extension' },
+    i18n: { getUILanguage: () => 'en' },
+  })
+  local.values = { userSettings: { ...defaultSettings, language: 'en' } }
+  local.createOllama.mockReturnValue((model: string) => ({ model }))
+  local.generateText.mockResolvedValue({ text: 'response', steps: [] })
+})
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
+
+const settingsWithHost = (host: unknown) => {
+  const settings = { ...defaultSettings, language: 'en' as const }
+  Reflect.set(settings, 'ollamaBaseUrl', host)
+  return settings
+}
+
+describe('Issue 671 Ollama transport and persistence', () => {
+  it.each(['http://localhost:11434', 'http://127.0.0.1:11434'])(
+    'preserves %s through a save/read and uses it for tags and inference',
+    async (host) => {
+      await saveUserSettings({ ...settingsWithHost(host), ollamaModel: 'test:8b' })
+      const reloaded = await getUserSettings()
+      expect(Reflect.get(reloaded, 'ollamaBaseUrl')).toBe(host)
+      const fetchModels = vi.fn(async () =>
+        Response.json({ models: [{ name: 'test:8b' }] }),
+      )
+      expect(await listLocalOllamaModels(fetchModels)).toEqual([
+        { label: 'test:8b', name: 'test:8b' },
+      ])
+      expect(fetchModels).toHaveBeenCalledWith(`${host}/api/tags`, {
+        method: 'GET',
+      })
+      await runAiChatRequest({ history: [], prompt: 'Hello' })
+      expect(local.createOllama).toHaveBeenCalledWith({ baseURL: host })
+    },
+  )
+
+  it.each([
+    'https://remote.example',
+    'http://127.0.0.1:11435',
+    'http://localhost:11434/path',
+    'http://localhost:11434/',
+    'http://account:password@localhost:11434',
+    null,
+  ])('rejects disallowed write %s without changing stored settings', async (host) => {
+    const before = structuredClone(local.values)
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await expect(saveUserSettings(settingsWithHost(host))).rejects.toThrow()
+    expect(local.values).toEqual(before)
+    expect(local.set).not.toHaveBeenCalled()
+  })
+
+  it.each([undefined, 'https://remote.example'])(
+    'uses localhost for absent or invalid stored host %s',
+    async (host) => {
+      local.values.userSettings = { language: 'en', ollamaBaseUrl: host }
+      const fetchModels = vi.fn(async () => Response.json({ models: [] }))
+      await listLocalOllamaModels(fetchModels)
+      expect(fetchModels).toHaveBeenCalledWith(
+        'http://localhost:11434/api/tags',
+        { method: 'GET' },
+      )
+      expect(Reflect.get(await getUserSettings(), 'ollamaBaseUrl')).toBe(
+        'http://localhost:11434',
+      )
+    },
+  )
+
+  it.each(['forbidden', 'offline'])(
+    'keeps %s guidance aligned with the endpoint used by the failed request',
+    async (failure) => {
+      local.values.userSettings = {
+        ...settingsWithHost('http://127.0.0.1:11434'),
+        ollamaModel: 'test:8b',
+      }
+      const fetchModels = vi.fn(async () => {
+        local.values.userSettings = settingsWithHost('http://localhost:11434')
+        if (failure === 'forbidden') {
+          return new Response(null, { status: 403 })
+        }
+        throw new TypeError('Failed to fetch')
+      })
+      await expect(listLocalOllamaModels(fetchModels)).rejects.toMatchObject({
+        message: expect.stringContaining('http://127.0.0.1:11434/api/tags'),
+        ollamaError: {
+          baseUrl: 'http://127.0.0.1:11434',
+          tagsUrl: 'http://127.0.0.1:11434/api/tags',
+        },
+      })
+    },
+  )
+})

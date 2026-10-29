@@ -1,11 +1,22 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronRight, GripVertical, X } from 'lucide-react'
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronRight, X } from 'lucide-react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { useUrlReorderAvailable } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
+import { useOpenSavedTab } from '@/contexts/saved-tabs/presentation/controllers/useOpenSavedTab'
+import { getProjectUrlSortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsUserSettingsDto as UserSettingsDto,
@@ -19,6 +30,8 @@ import {
 } from './projectUrlItemHelpers'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
+import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
+import { SavedUrlFavoriteButton } from './shared/SavedUrlFavoriteButton'
 
 const MAX_URL_PREVIEW_LENGTH = 30
 
@@ -39,7 +52,7 @@ type ProjectUrlItemProps = {
     projectId: string,
     url: string,
     category?: string,
-  ) => void
+  ) => void | Promise<void>
   availableCategories?: string[]
   // 追加: 未分類エリア内にあるかどうかのフラグ
   isInUncategorizedArea?: boolean
@@ -79,6 +92,8 @@ const ProjectUrlItemComponent = ({
   const { t } = useI18n()
   // 実際のURLを保存（元のURL）
   const originalUrl = item.url
+  const isOpen = useOpenSavedTab(originalUrl)
+  const openStateDescriptionId = useId()
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const isDraggingRef = useRef(false)
@@ -90,18 +105,23 @@ const ProjectUrlItemComponent = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
+  const canReorderUrls = useUrlReorderAvailable()
 
   // ドラッグアンドドロップの設定を強化
   const {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
   } = useSortable({
+    disabled: !canReorderUrls,
     data: {
+      isFavorite: item.isFavorite ?? false,
       type: 'url',
+      name: item.title || originalUrl,
       url: originalUrl,
       projectId,
       title: item.title || originalUrl.substring(0, MAX_URL_PREVIEW_LENGTH), // タイトルがない場合はURLの一部を使用
@@ -119,7 +139,7 @@ const ProjectUrlItemComponent = ({
         : undefined,
       isInUncategorizedArea, // 未分類エリア内にあるかの情報を追加
     },
-    id: originalUrl,
+    id: getProjectUrlSortableId(projectId, originalUrl),
   })
 
   const style = useMemo(
@@ -249,20 +269,31 @@ const ProjectUrlItemComponent = ({
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
         <div
+          ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
+          aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+          aria-describedby={
+            isOpen
+              ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+              : attributes['aria-describedby']
+          }
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {
             name: item.title || originalUrl,
           })}
           className='cursor-grab p-1 active:cursor-grabbing'
           data-testid='project-url-drag-handle'
         >
-          <GripVertical
-            size={16}
-            aria-hidden='true'
-            className='text-muted-foreground'
+          <SavedTabDragHandleIcon
+            isOpen={isOpen}
+            descriptionId={openStateDescriptionId}
           />
         </div>
+        <SavedUrlFavoriteButton
+          url={originalUrl}
+          title={item.title}
+          isFavorite={item.isFavorite ?? false}
+        />
         {/* タイトル＋バッジ部 */}
         <div className='flex min-w-0 flex-1 items-center'>
           {safeHref ? (

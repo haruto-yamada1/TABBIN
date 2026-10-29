@@ -1,0 +1,7 @@
+# All actions, including GitHub-owned actions, require full SHA references.
+# No initial security findings are suppressed.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        '*': hash-pin

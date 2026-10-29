@@ -6,11 +6,22 @@ import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
 
-import { PRODUCTION_EXTENSION_PERMISSIONS } from './src/constants/extensionPermissions'
+import {
+  PRODUCTION_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_HOST_PERMISSIONS,
+} from './src/constants/extensionPermissions'
+import { DEFAULT_LANGUAGE } from './src/constants/language'
 import {
   PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
   createProductionExtensionCsp,
 } from './src/constants/productionNetworkPolicy'
+import {
+  addThirdPartyLicenseFilesToSourceZip,
+  verifyThirdPartyLicenseFiles,
+  verifyThirdPartyLicenseZip,
+  writeThirdPartyLicenseFiles,
+} from './tools/licenses/thirdPartyLicenses'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -37,10 +48,42 @@ const vitePlugins = tailwindcss()
 export default defineConfig({
   srcDir: 'src',
   publicDir: 'src/public',
+  dev: {
+    server: {
+      strictPort: process.env.TABBIN_PARALLEL_WORKTREE === '1',
+    },
+  },
+  hooks: {
+    'build:done': async (wxt, output) => {
+      if (wxt.config.command === 'serve') {
+        return
+      }
+      const moduleIds = output.steps.flatMap((step) =>
+        step.chunks.flatMap((chunk) => chunk.type === 'chunk' ? chunk.moduleIds : []),
+      )
+      await writeThirdPartyLicenseFiles({
+        outDir: wxt.config.outDir,
+        moduleIds,
+        projectRoot: wxt.config.root,
+      })
+      await verifyThirdPartyLicenseFiles(wxt.config.outDir)
+    },
+    'zip:extension:done': async (_wxt, zipPath) => {
+      await verifyThirdPartyLicenseZip(zipPath)
+    },
+    'zip:sources:done': async (wxt, zipPath) => {
+      await addThirdPartyLicenseFilesToSourceZip(zipPath, wxt.config.outDir)
+      await verifyThirdPartyLicenseZip(zipPath)
+    },
+  },
   zip: {
     dotSources: true,
     includeSources: [
       'src',
+      'tools/licenses',
+      'tools/legacy-tooling',
+      'tools/scripts/verify-third-party-licenses.ts',
+      'patches',
       'package.json',
       'bun.lock',
       'wxt.config.ts',
@@ -54,7 +97,7 @@ export default defineConfig({
     excludeSources: ['src/**/.*'],
   },
   manifest: (env) => ({
-    default_locale: 'ja',
+    default_locale: DEFAULT_LANGUAGE,
     name: '__MSG_extensionName__',
     description: '__MSG_extensionDescription__',
     version: APP_VERSION,
@@ -64,6 +107,17 @@ export default defineConfig({
     },
     host_permissions: PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
     permissions: [...PRODUCTION_EXTENSION_PERMISSIONS],
+    ...(env.manifestVersion === 2
+      ? {
+          optional_permissions: [
+            ...PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS,
+            ...PRODUCTION_OPTIONAL_HOST_PERMISSIONS,
+          ],
+        }
+      : {
+          optional_permissions: [...PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS],
+          optional_host_permissions: [...PRODUCTION_OPTIONAL_HOST_PERMISSIONS],
+        }),
     action: {
       default_title: '__MSG_extensionName__',
     },

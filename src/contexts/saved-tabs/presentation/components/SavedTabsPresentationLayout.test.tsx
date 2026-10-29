@@ -87,6 +87,7 @@ vi.mock('./SavedTabsChatWidgetBridge', () => ({
  */
 const buildLayoutComposition = () => {
   const deps: SavedTabsUseCasesDeps = {
+    setSavedUrlFavoritePort: { setFavorite: async () => false },
     browserTabPort: {
       open: async (input: { url: string }) => ({ url: input.url }),
     },
@@ -165,13 +166,6 @@ const buildLayoutComposition = () => {
       findAll: async () => [],
 
       saveAll: async () => undefined,
-    },
-    migrationPort: {
-      migrateParentCategoriesToDomainNames: vi
-        .fn()
-        .mockResolvedValue(undefined),
-      migrateToUrlsStorage: vi.fn().mockResolvedValue(undefined),
-      migrateDomainStorageToHostname: vi.fn().mockResolvedValue(undefined),
     },
     categoriesCommandService: {
       updateCollectionCategories: vi.fn().mockResolvedValue(undefined),

@@ -18,6 +18,7 @@ import { createDeleteCustomProjectUseCase } from './use-cases/DeleteCustomProjec
 import { createDeleteParentCategoryUseCase } from './use-cases/DeleteParentCategoryUseCase'
 import { createDeleteSavedUrlsUseCase } from './use-cases/DeleteSavedUrlsUseCase'
 import { createDeleteSavedUrlUseCase } from './use-cases/DeleteSavedUrlUseCase'
+import { createDeleteSelectedSavedUrlsUseCase } from './use-cases/DeleteSelectedSavedUrlsUseCase'
 import { createDeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
 import { createFindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUseCase'
@@ -53,6 +54,7 @@ import { createSaveCustomProjectOrderUseCase } from './use-cases/SaveCustomProje
 import { createSaveCustomProjectsUseCase } from './use-cases/SaveCustomProjectsUseCase'
 import { createSetCategoryKeywordsUseCase } from './use-cases/SetCategoryKeywordsUseCase'
 import { createSetCustomProjectUrlCategoryUseCase } from './use-cases/SetCustomProjectUrlCategoryUseCase'
+import { createSetSavedUrlFavoriteUseCase } from './use-cases/SetSavedUrlFavoriteUseCase'
 import { createSyncCategoryAssignmentsUseCase } from './use-cases/SyncCategoryAssignmentsUseCase'
 import { createUpdateCustomProjectCategoryOrderUseCase } from './use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import { createUpdateCustomProjectKeywordsUseCase } from './use-cases/UpdateCustomProjectKeywordsUseCase'
@@ -86,6 +88,9 @@ export type { SavedTabsUseCases }
 export const createSavedTabsUseCases = (
   deps: SavedTabsUseCasesDeps,
 ): SavedTabsUseCases => ({
+  setSavedUrlFavorite: createSetSavedUrlFavoriteUseCase({
+    setSavedUrlFavoritePort: deps.setSavedUrlFavoritePort,
+  }),
   addDomainToParentCategory: createAddDomainToParentCategoryUseCase({
     parentCategoryRepository: deps.parentCategoryRepository,
   }),
@@ -128,6 +133,12 @@ export const createSavedTabsUseCases = (
   }),
   deleteSavedUrls: createDeleteSavedUrlsUseCase({
     customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
+  }),
+  deleteSelectedSavedUrls: createDeleteSelectedSavedUrlsUseCase({
+    customProjectRepository: deps.customProjectRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
   }),

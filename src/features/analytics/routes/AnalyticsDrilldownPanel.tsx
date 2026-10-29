@@ -170,7 +170,11 @@ export const AnalyticsDrilldownPanel = ({
   }
 
   return (
-    <Card className='mt-4 rounded-3xl bg-background p-4 shadow-none'>
+    <Card
+      id='analytics-drilldown-panel'
+      data-testid='analytics-drilldown-panel'
+      className='mt-4 rounded-3xl bg-background p-4 shadow-none'
+    >
       <div className='flex flex-wrap items-start justify-between gap-3'>
         <div>
           <h3 className='text-base font-semibold'>

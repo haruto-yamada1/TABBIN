@@ -24,6 +24,7 @@ export type PersistenceV2ReplacementErrorCode =
   | 'INVALID_TARGET_RECORD'
   | 'ORPHAN_MESSAGE_CONVERSATION'
   | 'REVISION_NOT_COMMITTED'
+  | 'REVISION_CONFLICT'
   | 'REVISION_OVERFLOW'
   | 'TRANSACTION_FAILED'
   | 'UNHEALTHY_SAVED_TABS'
@@ -31,5 +32,6 @@ export type PersistenceV2ReplacementErrorCode =
 export type PersistenceV2ReplacementPort = {
   readonly replaceAll: (
     target: PersistenceV2ReplacementTarget,
+    options?: { readonly expectedRevision: number },
   ) => Promise<PersistenceV2ReplacementResult>
 }

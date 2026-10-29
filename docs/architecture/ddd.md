@@ -48,10 +48,10 @@ src/contexts/saved-tabs/
     ports/            # BrowserTabPort / NotificationPort / ClockPort / IdGeneratorPort / StorageChangePort / MessagingPort
   infrastructure/
     persistence/
-      chrome-storage/ # Chrome*Repository 実装 / storage key / schema
-      migrations/     # 既存データを壊さない migration
+      indexed-db/     # 正規 domain snapshot / Unit of Work / DB schema upgrade / recovery
+      chrome-storage/ # userSettings 専用 repository / storage key
     browser/          # Chrome*Adapter（chrome.tabs など）
-    mappers/          # storage <-> domain 変換
+    composition/      # IndexedDB runtime / native persistence adapters
   presentation/
     routes/           # React Router のルート
     pages/            # ページコンポーネント
@@ -82,15 +82,16 @@ src/contexts/saved-tabs/
 - `application/ports/` には `BrowserTabPort` / `NotificationPort` / `ClockPort` / `IdGeneratorPort` / `StorageChangePort` / `MessagingPort` などの interface を置き、`chrome.tabs` や `chrome.notifications` / `chrome.storage.onChanged` / `chrome.runtime.sendMessage` への直接依存を排除します。
 - `application/dto/` は presentation 層へ返す読み取り専用モデルです。domain entity を直接 UI へ渡さないでください。
 - `application/commands/` と `application/queries/` はそれぞれ状態変更リクエスト・読み取りリクエストの型定義置き場です。
-- `application/mappers/` は application 層内の DTO / snapshot 相互変換（`@/types/storage` 形 ↔ domain DTO / domain entity）を集約する pure な変換層です。`chrome.*` API には触れません。`SavedTabsDtosMapper` は DTO ↔ storage 形、`SavedTabsSnapshotMapper` は undo / snapshot 用に domain entity ↔ storage 形を双方向で持ち替えます（chrome.storage への I/O 自体は行わない）。一方、`infrastructure/mappers/` の `ChromeSavedTabsStorageMapper` は `chrome.storage.local` の生データ (`unknown` → Zod parse) ↔ domain entity の I/O 変換を担います。
+- `application/mappers/` は application 層内の DTO / snapshot 相互変換（`@/types/storage` 形 ↔ domain DTO / domain entity）を集約する pure な変換層です。`chrome.*` API には触れません。`SavedTabsDtosMapper` は DTO ↔ storage 形、`SavedTabsSnapshotMapper` は undo / snapshot 用に domain entity ↔ storage 形を双方向で持ち替えます（chrome.storage への I/O 自体は行わない）。IndexedDB の生レコードの検証は `infrastructure/persistence/indexed-db/PersistenceRecordDecoders.ts` が担当し、native persistence adapters が domain interface へ投影します。
 
 ### infrastructure
 
-- 外部技術（`chrome.storage.local` / `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` など）への接続を閉じ込める層。
-- `chrome.storage.local` への直接アクセスは `infrastructure/persistence/chrome-storage/` 配下の Repository 実装だけに限定します。`savedTabsStorageKeys.ts` で storage key を一元管理し、`savedTabsStorageSchema.ts` で永続化対象の構造を定義します。
+- 外部技術（IndexedDB / `chrome.storage.local` / `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` など）への接続を閉じ込める層。
+- 保存 URL、Collection、Membership、Category、Group の正規保存先は IndexedDB です。`infrastructure/persistence/indexed-db/` の reader / unit of work と native composition を使い、Chrome Storage のドメイン Repository や Legacy fallback は設けません。
+- `infrastructure/persistence/chrome-storage/` は `ChromeUserSettingsRepository` など、Chrome Storage が正規保存先である設定の adapter を置きます。UI 選択状態や release 表示状態も各 owning context で Chrome Storage を維持します。
 - `chrome.tabs` / `chrome.contextMenus` / `chrome.alarms` などの browser API は `infrastructure/browser/` 配下の adapter（例: `ChromeBrowserTabAdapter`）経由で呼び出します。
-- `infrastructure/mappers/` は storage の生データと domain entity / DTO の相互変換を担当します。
-- 既存の保存データ形式を壊さない migration は `infrastructure/persistence/migrations/` に置きます。新規スキーマ追加時は必ず後方互換の migration を用意してください。
+- IndexedDB の decoder と native persistence adapters が、保存レコードの検証と domain entity / DTO の相互変換を担当します。
+- IndexedDB の schema upgrade は `infrastructure/persistence/indexed-db/persistenceDatabaseSchema.ts` に置きます。新規スキーマ追加時は既存 IndexedDB データを保持する upgrade と互換性検証を用意してください。旧 Chrome Storage ドメインデータの自動移行は Issue #861 で終了しました。
 - infrastructure 層は domain / application に依存してよいですが、presentation には依存しません。
 
 ### presentation

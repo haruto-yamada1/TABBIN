@@ -67,7 +67,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     language: 'ja',
     t: (key: string) =>
       (
-        ({
+        {
           'common.manage': '管理',
           'savedTabs.collapse': '折りたたむ',
           'savedTabs.sort.default': 'デフォルト',
@@ -81,7 +81,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
             '拡張機能アイコンからタブを保存するか、右クリックメニューから追加できます。',
           'savedTabs.project.emptyDragHint':
             '他のプロジェクトからタブをドラッグ&ドロップして追加することもできます。',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))
@@ -128,6 +128,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,

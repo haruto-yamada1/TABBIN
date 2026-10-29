@@ -1,8 +1,18 @@
 import {
+  createDomainCollectionFixture,
+  createExamplePersistenceFixture,
+  createMembershipFixture,
+  createUrlFixture,
+} from '@/test/fixtures/persistenceBrowserFixtures'
+
+import {
+  createBaseSeed,
+  defaultUserSettings,
   expect,
   getExtensionUrl,
   readPersistenceV2Store,
   seedStorage,
+  seedSavedTabsFixture,
   test,
   waitForPersistenceV2Ready,
 } from './helpers/extension'
@@ -10,56 +20,39 @@ import {
 const now = 1_763_600_000_000
 
 const createSavedTabSeed = () => ({
-  customProjectOrder: [],
-  customProjects: [],
-  domainCategoryMappings: [],
-  domainCategorySettings: [],
-  parentCategories: [],
-  savedTabs: [
-    {
-      domain: 'example.com',
-      id: 'group-example',
-      urlIds: ['url-example'],
-    },
-    {
-      domain: 'docs.example.com',
-      id: 'group-docs',
-      urlIds: ['url-docs'],
-    },
-  ],
-  'tab-manager-theme': 'system',
-  urls: [
-    {
-      id: 'url-example',
-      savedAt: now,
-      title: 'Example Home',
-      url: 'https://example.com/',
-    },
-    {
-      id: 'url-docs',
-      savedAt: now + 1,
-      title: 'Docs Guide',
-      url: 'https://docs.example.com/guide',
-    },
-  ],
-  userSettings: {
-    autoDeletePeriod: 'never',
-    clickBehavior: 'saveSameDomainTabs',
-    colors: {},
-    confirmDeleteAll: false,
-    confirmDeleteEach: false,
-    enableCategories: true,
-    excludePatterns: ['chrome-extension://', 'chrome://'],
-    excludePinnedTabs: true,
-    language: 'ja',
-    ollamaModel: '',
-    openAllInNewWindow: false,
-    openUrlInBackground: true,
-    removeTabAfterExternalDrop: true,
-    removeTabAfterOpen: true,
-    showSavedTime: false,
+  persistence: {
+    ...createExamplePersistenceFixture(now),
+    collections: [
+      createDomainCollectionFixture('group-example', 'example.com', now),
+      createDomainCollectionFixture(
+        'group-docs',
+        'docs.example.com',
+        now + 1,
+        1024,
+      ),
+    ],
+    urls: [
+      createUrlFixture(
+        'url-example',
+        'https://example.com/',
+        'Example Home',
+        now,
+      ),
+      createUrlFixture(
+        'url-docs',
+        'https://docs.example.com/guide',
+        'Docs Guide',
+        now + 1,
+      ),
+    ],
+    memberships: [
+      createMembershipFixture('group-example', 'url-example', now),
+      createMembershipFixture('group-docs', 'url-docs', now + 1),
+    ],
   },
-  viewMode: 'domain',
+  storage: createBaseSeed({
+    userSettings: { ...defaultUserSettings, language: 'ja' },
+  }),
 })
 
 test.describe('saved-tabs stories', () => {
@@ -71,14 +64,7 @@ test.describe('saved-tabs stories', () => {
     serviceWorker,
   }) => {
     await seedStorage(serviceWorker, {
-      customProjectOrder: [],
-      customProjects: [],
-      domainCategoryMappings: [],
-      domainCategorySettings: [],
-      parentCategories: [],
-      savedTabs: [],
       'tab-manager-theme': 'system',
-      urls: [],
       userSettings: {
         autoDeletePeriod: 'never',
         clickBehavior: 'saveSameDomainTabs',
@@ -113,7 +99,7 @@ test.describe('saved-tabs stories', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createSavedTabSeed())
+    await seedSavedTabsFixture(serviceWorker, createSavedTabSeed())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
@@ -162,7 +148,7 @@ test.describe('saved-tabs stories', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createSavedTabSeed())
+    await seedSavedTabsFixture(serviceWorker, createSavedTabSeed())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
@@ -216,7 +202,7 @@ test.describe('saved-tabs stories', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(serviceWorker, createSavedTabSeed())
+    await seedSavedTabsFixture(serviceWorker, createSavedTabSeed())
 
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),

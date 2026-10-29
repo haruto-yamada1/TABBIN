@@ -5,8 +5,7 @@ import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { playwright } from '@vitest/browser-playwright'
 import { defineProject } from 'vitest/config'
 
-const dirname =
-  typeof __dirname !== 'undefined' ? __dirname : import.meta.dirname
+const dirname = import.meta.dirname
 
 // More info at: https://storybook.js.org/docs/writing-tests/test-addon
 const workspaces = [
@@ -25,7 +24,6 @@ const workspaces = [
         provider: playwright(),
       },
       name: 'storybook',
-      setupFiles: ['.storybook/vitest.setup.ts'],
     },
   }),
 ]

@@ -1,7 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
+import { toast } from 'sonner'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import { UrlOpeningPostProcessingError } from '@/contexts/saved-tabs/application/errors/UrlOpeningPostProcessingError'
 import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/application/ports/SavedTabsPresentationPorts'
 import {
   showOpenedUrlsUndoToast,
@@ -14,7 +16,6 @@ import type {
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
 
 type UseTabOpeningHandlersDeps = {
   savedTabsUseCases: SavedTabsUseCases
@@ -26,6 +27,8 @@ type UseTabOpeningHandlersDeps = {
   t: TranslateFn
 }
 
+type OpeningUrl = { readonly url: string; readonly title: string }
+
 export const useTabOpeningHandlers = ({
   savedTabsUseCases,
   deps,
@@ -35,9 +38,51 @@ export const useTabOpeningHandlers = ({
   setCustomProjects,
   t,
 }: UseTabOpeningHandlersDeps) => {
+  const queueRef = useRef<Promise<void> | null>(null)
+  const pendingRef = useRef<Map<string, Promise<void>> | null>(null)
+  const runOpening = useCallback(
+    async (
+      urls: readonly string[],
+      mode: 'single' | 'bulk',
+      execute: () => Promise<void>,
+    ): Promise<void> => {
+      if (urls.length === 0) {
+        return
+      }
+      const key = JSON.stringify([mode, urls])
+      pendingRef.current ??= new Map<string, Promise<void>>()
+      const pendingOperations = pendingRef.current
+      const pending = pendingOperations.get(key)
+      if (pending) {
+        return pending
+      }
+      const operation = (queueRef.current ?? Promise.resolve())
+        .then(execute)
+        .catch((error: unknown) => {
+          const messageKey =
+            mode === 'single'
+              ? 'savedTabs.tab.openError'
+              : 'savedTabs.tab.openAllError'
+          toast.error(
+            t(
+              error instanceof UrlOpeningPostProcessingError
+                ? 'savedTabs.tab.openUpdateError'
+                : messageKey,
+            ),
+          )
+        })
+        .finally(() => {
+          pendingOperations.delete(key)
+        })
+      queueRef.current = operation
+      pendingOperations.set(key, operation)
+      return operation
+    },
+    [t],
+  )
   const handleOpenTab = useCallback(
     async (url: string) => {
-      try {
+      await runOpening([url], 'single', async () => {
         const lookup = await savedTabsUseCases.findUrlRecordByUrl({ url })
 
         if (!lookup.record) {
@@ -51,35 +96,34 @@ export const useTabOpeningHandlers = ({
             })
           : undefined
 
-        const urlRecordId = lookup.record.id
         const result = await savedTabsUseCases.openSavedUrl({
           origin: 'click',
           settings: {
             removeTabAfterExternalDrop: false,
             removeTabAfterOpen: settings.removeTabAfterOpen,
           },
-          urlRecordId,
+          urlRecordId: lookup.record.id,
         })
 
         if (snapshot && result.snapshot) {
-          await refreshTabGroupsWithUrls()
-          showOpenedUrlsUndoToast({
-            count: 1,
-            refreshTabGroupsWithUrls,
-            savedTabsUseCases,
-            setCustomProjects,
-            snapshot,
-            t,
-          })
-          console.log(
-            `URL ${redactUrlForLog(url)} を開いた後、保存データから削除しました`,
-          )
+          try {
+            await refreshTabGroupsWithUrls()
+            showOpenedUrlsUndoToast({
+              count: 1,
+              refreshTabGroupsWithUrls,
+              savedTabsUseCases,
+              setCustomProjects,
+              snapshot,
+              t,
+            })
+          } catch {
+            toast.error(t('savedTabs.tab.openUpdateError'))
+          }
         }
-      } catch (error) {
-        console.error('タブを開く処理エラー:', error)
-      }
+      })
     },
     [
+      runOpening,
       savedTabsUseCases,
       deps,
       settings.removeTabAfterOpen,
@@ -91,48 +135,46 @@ export const useTabOpeningHandlers = ({
   )
 
   const handleOpenAllTabs = useCallback(
-    async (
-      urls: {
-        url: string
-        title: string
-      }[],
-    ) => {
-      try {
-        const preDeleteSnapshot = settings.removeTabAfterOpen
-          ? await savedTabsUseCases.buildSavedTabsSnapshot({
-              parentCategories: toDomainParentCategories(categories),
-            })
-          : undefined
-
-        const result = await savedTabsUseCases.openAllSavedUrls({
-          mode: settings.openAllInNewWindow ? 'newWindow' : 'backgroundTabs',
-          removeTabAfterOpen: settings.removeTabAfterOpen,
-          urls: urls.map((u) => u.url),
-        })
-
-        if (
-          settings.removeTabAfterOpen &&
-          preDeleteSnapshot &&
-          result.snapshot
-        ) {
-          await refreshTabGroupsWithUrls()
-          showOpenedUrlsUndoToast({
-            count: result.removedUrlRecordIds.length,
-            refreshTabGroupsWithUrls,
-            savedTabsUseCases,
-            setCustomProjects,
-            snapshot: preDeleteSnapshot,
-            t,
+    async (urls: readonly OpeningUrl[]) => {
+      await runOpening(
+        urls.map(({ url }) => url),
+        'bulk',
+        async () => {
+          const snapshot = settings.removeTabAfterOpen
+            ? await savedTabsUseCases.buildSavedTabsSnapshot({
+                parentCategories: toDomainParentCategories(categories),
+              })
+            : undefined
+          const result = await savedTabsUseCases.openAllSavedUrls({
+            mode: settings.openAllInNewWindow ? 'newWindow' : 'backgroundTabs',
+            removeTabAfterOpen: settings.removeTabAfterOpen,
+            urls: urls.map(({ url }) => url),
           })
-          console.log(
-            `${urls.length}個のURLを開いた後、保存データから削除しました`,
-          )
-        }
-      } catch (error) {
-        console.error('タブ一括オープンエラー:', error)
-      }
+
+          if (snapshot && result.snapshot) {
+            try {
+              await refreshTabGroupsWithUrls()
+              showOpenedUrlsUndoToast({
+                count: result.removedUrlRecordIds.length,
+                refreshTabGroupsWithUrls,
+                savedTabsUseCases,
+                setCustomProjects,
+                snapshot,
+                t,
+              })
+            } catch {
+              toast.error(t('savedTabs.tab.openUpdateError'))
+              return
+            }
+          }
+          if (result.failedUrls.length > 0) {
+            toast.error(t('savedTabs.tab.openAllError'))
+          }
+        },
+      )
     },
     [
+      runOpening,
       settings.openAllInNewWindow,
       settings.removeTabAfterOpen,
       savedTabsUseCases,

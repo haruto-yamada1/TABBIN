@@ -202,12 +202,17 @@ describe('IndexedDbConnectionManager', () => {
     restartedManager.close()
   })
 
-  it('IndexedDB factory不在をOPEN_FAILEDとして分類する', () => {
+  it('IndexedDB factory不在をopen時にOPEN_FAILEDとして分類する', async () => {
     let caught: unknown
     try {
-      Reflect.construct(IndexedDbConnectionManager, [
+      const manager = Reflect.construct(IndexedDbConnectionManager, [
         { indexedDb: { open: 'not-a-function' } },
       ])
+      await Reflect.apply(
+        IndexedDbConnectionManager.prototype.open,
+        manager,
+        [],
+      )
     } catch (error) {
       caught = error
     }

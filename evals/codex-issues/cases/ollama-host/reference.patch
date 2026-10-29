@@ -1,0 +1,554 @@
+diff --git a/src/constants/productionNetworkPolicy.ts b/src/constants/productionNetworkPolicy.ts
+index 22d09198..484001f8 100644
+--- a/src/constants/productionNetworkPolicy.ts
++++ b/src/constants/productionNetworkPolicy.ts
+@@ -8,6 +8,15 @@ export const PRODUCTION_OUTBOUND_HOST_PERMISSIONS =
+ 
+ export const OLLAMA_BASE_URL = PRODUCTION_OUTBOUND_ALLOWED_ORIGINS[0]
+ 
++export const OLLAMA_BASE_URL_VALUES = PRODUCTION_OUTBOUND_ALLOWED_ORIGINS
++export type OllamaBaseUrl = (typeof OLLAMA_BASE_URL_VALUES)[number]
++
++export const isOllamaBaseUrl = (value: unknown): value is OllamaBaseUrl =>
++  OLLAMA_BASE_URL_VALUES.some((candidate) => candidate === value)
++
++export const resolveOllamaBaseUrl = (value: unknown): OllamaBaseUrl =>
++  isOllamaBaseUrl(value) ? value : OLLAMA_BASE_URL
++
+ const MANIFEST_VERSION_3 = '3'
+ 
+ export const createProductionExtensionCsp = (
+diff --git a/src/features/i18n/messages.ts b/src/features/i18n/messages.ts
+index b4a733cd..f5c45dbd 100644
+--- a/src/features/i18n/messages.ts
++++ b/src/features/i18n/messages.ts
+@@ -541,6 +541,10 @@ const messages = {
+     'options.importExport.unresolvedWarning':
+       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
+     'options.importExport.uploadTitle': 'Import settings and tab data',
++    'options.ollama.baseUrlDescription':
++      'Choose the local Ollama address. If localhost does not connect, try 127.0.0.1. Changes are saved automatically and used for model loading and chat.',
++    'options.ollama.baseUrlLabel': 'Ollama connection URL',
++    'options.ollama.title': 'Ollama connection',
+     'options.persistenceRecovery.actionFailed':
+       'The action could not be completed. Try again.',
+     'options.persistenceRecovery.backup': 'Back up current data',
+@@ -1445,6 +1449,10 @@ const messages = {
+     'options.importExport.unresolvedWarning':
+       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
+     'options.importExport.uploadTitle': '設定とタブデータのインポート',
++    'options.ollama.baseUrlDescription':
++      'ローカルの Ollama の接続先を選択します。localhost で接続できない場合は 127.0.0.1 をお試しください。変更は自動保存され、モデルの読み込みとチャットに使用されます。',
++    'options.ollama.baseUrlLabel': 'Ollama の接続先 URL',
++    'options.ollama.title': 'Ollama 接続設定',
+     'options.persistenceRecovery.actionFailed':
+       '操作を完了できませんでした。もう一度お試しください。',
+     'options.persistenceRecovery.backup': '現在のデータをバックアップ',
+diff --git a/src/features/options/ClickBehaviorSelect.tsx b/src/features/options/ClickBehaviorSelect.tsx
+new file mode 100644
+index 00000000..8b618610
+--- /dev/null
++++ b/src/features/options/ClickBehaviorSelect.tsx
+@@ -0,0 +1,50 @@
++import { Label } from '@/components/ui/label'
++import {
++  Select,
++  SelectContent,
++  SelectItem,
++  SelectTrigger,
++  SelectValue,
++} from '@/components/ui/select'
++import { clickBehaviorOptions } from '@/constants/clickBehaviorOptions'
++import { useI18n } from '@/features/i18n/context/I18nProvider'
++
++type ClickBehaviorSelectProps = {
++  value: string
++  onValueChange: (value: string) => void
++}
++
++export const ClickBehaviorSelect: React.FC<ClickBehaviorSelectProps> = ({
++  value,
++  onValueChange,
++}) => {
++  const { t } = useI18n()
++
++  return (
++    <div className='mb-6'>
++      <Label
++        htmlFor='click-behavior'
++        className='mb-2 block font-medium text-foreground'
++      >
++        {t('options.clickBehaviorLabel')}
++      </Label>
++      <div className='gap-y-2'>
++        <Select value={value} onValueChange={onValueChange}>
++          <SelectTrigger
++            id='click-behavior'
++            className='w-full cursor-pointer bg-background'
++          >
++            <SelectValue placeholder={t('options.clickBehaviorPlaceholder')} />
++          </SelectTrigger>
++          <SelectContent>
++            {clickBehaviorOptions.map((option) => (
++              <SelectItem key={option.value} value={option.value}>
++                {t(option.labelKey)}
++              </SelectItem>
++            ))}
++          </SelectContent>
++        </Select>
++      </div>
++    </div>
++  )
++}
+diff --git a/src/features/options/OllamaConnectionSettings.tsx b/src/features/options/OllamaConnectionSettings.tsx
+new file mode 100644
+index 00000000..037a9bbe
+--- /dev/null
++++ b/src/features/options/OllamaConnectionSettings.tsx
+@@ -0,0 +1,82 @@
++import { useCallback } from 'react'
++
++import { Label } from '@/components/ui/label'
++import {
++  Select,
++  SelectContent,
++  SelectItem,
++  SelectTrigger,
++  SelectValue,
++} from '@/components/ui/select'
++import type { OllamaBaseUrl } from '@/constants/productionNetworkPolicy'
++import {
++  isOllamaBaseUrl,
++  OLLAMA_BASE_URL_VALUES,
++  resolveOllamaBaseUrl,
++} from '@/constants/productionNetworkPolicy'
++import { useI18n } from '@/features/i18n/context/I18nProvider'
++
++type OllamaConnectionSettingsProps = {
++  baseUrl: OllamaBaseUrl | undefined
++  onBaseUrlChange: (baseUrl: OllamaBaseUrl) => void
++}
++
++export const OllamaConnectionSettings = ({
++  baseUrl,
++  onBaseUrlChange,
++}: OllamaConnectionSettingsProps) => {
++  const { t } = useI18n()
++  const handleValueChange = useCallback(
++    (value: string) => {
++      if (isOllamaBaseUrl(value)) {
++        onBaseUrlChange(value)
++      }
++    },
++    [onBaseUrlChange],
++  )
++
++  return (
++    <section
++      aria-labelledby='ollama-settings-title'
++      className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'
++    >
++      <h2
++        id='ollama-settings-title'
++        className='mb-4 text-xl font-semibold text-foreground'
++      >
++        {t('options.ollama.title')}
++      </h2>
++      <Label
++        htmlFor='ollama-base-url'
++        className='mb-2 block font-medium text-foreground'
++      >
++        {t('options.ollama.baseUrlLabel')}
++      </Label>
++      <Select
++        value={resolveOllamaBaseUrl(baseUrl)}
++        onValueChange={handleValueChange}
++      >
++        <SelectTrigger
++          id='ollama-base-url'
++          aria-describedby='ollama-base-url-description'
++          className='w-full cursor-pointer bg-background'
++        >
++          <SelectValue />
++        </SelectTrigger>
++        <SelectContent>
++          {OLLAMA_BASE_URL_VALUES.map((url) => (
++            <SelectItem key={url} value={url}>
++              {url}
++            </SelectItem>
++          ))}
++        </SelectContent>
++      </Select>
++      <p
++        id='ollama-base-url-description'
++        className='mt-2 text-sm text-muted-foreground'
++      >
++        {t('options.ollama.baseUrlDescription')}
++      </p>
++    </section>
++  )
++}
+diff --git a/src/features/options/routes/OptionsRoute.tsx b/src/features/options/routes/OptionsRoute.tsx
+index 61ecef5c..7dddd8e4 100644
+--- a/src/features/options/routes/OptionsRoute.tsx
++++ b/src/features/options/routes/OptionsRoute.tsx
+@@ -6,15 +6,7 @@ import { Button } from '@/components/ui/button'
+ import { Checkbox } from '@/components/ui/checkbox'
+ import { Label } from '@/components/ui/label'
+ import { LoadingState } from '@/components/ui/loading-state'
+-import {
+-  Select,
+-  SelectContent,
+-  SelectItem,
+-  SelectTrigger,
+-  SelectValue,
+-} from '@/components/ui/select'
+ import { Toaster } from '@/components/ui/sonner'
+-import { clickBehaviorOptions } from '@/constants/clickBehaviorOptions'
+ import { colorOptions } from '@/constants/colorOptions'
+ import { getDefaultColor } from '@/constants/defaultColors'
+ import {
+@@ -26,9 +18,11 @@ import {
+ } from '@/constants/fontSize'
+ import { LanguageSelect } from '@/features/i18n/components/LanguageSelect'
+ import { useI18n } from '@/features/i18n/context/I18nProvider'
++import { ClickBehaviorSelect } from '@/features/options/ClickBehaviorSelect'
+ import { useColorSettings } from '@/features/options/hooks/useColorSettings'
+ import { useSettings } from '@/features/options/hooks/useSettings'
+ import { ImportExportSettings } from '@/features/options/ImportExportSettings'
++import { OllamaConnectionSettings } from '@/features/options/OllamaConnectionSettings'
+ import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
+ import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
+ import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
+@@ -66,46 +60,6 @@ const applyFontSizePreview = (value: number) => {
+   )
+ }
+ 
+-type ClickBehaviorSelectProps = {
+-  value: string
+-  onValueChange: (value: string) => void
+-}
+-
+-const ClickBehaviorSelect: React.FC<ClickBehaviorSelectProps> = ({
+-  value,
+-  onValueChange,
+-}) => {
+-  const { t } = useI18n()
+-
+-  return (
+-    <div className='mb-6'>
+-      <Label
+-        htmlFor='click-behavior'
+-        className='mb-2 block font-medium text-foreground'
+-      >
+-        {t('options.clickBehaviorLabel')}
+-      </Label>
+-      <div className='gap-y-2'>
+-        <Select value={value} onValueChange={onValueChange}>
+-          <SelectTrigger
+-            id='click-behavior'
+-            className='w-full cursor-pointer bg-background'
+-          >
+-            <SelectValue placeholder={t('options.clickBehaviorPlaceholder')} />
+-          </SelectTrigger>
+-          <SelectContent>
+-            {clickBehaviorOptions.map((option) => (
+-              <SelectItem key={option.value} value={option.value}>
+-                {t(option.labelKey)}
+-              </SelectItem>
+-            ))}
+-          </SelectContent>
+-        </Select>
+-      </div>
+-    </div>
+-  )
+-}
+-
+ // eslint-disable-next-line eslint/max-lines-per-function -- JSX heavy settings page
+ const useOptionsRouteView = () => {
+   const { t } = useI18n()
+@@ -201,6 +155,13 @@ const useOptionsRouteView = () => {
+     [updateSetting],
+   )
+ 
++  const handleOllamaBaseUrlChange = useCallback(
++    (baseUrl: NonNullable<UserSettings['ollamaBaseUrl']>) => {
++      void updateSetting('ollamaBaseUrl', baseUrl)
++    },
++    [updateSetting],
++  )
++
+   const handleToggleRemoveAfterOpen = useCallback(
+     async (checked: boolean) => {
+       await updateSetting('removeTabAfterOpen', checked)
+@@ -364,6 +325,11 @@ const useOptionsRouteView = () => {
+           <ImportExportSettings />
+         </div>
+ 
++        <OllamaConnectionSettings
++          baseUrl={settings.ollamaBaseUrl}
++          onBaseUrlChange={handleOllamaBaseUrlChange}
++        />
++
+         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
+           <h2 className='mb-4 text-xl font-semibold text-foreground'>
+             {t('options.behaviorSettings')}
+diff --git a/src/lib/background/ai-chat.ts b/src/lib/background/ai-chat.ts
+index 96490d91..0c06deb9 100644
+--- a/src/lib/background/ai-chat.ts
++++ b/src/lib/background/ai-chat.ts
+@@ -3,7 +3,8 @@ import { createOllama } from 'ai-sdk-ollama'
+ 
+ import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
+ import { getAiChatToolTitle } from '@/constants/aiChatTools'
+-import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
++import { resolveOllamaBaseUrl } from '@/constants/productionNetworkPolicy'
++import type { OllamaBaseUrl } from '@/constants/productionNetworkPolicy'
+ import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
+ import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
+ import { listSavedUrlPage } from '@/features/ai-chat/lib/savedUrlQuery'
+@@ -110,7 +111,6 @@ const normalizeLoadedAiChatSettings = (settings: UserSettings | undefined) =>
+ const getNormalizedAiChatSettings = async () =>
+   normalizeLoadedAiChatSettings(await getUserSettings())
+ 
+-const OLLAMA_TAGS_URL = `${OLLAMA_BASE_URL}/api/tags`
+ const OLLAMA_DOWNLOAD_URL = 'https://ollama.com/download'
+ const OLLAMA_FAQ_URL =
+   'https://docs.ollama.com/faq#how-do-i-configure-ollama-server'
+@@ -142,24 +142,30 @@ const getConfiguredOllamaOrigin = (): string => {
+   return extensionOrigin ?? 'chrome-extension://*'
+ }
+ 
+-const createBaseOllamaErrorDetails = (): Pick<
++const createBaseOllamaErrorDetails = (
++  baseUrl: OllamaBaseUrl,
++): Pick<
+   OllamaErrorDetails,
+   'baseUrl' | 'downloadUrl' | 'faqUrl' | 'tagsUrl'
+ > => ({
+-  baseUrl: OLLAMA_BASE_URL,
++  baseUrl,
+   downloadUrl: OLLAMA_DOWNLOAD_URL,
+   faqUrl: OLLAMA_FAQ_URL,
+-  tagsUrl: OLLAMA_TAGS_URL,
++  tagsUrl: `${baseUrl}/api/tags`,
+ })
+ 
+-const createOllamaSetupInstructions = (language: AppLanguage): string =>
++const createOllamaSetupInstructions = (
++  language: AppLanguage,
++  baseUrl: OllamaBaseUrl,
++): string =>
+   (() => {
+     const configuredOrigin = getConfiguredOllamaOrigin()
++    const tagsUrl = `${baseUrl}/api/tags`
+ 
+     return [
+-      `${getMessage(language, 'aiChat.ollama.connectionUrl')}${OLLAMA_BASE_URL}`,
+-      `${getMessage(language, 'aiChat.ollama.tagsUrl')}${OLLAMA_TAGS_URL}`,
+-      `${getMessage(language, 'aiChat.ollama.checkCommand')} curl ${OLLAMA_TAGS_URL}`,
++      `${getMessage(language, 'aiChat.ollama.connectionUrl')}${baseUrl}`,
++      `${getMessage(language, 'aiChat.ollama.tagsUrl')}${tagsUrl}`,
++      `${getMessage(language, 'aiChat.ollama.checkCommand')} curl ${tagsUrl}`,
+       getMessage(language, 'background.aiChat.ollama.macTitle'),
+       getMessage(language, 'aiChat.ollama.mac.step1'),
+       getMessage(language, 'aiChat.ollama.mac.step2'),
+@@ -171,7 +177,10 @@ const createOllamaSetupInstructions = (language: AppLanguage): string =>
+     ].join('\n')
+   })()
+ 
+-const createOllamaForbiddenErrorMessage = (language: AppLanguage): string => {
++const createOllamaForbiddenErrorMessage = (
++  language: AppLanguage,
++  baseUrl: OllamaBaseUrl,
++): string => {
+   const allowedOrigins = getConfiguredOllamaOrigin()
+ 
+   return [
+@@ -184,15 +193,18 @@ const createOllamaForbiddenErrorMessage = (language: AppLanguage): string => {
+         value: allowedOrigins,
+       },
+     ),
+-    createOllamaSetupInstructions(language),
++    createOllamaSetupInstructions(language, baseUrl),
+   ].join('\n')
+ }
+ 
+-const createOllamaConnectionErrorMessage = (language: AppLanguage): string =>
++const createOllamaConnectionErrorMessage = (
++  language: AppLanguage,
++  baseUrl: OllamaBaseUrl,
++): string =>
+   [
+     getMessage(language, 'aiChat.ollama.connectionError'),
+     `${getMessage(language, 'aiChat.ollama.downloadUrl')} ${OLLAMA_DOWNLOAD_URL}`,
+-    createOllamaSetupInstructions(language),
++    createOllamaSetupInstructions(language, baseUrl),
+   ].join('\n')
+ 
+ const createOllamaError = (
+@@ -204,19 +216,21 @@ const createOllamaError = (
+   })
+ 
+ const createOllamaForbiddenError = (
+-  language: AppLanguage = 'ja',
++  language: AppLanguage,
++  baseUrl: OllamaBaseUrl,
+ ): OllamaStructuredError =>
+-  createOllamaError(createOllamaForbiddenErrorMessage(language), {
+-    ...createBaseOllamaErrorDetails(),
++  createOllamaError(createOllamaForbiddenErrorMessage(language, baseUrl), {
++    ...createBaseOllamaErrorDetails(baseUrl),
+     allowedOrigins: getConfiguredOllamaOrigin(),
+     kind: 'forbidden',
+   })
+ 
+ const createOllamaConnectionError = (
+-  language: AppLanguage = 'ja',
++  language: AppLanguage,
++  baseUrl: OllamaBaseUrl,
+ ): OllamaStructuredError =>
+-  createOllamaError(createOllamaConnectionErrorMessage(language), {
+-    ...createBaseOllamaErrorDetails(),
++  createOllamaError(createOllamaConnectionErrorMessage(language, baseUrl), {
++    ...createBaseOllamaErrorDetails(baseUrl),
+     allowedOrigins: getConfiguredOllamaOrigin(),
+     kind: 'notInstalledOrNotRunning',
+   })
+@@ -646,31 +660,27 @@ const shouldFallbackToInterestCharts = (prompt: string): boolean =>
+ const listLocalOllamaModels = async (
+   fetchImpl: typeof fetch = fetch,
+ ): Promise<OllamaModelOption[]> => {
++  const settings = await getNormalizedAiChatSettings()
++  const baseUrl = resolveOllamaBaseUrl(settings.ollamaBaseUrl)
++  const language = resolveLanguage(
++    settings.language ?? 'system',
++    getAiChatUiLocale(),
++  )
+   let response: Response
+ 
+   try {
+-    response = await fetchImpl(OLLAMA_TAGS_URL, {
++    response = await fetchImpl(`${baseUrl}/api/tags`, {
+       method: 'GET',
+     })
+   } catch (error) {
+-    const settings = await getNormalizedAiChatSettings()
+-    const language = resolveLanguage(
+-      settings.language ?? 'system',
+-      getAiChatUiLocale(),
+-    )
+     if (isConnectionError(error)) {
+-      throw createOllamaConnectionError(language)
++      throw createOllamaConnectionError(language, baseUrl)
+     }
+     throw error
+   }
+ 
+-  const settings = await getNormalizedAiChatSettings()
+-  const language = resolveLanguage(
+-    settings.language ?? 'system',
+-    getAiChatUiLocale(),
+-  )
+   if (response.status === HTTP_FORBIDDEN) {
+-    throw createOllamaForbiddenError(language)
++    throw createOllamaForbiddenError(language, baseUrl)
+   }
+ 
+   if (!response.ok) {
+@@ -725,6 +735,7 @@ const runAiChatRequest = async (
+     throw new Error('Ollama model is not configured')
+   }
+   const { ollamaModel } = settings
++  const baseUrl = resolveOllamaBaseUrl(settings.ollamaBaseUrl)
+ 
+   const dataPlane = getBackgroundSavedTabsDataPlane()
+   const [insightRecords, analyticsRecords] = await Promise.all([
+@@ -734,7 +745,7 @@ const runAiChatRequest = async (
+   const records: AiSavedUrlRecord[] = [...insightRecords]
+ 
+   const ollama = createOllama({
+-    baseURL: OLLAMA_BASE_URL,
++    baseURL: baseUrl,
+   })
+ 
+   const tools = createAiChatTools(records, language, analyticsRecords)
+@@ -799,10 +810,10 @@ const runAiChatRequest = async (
+       })
+     } catch (error) {
+       if (isForbiddenError(error)) {
+-        throw createOllamaForbiddenError(language)
++        throw createOllamaForbiddenError(language, baseUrl)
+       }
+       if (isConnectionError(error)) {
+-        throw createOllamaConnectionError(language)
++        throw createOllamaConnectionError(language, baseUrl)
+       }
+       throw error
+     }
+diff --git a/src/lib/storage/settings.ts b/src/lib/storage/settings.ts
+index 560de680..0031d3da 100644
+--- a/src/lib/storage/settings.ts
++++ b/src/lib/storage/settings.ts
+@@ -1,4 +1,5 @@
+ import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
++import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
+ import {
+   DEFAULT_EXCLUDE_PATTERNS,
+   mergeStoredUserSettingsDefaults,
+@@ -13,7 +14,10 @@ import {
+   getChromeStorageLocal,
+   warnMissingChromeStorage,
+ } from '@/lib/browser/chrome-storage'
+-import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
++import {
++  parseStoredUserSettings,
++  UserSettingsSchema,
++} from '@/lib/storage/zod-storage'
+ import type { UserSettings } from '@/types/storage'
+ 
+ const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
+@@ -62,6 +66,7 @@ export const defaultSettings: UserSettings = {
+   fontSizePercent: DEFAULT_FONT_SIZE_PERCENT,
+   colors: {}, // デフォルト: カラー設定まとめ
+   ollamaModel: '',
++  ollamaBaseUrl: OLLAMA_BASE_URL,
+   activeAiSystemPromptId: DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
+   aiSystemPrompts: [
+     {
+@@ -138,6 +143,7 @@ export const saveUserSettings = async (
+   settings: UserSettings,
+ ): Promise<void> => {
+   try {
++    UserSettingsSchema.shape.ollamaBaseUrl.parse(settings.ollamaBaseUrl)
+     const validatedSettings = parseStoredUserSettings(settings)
+     const normalizedSettings = normalizeAiSystemPromptSettings(
+       mergeStoredUserSettings(validatedSettings),
+diff --git a/src/lib/storage/zod-storage.ts b/src/lib/storage/zod-storage.ts
+index 5b49e359..fb38fd1f 100644
+--- a/src/lib/storage/zod-storage.ts
++++ b/src/lib/storage/zod-storage.ts
+@@ -1,5 +1,7 @@
+ import { z } from 'zod'
+ 
++import { OLLAMA_BASE_URL_VALUES } from '@/constants/productionNetworkPolicy'
++
+ export const aiSystemPromptPresetSchema = z.object({
+   id: z.string().min(1),
+   name: z.string().min(1),
+@@ -155,6 +157,7 @@ export const UserSettingsSchema = z.object({
+   fontSizePercent: z.number().optional(),
+   colors: z.record(z.string(), z.string()).optional(),
+   ollamaModel: z.string().optional(),
++  ollamaBaseUrl: z.enum(OLLAMA_BASE_URL_VALUES).optional(),
+   aiSystemPrompts: z.array(aiSystemPromptPresetSchema).optional(),
+   activeAiSystemPromptId: z.string().optional(),
+ })
+@@ -201,6 +204,7 @@ export const storedUserSettingsSchema = z.object({
+   fontSizePercent: z.number().optional().catch(undefined),
+   colors: z.record(z.string(), z.string()).optional().catch(undefined),
+   ollamaModel: z.string().optional().catch(undefined),
++  ollamaBaseUrl: z.enum(OLLAMA_BASE_URL_VALUES).optional().catch(undefined),
+   aiSystemPrompts: z
+     .preprocess((val) => {
+       if (!Array.isArray(val)) {

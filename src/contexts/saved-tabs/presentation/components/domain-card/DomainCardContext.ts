@@ -8,6 +8,13 @@ import { createCompoundContext } from '@/lib/ui/createCompoundContext'
 
 /** DomainCard のコンテキスト型 */
 export type DomainCardContextType = {
+  /** Complete manual order, including URLs hidden by the favorite filter. */
+  manualUrls?: SortableDomainCardProps['group']['urls']
+  favoriteFilter?: {
+    only: boolean
+    setOnly: (only: boolean) => void
+    hasFavorites: boolean
+  }
   /** フック戻り値 */
   state: ReturnType<typeof useDomainCardState>
   /** タブグループデータ */
@@ -23,7 +30,9 @@ export type DomainCardContextType = {
   /** 並び替えモード状態 */
   isReorderMode: boolean
   /** ソート可能な属性・リスナー */
-  sortable: Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>
+  sortable: Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'> & {
+    setActivatorNodeRef?: ReturnType<typeof useSortable>['setActivatorNodeRef']
+  }
   /** 操作ハンドラ */
   handlers: {
     handleOpenAllTabs: SortableDomainCardProps['handleOpenAllTabs']

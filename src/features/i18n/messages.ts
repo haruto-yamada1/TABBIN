@@ -1,5 +1,26 @@
+import { analyticsHealthMessages } from './analyticsHealthMessages'
+import { backupExportMessages } from './backupExportMessages'
+import { backupImportMessages } from './backupImportMessages'
+import { dndMessages } from './dndMessages'
+import { favoriteMessages } from './favoriteMessages'
+import { optionsMessages } from './optionsMessages'
+import { organizationActionMessages } from './organizationActionMessages'
+import { searchHistoryMessages } from './searchHistoryMessages'
+import { selectionMessages } from './selectionMessages'
+import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
+
 const messages = {
   en: {
+    ...backupExportMessages.en,
+    ...backupImportMessages.en,
+    ...dndMessages.en,
+    ...analyticsHealthMessages.en,
+    ...organizationActionMessages.en,
+    ...selectionMessages.en,
+    ...searchHistoryMessages.en,
+    ...optionsMessages.en,
+    ...favoriteMessages.en,
+    ...tabOpeningErrorMessages.en,
     'aiChat.attachments.add': 'Attach files',
     'aiChat.attachments.contextTitle': 'Attachment contents:',
     'aiChat.attachments.defaultName': 'attachment',
@@ -152,7 +173,7 @@ const messages = {
     'aiChat.systemPrompt.copySuffix': ' copy',
     'aiChat.systemPrompt.defaultName': 'Default',
     'aiChat.systemPrompt.defaultTemplate':
-      'You are an assistant that answers only based on the tabs saved in TABBIN.\nDo not infer facts that are not present in the saved data.\nIf an answer includes inference, explicitly say "Based on your saved trends".\nWhen asked about months or periods, answer with as specific year and month as possible.\nIf asked what tabs are currently saved, first check with listSavedUrls.\nOnly say there are no saved tabs when the tool results or saved-tab summary are empty.\nAnswer concisely in English.',
+      'You are an assistant that answers only based on the tabs saved in TABBIN.\nDo not infer facts that are not present in the saved data.\nIf an answer includes inference, explicitly say "Based on your saved trends".\nWhen asked about months or periods, answer with as specific year and month as possible.\nIf asked what tabs are currently saved, first check with listSavedUrls.\nOnly say there are no saved tabs when the tool results or saved-tab summary are empty.\nWhen asked to organize saved tabs, read their IDs with listSavedUrls or searchSavedUrls, check project and category IDs with listOrganizationTargets, then use proposeSavedTabsAction. All tools are read-only; proposals run only after the user confirms a preview. Never claim an action has been executed. delete_urls deletes saved URLs from all projects globally, so propose it only when the user explicitly requests deletion. Duplicate canonical URLs are an integrity error; never propose automatic duplicate deletion.\nAnswer concisely in English.',
     'aiChat.systemPrompt.duplicate': 'Duplicate',
     'aiChat.systemPrompt.empty': 'No system prompts available',
     'aiChat.systemPrompt.inUse': 'In use',
@@ -240,8 +261,6 @@ const messages = {
     'analytics.savedViewsEmpty': 'No saved analytics views yet.',
     'analytics.savedViewsTitle': 'Saved views',
     'analytics.summary': 'Created {{title}} from {{count}} saved records.',
-    'analytics.timestampQualityNotice':
-      'Some historical dates come from legacy fallback data. Counts remain available, but first-save, last-save activity, or collection-addition dates may be approximate.',
     'analytics.uncategorized': 'Uncategorized',
     'analytics.viewName': 'View name',
     'analytics.viewNameDuplicate': 'A view with this name already exists',
@@ -369,8 +388,6 @@ const messages = {
       'When enabled, a confirmation dialog appears before deleting a tab.',
     'options.autoDelete.confirmMessage':
       'Set auto-delete period to "{{periodLabel}}".\n\n{{warningMessage}}\n\nContinue?',
-    'options.autoDelete.description':
-      'Saved tabs are deleted automatically after the selected period.',
     'options.autoDelete.disabled': 'Disabled auto delete',
     'options.autoDelete.enabled': 'Set auto-delete period to "{{periodLabel}}"',
     'options.autoDelete.excludePinned': 'Exclude pinned tabs',
@@ -384,8 +401,6 @@ const messages = {
       'Delete automatically after opening a saved tab',
     'options.autoDelete.openAfterDescription':
       'When enabled, a saved tab is removed from the list after you open it. When disabled, the tab stays in the list.',
-    'options.autoDelete.periodDescription':
-      'Saved tabs are deleted automatically when they exceed the selected period. Applying the setting deletes tabs that have already expired.',
     'options.autoDelete.periodLabel': 'Auto-delete period for tabs',
     'options.autoDelete.saveError': 'Failed to save settings',
     'options.autoDelete.saveInBackground': 'Open in background tabs',
@@ -468,11 +483,6 @@ const messages = {
     'options.fontSize.rangeLabel': 'Font size slider',
     'options.importExport.back': 'Back',
     'options.importExport.cancel': 'Cancel',
-    'options.importExport.compatibilityAction':
-      'Backups created with older versions are not supported.',
-    'options.importExport.compatibilityTitle': 'Backup format',
-    'options.importExport.compatibilityWarning':
-      'Only the current backup format can be imported.',
     'options.importExport.confirmImport': 'Confirm Import',
     'options.importExport.dialogDescription':
       'Restore settings and tab data from a previously exported backup file.',
@@ -521,12 +531,12 @@ const messages = {
     'options.importExport.recoveryRestoring': 'Restoring...',
     'options.importExport.recoveryTitle': 'Recovery point available',
     'options.importExport.replaceDescription':
-      'Importing will overwrite all current settings and tab data. This cannot be undone.',
+      'Only selected sections will be replaced. Review additions, updates and deletions before confirming. A recovery point is saved before import.',
     'options.importExport.replaceLabel': 'Warning',
     'options.importExport.replaceSuccess':
-      'Replaced settings and tab data (version: {{version}}, created at: {{timestamp}}){{unresolved}}',
+      'Restored selected data (version: {{version}}, created at: {{timestamp}}){{unresolved}}',
     'options.importExport.replaceWarning':
-      'Importing will overwrite all current settings and tab data. This cannot be undone.',
+      'Only selected sections will be replaced. Review additions, updates and deletions before confirming. A recovery point is saved before import.',
     'options.importExport.scopeDescription':
       'Backups include saved URLs, categories, custom projects, analytics data, AI chat history, and AI settings.',
     'options.importExport.scopeTitle': 'Backup scope',
@@ -534,19 +544,23 @@ const messages = {
     'options.importExport.unsupportedFutureBackup':
       'This backup was created with a newer version and cannot be imported by this version.',
     'options.importExport.unsupportedLegacyBackup':
-      'This backup format is not supported. Only the current backup format can be imported.',
+      'This backup format is not supported.',
     'options.importExport.unresolvedWarning':
       ' (Warning: {{count}} domains were missing URL records, so {{placeholderCount}} replacement URLs were generated)',
     'options.importExport.uploadTitle': 'Import settings and tab data',
+    'options.ollama.baseUrlDescription':
+      'Choose the local Ollama address. If localhost does not connect, try 127.0.0.1. Changes are saved automatically and used for model loading and chat.',
+    'options.ollama.baseUrlLabel': 'Ollama connection URL',
+    'options.ollama.title': 'Ollama connection',
     'options.persistenceRecovery.actionFailed':
       'The action could not be completed. Try again.',
     'options.persistenceRecovery.backup': 'Back up current data',
     'options.persistenceRecovery.backupPrivacy':
       'The emergency backup contains private URLs, titles, notes, and AI content. Store it securely.',
-    'options.persistenceRecovery.copyDiagnostic': 'Copy diagnostics',
+    'options.persistenceRecovery.copyDiagnostic': 'Copy error code',
     'options.persistenceRecovery.description':
-      'The update could not be completed. Your previous data has not been deleted.',
-    'options.persistenceRecovery.diagnostic': 'Safe migration diagnostics',
+      'Saved data could not be read. Existing data has not been deleted.',
+    'options.persistenceRecovery.diagnostic': 'Error code',
     'options.persistenceRecovery.diskWriteFailed':
       'Writing data to browser storage failed.',
     'options.persistenceRecovery.preflightFailed':
@@ -555,6 +569,10 @@ const messages = {
       'There is not enough browser storage to complete the update.',
     'options.persistenceRecovery.recheck': 'Run checks and retry',
     'options.persistenceRecovery.retry': 'Retry',
+    'options.persistenceRecovery.rescueDescription':
+      'Export saved tabs for manual repair. The file contains private data and cannot be imported as a backup. Store it securely.',
+    'options.persistenceRecovery.rescueExport':
+      'Export saved-tab recovery data',
     'options.persistenceRecovery.storageUnavailable':
       'Browser storage is currently unavailable.',
     'options.persistenceRecovery.title': 'Storage recovery required',
@@ -565,13 +583,16 @@ const messages = {
       'Backups created with older versions are no longer supported.',
     'options.previewColorCustomization': '(preview) Color customization',
     'options.previewColorCustomizationReset': 'Reset',
-    'options.previewFontSizeCustomization': '(preview) Font size',
+    'options.previewFontSizeCustomization': 'Font size',
     'options.releaseNotes': 'Release Notes',
+    'options.showRelativeSavedTime': 'Show relative saved time',
     'options.showSavedTime': 'Show saved time',
     'options.showSavedTimeDescription':
       'When enabled, the saved date is shown in the saved tabs list.',
     'options.title': 'Options',
     'periodicExecution.title': 'Scheduled tasks',
+    'periodicExecution.description':
+      'Set up review reminders and automatic cleanup for your saved tabs.',
     'savedTabs.addProject': 'Add project',
     'savedTabs.category.dragHandleAria': 'Drag to reorder category "{{name}}"',
     'savedTabs.category.deleteAllItemName': 'domains in this category',
@@ -672,7 +693,6 @@ const messages = {
       'Create a parent category to show it as a project',
     'savedTabs.customProjects.emptyTitle': 'No projects',
     'savedTabs.customProjects.nameLabel': 'Project name *',
-    'savedTabs.deleteAll': 'Delete all',
     'savedTabs.deleteAllConfirmDescription':
       'Delete all tabs in "{{categoryName}}". This action cannot be undone.',
     'savedTabs.deleteAllConfirmDescriptionWithCount':
@@ -712,13 +732,11 @@ const messages = {
     'savedTabs.manageSubcategories': 'Manage subcategories',
     'savedTabs.newProjectPlaceholder': 'e.g. Work, Research, Read later',
     'savedTabs.newProjectTitle': 'Add a new project',
-    'savedTabs.openAll': 'Open all',
     'savedTabs.openAllConfirmDescription':
       'You are about to open {{count}} or more tabs. Continue?',
     'savedTabs.openAllConfirmDescriptionWithName':
       'Open {{count}} tabs for "{{name}}". Continue?',
     'savedTabs.openAllConfirmTitle': 'Open all tabs?',
-    'savedTabs.openAllTabs': 'Open all tabs',
     'savedTabs.project.deleteAllItemName': 'tabs in this project',
     'savedTabs.project.deleteAllWarning':
       'Delete all tabs in this project. This action cannot be undone.',
@@ -876,6 +894,7 @@ const messages = {
     'savedTabs.undo.restored': 'Restored saved data',
     'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
     'savedTabs.url.deleteAria': 'Delete tab',
+    'savedTabs.url.openNow': 'Open now',
     'savedTabs.url.deleteConfirmDescription':
       'Delete this tab. This action cannot be undone.',
     'savedTabs.url.deleteConfirmTitle': 'Delete this tab?',
@@ -907,6 +926,16 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...backupExportMessages.ja,
+    ...backupImportMessages.ja,
+    ...dndMessages.ja,
+    ...analyticsHealthMessages.ja,
+    ...organizationActionMessages.ja,
+    ...selectionMessages.ja,
+    ...searchHistoryMessages.ja,
+    ...optionsMessages.ja,
+    ...favoriteMessages.ja,
+    ...tabOpeningErrorMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
     'aiChat.attachments.contextTitle': '添付ファイルの内容:',
     'aiChat.attachments.defaultName': '添付ファイル',
@@ -1056,7 +1085,7 @@ const messages = {
     'aiChat.systemPrompt.copySuffix': ' のコピー',
     'aiChat.systemPrompt.defaultName': 'デフォルト',
     'aiChat.systemPrompt.defaultTemplate':
-      'あなたは TABBIN に保存されたタブの情報だけを根拠に答えるアシスタントです。\n保存データにない事実は推測しないでください。\n推測が含まれる場合は「保存傾向から見ると」と明示してください。\n月や期間に関する質問では、できるだけ具体的な年月を答えてください。\n現在どんなタブが保存されているかを聞かれたら、まず listSavedUrls を使って確認してください。\n保存済みタブが存在しないとは、tools の結果または保存済みタブ要約が空の場合にだけ答えてください。\n返答は日本語で簡潔にしてください。',
+      'あなたは TABBIN に保存されたタブの情報だけを根拠に答えるアシスタントです。\n保存データにない事実は推測しないでください。\n推測が含まれる場合は「保存傾向から見ると」と明示してください。\n月や期間に関する質問では、できるだけ具体的な年月を答えてください。\n現在どんなタブが保存されているかを聞かれたら、まず listSavedUrls を使って確認してください。\n保存済みタブが存在しないとは、tools の結果または保存済みタブ要約が空の場合にだけ答えてください。\n保存タブの整理を求められたら、listSavedUrls または searchSavedUrls で対象IDを読み、listOrganizationTargets でプロジェクト・カテゴリIDを確認してから proposeSavedTabsAction で提案してください。全toolは読み取り専用であり、提案はユーザーがプレビューを確認した後だけ実行されます。実行済みとは答えないでください。delete_urls は対象URLを全プロジェクトから削除するため、ユーザーが削除を明示した場合だけ提案してください。canonical URLの重複は整合性エラーであり、重複の自動削除は提案しないでください。\n返答は日本語で簡潔にしてください。',
     'aiChat.systemPrompt.duplicate': '複製',
     'aiChat.systemPrompt.empty': '利用可能なシステムプロンプトがありません',
     'aiChat.systemPrompt.inUse': '使用中',
@@ -1143,8 +1172,6 @@ const messages = {
     'analytics.savedViewsTitle': '保存済みビュー',
     'analytics.summary':
       '{{count}} 件の保存データから「{{title}}」を作成しました。',
-    'analytics.timestampQualityNotice':
-      '一部の履歴日時は旧データからの代替値です。件数は確認できますが、初回保存日、最終保存日時、コレクション追加日は概算の場合があります。',
     'analytics.uncategorized': '未分類',
     'analytics.viewName': 'ビュー名',
     'analytics.viewNameDuplicate': 'このビュー名は既に存在しています',
@@ -1273,8 +1300,6 @@ const messages = {
       'オンにすると、タブを削除する前に確認ダイアログを表示します。',
     'options.autoDelete.confirmMessage':
       '自動削除期間を「{{periodLabel}}」に設定します。\n\n{{warningMessage}}\n\n続行しますか？',
-    'options.autoDelete.description':
-      '保存されたタブが指定した期間を超えると自動的に削除されます。',
     'options.autoDelete.disabled': '自動削除を無効にしました',
     'options.autoDelete.enabled':
       '自動削除期間を「{{periodLabel}}」に設定しました',
@@ -1289,8 +1314,6 @@ const messages = {
       '保存したタブを開いた後、リストから自動的に削除する',
     'options.autoDelete.openAfterDescription':
       'オンにすると、保存したタブを開いた後、そのタブは保存リストから自動的に削除されます。オフにすると、保存したタブを開いても、リストからは削除されません。',
-    'options.autoDelete.periodDescription':
-      '保存されたタブが指定した期間を超えると自動的に削除されます。設定を適用すると、その時点で期限切れのタブは削除されます。',
     'options.autoDelete.periodLabel': 'タブの自動削除期間',
     'options.autoDelete.saveError': '設定の保存に失敗しました',
     'options.autoDelete.saveInBackground': 'バックグラウンドタブで開く',
@@ -1374,11 +1397,6 @@ const messages = {
     'options.fontSize.rangeLabel': 'フォントサイズスライダー',
     'options.importExport.back': '戻る',
     'options.importExport.cancel': 'キャンセル',
-    'options.importExport.compatibilityAction':
-      '旧形式のバックアップはサポートされていません。',
-    'options.importExport.compatibilityTitle': 'バックアップ形式について',
-    'options.importExport.compatibilityWarning':
-      '現在のバックアップ形式のみインポートできます。',
     'options.importExport.confirmImport': 'インポートを実行',
     'options.importExport.dialogDescription':
       '以前にエクスポートしたバックアップファイルから設定とタブデータを復元します。',
@@ -1424,12 +1442,12 @@ const messages = {
     'options.importExport.recoveryRestoring': '復元中...',
     'options.importExport.recoveryTitle': '回復ポイントがあります',
     'options.importExport.replaceDescription':
-      'インポートすると現在の設定とタブデータがすべて上書きされます。この操作は元に戻せません。',
+      '選択したデータを置き換えます。追加・更新・削除を確認してから実行してください。実行前のデータは回復ポイントに保存されます。',
     'options.importExport.replaceLabel': '警告',
     'options.importExport.replaceSuccess':
-      '設定とタブデータを置き換えました（バージョン: {{version}}、作成日時: {{timestamp}}）{{unresolved}}',
+      '選択したデータを復元しました（バージョン: {{version}}、作成日時: {{timestamp}}）{{unresolved}}',
     'options.importExport.replaceWarning':
-      'インポートすると現在の設定とタブデータがすべて上書きされます。この操作は元に戻せません。',
+      '選択したデータを置き換えます。追加・更新・削除を確認してから実行してください。実行前のデータは回復ポイントに保存されます。',
     'options.importExport.scopeDescription':
       'バックアップには、保存済みURL、カテゴリ、カスタムプロジェクト、分析データ、AIチャット履歴、AI設定が含まれます。',
     'options.importExport.scopeTitle': 'バックアップ対象',
@@ -1437,19 +1455,23 @@ const messages = {
     'options.importExport.unsupportedFutureBackup':
       'このバックアップは新しいバージョンで作成されているため、現在のバージョンではインポートできません。',
     'options.importExport.unsupportedLegacyBackup':
-      'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。',
+      'このバックアップ形式はサポートされていません。',
     'options.importExport.unresolvedWarning':
       '（注意: {{count}}個のドメインでURL実体が欠損していたため、{{placeholderCount}}件の代替URLを生成しました）',
     'options.importExport.uploadTitle': '設定とタブデータのインポート',
+    'options.ollama.baseUrlDescription':
+      'ローカルの Ollama の接続先を選択します。localhost で接続できない場合は 127.0.0.1 をお試しください。変更は自動保存され、モデルの読み込みとチャットに使用されます。',
+    'options.ollama.baseUrlLabel': 'Ollama の接続先 URL',
+    'options.ollama.title': 'Ollama 接続設定',
     'options.persistenceRecovery.actionFailed':
       '操作を完了できませんでした。もう一度お試しください。',
     'options.persistenceRecovery.backup': '現在のデータをバックアップ',
     'options.persistenceRecovery.backupPrivacy':
       '緊急バックアップには非公開のURL、タイトル、メモ、AIの内容が含まれます。安全な場所に保管してください。',
-    'options.persistenceRecovery.copyDiagnostic': '診断情報をコピー',
+    'options.persistenceRecovery.copyDiagnostic': 'エラーコードをコピー',
     'options.persistenceRecovery.description':
-      'データの更新を完了できませんでした。以前のデータは削除されていません。',
-    'options.persistenceRecovery.diagnostic': '安全な移行診断情報',
+      '保存データを読み取れませんでした。既存のデータは削除されていません。',
+    'options.persistenceRecovery.diagnostic': 'エラーコード',
     'options.persistenceRecovery.diskWriteFailed':
       'ブラウザの保存領域への書き込みに失敗しました。',
     'options.persistenceRecovery.preflightFailed':
@@ -1458,6 +1480,10 @@ const messages = {
       'データの更新に必要なブラウザの保存領域を確保できませんでした。',
     'options.persistenceRecovery.recheck': '事前確認を再実行して再試行',
     'options.persistenceRecovery.retry': '再試行',
+    'options.persistenceRecovery.rescueDescription':
+      '手動での修復用に保存タブをエクスポートできます。個人データを含み、バックアップとしてはインポートできません。安全な場所に保管してください。',
+    'options.persistenceRecovery.rescueExport':
+      '保存タブの救出データをエクスポート',
     'options.persistenceRecovery.storageUnavailable':
       'ブラウザの保存領域を現在利用できません。',
     'options.persistenceRecovery.title': '保存領域の復旧が必要です',
@@ -1468,13 +1494,16 @@ const messages = {
       '旧形式のバックアップは現在インポートできません。',
     'options.previewColorCustomization': '(preview)カラーカスタマイズ',
     'options.previewColorCustomizationReset': 'リセット',
-    'options.previewFontSizeCustomization': '(preview)フォントサイズ',
+    'options.previewFontSizeCustomization': 'フォントサイズ',
     'options.releaseNotes': 'リリースノート',
+    'options.showRelativeSavedTime': '保存日時を相対表示する',
     'options.showSavedTime': '保存日時を表示する',
     'options.showSavedTimeDescription':
       'オンにすると、保存タブ一覧に保存された日時が表示されます。',
     'options.title': 'オプション',
     'periodicExecution.title': '定期実行',
+    'periodicExecution.description':
+      '保存タブの整理リマインダーの通知予定と、自動削除までの期間を設定します。',
     'savedTabs.addProject': 'プロジェクト追加',
     'savedTabs.category.dragHandleAria':
       'ドラッグしてカテゴリ「{{name}}」を並べ替える',
@@ -1572,7 +1601,6 @@ const messages = {
       '親カテゴリを作成するとプロジェクトとして表示されます',
     'savedTabs.customProjects.emptyTitle': 'プロジェクトがありません',
     'savedTabs.customProjects.nameLabel': 'プロジェクト名 *',
-    'savedTabs.deleteAll': 'すべて削除',
     'savedTabs.deleteAllConfirmDescription':
       '「{{categoryName}}」のタブをすべて削除します。この操作は元に戻せません。',
     'savedTabs.deleteAllConfirmDescriptionWithCount':
@@ -1612,13 +1640,11 @@ const messages = {
     'savedTabs.manageSubcategories': '子カテゴリ管理',
     'savedTabs.newProjectPlaceholder': '例: 仕事、調査、後で読む',
     'savedTabs.newProjectTitle': '新しいプロジェクトを追加',
-    'savedTabs.openAll': 'すべて開く',
     'savedTabs.openAllConfirmDescription':
       '{{count}}個以上のタブを開こうとしています。続行しますか？',
     'savedTabs.openAllConfirmDescriptionWithName':
       '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
     'savedTabs.openAllConfirmTitle': 'タブをすべて開きますか？',
-    'savedTabs.openAllTabs': 'すべてのタブを開く',
     'savedTabs.project.deleteAllItemName': 'このプロジェクトのタブ',
     'savedTabs.project.deleteAllWarning':
       'このプロジェクト内のすべてのタブを削除します。この操作は元に戻せません。',
@@ -1777,6 +1803,7 @@ const messages = {
     'savedTabs.undo.restored': '保存データを復元しました',
     'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
     'savedTabs.url.deleteAria': 'タブを削除',
+    'savedTabs.url.openNow': '開いています',
     'savedTabs.url.deleteConfirmDescription':
       'このタブを削除します。この操作は元に戻せません。',
     'savedTabs.url.deleteConfirmTitle': 'タブを削除しますか？',

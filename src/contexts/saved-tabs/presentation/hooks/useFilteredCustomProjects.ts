@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
@@ -6,42 +6,39 @@ import { toCustomProjectFromViewModel } from '@/contexts/saved-tabs/presentation
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 /**
- * `customProjects` / `searchQuery` 変更時に `savedTabsUseCases.getProjectUrls` を
- * 参照しつつ filter する副作用を、effect のクロージャから外側の custom hook に
- * 切り出した版。
- *
- * 元の effect は `savedTabsUseCases.getProjectUrls` を deps 配列に入れずに
- * `// react-doctor/exhaustive-deps` の disable で握りつぶしていたが、
- * `useCallback` で `getProjectUrls` を stable な reference として束ね、
- * effect の deps には callback だけを置けば disable 不要になる。
+ * 現在の検索語・プロジェクト・URL reader に対応する完了済み結果だけを公開する。
+ * 空検索は元の配列を即座に返し、URL の読み取りを行わない。
  */
 export const useFilteredCustomProjects = (
-  savedTabsUseCases: SavedTabsUseCases,
+  savedTabsUseCases: Pick<SavedTabsUseCases, 'getProjectUrls'>,
   customProjects: CustomProject[],
   searchQuery: string,
 ): CustomProject[] => {
-  const [filteredCustomProjects, setFilteredCustomProjects] = useState<
-    CustomProject[]
-  >([])
-
   const loadProjectUrls = useCallback(
     async (project: CustomProject) =>
       savedTabsUseCases.getProjectUrls(toCustomProjectFromViewModel(project)),
     [savedTabsUseCases],
   )
 
+  // A new token also distinguishes A → empty → A, so switching modes never
+  // exposes a previous generation while fresh URL reads are pending.
+  const input = useMemo(
+    () => ({ customProjects, loadProjectUrls, searchQuery }),
+    [customProjects, loadProjectUrls, searchQuery],
+  )
+  const [filtered, setFiltered] = useState<{
+    input: typeof input
+    projects: CustomProject[]
+  } | null>(null)
+
   useEffect(() => {
     let isCancelled = false
 
     const syncFilteredCustomProjects = async () => {
-      const nextProjects = await filterCustomProjectsByQuery({
-        customProjects,
-        loadProjectUrls,
-        searchQuery,
-      })
+      const nextProjects = await filterCustomProjectsByQuery(input)
 
       if (!isCancelled) {
-        setFilteredCustomProjects(nextProjects)
+        setFiltered({ input, projects: nextProjects })
       }
     }
 
@@ -50,7 +47,10 @@ export const useFilteredCustomProjects = (
     return () => {
       isCancelled = true
     }
-  }, [customProjects, searchQuery, loadProjectUrls])
+  }, [input])
 
-  return filteredCustomProjects
+  if (!searchQuery.trim()) {
+    return customProjects
+  }
+  return filtered?.input === input ? filtered.projects : []
 }

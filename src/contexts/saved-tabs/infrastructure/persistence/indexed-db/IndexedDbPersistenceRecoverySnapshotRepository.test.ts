@@ -1,6 +1,7 @@
-import { IDBFactory } from 'fake-indexeddb'
-import { describe, expect, it, vi } from 'vitest'
+import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
 import type { PersistenceRecoverySnapshotRecord } from '@/contexts/saved-tabs/application/ports/PersistenceRecoverySnapshotPort'
 import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
 import { measureSerializedBytes } from '@/lib/persistence/capacity'
@@ -95,7 +96,61 @@ const readRevision = async (
   })
 }
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('IndexedDbPersistenceRecoverySnapshotRepository', () => {
+  it('preserves a quota failure for recovery without pruning snapshots or changing revision', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'recovery-quota-rollback',
+      indexedDb: new IDBFactory(),
+    })
+    const previous = createRecord('previous')
+    await seed(manager, [previous])
+    const repository = new IndexedDbPersistenceRecoverySnapshotRepository(
+      manager,
+      createReadyPersistenceOperationGateStub(),
+    )
+    const candidate = createRecord('candidate', { createdAt: 1_000 })
+    const cause = new DOMException(
+      'private recovery payload',
+      'QuotaExceededError',
+    )
+    const putSpy = vi
+      .spyOn(IDBObjectStore.prototype, 'put')
+      .mockImplementationOnce(() => {
+        throw cause
+      })
+
+    const error: unknown = await repository
+      .saveWithRetention(candidate, retention)
+      .catch((error: unknown) => error)
+
+    expect(error).toBeInstanceOf(PersistenceUnavailableError)
+    expect(error).toMatchObject({
+      code: 'PERSISTENCE_RECOVERY_REQUIRED',
+      cause,
+    })
+    expect(String(error)).not.toContain(cause.message)
+    expect(JSON.stringify(error)).not.toContain(cause.message)
+    putSpy.mockRestore()
+    await expect(
+      repository.findAvailableById('previous', 1_000),
+    ).resolves.toEqual(previous)
+    await expect(
+      repository.findAvailableById('candidate', 1_000),
+    ).resolves.toBeUndefined()
+    await expect(readRevision(manager)).resolves.toBe(12)
+    await expect(
+      repository.saveWithRetention(candidate, retention),
+    ).resolves.toMatchObject({
+      revision: 13,
+      snapshot: { id: 'candidate' },
+    })
+    manager.close()
+  })
+
   it('saves and prunes in one strict transaction while incrementing revision', async () => {
     const manager = new IndexedDbConnectionManager({
       databaseName: 'recovery-save-prune',

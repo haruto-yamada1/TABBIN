@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { savedTabsDefaultUserSettings } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 
 import type { DomainCardContextType } from './DomainCardContext'
 
@@ -30,7 +37,7 @@ vi.mock('@dnd-kit/utilities', () => ({
 }))
 
 vi.mock('../../hooks/useDomainCardState', () => ({
-  useDomainCardState: () => useDomainCardStateMock(),
+  useDomainCardState: (params: unknown) => useDomainCardStateMock(params),
 }))
 
 import { useDomainCard } from './DomainCardContext'
@@ -68,6 +75,7 @@ const createState = (): DomainCardContextType['state'] => {
       setUserCollapsedState: vi.fn(),
     },
     sort: {
+      isSortPending: false,
       sortOrder: 'default',
       setSortOrder: vi.fn(),
     },
@@ -106,6 +114,46 @@ const createState = (): DomainCardContextType['state'] => {
 }
 
 describe('DomainCardRoot', () => {
+  it('injects production category persistence from the saved-tabs context', () => {
+    useSortableMock.mockReturnValue({
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      transform: null,
+      transition: undefined,
+    })
+    useDomainCardStateMock.mockReturnValue(createState())
+    const ports = createSavedTabsPresentationPortsStub()
+    const query = vi.fn(async () => {
+      throw new Error('Not invoked by this wiring test')
+    })
+    const useCases = createSavedTabsUseCasesStub({
+      getSavedTabsPageData: query,
+    })
+    render(
+      <SavedTabsUseCasesProvider value={{ deps: ports, useCases }}>
+        <DomainCardRoot
+          group={{
+            id: 'group-1',
+            domain: 'example.com',
+            subCategories: ['news'],
+          }}
+          settings={savedTabsDefaultUserSettings}
+          handlers={defaultHandlers}
+          reorderTabGroupUrlsUseCase={vi.fn<ReorderTabGroupUrlsUseCase>()}
+        >
+          <Consumer />
+        </DomainCardRoot>
+      </SavedTabsUseCasesProvider>,
+    )
+    expect(useDomainCardStateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoryAssignmentPort: ports.categoryAssignmentPort,
+        getSavedTabsPageDataQuery: query,
+      }),
+    )
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
@@ -135,6 +183,7 @@ describe('DomainCardRoot', () => {
           excludePatterns: [],
           enableCategories: true,
           autoDeletePeriod: 'never',
+          showRelativeSavedTime: false,
           showSavedTime: false,
           clickBehavior: 'saveSameDomainTabs',
           excludePinnedTabs: false,
@@ -182,6 +231,7 @@ describe('DomainCardRoot', () => {
           excludePatterns: [],
           enableCategories: true,
           autoDeletePeriod: 'never',
+          showRelativeSavedTime: false,
           showSavedTime: false,
           clickBehavior: 'saveSameDomainTabs',
           excludePinnedTabs: false,
@@ -199,5 +249,66 @@ describe('DomainCardRoot', () => {
     )
 
     expect(screen.getByText('0')).toBeTruthy()
+  })
+})
+
+const FavoriteConsumer = () => {
+  const { state, favoriteFilter } = useDomainCard()
+  const toggle = () => favoriteFilter?.setOnly(!favoriteFilter.only)
+  return (
+    <>
+      <button type='button' onClick={toggle}>
+        Filter favorites
+      </button>
+      <div data-testid='visible-favorites'>
+        {Object.values(state.computed.categorizedUrls)
+          .flat()
+          .map(({ title }) => title)
+          .join(',')}
+      </div>
+    </>
+  )
+}
+
+describe('favorite filter category safety', () => {
+  it('filters only the display projection, keeping the complete category state for persistence', async () => {
+    useSortableMock.mockReturnValue({
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+    })
+    const state = createState()
+    state.computed.categorizedUrls.news = [
+      { url: 'https://example.com/news', title: 'News', isFavorite: true },
+    ]
+    useDomainCardStateMock.mockReturnValue(state)
+    const group = {
+      id: 'group-1',
+      domain: 'example.com',
+      subCategories: ['news', 'tech'],
+      urls: Object.values(state.computed.categorizedUrls).flat(),
+    }
+    render(
+      <DomainCardRoot
+        group={group}
+        settings={savedTabsDefaultUserSettings}
+        handlers={defaultHandlers}
+        reorderTabGroupUrlsUseCase={vi.fn()}
+      >
+        <FavoriteConsumer />
+      </DomainCardRoot>,
+    )
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Filter favorites' }))
+    expect(screen.getByTestId('visible-favorites')).toHaveTextContent('News')
+    expect(screen.getByTestId('visible-favorites')).not.toHaveTextContent(
+      'Tech',
+    )
+    expect(useDomainCardStateMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ group }),
+    )
+    expect(state.computed.categorizedUrls.tech).toHaveLength(1)
+    cleanup()
   })
 })

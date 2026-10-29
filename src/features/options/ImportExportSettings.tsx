@@ -1,4 +1,4 @@
-import { AlertCircle, Download } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -6,21 +6,18 @@ import {
   listBackupRecoverySnapshots,
   restoreBackupRecoverySnapshot,
 } from '@/app/composition/optionsBackupRecovery'
-import { exportBackupV2 } from '@/app/composition/optionsBackupV2Export'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import type { PersistenceRecoverySnapshotSummary } from '@/contexts/saved-tabs/public-api'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { ImportFileDialog } from '@/features/options/ImportFileDialog'
-import { downloadAsJson } from '@/features/options/lib/import-export'
 import { sendRuntimeMessage } from '@/lib/browser/runtime'
 import { logger } from '@/lib/logging/logger'
 
+import { ExportBackupDialog } from './ExportBackupDialog'
 import { RecoverySnapshotNotice } from './RecoverySnapshotNotice'
 
 export const ImportExportSettings: React.FC = () => {
   const { t } = useI18n()
-  const [isExporting, setIsExporting] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
   const [recoverySnapshots, setRecoverySnapshots] = useState<
     readonly PersistenceRecoverySnapshotSummary[]
@@ -66,26 +63,6 @@ export const ImportExportSettings: React.FC = () => {
     ])
   }, [refreshRecoverySnapshots])
 
-  const handleExport = useCallback(async () => {
-    try {
-      setIsExporting(true)
-      const data = await exportBackupV2()
-
-      const date = new Date()
-      const isoTimestamp = date.toISOString()
-      const formattedDate = isoTimestamp.slice(0, isoTimestamp.indexOf('T'))
-      const filename = `tab-manager-backup-${formattedDate}.json`
-
-      await downloadAsJson(data, filename)
-      toast.success(t('options.importExport.exportSuccess'))
-    } catch (error) {
-      console.error('エクスポートエラー', error)
-      toast.error(t('options.importExport.exportError'))
-    } finally {
-      setIsExporting(false)
-    }
-  }, [t])
-
   const recoverySnapshot = recoverySnapshots.at(0)
   const handleRestore = useCallback(async () => {
     if (!recoverySnapshot) {
@@ -130,15 +107,6 @@ export const ImportExportSettings: React.FC = () => {
         </AlertDescription>
       </Alert>
 
-      <Alert className='border-amber-500/60 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:text-amber-50'>
-        <AlertCircle className='size-4' />
-        <AlertTitle>{t('options.importExport.compatibilityTitle')}</AlertTitle>
-        <AlertDescription className='space-y-1'>
-          <p>{t('options.importExport.compatibilityWarning')}</p>
-          <p>{t('options.importExport.compatibilityAction')}</p>
-        </AlertDescription>
-      </Alert>
-
       {recoverySnapshot ? (
         <RecoverySnapshotNotice
           isRestoring={isRestoring}
@@ -148,18 +116,7 @@ export const ImportExportSettings: React.FC = () => {
       ) : null}
 
       <div className='flex flex-wrap gap-2'>
-        <Button
-          // eslint-disable-next-line typescript/no-misused-promises
-          onClick={handleExport}
-          disabled={isExporting}
-          variant='outline'
-          className='flex w-full cursor-pointer items-center justify-start gap-2'
-        >
-          <Download size={16} />
-          {isExporting
-            ? t('options.importExport.exporting')
-            : t('options.importExport.export')}
-        </Button>
+        <ExportBackupDialog />
 
         <ImportFileDialog onImportSuccess={handleImportSuccess} />
       </div>

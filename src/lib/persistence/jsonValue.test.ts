@@ -44,4 +44,46 @@ describe('isJsonValue', () => {
     expect(isJsonValue(circularObject)).toBe(false)
     expect(isJsonValue(circularArray)).toBe(false)
   })
+
+  it.each([
+    [1, undefined],
+    [undefined, 1],
+    ['value', Number.NaN],
+    [null, { nested: undefined }],
+  ])('rejects an array if any item would be lost: %j', (...items) => {
+    expect(isJsonValue(items)).toBe(false)
+  })
+
+  it('accepts shared references that are not ancestors of themselves', () => {
+    const sharedObject = { value: 1 }
+    const sharedArray = [sharedObject]
+
+    expect(isJsonValue([sharedObject, sharedObject])).toBe(true)
+    expect(isJsonValue({ left: sharedArray, right: sharedArray })).toBe(true)
+  })
+
+  it('rejects non-enumerable properties that JSON would discard', () => {
+    const value = Object.defineProperty({}, 'hidden', { value: 'private' })
+
+    expect(isJsonValue(value)).toBe(false)
+  })
+
+  it.each(['00', '1 ', '4294967295'])(
+    'rejects a hidden array property outside JSON indexes: %s',
+    (key) => {
+      const value = Object.defineProperty([1, 2], key, { value: 'private' })
+
+      expect(isJsonValue(value)).toBe(false)
+    },
+  )
+
+  it('accepts a JSON record with a null prototype', () => {
+    const value: unknown = Object.create(null)
+    if (typeof value !== 'object' || value === null) {
+      throw new TypeError('Expected a record')
+    }
+    Object.defineProperty(value, 'key', { enumerable: true, value: 'value' })
+
+    expect(isJsonValue(value)).toBe(true)
+  })
 })

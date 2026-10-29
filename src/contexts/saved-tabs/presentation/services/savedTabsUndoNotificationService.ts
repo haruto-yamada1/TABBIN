@@ -76,30 +76,37 @@ const showOpenedUrlsUndoToast = ({
 }: ShowOpenedUrlsUndoToastParams): void => {
   const restoreView: RestoreOpenedUrlsSnapshotViewUseCase =
     savedTabsUseCases.restoreOpenedUrlsSnapshotView
+  let restoring = false
+  let restored = false
   toast.info(t(messageKey, undefined, { count: String(count) }), {
     action: {
       label: t('common.undo'),
       // eslint-disable-next-line typescript/no-misused-promises
       onClick: async () => {
+        if (restoring || restored) {
+          return
+        }
+        restoring = true
         try {
-          const restored: RestoredSnapshotViewDto = await restoreView({
-            snapshot,
-          })
-          if (restored.customProjects) {
+          const view: RestoredSnapshotViewDto = await restoreView({ snapshot })
+          restored = true
+          if (view.customProjects) {
             setCustomProjects(
-              restored.customProjects.map(toSavedTabsCustomProjectViewModel),
+              view.customProjects.map(toSavedTabsCustomProjectViewModel),
             )
           }
-          if (restored.parentCategories && setCategories) {
-            setCategories([...restored.parentCategories])
+          if (view.parentCategories && setCategories) {
+            setCategories([...view.parentCategories])
           }
           await refreshTabGroupsWithUrls(
-            restored.savedTabs.map(toSavedTabsTabGroupViewModel),
+            view.savedTabs.map(toSavedTabsTabGroupViewModel),
           )
           toast.success(t('savedTabs.undo.restored'))
         } catch (error) {
           console.error('開いた後に削除したURLの復元に失敗しました:', error)
           toast.error(t('savedTabs.undo.restoreError'))
+        } finally {
+          restoring = false
         }
       },
     },

@@ -11,7 +11,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { collectArtifactSize } from './artifactSizeReport'
+import { collectArtifactSize, fingerprintArtifact } from './artifactSizeReport'
 
 const temporaryDirectories: string[] = []
 const fixture = () => {
@@ -122,5 +122,67 @@ describe('artifact size collection', () => {
       chunks: { 'chunks/shared.js': 11 },
     })
     expect(result.largestAssets[0]).toMatchObject({ path: 'saved-tabs.html' })
+  })
+})
+
+describe('artifact provenance', () => {
+  it('fingerprints file contents and paths, detecting same-size rebuilds', () => {
+    const { directory } = fixture()
+    const before = fingerprintArtifact(directory)
+    expect(fingerprintArtifact(directory)).toBe(before)
+    writeFileSync(path.join(directory, 'chunks/options-12345678.js'), 'changed')
+    expect(fingerprintArtifact(directory)).not.toBe(before)
+    writeFileSync(path.join(directory, 'chunks/options-12345678.js'), 'options')
+    renameSync(
+      path.join(directory, 'chunks/options-12345678.js'),
+      path.join(directory, 'chunks/options-87654321.js'),
+    )
+    expect(fingerprintArtifact(directory)).not.toBe(before)
+  })
+})
+
+describe('observed feature initial loads', () => {
+  it('counts physical shared files once per screen and once in the cross-screen union', () => {
+    const { directory, zip } = fixture()
+    const result = collectArtifactSize(directory, zip, {
+      'saved-tabs': [
+        'chunks/saved-tabs-abcdefgh.js',
+        'chunks/shared-AbCdEf_-.js',
+        'chunks/shared-AbCdEf_-.js',
+      ],
+      options: [
+        'chunks/options-12345678.js',
+        'chunks/shared-AbCdEf_-.js',
+        'chunks/shared-ZYXWVU09.js',
+      ],
+    })
+    expect(result).toMatchObject({
+      initialLoads: {
+        features: {
+          'saved-tabs': { javascriptBytes: 16, sharedJavascriptBytes: 6 },
+          options: { javascriptBytes: 18, sharedJavascriptBytes: 6 },
+        },
+        uniqueJavascriptBytes: 28,
+        sharedJavascriptBytes: 6,
+      },
+    })
+  })
+
+  it.each(['chunks/missing.js', '../outside.js', 'manifest.json'])(
+    'rejects unknown or non-JS observed resources: %s',
+    (file) => {
+      const { directory, zip } = fixture()
+      expect(() =>
+        collectArtifactSize(directory, zip, { options: [file] }),
+      ).toThrow(/observed JavaScript/u)
+    },
+  )
+
+  it('rejects empty or incomplete feature measurements instead of reporting zero', () => {
+    const { directory, zip } = fixture()
+    expect(() => collectArtifactSize(directory, zip, {})).toThrow(/feature/u)
+    expect(() => collectArtifactSize(directory, zip, { options: [] })).toThrow(
+      /feature/u,
+    )
   })
 })

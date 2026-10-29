@@ -1,0 +1,14 @@
+{
+  "name": "@tabbin/legacy-tooling",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint-react": "./eslint-react.mjs"
+  },
+  "dependencies": {
+    "@eslint-react/eslint-plugin": "5.28.5",
+    "@swc/core": "1.16.18",
+    "dependency-cruiser": "18.7.0",
+    "typescript": "6.0.3"
+  }
+}

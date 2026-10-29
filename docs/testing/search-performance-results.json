@@ -1,0 +1,816 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "a24f1390d7d6c9fd038ca23057a2666e3439d7df",
+  "measuredOn": "2026-10-19",
+  "timezone": "Asia/Tokyo",
+  "environment": {
+    "platform": "macOS arm64",
+    "node": "24.17.0",
+    "bun": "1.3.14",
+    "playwright": "1.63.0",
+    "geckodriver": "0.37.1"
+  },
+  "fixture": {
+    "domains": 20,
+    "projects": 5,
+    "membershipsPerUrl": 2,
+    "syntheticOnly": true
+  },
+  "transports": {
+    "chromium": "Playwright fill, alternating four-character Japanese titles; fresh profile per test",
+    "firefox": "Native WebDriver temporary XPI, trusted Meta+A plus one Japanese key, alternating one-character title substrings; reseed within one fresh profile"
+  },
+  "limitations": [
+    "Twelve samples per scenario; p95 equals maximum at this sample count.",
+    "Input capture excludes pre-dispatch queueing. Double rAF indicates a paint opportunity, not physical presentation.",
+    "Only narrow one-row replacement is timed; startup, broad-result rendering, IME composition and heap retention are not measured.",
+    "Page-local readonly transactions exclude the background context. Warm-up and lifecycle work can affect tail samples.",
+    "Compare before and after within each browser; transports, query lengths, browser clock precision and profile lifecycle differ between browsers."
+  ],
+  "runs": [
+    {
+      "phase": "before",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "custom",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 25.3,
+        "p95": 33,
+        "max": 33
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 156.5,
+        "p95": 184.3,
+        "max": 184.3
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 176.2,
+        "p95": 202.4,
+        "max": 202.4
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 209.5,
+        "p95": 235.6,
+        "max": 235.6
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 7,
+        "p95": 7,
+        "max": 7
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "custom",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 23.8,
+        "p95": 34.2,
+        "max": 34.2
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 132.6,
+        "p95": 145.4,
+        "max": 145.4
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 151.3,
+        "p95": 179.2,
+        "max": 179.2
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 175,
+        "p95": 201.8,
+        "max": 201.8
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 16,
+        "p95": 16,
+        "max": 16
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "before",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "custom",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 26.2,
+        "p95": 32.9,
+        "max": 32.9
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 1524.1,
+        "p95": 1749.5,
+        "max": 1749.5
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 1537.5,
+        "p95": 1782,
+        "max": 1782
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 1570.8,
+        "p95": 1782,
+        "max": 1782
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 7,
+        "p95": 7,
+        "max": 7
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "custom",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 24.9,
+        "p95": 32.2,
+        "max": 32.2
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 1380.9,
+        "p95": 1505.3,
+        "max": 1505.3
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 1393.9,
+        "p95": 1519.7,
+        "max": 1519.7
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 1417.6,
+        "p95": 1552.9,
+        "max": 1552.9
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 16,
+        "p95": 16,
+        "max": 16
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "before",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "domain",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 25.4,
+        "p95": 30.8,
+        "max": 30.8
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 8.3,
+        "p95": 13,
+        "max": 13
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 25.4,
+        "p95": 30.9,
+        "max": 30.9
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 136,
+        "p95": 1389.4,
+        "max": 1389.4
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "domain",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 25.8,
+        "p95": 33.5,
+        "max": 33.5
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 4.5,
+        "p95": 8.1,
+        "max": 8.1
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 25.9,
+        "p95": 33.5,
+        "max": 33.5
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 58.7,
+        "p95": 971.1,
+        "max": 971.1
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 1,
+        "p95": 3,
+        "max": 3
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "before",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "domain",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 31.7,
+        "p95": 39.1,
+        "max": 39.1
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 25.9,
+        "p95": 37.4,
+        "max": 37.4
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 31.7,
+        "p95": 39.1,
+        "max": 39.1
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 1407.3,
+        "p95": 14953.4,
+        "max": 14953.4
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 8,
+        "max": 8
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "chromium",
+      "version": "153.0.8010.12",
+      "mode": "domain",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 19.6,
+        "p95": 31.8,
+        "max": 31.8
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 16.8,
+        "p95": 21.9,
+        "max": 21.9
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 19.6,
+        "p95": 31.8,
+        "max": 31.8
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 204.9,
+        "p95": 7256.9,
+        "max": 7256.9
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 1,
+        "p95": 3,
+        "max": 3
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "before",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "custom",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 7,
+        "p95": 32,
+        "max": 32
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 99,
+        "p95": 113,
+        "max": 113
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 119,
+        "p95": 137,
+        "max": 137
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 140,
+        "p95": 169,
+        "max": 169
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 7,
+        "p95": 7,
+        "max": 7
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "custom",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 7,
+        "p95": 26,
+        "max": 26
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 85,
+        "p95": 96,
+        "max": 96
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 112,
+        "p95": 123,
+        "max": 123
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 136,
+        "p95": 156,
+        "max": 156
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 16,
+        "p95": 16,
+        "max": 16
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "before",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "custom",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 18,
+        "p95": 54,
+        "max": 54
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 975,
+        "p95": 1054,
+        "max": 1054
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 997,
+        "p95": 1080,
+        "max": 1080
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 1016,
+        "p95": 1114,
+        "max": 1114
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 7,
+        "p95": 7,
+        "max": 7
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "custom",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 26,
+        "p95": 30,
+        "max": 30
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 842,
+        "p95": 866,
+        "max": 866
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 861,
+        "p95": 903,
+        "max": 903
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 882,
+        "p95": 1013,
+        "max": 1013
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 7,
+        "max": 7
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 16,
+        "p95": 16,
+        "max": 16
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "before",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "domain",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 15,
+        "p95": 39,
+        "max": 39
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 6,
+        "p95": 16,
+        "max": 16
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 15,
+        "p95": 39,
+        "max": 39
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 96,
+        "p95": 132,
+        "max": 132
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "domain",
+      "urls": 1000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 17,
+        "p95": 31,
+        "max": 31
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 8,
+        "p95": 16,
+        "max": 16
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 17,
+        "p95": 31,
+        "max": 31
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 52,
+        "p95": 81,
+        "max": 81
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "before",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "domain",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 30,
+        "p95": 51,
+        "max": 51
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 14,
+        "p95": 21,
+        "max": 21
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 30,
+        "p95": 51,
+        "max": 51
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 811,
+        "p95": 894,
+        "max": 894
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 6,
+        "p95": 6,
+        "max": 6
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    },
+    {
+      "phase": "after",
+      "browser": "firefox",
+      "version": "155.0",
+      "mode": "domain",
+      "urls": 10000,
+      "inputToNextPaintOpportunityMs": {
+        "count": 12,
+        "p50": 13,
+        "p95": 31,
+        "max": 31
+      },
+      "inputToResultDomMs": {
+        "count": 12,
+        "p50": 10,
+        "p95": 23,
+        "max": 23
+      },
+      "inputToResultPaintOpportunityMs": {
+        "count": 12,
+        "p50": 13,
+        "p95": 31,
+        "max": 31
+      },
+      "inputToReadWorkSettledMs": {
+        "count": 12,
+        "p50": 130,
+        "p95": 175,
+        "max": 175
+      },
+      "readonlyIndexedDbTransactions": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      },
+      "observedBodyMutationRecords": {
+        "count": 12,
+        "p50": 9,
+        "p95": 11,
+        "max": 11
+      },
+      "resultRows": {
+        "count": 12,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      }
+    }
+  ]
+}

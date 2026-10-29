@@ -1,8 +1,3 @@
-import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/errors/PersistenceUnavailableError'
-import type {
-  PersistenceDataPlaneRouterPort,
-  PersistenceOperationGatePort,
-} from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type { PersistenceV2SnapshotReaderPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type {
   PersistenceJsonRecord,
@@ -20,7 +15,6 @@ import { logger } from '@/lib/logging/logger'
 import { isJsonValue } from '@/lib/persistence/jsonValue'
 
 const ACTIVE_CONVERSATION_ID_KEY = 'activeAiChatConversationId'
-const CONVERSATIONS_KEY = 'aiChatConversations'
 
 type AiConversationHistoryData = {
   readonly activeConversationId: unknown
@@ -46,50 +40,6 @@ const isRecord = (value: unknown): value is RecordLike =>
 
 const isTimestamp = (value: unknown): value is number =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
-
-const createRouteAwareAiConversationHistoryDataPlane = ({
-  indexeddb,
-  legacy,
-  router,
-}: {
-  readonly indexeddb: AiConversationHistoryDataPlane
-  readonly legacy: AiConversationHistoryDataPlane
-  readonly router: PersistenceDataPlaneRouterPort
-}): AiConversationHistoryDataPlane => ({
-  read: async () =>
-    router.read({ indexeddb: indexeddb.read, legacy: legacy.read }),
-  replace: async (data) =>
-    router.write({
-      indexeddb: async () => indexeddb.replace(data),
-      legacy: async () => legacy.replace(data),
-    }),
-})
-
-const createLegacyAiConversationHistoryDataPlane = (
-  getStorage: () => AiConversationHistoryStorage,
-  setStorage: (values: Record<string, unknown>) => Promise<void> = async (
-    values,
-  ) => getStorage().set(values),
-): AiConversationHistoryDataPlane => ({
-  read: async () => {
-    const stored = await getStorage().get([
-      ACTIVE_CONVERSATION_ID_KEY,
-      CONVERSATIONS_KEY,
-    ])
-    return {
-      activeConversationId: stored[ACTIVE_CONVERSATION_ID_KEY],
-      conversations: Array.isArray(stored[CONVERSATIONS_KEY])
-        ? stored[CONVERSATIONS_KEY]
-        : [],
-    }
-  },
-  replace: async ({ activeConversationId, conversations }) => {
-    await setStorage({
-      [ACTIVE_CONVERSATION_ID_KEY]: activeConversationId,
-      [CONVERSATIONS_KEY]: [...conversations],
-    })
-  },
-})
 
 const readOptionalMessageIds = (
   value: unknown,
@@ -392,94 +342,53 @@ const createIndexedDbAiConversationHistoryDataPlane = ({
   },
 })
 
-const selectedIndexedDbGate: PersistenceOperationGatePort = {
-  runIndexedDbRead: async (operation) => operation(),
-  runIndexedDbWrite: async (operation) => operation(),
-  // eslint-disable-next-line typescript/require-await -- the outer router selected IndexedDB
-  runLegacyRead: async () => {
-    throw new PersistenceUnavailableError('PERSISTENCE_ROUTE_MISMATCH')
-  },
-  // eslint-disable-next-line typescript/require-await -- the outer router selected IndexedDB
-  runLegacyWrite: async () => {
-    throw new PersistenceUnavailableError('PERSISTENCE_ROUTE_MISMATCH')
-  },
-}
-
-const createProductionIndexedDbDataPlane = (
-  storage: AiConversationHistoryStorage,
-): AiConversationHistoryDataPlane => {
-  const runtime = getPersistenceBootstrapRuntime()
-  if (!runtime.connectionManager) {
-    throw new PersistenceUnavailableError(
-      'PERSISTENCE_CONTROL_STATE_UNAVAILABLE',
-    )
-  }
-  return createIndexedDbAiConversationHistoryDataPlane({
-    reader: new IndexedDbPersistenceSnapshotReader(
-      runtime.connectionManager,
-      selectedIndexedDbGate,
-    ),
-    selectionStorage: storage,
-    unitOfWork: createNotifyingPersistenceV2UnitOfWork({
-      changePort: createBroadcastChannelPersistenceChangeAdapter(),
-      idGenerator: createSystemIdGenerator(),
-      onNotificationFailure: (diagnostic) => {
-        logger.error('persistence_notification_failed_after_commit', diagnostic)
-      },
-      unitOfWork: new IndexedDbPersistenceUnitOfWork(
+const createProductionIndexedDbDataPlane =
+  (): AiConversationHistoryDataPlane => {
+    const runtime = getPersistenceBootstrapRuntime()
+    return createIndexedDbAiConversationHistoryDataPlane({
+      reader: new IndexedDbPersistenceSnapshotReader(
         runtime.connectionManager,
-        selectedIndexedDbGate,
+        runtime.operationGate,
       ),
-    }),
-  })
-}
+      selectionStorage: {
+        get: async (keys) =>
+          getChromeStorageLocal()?.get(
+            typeof keys === 'string' ? keys : [...keys],
+          ) ?? {},
+        set: async (values) => getChromeStorageLocal()?.set(values),
+      },
+      unitOfWork: createNotifyingPersistenceV2UnitOfWork({
+        changePort: createBroadcastChannelPersistenceChangeAdapter(),
+        idGenerator: createSystemIdGenerator(),
+        onNotificationFailure: (diagnostic) => {
+          logger.error(
+            'persistence_notification_failed_after_commit',
+            diagnostic,
+          )
+        },
+        unitOfWork: new IndexedDbPersistenceUnitOfWork(
+          runtime.connectionManager,
+          runtime.operationGate,
+        ),
+      }),
+    })
+  }
 
-let productionDataPlane: AiConversationHistoryDataPlane | null | undefined
-let productionIndexedDbDataPlane: AiConversationHistoryDataPlane | undefined
+let productionDataPlane: AiConversationHistoryDataPlane | undefined
 
 const getAiConversationHistoryDataPlane =
-  (): AiConversationHistoryDataPlane | null => {
-    if (productionDataPlane !== undefined) {
-      return productionDataPlane
-    }
-    const storage = getChromeStorageLocal()
-    if (!storage) {
-      productionDataPlane = null
-      return productionDataPlane
-    }
-    const legacy = createLegacyAiConversationHistoryDataPlane(
-      () => storage,
-      async (values) => storage.set(values),
-    )
-    productionDataPlane = createRouteAwareAiConversationHistoryDataPlane({
-      indexeddb: {
-        read: async () => {
-          productionIndexedDbDataPlane ??=
-            createProductionIndexedDbDataPlane(storage)
-          return productionIndexedDbDataPlane.read()
-        },
-        replace: async (data) => {
-          productionIndexedDbDataPlane ??=
-            createProductionIndexedDbDataPlane(storage)
-          await productionIndexedDbDataPlane.replace(data)
-        },
-      },
-      legacy,
-      router: getPersistenceBootstrapRuntime().dataPlaneRouter,
-    })
+  (): AiConversationHistoryDataPlane => {
+    productionDataPlane ??= createProductionIndexedDbDataPlane()
     return productionDataPlane
   }
 
 const resetAiConversationHistoryDataPlaneForTesting = (): void => {
   productionDataPlane = undefined
-  productionIndexedDbDataPlane = undefined
 }
 
 export type { AiConversationHistoryData, AiConversationHistoryDataPlane }
 export {
   createIndexedDbAiConversationHistoryDataPlane,
-  createLegacyAiConversationHistoryDataPlane,
-  createRouteAwareAiConversationHistoryDataPlane,
   getAiConversationHistoryDataPlane,
   resetAiConversationHistoryDataPlaneForTesting,
 }

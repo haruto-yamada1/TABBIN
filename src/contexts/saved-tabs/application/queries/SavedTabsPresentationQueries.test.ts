@@ -28,6 +28,7 @@ const settings = {
   openUrlInBackground: true,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
+  showRelativeSavedTime: false,
   showSavedTime: true,
 }
 

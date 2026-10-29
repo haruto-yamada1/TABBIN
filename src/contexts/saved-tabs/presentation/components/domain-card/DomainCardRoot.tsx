@@ -1,9 +1,11 @@
 import { useDndMonitor } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 
+import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import { useDomainCardState } from '@/contexts/saved-tabs/presentation/hooks/useDomainCardState'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableDomainCardProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
@@ -52,17 +54,64 @@ export const DomainCardRoot = ({
   reorderTabGroupUrlsUseCase,
   children,
 }: DomainCardRootProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: group.id })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: group.id, data: { name: group.domain } })
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const displayGroup = useMemo(
+    () =>
+      favoritesOnly
+        ? { ...group, urls: (group.urls ?? []).filter((url) => url.isFavorite) }
+        : group,
+    [group, favoritesOnly],
+  )
+  const hasFavorites = (group.urls ?? []).some((url) => url.isFavorite)
+  const savedTabs = useSavedTabsUseCases()
+  const categoryPersistence = useMemo(
+    () =>
+      savedTabs
+        ? {
+            categoryAssignmentPort: savedTabs.deps.categoryAssignmentPort,
+            getSavedTabsPageDataQuery: savedTabs.useCases.getSavedTabsPageData,
+          }
+        : {},
+    [savedTabs],
+  )
 
   const state = useDomainCardState({
     group,
+    ...categoryPersistence,
     ...(handleDeleteCategory !== undefined ? { handleDeleteCategory } : {}),
     ...(handlers.handleDeleteUrls !== undefined
       ? { handleDeleteUrls: handlers.handleDeleteUrls }
       : {}),
     isReorderMode,
   })
+
+  const displayState = useMemo(
+    () =>
+      favoritesOnly
+        ? {
+            ...state,
+            computed: {
+              categorizedUrls: Object.fromEntries(
+                Object.entries(state.computed.categorizedUrls).map(
+                  ([category, urls]) => [
+                    category,
+                    urls.filter((url) => url.isFavorite),
+                  ],
+                ),
+              ),
+            },
+          }
+        : state,
+    [state, favoritesOnly],
+  )
 
   // グローバルドラッグ監視
   useDndMonitor(state.dndMonitorHandlers)
@@ -81,7 +130,7 @@ export const DomainCardRoot = ({
   const hasSearchQuery = searchQuery.trim().length > 0
   const totalUrls = group.urls?.length ?? 0
   const visibleSubCategoryCount = categoryId
-    ? Object.entries(state.computed.categorizedUrls).filter(
+    ? Object.entries(displayState.computed.categorizedUrls).filter(
         ([categoryName, urls]) =>
           categoryName !== '__uncategorized' && urls.length > 0,
       ).length
@@ -90,25 +139,35 @@ export const DomainCardRoot = ({
   const contextValue: DomainCardContextType = useMemo(
     () => ({
       ...(categoryId !== undefined ? { categoryId } : {}),
-      group,
+      group: displayGroup,
+      manualUrls: group.urls,
+      favoriteFilter: {
+        only: favoritesOnly,
+        setOnly: setFavoritesOnly,
+        hasFavorites,
+      },
       handlers,
       isReorderMode,
       reorderTabGroupUrlsUseCase,
       searchQuery,
       settings,
-      sortable: { attributes, listeners },
-      state,
+      sortable: { attributes, listeners, setActivatorNodeRef },
+      state: displayState,
       visibleSubCategoryCount,
     }),
     [
-      state,
-      group,
+      displayState,
+      displayGroup,
+      group.urls,
+      favoritesOnly,
+      hasFavorites,
       settings,
       categoryId,
       searchQuery,
       visibleSubCategoryCount,
       isReorderMode,
       attributes,
+      setActivatorNodeRef,
       listeners,
       handlers,
       reorderTabGroupUrlsUseCase,
@@ -130,7 +189,13 @@ export const DomainCardRoot = ({
         data-testid='domain-scroll-target'
         data-urls-count={group.urls?.length ?? 0}
       >
-        {children}
+        <UrlReorderAvailabilityContext
+          value={
+            state.sort.sortOrder === 'default' && !state.sort.isSortPending
+          }
+        >
+          {children}
+        </UrlReorderAvailabilityContext>
       </div>
     </DomainCardContext>
   )

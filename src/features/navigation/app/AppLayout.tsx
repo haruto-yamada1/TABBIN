@@ -1,8 +1,10 @@
 import { Outlet, useLocation } from 'react-router-dom'
 
+import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
 import { DocumentTitleSync } from '@/features/i18n/components/DocumentTitleSync'
 import { resolveTitlePageKeyFromPathname } from '@/features/i18n/lib/title'
 import { ExtensionPageShell } from '@/features/navigation/components/ExtensionPageShell'
+import { RenderErrorBoundary } from '@/lib/react/RenderErrorBoundary'
 
 export const AppLayout = () => {
   const location = useLocation()
@@ -15,7 +17,12 @@ export const AppLayout = () => {
         className='flex min-h-0 flex-1 flex-col overflow-hidden'
         data-testid='app-layout'
       >
-        <Outlet />
+        <RenderErrorBoundary
+          key={location.pathname}
+          onExport={exportRenderRecoveryBackup}
+        >
+          <Outlet />
+        </RenderErrorBoundary>
       </div>
     </ExtensionPageShell>
   )

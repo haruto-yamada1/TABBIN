@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-10-10/2026-10-11",
+  "revision": "850440afe3d0d3977fabc353061f6622f636273b",
+  "inputHash": "c9c833510d04add5df68783abf22f7036f719a24f868641e7f12a97e3e172f55",
+  "model": "gpt-6.1-sol",
+  "effort": "xhigh",
+  "authKind": "chatgpt",
+  "versions": {
+    "headroom": "0.40.0",
+    "codex": "0.160.1",
+    "rtk": "0.34.3",
+    "contextMode": "1.0.161",
+    "node": "24.17.0",
+    "bun": "1.3.14"
+  },
+  "variants": {
+    "A": "Direct Codex with legacy RTK/context-mode routing",
+    "B": "Headroom cache/lossless with native tools",
+    "C": "B with RTK for long CLI output",
+    "D": "C with opt-in context-mode bulk analysis/indexing"
+  },
+  "groundTruth": { "records": 4096, "count": 46, "weightSum": 3994 },
+  "validRunAssertions": {
+    "exitCode": 0,
+    "timedOut": false,
+    "completed": true,
+    "checksPassed": 10,
+    "checksTotal": 10,
+    "allCorrect": true,
+    "countCorrect": true,
+    "idsCorrect": true,
+    "sourceAndDiffCorrect": true,
+    "routeVerified": true,
+    "retries": 0
+  },
+  "executionOrder": ["A1", "B1", "C1", "D1", "D2", "C2", "B2", "A2"],
+  "provenance": {
+    "initialBatch": "final-v4: seven completed runs and one quota-limited A2",
+    "a2Replacement": "final-a2-retry: standalone A repetition 1, same revision/hash/model/effort, used as completed A2 after quota reset",
+    "excluded": [
+      "Incomplete quota-limited A2; raw record retained",
+      "Earlier Node 22, MCP sandbox and routing-bypass diagnostics"
+    ],
+    "rawStorage": "Private run-meta.json, metrics.json, per-run events.jsonl and stderr.log; no private paths or conversation payloads published"
+  },
+  "metrics": [
+    {
+      "variant": "A",
+      "repetition": 1,
+      "elapsedMs": 126212,
+      "inputTokens": 250936,
+      "cachedInputTokens": 201600,
+      "uncachedInputTokens": 49336,
+      "outputTokens": 4259,
+      "toolCalls": 10,
+      "proxyApiRequests": null,
+      "proxyFailedRequests": null
+    },
+    {
+      "variant": "A",
+      "repetition": 2,
+      "elapsedMs": 136210,
+      "inputTokens": 265541,
+      "cachedInputTokens": 217984,
+      "uncachedInputTokens": 47557,
+      "outputTokens": 5188,
+      "toolCalls": 8,
+      "proxyApiRequests": null,
+      "proxyFailedRequests": null
+    },
+    {
+      "variant": "B",
+      "repetition": 1,
+      "elapsedMs": 54573,
+      "inputTokens": 148602,
+      "cachedInputTokens": 110464,
+      "uncachedInputTokens": 38138,
+      "outputTokens": 1893,
+      "toolCalls": 13,
+      "proxyApiRequests": 8,
+      "proxyFailedRequests": 0
+    },
+    {
+      "variant": "B",
+      "repetition": 2,
+      "elapsedMs": 108768,
+      "inputTokens": 154001,
+      "cachedInputTokens": 110464,
+      "uncachedInputTokens": 43537,
+      "outputTokens": 3785,
+      "toolCalls": 14,
+      "proxyApiRequests": 8,
+      "proxyFailedRequests": 0
+    },
+    {
+      "variant": "C",
+      "repetition": 1,
+      "elapsedMs": 113531,
+      "inputTokens": 223040,
+      "cachedInputTokens": 173184,
+      "uncachedInputTokens": 49856,
+      "outputTokens": 3762,
+      "toolCalls": 18,
+      "proxyApiRequests": 9,
+      "proxyFailedRequests": 0
+    },
+    {
+      "variant": "C",
+      "repetition": 2,
+      "elapsedMs": 87918,
+      "inputTokens": 173378,
+      "cachedInputTokens": 133760,
+      "uncachedInputTokens": 39618,
+      "outputTokens": 3039,
+      "toolCalls": 13,
+      "proxyApiRequests": 8,
+      "proxyFailedRequests": 0
+    },
+    {
+      "variant": "D",
+      "repetition": 1,
+      "elapsedMs": 144053,
+      "inputTokens": 178603,
+      "cachedInputTokens": 136320,
+      "uncachedInputTokens": 42283,
+      "outputTokens": 4568,
+      "toolCalls": 10,
+      "proxyApiRequests": 15,
+      "proxyFailedRequests": 0
+    },
+    {
+      "variant": "D",
+      "repetition": 2,
+      "elapsedMs": 196835,
+      "inputTokens": 218104,
+      "cachedInputTokens": 158592,
+      "uncachedInputTokens": 59512,
+      "outputTokens": 5815,
+      "toolCalls": 11,
+      "proxyApiRequests": 19,
+      "proxyFailedRequests": 0
+    }
+  ],
+  "decision": "Adopt B for this verified host; use C/D capabilities only when required",
+  "limitations": [
+    "Two runs per policy; A2 repeated later after quota reset",
+    "Whole-policy comparison includes response length, tool selection and cache history",
+    "Proxy request counts may include approval-model requests; CLI usage is task-model usage",
+    "No universal reduction, causal Headroom-only effect, billing or quota savings claim"
+  ]
+}

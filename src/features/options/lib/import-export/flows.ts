@@ -1,12 +1,23 @@
-import { importBackupV2WithRecovery } from '@/app/composition/optionsBackupRecovery'
+import {
+  importBackupV2WithRecovery,
+  readBackupImportCurrent,
+} from '@/app/composition/optionsBackupRecovery'
 import { logger } from '@/lib/logging/logger'
 import { assertBackupSerializedBytes } from '@/lib/persistence/backupResourcePolicy'
+import { normalizeUserSettingsForStorage } from '@/lib/storage/settings'
 import { formatLocaleDateTime } from '@/utils/localDateTime'
 
 import {
   assertProductionImportAllowed,
   ProductionBackupImportError,
 } from './productionImportGate'
+import { BackupMapper } from './v2/BackupMapper'
+import { createBackupImportDiff } from './v2/BackupV2ImportDiff'
+import type {
+  BackupImportChange,
+  BackupImportCurrent,
+  BackupImportOptions,
+} from './v2/BackupV2ImportDiff'
 
 type ImportFailureStage = 'format-detection' | 'v2-overwrite'
 
@@ -72,7 +83,7 @@ const getKnownImportErrorMessage = (
   if (error.code === 'UNSUPPORTED_LEGACY_BACKUP') {
     return translate
       ? translate('options.importExport.unsupportedLegacyBackup')
-      : 'このバックアップ形式はサポートされていません。現在のバックアップ形式のみインポートできます。'
+      : 'このバックアップ形式はサポートされていません。'
   }
   if (error.code === 'UNSUPPORTED_FUTURE_SCHEMA') {
     return translate
@@ -91,6 +102,11 @@ const getImportFailureMessage = (
 ): string => {
   if (error instanceof ProductionBackupImportError) {
     return getKnownImportErrorMessage(error, translate)
+  }
+  if (diagnostic.errorCode === 'IMPORT_PREVIEW_STALE') {
+    return translate
+      ? translate('options.importExport.previewStale')
+      : 'プレビュー後にデータが変更されました。戻って最新の差分を確認してください。'
   }
   const baseMessage = translate
     ? translate('options.importExport.importError')
@@ -130,16 +146,27 @@ const downloadAsJson = async (
 const importSettings = async (
   jsonData: string,
   translate?: Translate,
+  options?: BackupImportOptions,
 ): Promise<ImportResult> => {
   let stage: ImportFailureStage = 'format-detection'
   try {
     const gateResult = assertProductionImportAllowed(jsonData)
 
     stage = 'v2-overwrite'
-    await importBackupV2WithRecovery(gateResult.inspection)
+    const imported = options
+      ? await importBackupV2WithRecovery(gateResult.inspection, options)
+      : await importBackupV2WithRecovery(gateResult.inspection)
     const formattedTimestamp = formatLocaleDateTime(
       new Date(gateResult.inspection.preview.exportedAt).getTime(),
     )
+    if (imported.concurrentChange) {
+      return {
+        success: true,
+        message: translate
+          ? translate('options.importExport.importConcurrentChange')
+          : '復元後に別の画面でデータが更新されました。最新の状態を確認してください。',
+      }
+    }
     return {
       success: true,
       message: translate
@@ -170,6 +197,10 @@ const importSettings = async (
 }
 
 type ImportPreview = {
+  readonly comparison?: {
+    readonly current: BackupImportCurrent
+    readonly changes: readonly BackupImportChange[]
+  }
   readonly categoriesCount: number
   readonly domainsCount: number
   readonly hasAiChat: boolean
@@ -225,7 +256,49 @@ const getImportPreview = (
   }
 }
 
-export { downloadAsJson, getImportPreview, importSettings }
+const prepareImportPreview = async (
+  jsonData: string,
+  translate?: Translate,
+): Promise<ImportPreviewResult> => {
+  const result = getImportPreview(jsonData, translate)
+  if (!result.success) {
+    return result
+  }
+  try {
+    const { inspection } = assertProductionImportAllowed(jsonData)
+    const current = await readBackupImportCurrent()
+    return {
+      ...result,
+      preview: {
+        ...result.preview,
+        comparison: {
+          current,
+          changes: createBackupImportDiff(
+            current.data,
+            BackupMapper.toBackupData(
+              BackupMapper.toLogicalSnapshot(inspection.data, 0),
+              normalizeUserSettingsForStorage(inspection.data.userSettings),
+            ),
+          ),
+        },
+      },
+    }
+  } catch (error) {
+    const diagnostic = createImportFailureDiagnostic(error, 'v2-overwrite')
+    return {
+      success: false,
+      diagnostic,
+      message: getImportFailureMessage(error, diagnostic, translate),
+    }
+  }
+}
+
+export {
+  downloadAsJson,
+  getImportPreview,
+  importSettings,
+  prepareImportPreview,
+}
 export type {
   ImportFailureDiagnostic,
   ImportFailureStage,

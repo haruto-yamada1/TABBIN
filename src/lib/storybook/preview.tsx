@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import type { AppLanguage } from '@/features/i18n/messages'
 
 import {
   primeStorybookBrowserMocks,
@@ -15,6 +16,7 @@ type StoryTheme = 'dark' | 'light' | 'system' | 'user'
 
 type StorybookHarnessProps = {
   children: React.ReactNode
+  locale?: AppLanguage
   storage?: Record<string, unknown>
   theme?: StoryTheme
 }
@@ -33,23 +35,30 @@ const applyThemeClass = (theme: StoryTheme) => {
 
 const getInitialStorage = (
   theme: StoryTheme,
+  locale: AppLanguage,
   storage?: Record<string, unknown>,
 ) => ({
   ...(theme === 'user'
     ? storybookThemeStorage('user')
     : storybookThemeStorage(theme === 'dark' ? 'dark' : 'light')),
   ...storage,
+  userSettings: {
+    ...storybookThemeStorage(theme === 'dark' ? 'dark' : 'light').userSettings,
+    ...(isRecord(storage?.userSettings) ? storage.userSettings : {}),
+    language: locale,
+  },
 })
 
 const StorybookTestHarness = ({
   children,
+  locale = 'en',
   storage,
   theme = 'light',
 }: StorybookHarnessProps) => {
-  primeStorybookBrowserMocks(getInitialStorage(theme, storage))
+  primeStorybookBrowserMocks(getInitialStorage(theme, locale, storage))
 
   useEffect(() => {
-    setStorybookStorage(getInitialStorage(theme, storage))
+    setStorybookStorage(getInitialStorage(theme, locale, storage))
     applyThemeClass(theme)
 
     return () => {
@@ -57,7 +66,7 @@ const StorybookTestHarness = ({
       root.classList.remove('light', 'dark')
       root.removeAttribute('style')
     }
-  }, [storage, theme])
+  }, [locale, storage, theme])
 
   return (
     <ThemeProvider defaultTheme={theme}>
@@ -103,6 +112,7 @@ const withAppShell: Decorator = (Story, context) => {
   return (
     <StorybookTestHarness
       {...(storybookStorage !== undefined ? { storage: storybookStorage } : {})}
+      locale={context.globals.locale === 'ja' ? 'ja' : 'en'}
       theme={theme}
     >
       <Story />
@@ -113,6 +123,15 @@ const withAppShell: Decorator = (Story, context) => {
 const previewDecorators: Preview['decorators'] = [withAppShell]
 
 const previewGlobalTypes: NonNullable<Preview['globalTypes']> = {
+  locale: {
+    defaultValue: 'en',
+    description: 'Language for localized stories',
+    toolbar: {
+      icon: 'globe',
+      items: ['en', 'ja'],
+      title: 'Language',
+    },
+  },
   theme: {
     defaultValue: 'light',
     description: 'Global theme for components',

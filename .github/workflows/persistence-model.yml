@@ -1,0 +1,65 @@
+name: Persistence State Model
+
+on:
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Daily at 03:41 JST. Scheduled workflows run on the default branch.
+    - cron: '41 18 * * *'
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: 'Number of generated sequences (positive integer)'
+        required: false
+        default: '100'
+        type: string
+      commands:
+        description: 'Maximum commands per sequence (positive integer)'
+        required: false
+        default: '40'
+        type: string
+      seed:
+        description: 'Optional fast-check failure seed'
+        required: false
+        type: string
+      path:
+        description: 'Optional fast-check failure shrink path'
+        required: false
+        type: string
+      replay_path:
+        description: 'Optional commands replayPath from the counterexample'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: persistence-model-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  model:
+    name: IndexedDB State Model
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PERSISTENCE_FC_RUNS: ${{ inputs.runs || (github.event_name == 'schedule' && '1000' || '100') }}
+      PERSISTENCE_FC_COMMANDS: ${{ inputs.commands || (github.event_name == 'schedule' && '100' || '40') }}
+      PERSISTENCE_FC_SEED: ${{ inputs.seed }}
+      PERSISTENCE_FC_PATH: ${{ inputs.path }}
+      PERSISTENCE_FC_REPLAY_PATH: ${{ inputs.replay_path }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+      - name: Install fixed dependencies
+        run: bun install --frozen-lockfile
+      - name: Check IndexedDB operation sequences
+        run: bun run test:persistence:model

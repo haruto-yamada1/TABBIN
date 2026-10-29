@@ -12,6 +12,7 @@ import { SavedTabsResponsiveTooltipContent } from './SavedTabsResponsive'
 /** CardSortControl の props */
 type CardSortControlProps = {
   /** 現在のソート順 */
+  disabled?: boolean
   sortOrder: SortOrder
   /** ソート順を設定する関数 */
   setSortOrder: React.Dispatch<React.SetStateAction<SortOrder>>
@@ -27,6 +28,7 @@ type CardSortControlProps = {
  * @param props CardSortControlProps
  */
 export const CardSortControl = ({
+  disabled = false,
   sortOrder,
   setSortOrder,
   targetName,
@@ -68,6 +70,7 @@ export const CardSortControl = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          disabled={disabled}
           variant='secondary'
           size='sm'
           onPointerDown={onPointerDown}

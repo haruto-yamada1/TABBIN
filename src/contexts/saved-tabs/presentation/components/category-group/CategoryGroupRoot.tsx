@@ -10,6 +10,7 @@ import type {
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { CategoryManagementModal } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { useCategoryGroupState } from '@/contexts/saved-tabs/presentation/hooks/useCategoryGroupState'
+import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { CategoryGroupProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -86,8 +87,21 @@ export const CategoryGroupRoot = ({
     renameParentCategoryUseCase,
   })
 
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: category.id })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    id: category.id,
+    data: { name: category.name, type: 'parent-category' },
+  })
+  const feedback = useDropTargetFeedback({
+    id: category.id,
+    accepts: 'parent-category',
+  })
 
   const style = useMemo(
     () => ({
@@ -124,7 +138,7 @@ export const CategoryGroupRoot = ({
       reorderTabGroupUrlsUseCase,
       searchQuery,
       settings,
-      sortable: { attributes, listeners },
+      sortable: { attributes, listeners, setActivatorNodeRef },
       state,
       visibleDomainsCount,
     }),
@@ -138,6 +152,7 @@ export const CategoryGroupRoot = ({
       visibleDomainsCount,
       allUrls,
       attributes,
+      setActivatorNodeRef,
       listeners,
       handlers,
       reorderTabGroupUrlsUseCase,
@@ -165,7 +180,8 @@ export const CategoryGroupRoot = ({
       <fieldset
         ref={setNodeRef}
         style={style}
-        className='m-0 min-w-0 border-0 p-0'
+        className={`m-0 min-w-0 border-0 p-0 ${feedback.className}`}
+        data-drop-state={feedback.state}
         data-saved-tabs-scroll-target='parent'
         aria-label={t('savedTabs.categoryGroupAria', undefined, {
           name: category.name,

@@ -28,6 +28,34 @@ const createUrlRecordRepository = (
 })
 
 describe('GetProjectUrlsUseCase', () => {
+  it('resolves a project from one URL read instead of rereading every membership', async () => {
+    const records = Array.from({ length: 100 }, (_, index) =>
+      createUrlRecord({
+        id: `url-${index}`,
+        savedAt: 10,
+        title: `Title ${index}`,
+        url: `https://example.com/${index}`,
+      }),
+    )
+    const repository = createUrlRecordRepository(records)
+    const useCase = createGetProjectUrlsUseCase({
+      customProjectRepository: createCustomProjectRepository(),
+      urlRecordRepository: repository,
+    })
+    const project = createCustomProject({
+      id: 'large-project',
+      memberships: records.map(({ id }) => ({ urlId: id })),
+    })
+
+    const entries = await useCase(project)
+
+    expect(entries.map(({ id }) => id)).toStrictEqual(
+      records.map(({ id }) => id),
+    )
+    expect(repository.findAll).toHaveBeenCalledOnce()
+    expect(repository.findById).not.toHaveBeenCalled()
+  })
+
   it('current membershipをsortOrder順にURL・category・notesへ解決する', async () => {
     const project = createCustomProject({
       categories: ['Reading'],
@@ -100,13 +128,16 @@ describe('GetProjectUrlsUseCase', () => {
   })
 
   it('membershipが空なら空配列を返す', async () => {
+    const repository = createUrlRecordRepository([])
     const useCase = createGetProjectUrlsUseCase({
       customProjectRepository: createCustomProjectRepository(),
-      urlRecordRepository: createUrlRecordRepository([]),
+      urlRecordRepository: repository,
     })
 
     await expect(
       useCase(createCustomProject({ id: 'project-empty' })),
     ).resolves.toStrictEqual([])
+    expect(repository.findAll).not.toHaveBeenCalled()
+    expect(repository.findById).not.toHaveBeenCalled()
   })
 })

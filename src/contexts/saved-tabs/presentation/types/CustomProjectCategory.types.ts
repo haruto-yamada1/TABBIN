@@ -16,7 +16,7 @@ export type CustomProjectCategoryProps = {
     projectId: string,
     url: string,
     category?: string,
-  ) => void
+  ) => void | Promise<void>
   handleAddCategory: (projectId: string, category: string) => void
   settings: UserSettingsDto
   handleOpenAllUrls?: (urls: { url: string; title: string }[]) => void

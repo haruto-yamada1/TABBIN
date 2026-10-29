@@ -4,10 +4,8 @@ import type {
   PersistenceBootstrapErrorCode,
   PersistenceRecoveryState,
 } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
-import type { PersistenceV2MigrationDiagnostic } from '@/contexts/saved-tabs/application/ports/PersistenceRecoveryPort'
 
 export type PersistenceRecoveryServiceOptions = {
-  readonly readDiagnostic?: () => PersistenceV2MigrationDiagnostic | undefined
   readonly retry: () => Promise<void>
 }
 
@@ -34,18 +32,14 @@ export class PersistenceRecoveryService implements PersistenceBootstrapRecoveryC
 
   readonly reportUnavailable = (
     errorCode: PersistenceBootstrapErrorCode,
-    persistedDiagnostic?: PersistenceV2MigrationDiagnostic,
   ): void => {
-    const diagnostic = persistedDiagnostic ?? this.options.readDiagnostic?.()
     if (
       this.state.status === 'unavailable' &&
-      this.state.errorCode === errorCode &&
-      this.state.diagnostic === diagnostic
+      this.state.errorCode === errorCode
     ) {
       return
     }
     this.state = {
-      ...(diagnostic ? { diagnostic } : {}),
       status: 'unavailable',
       errorCode,
     }
@@ -77,7 +71,7 @@ export class PersistenceRecoveryService implements PersistenceBootstrapRecoveryC
 
   private readonly retainFailure = (error: unknown): void => {
     if (error instanceof PersistenceUnavailableError) {
-      this.reportUnavailable(error.code, error.diagnostic)
+      this.reportUnavailable(error.code)
       return
     }
     this.reportUnavailable('PERSISTENCE_RECOVERY_REQUIRED')

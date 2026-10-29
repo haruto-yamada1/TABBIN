@@ -18,6 +18,8 @@ import type {
   PersistenceRecoverySnapshotSummary,
   PersistenceV2ReplacementPort,
 } from '@/contexts/saved-tabs/public-api'
+import { BackupMapper } from '@/features/options/lib/import-export/v2/BackupMapper'
+import type { BackupImportCurrent } from '@/features/options/lib/import-export/v2/BackupV2ImportDiff'
 import { createImportBackupV2UseCase } from '@/features/options/lib/import-export/v2/ImportBackupV2UseCase'
 import type {
   ImportBackupV2UseCase,
@@ -31,12 +33,14 @@ import type {
 } from '@/features/options/lib/import-export/v2/PreImportRecoverySnapshotService'
 import type { PersistenceStorageEstimatePort } from '@/lib/persistence/capacity'
 import {
+  normalizeUserSettingsForStorage,
   readUserSettingsWithoutRepair,
   saveUserSettings,
 } from '@/lib/storage/settings'
 
 export type OptionsBackupRecoveryRuntime = {
   readonly importBackupV2: ImportBackupV2UseCase
+  readonly readImportCurrent: () => Promise<BackupImportCurrent>
   readonly listRecoverySnapshots: () => Promise<
     readonly PersistenceRecoverySnapshotSummary[]
   >
@@ -68,12 +72,10 @@ export type OptionsBackupRecoveryRuntimeDeps = {
     operationGate: PersistenceOperationGatePort,
   ) => ImportBackupV2UseCaseDeps['snapshotReader']
   readonly estimateStorage: PersistenceStorageEstimatePort
-  readonly getBootstrap: () => Pick<
-    PersistenceBootstrapPort,
-    'ready' | 'readState'
-  >
+  readonly getBootstrap: () => Pick<PersistenceBootstrapPort, 'ready'>
   readonly getOperationGate: () => PersistenceOperationGatePort
   readonly idGenerator: IdGeneratorPort
+  readonly normalizeUserSettings: ImportBackupV2UseCaseDeps['normalizeUserSettings']
   readonly readUserSettings: ImportBackupV2UseCaseDeps['readUserSettings']
   readonly writeUserSettings: ImportBackupV2UseCaseDeps['writeUserSettings']
 }
@@ -150,6 +152,7 @@ const defaultDeps: OptionsBackupRecoveryRuntimeDeps = {
   getBootstrap: () => getPersistenceBootstrapRuntime().bootstrap,
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   idGenerator: createSystemIdGenerator(),
+  normalizeUserSettings: normalizeUserSettingsForStorage,
   readUserSettings: readUserSettingsWithoutRepair,
   writeUserSettings: saveUserSettings,
 }
@@ -179,6 +182,7 @@ const createRuntime = (
     clock: deps.clock,
     estimateStorage: deps.estimateStorage,
     idGenerator: deps.idGenerator,
+    normalizeUserSettings: deps.normalizeUserSettings,
     readUserSettings: deps.readUserSettings,
     replacement,
     repository,
@@ -186,11 +190,21 @@ const createRuntime = (
     writeUserSettings,
   })
   const importBackupV2 = deps.createImportUseCase({
+    changePort: deps.changePort,
+    idGenerator: deps.idGenerator,
+    normalizeUserSettings: deps.normalizeUserSettings,
     readUserSettings: deps.readUserSettings,
     recovery: {
       captureBeforeOverwrite: recoveryService.captureBeforeOverwrite,
-      restore: async (recoveryId) => {
-        await recoveryService.restore(getRecoverySnapshotId(recoveryId))
+      restore: async (recoveryId, options) => {
+        if (options) {
+          await recoveryService.restore(
+            getRecoverySnapshotId(recoveryId),
+            options,
+          )
+        } else {
+          await recoveryService.restore(getRecoverySnapshotId(recoveryId))
+        }
       },
     },
     replacement,
@@ -203,19 +217,18 @@ const createRuntime = (
       connectionManager.close()
     },
     importBackupV2,
+    readImportCurrent: async () => {
+      await deps.getBootstrap().ready()
+      const snapshot = await snapshotReader.readConsistentSnapshot()
+      const settings = deps.normalizeUserSettings(await deps.readUserSettings())
+      return {
+        data: BackupMapper.toBackupData(snapshot, settings),
+        revision: snapshot.revision,
+      }
+    },
     listRecoverySnapshots: async () => {
       const bootstrap = deps.getBootstrap()
       await bootstrap.ready()
-      const state = await bootstrap.readState()
-      // Recovery snapshots belong to the IndexedDB data plane. A blocked
-      // legacy migration has no authorized IndexedDB snapshot list to read.
-      if (
-        state.status === 'legacy' ||
-        (state.status === 'read-only-emergency' &&
-          state.readSource === 'legacy')
-      ) {
-        return []
-      }
       return recoveryService.listAvailable()
     },
     restoreRecoverySnapshot: async (id) =>
@@ -234,7 +247,8 @@ export const getOptionsBackupRecoveryRuntime = (
 
 export const importBackupV2WithRecovery: ImportBackupV2UseCase = async (
   inspection,
-) => getOptionsBackupRecoveryRuntime().importBackupV2(inspection)
+  options,
+) => getOptionsBackupRecoveryRuntime().importBackupV2(inspection, options)
 
 export const listBackupRecoverySnapshots = async (): Promise<
   readonly PersistenceRecoverySnapshotSummary[]
@@ -249,3 +263,6 @@ export const resetOptionsBackupRecoveryRuntimeForTesting = (): void => {
   runtime?.close()
   runtime = undefined
 }
+
+export const readBackupImportCurrent = async (): Promise<BackupImportCurrent> =>
+  getOptionsBackupRecoveryRuntime().readImportCurrent()

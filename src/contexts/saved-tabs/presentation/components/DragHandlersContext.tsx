@@ -4,8 +4,11 @@ import { createContext, use } from 'react'
 export type ProjectDragHandlers = {
   handleDragStart: (event: DragStartEvent) => void
   handleDragOver: (event: DragOverEvent, project: { id: string }) => void
-  handleCategoryDragEnd: (event: DragEndEvent) => void
-  handleUrlDragEnd: (event: DragEndEvent, isUncategorizedOver: boolean) => void
+  handleCategoryDragEnd: (event: DragEndEvent) => void | Promise<void>
+  handleUrlDragEnd: (
+    event: DragEndEvent,
+    isUncategorizedOver: boolean,
+  ) => void | Promise<void>
   clearDragState: () => void
 }
 

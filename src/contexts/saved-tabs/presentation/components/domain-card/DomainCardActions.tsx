@@ -30,8 +30,15 @@ const BULK_OPEN_THRESHOLD = 10
 export const DomainCardActions = () => {
   // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
-  const { state, group, settings, isReorderMode, searchQuery, handlers } =
-    useDomainCard()
+  const {
+    state,
+    group,
+    settings,
+    isReorderMode,
+    searchQuery,
+    handlers,
+    favoriteFilter,
+  } = useDomainCard()
   const useCases = useSavedTabsUseCases()
   const { keywordModal, parentCategories, categoryActions } = state
   const domainName = group.domain
@@ -58,13 +65,26 @@ export const DomainCardActions = () => {
   const executeDeleteAll = useCallback(() => {
     const visibleUrls = (group.urls ?? []).map((item) => item.url)
 
-    if (hasSearchQuery && handlers.handleDeleteUrls && visibleUrls.length > 0) {
+    if (favoriteFilter?.only && visibleUrls.length === 0) {
+      return
+    }
+    if (
+      (hasSearchQuery || favoriteFilter?.only) &&
+      handlers.handleDeleteUrls &&
+      visibleUrls.length > 0
+    ) {
       void handlers.handleDeleteUrls(group.id, visibleUrls)
+      return
+    }
+    if (favoriteFilter?.only) {
+      for (const url of visibleUrls) {
+        handlers.handleDeleteUrl(group.id, url)
+      }
       return
     }
 
     handlers.handleDeleteGroup(group.id)
-  }, [group.id, group.urls, handlers, hasSearchQuery])
+  }, [group.id, group.urls, handlers, hasSearchQuery, favoriteFilter?.only])
 
   const categoryKeywordModalDeps = useMemo(
     () =>

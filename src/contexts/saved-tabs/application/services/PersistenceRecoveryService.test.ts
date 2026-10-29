@@ -12,11 +12,11 @@ describe('PersistenceRecoveryService', () => {
     const listener = vi.fn()
     service.subscribe(listener)
 
-    service.reportUnavailable('PERSISTENCE_MIGRATION_FAILED')
+    service.reportUnavailable('PERSISTENCE_RECOVERY_REQUIRED')
 
     expect(service.getSnapshot()).toEqual({
       status: 'unavailable',
-      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
+      errorCode: 'PERSISTENCE_RECOVERY_REQUIRED',
     })
     expect(listener).toHaveBeenCalledTimes(1)
   })
@@ -24,7 +24,7 @@ describe('PersistenceRecoveryService', () => {
   it('clears the recovery state after a successful retry', async () => {
     const retry = vi.fn(async () => undefined)
     const service = new PersistenceRecoveryService({ retry })
-    service.reportUnavailable('PERSISTENCE_VERIFICATION_FAILED')
+    service.reportUnavailable('PERSISTENCE_RECOVERY_REQUIRED')
 
     await service.retry()
 
@@ -32,68 +32,22 @@ describe('PersistenceRecoveryService', () => {
     expect(service.getSnapshot()).toEqual({ status: 'available' })
   })
 
-  it('publishes the raw-free migration diagnostic with the recovery state', () => {
-    const diagnostic = {
-      errorCode: 'MIGRATION_TARGET_WRITE_FAILED' as const,
-      issueCodes: [],
-      migrationId: 'migration-1',
-      sourceBytes: 42,
-      sourceEntityCounts: { urls: 1 },
-      stage: 'target-write' as const,
-    }
-    const service = new PersistenceRecoveryService({
-      readDiagnostic: () => diagnostic,
-      retry: vi.fn(async () => undefined),
-    })
-
-    service.reportUnavailable('PERSISTENCE_MIGRATION_FAILED')
-
-    expect(service.getSnapshot()).toEqual({
-      diagnostic,
-      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
-      status: 'unavailable',
-    })
-  })
-
-  it('hydrates the recovery state from a persisted failed-state diagnostic', () => {
-    const diagnostic = {
-      errorCode: 'MIGRATION_TARGET_WRITE_FAILED' as const,
-      issueCodes: ['DUPLICATE_URL_ID'],
-      migrationId: 'migration-1',
-      sourceBytes: 128,
-      sourceEntityCounts: { urls: 2 },
-      stage: 'target-write' as const,
-    }
-    const service = new PersistenceRecoveryService({
-      retry: vi.fn(async () => undefined),
-    })
-
-    Reflect.apply(service.reportUnavailable, service, [
-      'PERSISTENCE_MIGRATION_FAILED',
-      diagnostic,
-    ])
-
-    expect(service.getSnapshot()).toEqual({
-      diagnostic,
-      errorCode: 'PERSISTENCE_MIGRATION_FAILED',
-      status: 'unavailable',
-    })
-  })
-
   it('keeps the latest typed error visible when retry fails again', async () => {
     expect.hasAssertions()
     const retry = vi.fn(async () => {
-      throw new PersistenceUnavailableError('PERSISTENCE_PREFLIGHT_STALE')
+      throw new PersistenceUnavailableError(
+        'PERSISTENCE_COORDINATION_UNAVAILABLE',
+      )
     })
     const service = new PersistenceRecoveryService({ retry })
-    service.reportUnavailable('PERSISTENCE_MIGRATION_FAILED')
+    service.reportUnavailable('PERSISTENCE_RECOVERY_REQUIRED')
 
     await expect(service.retry()).rejects.toMatchObject({
-      code: 'PERSISTENCE_PREFLIGHT_STALE',
+      code: 'PERSISTENCE_COORDINATION_UNAVAILABLE',
     })
     expect(service.getSnapshot()).toEqual({
       status: 'unavailable',
-      errorCode: 'PERSISTENCE_PREFLIGHT_STALE',
+      errorCode: 'PERSISTENCE_COORDINATION_UNAVAILABLE',
     })
   })
 

@@ -8,7 +8,8 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, describe, expect, test } from 'vitest'
+import { API } from 'typescript/unstable/sync'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import {
   containsStorageMutationBoundary,
@@ -51,8 +52,8 @@ const REQUIRED_WRITER_COLUMNS = [
   'RMW',
   'Queue/lock',
   'Cache',
-  'Preflight barrier',
-  'Migration barrier',
+  'Capacity policy',
+  'Readiness / recovery gate',
   'Change notification',
   'v2 target',
 ] as const
@@ -61,42 +62,23 @@ const CURRENT_WRITER_IDS = [
   'UI-THEME',
   'UI-COLOR-RESET',
   'UI-ROUTE-CLEANUP',
+  'UI-SAVED-TABS-SORT',
+  'UI-SAVED-TABS-SEARCH-HISTORY',
+  'UI-SAVED-TAB-TITLE',
   'RELEASE-CONTROL',
-  'PERSISTENCE-CONTROL-STATE',
-  'LEGACY-DOMAIN-CLEANUP',
   'SETTINGS-REPAIR',
   'SETTINGS-SAVE',
+  'REVIEW-REMINDER-SETTINGS',
+  'REVIEW-REMINDER-NOTIFICATION',
+  'REVIEW-REMINDER-SCHEDULE',
   'SETTINGS-AUTO-DELETE',
-  'AI-HISTORY-REPAIR',
-  'AI-HISTORY-SAVE',
-  'ANALYTICS-VIEWS',
-  'ANALYTICS-UNDO',
-  'IMPORT-OVERWRITE',
-  'DDD-URLS',
-  'DDD-TAB-GROUPS',
-  'DDD-CUSTOM-PROJECTS',
-  'DDD-CUSTOM-ORDER-UNDO',
-  'DDD-PARENT-CATEGORIES',
-  'DDD-DOMAIN-SETTINGS',
-  'DDD-DOMAIN-MAPPINGS',
   'DDD-USER-SETTINGS',
-  'LEGACY-PARENT-CATEGORIES',
-  'LEGACY-DOMAIN-CATEGORIES',
-  'PARENT-CATEGORY-MIGRATION',
-  'SAVE-TABS-FACADE',
-  'HOSTNAME-MIGRATION',
-  'URL-MIGRATION',
-  'PROJECTS-REPAIR',
-  'PROJECTS-WRITE',
-  'PROJECTS-DOMAIN-SYNC',
-  'SAVED-TABS-WRITE',
-  'SAVED-TABS-AUTO',
-  'SAVED-TABS-DELETE-UNDO',
-  'URLS-WRITE',
-  'URLS-CLEANUP-DEDUPE',
-  'BACKGROUND-URL-REMOVE',
-  'EXPIRED-TABS-CLEANUP',
-  'TAB-TIMESTAMP-UPDATE',
+  'AI-SELECTION',
+  'IMPORT-OVERWRITE',
+  'PERSISTENCE-V2-SAVED-TABS',
+  'PERSISTENCE-V2-AI-HISTORY',
+  'PERSISTENCE-V2-ANALYTICS',
+  'PERSISTENCE-V2-RECOVERY',
 ] as const
 
 const DEFAULT_MUTATION_FILE = 'src/lib/storage/listed.ts'
@@ -230,49 +212,62 @@ afterEach(() => {
 })
 
 describe('verifyStorageWriterInventory', () => {
+  test('keeps type signature parameters from becoming runtime storage writers', () => {
+    expect(
+      containsStorageMutationBoundary(
+        'interface Handler { [storageLocal.set({})](storageLocal: unknown): void }',
+        'src/signature.ts',
+      ),
+    ).toBe(false)
+  })
+
   test('accepts the authoritative inventory for the real repository', () => {
-    expect(() =>
-      verifyStorageWriterInventory({
-        inventoryPath: 'docs/architecture/current-storage-writer-inventory.md',
-        repoRoot: process.cwd(),
-        sourceRoots: ['src'],
-      }),
-    ).not.toThrow()
+    const close = vi.spyOn(API.prototype, 'close')
+    try {
+      expect(() =>
+        verifyStorageWriterInventory({
+          inventoryPath:
+            'docs/architecture/current-storage-writer-inventory.md',
+          repoRoot: process.cwd(),
+          sourceRoots: ['src'],
+        }),
+      ).not.toThrow()
+      expect(close).toHaveBeenCalledOnce()
+    } finally {
+      close.mockRestore()
+    }
   })
 
   test.each([
-    'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
-  ])(
-    'discovers and maps the real repository alias writer %s',
-    (relativePath) => {
-      const sourceCode = readFileSync(
-        path.join(process.cwd(), relativePath),
+    'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
+    'src/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSortPreferencesAdapter.ts',
+    'src/lib/storage/saved-tab-title-indicator.ts',
+  ])('discovers and maps the real storage writer %s', (relativePath) => {
+    const sourceCode = readFileSync(
+      path.join(process.cwd(), relativePath),
+      'utf8',
+    )
+    const inventory = parseStorageWriterInventory(
+      readFileSync(
+        path.join(
+          process.cwd(),
+          'docs/architecture/current-storage-writer-inventory.md',
+        ),
         'utf8',
-      )
-      const inventory = parseStorageWriterInventory(
-        readFileSync(
-          path.join(
-            process.cwd(),
-            'docs/architecture/current-storage-writer-inventory.md',
-          ),
-          'utf8',
-        ),
-      )
+      ),
+    )
 
-      expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(
-        true,
-      )
-      expect(
-        inventory.writerTable.rows.some((row) =>
-          row.fileReferences.has(relativePath),
-        ),
-      ).toBe(true)
-      expect(inventory.mutationFiles.has(relativePath)).toBe(true)
-    },
-  )
+    expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(true)
+    expect(
+      inventory.writerTable.rows.some((row) =>
+        row.fileReferences.has(relativePath),
+      ),
+    ).toBe(true)
+    expect(inventory.mutationFiles.has(relativePath)).toBe(true)
+  })
 
   test('does not classify the app repository composition as a writer after settings-port separation', () => {
-    const relativePath = 'src/app/composition/createSavedTabsRepositories.ts'
+    const relativePath = 'src/app/composition/createSavedTabsUseCases.ts'
     const sourceCode = readFileSync(
       path.join(process.cwd(), relativePath),
       'utf8',
@@ -324,7 +319,9 @@ describe('verifyStorageWriterInventory', () => {
         repoRoot,
         sourceRoots: ['src'],
       }),
-    ).toThrow('Writer ID baseline mismatch: expected 39 rows, found 38')
+    ).toThrow(
+      `Writer ID baseline mismatch: expected ${CURRENT_WRITER_IDS.length} rows, found ${CURRENT_WRITER_IDS.length - 1}`,
+    )
   })
 
   test.each([
@@ -817,6 +814,15 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
         'const persistedState = getChromeStorageLocal()\nawait persistedState?.clear()',
     },
     {
+      name: 'injected storage with a Chrome Storage fallback',
+      relativePath:
+        'src/contexts/example/infrastructure/browser/ChromeHistory.ts',
+      sourceCode: [
+        'const storageLocal = deps.storage ?? getChromeStorageLocal()',
+        'await storageLocal.set({ history: [] })',
+      ].join('\n'),
+    },
+    {
       name: 'getChromeStorageLocal arbitrary alias from a nested closure',
       relativePath: 'src/lib/storage/resolved.ts',
       sourceCode: [
@@ -875,6 +881,17 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
     expect(containsStorageMutationBoundary(sourceCode, relativePath)).toBe(true)
   })
 
+  test('detects the production search-history writer', () => {
+    const relativePath =
+      'src/contexts/saved-tabs/infrastructure/browser/ChromeSavedTabsSearchHistory.ts'
+    expect(
+      containsStorageMutationBoundary(
+        readFileSync(relativePath, 'utf8'),
+        relativePath,
+      ),
+    ).toBe(true)
+  })
+
   test.each([
     {
       name: 'regex literal',
@@ -899,6 +916,20 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
     {
       name: 'unrelated local alias setter',
       sourceCode: 'const local = otherFactory()\nawait local.set({ urls: [] })',
+    },
+    {
+      name: 'injected fallback to an unrelated Map',
+      sourceCode:
+        'const local = deps.storage ?? new Map()\nlocal.set("key", "value")',
+    },
+    {
+      name: 'parameter shadowing an injected Chrome Storage fallback',
+      sourceCode: [
+        'const local = deps.storage ?? getChromeStorageLocal()',
+        'function update(local: Map<string, unknown>) {',
+        '  local.set("key", "value")',
+        '}',
+      ].join('\n'),
     },
     {
       name: 'storageLocal parameter shadowing the resolved storage binding',
@@ -985,5 +1016,45 @@ ${table([`\`${DEFAULT_MUTATION_FILE}\``])}
         sourceRoots: ['src'],
       }),
     ).not.toThrow()
+  })
+})
+describe('IndexedDB writer detection', () => {
+  test('tracks objectStore aliases and direct calls while ignoring Maps and shadowed aliases', () => {
+    expect(
+      containsStorageMutationBoundary(
+        "const store = transaction.objectStore('urls'); store.put(url)",
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        "transaction.objectStore('urls').delete(id)",
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        'function write(store: IDBObjectStore) { store.add(record) }',
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        'function write({ snapshots }: { snapshots: IDBObjectStore }) { snapshots.clear() }',
+        'src/new-writer.ts',
+      ),
+    ).toBe(true)
+    expect(
+      containsStorageMutationBoundary(
+        'const store = new Map(); store.delete(id)',
+        'src/not-a-writer.ts',
+      ),
+    ).toBe(false)
+    expect(
+      containsStorageMutationBoundary(
+        "const store = transaction.objectStore('urls'); function f(store: Map<string, string>) { store.delete(id) }",
+        'src/not-a-writer.ts',
+      ),
+    ).toBe(false)
   })
 })

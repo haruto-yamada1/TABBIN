@@ -7,15 +7,23 @@ import { fileURLToPath } from 'node:url'
 
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 const projectCardI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
 
-const { useProjectCardMock } = vi.hoisted(() => ({
+const { useProjectCardMock, useDropTargetFeedbackMock } = vi.hoisted(() => ({
   useProjectCardMock: vi.fn(),
+  useDropTargetFeedbackMock: vi.fn(),
 }))
+
+vi.mock(
+  '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback',
+  () => ({
+    useDropTargetFeedback: useDropTargetFeedbackMock,
+  }),
+)
 
 vi.mock('./ProjectCardContext', () => ({
   useProjectCard: useProjectCardMock,
@@ -120,11 +128,82 @@ const createContextValue = (
 })
 
 describe('ProjectCardUncategorizedArea', () => {
+  beforeEach(() => {
+    useDropTargetFeedbackMock.mockImplementation(
+      ({ isOver }: { isOver?: boolean }) => ({
+        state: isOver ? 'over' : 'idle',
+        className: isOver ? 'shared-drop-over' : '',
+      }),
+    )
+  })
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
     projectCardI18nState.language = 'ja'
   })
+
+  it('exposes the shared drop state on a hovered uncategorized area', () => {
+    useProjectCardMock.mockReturnValue(
+      createContextValue({ isUncategorizedOver: true }),
+    )
+
+    render(<ProjectCardUncategorizedArea />)
+
+    expect(screen.getByLabelText('未分類タブエリア')).toHaveAttribute(
+      'data-drop-state',
+      'over',
+    )
+    expect(useDropTargetFeedbackMock).toHaveBeenCalledWith({
+      id: 'uncategorized-project-1',
+      accepts: 'custom',
+      isOver: true,
+    })
+  })
+
+  it.each([false, true])(
+    'uses shared eligibility for an uncategorized area (empty: %s)',
+    (empty) => {
+      useProjectCardMock.mockReturnValue(
+        createContextValue({
+          isUncategorizedOver: true,
+          ...(empty ? { hookState: { urls: { uncategorizedUrls: [] } } } : {}),
+        }),
+      )
+      useDropTargetFeedbackMock.mockReturnValue({
+        state: 'unavailable',
+        className: 'shared-drop-unavailable',
+      })
+
+      const { rerender } = render(<ProjectCardUncategorizedArea />)
+      const area = empty
+        ? screen.getByRole('button', {
+            name: 'タブをここにドロップして未分類に移動',
+          })
+        : screen.getByLabelText('未分類タブエリア')
+      expect(area).toHaveAttribute('data-drop-state', 'unavailable')
+      expect(area).toHaveClass('shared-drop-unavailable')
+      expect(area).not.toHaveClass('border-primary')
+      const borderWidthClass = empty ? 'border-2' : 'border'
+      expect(area).toHaveClass(borderWidthClass)
+
+      useDropTargetFeedbackMock.mockReturnValue({
+        state: 'over',
+        className: 'shared-drop-over',
+      })
+      rerender(<ProjectCardUncategorizedArea />)
+      expect(area).toHaveAttribute('data-drop-state', 'over')
+      expect(area).toHaveClass('shared-drop-over', borderWidthClass)
+      expect(area).not.toHaveClass('shared-drop-unavailable')
+
+      useDropTargetFeedbackMock.mockReturnValue({
+        state: 'idle',
+        className: '',
+      })
+      rerender(<ProjectCardUncategorizedArea />)
+      expect(area).toHaveAttribute('data-drop-state', 'idle')
+      expect(area).not.toHaveClass('shared-drop-over')
+    },
+  )
 
   it('shared ui button を使い、生の button 要素を残さない', () => {
     const source = readFileSync(

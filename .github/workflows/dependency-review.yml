@@ -1,0 +1,64 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+      - name: Require security review for patch changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bun tools/scripts/verify-dependency-patches.ts
+      - name: Install dependencies without lifecycle scripts
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Verify reviewed development license distributions
+        run: bun tools/scripts/verify-dependency-licenses.ts
+      - name: Verify existing node-forge security backport
+        run: bun run verify:security-audit-policy && bun run verify:node-forge-backport
+      - name: Read base lockfile
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git show "$BASE_SHA:bun.lock" > "$RUNNER_TEMP/base-bun.lock"
+      - name: Review Bun resolved dependency changes
+        env:
+          BASE_LOCK: ${{ runner.temp }}/base-bun.lock
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun tools/scripts/run-dependency-review.ts
+      - name: Review GitHub Dependency Graph changes
+        if: ${{ !cancelled() }}
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          fail-on-scopes: runtime, development, unknown
+          allow-licenses: 0BSD, Apache-2.0, Artistic-2.0, BSD-2-Clause, BSD-3-Clause, BlueOak-1.0.0, BSL-1.0, CC0-1.0, CC-BY-3.0, CC-BY-4.0, ISC, MIT, MIT-0, OFL-1.1, Python-2.0, Unlicense, Zlib
+          license-check: true
+          # PURL exclusions ignore versions; the mandatory guard above pins the
+          # development-only distribution, LICENSE digest and review deadline.
+          allow-dependencies-licenses: pkg:npm/react-doctor
+          vulnerability-check: true
+          comment-summary-in-pr: never
+          warn-only: false
+          show-openssf-scorecard: false
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 120

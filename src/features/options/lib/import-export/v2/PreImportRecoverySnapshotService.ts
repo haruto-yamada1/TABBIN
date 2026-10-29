@@ -49,7 +49,7 @@ const KIBIBYTE = 1_024
 export const RECOVERY_CAPACITY_MINIMUM_RESERVE_BYTES = KIBIBYTE * KIBIBYTE
 export const RECOVERY_CAPACITY_RESERVE_RATIO = 0.2
 
-const RESTORE_CHANGE_SCOPES = [
+export const RESTORE_CHANGE_SCOPES = [
   'analyticsViews',
   'categories',
   'collections',
@@ -115,6 +115,8 @@ export type PreImportRecoverySnapshotServiceDeps = {
   readonly clock: ClockPort
   readonly estimateStorage: PersistenceStorageEstimatePort
   readonly idGenerator: IdGeneratorPort
+  /** Must use the same normalization policy as writeUserSettings. */
+  readonly normalizeUserSettings: (settings: UserSettings) => UserSettings
   readonly readUserSettings: () => Promise<UserSettings>
   readonly replacement: PersistenceV2ReplacementPort
   readonly repository: PersistenceRecoverySnapshotRepositoryPort
@@ -158,7 +160,11 @@ export type RecoverySnapshotService = {
   >
   readonly restore: (
     id: string,
-    options?: { readonly captureCurrent?: boolean },
+    options?: {
+      readonly captureCurrent?: boolean
+      readonly preserveSettings?: boolean
+      readonly expectedRevision?: number
+    },
   ) => Promise<RecoverySnapshotRestoreResult>
 }
 
@@ -228,10 +234,13 @@ const assertMatchingReadback = (
   data: BackupDataV2,
   snapshot: PersistenceLogicalSnapshot,
   settings: UserSettings,
-  revision: number,
+  verification: {
+    readonly revision: number
+    readonly preserveSettings: boolean
+  },
 ): void => {
   if (
-    snapshot.revision !== revision ||
+    snapshot.revision !== verification.revision ||
     hasBlockingPersistenceIntegrityIssues(
       checkPersistenceIntegrity(snapshot.savedTabs),
     )
@@ -240,7 +249,10 @@ const assertMatchingReadback = (
   }
 
   try {
-    const readbackData = BackupMapper.toBackupData(snapshot, settings)
+    const readbackData = BackupMapper.toBackupData(
+      snapshot,
+      verification.preserveSettings ? data.userSettings : settings,
+    )
     if (JSON.stringify(readbackData) !== JSON.stringify(data)) {
       throw new PreImportRecoverySnapshotError('RECOVERY_READBACK_MISMATCH')
     }
@@ -266,7 +278,7 @@ const createNotificationFailure = (
   kind: 'commit_succeeded_notification_failed',
 })
 
-const publishPostCommitNotification = async ({
+export const publishPostCommitNotification = async ({
   changePort,
   idGenerator,
   revision,
@@ -309,13 +321,15 @@ const matchesRestoreState = (
   expected: RestoreState,
   actual: RestoreState,
   revision: number,
+  preserveSettings = false,
 ): boolean => {
   try {
     return (
       actual.snapshot.revision === revision &&
       JSON.stringify(createReplacementTarget(actual.snapshot)) ===
         JSON.stringify(createReplacementTarget(expected.snapshot)) &&
-      JSON.stringify(actual.settings) === JSON.stringify(expected.settings)
+      (preserveSettings ||
+        JSON.stringify(actual.settings) === JSON.stringify(expected.settings))
     )
   } catch {
     return false
@@ -431,16 +445,29 @@ export const createPreImportRecoverySnapshotService = (
   const compensateAndThrow = async (
     previous: RestoreState,
     errorCode: PreImportRecoverySnapshotErrorCode,
+    preserveSettings: boolean,
+    expectedRevision: number,
   ): Promise<never> => {
     let revision: number
     try {
+      const settings = deps.normalizeUserSettings(previous.settings)
       const result = await deps.replacement.replaceAll(
         createReplacementTarget(previous.snapshot),
+        { expectedRevision },
       )
       revision = result.revision
-      await deps.writeUserSettings(previous.settings)
+      if (!preserveSettings) {
+        await deps.writeUserSettings(settings)
+      }
       const readback = await readRestoreState()
-      if (!matchesRestoreState(previous, readback, revision)) {
+      if (
+        !matchesRestoreState(
+          { ...previous, settings },
+          readback,
+          revision,
+          preserveSettings,
+        )
+      ) {
         throw new Error('Compensation readback mismatch')
       }
     } catch {
@@ -460,6 +487,7 @@ export const createPreImportRecoverySnapshotService = (
   }
 
   const restore: RecoverySnapshotService['restore'] = async (id, options) => {
+    const preserveSettings = options?.preserveSettings === true
     const now = deps.clock.now()
     let record: PersistenceRecoverySnapshotRecord | undefined
     try {
@@ -470,12 +498,23 @@ export const createPreImportRecoverySnapshotService = (
     if (record === undefined) {
       throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_NOT_FOUND')
     }
-    const data = parseRecoveryData(record)
+    const sourceData = parseRecoveryData(record)
     if (
       hasBlockingPersistenceIntegrityIssues(
-        checkPersistenceIntegrity(data.savedTabs),
+        checkPersistenceIntegrity(sourceData.savedTabs),
       )
     ) {
+      throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_INVALID')
+    }
+
+    let data: BackupDataV2
+    try {
+      const sourceSnapshot = BackupMapper.toLogicalSnapshot(sourceData, 0)
+      data = toRecoveryData(
+        sourceSnapshot,
+        deps.normalizeUserSettings(sourceData.userSettings),
+      ).data
+    } catch {
       throw new PreImportRecoverySnapshotError('RECOVERY_SNAPSHOT_INVALID')
     }
 
@@ -487,18 +526,29 @@ export const createPreImportRecoverySnapshotService = (
     const logicalSnapshot = BackupMapper.toLogicalSnapshot(data, 0)
     let revision: number
     try {
-      const result = await deps.replacement.replaceAll(
-        createReplacementTarget(logicalSnapshot),
-      )
+      const target = createReplacementTarget(logicalSnapshot)
+      const result =
+        options?.expectedRevision === undefined
+          ? await deps.replacement.replaceAll(target)
+          : await deps.replacement.replaceAll(target, {
+              expectedRevision: options.expectedRevision,
+            })
       revision = result.revision
     } catch {
       throw new PreImportRecoverySnapshotError('RECOVERY_REPLACEMENT_FAILED')
     }
 
     try {
-      await deps.writeUserSettings(data.userSettings)
+      if (!preserveSettings) {
+        await deps.writeUserSettings(data.userSettings)
+      }
     } catch {
-      return compensateAndThrow(previous, 'RECOVERY_SETTINGS_WRITE_FAILED')
+      return compensateAndThrow(
+        previous,
+        'RECOVERY_SETTINGS_WRITE_FAILED',
+        preserveSettings,
+        revision,
+      )
     }
 
     let readback: PersistenceLogicalSnapshot
@@ -507,12 +557,25 @@ export const createPreImportRecoverySnapshotService = (
       readback = await deps.snapshotReader.readConsistentSnapshot()
       settings = await deps.readUserSettings()
     } catch {
-      return compensateAndThrow(previous, 'RECOVERY_READBACK_FAILED')
+      return compensateAndThrow(
+        previous,
+        'RECOVERY_READBACK_FAILED',
+        preserveSettings,
+        revision,
+      )
     }
     try {
-      assertMatchingReadback(data, readback, settings, revision)
+      assertMatchingReadback(data, readback, settings, {
+        revision,
+        preserveSettings,
+      })
     } catch {
-      return compensateAndThrow(previous, 'RECOVERY_READBACK_MISMATCH')
+      return compensateAndThrow(
+        previous,
+        'RECOVERY_READBACK_MISMATCH',
+        preserveSettings,
+        revision,
+      )
     }
     const notification = await publishPostCommitNotification({
       changePort: deps.changePort,

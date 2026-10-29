@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { composeStories } from '@storybook/react'
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import * as inputStories from '@/components/ai-elements/vendor/inputs.stories'
 import * as messageStories from '@/components/ai-elements/vendor/message.stories'
@@ -20,7 +20,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     language: 'ja',
     t: (key: string) =>
       (
-        ({
+        {
           'aiChat.ollama.connectionUrl': '接続先 URL:',
           'options.importExport.export': '設定とタブデータをエクスポート',
           'options.importExport.import': '設定とタブデータをインポート',
@@ -29,7 +29,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'sidebar.tabList': 'タブ一覧',
           'savedTabs.viewMode.custom': 'カスタムモード',
           'savedTabs.viewMode.domain': 'ドメインモード',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))
@@ -52,6 +52,8 @@ const { CustomMode } = composeStories(viewModeStories, preview)
 const { ForbiddenOnMac } = composeStories(ollamaStories, preview)
 
 describe('storybook smoke stories', () => {
+  afterEach(cleanup)
+
   beforeEach(() => {
     if (!HTMLElement.prototype.scrollIntoView) {
       HTMLElement.prototype.scrollIntoView = vi.fn()
@@ -86,5 +88,9 @@ describe('storybook smoke stories', () => {
     expect(screen.getByText(/Weekly review/i)).toBeTruthy()
     expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0)
     expect(screen.getByText(/接続先 URL:/)).toBeTruthy()
+  })
+
+  it('does not retain mounted stories from the previous test', () => {
+    expect(document.body).toBeEmptyDOMElement()
   })
 })

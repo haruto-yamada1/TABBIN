@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "default-language",
+      "issue": 675,
+      "allowedPaths": [
+        "package.json",
+        "src/constants/language.ts",
+        "src/features/i18n/lib/language.ts",
+        "tools/scripts/firefoxArtifactContract.ts",
+        "wxt.config.ts"
+      ],
+      "hiddenTestTarget": "src/features/i18n/lib/codexIssue675.hidden.test.ts",
+      "project": "node",
+      "prompt": "Issue #675: manifest default_locale とアプリの fallback を英語に統一してください。Chrome と Firefox の manifest は en を既定とし、明示的な ja/en 設定は維持します。system の ja-JP/en-US は対応言語へ、fr/ko/zh/空/未設定は en へ解決します。Firefox artifact verifier も同じ既定言語ポリシーとし、英語 locale artifact を必須、日本語 locale も引き続きサポートします。翻訳内容、依存、権限、検査規則は変更しません。既存構造に合う共有 policy を使ってください。",
+      "startCommit": "295ac50798cf99f8b66553a4e19ef63851707c6c",
+      "hiddenTest": "cases/default-language/hidden.test.txt",
+      "referencePatch": "cases/default-language/reference.patch",
+      "regressionTests": [
+        "src/features/i18n/lib/language.test.ts",
+        "src/features/i18n/lib/messages-parity.test.ts",
+        "src/constants/productionNetworkPolicy.test.ts"
+      ],
+      "expectedHiddenTests": 23,
+      "expectedRegressionTests": 39
+    },
+    {
+      "id": "ollama-host",
+      "issue": 671,
+      "allowedPaths": [
+        "src/constants/productionNetworkPolicy.ts",
+        "src/features/i18n/messages.ts",
+        "src/features/options/ClickBehaviorSelect.tsx",
+        "src/features/options/OllamaConnectionSettings.tsx",
+        "src/features/options/routes/OptionsRoute.tsx",
+        "src/lib/background/ai-chat.ts",
+        "src/lib/storage/settings.ts",
+        "src/lib/storage/zod-storage.ts"
+      ],
+      "hiddenTestTarget": "src/lib/background/codexIssue671.hidden.test.ts",
+      "project": "node",
+      "prompt": "Issue #671: Ollama base URL を http://localhost:11434 と http://127.0.0.1:11434 の2択に限定して選択・保存できるようにしてください。options UI、設定の save/read、listLocalOllamaModels、runAiChatRequest を接続し、失敗時の構造化 error と setup guidance は実際に使用した接続先と一致させます。欠落または不正な既存設定は localhost へ安全に fallback し、許可外 URL の新規保存は拒否して既存値を維持してください。リクエスト途中で設定が変わっても失敗診断の URL を変えません。外部 origin/任意 URL、依存、host permissions の拡張は不要です。",
+      "startCommit": "834b238610f2495f3e0664fd06304465525dc6d0",
+      "hiddenTest": "cases/ollama-host/hidden.test.txt",
+      "referencePatch": "cases/ollama-host/reference.patch",
+      "regressionTests": [
+        "src/lib/background/ai-chat.test.ts",
+        "src/lib/storage/settings.test.ts",
+        "src/lib/storage/zod-storage.test.ts",
+        "src/constants/productionNetworkPolicy.test.ts"
+      ],
+      "additionalHiddenTests": [
+        {
+          "hiddenTest": "cases/ollama-host/hidden-ui.test.txt",
+          "hiddenTestTarget": "src/features/options/routes/codexIssue671.hidden.test.tsx"
+        }
+      ],
+      "expectedHiddenTests": 16,
+      "expectedRegressionTests": 115
+    },
+    {
+      "id": "render-recovery",
+      "issue": 717,
+      "allowedPaths": [
+        "src/app/composition/renderRecoveryExport.ts",
+        "src/entrypoints/app/main.tsx",
+        "src/features/navigation/app/AppLayout.tsx",
+        "src/lib/react/RenderErrorBoundary.tsx",
+        "src/lib/react/render-root.ts"
+      ],
+      "hiddenTestTarget": "src/lib/react/codexIssue717.hidden.test.tsx",
+      "project": "dom",
+      "prompt": "Issue #717: 共通 React root の描画例外が白画面にならないよう Error Boundary と回復 UI を追加してください。既存 renderToRoot/mountToElement の呼び出しを保ち、再利用 root も保護します。再試行・reload は明示操作に限定し、render error の raw message/stack/user data を画面や console に出しません。AppLayout の Outlet を別 boundary で保護して navigation を維持し、route を切り替えると feature failure をリセットします。安全な export callback がある場合だけ Backup V2 export を提示し、export が失敗しても回復画面と再試行を維持します。既存 composition の export 経路を利用し、storage corruption を正常扱いせず、依存/権限/検査規則を変更しません。",
+      "startCommit": "49ad9add54e43dc2df204a93de69a43ccfe90347",
+      "hiddenTest": "cases/render-recovery/hidden.test.txt",
+      "referencePatch": "cases/render-recovery/reference.patch",
+      "regressionTests": [
+        "src/features/navigation/app/AppRouter.test.tsx",
+        "src/features/navigation/app/AppLayout.test.tsx"
+      ],
+      "expectedHiddenTests": 7,
+      "expectedRegressionTests": 16
+    }
+  ]
+}

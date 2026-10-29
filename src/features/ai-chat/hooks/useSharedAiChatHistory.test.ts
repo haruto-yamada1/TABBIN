@@ -12,10 +12,10 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     language: 'ja',
     t: (key: string) =>
       (
-        ({
+        {
           'aiChat.history.startPrompt': '新しい会話を始めてください',
           'aiChat.newConversation': '新しい会話',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

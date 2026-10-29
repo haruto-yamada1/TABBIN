@@ -1,0 +1,49 @@
+name: Codex Issue Evaluation Contract
+
+on:
+  pull_request:
+    paths:
+      - '.apm/**'
+      - 'AGENTS.md'
+      - 'evals/codex-issues/**'
+      - 'tools/codex-issues/**'
+      - 'tools/scripts/evaluate-codex-issues.ts'
+      - '.github/workflows/codex-issue-eval.yml'
+      - 'package.json'
+      - '.node-version'
+      - '.bun-version'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-issue-eval-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-mock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+      - name: Install fixed dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify task and process contracts without a model
+        run: |
+          bun run agent:issues:check
+          bun run test:node -- tools/codex-issues
+          bun run agent:issues:mock
+      - name: Explain manual real evaluation
+        run: |
+          echo 'Static and Mock only; no model inference or API credentials used.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Important model/effort/APM/Skill/Hook changes require the local 3-case real command in docs/maintenance/codex-issue-evaluation.md.' >> "$GITHUB_STEP_SUMMARY"

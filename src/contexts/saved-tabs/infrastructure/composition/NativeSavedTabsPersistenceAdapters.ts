@@ -15,6 +15,7 @@ import { createTabGroup } from '@/contexts/saved-tabs/domain/entities/TabGroup'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
 import type { IndexedDbSavedTabsMutableState } from './IndexedDbSavedTabsSessionService'
+import { preserveCategoryProjectionMetadata } from './preserveCategoryProjectionMetadata'
 
 type ExternalDeps = Pick<
   SavedTabsUseCasesDeps,
@@ -97,6 +98,26 @@ const membershipsFor = (
     .filter((membership) => membership.collectionId === collectionId)
     .toSorted((left, right) => left.sortOrder - right.sortOrder)
 
+// Rebuild for each repository read: commands may replace or append to state
+// within the same session, so retaining this index would return stale joins.
+const groupCollectionRecords = <
+  Value extends { readonly collectionId: string },
+>(
+  records: readonly Value[],
+): ReadonlyMap<string, readonly Value[]> => {
+  const byCollection = new Map<string, Value[]>()
+  for (const record of records) {
+    const { collectionId } = record
+    const group = byCollection.get(collectionId)
+    if (group) {
+      group.push(record)
+    } else {
+      byCollection.set(collectionId, [record])
+    }
+  }
+  return byCollection
+}
+
 const replaceCollectionAggregates = (
   state: IndexedDbSavedTabsMutableState,
   type: PersistenceV2Collection['definition']['type'],
@@ -147,16 +168,23 @@ const removeCollections = (
 const createTabGroupRepository = (
   state: IndexedDbSavedTabsMutableState,
 ): SavedTabsUseCasesDeps['tabGroupRepository'] => {
-  const findAll = async () =>
-    domainCollections(state)
+  const findAll = async () => {
+    const categoriesByCollection = groupCollectionRecords(state.categories)
+    const membershipsByCollection = groupCollectionRecords(state.memberships)
+    return domainCollections(state)
       .toSorted((left, right) => left.sortOrder - right.sortOrder)
       .map((collection) =>
         createTabGroup({
           collection,
-          collectionCategories: categoriesFor(state, collection.id),
-          memberships: membershipsFor(state, collection.id),
+          collectionCategories: (
+            categoriesByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
+          memberships: (
+            membershipsByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
         }),
       )
+  }
   return {
     findAll,
     findById: async (id) =>
@@ -182,16 +210,23 @@ const createTabGroupRepository = (
 const createCustomProjectRepository = (
   state: IndexedDbSavedTabsMutableState,
 ): SavedTabsUseCasesDeps['customProjectRepository'] => {
-  const findAll = async () =>
-    customCollections(state)
+  const findAll = async () => {
+    const categoriesByCollection = groupCollectionRecords(state.categories)
+    const membershipsByCollection = groupCollectionRecords(state.memberships)
+    return customCollections(state)
       .toSorted((left, right) => left.sortOrder - right.sortOrder)
       .map((collection) =>
         createCustomProject({
           collection,
-          collectionCategories: categoriesFor(state, collection.id),
-          memberships: membershipsFor(state, collection.id),
+          collectionCategories: (
+            categoriesByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
+          memberships: (
+            membershipsByCollection.get(collection.id) ?? []
+          ).toSorted((left, right) => left.sortOrder - right.sortOrder),
         }),
       )
+  }
   return {
     findAll,
     findAllRaw: findAll,
@@ -348,6 +383,7 @@ const createUrlRecordRepository = (
     state.urls.map((url) =>
       createUrlRecord({
         ...(url.favIconUrl !== undefined ? { favIconUrl: url.favIconUrl } : {}),
+        ...(url.isFavorite !== undefined ? { isFavorite: url.isFavorite } : {}),
         id: url.id,
         savedAt: url.lastSavedAt,
         title: url.title,
@@ -368,6 +404,9 @@ const createUrlRecordRepository = (
         const existing = existingById.get(record.id)
         return {
           ...(record.favIconUrl ? { favIconUrl: record.favIconUrl } : {}),
+          ...(record.isFavorite !== undefined
+            ? { isFavorite: record.isFavorite }
+            : {}),
           firstSavedAt: existing?.firstSavedAt ?? record.savedAt,
           firstSavedAtProvenance: existing
             ? (existing.firstSavedAtProvenance ?? 'legacy-fallback')
@@ -714,6 +753,27 @@ export const createNativeSavedTabsPersistenceAdapters = (
   }
   return {
     ...external,
+    setSavedUrlFavoritePort: {
+      setFavorite: async ({ url, isFavorite }) => {
+        const current = state.urls.find((record) => record.url === url)
+        if (!current) {
+          return false
+        }
+        if ((current.isFavorite ?? false) === isFavorite) {
+          return true
+        }
+        state.urls = state.urls.map((record) =>
+          record.id === current.id
+            ? {
+                ...record,
+                isFavorite,
+                updatedAt: Math.max(now(), record.updatedAt),
+              }
+            : record,
+        )
+        return true
+      },
+    },
     categoriesCommandService: {
       updateCollectionCategories: async (collection, categories) => {
         state.collections = state.collections.map((candidate) =>
@@ -788,11 +848,6 @@ export const createNativeSavedTabsPersistenceAdapters = (
         }
       },
     },
-    migrationPort: {
-      migrateDomainStorageToHostname: async () => {},
-      migrateParentCategoriesToDomainNames: async () => {},
-      migrateToUrlsStorage: async () => {},
-    },
     parentCategoryRepository,
     removeSubCategoryFromTabGroupPort: {
       removeSubCategoryFromTabGroup: async (groupId, categoryName) => {
@@ -821,15 +876,16 @@ export const createNativeSavedTabsPersistenceAdapters = (
       },
     },
     savedTabsTabGroupReadPort: {
-      findAll: async () =>
-        (await tabGroupRepository.findAll()).map((group) => {
+      findAll: async () => {
+        const groups = await tabGroupRepository.findAll()
+        const urlsById = new Map(state.urls.map((url) => [url.id, url]))
+        return groups.map((group) => {
           const categoriesById = new Map(
             group.collectionCategories.map((category) => [
               category.id,
               category,
             ]),
           )
-          const urlsById = new Map(state.urls.map((url) => [url.id, url]))
           return {
             ...group,
             resolvedUrls: group.memberships.flatMap((membership) => {
@@ -844,6 +900,9 @@ export const createNativeSavedTabsPersistenceAdapters = (
                 {
                   ...(category ? { category: category.name } : {}),
                   ...(url.favIconUrl ? { favIconUrl: url.favIconUrl } : {}),
+                  ...(url.isFavorite !== undefined
+                    ? { isFavorite: url.isFavorite }
+                    : {}),
                   id: url.id,
                   ...(membership.notes ? { notes: membership.notes } : {}),
                   savedAt: url.lastSavedAt,
@@ -853,7 +912,8 @@ export const createNativeSavedTabsPersistenceAdapters = (
               ]
             }),
           }
-        }),
+        })
+      },
     },
     setCategoryKeywordsPort: {
       setCategoryKeywords: async (groupId, categoryName, keywords) => {
@@ -903,7 +963,7 @@ export const createNativeSavedTabsPersistenceAdapters = (
 
 export const createNativeCategoryAssignmentPort = (
   state: IndexedDbSavedTabsMutableState,
-  _external: Pick<ExternalDeps, 'clock' | 'idGenerator'>,
+  external: Pick<ExternalDeps, 'clock' | 'idGenerator'>,
 ): CategoryAssignmentPort => ({
   saveParentCategories: async (categories) => {
     await createParentCategoryRepository(state).saveAll(
@@ -911,6 +971,8 @@ export const createNativeCategoryAssignmentPort = (
     )
   },
   saveTabGroups: async (groups) => {
-    await createTabGroupRepository(state).saveAll(groups)
+    await createTabGroupRepository(state).saveAll(
+      preserveCategoryProjectionMetadata(state, groups, external),
+    )
   },
 })

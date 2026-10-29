@@ -10,7 +10,13 @@ import { memo, useCallback, useMemo, useReducer, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
+import {
+  getProjectCategorySortableId,
+  getProjectUrlSortableId,
+} from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
+import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -32,7 +38,7 @@ const sortCategoryUrls = (
   sortOrder: SortOrder,
 ): CategoryUrl[] => {
   if (sortOrder === 'default') {
-    return categoryUrls
+    return getFavoriteDisplayUrls(categoryUrls)
   }
 
   const sorted = [...categoryUrls]
@@ -40,23 +46,13 @@ const sortCategoryUrls = (
   if (sortOrder === 'desc') {
     sorted.reverse()
   }
-  return sorted
-}
-
-const getReorderStyle = (isReorderTarget: boolean): React.CSSProperties => {
-  if (!isReorderTarget) {
-    return {}
-  }
-  return {
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    borderColor: 'rgb(59, 130, 246)',
-    borderWidth: '2px',
-  }
+  return getFavoriteDisplayUrls(sorted)
 }
 
 type CategoryHeaderMainProps = {
   attributes: ReturnType<typeof useSortable>['attributes']
   listeners: ReturnType<typeof useSortable>['listeners']
+  setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef']
   category: string
   isCollapsed: boolean
   isCollapseDisabled: boolean
@@ -70,6 +66,7 @@ type CategoryHeaderMainProps = {
 const CategoryHeaderMain = ({
   attributes,
   listeners,
+  setActivatorNodeRef,
   category,
   isCollapsed,
   isCollapseDisabled,
@@ -79,6 +76,7 @@ const CategoryHeaderMain = ({
   setUserCollapsedState,
   setSortOrder,
 }: CategoryHeaderMainProps) => {
+  const { t } = useI18n()
   const handleCollapsePointerDown = useCallback((event: React.PointerEvent) => {
     event.stopPropagation()
   }, [])
@@ -88,11 +86,7 @@ const CategoryHeaderMain = ({
   }, [])
 
   return (
-    <div
-      {...attributes}
-      {...listeners}
-      className='flex grow cursor-grab items-center gap-2 overflow-hidden hover:cursor-grab active:cursor-grabbing'
-    >
+    <div className='flex grow items-center gap-2 overflow-hidden'>
       <CardCollapseControl
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -106,9 +100,18 @@ const CategoryHeaderMain = ({
         onPointerDown={handleSortPointerDown}
       />
 
-      <div className='shrink-0 text-muted-foreground'>
+      <button
+        type='button'
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        aria-label={t('savedTabs.category.dragHandleAria', undefined, {
+          name: category,
+        })}
+        className='shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing'
+      >
         <GripVertical size={16} aria-hidden='true' />
-      </div>
+      </button>
       <h3 className='m-0 border-none bg-transparent p-0 text-lg font-medium'>
         {category}
       </h3>
@@ -129,7 +132,11 @@ type CategoryContentProps = {
   setDroppableRef: (node: HTMLElement | null) => void
   onOpenUrl: (url: string) => void
   onDeleteUrl: (projectId: string, url: string) => void
-  onSetUrlCategory: (projectId: string, url: string, category?: string) => void
+  onSetUrlCategory: (
+    projectId: string,
+    url: string,
+    category?: string,
+  ) => void | Promise<void>
   settings: CustomProjectCategoryProps['settings']
 }
 
@@ -157,7 +164,7 @@ const CategoryContent = (props: CategoryContentProps) => {
           strategy={verticalListSortingStrategy}
         >
           <ul
-            className={`gap-y-1 ${props.isOver ? 'rounded bg-primary/5 p-1' : ''}`}
+            className={`gap-y-1 ${props.isOver ? 'rounded bg-primary/5' : ''}`}
             data-testid='category-url-list'
           >
             {props.urls.map((item) => (
@@ -205,20 +212,28 @@ const useCustomProjectCategoryView = ({
   handleRenameCategory,
 }: CustomProjectCategoryProps) => {
   const { t } = useI18n()
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({
-      data: {
-        ...dragData,
-        categoryName: category,
-        isCategory: true,
-        projectId,
-      },
-      id: category,
-    })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    data: {
+      ...dragData,
+      categoryName: category,
+      name: category,
+      isCategory: true,
+      projectId,
+    },
+    id: getProjectCategorySortableId(projectId, category),
+  })
 
   const categoryDropId = `category-drop-${projectId}-${category}`
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     data: {
+      name: category,
       categoryName: category,
       isCategory: true,
       isDropArea: true,
@@ -234,8 +249,11 @@ const useCustomProjectCategoryView = ({
     [urls, sortOrder],
   )
   const sortedCategoryUrlIds = useMemo(
-    () => sortedCategoryUrls.map((item) => item.url),
-    [sortedCategoryUrls],
+    () =>
+      sortedCategoryUrls.map((item) =>
+        getProjectUrlSortableId(projectId, item.url),
+      ),
+    [projectId, sortedCategoryUrls],
   )
   const [userCollapsedState, setUserCollapsedState] = useState(false)
   const [showManageDialog, setShowManageDialog] = useState(false)
@@ -248,13 +266,12 @@ const useCustomProjectCategoryView = ({
   const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
   const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false)
 
-  const isDropTarget = isHighlighted || isOver
+  const feedback = useDropTargetFeedback({
+    id: getProjectCategorySortableId(projectId, category),
+    accepts: 'custom',
+    isOver: isHighlighted || isOver,
+  })
   const isSelfDragging = isDraggingCategory && draggedCategoryName === category
-  const isReorderTarget =
-    isDraggingCategory &&
-    draggedCategoryName !== null &&
-    draggedCategoryName !== category &&
-    isDropTarget
   const isCollapsed =
     isDraggingCategory || isCategoryReorder || userCollapsedState
 
@@ -265,21 +282,7 @@ const useCustomProjectCategoryView = ({
     }),
     [transform, transition],
   )
-  const cardStyle = useMemo(
-    () => ({
-      ...style,
-      ...(isOver
-        ? {
-            backgroundColor: 'rgba(0, 255, 0, 0.05)',
-          }
-        : {}),
-      ...getReorderStyle(isReorderTarget),
-    }),
-    [style, isOver, isReorderTarget],
-  )
-  const cardClassName = `mb-2 overflow-x-hidden ${
-    isDropTarget ? 'border-2 border-primary bg-primary/5' : ''
-  } ${isSelfDragging ? 'opacity-50' : ''}`
+  const cardClassName = `mb-2 overflow-x-hidden ${feedback.className} ${isSelfDragging ? 'opacity-50' : ''}`
   const categoryDisplayName =
     category === '__uncategorized' ? t('savedTabs.uncategorized') : category
   const showManageActions = Boolean(
@@ -378,8 +381,9 @@ const useCustomProjectCategoryView = ({
     <>
       <Card
         ref={setNodeRef}
-        style={cardStyle}
+        style={style}
         className={cardClassName}
+        data-drop-state={feedback.state}
         id={categoryDropId}
         data-category={category}
         data-is-drop-target='true'
@@ -396,6 +400,7 @@ const useCustomProjectCategoryView = ({
           <CategoryHeaderMain
             attributes={attributes}
             listeners={listeners}
+            setActivatorNodeRef={setActivatorNodeRef}
             category={category}
             isCollapsed={isCollapsed}
             isCollapseDisabled={isCollapseDisabled}
@@ -418,7 +423,7 @@ const useCustomProjectCategoryView = ({
           <CategoryContent
             urls={sortedCategoryUrls}
             urlIds={sortedCategoryUrlIds}
-            isOver={isOver}
+            isOver={feedback.state === 'over'}
             category={category}
             projectId={projectId}
             categoryDropId={categoryDropId}

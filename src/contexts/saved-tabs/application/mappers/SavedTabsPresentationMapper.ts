@@ -30,6 +30,7 @@ export const toSavedTabsUserSettingsDto = (
     openUrlInBackground: settings.openUrlInBackground,
     removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop,
     removeTabAfterOpen: settings.removeTabAfterOpen,
+    showRelativeSavedTime: settings.showRelativeSavedTime,
     showSavedTime: settings.showSavedTime,
   }
   if (settings.activeAiSystemPromptId !== undefined) {
@@ -135,6 +136,9 @@ export const toSavedTabsUrlRecordDto = (
   record: UrlRecord,
 ): SavedTabsUrlRecordDto => {
   const dto: Mutable<SavedTabsUrlRecordDto> = {
+    ...(record.isFavorite !== undefined
+      ? { isFavorite: record.isFavorite }
+      : {}),
     id: record.id,
     savedAt: record.savedAt,
     title: record.title,

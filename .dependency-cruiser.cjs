@@ -67,11 +67,10 @@ module.exports = {
         'JSXPreview uses react-jsx-parser (a devDependency) and must stay in Storybook / dev-only code. See issue #658.',
       severity: 'error',
       from: {
-        pathNot:
-          '^src/lib/storybook/|^src/components/ai-elements/jsx-preview\\.tsx$',
+        pathNot: String.raw`^src/lib/storybook/|^src/components/ai-elements/jsx-preview\.tsx$`,
       },
       to: {
-        path: '^src/components/ai-elements/jsx-preview\\.tsx$',
+        path: String.raw`^src/components/ai-elements/jsx-preview\.tsx$`,
       },
     },
     {
@@ -123,7 +122,7 @@ module.exports = {
         'Domain code must use domain DTOs instead of shared storage types',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/domain/' },
-      to: { path: '^src/types/storage(?:/|\\.)' },
+      to: { path: String.raw`^src/types/storage(?:/|\.)` },
     },
     {
       name: 'no-application-to-storage-types',
@@ -131,7 +130,7 @@ module.exports = {
         'Application code must use application DTOs instead of shared storage persistence types',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/application/' },
-      to: { path: '^src/types/storage(?:/|\\.)' },
+      to: { path: String.raw`^src/types/storage(?:/|\.)` },
     },
     {
       name: 'no-presentation-to-storage-types',
@@ -139,7 +138,7 @@ module.exports = {
         'Presentation code must use view models instead of shared storage persistence types',
       severity: 'error',
       from: { path: '^src/contexts/[^/]+/presentation/' },
-      to: { path: '^src/types/storage(?:/|\\.)' },
+      to: { path: String.raw`^src/types/storage(?:/|\.)` },
     },
     {
       name: 'no-domain-to-outer-layer',
@@ -245,7 +244,7 @@ module.exports = {
         'Presentation tests must use application DTO fixtures instead of domain entities',
       severity: 'error',
       from: {
-        path: '^src/contexts/[^/]+/presentation/.*\\.(test|spec)\\.(ts|tsx)$',
+        path: String.raw`^src/contexts/[^/]+/presentation/.*\.(test|spec)\.(ts|tsx)$`,
       },
       to: { path: '^src/contexts/[^/]+/domain/' },
     },

@@ -19,7 +19,10 @@ export type DomainCardActionHandlers = {
   handleDeleteUrl: (groupId: string, url: string) => void
   handleDeleteUrls?: (groupId: string, urls: string[]) => Promise<void>
   handleOpenTab: (url: string) => void
-  handleUpdateUrls: (groupId: string, updatedUrls: TabGroup['urls']) => void
+  handleUpdateUrls: (
+    groupId: string,
+    updatedUrls: TabGroup['urls'],
+  ) => void | Promise<void>
   handleDeleteCategory?: (groupId: string, categoryName: string) => void
 }
 
@@ -30,7 +33,7 @@ export type CategoryGroupProps = DomainCardActionHandlers & {
   handleUpdateDomainsOrder?: (
     categoryId: string,
     updatedDomains: TabGroup[],
-  ) => void
+  ) => void | Promise<void>
   handleMoveDomainToCategory?: (
     domainId: string,
     fromCategoryId: string | null,
@@ -53,12 +56,16 @@ export type SortableDomainCardProps = DomainCardActionHandlers & {
 
 // カテゴリセクションコンポーネント
 export type CategorySectionProps = {
+  manualUrls?: TabGroup['urls']
   categoryName: string
   urls: TabGroup['urls']
   groupId: string
   handleDeleteUrl: (groupId: string, url: string) => void
   handleOpenTab: (url: string) => void
-  handleUpdateUrls: (groupId: string, updatedUrls: TabGroup['urls']) => void
+  handleUpdateUrls: (
+    groupId: string,
+    updatedUrls: TabGroup['urls'],
+  ) => void | Promise<void>
   handleOpenAllTabs?: (urls: { url: string; title: string }[]) => void
   scrollTarget?: boolean
   settings: UserSettings
@@ -74,6 +81,7 @@ export type SortableCategorySectionProps = CategorySectionProps & {
 
 // URL項目用のソータブルコンポーネント
 export type SortableUrlItemProps = {
+  isFavorite?: boolean
   url: string
   title: string
   id: string
@@ -92,7 +100,7 @@ export type SortableUrlItemProps = {
   handleUpdateUrls: (
     groupId: string,
     updatedUrls: { url: string; title: string; subCategory?: string }[],
-  ) => void
+  ) => void | Promise<void>
   categoryContext?: string
   settings: UserSettings
 }
@@ -104,7 +112,10 @@ export type UrlListProps = {
   subCategories?: string[]
   handleDeleteUrl: (groupId: string, url: string) => void
   handleOpenTab: (url: string) => void
-  handleUpdateUrls: (groupId: string, updatedUrls: TabGroup['urls']) => void
+  handleUpdateUrls: (
+    groupId: string,
+    updatedUrls: TabGroup['urls'],
+  ) => void | Promise<void>
   handleSetSubCategory?: (
     groupId: string,
     url: string,

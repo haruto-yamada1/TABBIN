@@ -6,17 +6,6 @@ export type PersistenceV2ProjectKeywordSettings = {
 
 export type PersistenceTimestampProvenance = 'exact' | 'legacy-fallback'
 
-export type PersistenceTimestampQualityCount = {
-  readonly exactCount: number
-  readonly legacyFallbackCount: number
-}
-
-export type PersistenceTimestampMigrationSummary = {
-  readonly membershipAddedAt: PersistenceTimestampQualityCount
-  readonly urlFirstSavedAt: PersistenceTimestampQualityCount
-  readonly urlLastSavedAt: PersistenceTimestampQualityCount
-}
-
 export type PersistenceV2CollectionDefinition =
   | {
       readonly domain: string
@@ -28,6 +17,8 @@ export type PersistenceV2CollectionDefinition =
     }
 
 export type PersistenceV2Url = {
+  /** Absent in older databases and backups; treated as false. */
+  readonly isFavorite?: boolean
   readonly favIconUrl?: string
   readonly firstSavedAt: number
   readonly firstSavedAtProvenance?: PersistenceTimestampProvenance
@@ -47,6 +38,8 @@ export type PersistenceV2Collection = {
   readonly id: string
   readonly name: string
   readonly sortOrder: number
+  /** Insertion index among child categories; absent defaults to the end. */
+  readonly uncategorizedCategoryPosition?: number
   readonly updatedAt: number
 }
 

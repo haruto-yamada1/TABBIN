@@ -4,7 +4,6 @@ import {
   normalizeAnalyticsQuery,
   parseAnalyticsQuery,
 } from '@/features/analytics/lib/analytics'
-import { warnMissingChromeStorage } from '@/lib/browser/chrome-storage'
 
 const HEX_RADIX_AS = 16
 
@@ -60,11 +59,6 @@ const createSavedAnalyticsView = ({
 const loadSavedAnalyticsViews = async (): Promise<SavedAnalyticsView[]> => {
   const dataPlane = getAnalyticsViewsDataPlane()
 
-  if (!dataPlane) {
-    warnMissingChromeStorage('分析ビューの読み込み')
-    return []
-  }
-
   const rawViews = await dataPlane.readValues()
   return rawViews.flatMap((item): SavedAnalyticsView[] => {
     const parsed = parseSavedAnalyticsView(item)
@@ -76,11 +70,6 @@ const saveSavedAnalyticsViews = async (
   views: SavedAnalyticsView[],
 ): Promise<void> => {
   const dataPlane = getAnalyticsViewsDataPlane()
-
-  if (!dataPlane) {
-    warnMissingChromeStorage('分析ビューの保存')
-    return
-  }
 
   await dataPlane.replaceValues(
     views.map((view) => ({

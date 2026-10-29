@@ -1,3 +1,4 @@
+import type { DragStartEvent } from '@dnd-kit/core'
 import { useDndMonitor } from '@dnd-kit/core'
 import {
   ArrowUpDown,
@@ -23,17 +24,20 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
+import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
 import {
   getScopedNounActionLabel,
   getScopedObjectActionLabel,
   getScopedSortLabel,
 } from '@/contexts/saved-tabs/presentation/lib/accessibility'
+import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import type { SortableCategorySectionProps } from '@/contexts/saved-tabs/presentation/types/SavedTabsComponentProps'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
+import { getTouchHandleListeners } from './shared/touchDragHandle'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
 import { CategorySection } from './TimeRemaining'
 
@@ -164,8 +168,16 @@ const useSortableCategorySectionView = ({
   ...props
 }: SortableCategorySectionViewProps) => {
   const { t } = useI18n()
-  const { attributes, listeners, setNodeRef, isDragging, style } =
-    useSortableCategoryDrag(id)
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    isDragging,
+    style,
+  } = useSortableCategoryDrag(id)
+
+  const feedback = useDropTargetFeedback({ id, accepts: 'category-section' })
 
   const [isDeleting, setIsDeleting] = useState(false)
   // Sort order state: 'default' preserves manual drag order
@@ -175,14 +187,14 @@ const useSortableCategorySectionView = ({
   // Derive sorted urls by savedAt (default = original order)
   const sortedUrls = useMemo(() => {
     if (sortOrder === 'default') {
-      return urls
+      return getFavoriteDisplayUrls(urls)
     }
     const arr = [...urls]
     arr.sort((a, b) => (a.savedAt ?? 0) - (b.savedAt ?? 0))
     if (sortOrder === 'desc') {
       arr.reverse()
     }
-    return arr
+    return getFavoriteDisplayUrls(arr)
   }, [urls, sortOrder])
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
@@ -295,8 +307,8 @@ const useSortableCategorySectionView = ({
   useDndMonitor({
     onDragCancel: handleDragEndOrCancel,
     onDragEnd: handleDragEndOrCancel,
-    onDragStart: () => {
-      setIsDragCollapsed(true)
+    onDragStart: (event?: Pick<DragStartEvent, 'activatorEvent'>) => {
+      setIsDragCollapsed(event?.activatorEvent.type !== 'keydown')
     },
   })
 
@@ -305,7 +317,8 @@ const useSortableCategorySectionView = ({
       <div
         ref={setNodeRef}
         style={style}
-        className={sectionClassName}
+        className={`${sectionClassName} ${feedback.className}`}
+        data-drop-state={feedback.state}
         data-saved-tabs-scroll-target='child'
         data-testid='sortable-category-section'
       >
@@ -333,14 +346,20 @@ const useSortableCategorySectionView = ({
           {/* ドラッグハンドル部分 */}
           <div
             className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
+            ref={setActivatorNodeRef}
             {...attributes}
-            {...listeners}
+            {...getTouchHandleListeners(listeners)}
             aria-label={t('savedTabs.category.dragHandleAria', undefined, {
               name: displayedCategoryName,
             })}
           >
             <div className='text-muted-foreground'>
-              <GripVertical size={16} aria-hidden='true' />
+              <GripVertical
+                size={16}
+                aria-hidden='true'
+                data-saved-tabs-drag-handle='true'
+                className='touch-none'
+              />
             </div>
             <h3 className='font-medium text-foreground'>
               {displayedCategoryName}

@@ -3,12 +3,45 @@
 TABBIN は Renovate で dependency update を検知し、CI と手動 review を経て merge する。
 CI success や vulnerability warning がないことだけを安全性の保証にしない。
 
+## Local dependency cooldown
+
+新しく採用する npm package version は、公開から7日以上経過したものに限定する。
+
+- `bunfig.toml` の `install.minimumReleaseAge = 604800`（秒）で、
+  `bun add` / `bun install` / `bun update` の新規依存解決に待機期間を適用する。
+  直接依存と間接依存の両方が対象で、`minimumReleaseAgeExcludes` は空にする。
+- `.ncurc.json` の `cooldown: 7`（日）で、ncu の更新候補も同じ待機期間に揃える。
+  最新版が待機期間内なら、7日以上経過した version から候補を選ぶ。
+- `npm-check-updates` は対応版を devDependency として exact pin する。
+  プロジェクトの Node 24 / Bun 1.3.14 を使い、候補確認は `bun run deps:check`、
+  `package.json` の更新は `bun run deps:update` を実行する。
+  その後 `bun install` で lockfile を更新し、quality / audit を確認する。
+  `tools/legacy-tooling` も確認する場合は、ルートから
+  `bun run deps:check -- --packageFile tools/legacy-tooling/package.json --configFilePath .`
+  を使う（更新時は `deps:update`）。
+- 公開前には、CI と同じ Bun resolved dependency review も実行する。
+  `git show origin/develop:bun.lock > /tmp/tabbin-base-bun.lock` で比較元を保存し、
+  `BASE_LOCK=/tmp/tabbin-base-bun.lock bun tools/scripts/run-dependency-review.ts`
+  で advisory と直接・間接依存の license を検査する。GitHub API の認証が必要な
+  環境では既存の認証情報を使い、token をログやファイルへ出力しない。
+  `security:audit` と配布物の license 検証だけでは、この差分検査を代替できない。
+
+ルートでの `ncu` / `ncu -u` にも `.ncurc.json` は適用されるが、
+古い global ncu は cooldown に未対応なので、固定したローカル版のコマンドを使う。
+`bun.lock` に記録済みの version は遡って待機対象にしない。
+CI の `bun install --frozen-lockfile` は検証済みの lockfile をそのまま再現する。
+待機期間は npm の公開日時に基づく新規解決の制限で、git / local / workspace 依存は
+対象外。Renovate による通常更新の14日待機は維持する。
+
+参照: [Bun minimum release age](https://bun.com/docs/pm/cli/install#minimum-release-age)、
+[npm-check-updates cooldown](https://github.com/raineorshine/npm-check-updates#cooldown)。
+
 ## Renovate の責務
 
 - `bun` と `github-actions` の version / lockfile update と PR 作成
 - Dependency Dashboard で pending、approval、vulnerability、abandonment を可視化
 - 通常 update は月曜 06:00 前（Asia/Tokyo）、npm release から14日待機
-- major と `@typescript/native` は Dashboard 承認後に PR 作成
+- major と TypeScript は Dashboard 承認後に PR 作成
 - `rangeStrategy: pin` の初回 exact-version migration は専用 group として承認する
 - automerge は patch、minor、major、security、Actions のすべてで禁止
 
@@ -18,16 +51,32 @@ breaking change に伴う application migration と実動作確認は人間ま�
 
 ## Review checklist
 
-### TypeScript / test tool compatibility (2026-09-22)
+### TypeScript / test tool compatibility (2026-10-05)
 
-- 型検査は `@typescript/native`（`npm:typescript@^7.0.2`）の安定版を使う。
-  `compile` は alias 内の CLI を明示して、TypeScript 6 の `tsc` と混同しない。
-- `typescript@6.0.3` は Compiler API を使う AST 検査、HTML 検査、lint のために併用する。
-  TypeScript 7 のルート export は従来の Compiler API を提供しない。
-  公式の `@typescript/typescript6` alias は Bun 1.3.14 で内部 alias が自己参照に解決されたため、
-  API package を直接指定する。`@typescript/native-preview` は削除済み。
-- Storybook 10.6 の Vitest addon の peer range は Vitest 3 / 4。
-  Vitest 関連 package は対応範囲の最新 4.1.11 に揃え、5 系は addon の対応後に移行する。
+- ルートの `typescript@7.0.2` を型検査と自前の AST 解析に使う。
+  `compile` は `node node_modules/typescript/bin/tsc --noEmit` を明示する。
+  `@typescript/native` alias は不要になった。
+- 自前の解析は `tools/typescript/native-parser.mjs` の仮想プロジェクトを使う。
+  構文エラーを拒否し、実 filesystem への fallback を許可しない。
+  BOM / Unicode の UTF-16 位置と AST の親子関係を回帰テストで保護する。
+  使用する `unstable/*` API が安定化するまで compiler version を exact pin する。
+  同期 API を使う検証コマンドは、既存 runtime 契約の Node 24 で実行する。
+- 旧 Compiler API を要求する外部 lint / dependency-cruiser は
+  `tools/legacy-tooling` private workspace の `typescript@6.0.3` に隔離する。
+  Bun の isolated linker を `bunfig.toml` で固定し、peer context を混在させない。
+  dependency-cruiser は TypeScript peer を宣言していないため、専用 CLI adapter が
+  同パッケージの import だけを旧 API に解決する。元の CLI、全ルール、
+  type-only dependency の検出、診断、exit code を保持する。
+- Storybook 10.6.1 の Vitest addon の peer range は Vitest 3 / 4 / 5。
+  Vitest 関連 package は 5.0.3 に揃える。
+  Vitest 5 は inline project が root config を既定で継承するため、
+  `isolate: true` を明示してファイル間の module / mock 汚染を防ぐ。
+  `clearMocks` の新しい既定値 `true` は維持する。
+  Storybook の Vitest plugin が preview annotation を自動設定するため、
+  ブラウザー用 `setupFiles` に Vite / WXT の Node 設定を読み込ませない。
+- Motion 14 は公開 upgrade guide 上で breaking change がない。
+  `@streamdown/code` 2 は Shiki 4 と Node 20 以上を要求するため、
+  Node 24 / Shiki 4 の構成で実 plugin の強調表示と再描画を検証する。
 - Node / Bun の runtime contract は維持し、`@types/node` は Node 24 系の最新版に揃える。
 - Oxlint 1.79 以降で `react/react-compiler` が個別 rule に分割されたため、
   従来の native compiler rule の無効設定を各 rule に移す。
@@ -35,7 +84,35 @@ breaking change に伴う application migration と実動作確認は人間ま�
   新しい style rule は個別 const 宣言と arrow / function 宣言という既存規約に合わせる。
 
 参照: [TypeScript 7 の併用方針](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-60)、
-[Oxlint の rule 分割](https://github.com/oxc-project/oxc/pull/25500)。
+[Oxlint の rule 分割](https://github.com/oxc-project/oxc/pull/25500)、
+[Vitest 5 migration guide](https://main.vitest.dev/guide/migration/)、
+[Motion upgrade guide](https://motion.dev/docs/upgrade-guide)、
+[@streamdown/code 2 release](https://github.com/vercel/streamdown/releases/tag/%40streamdown%2Fcode%402.0.0)。
+
+### Local refresh (2026-10-29)
+
+- `deps:check` / `deps:update` の7日 cooldown を適用し、React 19.3.1、
+  Radix UI、AI SDK 7.0.148、Vitest 5.0.5、Storybook 10.6.3、
+  Playwright 1.64.1 などを更新した。PostCSS の override も 8.5.31 に揃える。
+- Node 24 / Bun 1.3.14、ルート TypeScript 7.0.2 と legacy tooling の
+  TypeScript 6.0.3 は維持する。`@types/node` は24系の 24.19.2 を採用する。
+- `@axe-core/playwright` は 4.13.0、`web-ext` は 10.7.0 の更新前の宣言と
+  lockfile 解決を保持し、更新を保留する。新版を含む直接・間接依存の6件が
+  MPL-2.0 単独のため、既存の
+  [依存レビュー方針](dependency-review.md#policy) が拒否する。許可リストと検査は
+  維持し、採用方針の個別見直しなしに新版へ進めない。
+- [Resolvers 6](https://github.com/react-hook-form/resolvers/releases/tag/v6.0.0)
+  の破壊変更は Effect v4 向けで、使用中の Zod resolver の移行は不要。
+  Radix の optional props に合わせ、Button は `asChild={undefined}` を許容する。
+- [Playwright 1.64](https://playwright.dev/docs/release-notes#version-164)
+  は device descriptor の `screen` を反映する。対応する Chromium を取得し、
+  拡張機能 E2E で検証する。
+- `@ai-sdk/provider-utils@5.0.65` の欠落した Apache notice は、npm provenance の
+  commit と integrity に結び付けた原文を `tools/licenses/reviewed/` に保存する。
+  nested MIT と完全な Apache terms の同梱も維持する。
+- React Doctor 0.9.18 と同梱 plugin の LICENSE は承認済み SHA-256 と同一。
+  旧版の Bun store が残り identity 検査に失敗する場合は、`node_modules` を退避し、
+  `bun install --frozen-lockfile` でクリーンに再作成する。検査を無効化しない。
 
 ### CI
 
@@ -125,7 +202,7 @@ package も追加していない。
   attacker-controlled expansion が必要で product path はない。bypass も解消する
   upstream 修正版 1.1.18 / 5.0.9 へ更新した。
 
-`defu`、`lodash-es`、`node-forge`、`postcss`、`rollup`、`shell-quote`、
+`defu`、`lodash-es`、`postcss`、`rollup`、`shell-quote`、
 `tmp` は引き続き同じ互換世代の修正版を top-level `overrides` で固定する。
 
 ### Publish audit refresh (2026-10-01)
@@ -141,10 +218,106 @@ package も追加していない。
 
 ## Vulnerability response
 
+### node-forge RSA validation backport (2026-10-03)
+
+`web-ext` は WXT 0.21 の Chrome / Firefox 開発ブラウザー起動に必要で、
+`web-ext → @devicefarmer/adbkit → node-forge` が
+[GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) の対象となる。
+公開済み最新版 1.4.0 に修正がないため、
+[上流 PR #1152](https://github.com/digitalbazaar/forge/pull/1152) の修正を含む
+`digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65` に固定する。
+これは未リリースの snapshot (`1.4.1-0`) で、npm の修正版公開を意味しない。
+
+1.4.0 との差分は RSA の nested DigestAlgorithm 要素数検査、回帰テスト、
+changelog、snapshot version のみ。依存と lifecycle script に変更はなく、
+`trustedDependencies` は空のまま維持する。owner は dependency maintenance。
+上流 snapshot にも残る非空 ASN.1 NULL parameters の受理は、
+`patches/node-forge-null-parameters.patch` で拒否する。
+Bun の `patchedDependencies` と lockfile に patch の適用を記録し、
+fresh install で適用と正常署名の互換性を確認する。
+正式版への切替と patch 削除は、下記の検証がすべて成功する版の公開後に行う。
+
+Git dependency は npm advisory の version 照合だけでは検証できないため、
+`security:audit` の先頭で `tools/security-audit-policy.json` の再評価期限と
+`package.json` / `bun.lock` の固定 snapshot・patch map・全 node-forge 解決の
+revision / archive / integrity と、patch 本文の承認済み SHA-256 を照合する。
+patch は通常の非実行ファイルに限定し、欠落・symlink・改変を拒否する。続いて実 RSA 署名の
+正常系と異常 ASN.1 構造の拒否を検証する。
+OID のみ / OID + 空の NULL は受理し、余分な OCTET STRING / NULL と
+非空の NULL parameters は拒否する。
+未修正 1.4.0 でこの probe が失敗することを確認済み。
+その後の `bun audit --audit-level=high` は維持し、ignore は追加しない。
+
+運用する再評価記録は `tools/security-audit-policy.json` に置き、期限の承認は
+`tools/scripts/security-audit-review-approvals.ts` の承認履歴を source of truth とする。
+policy の追跡 Issue・review 日・期限は最新の承認レコードと完全一致させる。
+既存の初期承認はコード内の固定 anchor として照合し、承認履歴からの削除・書換えを拒否する。
+anchor 自体の変更は通常の期限更新ではなく、別途 security policy review の対象とする。
+現在の期限は 2026-11-10 **00:00 UTC** で、この時刻以降は CI / release の
+`security:audit` を失敗させる。期限は review 日から最大30日とし、未来の review 日、
+実在しない日付、owner・依存経路・根拠・upstream status・tracking Issue の欠落、
+未承認 snapshot / patch を拒否する。この記録は npm version 照合対象外の
+検証済み backport の再評価管理であり、High / Critical を許容する ignore ではない。
+正式版に更新する場合は probe と policy binding を同じ PR で見直す。
+
 security update は14日待機を機械的に適用せず urgency を判断する。GitHub vulnerability
 alerts、Renovate vulnerability PR、OSV、`bun audit` の結果を突き合わせる。
 一時 ignore が必要な場合は advisory、dependency path、影響、upstream status、期限、
 owner をこの文書または専用 Issue に残し、恒久的な ignore にしない。
+
+### 定期監査と通知
+
+Issue #908 の `.github/workflows/security-audit.yml` は毎日 **03:23 UTC
+（12:23 JST）** に default branch の現在の lockfile を監査する。`workflow_dispatch`
+からも実行でき、workflow / 契約テストの変更 PR では同じ job を検証する。
+Node / Bun は repository pin、install は `--frozen-lockfile` を使い、
+`security:audit` の policy 検証 → backport probe → `bun audit --audit-level=high`
+をそのまま実行する。High / Critical、期限切れ・不正な例外記録、probe 失敗、
+registry / network 等による監査不能はすべて失敗とし、ログ保存のために終了コードを
+握りつぶさない。setup failure も「監査未実行」として表示し、安全とは扱わない。
+ブラウザ設定・権限・データモデル、既存 CI / release gate は変更しない。
+
+通知は GitHub Actions の **failed workflow run notification** を使う。
+dependency maintenance 担当者は GitHub 個人設定の Notifications → Actions で
+email / web 通知を有効にし、必要なら failed runs のみを選ぶ。定期実行の通知先は
+workflow 作成者で、cron 変更者または無効化後の再有効化者へ変わることがある。
+手動実行は実行者が通知を受け取る。リポジトリを Watch するだけで全保守担当者への
+配信を保証する仕組みではないため、cron 変更・担当交代時は通知先と設定を確認する。
+PR 作成だけでは schedule は有効にならず、workflow が default branch に入る必要がある。
+GitHub 側で schedule が遅延・無効化されることもあるため、Actions の実行履歴で
+日次 run を確認し、必要なら再有効化・手動実行する。
+
+失敗通知から該当 run の job summary と失敗 step を開く。audit 実行後の生ログは
+`security-audit-log` artifact に14日保存する。setup failure には audit artifact が
+ないため setup step のログを確認する。advisory は既存の Renovate vulnerability PR /
+Dependency Dashboard と照合して一つの修正へ集約し、監査障害は復旧後に再実行する。
+この workflow は検知専用で Issue / PR / コメントを自動作成せず、write token や
+通知サービスの secret を要求しない。例外の根拠・担当・追跡 Issue・期限は前節の
+policy verifier で継続検証し、期限の自動延長や新しい ignore は行わない。
+
+参考: [GitHub Actions の通知先と設定](https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs)、
+[schedule の実行条件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)。
+
+### Release audit と Renovate の役割
+
+`release:check` / `release:zip` は直前に同じ `security:audit` を実行する。
+監査不能（registry / network / authentication / lockfile / process failure）も
+非ゼロ終了として配布を止め、障害復旧後に gate 全体を再実行する。
+通常 CI と Issue #908 の定期監査は早期検知、release gate は配布時点の合否を担う。
+完了済みの Issue #924 はこの release gate、Issue #940 は PR の依存差分 review、
+Issue #935 は CodeQL のソース解析を担当する。定期監査はコード変更がない日にも
+現在の全 lockfile と backport の期限を調べるため、それぞれの gate を維持する。
+
+監査が advisory を報告したら、依存経路と production / tooling への影響を確認し、
+Renovate の vulnerability PR / Dependency Dashboard の OSV 情報と突き合わせる。
+既存の security label、最低修正版への更新方針、automerge 無効を維持し、更新または
+検証済み override をレビューして frozen install・監査・品質 gate を再実行する。
+Renovate が更新できない Git snapshot とローカル patch は担当者が手動再評価する。
+期限更新には新しい追跡 Issue、影響評価、upstream status、根拠、owner、新期限を
+個別 PR に記録する。同じ PR で承認履歴の末尾に新しい Issue のレコードを追加し、
+policy をその最新レコードに合わせる。履歴は追記のみとし、以前の記録は書き換えない。
+同じ Issue の再利用、日付の巻き戻し、未承認の期限、policy の日付だけの延長を
+verifier が拒否する。監査障害を理由とする例外化は行わない。
 
 ## Initial rollout
 

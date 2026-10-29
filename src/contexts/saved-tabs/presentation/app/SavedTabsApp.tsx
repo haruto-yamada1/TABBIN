@@ -1,11 +1,4 @@
 import {
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -28,6 +21,7 @@ import { useCategoryManagement } from '@/contexts/saved-tabs/presentation/hooks/
 import { useCategorySync } from '@/contexts/saved-tabs/presentation/hooks/useCategorySync'
 import { useFilteredCustomProjects } from '@/contexts/saved-tabs/presentation/hooks/useFilteredCustomProjects'
 import { useProjectManagement } from '@/contexts/saved-tabs/presentation/hooks/useProjectManagement'
+import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 import { useTabData } from '@/contexts/saved-tabs/presentation/hooks/useTabData'
 import {
   toSavedTabsTabGroupViewModel,
@@ -47,6 +41,7 @@ import {
   useTabOpeningHandlers,
   useUncategorizedReorderHandlers,
 } from './handlers'
+import { useSelectedSavedTabsDeletion } from './handlers/useSelectedSavedTabsDeletion'
 import {
   buildPresentationCategoryLookup,
   createCategorizedDisplayState,
@@ -54,6 +49,7 @@ import {
   shouldWaitForInitialViewMode,
   syncSavedTabsViewModeLocation,
   syncStorageChanges,
+  useSavedTabsStorageSync,
 } from './savedTabsApp.helpers'
 
 // eslint-disable-next-line import/no-unassigned-import
@@ -119,7 +115,6 @@ const useSavedTabsAppView = ({
     getSavedTabsQuery: savedTabsUseCases.getSavedTabs,
     repairTabGroupParentCategoryIdsUseCase:
       savedTabsUseCases.repairTabGroupParentCategoryIds,
-    migrationPort: deps.migrationPort,
     onCategoriesLoaded: categoryState.setCategories,
     onSettingsLoaded: setSettings,
   })
@@ -219,12 +214,14 @@ const useSavedTabsAppView = ({
     t,
   })
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
+  const sensors = useSavedTabsSensors()
+  const handleDeleteSelectedUrls = useSelectedSavedTabsDeletion({
+    savedTabsUseCases,
+    refreshTabGroupsWithUrls,
+    setCustomProjects,
+    setCategories,
+    t,
+  })
 
   // タブグループをカテゴリごとに整理する関数を強化
   const organizeTabGroups = useCallback((): {
@@ -304,7 +301,7 @@ const useSavedTabsAppView = ({
   const filteredCustomProjects = useFilteredCustomProjects(
     savedTabsUseCases,
     customProjects,
-    searchQuery,
+    viewMode === 'custom' ? searchQuery : '',
   )
 
   // 表示判定・表示用整形は `createCategorizedDisplayState` へ移設（issue #504）。
@@ -356,15 +353,20 @@ const useSavedTabsAppView = ({
     [handleDeleteCategory, refreshTabGroupsWithUrls],
   )
 
-  // ストレージ変更検出時のリスナー。`StorageChangePort` 経由で chrome API 実装
-  // (infrastructure 層) と疎結合にし、port 境界をまたいだ購読 / 解除として
-  // 扱う（issue #503）。React 側は購読開始 / 解除と state 反映のみに責務を絞り、
-  // Chrome ストレージ変更通知の詳細は port 実装側に閉じ込めている。
-  useEffect(() => {
-    const unsubscribe = deps.storageChangePort.subscribe((changes) => {
-      console.log('ストレージ変更を検出:', changes)
-      void syncStorageChanges({
-        changes,
+  useSavedTabsStorageSync(
+    deps.storageChangePort,
+    async (changes) => {
+      if (changes.some((change) => change.key === 'urls')) {
+        const pageData = await savedTabsUseCases.getSavedTabsPageData()
+        await refreshTabGroupsWithUrls(
+          pageData.tabGroups.map(toSavedTabsTabGroupViewModel),
+        )
+        setCategories([...pageData.parentCategories])
+        setSettings(pageData.userSettings)
+        await syncDomainDataToCustomProjects()
+      }
+      await syncStorageChanges({
+        changes: changes.filter((change) => change.key !== 'urls'),
         refreshTabGroupsWithUrls,
         setCategories,
         setCustomProjects,
@@ -372,18 +374,9 @@ const useSavedTabsAppView = ({
         syncDomainDataToCustomProjects,
         viewModeRef,
       })
-    })
-    return () => {
-      unsubscribe()
-    }
-  }, [
-    deps.storageChangePort,
-    refreshTabGroupsWithUrls,
-    syncDomainDataToCustomProjects,
-    setCategories,
-    setCustomProjects,
-    viewModeRef,
-  ])
+    },
+    !isLoading,
+  )
 
   useEffect(() => {
     if (previousInitialViewModeRef.current !== initialViewMode) {
@@ -481,6 +474,7 @@ const useSavedTabsAppView = ({
         handleDeleteGroups={handleDeleteGroups}
         handleDeleteUrl={handleDeleteUrl}
         handleDeleteUrls={handleDeleteUrls}
+        handleDeleteSelectedUrls={handleDeleteSelectedUrls}
         handleOpenTab={handleOpenTab}
         handleUpdateUrls={handleUpdateUrls}
         handleUpdateDomainsOrder={handleUpdateDomainsOrder}
@@ -546,6 +540,7 @@ const useSavedTabsAppView = ({
           onModeChange={handleViewModeChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          searchHistoryPort={deps.searchHistoryPort}
           getSavedTabsPageDataQuery={savedTabsUseCases.getSavedTabsPageData}
           createParentCategoryUseCase={savedTabsUseCases.createParentCategory}
           deleteParentCategoryUseCase={savedTabsUseCases.deleteParentCategory}

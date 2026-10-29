@@ -8,11 +8,18 @@ user's local Ollama service at these origins:
 - `http://localhost:11434`
 - `http://127.0.0.1:11434`
 
-The corresponding manifest host permissions are derived from the same typed
+The corresponding required manifest host permissions are derived from the same typed
 policy in `src/constants/productionNetworkPolicy.ts`. IPv6 loopback, LAN hosts,
 custom Ollama endpoints, cloud AI endpoints, HTTPS, WebSocket, and EventSource
 origins are not currently allowed. Adding one is a privacy-design change, not a
 routine allowlist update.
+
+The off-by-default saved-title marker additionally declares optional HTTP(S)
+site access for programmatic title changes, as reviewed in
+[`permissions.md`](permissions.md#optional-saved-title-marker-access). These
+origins are separate from the outbound allowlist. The injected function makes
+no network requests, and the extension's required hosts, network inventory, and
+exact CSP remain restricted to the existing Ollama boundary.
 
 The same generated-manifest verification also checks the exact reviewed API
 permission allowlist from `src/constants/extensionPermissions.ts`. The
@@ -60,9 +67,9 @@ change.
 - `bun run test:node` checks the AST inventory and policy URL behavior. A new
   detected call site fails until it is explicitly reviewed and inventoried.
 - `bun run build && bun run build:firefox && bun run
-verify:production-network-policy` checks both generated manifests. Required
-  host permissions must exactly match the allowlist, optional host permissions
-  must be absent or empty, and `connect-src` must contain only the extension
+  verify:production-network-policy` checks both generated manifests. Required
+  host permissions must exactly match the required allowlist, optional permissions
+  must exactly match the reviewed saved-title marker capability, and `connect-src` must contain only the extension
   itself, local `blob:` data, and the two Ollama origins.
 - The generated extension CSP is the runtime enforcement boundary. It also sets
   a self-only `default-src`, explicit local data rules, `frame-src 'none'`,

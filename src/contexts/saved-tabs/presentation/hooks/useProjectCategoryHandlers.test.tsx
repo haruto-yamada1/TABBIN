@@ -7,6 +7,36 @@ import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/save
 import { useProjectCategoryHandlers } from './useProjectCategoryHandlers'
 
 describe('useProjectCategoryHandlers', () => {
+  it('propagates storage failures without changing the project order', async () => {
+    const failure = new Error('storage unavailable')
+    const save = vi.fn().mockRejectedValue(failure)
+    const setCustomProjects = vi.fn()
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const refs = {
+      reorderCustomProjectUrlsUseCaseRef: { current: save },
+      updateCustomProjectCategoryOrderUseCaseRef: { current: save },
+      setCustomProjectUrlCategoryUseCaseRef: { current: save },
+    } as never
+    const { result } = renderHook(() =>
+      useProjectCategoryHandlers({ refs, setCustomProjects, t: (key) => key }),
+    )
+    await expect(
+      result.current.handleReorderUrls('project-1', []),
+    ).rejects.toThrow(failure)
+    await expect(
+      result.current.handleUpdateCategoryOrder('project-1', ['First']),
+    ).rejects.toThrow(failure)
+    await expect(
+      result.current.handleSetUrlCategory(
+        'project-1',
+        'https://example.com',
+        'First',
+      ),
+    ).rejects.toThrow(failure)
+    expect(setCustomProjects).not.toHaveBeenCalled()
+    logError.mockRestore()
+  })
+
   it('URL並べ替え後は authoritative memberships の順序で state を更新する', async () => {
     const initialProject: CustomProject = {
       categories: [],

@@ -41,6 +41,7 @@ const urlPathArbitrary = fc.option(
 export const urlStringArbitrary = fc
   .tuple(domainNameArbitrary, urlPathArbitrary)
   .map(([domain, path]) => `https://${domain}${path ?? ''}`)
+  .filter((url) => URL.canParse(url))
 
 /**
  * Free-form display text. Keeps whitespace-only, empty-adjacent, and

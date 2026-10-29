@@ -38,6 +38,7 @@ const mapMatchedUrlsToProject = (
       : {}),
     urls: matchedUrls.map((url) => ({
       ...(url.category !== undefined ? { category: url.category } : {}),
+      ...(url.isFavorite !== undefined ? { isFavorite: url.isFavorite } : {}),
       id: url.id,
       ...(url.notes !== undefined ? { notes: url.notes } : {}),
       savedAt: url.savedAt,

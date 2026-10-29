@@ -24,6 +24,7 @@ export type SavedTabsUserSettingsDto = {
   excludePatterns: string[]
   enableCategories: boolean
   autoDeletePeriod?: string
+  showRelativeSavedTime: boolean
   showSavedTime: boolean
   clickBehavior:
     | 'saveCurrentTab'
@@ -53,6 +54,7 @@ export type SavedTabsParentCategoryDto = {
 export type SavedTabsTabGroupDto = TabGroup
 
 export type SavedTabsDisplayUrlDto = {
+  isFavorite?: boolean
   id?: string
   url: string
   title: string
@@ -70,6 +72,7 @@ export type SavedTabsDisplayTabGroupDto = TabGroup & {
 }
 
 export type SavedTabsUrlRecordDto = {
+  readonly isFavorite?: boolean
   readonly id: string
   readonly url: string
   readonly title: string

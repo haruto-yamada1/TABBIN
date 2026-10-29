@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Children, isValidElement } from 'react'
 import type { ReactNode } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
@@ -48,6 +49,17 @@ vi.mock('@/features/options/ImportExportSettings', () => ({
   ImportExportSettings: () => <div>import-export-settings</div>,
 }))
 
+vi.mock('@/features/options/SavedTabTitleSettings', () => ({
+  SavedTabTitleSettings: () => <h2>options.savedTabTitle.title</h2>,
+}))
+
+vi.mock(
+  '@/features/periodic-execution/components/ReviewReminderSettings',
+  () => ({
+    ReviewReminderSettings: () => <h2>options.review.title</h2>,
+  }),
+)
+
 vi.mock('@/components/ui/select', () => ({
   Select: ({
     children,
@@ -57,15 +69,24 @@ vi.mock('@/components/ui/select', () => ({
     children?: ReactNode
     onValueChange?: (value: string) => void
     value?: string
-  }) => (
-    <select
-      aria-label='click-behavior'
-      onChange={(event) => onValueChange?.(event.target.value)}
-      value={value}
-    >
-      {children}
-    </select>
-  ),
+  }) => {
+    const trigger = Children.toArray(children).find(
+      (child) => isValidElement<{ id?: string }>(child) && child.props.id,
+    )
+    const triggerId = isValidElement<{ id?: string }>(trigger)
+      ? trigger.props.id
+      : undefined
+
+    return (
+      <select
+        aria-label={triggerId}
+        onChange={(event) => onValueChange?.(event.target.value)}
+        value={value}
+      >
+        {children}
+      </select>
+    )
+  },
 
   SelectContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
   SelectItem: ({
@@ -85,16 +106,19 @@ vi.mock('@/components/ui/select', () => ({
 vi.mock('@/components/ui/checkbox', () => ({
   Checkbox: ({
     checked,
+    disabled,
     id,
     onCheckedChange,
   }: {
     checked?: boolean
+    disabled?: boolean
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
     // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       checked={Boolean(checked)}
+      disabled={disabled}
       id={id}
       onChange={(event) => onCheckedChange?.(event.target.checked)}
       type='checkbox'
@@ -138,11 +162,50 @@ const createSettings = (
   openUrlInBackground: true,
   removeTabAfterExternalDrop: true,
   removeTabAfterOpen: true,
+  showRelativeSavedTime: false,
   showSavedTime: false,
   ...override,
 })
 
 describe('OptionsRoute', () => {
+  it.each([false, true])('親OFFなら子の値%sを保って無効化する', (child) => {
+    optionsRouteMocks.settings = createSettings({
+      showSavedTime: false,
+      showRelativeSavedTime: child,
+    })
+    render(<OptionsRoute />)
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'options.showRelativeSavedTime',
+    })
+    expect(checkbox).toBeDisabled()
+    expect(checkbox).toHaveProperty('checked', child)
+  })
+
+  it('親ONなら子設定のみを更新し、親OFFでも子をリセットしない', async () => {
+    optionsRouteMocks.settings = createSettings({ showSavedTime: true })
+    const user = userEvent.setup()
+    render(<OptionsRoute />)
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'options.showRelativeSavedTime',
+    })
+    expect(checkbox).toBeEnabled()
+    await user.click(checkbox)
+    expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
+      'showRelativeSavedTime',
+      true,
+    )
+    optionsRouteMocks.updateSetting.mockClear()
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'options.autoDelete.savedTime',
+      }),
+    )
+    expect(optionsRouteMocks.updateSetting).toHaveBeenCalledExactlyOnceWith(
+      'showSavedTime',
+      false,
+    )
+  })
+
   it('font size helper は input value だけを既定値へ戻す', () => {
     expect(
       resetFontSizeInputValue(
@@ -191,12 +254,41 @@ describe('OptionsRoute', () => {
     cleanup()
   })
 
+  it('Ollama 接続設定の既定の接続先を表示する', () => {
+    render(<OptionsRoute />)
+
+    expect(
+      screen.getByRole('heading', { name: 'options.ollama.title' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('combobox', { name: 'ollama-base-url' }),
+    ).toHaveValue('http://localhost:11434')
+  })
+
+  it('選択した Ollama 接続先を既存の設定保存へ渡す', async () => {
+    const user = userEvent.setup()
+    render(<OptionsRoute />)
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'ollama-base-url' }),
+      'http://127.0.0.1:11434',
+    )
+
+    expect(optionsRouteMocks.updateSetting).toHaveBeenCalledWith(
+      'ollamaBaseUrl',
+      'http://127.0.0.1:11434',
+    )
+  })
+
   it('renders settings sections and commits font size controls', async () => {
     const user = userEvent.setup()
     render(<OptionsRoute />)
 
     expect(screen.getByText('options.title')).toBeTruthy()
     expect(screen.getByText('import-export-settings')).toBeTruthy()
+    expect(
+      screen.queryByRole('heading', { name: 'options.review.title' }),
+    ).not.toBeInTheDocument()
 
     const slider = screen.getByLabelText('options.fontSize.rangeLabel')
     // eslint-disable-next-line testing-library/prefer-user-event

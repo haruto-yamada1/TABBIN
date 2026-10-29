@@ -1,0 +1,17 @@
+name: Audit fixture
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: cache
+          key: test
+      - run: echo "${{ steps.cache.outputs.nonexistent-output }}"

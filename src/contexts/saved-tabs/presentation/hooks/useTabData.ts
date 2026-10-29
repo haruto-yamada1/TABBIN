@@ -1,13 +1,12 @@
 /**
  * @file useTabData.ts
  * @description タブグループのデータ管理（ロード・URL解決・ストレージ同期）を担う
- * カスタムフック。マイグレーションの実行、初回ロード、URL取得の非同期処理を内包する。
+ * カスタムフック。初回ロード、URL取得の非同期処理を内包する。
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { MigrationPort } from '@/contexts/saved-tabs/application/ports/MigrationPort'
 import type { GetSavedTabsPageDataQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsPageDataQuery'
 import type { GetSavedTabsQuery } from '@/contexts/saved-tabs/application/queries/GetSavedTabsQuery'
 import type { LoadTabGroupsWithUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/LoadTabGroupsWithUrlsUseCase'
@@ -46,11 +45,6 @@ type UseTabDataParams = {
    * 初回ロード時の修復保存を担う。
    */
   readonly repairTabGroupParentCategoryIdsUseCase: RepairTabGroupParentCategoryIdsUseCase
-  /**
-   * migration port。旧 `migrateParentCategoriesToDomainNames` /
-   * `migrateToUrlsStorage` の DDD port 化（issue #509）。
-   */
-  readonly migrationPort: MigrationPort
   /** 初回ロード時にカテゴリが確定したときに呼び出されるコールバック */
   readonly onCategoriesLoaded: (categories: ParentCategory[]) => void
   /** 初回ロード時にユーザー設定が確定したときに呼び出されるコールバック */
@@ -84,33 +78,6 @@ type TabDataState = {
   tabGroups: TabGroup[]
   tabGroupsWithUrls: TabGroup[]
 }
-const runInitialMigrations = async (
-  migrationPort: MigrationPort,
-): Promise<void> => {
-  console.log('ページ読み込み時の親カテゴリ移行処理を開始...')
-  try {
-    await migrationPort.migrateParentCategoriesToDomainNames()
-  } catch (error) {
-    console.error('親カテゴリ移行エラー:', error)
-  }
-  try {
-    console.log('URL管理マイグレーションを開始...')
-    await migrationPort.migrateToUrlsStorage()
-    console.log('URL管理マイグレーションが完了しました')
-  } catch (error) {
-    console.error('URL管理マイグレーションエラー:', error)
-  }
-  // 既有のスキーム付きドメインを hostname へ正規化してストレージ形式を一本化する。
-  // 他のマイグレーション (domainNames 再構築含む) の後に実行し、最終的に
-  // hostname 形式で揃える (Finding B の根本治療)。
-  try {
-    console.log('ドメイン hostname 化マイグレーションを開始...')
-    await migrationPort.migrateDomainStorageToHostname()
-    console.log('ドメイン hostname 化マイグレーションが完了しました')
-  } catch (error) {
-    console.error('ドメイン hostname 化マイグレーションエラー:', error)
-  }
-}
 const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
   console.log('タブグループ数:', savedTabs.length)
   for (const group of savedTabs) {
@@ -124,29 +91,9 @@ const logSavedTabsSummary = (savedTabs: TabGroup[]): void => {
     console.log('タブグループが空です。テストデータの有無を確認...')
   }
 }
-const ensureValidParentCategories = async (
-  parentCategories: ParentCategory[],
-  getSavedTabsPageDataQuery: GetSavedTabsPageDataQuery,
-  migrationPort: MigrationPort,
-): Promise<ParentCategory[]> => {
-  const hasInvalidCategory = parentCategories.some(
-    (cat) =>
-      !Object.hasOwn(cat, 'collections') || !Array.isArray(cat.collections),
-  )
-  if (!(hasInvalidCategory || parentCategories.length === 0)) {
-    return parentCategories
-  }
-  console.log('無効なカテゴリを検出、再マイグレーションを実行')
-  await migrationPort.migrateParentCategoriesToDomainNames()
-  // `ensureValidParentCategories` の判定は `domainNames` 未定義/
-  // 配列非互換を invalid として検出する。再取得後も配列として clone し、
-  // 下流では同じ runtime shape check を維持する。
-  const refreshed = (await getSavedTabsPageDataQuery()).parentCategories
-  return [...refreshed]
-}
 /**
  * タブグループデータの管理フック。
- * マイグレーション実行・初回ロード・URL解決・ストレージ変更連携を担う。
+ * 初回ロード・URL解決・ストレージ変更連携を担う。
  *
  * `loadTabGroupsWithUrlsUseCase` を介して URL 解決を委譲する
  * （旧 `@/lib/storage/tabs.resolveTabGroupsWithUrls` 直叩きを置換、
@@ -170,7 +117,6 @@ const useTabData = ({
   getSavedTabsPageDataQuery,
   getSavedTabsQuery,
   repairTabGroupParentCategoryIdsUseCase,
-  migrationPort,
   onCategoriesLoaded,
   onSettingsLoaded,
 }: UseTabDataParams): UseTabDataReturn => {
@@ -217,7 +163,6 @@ const useTabData = ({
   const repairTabGroupParentCategoryIdsUseCaseRef = useRef(
     repairTabGroupParentCategoryIdsUseCase,
   )
-  const migrationPortRef = useRef(migrationPort)
   useEffect(() => {
     getSavedTabsPageDataQueryRef.current = getSavedTabsPageDataQuery
   }, [getSavedTabsPageDataQuery])
@@ -228,9 +173,6 @@ const useTabData = ({
     repairTabGroupParentCategoryIdsUseCaseRef.current =
       repairTabGroupParentCategoryIdsUseCase
   }, [repairTabGroupParentCategoryIdsUseCase])
-  useEffect(() => {
-    migrationPortRef.current = migrationPort
-  }, [migrationPort])
 
   /**
    * タブグループ配列に対して各グループの URL をストレージから取得する。
@@ -284,17 +226,13 @@ const useTabData = ({
     [loadTabGroupsWithUrls],
   )
 
-  // ページ読み込み時にマイグレーションを実行して初回データをロードする
+  // ページ読み込み時に IndexedDB の初回データをロードする
   useEffect(() => {
     const loadSavedTabs = async () => {
       try {
-        await runInitialMigrations(migrationPortRef.current)
-
         // データ読み込み: page data query 経由 (issue #510)
         const pageData = await getSavedTabsPageDataQueryRef.current()
         const savedTabs = toPresentationTabGroups(pageData.tabGroups)
-        // legacy storage の不正な `domainNames` を検出して再 migration するため、
-        // parent category だけは正規化せず runtime shape を保持する。
         const parentCategories = [...pageData.parentCategories]
         const userSettings = pageData.userSettings
         logSavedTabsSummary(savedTabs)
@@ -304,12 +242,7 @@ const useTabData = ({
 
         // カテゴリを読み込み
         console.log('読み込まれた親カテゴリ:', parentCategories)
-        const finalCategories = await ensureValidParentCategories(
-          parentCategories,
-          getSavedTabsPageDataQueryRef.current,
-          migrationPortRef.current,
-        )
-        onCategoriesLoadedRef.current(finalCategories)
+        onCategoriesLoadedRef.current(parentCategories)
 
         // parentCategoryId 修復は application use-case 経由 (issue #517)。
         // 修復があった場合のみ use-case 内で `tabGroupRepository.saveAll` が
@@ -317,7 +250,7 @@ const useTabData = ({
         // display DTO を rich field のまま application use-case へ渡す。
         const repairCommand: RepairTabGroupParentCategoryIdsCommand = {
           tabGroups: pageData.tabGroups,
-          parentCategories: finalCategories,
+          parentCategories,
         }
         const { tabGroups: repairedTabGroups } =
           await repairTabGroupParentCategoryIdsUseCaseRef.current(repairCommand)

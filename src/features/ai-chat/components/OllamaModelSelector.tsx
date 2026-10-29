@@ -42,28 +42,6 @@ type OllamaModelSelectorProps = {
 
 const EMPTY_MODEL_VALUE = '__empty__'
 
-const getSelectableModels = (
-  models: OllamaModelOption[],
-  selectedModel?: string,
-): OllamaModelOption[] => {
-  if (!selectedModel) {
-    return models
-  }
-
-  const hasSelectedModel = models.some((model) => model.name === selectedModel)
-  if (hasSelectedModel) {
-    return models
-  }
-
-  return [
-    {
-      label: selectedModel,
-      name: selectedModel,
-    },
-    ...models,
-  ]
-}
-
 const getTriggerDisabled = ({
   fetchOnOpen,
   isLoading,
@@ -230,8 +208,7 @@ const ModelSelect = ({
     open={isOpen}
     onOpenChange={handleOpenChange}
     onValueChange={handleValueChange}
-    {...(selectedModel !== undefined ? { defaultValue: selectedModel } : {})}
-    key={selectedModel || 'no-model-selected'} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
+    value={selectedModel ?? ''}
   >
     <PromptInputSelectTrigger
       aria-label={selectedModel || t('aiChat.ollama.selectModel')} // eslint-disable-line typescript/prefer-nullish-coalescing -- empty model name should fall through
@@ -277,10 +254,11 @@ const OllamaModelSelector = ({
     () => ({ isLoading, isSaving }),
     [isLoading, isSaving],
   )
-  const selectableModels = useMemo(
-    () => getSelectableModels(models, selectedModel),
-    [models, selectedModel],
+  const availableSelectedModel = models.some(
+    (model) => model.name === selectedModel,
   )
+    ? selectedModel
+    : undefined
   const hasError = Boolean(errorMessage || ollamaError) // eslint-disable-line typescript/prefer-nullish-coalescing -- empty error message should fall through
   const { handleOpenChange, isOpen } = useModelSelectorOpen({
     fetchOnOpen,
@@ -291,7 +269,7 @@ const OllamaModelSelector = ({
     fetchOnOpen,
     isLoading,
     isSaving,
-    selectableModels,
+    selectableModels: models,
   })
 
   const handleValueChange = useCallback(
@@ -322,7 +300,7 @@ const OllamaModelSelector = ({
         />
 
         <ModelSelect
-          selectedModel={selectedModel}
+          selectedModel={availableSelectedModel}
           isOpen={isOpen}
           handleOpenChange={handleOpenChange}
           handleValueChange={handleValueChange}
@@ -330,7 +308,7 @@ const OllamaModelSelector = ({
           hideFetchButton={hideFetchButton}
           isCompactLayout={isCompactLayout}
           isLoading={isLoading}
-          selectableModels={selectableModels}
+          selectableModels={models}
           t={t}
         />
       </div>

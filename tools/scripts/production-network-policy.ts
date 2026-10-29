@@ -1,24 +1,28 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { PRODUCTION_EXTENSION_PERMISSIONS } from '#extension-permissions'
+import {
+  PRODUCTION_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS,
+  PRODUCTION_OPTIONAL_HOST_PERMISSIONS,
+} from '#extension-permissions'
 import { PRODUCTION_OUTBOUND_HOST_PERMISSIONS } from '#production-network-policy'
-import ts from 'typescript'
+import * as ts from '#typescript-parser'
 
 import { isHostPermission, readStringArray } from './manifestHelpers.ts'
 import {
   assertExtensionCspMatchesProductionNetworkPolicy,
   assertGeneratedManifestSecurityInvariants,
 } from './manifestSecurityInvariants.ts'
-import { collectPotentialNetworkAliasKinds } from './production-network-policy-aliases'
-import type { PotentialAliasSummary } from './production-network-policy-aliases'
+import { collectPotentialNetworkAliasKinds } from './production-network-policy-aliases.ts'
+import type { PotentialAliasSummary } from './production-network-policy-aliases.ts'
 import {
   NetworkAstTraverser,
   cloneAliasScopes as cloneScopes,
   collectBindingIdentifiers,
   mergeAliasScopeStates as mergeScopeStates,
-} from './production-network-policy-ast'
-import type { AliasScope } from './production-network-policy-ast'
+} from './production-network-policy-ast.ts'
+import type { AliasScope } from './production-network-policy-ast.ts'
 
 export type NetworkCallsiteKind =
   | 'network-client-import'
@@ -145,7 +149,9 @@ const resolveDirectNetworkReferences = (
 
 const getBindingPropertyName = (element: ts.BindingElement): string | null => {
   if (element.propertyName === undefined) {
-    return ts.isIdentifier(element.name) ? element.name.text : null
+    return element.name !== undefined && ts.isIdentifier(element.name)
+      ? element.name.text
+      : null
   }
   return ts.isIdentifier(element.propertyName) ||
     ts.isStringLiteralLike(element.propertyName)
@@ -308,16 +314,7 @@ export const collectSourceNetworkCallsites = (
   relativePath: string,
   sourceText: string,
 ): NetworkCallsite[] => {
-  const scriptKind = relativePath.endsWith('.tsx')
-    ? ts.ScriptKind.TSX
-    : ts.ScriptKind.TS
-  const source = ts.createSourceFile(
-    relativePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-    scriptKind,
-  )
+  const source = ts.parseSourceFile(relativePath, sourceText)
   const callsites: NetworkCallsite[] = []
   const recordedCallsites = new Set<string>()
   const potentialAliasKinds = collectPotentialNetworkAliasKinds(
@@ -471,7 +468,7 @@ export const collectSourceNetworkCallsites = (
       return
     }
     for (const element of node.name.elements) {
-      if (!ts.isIdentifier(element.name)) {
+      if (element.name === undefined || !ts.isIdentifier(element.name)) {
         continue
       }
       const kind = resolveDestructuredNetworkKind(
@@ -614,6 +611,43 @@ export const assertProductionNetworkCallsiteInventory = (
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
+const assertOptionalTitleIndicatorPermissions = (
+  manifest: Record<string, unknown>,
+  label: string,
+  isManifestV2: boolean,
+): void => {
+  const hostProperty = isManifestV2
+    ? 'optional_permissions'
+    : 'optional_host_permissions'
+  const hosts = readStringArray(manifest, hostProperty, label)
+  const actualHosts = (
+    isManifestV2 ? hosts.filter(isHostPermission) : hosts
+  ).toSorted()
+  const expectedHosts = [...PRODUCTION_OPTIONAL_HOST_PERMISSIONS].toSorted()
+  if (JSON.stringify(actualHosts) !== JSON.stringify(expectedHosts)) {
+    throw new Error(
+      `${label} ${hostProperty} host patterns do not match the reviewed optional title-indicator access: ${JSON.stringify(actualHosts)}; expected ${JSON.stringify(expectedHosts)}`,
+    )
+  }
+  const permissions = readStringArray(manifest, 'optional_permissions', label)
+  const actualApi = (
+    isManifestV2
+      ? permissions.filter((permission) => !isHostPermission(permission))
+      : permissions
+  ).toSorted()
+  const expectedApi = [...PRODUCTION_OPTIONAL_EXTENSION_PERMISSIONS].toSorted()
+  if (JSON.stringify(actualApi) !== JSON.stringify(expectedApi)) {
+    throw new Error(
+      `${label} optional_permissions API permissions do not match the reviewed optional title-indicator access: ${JSON.stringify(actualApi)}; expected ${JSON.stringify(expectedApi)}`,
+    )
+  }
+  if (isManifestV2 && 'optional_host_permissions' in manifest) {
+    throw new Error(
+      `${label} optional_host_permissions must be absent in MV2; reviewed origins belong in optional_permissions`,
+    )
+  }
+}
+
 export const assertManifestMatchesProductionNetworkPolicy = (
   manifest: unknown,
   label: string,
@@ -629,9 +663,6 @@ export const assertManifestMatchesProductionNetworkPolicy = (
   const hostPermissionProperty = isManifestV2
     ? 'permissions'
     : 'host_permissions'
-  const optionalHostPermissionProperty = isManifestV2
-    ? 'optional_permissions'
-    : 'optional_host_permissions'
   const actual = readStringArray(manifest, hostPermissionProperty, label)
     .filter(isHostPermission)
     .toSorted()
@@ -641,18 +672,7 @@ export const assertManifestMatchesProductionNetworkPolicy = (
       `${label} ${hostPermissionProperty} host patterns do not match the production allowlist: ${JSON.stringify(actual)}; expected ${JSON.stringify(expected)}`,
     )
   }
-  if (optionalHostPermissionProperty in manifest) {
-    const optionalPermissions = readStringArray(
-      manifest,
-      optionalHostPermissionProperty,
-      label,
-    ).filter(isHostPermission)
-    if (optionalPermissions.length !== 0) {
-      throw new Error(
-        `${label} ${optionalHostPermissionProperty} host patterns must be empty: ${JSON.stringify(optionalPermissions)}`,
-      )
-    }
-  }
+  assertOptionalTitleIndicatorPermissions(manifest, label, isManifestV2)
   assertExtensionCspMatchesProductionNetworkPolicy(
     manifest,
     label,
@@ -672,19 +692,6 @@ export const assertManifestMatchesProductionNetworkPolicy = (
     throw new Error(
       `${label} permissions do not match the approved extension permission allowlist: ${JSON.stringify(actualApiPermissions)}; expected ${JSON.stringify(expectedApiPermissions)}`,
     )
-  }
-
-  if ('optional_permissions' in manifest) {
-    const optionalApiPermissions = readStringArray(
-      manifest,
-      'optional_permissions',
-      label,
-    ).filter((permission) => !isHostPermission(permission))
-    if (optionalApiPermissions.length !== 0) {
-      throw new Error(
-        `${label} optional_permissions API permissions must be empty: ${JSON.stringify(optionalApiPermissions)}`,
-      )
-    }
   }
 
   assertGeneratedManifestSecurityInvariants(manifest, label)

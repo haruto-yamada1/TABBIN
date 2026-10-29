@@ -1,4 +1,11 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import {
+  readFileSync,
+  readdirSync,
+  statSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
@@ -128,6 +135,12 @@ const collectSourceFiles = (dir: string): string[] => {
     return result
   }
   for (const entry of entries) {
+    if (
+      dir === resolve(repoRoot, 'src', 'contexts') &&
+      entry.startsWith('__oxlint-fixture-')
+    ) {
+      continue
+    }
     const fullPath = resolve(dir, entry)
     let stats
     try {
@@ -194,6 +207,22 @@ const stripComments = (source: string): string =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
 
 describe('src/contexts/saved-tabs DDD layer guard', () => {
+  it('excludes temporary Oxlint contexts while retaining real production sources', () => {
+    const allContexts = resolve(repoRoot, 'src', 'contexts')
+    const fixture = mkdtempSync(resolve(allContexts, '__oxlint-fixture-'))
+    const file = resolve(fixture, 'MutatingPresentationService.ts')
+    try {
+      writeFileSync(file, 'export const fixtureOnly = true')
+      const sources = collectSourceFiles(allContexts)
+      expect(sources).not.toContain(file)
+      expect(sources).toContain(
+        resolve(contextsRoot, 'domain/value-objects/Url.ts'),
+      )
+    } finally {
+      rmSync(fixture, { recursive: true, force: true })
+    }
+  })
+
   const config = loadOxlintConfig()
   const dependencyCruiserSource = readFileSync(
     dependencyCruiserConfigPath,
@@ -755,7 +784,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     const expectedFiles = [
       'src/contexts/saved-tabs/infrastructure/browser/ChromeBrowserTabAdapter.ts',
       'src/contexts/saved-tabs/infrastructure/browser/SonnerNotificationAdapter.ts',
-      'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+      'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
       'src/contexts/saved-tabs/application/createSavedTabsUseCases.ts',
     ]
 
@@ -834,11 +863,11 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).not.toMatch(/from\s+['"]@\/features\//)
     })
 
-    it('createSavedTabsUseCasesDeps は storageChangePort を組み立てる', () => {
+    it('createIndexedDbSavedTabsExternalDeps は storageChangePort を組み立てる', () => {
       const source = readFileSync(
         resolve(
           repoRoot,
-          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+          'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
         ),
         'utf8',
       )
@@ -1010,11 +1039,11 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).not.toMatch(/from\s+['"]@\/features\//)
     })
 
-    it('createSavedTabsUseCasesDeps は messagingPort を組み立てる', () => {
+    it('createIndexedDbSavedTabsExternalDeps は messagingPort を組み立てる', () => {
       const source = readFileSync(
         resolve(
           repoRoot,
-          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+          'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
         ),
         'utf8',
       )
@@ -1058,7 +1087,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
 
   describe('issue #469: app-level composition root が追加されている', () => {
     const appCompositionFiles = [
-      'src/app/composition/createSavedTabsRepositories.ts',
+      'src/app/composition/persistenceBootstrap.ts',
       'src/app/composition/createSavedTabsPorts.ts',
       'src/app/composition/createSavedTabsUseCases.ts',
     ]
@@ -1070,15 +1099,18 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       })
     }
 
-    it('createSavedTabsRepositories は 4 つの Chrome*Repository を組み立てる', () => {
+    it('createSavedTabsUseCases は native IndexedDB composition を組み立てる', () => {
       const source = readFileSync(
-        resolve(repoRoot, 'src/app/composition/createSavedTabsRepositories.ts'),
+        resolve(repoRoot, 'src/app/composition/createSavedTabsUseCases.ts'),
         'utf8',
       )
-      expect(source).toContain('createChromeTabGroupRepository')
-      expect(source).toContain('createChromeUrlRecordRepository')
-      expect(source).toContain('createChromeParentCategoryRepository')
-      expect(source).toContain('createChromeCustomProjectRepository')
+      expect(source).toContain('createIndexedDbSavedTabsUseCases')
+      expect(source).toContain('createNativeIndexedDbSavedTabsRuntime')
+      expect(source).toContain('runtime.connectionManager')
+      expect(source).toContain('runtime.operationGate')
+      expect(source).not.toMatch(
+        /createChrome(?:TabGroup|UrlRecord|ParentCategory|CustomProject)Repository/,
+      )
     })
 
     it('createSavedTabsPorts は ChromeBrowserTabAdapter / SonnerNotificationAdapter を組み立てる', () => {
@@ -1248,7 +1280,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         /export\s*\{\s*SavedTabsRoute\s*\}\s*from\s+['"]@\/features\/saved-tabs\/routes\/SavedTabsRoute['"]/,
       )
       expect(source).toContain('SavedTabsPage')
-      expect(source).toContain('createSavedTabsUseCasesDeps')
+      expect(source).toContain('createDeps')
     })
 
     it('contexts/SavedTabsPage.tsx は SavedTabsPresentationLayout を直接描画する', () => {
@@ -1566,11 +1598,11 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).toContain('Date.now()')
     })
 
-    it('createSavedTabsUseCasesDeps は clock を組み立てる', () => {
+    it('createIndexedDbSavedTabsExternalDeps は clock を組み立てる', () => {
       const source = readFileSync(
         resolve(
           repoRoot,
-          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+          'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
         ),
         'utf8',
       )
@@ -1630,11 +1662,11 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
       expect(source).toContain('crypto.randomUUID()')
     })
 
-    it('createSavedTabsUseCasesDeps は idGenerator を組み立てる', () => {
+    it('createIndexedDbSavedTabsExternalDeps は idGenerator を組み立てる', () => {
       const source = readFileSync(
         resolve(
           repoRoot,
-          'src/contexts/saved-tabs/infrastructure/composition/createSavedTabsUseCasesDeps.ts',
+          'src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts',
         ),
         'utf8',
       )
@@ -1739,38 +1771,46 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
     }
   })
 
-  describe('issue #729-B: production complete cutover boundary', () => {
+  describe('issue #861: production IndexedDB-only boundary', () => {
     const sourceRoot = resolve(repoRoot, 'src')
-    const productionFiles = collectSourceFiles(sourceRoot).filter(
-      (path) =>
-        !/\.(?:fixture|test|testing)\.tsx?$/.test(path) &&
-        !path.includes(`${sep}testing${sep}`),
-    )
+    const isProductionSource = (path: string) =>
+      !/\.(?:fixture|test|testing|story|stories)\.tsx?$/.test(path) &&
+      !path.includes(`${sep}testing${sep}`)
+    const productionFiles =
+      collectSourceFiles(sourceRoot).filter(isProductionSource)
 
     // production source が testing 専用 seam を import しないことを検証する正規表現。
     // 静的 import (from / side-effect import) と動的 import('...') の両方を検出し、
-    // /testing/<path> ディレクトリと .testing / .fixture 接尾辞をカバーする。
+    // /testing/<path> と .testing / .fixture / .story / .stories 接尾辞をカバーし、
+    // production から story 経由で fixture を取り込む経路も拒否する。
     // ガード自体が将来壊れないよう、下方の self-test で検出対象を明示する。
     const testOnlySeamImportPattern =
-      /(?:from\s+|import\s+|import\s*\()['"][^'"]*(?:\/testing\/[^'"]*|\.(?:fixture|testing))['"]/
+      /(?:from\s+|import\s+|import\s*\()['"][^'"]*(?:\/testing\/[^'"]*|\.(?:fixture|testing|story|stories)(?:\.tsx?)?)['"]/
 
-    it('enables complete cutover only in the production bootstrap runtime', () => {
-      const completeCutoverFiles: string[] = []
+    it.each([
+      ['app/composition/VisualRegression.stories.tsx', false],
+      ['features/options/Options.story.ts', false],
+      ['app/composition/VisualRegression.fixture.ts', false],
+      ['features/options/Options.test.tsx', false],
+      ['app/composition/Options.testing.ts', false],
+      ['app/composition/testing/Options.ts', false],
+      ['entrypoints/background.ts', true],
+      ['lib/storybook/runtime.ts', true],
+      ['features/options/stories.ts', true],
+      ['features/options/Options.stories.helpers.ts', true],
+      ['features/options/Options.storyStore.ts', true],
+      ['lib/testing-utils/runtime.ts', true],
+    ])('classifies %s as production=%s', (path, expected) => {
+      expect(isProductionSource(resolve(sourceRoot, path))).toBe(expected)
+    })
 
+    it('does not retain legacy cutover policy or migration routing in production', () => {
       for (const absolutePath of productionFiles) {
-        const relativePath = relative(repoRoot, absolutePath)
-          .split(sep)
-          .join('/')
         const source = stripComments(readFileSync(absolutePath, 'utf8'))
-        if (/cutoverPolicy\s*:\s*['"]complete['"]/.test(source)) {
-          completeCutoverFiles.push(relativePath)
-        }
+        expect(source).not.toMatch(
+          /cutoverPolicy\s*:|PersistenceDataPlaneRouter|createPersistenceV2MigrationLifecycle|createSelectedLegacySavedTabs/,
+        )
       }
-
-      expect(completeCutoverFiles).toEqual([
-        'src/contexts/saved-tabs/infrastructure/composition/persistenceBootstrapRuntime.ts',
-      ])
-
       const runtime = readFileSync(
         resolve(
           repoRoot,
@@ -1778,33 +1818,24 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         ),
         'utf8',
       )
-      expect(runtime).toMatch(/cutoverPolicy\s*:\s*['"]complete['"]/)
+      expect(runtime).toContain('IndexedDbConnectionManager')
+      expect(runtime).toContain('PersistenceBootstrapService')
+      expect(runtime).toContain('PersistenceOperationGateService')
+      expect(runtime).not.toMatch(
+        /ChromeRawLegacyStorageReader|ChromePersistenceControlStateRepository|MigrationPreflight/,
+      )
     })
 
-    it('starts and resumes the production migration through the startup controller', () => {
+    it('background startup opens IndexedDB directly without domain migration or cleanup', () => {
       const background = readFileSync(
         resolve(repoRoot, 'src/entrypoints/background.ts'),
         'utf8',
       )
-      const controller = readFileSync(
-        resolve(
-          repoRoot,
-          'src/app/composition/createMigrationPreflightController.ts',
-        ),
-        'utf8',
+      expect(background).toContain('getPersistenceBootstrapRuntime')
+      expect(background).toMatch(/await\s+runtime\.bootstrap\.ready\(\)/)
+      expect(background).not.toMatch(
+        /getMigrationPreflightController|getLegacyStorageCleanupController|@\/lib\/storage\/(?:categories|migration)/,
       )
-
-      expect(background).toContain('getMigrationPreflightController')
-      expect(background).toMatch(
-        /await\s+getMigrationPreflightController\(\)\.run\(\)/,
-      )
-      expect(background).not.toContain('@/lib/storage/categories')
-      expect(background).not.toContain('@/lib/storage/migration')
-      expect(controller).toContain('PRODUCTION_PERSISTENCE_V2_MIGRATION_ID')
-      expect(controller).toMatch(
-        /options\.bootstrap\.migrate\(options\.migrationId\)/,
-      )
-      expect(controller).toMatch(/options\.bootstrap\.ready\(\)/)
     })
 
     it('production source does not import testing-only cutover seams', () => {
@@ -1832,6 +1863,13 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         "import('./foo.testing')",
         "import { x } from './foo.fixture'",
         "import('./foo.fixture')",
+        "import { x } from './foo.story'",
+        "import('./foo.story')",
+        "import { x } from './foo.stories'",
+        "import './foo.stories'",
+        "import('./foo.stories')",
+        "import { x } from './foo.stories.tsx'",
+        "import('./foo.story.ts')",
       ]
       for (const source of forbidden) {
         expect(
@@ -1845,6 +1883,8 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         "import { x } from '@/contexts/saved-tabs/application/foo'",
         "import { x } from '@/contexts/saved-tabs/infrastructure/foo'",
         "import { x } from '@/lib/testing-utils/foo'",
+        "import { x } from '@/lib/storybook/runtime'",
+        "import { x } from './foo.stories.helpers'",
         "import { x } from 'react'",
       ]
       for (const source of allowed) {

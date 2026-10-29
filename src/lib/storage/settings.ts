@@ -1,4 +1,5 @@
 import { DEFAULT_FONT_SIZE_PERCENT } from '@/constants/fontSize'
+import { OLLAMA_BASE_URL } from '@/constants/productionNetworkPolicy'
 import {
   DEFAULT_EXCLUDE_PATTERNS,
   mergeStoredUserSettingsDefaults,
@@ -13,7 +14,10 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
-import { parseStoredUserSettings } from '@/lib/storage/zod-storage'
+import {
+  parseStoredUserSettings,
+  UserSettingsSchema,
+} from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 const stripLegacyUserSettings = (settings: unknown): Partial<UserSettings> => {
@@ -51,6 +55,7 @@ export const defaultSettings: UserSettings = {
   // デフォルトは有効
   autoDeletePeriod: 'never',
   // デフォルトでは自動削除しない
+  showRelativeSavedTime: false,
   showSavedTime: false,
   // デフォルトでは表示しない
   clickBehavior: 'saveSameDomainTabs',
@@ -62,6 +67,7 @@ export const defaultSettings: UserSettings = {
   fontSizePercent: DEFAULT_FONT_SIZE_PERCENT,
   colors: {}, // デフォルト: カラー設定まとめ
   ollamaModel: '',
+  ollamaBaseUrl: OLLAMA_BASE_URL,
   activeAiSystemPromptId: DEFAULT_AI_SYSTEM_PROMPT_PRESET_ID,
   aiSystemPrompts: [
     {
@@ -133,15 +139,23 @@ export const getUserSettings = async (
 export const readUserSettingsWithoutRepair = async (): Promise<UserSettings> =>
   getUserSettings({ repairStoredSettings: false })
 
+/** Returns the settings that the storage writer will persist. */
+export const normalizeUserSettingsForStorage = (
+  settings: UserSettings,
+): UserSettings => {
+  UserSettingsSchema.shape.ollamaBaseUrl.parse(settings.ollamaBaseUrl)
+  const validatedSettings = parseStoredUserSettings(settings)
+  return normalizeAiSystemPromptSettings(
+    mergeStoredUserSettings(validatedSettings),
+  )
+}
+
 // 設定を保存する関数
 export const saveUserSettings = async (
   settings: UserSettings,
 ): Promise<void> => {
   try {
-    const validatedSettings = parseStoredUserSettings(settings)
-    const normalizedSettings = normalizeAiSystemPromptSettings(
-      mergeStoredUserSettings(validatedSettings),
-    )
+    const normalizedSettings = normalizeUserSettingsForStorage(settings)
     console.log('ユーザー設定を保存:', normalizedSettings)
     const storageLocal = getChromeStorageLocal()
     if (!storageLocal) {

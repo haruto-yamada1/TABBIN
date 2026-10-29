@@ -16,11 +16,22 @@ const customProjectCategoryI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
 
-const { useSortableMock, useDroppableMock, projectUrlItemSpy } = vi.hoisted(
+const {
+  useSortableMock,
+  useDroppableMock,
+  useDropTargetFeedbackMock,
+  projectUrlItemSpy,
+} = vi.hoisted(() => ({
+  useSortableMock: vi.fn(),
+  useDroppableMock: vi.fn(),
+  useDropTargetFeedbackMock: vi.fn(),
+  projectUrlItemSpy: vi.fn(),
+}))
+
+vi.mock(
+  '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback',
   () => ({
-    useSortableMock: vi.fn(),
-    useDroppableMock: vi.fn(),
-    projectUrlItemSpy: vi.fn(),
+    useDropTargetFeedback: useDropTargetFeedbackMock,
   }),
 )
 
@@ -203,6 +214,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
+  showRelativeSavedTime: false,
   showSavedTime: false,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,
@@ -238,6 +250,35 @@ const createProps = (
 })
 
 describe('CustomProjectCategory', () => {
+  it('keeps favorites ahead of date ordering inside a category', async () => {
+    const user = userEvent.setup()
+    render(
+      <CustomProjectCategory
+        {...createProps({
+          urls: [
+            { url: 'https://a.com', title: 'A', category: 'Work', savedAt: 1 },
+            {
+              url: 'https://b.com',
+              title: 'B',
+              category: 'Work',
+              savedAt: 2,
+              isFavorite: true,
+            },
+            { url: 'https://c.com', title: 'C', category: 'Work', savedAt: 3 },
+          ],
+        })}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'デフォルト' }))
+    expect(screen.getAllByTestId('project-url-item')[0]).toHaveTextContent(
+      'https://b.com',
+    )
+    await user.click(screen.getByRole('button', { name: '保存日時の昇順' }))
+    expect(screen.getAllByTestId('project-url-item')[0]).toHaveTextContent(
+      'https://b.com',
+    )
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     customProjectCategoryI18nState.language = 'ja'
@@ -252,12 +293,96 @@ describe('CustomProjectCategory', () => {
       setNodeRef: vi.fn(),
       isOver: false,
     })
+    useDropTargetFeedbackMock.mockImplementation(
+      ({ isOver }: { isOver?: boolean }) => ({
+        state: isOver ? 'over' : 'idle',
+        className: isOver ? 'shared-drop-over' : '',
+      }),
+    )
     vi.spyOn(window, 'open').mockImplementation(vi.fn() as never)
   })
 
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('exposes the shared drop state when a category is highlighted', () => {
+    render(<CustomProjectCategory {...createProps({ isHighlighted: true })} />)
+
+    expect(screen.getByTestId('card')).toHaveAttribute(
+      'data-drop-state',
+      'over',
+    )
+    expect(useDropTargetFeedbackMock).toHaveBeenCalledWith({
+      id: JSON.stringify(['project-category', 'project-1', 'Work']),
+      accepts: 'custom',
+      isOver: true,
+    })
+    expect(screen.getByTestId('category-url-list')).toHaveClass('bg-primary/5')
+    expect(screen.getByTestId('category-url-list')).not.toHaveClass('p-1')
+  })
+
+  it.each(['available', 'unavailable', 'source', 'idle'])(
+    'uses the shared %s state without highlighting an invalid or stale hover',
+    (state) => {
+      useDropTargetFeedbackMock.mockReturnValue({
+        state,
+        className: `shared-drop-${state}`,
+      })
+
+      render(
+        <CustomProjectCategory
+          {...createProps({ isHighlighted: true, urls: [] })}
+        />,
+      )
+
+      expect(screen.getByTestId('card')).toHaveAttribute(
+        'data-drop-state',
+        state,
+      )
+      expect(screen.getByTestId('card')).toHaveClass(`shared-drop-${state}`)
+      expect(screen.getByTestId('empty-state')).not.toHaveClass(
+        'border-primary',
+      )
+      expect(screen.getByTestId('card')).not.toHaveClass('border-2')
+      expect(screen.getByTestId('card').style.backgroundColor).toBe('')
+    },
+  )
+
+  it('gives categories in different projects distinct handles without dragging from controls', () => {
+    const setActivatorNodeRef = vi.fn()
+    const onKeyDown = vi.fn()
+    useSortableMock.mockReturnValue({
+      attributes: { role: 'button', tabIndex: 0 },
+      listeners: { onKeyDown },
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef,
+      transform: null,
+      transition: undefined,
+    })
+    const props = createProps()
+    render(
+      <>
+        <CustomProjectCategory {...props} />
+        <CustomProjectCategory {...props} projectId='project-2' />
+      </>,
+    )
+    expect(
+      new Set(useSortableMock.mock.calls.map(([options]) => options.id)).size,
+    ).toBe(2)
+    const handles = screen.getAllByRole('button', {
+      name: 'ドラッグしてカテゴリ「Work」を並べ替える',
+    })
+    expect(setActivatorNodeRef).toHaveBeenCalledWith(handles[0])
+    const collapse = screen.getAllByRole('button', { name: '折りたたむ' })[0]
+    if (!collapse) {
+      throw new Error('Expected a category collapse control')
+    }
+    // Fire the activator event directly to verify it cannot reach the drag listener.
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.keyDown(collapse, { code: 'Space' })
+    expect(onKeyDown).not.toHaveBeenCalled()
   })
 
   it('カテゴリURLをフィルタして描画し、折りたたみ・ソート・即時一括操作を処理する', async () => {
@@ -486,9 +611,10 @@ describe('CustomProjectCategory', () => {
         })}
       />,
     )
-    expect(
-      screen.getByTestId('card').className.includes('border-primary'),
-    ).toBe(true)
+    expect(screen.getByTestId('card')).toHaveAttribute(
+      'data-drop-state',
+      'over',
+    )
 
     rerender(
       <CustomProjectCategory
@@ -645,7 +771,10 @@ describe('CustomProjectCategory', () => {
       />,
     )
 
-    expect(screen.getByTestId('card')).toHaveClass('border-2')
+    expect(screen.getByTestId('card')).toHaveAttribute(
+      'data-drop-state',
+      'over',
+    )
     expect(screen.getByTestId('category-url-list')).toHaveClass('bg-primary/5')
 
     rerender(

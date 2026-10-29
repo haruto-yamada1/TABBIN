@@ -1,10 +1,12 @@
+import { createExamplePersistenceFixture } from '@/test/fixtures/persistenceBrowserFixtures'
+
 import { assertNoAxeViolations } from './helpers/axe'
 import {
   createBaseSeed,
   defaultUserSettings,
   expect,
   getExtensionUrl,
-  seedStorage,
+  seedSavedTabsFixture,
   test,
 } from './helpers/extension'
 
@@ -27,30 +29,15 @@ test.describe('options accessibility', () => {
     page,
     serviceWorker,
   }) => {
-    await seedStorage(
-      serviceWorker,
-      createBaseSeed({
-        savedTabs: [
-          {
-            domain: 'example.com',
-            id: 'group-example',
-            urlIds: ['url-example'],
-          },
-        ],
-        urls: [
-          {
-            id: 'url-example',
-            savedAt: now,
-            title: 'Example Home',
-            url: 'https://example.com/',
-          },
-        ],
+    await seedSavedTabsFixture(serviceWorker, {
+      persistence: createExamplePersistenceFixture(now),
+      storage: createBaseSeed({
         userSettings: {
           ...defaultUserSettings,
           clickBehavior: 'saveCurrentTab',
         },
       }),
-    )
+    })
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
 

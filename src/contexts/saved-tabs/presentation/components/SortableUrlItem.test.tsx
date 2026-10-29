@@ -12,6 +12,17 @@ const { useSortableMock } = vi.hoisted(() => ({
 const sortableUrlItemI18nState = vi.hoisted(() => ({
   language: 'ja' as 'en' | 'ja',
 }))
+const selectionState = vi.hoisted(() => ({ active: false, click: vi.fn() }))
+vi.mock('./selection/SavedTabsSelectionProvider', () => ({
+  useSavedTabSelectionItem: () => ({
+    checkbox: selectionState.active ? (
+      <input type='checkbox' aria-label='Select Example' />
+    ) : null,
+    handleSelectionClick: selectionState.click,
+    isSelectionMode: selectionState.active,
+    isSelectionBusy: false,
+  }),
+}))
 
 vi.mock('@dnd-kit/sortable', () => ({
   useSortable: useSortableMock,
@@ -63,6 +74,7 @@ const defaultSettings: UserSettings = {
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: '1day',
+  showRelativeSavedTime: false,
   showSavedTime: true,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: false,
@@ -74,8 +86,42 @@ const defaultSettings: UserSettings = {
 }
 
 describe('SortableUrlItem', () => {
+  it.each([
+    [false, false, null],
+    [false, true, null],
+    [true, false, '2026/06/02 12:34'],
+    [true, true, '2 時間前'],
+  ] as const)('親%s/子%sの保存日時を表示する', (parent, child, expected) => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-02T14:34:56.000Z'))
+    render(
+      <SortableUrlItem
+        url='https://example.com/'
+        title='Example'
+        id='url'
+        groupId='group'
+        savedAt={Date.parse('2026-06-02T12:34:56.000Z')}
+        settings={{
+          ...defaultSettings,
+          showSavedTime: parent,
+          showRelativeSavedTime: child,
+        }}
+        handleDeleteUrl={vi.fn()}
+        handleOpenTab={vi.fn()}
+        handleUpdateUrls={vi.fn()}
+      />,
+    )
+    const column = screen.getByTestId('url-text-column')
+    expect(column.textContent).toBe(`Example${expected ?? ''}`)
+    expect(screen.queryAllByTitle('2026/06/02 12:34')).toHaveLength(
+      Number(parent && child),
+    )
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
+    selectionState.active = false
+    selectionState.click.mockReturnValue(false)
     useSortableMock.mockReturnValue({
       attributes: {},
       listeners: {},
@@ -87,6 +133,45 @@ describe('SortableUrlItem', () => {
 
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
+  })
+
+  it('uses selection instead of opening or dragging the URL in selection mode', async () => {
+    selectionState.active = true
+    selectionState.click.mockImplementation((event: React.MouseEvent) => {
+      event.preventDefault()
+      return true
+    })
+    const open = vi.fn()
+    render(
+      <SortableUrlItem
+        url='https://example.com/'
+        title='Example'
+        id='url'
+        groupId='group'
+        settings={defaultSettings}
+        handleDeleteUrl={vi.fn()}
+        handleOpenTab={open}
+        handleUpdateUrls={vi.fn()}
+      />,
+    )
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('link', { name: 'Example' }))
+    expect(open).not.toHaveBeenCalled()
+    const middleClick = new MouseEvent('auxclick', {
+      button: 1,
+      bubbles: true,
+      cancelable: true,
+    })
+    screen.getByRole('link').dispatchEvent(middleClick)
+    expect(middleClick.defaultPrevented).toBe(true)
+    expect(
+      screen.getByRole('checkbox', { name: 'Select Example' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link')).toHaveAttribute('draggable', 'false')
+    expect(useSortableMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ disabled: true }),
+    )
   })
 
   it('長いタイトルでも縮小可能なclassを維持し、クリックと削除を処理する', async () => {
@@ -124,7 +209,7 @@ describe('SortableUrlItem', () => {
     )
     expect(openLink).toHaveAttribute('target', '_blank')
     expect(openLink).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.getAllByRole('button')).toHaveLength(2)
 
     const textColumn = screen.getByTestId('url-text-column')
     expect(textColumn).toHaveClass('min-w-0')

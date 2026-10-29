@@ -4,11 +4,15 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { CardCollapseControl } from '@/contexts/saved-tabs/presentation/components/shared/CardCollapseControl'
+import { CardFavoriteFilter } from '@/contexts/saved-tabs/presentation/components/shared/CardFavoriteFilter'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import { CardGroupTitle } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupTitle'
 import { CardSortControl } from '@/contexts/saved-tabs/presentation/components/shared/CardSortControl'
+import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
+import { useSavedTabsSortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSortOrder'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
+import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
@@ -23,13 +27,14 @@ const BULK_OPEN_THRESHOLD = 10
 const sortProjectUrls = <
   T extends {
     savedAt?: number
+    isFavorite?: boolean
   },
 >(
   urls: T[],
   sortOrder: SortOrder,
 ) => {
   if (sortOrder === 'default') {
-    return urls
+    return getFavoriteDisplayUrls(urls)
   }
 
   const sortedUrls = [...urls]
@@ -38,7 +43,7 @@ const sortProjectUrls = <
     sortedUrls.reverse()
   }
 
-  return sortedUrls
+  return getFavoriteDisplayUrls(sortedUrls)
 }
 
 /** ProjectCardRoot の props */
@@ -119,6 +124,13 @@ export const ProjectCardRoot = ({
   children,
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const {
+    sortOrder,
+    setSortOrder,
+    isPending: isSortPending,
+    canReorderUrls,
+  } = useSavedTabsSortOrder({ scope: 'project', id: project.id })
   const hookState = useCustomProjectCard({
     ...(getProjectUrlsUseCase !== undefined ? { getProjectUrlsUseCase } : {}),
     handleDeleteUrl: hookHandlers.handleDeleteUrl,
@@ -126,10 +138,11 @@ export const ProjectCardRoot = ({
     handleSetUrlCategory: hookHandlers.handleSetUrlCategory,
     handleUpdateCategoryOrder: hookHandlers.handleUpdateCategoryOrder,
     project,
+    allowUrlReorder: canReorderUrls,
   })
 
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false)
-  const [sortOrder, setSortOrder] = useState<SortOrder>('default')
+
   const [userCollapsedState, setUserCollapsedState] = useState(false)
 
   const handleOpenManagement = useCallback(() => {
@@ -142,8 +155,12 @@ export const ProjectCardRoot = ({
 
   const { urls, dnd, categoryOrder } = hookState
   const sortedProjectUrls = useMemo(
-    () => sortProjectUrls(urls.projectUrls, sortOrder),
-    [urls.projectUrls, sortOrder],
+    () =>
+      getFavoriteDisplayUrls(
+        sortProjectUrls(urls.projectUrls, sortOrder),
+        favoritesOnly,
+      ),
+    [urls.projectUrls, sortOrder, favoritesOnly],
   )
   const sortedUncategorizedUrls = useMemo(
     () => sortedProjectUrls.filter((url) => !url.category),
@@ -152,6 +169,7 @@ export const ProjectCardRoot = ({
 
   const {
     attributes,
+    setActivatorNodeRef,
     listeners,
     style,
     setCombinedRefs,
@@ -170,9 +188,11 @@ export const ProjectCardRoot = ({
     isProjectReorderMode || isCrossProjectUrlDragActive || userCollapsedState
 
   const projectUrlCount = getProjectUrlCount(project, sortedProjectUrls.length)
+  const bulkUrlCount = sortedProjectUrls.length
+  const canBulkAct = !urls.isLoadingUrls && bulkUrlCount > 0
 
   const handleOpenAllUrls = useCallback(() => {
-    if (projectUrlCount === 0) {
+    if (!canBulkAct) {
       return
     }
     handlers.handleOpenAllUrls?.(
@@ -181,10 +201,10 @@ export const ProjectCardRoot = ({
         url: u.url,
       })),
     )
-  }, [handlers, projectUrlCount, sortedProjectUrls])
+  }, [canBulkAct, handlers, sortedProjectUrls])
 
   const handleDeleteAllUrls = useCallback(() => {
-    if (projectUrlCount === 0) {
+    if (!canBulkAct) {
       return
     }
     if (handlers.handleDeleteUrlsFromProject) {
@@ -198,7 +218,7 @@ export const ProjectCardRoot = ({
         hookHandlers.handleDeleteUrl(project.id, urlItem.url)
       }
     }
-  }, [handlers, hookHandlers, project.id, projectUrlCount, sortedProjectUrls])
+  }, [canBulkAct, handlers, hookHandlers, project.id, sortedProjectUrls])
 
   const contextValue: ProjectCardContextType = useMemo(
     () => ({
@@ -261,31 +281,50 @@ export const ProjectCardRoot = ({
               isDisabled={isProjectReorderMode}
             />
             <CardSortControl
+              disabled={isSortPending || isProjectReorderMode}
               sortOrder={sortOrder}
               setSortOrder={setSortOrder}
+            />
+            <CardFavoriteFilter
+              only={favoritesOnly}
+              setOnly={setFavoritesOnly}
+              name={project.name}
+              hasFavorites={urls.projectUrls.some((url) => url.isFavorite)}
             />
             <CardGroupTitle
               title={project.name}
               badges={titleBadges}
               sortableAttributes={attributes}
+              activatorRef={setActivatorNodeRef}
               sortableListeners={listeners}
               className='py-2'
             />
           </div>
           <CardGroupActions
-            {...(projectUrlCount > 0
+            {...(canBulkAct
               ? {
                   onOpenAll: handleOpenAllUrls,
                   onDeleteAll: handleDeleteAllUrls,
                 }
               : {})}
             onManage={handleOpenManagement}
-            onConfirmOpenAll={projectUrlCount >= BULK_OPEN_THRESHOLD}
+            onConfirmOpenAll={bulkUrlCount >= BULK_OPEN_THRESHOLD}
             // eslint-disable-next-line react/jsx-handler-names -- boolean toggle prop for CardGroupActions
             onConfirmDeleteAll={settings.confirmDeleteAll}
-            openAllThreshold={10}
+            openAllThreshold={BULK_OPEN_THRESHOLD}
+            openAllCount={bulkUrlCount}
+            openAllConfirmDescription={t(
+              'savedTabs.openAllConfirmDescriptionWithName',
+              undefined,
+              { count: String(bulkUrlCount), name: project.name },
+            )}
             itemName={t('savedTabs.project.deleteAllItemName')}
             warningMessage={t('savedTabs.project.deleteAllWarning')}
+            deleteAllConfirmDescription={t(
+              'savedTabs.deleteAllConfirmDescriptionWithCount',
+              undefined,
+              { categoryName: project.name, count: String(bulkUrlCount) },
+            )}
           />
         </CardHeader>
         <CardContent className='overflow-x-hidden'>
@@ -295,7 +334,9 @@ export const ProjectCardRoot = ({
               isEmpty={urls.projectUrls.length === 0}
               isExternalItemOver={isExternalItemOver}
             >
-              {children}
+              <UrlReorderAvailabilityContext value={canReorderUrls}>
+                {children}
+              </UrlReorderAvailabilityContext>
             </ProjectCardBody>
           )}
         </CardContent>

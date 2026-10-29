@@ -3,6 +3,8 @@ import { useCallback, useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { ProjectUrlItem } from '@/contexts/saved-tabs/presentation/components/ProjectUrlItem'
+import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
+import { getProjectUrlSortableId } from '@/contexts/saved-tabs/presentation/lib/custom-project-dnd'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useProjectCard } from './ProjectCardContext'
@@ -24,16 +26,34 @@ export const ProjectCardUncategorizedArea = () => {
     handlers,
   } = useProjectCard()
   const { urls } = hookState
+  const feedback = useDropTargetFeedback({
+    id: `uncategorized-${project.id}`,
+    accepts: 'custom',
+    isOver: isUncategorizedOver,
+  })
 
   const uncategorizedItemIds = useMemo(
-    () => urls.uncategorizedUrls.map((item) => item.url),
-    [urls.uncategorizedUrls],
+    () =>
+      urls.uncategorizedUrls.map((item) =>
+        getProjectUrlSortableId(project.id, item.url),
+      ),
+    [project.id, urls.uncategorizedUrls],
   )
 
   const handleEmptyDropClick = useCallback(() => {
     const selectedUrl = window.getSelection()?.toString()
     if (selectedUrl && urls.projectUrls.some((u) => u.url === selectedUrl)) {
-      handlers.handleSetUrlCategory(project.id, selectedUrl, undefined)
+      void Promise.resolve()
+        .then(async () => {
+          await handlers.handleSetUrlCategory(
+            project.id,
+            selectedUrl,
+            undefined,
+          )
+        })
+        .catch((error: unknown) => {
+          console.error('未分類への移動に失敗しました:', error)
+        })
     }
   }, [urls.projectUrls, handlers, project.id])
 
@@ -41,11 +61,8 @@ export const ProjectCardUncategorizedArea = () => {
   if (urls.projectUrls.length > 0 && urls.uncategorizedUrls.length > 0) {
     return (
       <section
-        className={`uncategorized-area uncategorized-drop-zone overflow-x-hidden px-4 ${
-          isUncategorizedOver
-            ? 'rounded border-2 border-primary bg-primary/10 shadow-sm'
-            : 'rounded border border-dashed border-muted'
-        }`}
+        className={`uncategorized-area uncategorized-drop-zone overflow-x-hidden rounded border border-dashed border-muted px-4 ${feedback.className}`}
+        data-drop-state={feedback.state}
         ref={setUncategorizedDropRef}
         id={`uncategorized-${project.id}`}
         data-type='uncategorized'
@@ -107,11 +124,8 @@ export const ProjectCardUncategorizedArea = () => {
   ) {
     return (
       <Button
-        className={`uncategorized-area uncategorized-drop-zone uncategorized-empty mt-4 w-full cursor-pointer rounded border-2 border-dashed p-8 text-left ${
-          isUncategorizedOver
-            ? 'border-primary bg-primary/10 shadow-md'
-            : 'border-muted hover:border-muted-foreground hover:bg-accent/5'
-        }`}
+        className={`uncategorized-area uncategorized-drop-zone uncategorized-empty mt-4 w-full cursor-pointer rounded border-2 border-dashed border-muted p-8 text-left hover:border-muted-foreground hover:bg-accent/5 ${feedback.className}`}
+        data-drop-state={feedback.state}
         ref={setUncategorizedDropRef}
         id={`uncategorized-${project.id}`}
         data-type='uncategorized'

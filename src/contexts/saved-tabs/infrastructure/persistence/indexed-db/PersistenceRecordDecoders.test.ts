@@ -14,7 +14,84 @@ import {
 
 const timestamps = { createdAt: 1, updatedAt: 1 }
 
+const collection = {
+  ...timestamps,
+  definition: { domain: 'example.com', type: 'domain' },
+  id: 'collection-1',
+  name: 'Collection',
+  sortOrder: 1024,
+}
+
 describe('PersistenceRecordDecoders', () => {
+  it('rejects malformed favorite metadata without coercing it to false', () => {
+    const url = {
+      id: 'url',
+      url: 'https://example.com/',
+      normalizedUrl: 'https://example.com/',
+      title: 'Example',
+      firstSavedAt: 1,
+      lastSavedAt: 1,
+      updatedAt: 1,
+    }
+    for (const isFavorite of [true, false, undefined]) {
+      expect(
+        isPersistenceV2Url(
+          isFavorite === undefined ? url : { ...url, isFavorite },
+        ),
+      ).toBe(true)
+    }
+    for (const isFavorite of ['true', null, 1]) {
+      expect(() =>
+        decodePersistenceRecords(
+          [{ ...url, isFavorite }],
+          isPersistenceV2Url,
+          'urls',
+        ),
+      ).toThrow(PersistenceRecordDecodeError)
+    }
+  })
+
+  it.each([0, 1, Number.MAX_SAFE_INTEGER])(
+    'preserves uncategorized insertion position %s when decoding collections',
+    (position) => {
+      const record = {
+        ...collection,
+        uncategorizedCategoryPosition: position,
+      }
+
+      expect(
+        decodePersistenceRecords(
+          [record],
+          isPersistenceV2Collection,
+          'collections',
+        ),
+      ).toStrictEqual([record])
+    },
+  )
+
+  it.each([
+    -1,
+    0.5,
+    Number.MAX_SAFE_INTEGER + 1,
+    '0',
+    Number.NaN,
+    undefined,
+    -0,
+    Number.POSITIVE_INFINITY,
+    null,
+  ])('rejects invalid uncategorized insertion position %s', (value) => {
+    const record = { ...collection, uncategorizedCategoryPosition: value }
+
+    expect(isPersistenceV2Collection(record)).toBe(false)
+    expect(() =>
+      decodePersistenceRecords(
+        [record],
+        isPersistenceV2Collection,
+        'collections',
+      ),
+    ).toThrow('IndexedDB collections contains an invalid persistence record')
+  })
+
   it('全store recordのruntime shapeを検証する', () => {
     expect(
       isPersistenceV2Url({

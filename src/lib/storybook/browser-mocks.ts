@@ -142,7 +142,22 @@ const createRuntimePort = () => ({
   },
 })
 
+// Stories expose the optional-permission API without granting site access.
+const permissionsMock = {
+  contains: async () => false,
+  onAdded: {
+    addListener: () => undefined,
+    removeListener: () => undefined,
+  },
+  onRemoved: {
+    addListener: () => undefined,
+    removeListener: () => undefined,
+  },
+  request: async () => false,
+}
+
 const chromeMock = {
+  permissions: permissionsMock,
   runtime: {
     connect: () => createRuntimePort(),
     sendMessage: (...args: unknown[]) => {
@@ -218,6 +233,7 @@ const chromeMock = {
 }
 
 const browserMock = {
+  permissions: permissionsMock,
   runtime: {
     connect: () => createRuntimePort(),
     sendMessage: (message: unknown) => {

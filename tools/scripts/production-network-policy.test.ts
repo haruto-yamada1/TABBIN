@@ -17,6 +17,46 @@ import {
 } from './production-network-policy'
 
 describe('collectSourceNetworkCallsites', () => {
+  it('keeps type method signature parameters in their own lexical scope', () => {
+    expect(
+      collectSourceNetworkCallsites(
+        'src/signature.ts',
+        'interface Handler { [fetch("type")](fetch: unknown): void }',
+      ),
+    ).toEqual([])
+  })
+
+  it('preserves lexical shadowing and outer aliases after array binding elisions', () => {
+    const source = [
+      'const request = fetch',
+      '{',
+      '  const [, fetch] = [null, () => undefined]',
+      '  fetch("local")',
+      '  request("https://example.com")',
+      '}',
+      'fetch("https://example.com")',
+    ].join('\n')
+    expect(collectSourceNetworkCallsites('src/elisions.ts', source)).toEqual([
+      { kind: 'fetch', line: 5, path: 'src/elisions.ts' },
+      { kind: 'fetch', line: 7, path: 'src/elisions.ts' },
+    ])
+  })
+
+  it('rejects malformed syntax instead of accepting an incomplete network inventory', () => {
+    expect(() =>
+      collectSourceNetworkCallsites('src/invalid.ts', 'const request = ;'),
+    ).toThrow(/Expression expected/)
+  })
+
+  it('preserves source lines with BOM, Unicode, CRLF, and JSX', () => {
+    const source =
+      '\uFEFFconst title = "日本😀";\r\n' +
+      'export const view = <div>{fetch("https://example.com")}</div>'
+    expect(collectSourceNetworkCallsites('src/network.tsx', source)).toEqual([
+      { kind: 'fetch', line: 2, path: 'src/network.tsx' },
+    ])
+  })
+
   it('discovers browser network APIs and explicit network clients from syntax', () => {
     const callsites = collectSourceNetworkCallsites(
       'src/network.ts',
@@ -485,7 +525,88 @@ describe('production network call-site inventory', () => {
   })
 })
 
+const reviewedOptionalAccess = {
+  optional_permissions: ['scripting'],
+  optional_host_permissions: ['http://*/*', 'https://*/*'],
+}
+
 describe('assertManifestMatchesProductionNetworkPolicy', () => {
+  const reviewedOptionalChrome = {
+    content_security_policy: {
+      extension_pages: createProductionExtensionCsp(3),
+    },
+    host_permissions: ['http://localhost:11434/*', 'http://127.0.0.1:11434/*'],
+    incognito: 'not_allowed',
+    manifest_version: 3,
+    ...reviewedOptionalAccess,
+    optional_permissions: ['scripting'],
+    optional_host_permissions: ['http://*/*', 'https://*/*'],
+    permissions: [
+      'alarms',
+      'tabs',
+      'storage',
+      'contextMenus',
+      'notifications',
+      'unlimitedStorage',
+    ],
+  }
+
+  it('accepts exactly the reviewed optional title indicator access in Chrome and Firefox', () => {
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        reviewedOptionalChrome,
+        'optional-chrome.json',
+      ),
+    ).not.toThrow()
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        {
+          content_security_policy: createProductionExtensionCsp(2),
+          incognito: 'not_allowed',
+          manifest_version: 2,
+          permissions: [
+            ...reviewedOptionalChrome.permissions,
+            ...reviewedOptionalChrome.host_permissions,
+          ],
+          optional_permissions: ['scripting', 'http://*/*', 'https://*/*'],
+        },
+        'optional-firefox.json',
+      ),
+    ).not.toThrow()
+  })
+
+  it.each([
+    { optional_permissions: [] },
+    { optional_permissions: ['scripting', 'history'] },
+    { optional_permissions: ['scripting', 'scripting'] },
+    { optional_permissions: ['scripting', 'https://*/*'] },
+    { optional_host_permissions: [] },
+    { optional_host_permissions: ['<all_urls>'] },
+    { optional_host_permissions: ['http://*/*', 'https://*/*', 'file:///*'] },
+    { optional_host_permissions: ['http://*/*', 'https://*/*', 'tabs'] },
+  ])('rejects deviations from reviewed optional permissions %j', (extra) => {
+    expect(() =>
+      assertManifestMatchesProductionNetworkPolicy(
+        { ...reviewedOptionalChrome, ...extra },
+        'optional-deviation.json',
+      ),
+    ).toThrow(/optional-deviation\.json.*optional/)
+  })
+
+  it.each(['optional_permissions', 'optional_host_permissions'] as const)(
+    'rejects a missing reviewed %s declaration',
+    (key) => {
+      const manifest = { ...reviewedOptionalChrome }
+      Reflect.deleteProperty(manifest, key)
+      expect(() =>
+        assertManifestMatchesProductionNetworkPolicy(
+          manifest,
+          'missing-optional.json',
+        ),
+      ).toThrow(/missing-optional\.json.*optional/)
+    },
+  )
+
   it('accepts the exact required host permissions', () => {
     expect(() =>
       assertManifestMatchesProductionNetworkPolicy(
@@ -499,6 +620,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           ],
           incognito: 'not_allowed',
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -529,6 +651,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           ],
           ...(incognito === undefined ? {} : { incognito }),
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -552,6 +675,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           content_security_policy: createProductionExtensionCsp(2),
           incognito: 'not_allowed',
           manifest_version: 2,
+          optional_permissions: ['scripting', 'http://*/*', 'https://*/*'],
           permissions: [
             'alarms',
             'tabs',
@@ -593,6 +717,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         'http://localhost:11434/*',
       ],
       manifest_version: 3,
+      ...reviewedOptionalAccess,
     }
     const requiredPermissions = [
       'alarms',
@@ -646,6 +771,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'https://api.example.com/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'added.json',
       ),
@@ -656,6 +782,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         {
           host_permissions: ['http://localhost:11434/*'],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'missing.json',
       ),
@@ -669,6 +796,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           optional_host_permissions: ['https://api.example.com/*'],
         },
         'optional.json',
@@ -680,6 +808,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         {
           host_permissions: 'http://localhost:11434/*',
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'malformed.json',
       ),
@@ -695,6 +824,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'missing-csp.json',
       ),
@@ -712,6 +842,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'broad-csp.json',
       ),
@@ -740,6 +871,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           },
           host_permissions,
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'object-src.json',
       ),
@@ -756,6 +888,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           },
           host_permissions,
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'frame-src.json',
       ),
@@ -772,6 +905,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           },
           host_permissions,
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'script-src.json',
       ),
@@ -785,6 +919,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           },
           host_permissions,
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'extra-directive.json',
       ),
@@ -803,13 +938,14 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
         },
         'duplicate-csp.json',
       ),
     ).toThrow(/duplicate-csp\.json.*duplicate.*connect-src/)
   })
 
-  it('allows empty optional host permissions', () => {
+  it('rejects empty optional host permissions that omit the reviewed access', () => {
     expect(() =>
       assertManifestMatchesProductionNetworkPolicy(
         {
@@ -822,6 +958,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           ],
           incognito: 'not_allowed',
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           optional_host_permissions: [],
           permissions: [
             'alarms',
@@ -834,7 +971,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         },
         'empty-optional.json',
       ),
-    ).not.toThrow()
+    ).toThrow(/empty-optional\.json.*optional_host_permissions/)
   })
 
   it.each([
@@ -876,6 +1013,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -910,6 +1048,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -936,6 +1075,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -964,6 +1104,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
           ],
           incognito: 'not_allowed',
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -1055,6 +1196,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -1085,6 +1227,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -1113,6 +1256,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: [
             'alarms',
             'tabs',
@@ -1140,6 +1284,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
             'http://127.0.0.1:11434/*',
           ],
           manifest_version: 3,
+          ...reviewedOptionalAccess,
           permissions: ['storage', 123],
         },
         'non-string-permissions.json',
@@ -1159,6 +1304,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
       ],
       incognito: 'not_allowed',
       manifest_version: 3,
+      ...reviewedOptionalAccess,
       name: 'TABBIN',
       permissions: [
         'alarms',
@@ -1178,6 +1324,7 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
       content_security_policy: createProductionExtensionCsp(2),
       incognito: 'not_allowed',
       manifest_version: 2,
+      optional_permissions: ['scripting', 'http://*/*', 'https://*/*'],
       name: 'TABBIN',
       permissions: [
         'alarms',
@@ -1202,6 +1349,30 @@ describe('assertManifestMatchesProductionNetworkPolicy', () => {
         ),
       ).not.toThrow()
     })
+
+    it.each([
+      {
+        optional_permissions: [
+          'scripting',
+          'history',
+          'http://*/*',
+          'https://*/*',
+        ],
+      },
+      { optional_permissions: ['scripting', 'https://*/*'] },
+    ])(
+      'rejects optional permission divergence after MV2 conversion %j',
+      (extra) => {
+        expect(() =>
+          assertChromeFirefoxManifestDelta(
+            chromeBase,
+            { ...firefoxBase, ...extra },
+            'chrome.json',
+            'firefox.json',
+          ),
+        ).toThrow(/optional.*permissions diverge/)
+      },
+    )
 
     it.each(['spanning', 'split'])(
       'rejects the shared %s incognito policy',

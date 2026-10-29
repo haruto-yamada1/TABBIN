@@ -41,6 +41,8 @@ export const CategoryGroupTitle = () => {
 
   return (
     <CardGroupTitle
+      touchHandleOnly
+      activatorRef={sortable.setActivatorNodeRef}
       title={category.name}
       badges={badges}
       sortableAttributes={sortable.attributes}

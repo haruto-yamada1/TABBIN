@@ -28,6 +28,7 @@ const userSettings = {
   openUrlInBackground: false,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
+  showRelativeSavedTime: false,
   showSavedTime: true,
 } satisfies UserSettings
 

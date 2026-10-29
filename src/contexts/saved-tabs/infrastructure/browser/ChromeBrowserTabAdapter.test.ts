@@ -33,6 +33,19 @@ describe('createChromeBrowserTabAdapter', () => {
     expect(result).toStrictEqual({ url: 'https://example.com' })
   })
 
+  it('targets the confirmed window when appending a staged batch', async () => {
+    const create = vi.fn(async (props) => ({ url: props.url }))
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () => createMockApi({ create }),
+    })
+    await adapter.open({ url: 'https://example.com/a', windowId: 42 })
+    expect(create).toHaveBeenCalledWith({
+      active: true,
+      url: 'https://example.com/a',
+      windowId: 42,
+    })
+  })
+
   it('resolveActive が false を返すときは active: false で開く', async () => {
     const create = vi.fn(async (props) => ({ url: props.url }))
     const adapter = createChromeBrowserTabAdapter(
@@ -46,8 +59,33 @@ describe('createChromeBrowserTabAdapter', () => {
     })
   })
 
-  it('chrome.tabs.create の戻り url が undefined のとき入力 url を返す', async () => {
-    const create = vi.fn(async () => undefined)
+  it.each([false, true])(
+    '明示した active: %s は resolveActive の設定より優先する',
+    async (active) => {
+      const create = vi.fn(async (props) => ({ url: props.url }))
+      const resolveActive = vi.fn(() => !active)
+      const adapter = createChromeBrowserTabAdapter(
+        { getApi: () => createMockApi({ create }) },
+        { resolveActive },
+      )
+
+      await adapter.open({
+        active,
+        url: 'https://example.com/page',
+        windowId: 42,
+      })
+
+      expect(create).toHaveBeenCalledExactlyOnceWith({
+        active,
+        url: 'https://example.com/page',
+        windowId: 42,
+      })
+      expect(resolveActive).not.toHaveBeenCalled()
+    },
+  )
+
+  it('作成したタブの URL が未取得でも入力 URL を返す', async () => {
+    const create = vi.fn(async () => ({}))
     const adapter = createChromeBrowserTabAdapter({
       getApi: () => createMockApi({ create }),
     })
@@ -55,12 +93,53 @@ describe('createChromeBrowserTabAdapter', () => {
     expect(result).toStrictEqual({ url: 'https://example.com' })
   })
 
+  it('作成直後のabout:blankではなく確認済み要求URLを返す', async () => {
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () =>
+        createMockApi({ create: async () => ({ id: 7, url: 'about:blank' }) }),
+    })
+    await expect(
+      adapter.open({ url: 'https://example.com/a' }),
+    ).resolves.toStrictEqual({ url: 'https://example.com/a' })
+  })
+
+  it('作成結果が未確認の場合は成功扱いしない', async () => {
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () => createMockApi({ create: vi.fn(async () => undefined) }),
+    })
+    await expect(adapter.open({ url: 'https://example.com' })).rejects.toThrow(
+      'The browser could not open this URL.',
+    )
+  })
+
+  it.each([
+    ['Permission denied', 'permission'],
+    ['Illegal URL: https://secret.example/?token=hidden', 'restrictedUrl'],
+    ['Too many tabs', 'tabLimit'],
+    ['private diagnostic https://secret.example', 'unknown'],
+  ])('browser rejection is safely classified: %s', async (message, reason) => {
+    const adapter = createChromeBrowserTabAdapter({
+      getApi: () =>
+        createMockApi({
+          create: async () => {
+            throw new Error(message)
+          },
+        }),
+    })
+    await expect(
+      adapter.open({ url: 'https://example.com' }),
+    ).rejects.toMatchObject({ reason })
+    await expect(
+      adapter.open({ url: 'https://example.com' }),
+    ).rejects.not.toThrow(message)
+  })
+
   it('chrome API がない環境では Error を投げる', async () => {
     const adapter = createChromeBrowserTabAdapter({
       getApi: () => undefined,
     })
     await expect(adapter.open({ url: 'https://example.com' })).rejects.toThrow(
-      'chrome.tabs.create is not available',
+      'The browser is unavailable.',
     )
   })
 
@@ -69,7 +148,7 @@ describe('createChromeBrowserTabAdapter', () => {
       getApi: () => createMockApi({}),
     })
     await expect(adapter.open({ url: 'https://example.com' })).rejects.toThrow(
-      'chrome.tabs.create is not available',
+      'The browser is unavailable.',
     )
   })
 })

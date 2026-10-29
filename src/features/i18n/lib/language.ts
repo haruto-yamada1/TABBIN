@@ -1,7 +1,6 @@
+import { DEFAULT_LANGUAGE } from '@/constants/language'
 import { getMessages } from '@/features/i18n/messages'
 import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
-
-const DEFAULT_LANGUAGE: AppLanguage = 'en'
 
 const isRecord = (value: unknown): value is Record<PropertyKey, unknown> =>
   typeof value === 'object' && value !== null
@@ -68,7 +67,8 @@ export const getMessage = (
   values?: Record<string, string>,
 ): string => {
   const currentMessages: Partial<Record<string, string>> = getMessages(language)
-  const englishMessages: Partial<Record<string, string>> = getMessages('en')
+  const englishMessages: Partial<Record<string, string>> =
+    getMessages(DEFAULT_LANGUAGE)
   const template = currentMessages[key] ?? englishMessages[key] ?? fallback
 
   return template.replaceAll(

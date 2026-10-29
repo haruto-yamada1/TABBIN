@@ -49,7 +49,9 @@ const parseUnknownInput = (input: unknown): unknown => {
   }
 }
 
-const countEntities = (data: BackupDataV2): BackupPreviewEntityCounts => ({
+export const countBackupV2Entities = (
+  data: BackupDataV2,
+): BackupPreviewEntityCounts => ({
   analyticsViews: data.analyticsViews.length,
   categories: data.savedTabs.categories.length,
   collections: data.savedTabs.collections.length,
@@ -70,7 +72,7 @@ export const inspectBackupV2 = (input: unknown): BackupV2Inspection => {
     data: backup.data,
     preview: {
       appVersion: backup.appVersion,
-      entityCounts: countEntities(backup.data),
+      entityCounts: countBackupV2Entities(backup.data),
       exportedAt: backup.exportedAt,
       schemaVersion: BACKUP_V2_SCHEMA_VERSION,
     },
