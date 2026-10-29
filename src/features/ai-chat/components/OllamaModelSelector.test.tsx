@@ -26,14 +26,14 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
     t: (key: string) =>
       (
-        ({
+        {
           'aiChat.ollama.loadModels': 'Load models',
           'aiChat.ollama.loading': 'Loading...',
           'aiChat.ollama.loadingModelList': 'Loading model list...',
           'aiChat.ollama.noModelsFound': 'No models found',
           'aiChat.ollama.selectModel': 'Select a model',
           'common.loadingLabel': 'Loading',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

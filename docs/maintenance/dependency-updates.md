@@ -19,6 +19,12 @@ CI success や vulnerability warning がないことだけを安全性の保証�
   `tools/legacy-tooling` も確認する場合は、ルートから
   `bun run deps:check -- --packageFile tools/legacy-tooling/package.json --configFilePath .`
   を使う（更新時は `deps:update`）。
+- 公開前には、CI と同じ Bun resolved dependency review も実行する。
+  `git show origin/develop:bun.lock > /tmp/tabbin-base-bun.lock` で比較元を保存し、
+  `BASE_LOCK=/tmp/tabbin-base-bun.lock bun tools/scripts/run-dependency-review.ts`
+  で advisory と直接・間接依存の license を検査する。GitHub API の認証が必要な
+  環境では既存の認証情報を使い、token をログやファイルへ出力しない。
+  `security:audit` と配布物の license 検証だけでは、この差分検査を代替できない。
 
 ルートでの `ncu` / `ncu -u` にも `.ncurc.json` は適用されるが、
 古い global ncu は cooldown に未対応なので、固定したローカル版のコマンドを使う。
@@ -82,6 +88,31 @@ breaking change に伴う application migration と実動作確認は人間ま�
 [Vitest 5 migration guide](https://main.vitest.dev/guide/migration/)、
 [Motion upgrade guide](https://motion.dev/docs/upgrade-guide)、
 [@streamdown/code 2 release](https://github.com/vercel/streamdown/releases/tag/%40streamdown%2Fcode%402.0.0)。
+
+### Local refresh (2026-10-29)
+
+- `deps:check` / `deps:update` の7日 cooldown を適用し、React 19.3.1、
+  Radix UI、AI SDK 7.0.148、Vitest 5.0.5、Storybook 10.6.3、
+  Playwright 1.64.1 などを更新した。PostCSS の override も 8.5.31 に揃える。
+- Node 24 / Bun 1.3.14、ルート TypeScript 7.0.2 と legacy tooling の
+  TypeScript 6.0.3 は維持する。`@types/node` は24系の 24.19.2 を採用する。
+- `@axe-core/playwright` は 4.13.0、`web-ext` は 10.7.0 の更新前の宣言と
+  lockfile 解決を保持し、更新を保留する。新版を含む直接・間接依存の6件が
+  MPL-2.0 単独のため、既存の
+  [依存レビュー方針](dependency-review.md#policy) が拒否する。許可リストと検査は
+  維持し、採用方針の個別見直しなしに新版へ進めない。
+- [Resolvers 6](https://github.com/react-hook-form/resolvers/releases/tag/v6.0.0)
+  の破壊変更は Effect v4 向けで、使用中の Zod resolver の移行は不要。
+  Radix の optional props に合わせ、Button は `asChild={undefined}` を許容する。
+- [Playwright 1.64](https://playwright.dev/docs/release-notes#version-164)
+  は device descriptor の `screen` を反映する。対応する Chromium を取得し、
+  拡張機能 E2E で検証する。
+- `@ai-sdk/provider-utils@5.0.65` の欠落した Apache notice は、npm provenance の
+  commit と integrity に結び付けた原文を `tools/licenses/reviewed/` に保存する。
+  nested MIT と完全な Apache terms の同梱も維持する。
+- React Doctor 0.9.18 と同梱 plugin の LICENSE は承認済み SHA-256 と同一。
+  旧版の Bun store が残り identity 検査に失敗する場合は、`node_modules` を退避し、
+  `bun install --frozen-lockfile` でクリーンに再作成する。検査を無効化しない。
 
 ### CI
 

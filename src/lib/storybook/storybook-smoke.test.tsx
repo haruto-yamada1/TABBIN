@@ -20,7 +20,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     language: 'ja',
     t: (key: string) =>
       (
-        ({
+        {
           'aiChat.ollama.connectionUrl': '接続先 URL:',
           'options.importExport.export': '設定とタブデータをエクスポート',
           'options.importExport.import': '設定とタブデータをインポート',
@@ -29,7 +29,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'sidebar.tabList': 'タブ一覧',
           'savedTabs.viewMode.custom': 'カスタムモード',
           'savedTabs.viewMode.domain': 'ドメインモード',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

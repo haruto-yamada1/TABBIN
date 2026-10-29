@@ -70,14 +70,14 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
     t: (key: string) =>
       (
-        ({
+        {
           'aiChat.inputLabel': 'Ask AI',
           'aiChat.inputPlaceholder': 'Ask about saved tabs',
           'aiChat.inputPlaceholderSelectModel': 'Select a model first',
           'aiChat.send': 'Send',
           'aiChat.sending': 'Sending...',
           'common.submit': 'Submit',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

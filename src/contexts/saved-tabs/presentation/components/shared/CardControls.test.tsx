@@ -26,7 +26,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     language: 'ja',
     t: (key: string) =>
       (
-        ({
+        {
           'savedTabs.sort.default': 'デフォルト',
           'savedTabs.sort.asc': '保存日時の昇順',
           'savedTabs.sort.desc': '保存日時の降順',
@@ -37,7 +37,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'savedTabs.reorder.cancelAria': '並び替えをキャンセル',
           'savedTabs.reorder.confirm': '確定',
           'savedTabs.reorder.confirmAria': '並び替えを確定',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

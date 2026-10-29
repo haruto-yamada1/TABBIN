@@ -46,13 +46,13 @@ const messages = [
 
 const t = (key: string) =>
   (
-    ({
+    {
       'aiChat.copy.assistant': 'AI:',
       'aiChat.copy.attachments': 'Attachments:',
       'aiChat.copy.user': 'User:',
       'aiChat.copyConversationError': 'Could not copy the conversation',
       'aiChat.copyConversationSuccess': 'Copied the conversation',
-    }) satisfies Record<string, string>
+    } satisfies Record<string, string>
   )[key] ?? key
 
 const setClipboard = (clipboard: unknown) => {

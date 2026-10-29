@@ -11,10 +11,10 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
     t: (key: string) =>
       (
-        ({
+        {
           'common.loading': 'Loading...',
           'common.loadingLabel': 'Loading',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

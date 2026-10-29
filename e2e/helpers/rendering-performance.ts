@@ -292,7 +292,7 @@ export const installRenderingProbe = async (page: Page) => {
             '[data-testid="saved-tabs-left-pane"]',
           )
           if (!(pane instanceof HTMLElement)) {
-            throw new Error('Missing scroll pane')
+            throw new TypeError('Missing scroll pane')
           }
           const fractions = Array.from({ length: 13 }, (_, index) => index / 12)
           for (const fraction of [

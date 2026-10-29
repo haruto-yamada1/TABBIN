@@ -71,7 +71,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
     t: (key: string) =>
       (
-        ({
+        {
           'common.loading': 'Loading...',
           'options.backupRestore': 'Backup & Restore',
           'options.behaviorSettings': 'Tab behavior',
@@ -79,7 +79,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'options.clickBehaviorPlaceholder': 'Select click action',
           'options.excludePatterns.title': 'Exclude settings',
           'options.title': 'Options',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

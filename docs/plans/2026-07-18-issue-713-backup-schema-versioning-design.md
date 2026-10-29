@@ -94,7 +94,9 @@ type BackupEnvelope<TData, TVersion extends number = number> = {
 type BackupMigration<TFrom, TTo> = (input: TFrom) => TTo
 
 type BackupSchemaErrorCode =
-  'INVALID_SCHEMA' | 'UNSUPPORTED_FUTURE_SCHEMA' | 'UNSUPPORTED_SCHEMA_VERSION'
+  | 'INVALID_SCHEMA'
+  | 'UNSUPPORTED_FUTURE_SCHEMA'
+  | 'UNSUPPORTED_SCHEMA_VERSION'
 ```
 
 `BackupSchemaError` contains only the code and schema-version diagnostics. It

@@ -36,7 +36,9 @@ const makeContainer = (): HTMLDivElement => {
   Object.defineProperty(container, 'scrollTop', {
     configurable: true,
     get: () => 0,
-    set: () => undefined,
+    set: () => {
+      // Keep the scroll position fixed in this fixture.
+    },
   })
   // Provide a getBoundingClientRect stub for elements we might query
   container.getBoundingClientRect = () => ({ top: 0, height: 500 }) as DOMRect

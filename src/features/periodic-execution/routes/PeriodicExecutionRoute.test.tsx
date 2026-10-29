@@ -146,7 +146,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
     t: (key: string) =>
       (
-        ({
+        {
           'common.cancel': 'Cancel',
           'common.confirm': 'Confirm',
           'common.loading': 'Loading...',
@@ -200,7 +200,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'options.autoDelete.zero': 'Do not auto delete',
           'options.autoDelete.title': 'Auto delete',
           'periodicExecution.title': 'Scheduled tasks',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ??
       (getMessages('en') as Record<string, string>)[key] ??
       key,

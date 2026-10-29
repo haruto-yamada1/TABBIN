@@ -263,6 +263,15 @@ describe('third-party release notices', () => {
     expect(text).toContain(canonical.toString('utf8'))
   })
 
+  it('identifies the package when its Apache notice is missing', async () => {
+    const module = await pkg('apache-fixture', '2.0.0', 'Apache-2.0')
+    await rm(path.join(path.dirname(module), 'LICENSE'))
+
+    await expect(build([module])).rejects.toThrow(
+      'Missing explicit standard Apache-2.0 notice or full license text: apache-fixture@2.0.0',
+    )
+  })
+
   it.each(['react-doctor', 'oxlint-plugin-react-doctor', 'node-forge'])(
     'rejects development-only %s in the runtime graph',
     async (name) => {

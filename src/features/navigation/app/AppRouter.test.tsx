@@ -34,7 +34,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
     language: 'ja',
     t: (key: string) =>
       (
-        ({
+        {
           'sidebar.analytics': '分析',
           'sidebar.chat': 'チャット',
           'sidebar.collapse': 'サイドバーを小さくする',
@@ -44,7 +44,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'sidebar.tabList': 'タブ一覧',
           'savedTabs.viewMode.custom': 'カスタムモード',
           'savedTabs.viewMode.domain': 'ドメインモード',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

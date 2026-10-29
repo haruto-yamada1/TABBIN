@@ -86,7 +86,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
     t: (key: string) =>
       (
-        ({
+        {
           'savedTabs.viewMode.custom': 'Custom mode',
           'savedTabs.viewMode.domain': 'Domain mode',
           'sidebar.analytics': '分析',
@@ -96,7 +96,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
           'sidebar.options': 'オプション',
           'sidebar.periodicExecution': '定期実行',
           'sidebar.tabList': 'タブ一覧',
-        }) satisfies Record<string, string>
+        } satisfies Record<string, string>
       )[key] ?? key,
   }),
 }))

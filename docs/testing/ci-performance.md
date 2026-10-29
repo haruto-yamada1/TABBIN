@@ -145,7 +145,7 @@ warm の元 run 起点686秒（手動再実行前の待ちを含む）を、比�
 - lockfile と不一致の package fixture を frozen install が拒否することを確認する。
   今回は独立 temp workspace に package.json / bun.lock / patches / legacy-tooling の
   package.json をコピーし、yaml を2.8.2へ変更して `bun install --frozen-lockfile
---ignore-scripts` を実行した。exit 1、`lockfile had changes, but lockfile is frozen`
+  --ignore-scripts` を実行した。exit 1、`lockfile had changes, but lockfile is frozen`
   を確認した。元の checkout と lockfile は変更しない。
   キャッシュの有無で検証を省略しない。
 - workflow 変更時は `ci-performance-workflow.test.ts` と既存の flake / toolchain policy

@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest'
 import { Button } from './button'
 
 describe('Buttonコンポーネント', () => {
-  it('デフォルトでネイティブの button 要素を描画する', () => {
-    render(<Button>Default Button</Button>)
+  it('asChild が undefined のときネイティブの button 要素を描画する', () => {
+    render(<Button asChild={undefined}>Default Button</Button>)
 
     const button = screen.getByRole('button', { name: 'Default Button' })
     expect(button.tagName).toBe('BUTTON')

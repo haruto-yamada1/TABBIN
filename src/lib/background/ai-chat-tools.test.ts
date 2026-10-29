@@ -174,7 +174,7 @@ describe('organization proposal tools', () => {
   it('exposes operation parameters in the object schema accepted by Ollama', () => {
     const { inputSchema } = createAiChatTools(records).proposeSavedTabsAction
     if (!(inputSchema instanceof z.ZodType)) {
-      throw new Error('Expected the tool input Zod schema')
+      throw new TypeError('Expected the tool input Zod schema')
     }
     const schema = z.toJSONSchema(inputSchema)
     expect(schema).toMatchObject({

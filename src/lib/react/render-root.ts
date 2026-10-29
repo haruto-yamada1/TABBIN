@@ -54,7 +54,7 @@ const mountToElement = (
   }
 
   if (!(container instanceof HTMLElement)) {
-    throw new Error(`Container #${containerId} is not an HTMLElement`)
+    throw new TypeError(`Container #${containerId} is not an HTMLElement`)
   }
 
   renderToRoot(container, node, recovery)
