@@ -10,7 +10,10 @@ import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { resolveFirefoxSmokeEnvironment } from './firefoxSmokeEnvironment'
+import {
+  createFirefoxSmokeProcessEnvironment,
+  resolveFirefoxSmokeEnvironment,
+} from './firefoxSmokeEnvironment'
 import type { FirefoxSmokeEnvironmentOptions } from './firefoxSmokeEnvironment'
 
 let directory: string
@@ -117,5 +120,37 @@ describe('native Firefox smoke environment', () => {
         },
       }),
     ).toThrow(/geckodriver.*Firefox/u)
+  })
+})
+
+describe('isolated Firefox process app data', () => {
+  it('isolates Cocoa app data without changing host home or sandbox settings', () => {
+    const environment = {
+      HOME: '/host-home',
+      CODEX_HOME: '/host-codex',
+      CFFIXED_USER_HOME: '/existing-app-data',
+      MOZ_SANDBOX_LOGGING: '1',
+    }
+    const result = createFirefoxSmokeProcessEnvironment({
+      environment,
+      platform: 'darwin',
+      appDataDirectory: '/tmp/task-private-app-data',
+    })
+    expect(result).toEqual({
+      ...environment,
+      CFFIXED_USER_HOME: '/tmp/task-private-app-data',
+    })
+    expect(environment.CFFIXED_USER_HOME).toBe('/existing-app-data')
+  })
+
+  it('keeps non-Cocoa runtime environments unchanged', () => {
+    const environment = { HOME: '/host-home', PATH: '/tools' }
+    expect(
+      createFirefoxSmokeProcessEnvironment({
+        environment,
+        platform: 'linux',
+        appDataDirectory: '/tmp/task-private-app-data',
+      }),
+    ).toEqual(environment)
   })
 })

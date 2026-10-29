@@ -23,6 +23,7 @@ writing the former Chrome Storage keys.
 - `userSettings`
 - `savedTabsSort:<scope>:<encoded-id>`
 - `savedTabsSearchHistory`
+- `academyProgressV1`
 - `reviewReminderSettings`
 - `reviewReminderNotification`
 - `reviewReminderAlarmTimeZone`
@@ -81,6 +82,17 @@ search field. A per-query Web Lock orders delayed saves against deletions of
 the same query, and a separate Web Lock serializes storage updates across
 extension pages. Storage change events refresh the displayed history.
 
+Academy learning facts use the independent device-local `academyProgressV1`
+key. The Academy repository validates its versioned envelope and updates it
+under the exclusive `tabbin:academy-progress:v1` Web Lock. Video ranges,
+practice completions, lesson skips, and initial-guide dismissals are independent
+facts; no saved URL, browser history, or real tab action is stored. A maximum of
+256 lesson records and 512 KiB bounds the payload. Unknown valid lesson IDs stay
+inert and retained. Invalid or unsupported state is preserved for raw rescue
+export, and writes fail closed until explicit recovery or a supported migration.
+Academy state stays outside Backup V2, saved-tabs recovery snapshots, and domain
+replacement; saved-tabs operations never reset learning progress.
+
 Saved-tabs display sort preferences use one `savedTabsSort:<scope>:<encoded-id>`
 Chrome Storage key per category, domain card, or custom project card. Each write
 replaces only that preference and never reads or rewrites domain data or
@@ -115,6 +127,8 @@ returns to the default order; preferences for absent IDs remain inert.
 
 | REVIEW-REMINDER-SCHEDULE | reviewReminderAlarmTimeZone | scheduled maintenance | background | saveReviewReminderAlarmTimeZone | `src/lib/storage/review-reminders.ts` | alarm timezone | alarm timezone | No | Serialized background flow | None | One timezone string | Settings independent | None | Chrome control state |
 
+| ACADEMY-PROGRESS | academyProgressV1 | explicit mutation | Academy pages | Academy application commands | `src/features/academy/infrastructure/ChromeAcademyProgressRepository.ts` | Academy progress key | Academy progress key | Yes | Exclusive Web Lock + validated RMW | None | 256 lessons / 512 KiB | Strict schema; raw rescue; explicit migration/reset | Read on demand; no domain invalidation | Chrome device-local learning state; outside Backup V2 |
+
 | UI-SAVED-TAB-TITLE | savedTabTitleIndicatorEnabled | ui sync | options/background | setSavedTabTitleEnabled | `src/lib/storage/saved-tab-title-indicator.ts` | One boolean preference | One boolean preference | No | Single-key write | UI state | One boolean | Device-local; explicit user grant before enabling; permission revocation disables | Chrome onChanged | Chrome UI preference; excluded from userSettings, Backup V2 and recovery |
 
 The three IndexedDB mutation files below are shared physical boundaries.
@@ -124,6 +138,7 @@ Replacement and recovery snapshot writers have separate transactions.
 
 ## Mutation files
 
+- `src/features/academy/infrastructure/ChromeAcademyProgressRepository.ts`
 - `src/app/composition/aiConversationHistoryDataPlane.ts`
 - `src/components/ThemeProvider.tsx`
 - `src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts`
