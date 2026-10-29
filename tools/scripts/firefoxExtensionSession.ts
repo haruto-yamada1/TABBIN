@@ -25,6 +25,9 @@ export type FirefoxExtensionSession = {
   readonly origin: string
   readonly navigate: (relative: string) => Promise<void>
   readonly evaluate: (script: string, args?: unknown[]) => Promise<unknown>
+  readonly pressKey: (value: string) => Promise<void>
+  readonly resize: (width: number, height: number) => Promise<void>
+  readonly reload: () => Promise<void>
   readonly parsedJavaScript: () => Promise<string[]>
 }
 
@@ -320,6 +323,31 @@ export const withFirefoxExtension = async <T>(
         origin,
         version: browserVersion(created.capabilities),
         evaluate,
+        pressKey: async (value) => {
+          await command('/actions', {
+            actions: [
+              {
+                type: 'key',
+                id: 'keyboard',
+                actions: [
+                  { type: 'keyDown', value },
+                  { type: 'keyUp', value },
+                ],
+              },
+            ],
+          })
+        },
+        resize: async (width, height) => {
+          await command('/window/rect', { width, height })
+        },
+        reload: async () => {
+          await command('/refresh', {})
+          if ((await evaluate('return location.origin')) !== origin) {
+            throw new Error(
+              'Firefox did not reload within the installed add-on origin.',
+            )
+          }
+        },
         parsedJavaScript: async () =>
           readParsedJavaScript(evaluate, command, origin),
         navigate: async (relative) => {

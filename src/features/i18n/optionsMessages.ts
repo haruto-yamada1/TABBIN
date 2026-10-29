@@ -1,7 +1,9 @@
+import { onboardingMessages } from './onboardingMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
 
 export const optionsMessages = {
   en: {
+    ...onboardingMessages.en,
     ...reviewReminderMessages.en,
     'background.saveTabs.titleCaptureErrorTitle': 'Tabs were not saved',
     'background.saveTabs.titleCaptureErrorMessage':
@@ -18,6 +20,7 @@ export const optionsMessages = {
       'Could not check the setting or site access. Reload the settings page and try again.',
   },
   ja: {
+    ...onboardingMessages.ja,
     ...reviewReminderMessages.ja,
     'background.saveTabs.titleCaptureErrorTitle': 'タブを保存できませんでした',
     'background.saveTabs.titleCaptureErrorMessage':

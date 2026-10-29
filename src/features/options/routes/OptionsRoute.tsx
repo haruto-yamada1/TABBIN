@@ -21,12 +21,12 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { ClickBehaviorSelect } from '@/features/options/ClickBehaviorSelect'
 import { useColorSettings } from '@/features/options/hooks/useColorSettings'
 import { useSettings } from '@/features/options/hooks/useSettings'
-import { ImportExportSettings } from '@/features/options/ImportExportSettings'
 import { OllamaConnectionSettings } from '@/features/options/OllamaConnectionSettings'
 import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
 import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
 import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
 import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
+import { OptionsIntroduction } from '@/features/options/OptionsIntroduction'
 import { SavedTabTitleSettings } from '@/features/options/SavedTabTitleSettings'
 import type { UserSettings } from '@/types/storage'
 
@@ -318,12 +318,7 @@ const useOptionsRouteView = () => {
           </div>
         </header>
 
-        <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
-          <h2 className='mb-4 text-xl font-semibold text-foreground'>
-            {t('options.backupRestore')}
-          </h2>
-          <ImportExportSettings />
-        </div>
+        <OptionsIntroduction />
 
         <OllamaConnectionSettings
           baseUrl={settings.ollamaBaseUrl}

@@ -15,6 +15,7 @@ import type {
   SavedTabsTabGroupDto as TabGroup,
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { OnboardingGuide } from '@/features/onboarding/OnboardingGuide'
 
 import { CategoryModal } from './CategoryModal'
 import { HeaderCounts } from './HeaderCounts'
@@ -54,7 +55,7 @@ type HeaderProps = {
   assignDomainToCategoryUseCase?: AssignDomainToCategoryUseCase
 }
 
-export const Header = ({
+const HeaderToolbar = ({
   // eslint-disable-line eslint/max-lines-per-function
   tabGroups,
   filteredTabGroups,
@@ -178,3 +179,10 @@ export const Header = ({
     </div>
   )
 }
+
+export const Header = (props: HeaderProps) => (
+  <>
+    <HeaderToolbar {...props} />
+    <OnboardingGuide automatic />
+  </>
+)

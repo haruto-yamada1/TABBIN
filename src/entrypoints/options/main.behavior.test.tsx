@@ -384,6 +384,27 @@ describe('options route behavior', () => {
     cleanup()
   })
 
+  it('Optionsから基本操作ガイドを繰り返し開ける', async () => {
+    vi.stubGlobal('chrome', {
+      storage: { local: { set: vi.fn().mockResolvedValue(undefined) } },
+    })
+    const user = userEvent.setup()
+    render(createElement(OptionsPage))
+
+    await user.click(screen.getByRole('button', { name: 'onboarding.show' }))
+    expect(
+      screen.getByRole('heading', { name: 'onboarding.restore.title' }),
+    ).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'onboarding.close' }))
+    expect(
+      screen.queryByRole('heading', { name: 'onboarding.restore.title' }),
+    ).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'onboarding.show' }))
+    expect(
+      screen.getByRole('heading', { name: 'onboarding.backup.title' }),
+    ).toBeTruthy()
+  })
+
   it('loading 中はローディング表示を返す', () => {
     mocked.useSettingsResult.isLoading = true
 

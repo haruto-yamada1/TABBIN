@@ -23,6 +23,7 @@ writing the former Chrome Storage keys.
 - `userSettings`
 - `savedTabsSort:<scope>:<encoded-id>`
 - `savedTabsSearchHistory`
+- `onboardingDismissed`
 - `reviewReminderSettings`
 - `reviewReminderNotification`
 - `reviewReminderAlarmTimeZone`
@@ -117,12 +118,23 @@ returns to the default order; preferences for absent IDs remain inert.
 
 | UI-SAVED-TAB-TITLE | savedTabTitleIndicatorEnabled | ui sync | options/background | setSavedTabTitleEnabled | `src/lib/storage/saved-tab-title-indicator.ts` | One boolean preference | One boolean preference | No | Single-key write | UI state | One boolean | Device-local; explicit user grant before enabling; permission revocation disables | Chrome onChanged | Chrome UI preference; excluded from userSettings, Backup V2 and recovery |
 
+The basic guide remembers an explicit Skip or Close in the device-local
+`onboardingDismissed` boolean. It never rewrites `userSettings` or domain data
+and is excluded from Backup V2 and recovery snapshots. Local storage changes
+hide automatic guides in other tabs. An explicit Options action can reopen it;
+opening the guide never clears the remembered dismissal. A read failure keeps
+the automatic prompt hidden; a write failure leaves dismissal retryable.
+
+| UI-ONBOARDING | onboardingDismissed | ui sync | saved-tabs/options | dismissOnboarding | `src/lib/storage/onboarding.ts` | One boolean preference | true only | No | Idempotent single-key write | UI state | One boolean | Settings independent | Chrome onChanged | Chrome UI preference; outside Backup V2 and recovery |
+
 The three IndexedDB mutation files below are shared physical boundaries.
 Saved-tabs, AI-history, and analytics writer rows intentionally point to the
 same UnitOfWork; their compositions select the appropriate logical changes.
 Replacement and recovery snapshot writers have separate transactions.
 
 ## Mutation files
+
+- `src/lib/storage/onboarding.ts`
 
 - `src/app/composition/aiConversationHistoryDataPlane.ts`
 - `src/components/ThemeProvider.tsx`
