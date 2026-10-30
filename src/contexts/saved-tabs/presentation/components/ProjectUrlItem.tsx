@@ -79,6 +79,63 @@ const ProjectUrlContent = ({ item }: Pick<ProjectUrlItemProps, 'item'>) => (
   </>
 )
 
+type ProjectUrlActivationProps = Pick<ProjectUrlItemProps, 'item'> & {
+  isPractice: boolean
+  onClick: (event: React.MouseEvent<HTMLElement>) => void
+  onDragStart: (event: React.DragEvent<HTMLElement>) => void
+  onDragEnd: (event: React.DragEvent<HTMLElement>) => void
+}
+
+const ProjectUrlActivation = ({
+  item,
+  isPractice,
+  onClick,
+  onDragStart,
+  onDragEnd,
+}: ProjectUrlActivationProps) => {
+  const safeHref = toSafeSavedUrlHref(item.url)
+  if (!safeHref) {
+    return (
+      <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
+        <ProjectUrlContent item={item} />
+      </span>
+    )
+  }
+  if (isPractice) {
+    return (
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        onClick={onClick}
+        className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+      >
+        <ProjectUrlContent item={item} />
+      </Button>
+    )
+  }
+  return (
+    <Button
+      asChild
+      variant='ghost'
+      size='sm'
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+    >
+      <a
+        href={safeHref}
+        target='_blank'
+        rel='noopener noreferrer'
+        onClick={onClick}
+      >
+        <ProjectUrlContent item={item} />
+      </a>
+    </Button>
+  )
+}
+
 // eslint-disable-next-line eslint/complexity
 const ProjectUrlItemComponent = ({
   item,
@@ -235,8 +292,6 @@ const ProjectUrlItemComponent = ({
     [isPractice, handleOpenUrl, item.url],
   )
 
-  const safeHref = toSafeSavedUrlHref(originalUrl)
-
   const handleDeleteButtonClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault()
@@ -253,44 +308,6 @@ const ProjectUrlItemComponent = ({
   const handleConfirmDelete = useCallback(() => {
     handleDeleteUrl(projectId, item.url)
   }, [handleDeleteUrl, projectId, item.url])
-
-  let urlActivation = (
-    <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
-      <ProjectUrlContent item={item} />
-    </span>
-  )
-  if (safeHref) {
-    urlActivation = isPractice ? (
-      <Button
-        type='button'
-        variant='ghost'
-        size='sm'
-        onClick={handleUrlClick}
-        className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
-      >
-        <ProjectUrlContent item={item} />
-      </Button>
-    ) : (
-      <Button
-        asChild
-        variant='ghost'
-        size='sm'
-        draggable
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
-      >
-        <a
-          href={safeHref}
-          target='_blank'
-          rel='noopener noreferrer'
-          onClick={handleUrlClick}
-        >
-          <ProjectUrlContent item={item} />
-        </a>
-      </Button>
-    )
-  }
 
   return (
     <>
@@ -334,7 +351,15 @@ const ProjectUrlItemComponent = ({
           isFavorite={item.isFavorite ?? false}
         />
         {/* タイトル＋バッジ部 */}
-        <div className='flex min-w-0 flex-1 items-center'>{urlActivation}</div>
+        <div className='flex min-w-0 flex-1 items-center'>
+          <ProjectUrlActivation
+            item={item}
+            isPractice={isPractice}
+            onClick={handleUrlClick}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
+        </div>
         {/* ボタン群 */}
         <div
           className='flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100'
