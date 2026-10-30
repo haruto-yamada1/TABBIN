@@ -181,6 +181,15 @@ describe('OptionsRoute', () => {
     expect(checkbox).toHaveProperty('checked', child)
   })
 
+  it('設定からAcademyをいつでも開ける', () => {
+    render(<OptionsRoute />)
+    expect(
+      screen
+        .getByRole('link', { name: 'options.academy.open' })
+        .getAttribute('href'),
+    ).toBe('app.html#/academy')
+  })
+
   it('親ONなら子設定のみを更新し、親OFFでも子をリセットしない', async () => {
     optionsRouteMocks.settings = createSettings({ showSavedTime: true })
     const user = userEvent.setup()

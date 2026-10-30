@@ -12,6 +12,13 @@ import {
 } from './pageNavigation'
 
 describe('pageNavigation', () => {
+  it('Academy のトップと詳細を同じナビゲーション項目へ解決する', () => {
+    expect(getSidebarStateFromLocation('/academy', '').item).toBe('academy')
+    expect(getSidebarStateFromLocation('/academy/domain-mode', '').item).toBe(
+      'academy',
+    )
+  })
+
   it('saved-tabs の mode クエリを解釈する', () => {
     expect(getSavedTabsModeFromLocation('?mode=custom')).toBe('custom')
     expect(getSavedTabsModeFromLocation('?mode=domain')).toBe('domain')

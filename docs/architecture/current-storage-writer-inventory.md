@@ -24,6 +24,7 @@ writing the former Chrome Storage keys.
 - `savedTabsSort:<scope>:<encoded-id>`
 - `savedTabsSearchHistory`
 - `academyProgressV1`
+- `academyWelcomeV1`
 - `reviewReminderSettings`
 - `reviewReminderNotification`
 - `reviewReminderAlarmTimeZone`
@@ -127,6 +128,8 @@ returns to the default order; preferences for absent IDs remain inert.
 
 | REVIEW-REMINDER-SCHEDULE | reviewReminderAlarmTimeZone | scheduled maintenance | background | saveReviewReminderAlarmTimeZone | `src/lib/storage/review-reminders.ts` | alarm timezone | alarm timezone | No | Serialized background flow | None | One timezone string | Settings independent | None | Chrome control state |
 
+| ACADEMY-WELCOME | academyWelcomeV1 | install / ui sync | background / AppLayout | Academy welcome commands | `src/features/academy/infrastructure/ChromeAcademyWelcomeRepository.ts` | One install eligibility marker | One presentation claim | Yes | Exclusive Web Lock + validated RMW | None | One bounded enum | Only explicit install can arm; claim before showing; no legacy auto-enrollment | Read on app mount | Chrome device-local control state; outside Backup V2 |
+
 | ACADEMY-PROGRESS | academyProgressV1 | explicit mutation | Academy pages | Academy application commands | `src/features/academy/infrastructure/ChromeAcademyProgressRepository.ts` | Academy progress key | Academy progress key | Yes | Exclusive Web Lock + validated RMW | None | 256 lessons / 512 KiB | Strict schema; raw rescue; explicit migration/reset | Read on demand; no domain invalidation | Chrome device-local learning state; outside Backup V2 |
 
 | UI-SAVED-TAB-TITLE | savedTabTitleIndicatorEnabled | ui sync | options/background | setSavedTabTitleEnabled | `src/lib/storage/saved-tab-title-indicator.ts` | One boolean preference | One boolean preference | No | Single-key write | UI state | One boolean | Device-local; explicit user grant before enabling; permission revocation disables | Chrome onChanged | Chrome UI preference; excluded from userSettings, Backup V2 and recovery |
@@ -139,6 +142,7 @@ Replacement and recovery snapshot writers have separate transactions.
 ## Mutation files
 
 - `src/features/academy/infrastructure/ChromeAcademyProgressRepository.ts`
+- `src/features/academy/infrastructure/ChromeAcademyWelcomeRepository.ts`
 - `src/app/composition/aiConversationHistoryDataPlane.ts`
 - `src/components/ThemeProvider.tsx`
 - `src/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsExternalDeps.ts`

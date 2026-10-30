@@ -50,6 +50,14 @@ const getStorageLocalRemove = (): StorageLocalRemove | null => {
   }
 }
 
+const AcademyRoutePage = lazy(async () =>
+  import('@/features/academy/presentation/AcademyRoute').then(
+    ({ AcademyRoute }) => ({
+      default: AcademyRoute,
+    }),
+  ),
+)
+
 const AiChatRoutePage = lazy(async () =>
   import('@/features/ai-chat/routes/AiChatRoute').then(({ AiChatRoute }) => ({
     default: AiChatRoute,
@@ -162,6 +170,14 @@ const AppRoutes = () => (
         }
       />
 
+      <Route
+        path='/academy/:lessonId?'
+        element={
+          <Suspense fallback={null}>
+            <AcademyRoutePage />
+          </Suspense>
+        }
+      />
       <Route path='/saved-tabs' element={<SavedTabsRoutePage />} />
       <Route
         path='/ai-chat'

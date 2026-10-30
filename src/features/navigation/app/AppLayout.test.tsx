@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+vi.mock('@/features/academy/presentation/AcademyWelcome', () => ({
+  AcademyWelcome: () => null,
+}))
+
 vi.mock('@/features/navigation/components/ExtensionPageShell', () => ({
   ExtensionPageShell: ({ children }: { children: React.ReactNode }) => (
     <div data-testid='extension-page-shell'>{children}</div>

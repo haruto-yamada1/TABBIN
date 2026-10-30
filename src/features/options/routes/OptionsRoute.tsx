@@ -31,6 +31,7 @@ import { SavedTabTitleSettings } from '@/features/options/SavedTabTitleSettings'
 import type { UserSettings } from '@/types/storage'
 
 import {
+  getOptionsAcademyHref,
   openOptionsReleaseNotes as handleClickReleaseNotes,
   parseClickBehavior,
   resetFontSizeInputState,
@@ -648,6 +649,18 @@ const useOptionsRouteView = () => {
             })}
           </div>
         </div>
+
+        <section className='mb-8 rounded-lg border border-border bg-card p-6'>
+          <h2 className='text-xl font-semibold'>
+            {t('options.academy.title')}
+          </h2>
+          <p className='mt-2 mb-4 text-muted-foreground'>
+            {t('options.academy.description')}
+          </p>
+          <Button asChild>
+            <a href={getOptionsAcademyHref()}>{t('options.academy.open')}</a>
+          </Button>
+        </section>
 
         <div className='mt-4'>
           <Button

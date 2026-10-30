@@ -3,6 +3,7 @@ import { backupExportMessages } from './backupExportMessages'
 import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
 import { favoriteMessages } from './favoriteMessages'
+import { navigationMessages } from './navigationMessages'
 import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { searchHistoryMessages } from './searchHistoryMessages'
@@ -11,6 +12,12 @@ import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
 const messages = {
   en: {
+    ...navigationMessages.en,
+    'options.academy.title': 'Learn with TABBIN Academy',
+    'options.academy.description':
+      'Review saving, organizing, restoring and backing up tabs at your own pace.',
+    'options.academy.open': 'Open TABBIN Academy',
+
     ...backupExportMessages.en,
     ...backupImportMessages.en,
     ...dndMessages.en,
@@ -357,13 +364,6 @@ const messages = {
     'common.uploadFiles': 'Upload files',
     'common.usedSources.one': 'Used {{count}} source',
     'common.usedSources.other': 'Used {{count}} sources',
-    'htmlTitle.aiChat': 'AI Chat - TABBIN',
-    'htmlTitle.analytics': 'Analytics - TABBIN',
-    'htmlTitle.app': 'TABBIN',
-    'htmlTitle.changelog': 'Release Notes - TABBIN',
-    'htmlTitle.options': 'Options - TABBIN',
-    'htmlTitle.periodicExecution': 'Scheduled tasks - TABBIN',
-    'htmlTitle.savedTabs': 'Saved tabs - TABBIN',
     'language.english': 'English',
     'language.japanese': 'Japanese',
     'language.label': 'Display language',
@@ -904,14 +904,6 @@ const messages = {
     'savedTabs.viewMode.placeholder': 'View mode',
     'savedTabs.viewMode.selectPlaceholder': 'Select domain or custom mode',
     'savedTabs.viewMode.tooltip': 'Switch view mode',
-    'sidebar.analytics': 'Analytics',
-    'sidebar.chat': 'Chat',
-    'sidebar.collapse': 'Collapse sidebar',
-    'sidebar.open': 'Open sidebar',
-    'sidebar.options': 'Options',
-    'sidebar.periodicExecution': 'Scheduled tasks',
-    'sidebar.resize': 'Resize sidebar width',
-    'sidebar.tabList': 'Saved tabs',
     'theme.dark': 'Dark mode',
     'theme.light': 'Light mode',
     'theme.system': 'System setting',
@@ -926,6 +918,12 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...navigationMessages.ja,
+    'options.academy.title': 'TABBIN Academyで使い方を学ぶ',
+    'options.academy.description':
+      '保存・整理・復元・バックアップを、自分のペースでいつでも復習できます。',
+    'options.academy.open': 'TABBIN Academyを開く',
+
     ...backupExportMessages.ja,
     ...backupImportMessages.ja,
     ...dndMessages.ja,
@@ -1269,13 +1267,6 @@ const messages = {
     'common.uploadFiles': 'ファイルをアップロード',
     'common.usedSources.one': '使用したソース {{count}} 件',
     'common.usedSources.other': '使用したソース {{count}} 件',
-    'htmlTitle.aiChat': 'AIチャット - TABBIN',
-    'htmlTitle.analytics': '分析 - TABBIN',
-    'htmlTitle.app': 'TABBIN',
-    'htmlTitle.changelog': 'リリースノート - TABBIN',
-    'htmlTitle.options': 'オプション - TABBIN',
-    'htmlTitle.periodicExecution': '定期実行 - TABBIN',
-    'htmlTitle.savedTabs': '保存したタブ - TABBIN',
     'language.english': 'English',
     'language.japanese': '日本語',
     'language.label': '表示言語',
@@ -1814,14 +1805,6 @@ const messages = {
     'savedTabs.viewMode.selectPlaceholder':
       'ドメインまたはカスタムモードを選択',
     'savedTabs.viewMode.tooltip': '表示モード切り替え',
-    'sidebar.analytics': '分析',
-    'sidebar.chat': 'チャット',
-    'sidebar.collapse': 'サイドバーを小さくする',
-    'sidebar.open': 'サイドバーを開く',
-    'sidebar.options': 'オプション',
-    'sidebar.periodicExecution': '定期実行',
-    'sidebar.resize': 'サイドバーの幅を調整',
-    'sidebar.tabList': 'タブ一覧',
     'theme.dark': 'ダークモード',
     'theme.light': 'ライトモード',
     'theme.system': 'システム設定',

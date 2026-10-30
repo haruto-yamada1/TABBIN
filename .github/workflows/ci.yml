@@ -401,10 +401,15 @@ jobs:
       - name: Verify Firefox artifact contract
         run: bun run verify:firefox-artifact
 
+      - name: Build Firefox native smoke harness
+        run: bun run build:firefox:indexeddb-smoke-harness
+
       - name: Run Firefox startup smoke
         run: bun run test:firefox:smoke
         env:
           FIREFOX_EXTENSION_SMOKE: '1'
+          FIREFOX_EXECUTABLE_PATH: ${{ steps.firefox-executable.outputs.path }}
+          GECKODRIVER_PATH: /tmp/geckodriver
 
       - name: Run Firefox Persistence v2 migration smoke
         run: bun run test:firefox:indexeddb-smoke

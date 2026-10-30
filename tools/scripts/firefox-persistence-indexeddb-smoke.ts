@@ -10,6 +10,7 @@ import path from 'node:path'
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
 import type { StagedOpeningMeasurement } from '../../e2e/support/staged-url-opening-measurements'
+import { runFirefoxAcademyUiSmoke } from './firefoxAcademyUiSmoke'
 import {
   createFirefoxSmokeProcessEnvironment,
   FirefoxIndexedDbSmokeUnsupportedError,
@@ -250,6 +251,7 @@ const createSession = async (
       'extensions.startupScanScopes': 15,
       'extensions.update.enabled': false,
       'xpinstall.signatures.required': false,
+      'ui.prefersReducedMotion': 1,
     },
     binary,
   }
@@ -657,11 +659,17 @@ const run = async (): Promise<void> => {
     const verified = await runHarnessPhase(session, 'verify')
     assertVerifyResult(verified, obsoleteStorageBefore, fresh.backup)
     assert.deepEqual(verified.academy, fresh.academy)
+    const verifiedSession = session
+    const academyUI = await runFirefoxAcademyUiSmoke(
+      async (command, body) => sessionCommand(verifiedSession, command, body),
+      `moz-extension://${await resolveExtensionUuid(verifiedSession.profileDir)}`,
+    )
 
     console.log(
       JSON.stringify(
         {
           firefoxVersion,
+          academyUI,
           ...(openingMeasurements ? { openingMeasurements } : {}),
           fresh: {
             ...fresh.projection,

@@ -5,6 +5,7 @@
 
 import { defineBackground } from 'wxt/utils/define-background'
 
+import { createAcademyWelcomeUseCases } from '@/app/composition/createAcademyWelcomeUseCases'
 import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
 import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
 // 分離したモジュールをインポート
@@ -34,6 +35,11 @@ export default defineBackground(() => {
 
     try {
       if (details.reason === 'install') {
+        try {
+          await createAcademyWelcomeUseCases().prepareInstall()
+        } catch {
+          logger.warn('background_academy_welcome_unavailable')
+        }
         await openSavedTabsPage()
         await chrome.storage.local.set({
           changelogShown: true,
