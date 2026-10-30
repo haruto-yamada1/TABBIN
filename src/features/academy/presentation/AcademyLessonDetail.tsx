@@ -132,7 +132,7 @@ export const AcademyLessonDetail = ({
           </TabsTrigger>
           <TabsTrigger
             value='practice'
-            disabled
+            disabled={!hasPractice}
             aria-describedby='academy-practice-unavailable'
           >
             {text('practice')}
@@ -141,9 +141,21 @@ export const AcademyLessonDetail = ({
         <div className='space-y-2 rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground'>
           <p id='academy-video-unavailable'>{text('videoUnavailable')}</p>
           <p id='academy-practice-unavailable'>
-            {text(hasPractice ? 'practiceUnavailable' : 'nativePractice')}
+            {text(hasPractice ? 'practiceSafe' : 'nativePractice')}
           </p>
         </div>
+        {hasPractice ? (
+          <TabsContent value='practice' className='space-y-4'>
+            <p>{text('practiceSafe')}</p>
+            <Button asChild>
+              <a
+                href={`practice.html?lessonId=${encodeURIComponent(lesson.lessonId)}&lang=${language}`}
+              >
+                {text('practice')}
+              </a>
+            </Button>
+          </TabsContent>
+        ) : null}
         <TabsContent value='text' className='space-y-5'>
           <div className='grid min-w-0 gap-5 md:grid-cols-[180px_minmax(0,1fr)]'>
             <AcademyChapters

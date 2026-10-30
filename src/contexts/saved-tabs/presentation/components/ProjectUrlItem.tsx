@@ -105,6 +105,7 @@ const ProjectUrlItemComponent = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
+  const isPractice = savedTabsUseCases?.interactionMode === 'practice'
   const canReorderUrls = useUrlReorderAvailable()
 
   // ドラッグアンドドロップの設定を強化
@@ -223,15 +224,15 @@ const ProjectUrlItemComponent = ({
   const isInSubcategory = categoryLevel > 0
 
   const handleUrlClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (!isManagedLinkActivation(event)) {
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (!isPractice && !isManagedLinkActivation(event)) {
         return
       }
 
       event.preventDefault()
       handleOpenUrl(item.url)
     },
-    [handleOpenUrl, item.url],
+    [isPractice, handleOpenUrl, item.url],
   )
 
   const safeHref = toSafeSavedUrlHref(originalUrl)
@@ -252,6 +253,44 @@ const ProjectUrlItemComponent = ({
   const handleConfirmDelete = useCallback(() => {
     handleDeleteUrl(projectId, item.url)
   }, [handleDeleteUrl, projectId, item.url])
+
+  let urlActivation = (
+    <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
+      <ProjectUrlContent item={item} />
+    </span>
+  )
+  if (safeHref) {
+    urlActivation = isPractice ? (
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        onClick={handleUrlClick}
+        className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+      >
+        <ProjectUrlContent item={item} />
+      </Button>
+    ) : (
+      <Button
+        asChild
+        variant='ghost'
+        size='sm'
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+      >
+        <a
+          href={safeHref}
+          target='_blank'
+          rel='noopener noreferrer'
+          onClick={handleUrlClick}
+        >
+          <ProjectUrlContent item={item} />
+        </a>
+      </Button>
+    )
+  }
 
   return (
     <>
@@ -295,32 +334,7 @@ const ProjectUrlItemComponent = ({
           isFavorite={item.isFavorite ?? false}
         />
         {/* タイトル＋バッジ部 */}
-        <div className='flex min-w-0 flex-1 items-center'>
-          {safeHref ? (
-            <Button
-              asChild
-              variant='ghost'
-              size='sm'
-              draggable
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
-            >
-              <a
-                href={safeHref}
-                target='_blank'
-                rel='noopener noreferrer'
-                onClick={handleUrlClick}
-              >
-                <ProjectUrlContent item={item} />
-              </a>
-            </Button>
-          ) : (
-            <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
-              <ProjectUrlContent item={item} />
-            </span>
-          )}
-        </div>
+        <div className='flex min-w-0 flex-1 items-center'>{urlActivation}</div>
         {/* ボタン群 */}
         <div
           className='flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100'

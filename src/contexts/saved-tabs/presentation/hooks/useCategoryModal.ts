@@ -276,11 +276,15 @@ export const useCategoryModal = ({
         if (cancelled) {
           return
         }
-        setCategoryData({
+        setCategoryData((current) => ({
           categories: fromRepo,
           domainCategories: buildDomainCategoriesMap(tabGroups, fromRepo),
-          selectedCategoryId: fromRepo[0]?.id ?? null,
-        })
+          selectedCategoryId:
+            current.selectedCategoryId === 'uncategorized' ||
+            fromRepo.some(({ id }) => id === current.selectedCategoryId)
+              ? current.selectedCategoryId
+              : (fromRepo[0]?.id ?? null),
+        }))
       } catch (error) {
         if (cancelled) {
           return

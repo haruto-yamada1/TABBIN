@@ -80,6 +80,21 @@ describe('Academy learning screen', () => {
     expect((await useCases.getProgress()).summary.completed).toBe(0)
   })
 
+  it('opens isolated practice without granting practice completion', async () => {
+    const useCases = createUseCases()
+    const user = userEvent.setup()
+    show({ useCases }, '/academy/domain-mode')
+    await user.click(
+      await screen.findByRole('tab', { name: 'Try it yourself' }),
+    )
+    expect(
+      screen
+        .getByRole('link', { name: 'Try it yourself' })
+        .getAttribute('href'),
+    ).toBe('practice.html?lessonId=domain-mode&lang=en')
+    expect((await useCases.getProgress()).summary.completed).toBe(0)
+  })
+
   it('preserves previous progress when skipping and reviewing a lesson', async () => {
     const useCases = createUseCases()
     await useCases.startLesson('save-tabs')

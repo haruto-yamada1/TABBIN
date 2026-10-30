@@ -22,7 +22,9 @@ const ui = {
     practice: 'Try it yourself',
     text: 'Read the guide',
     videoPlanned: 'Video: coming soon',
-    practicePlanned: 'Practice: coming soon',
+    practicePlanned: 'Practice available',
+    practiceSafe:
+      'Practice uses fictional data. Saving and restoring tabs are simulated; your real tabs, saved data and settings stay unchanged.',
     noPractice: 'Practice: not available for this lesson',
     videoUnavailable:
       'Videos, captions and playback controls are being prepared. Use the text guide below.',
@@ -81,7 +83,9 @@ const ui = {
     practice: '実際に試す',
     text: 'テキストで学ぶ',
     videoPlanned: '動画：準備中',
-    practicePlanned: '実習：準備中',
+    practicePlanned: '実習できます',
+    practiceSafe:
+      '架空データで練習します。タブの保存・復元は模擬操作です。本物のタブ・保存データ・設定は変わりません。',
     noPractice: '実習：このレッスンでは非対応',
     videoUnavailable:
       '動画・字幕・再生制御は準備中です。下のテキストガイドをご利用ください。',

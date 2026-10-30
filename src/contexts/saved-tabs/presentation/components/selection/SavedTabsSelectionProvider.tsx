@@ -321,7 +321,7 @@ export const useSavedTabSelectionItem = (item: SavedTabSelectionItem) => {
   const active = Boolean(flags & ACTIVE)
   const disabled = Boolean(flags & (BUSY | CONFIRMING))
   const handleSelectionClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>) => {
+    (event: MouseEvent<HTMLElement>) => {
       if (!store?.getSnapshot().active) {
         return false
       }

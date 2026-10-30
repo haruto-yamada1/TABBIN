@@ -111,6 +111,7 @@ export const SortableUrlItem = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
+  const isPractice = savedTabsUseCases?.interactionMode === 'practice'
 
   const handleWindowBlur = useCallback(() => {
     if (isDraggingRef.current) {
@@ -211,18 +212,18 @@ export const SortableUrlItem = ({
   )
 
   const handleOpenTabClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
+    (event: React.MouseEvent<HTMLElement>) => {
       if (selection.handleSelectionClick(event)) {
         return
       }
-      if (!isManagedLinkActivation(event)) {
+      if (!isPractice && !isManagedLinkActivation(event)) {
         return
       }
 
       event.preventDefault()
       handleOpenTab(url)
     },
-    [selection, handleOpenTab, url],
+    [selection, isPractice, handleOpenTab, url],
   )
 
   const safeHref = toSafeSavedUrlHref(url)
@@ -230,7 +231,7 @@ export const SortableUrlItem = ({
     <ButtonContent
       title={title}
       savedAt={savedAt}
-      autoDeletePeriod={isFavorite ? undefined : autoDeletePeriod}
+      autoDeletePeriod={isFavorite || isPractice ? undefined : autoDeletePeriod}
       settings={settings}
     />
   )
@@ -246,6 +247,45 @@ export const SortableUrlItem = ({
     }),
     [transform, transition],
   )
+
+  let urlActivation = (
+    <span className='ml-2 flex w-full min-w-0 items-center justify-start gap-1 overflow-hidden px-1 py-2 pr-8 text-foreground'>
+      {buttonContent}
+    </span>
+  )
+  if (safeHref) {
+    urlActivation = isPractice ? (
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        onClick={handleOpenTabClick}
+        className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
+      >
+        {buttonContent}
+      </Button>
+    ) : (
+      <Button
+        asChild
+        variant='ghost'
+        size='sm'
+        draggable={!selection.isSelectionMode}
+        onDragStart={handleItemDragStart}
+        onDragEnd={handleDragEnd}
+        className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
+      >
+        <a
+          href={safeHref}
+          target='_blank'
+          rel='noopener noreferrer'
+          onClick={handleOpenTabClick}
+          onAuxClick={handleOpenTabClick}
+        >
+          {buttonContent}
+        </a>
+      </Button>
+    )
+  }
 
   return (
     <>
@@ -284,31 +324,7 @@ export const SortableUrlItem = ({
           disabled={selection.isSelectionMode}
         />
         <div className='relative min-w-0 flex-1 overflow-hidden'>
-          {safeHref ? (
-            <Button
-              asChild
-              variant='ghost'
-              size='sm'
-              draggable={!selection.isSelectionMode}
-              onDragStart={handleItemDragStart}
-              onDragEnd={handleDragEnd}
-              className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
-            >
-              <a
-                href={safeHref}
-                target='_blank'
-                rel='noopener noreferrer'
-                onClick={handleOpenTabClick}
-                onAuxClick={handleOpenTabClick}
-              >
-                {buttonContent}
-              </a>
-            </Button>
-          ) : (
-            <span className='ml-2 flex w-full min-w-0 items-center justify-start gap-1 overflow-hidden px-1 py-2 pr-8 text-foreground'>
-              {buttonContent}
-            </span>
-          )}
+          {urlActivation}
           <Button
             variant='ghost'
             size='icon'

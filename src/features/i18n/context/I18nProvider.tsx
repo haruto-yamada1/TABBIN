@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import {
   getBrowserUiLocale,
@@ -6,7 +6,7 @@ import {
   getStoredLanguageSetting,
   resolveLanguage,
 } from '@/features/i18n/lib/language'
-import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
+import type { LanguageSetting } from '@/features/i18n/messages'
 import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
@@ -18,14 +18,10 @@ import {
   saveUserSettings,
 } from '@/lib/storage/settings'
 
-type I18nContextValue = {
-  language: AppLanguage
-  languageSetting: LanguageSetting
-  setLanguageSetting: (language: LanguageSetting) => Promise<void>
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}
+import { I18nContext } from './I18nContext'
+import type { I18nContextValue } from './I18nContext'
 
-const I18nContext = createContext<I18nContextValue | null>(null)
+export { useI18n, useOptionalI18n } from './I18nContext'
 
 const getUiLocale = () =>
   getBrowserUiLocale(
@@ -122,14 +118,4 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 
-export const useI18n = () => {
-  const context = use(I18nContext)
-  if (!context) {
-    throw new Error('useI18n must be used within I18nProvider')
-  }
-  return context
-}
-
 export type TranslateFn = I18nContextValue['t']
-
-export const useOptionalI18n = () => use(I18nContext)

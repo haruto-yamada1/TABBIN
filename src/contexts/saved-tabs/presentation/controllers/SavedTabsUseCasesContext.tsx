@@ -14,6 +14,8 @@ import type { SavedTabsPresentationPorts } from '@/contexts/saved-tabs/applicati
 export type SavedTabsUseCasesContextValue = {
   readonly deps: SavedTabsPresentationPorts
   readonly useCases: SavedTabsUseCases
+  /** Practice renders actions as buttons, with no native URL navigation or drag. */
+  readonly interactionMode?: 'practice'
 }
 
 const SavedTabsUseCasesContext =
