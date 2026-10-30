@@ -4,6 +4,7 @@ import { prerequisitesMet } from '@/features/academy/application/services/Academ
 import {
   aggregateProgress,
   deriveLessonState,
+  getVideoWatchedAt,
 } from '@/features/academy/domain/academyProgress'
 
 export const createGetAcademyProgressUseCase =
@@ -19,7 +20,7 @@ export const createGetAcademyProgressUseCase =
           contentVersion: lesson.contentVersion,
           startedAt: progress?.startedAt ?? null,
           skippedAt: progress?.skippedAt ?? null,
-          videoWatchedAt: progress?.video.watchedAt ?? null,
+          videoWatchedAt: progress ? getVideoWatchedAt(progress) : null,
           completedPracticeStepIds: Object.keys(progress?.practice ?? {}),
           ...deriveLessonState(lesson, progress ?? null),
         }

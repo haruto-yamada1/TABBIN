@@ -17,6 +17,11 @@ The `academy-*` data-tour values declare future UI targets; the attributes and
 video files are supplied by the dependent UI/material issues. Planned assets
 must not be presented as playable media.
 
+Video evidence is stored by stable `assetId`, with its own duration, unique
+ranges and completion timestamp. Switching language neither blocks recording
+because durations differ nor combines intervals from two different videos.
+Mastery requires one currently available asset's own qualifying evidence.
+
 Progress uses the existing Promise-aware browser storage wrapper and a dedicated
 `academyProgressV1` key in `storage.local`. Learning is small, device-local UI
 state, independent of normalized saved URLs, settings, Backup V2 and saved-tab
@@ -93,6 +98,16 @@ original timestamps. Intro actions are idempotent and never reset lessons.
 Reset-all affects Academy lessons only. Reset is never invoked on mount/update.
 
 The envelope schema version is separate from content/assessment versions.
+Schema v2 records asset-specific video evidence. The stable storage key and lock
+retain their v1 suffix so mixed extension contexts still coordinate. Reading a
+validated v1 envelope converts it in memory and leaves stored bytes untouched;
+the next changed command writes v2 under the same exclusive lock. Existing
+generation, intro, practice, skip and timestamps are preserved. Old unscoped
+video evidence is retained as `legacy`, never merged into any asset's new ranges.
+An existing completed legacy fact still qualifies when a current available asset
+has its recorded duration; ambiguous partial evidence stays historical. Older
+code refuses v2 rather than downgrading it. Malformed v1 and future schemas are
+preserved for rescue exactly as before.
 Malformed data, mismatched IDs, unsafe keys, oversized records and unsupported
 future schemas fail without overwriting any bytes. `exportRawProgress` remains
 available for local rescue/inspection even if normal decoding fails; this is not

@@ -5,7 +5,10 @@ import type {
   AcademyProgressRepository,
   AcademyState,
 } from '@/features/academy/domain/AcademyProgressRepository'
-import { lessonProgressSchema } from '@/features/academy/domain/academySchemas'
+import {
+  lessonProgressSchema,
+  videoEvidenceSchema,
+} from '@/features/academy/domain/academySchemas'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 
 export const ACADEMY_PROGRESS_KEY = 'academyProgressV1'
@@ -43,13 +46,41 @@ type Dependencies = {
 
 const timestamp = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)
 const stateSchema = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   lessons: z.record(z.string(), lessonProgressSchema),
   intro: z.strictObject({
     dismissedAt: timestamp.nullable(),
     skippedAt: timestamp.nullable(),
   }),
 })
+// v1 had no asset identity. Keep its evidence separate; never merge it into a language asset.
+const legacyStateSchema = stateSchema.extend({
+  schemaVersion: z.literal(1),
+  lessons: z.record(
+    z.string(),
+    lessonProgressSchema.extend({ video: videoEvidenceSchema }),
+  ),
+})
+const decodeState = (value: unknown): AcademyState => {
+  const current = stateSchema.safeParse(value)
+  if (current.success) {
+    return current.data
+  }
+  const legacy = legacyStateSchema.safeParse(value)
+  if (!legacy.success) {
+    throw new AcademyPersistenceError('INVALID_STATE')
+  }
+  return {
+    ...legacy.data,
+    schemaVersion: 2,
+    lessons: Object.fromEntries(
+      Object.entries(legacy.data.lessons).map(([id, progress]) => [
+        id,
+        { ...progress, video: { assets: {}, legacy: progress.video } },
+      ]),
+    ),
+  }
+}
 const forbiddenKeys = new Set(['__proto__', 'prototype', 'constructor'])
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -81,7 +112,7 @@ const parse = (value: unknown, allowMissing = false): AcademyState => {
     isRecord(value) &&
     typeof value.schemaVersion === 'number' &&
     Number.isSafeInteger(value.schemaVersion) &&
-    value.schemaVersion > 1
+    value.schemaVersion > 2
   ) {
     throw new AcademyPersistenceError('UNSUPPORTED_SCHEMA')
   }
@@ -95,21 +126,26 @@ const parse = (value: unknown, allowMissing = false): AcademyState => {
         forbiddenKeys.has(lessonId) ||
         !isPlainRecord(progress) ||
         !isPlainRecord(progress.practice) ||
+        !isPlainRecord(progress.video) ||
+        (value.schemaVersion === 2 && !isPlainRecord(progress.video.assets)) ||
         Object.keys(progress.practice).some((key) => forbiddenKeys.has(key)),
     )
   ) {
     throw new AcademyPersistenceError('INVALID_STATE')
   }
-  const result = stateSchema.safeParse(value)
+  const result = decodeState(value)
   if (
-    !result.success ||
-    Object.entries(result.data.lessons).some(
-      ([lessonId, progress]) => lessonId !== progress.lessonId,
+    Object.entries(result.lessons).some(
+      ([lessonId, progress]) =>
+        lessonId !== progress.lessonId ||
+        Object.keys(progress.video.assets).some((key) =>
+          forbiddenKeys.has(key),
+        ),
     )
   ) {
     throw new AcademyPersistenceError('INVALID_STATE')
   }
-  return result.data
+  return result
 }
 
 const isLockManager = (value: unknown): value is LockManager =>

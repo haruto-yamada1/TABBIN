@@ -246,7 +246,9 @@ export const validateCatalog = (
     lessons.flatMap((lesson) => lesson.steps.map((step) => step.stepId)),
   )
   const byLesson = new Map(lessons.map((lesson) => [lesson.lessonId, lesson]))
-  const byCourse = new Map(courses.map((course) => [course.courseId, course]))
+  const lessonIdsByCourse = new Map(
+    courses.map((course) => [course.courseId, new Set(course.lessonIds)]),
+  )
   for (const course of courses) {
     assertUnique(course.lessonIds)
     if (
@@ -258,7 +260,7 @@ export const validateCatalog = (
     }
   }
   for (const lesson of lessons) {
-    if (!byCourse.get(lesson.courseId)?.lessonIds.includes(lesson.lessonId)) {
+    if (!lessonIdsByCourse.get(lesson.courseId)?.has(lesson.lessonId)) {
       throw new Error('Academy lesson has no owning course')
     }
     assertUnique(lesson.prerequisiteLessonIds)

@@ -29,7 +29,16 @@ const progress = (lessonId = 'unknown-lesson'): LessonProgress => ({
   generation: 'generation-1',
   startedAt: 100,
   skippedAt: 200,
-  video: { durationSeconds: 100, ranges: [[0, 50]], watchedAt: null },
+  video: {
+    assets: {
+      'test-video': {
+        durationSeconds: 100,
+        ranges: [[0, 50]],
+        watchedAt: null,
+      },
+    },
+    legacy: null,
+  },
   practice: { 'step-one': 150 },
 })
 
@@ -87,7 +96,7 @@ describe('Academy progress persistence', () => {
       runExclusive,
     })
     expect(await reopened.read()).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       lessons: { 'unknown-lesson': progress() },
       intro: { dismissedAt: 100, skippedAt: 200 },
     })
@@ -144,7 +153,7 @@ describe('Academy progress persistence', () => {
       })),
     ])
     expect(await first.read()).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       lessons: { 'unknown-lesson': progress() },
       intro: { dismissedAt: null, skippedAt: 250 },
     })
@@ -158,6 +167,51 @@ describe('Academy progress persistence', () => {
       intro: { dismissedAt: null, skippedAt: null },
     },
     { ...emptyAcademyState(), extra: true },
+    {
+      ...emptyAcademyState(),
+      lessons: {
+        'unknown-lesson': {
+          ...progress(),
+          video: {
+            assets: {
+              constructor: {
+                durationSeconds: 100,
+                ranges: [],
+                watchedAt: null,
+              },
+            },
+            legacy: null,
+          },
+        },
+      },
+    },
+    {
+      ...emptyAcademyState(),
+      lessons: {
+        'unknown-lesson': {
+          ...progress(),
+          video: {
+            assets: Object.fromEntries(
+              Array.from({ length: 33 }, (_, index) => [
+                `asset-${index}`,
+                { durationSeconds: 100, ranges: [], watchedAt: null },
+              ]),
+            ),
+            legacy: null,
+          },
+        },
+      },
+    },
+    {
+      ...emptyAcademyState(),
+      schemaVersion: 1,
+      lessons: {
+        'unknown-lesson': {
+          ...progress(),
+          video: { durationSeconds: 100, ranges: [[0, 101]], watchedAt: null },
+        },
+      },
+    },
     { ...emptyAcademyState(), lessons: { 'wrong-id': progress() } },
     { ...emptyAcademyState(), intro: { dismissedAt: -1, skippedAt: null } },
     { ...emptyAcademyState(), lessons: JSON.parse('{"__proto__": {}}') },
@@ -201,7 +255,7 @@ describe('Academy progress persistence', () => {
   )
 
   it('requires an explicit migration for unsupported schema versions', async () => {
-    const raw = { schemaVersion: 2, data: 'future state' }
+    const raw = { schemaVersion: 3, data: 'future state' }
     const storage = createStorage(raw)
     const repository = createChromeAcademyProgressRepository({
       storage,

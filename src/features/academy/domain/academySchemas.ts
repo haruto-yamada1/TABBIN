@@ -69,30 +69,39 @@ export const courseSchema = z.strictObject({
 const range = z
   .tuple([z.number().nonnegative(), z.number().positive()])
   .refine(([start, end]) => end > start)
-export const lessonProgressSchema = z
+export const videoEvidenceSchema = z
   .strictObject({
-    lessonId: id,
-    contentVersion: version,
-    assessmentVersion: version,
-    generation: z.string().min(1).max(MAX_GENERATION_LENGTH),
-    startedAt: timestamp.nullable(),
-    skippedAt: timestamp.nullable(),
-    video: z.strictObject({
-      durationSeconds: z.number().positive().max(MAX_VIDEO_SECONDS).nullable(),
-      ranges: z.array(range).max(MAX_VIDEO_RANGES),
-      watchedAt: timestamp.nullable(),
-    }),
-    practice: z
-      .record(id, timestamp)
-      .refine((entries) => Object.keys(entries).length <= MAX_LESSON_ITEMS),
+    durationSeconds: z.number().positive().max(MAX_VIDEO_SECONDS).nullable(),
+    ranges: z.array(range).max(MAX_VIDEO_RANGES),
+    watchedAt: timestamp.nullable(),
   })
   .refine((value) =>
-    value.video.ranges.every(
+    value.ranges.every(
       ([, end]) =>
-        value.video.durationSeconds !== null &&
-        end <= value.video.durationSeconds,
+        value.durationSeconds !== null && end <= value.durationSeconds,
     ),
   )
+const MAX_RECORDED_VIDEO_ASSETS = 32
+export const lessonProgressSchema = z.strictObject({
+  lessonId: id,
+  contentVersion: version,
+  assessmentVersion: version,
+  generation: z.string().min(1).max(MAX_GENERATION_LENGTH),
+  startedAt: timestamp.nullable(),
+  skippedAt: timestamp.nullable(),
+  video: z.strictObject({
+    assets: z
+      .record(id, videoEvidenceSchema)
+      .refine(
+        (entries) => Object.keys(entries).length <= MAX_RECORDED_VIDEO_ASSETS,
+      ),
+    legacy: videoEvidenceSchema.nullable(),
+  }),
+  practice: z
+    .record(id, timestamp)
+    .refine((entries) => Object.keys(entries).length <= MAX_LESSON_ITEMS),
+})
+export type VideoEvidence = z.infer<typeof videoEvidenceSchema>
 export type Course = z.infer<typeof courseSchema>
 export type Lesson = z.infer<typeof lessonSchema>
 export type LessonStep = z.infer<typeof lessonStepSchema>

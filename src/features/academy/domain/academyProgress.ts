@@ -1,4 +1,4 @@
-import type { Lesson, LessonProgress } from './academySchemas'
+import type { Lesson, LessonProgress, VideoEvidence } from './academySchemas'
 
 export const VIDEO_WATCH_THRESHOLD = 0.9
 export const VIDEO_MAX_SAMPLE_GAP_SECONDS = 10
@@ -13,7 +13,7 @@ export const createLessonProgress = (
   generation,
   startedAt: null,
   skippedAt: null,
-  video: { durationSeconds: null, ranges: [], watchedAt: null },
+  video: { assets: {}, legacy: null },
   practice: {},
 })
 
@@ -27,11 +27,25 @@ const viewedSeconds = (ranges: readonly [number, number][]): number => {
   return total
 }
 
-const hasVideoAchievement = (progress: LessonProgress): boolean =>
-  progress.video.watchedAt !== null &&
-  progress.video.durationSeconds !== null &&
-  viewedSeconds(progress.video.ranges) >=
-    progress.video.durationSeconds * VIDEO_WATCH_THRESHOLD
+const hasVideoAchievement = (evidence: VideoEvidence): boolean =>
+  evidence.watchedAt !== null &&
+  evidence.durationSeconds !== null &&
+  viewedSeconds(evidence.ranges) >=
+    evidence.durationSeconds * VIDEO_WATCH_THRESHOLD
+
+const videoEvidence = (progress: LessonProgress): VideoEvidence[] => [
+  ...Object.values(progress.video.assets),
+  ...(progress.video.legacy ? [progress.video.legacy] : []),
+]
+
+export const getVideoWatchedAt = (progress: LessonProgress): number | null => {
+  const timestamps = videoEvidence(progress)
+    .filter(hasVideoAchievement)
+    .flatMap((evidence) =>
+      evidence.watchedAt === null ? [] : [evidence.watchedAt],
+    )
+  return timestamps.length === 0 ? null : Math.min(...timestamps)
+}
 
 const hasPracticeAchievement = (
   lesson: Lesson,
@@ -44,7 +58,7 @@ const hasPracticeAchievement = (
 
 const hasActivity = (progress: LessonProgress): boolean =>
   progress.startedAt !== null ||
-  progress.video.ranges.length > 0 ||
+  videoEvidence(progress).some((evidence) => evidence.ranges.length > 0) ||
   Object.keys(progress.practice).length > 0
 
 const meetsMastery = (
@@ -53,11 +67,19 @@ const meetsMastery = (
   videoWatched: boolean,
   practiceCompleted: boolean,
 ): boolean => {
-  const availableVideo = lesson.assets.some(
-    (asset) =>
+  const availableVideo = lesson.assets.some((asset) => {
+    const evidence = progress.video.assets[asset.assetId]
+    const legacy = progress.video.legacy
+    return (
       asset.status === 'available' &&
-      asset.durationSeconds === progress.video.durationSeconds,
-  )
+      ((evidence !== undefined &&
+        evidence.durationSeconds === asset.durationSeconds &&
+        hasVideoAchievement(evidence)) ||
+        (legacy !== null &&
+          legacy.durationSeconds === asset.durationSeconds &&
+          hasVideoAchievement(legacy)))
+    )
+  })
   const hasRequirements =
     lesson.mastery.videoRequired || lesson.mastery.practiceStepIds.length > 0
   return (
@@ -82,7 +104,7 @@ export const deriveLessonState = (
       relearning: false,
     }
   }
-  const videoWatched = hasVideoAchievement(progress)
+  const videoWatched = getVideoWatchedAt(progress) !== null
   const practiceCompleted = hasPracticeAchievement(lesson, progress)
   const activity = hasActivity(progress)
   const relearning =

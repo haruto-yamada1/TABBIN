@@ -105,7 +105,7 @@ test('Academy progress survives browser restart and concurrent tabs without chan
       ),
     ])
     const expected = await page.evaluate(async () =>
-      globalThis.__tabbinAcademySmoke.runAcademyPersistenceSmoke('verify'),
+      globalThis.__tabbinAcademySmoke.runAcademyPersistenceSmoke('fresh'),
     )
     expect(await readPersistenceV2SavedTabsSnapshot(page)).toEqual(before)
     await context.close()

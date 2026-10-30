@@ -102,25 +102,31 @@ export const createRecordVideoProgressUseCase = (ports: AcademyPorts) => {
         assetId: asset.assetId,
       }
       accepted = next
+      const evidence = progress.video.assets[asset.assetId] ?? {
+        durationSeconds: asset.durationSeconds,
+        ranges: [],
+        watchedAt: null,
+      }
       // Position jumps, timer gaps, paused/seeking samples and dropped sequences grant no time.
       if (
         previous &&
         canCredit(previous, next) &&
-        (progress.video.durationSeconds === null ||
-          progress.video.durationSeconds === asset.durationSeconds)
+        (evidence.durationSeconds === null ||
+          evidence.durationSeconds === asset.durationSeconds)
       ) {
-        progress.video.durationSeconds = asset.durationSeconds
-        progress.video.ranges = mergeRanges([
-          ...progress.video.ranges,
+        evidence.durationSeconds = asset.durationSeconds
+        evidence.ranges = mergeRanges([
+          ...evidence.ranges,
           [previous.position, next.position],
         ])
-        const watched = progress.video.ranges.reduce(
+        const watched = evidence.ranges.reduce(
           (total, [start, end]) => total + end - start,
           0,
         )
         if (watched / asset.durationSeconds >= VIDEO_WATCH_THRESHOLD) {
-          progress.video.watchedAt ??= at
+          evidence.watchedAt ??= at
         }
+        progress.video.assets[asset.assetId] = evidence
       }
       return state
     })

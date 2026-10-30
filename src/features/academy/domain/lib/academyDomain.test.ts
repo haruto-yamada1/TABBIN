@@ -16,7 +16,11 @@ import {
   lessonProgressSchema,
   lessonSchema,
 } from '@/features/academy/domain/academySchemas'
-import type { Course, Lesson } from '@/features/academy/domain/academySchemas'
+import type {
+  Course,
+  Lesson,
+  VideoEvidence,
+} from '@/features/academy/domain/academySchemas'
 
 const practiceStep = {
   stepId: 'save-tabs-success',
@@ -74,6 +78,11 @@ const course: Course = {
   lessonIds: ['save-tabs'],
 }
 const fresh = () => createLessonProgress(lesson, 'generation-1')
+
+const scopedVideo = (evidence: VideoEvidence) => ({
+  assets: { [videoAsset.assetId]: evidence },
+  legacy: null,
+})
 
 describe('Academy catalog contract', () => {
   it('publishes eight stable bilingual chapter scenarios with valid references', () => {
@@ -181,13 +190,21 @@ describe('Academy catalog contract', () => {
     expect(
       lessonProgressSchema.safeParse({
         ...fresh(),
-        video: { durationSeconds: 60, ranges: [[20, 10]], watchedAt: null },
+        video: scopedVideo({
+          durationSeconds: 60,
+          ranges: [[20, 10]],
+          watchedAt: null,
+        }),
       }).success,
     ).toBe(false)
     expect(
       lessonProgressSchema.safeParse({
         ...fresh(),
-        video: { durationSeconds: 60, ranges: [[0, 61]], watchedAt: null },
+        video: scopedVideo({
+          durationSeconds: 60,
+          ranges: [[0, 61]],
+          watchedAt: null,
+        }),
       }).success,
     ).toBe(false)
     expect(
@@ -210,7 +227,11 @@ describe('Academy independent achievement facts', () => {
       mastered: false,
     })
     progress.startedAt = 20
-    progress.video = { durationSeconds: 60, ranges: [[0, 55]], watchedAt: 30 }
+    progress.video = scopedVideo({
+      durationSeconds: 60,
+      ranges: [[0, 55]],
+      watchedAt: 30,
+    })
     expect(deriveLessonState(lesson, progress)).toMatchObject({
       inProgress: true,
       videoWatched: true,
@@ -235,11 +256,11 @@ describe('Academy independent achievement facts', () => {
     expect(deriveLessonState(videoOnly, fresh()).mastered).toBe(false)
     const watched = {
       ...fresh(),
-      video: {
+      video: scopedVideo({
         durationSeconds: 60,
         ranges: [[0, 54] as [number, number]],
         watchedAt: 30,
-      },
+      }),
     }
     expect(deriveLessonState(videoOnly, watched)).toMatchObject({
       mastered: true,
@@ -314,7 +335,7 @@ describe('Academy independent achievement facts', () => {
 describe('Academy viewing coverage and combined requirements', () => {
   it('counts a viewed interval only once and never treats a seek position as watched', () => {
     const progress = fresh()
-    progress.video = {
+    progress.video = scopedVideo({
       durationSeconds: 60,
       ranges: [
         [0, 20],
@@ -322,12 +343,16 @@ describe('Academy viewing coverage and combined requirements', () => {
         [10, 30],
       ],
       watchedAt: 2,
+    })
+    expect(deriveLessonState(lesson, progress).videoWatched).toBe(false)
+    const evidence = progress.video.assets[videoAsset.assetId]
+    if (!evidence) {
+      throw new Error('Expected per-asset evidence')
     }
+    evidence.ranges = [[50, 60]]
     expect(deriveLessonState(lesson, progress).videoWatched).toBe(false)
-    progress.video.ranges = [[50, 60]]
-    expect(deriveLessonState(lesson, progress).videoWatched).toBe(false)
-    progress.video.ranges = [[0, 60]]
-    progress.video.watchedAt = null
+    evidence.ranges = [[0, 60]]
+    evidence.watchedAt = null
     expect(deriveLessonState(lesson, progress).videoWatched).toBe(false)
   })
 
@@ -339,7 +364,11 @@ describe('Academy viewing coverage and combined requirements', () => {
     const progress = fresh()
     progress.practice['save-tabs-success'] = 1
     expect(deriveLessonState(combined, progress).mastered).toBe(false)
-    progress.video = { durationSeconds: 60, ranges: [[0, 54]], watchedAt: 2 }
+    progress.video = scopedVideo({
+      durationSeconds: 60,
+      ranges: [[0, 54]],
+      watchedAt: 2,
+    })
     expect(deriveLessonState(combined, progress).mastered).toBe(true)
     expect(
       deriveLessonState(
@@ -390,5 +419,22 @@ describe('Academy viewing coverage and combined requirements', () => {
         ],
       ),
     ).toThrow(/invalid achievement/)
+  })
+})
+
+describe('Academy course membership validation', () => {
+  it('rejects omitted lessons and references to another owning course', () => {
+    const otherLesson: Lesson = {
+      ...lesson,
+      lessonId: 'restore-tabs',
+      steps: [{ ...practiceStep, stepId: 'restore-success' }],
+      mastery: { videoRequired: false, practiceStepIds: ['restore-success'] },
+    }
+    expect(() => validateCatalog([course], [lesson, otherLesson])).toThrow(
+      'Academy lesson has no owning course',
+    )
+    expect(() =>
+      validateCatalog([{ ...course, courseId: 'recovery' }], [lesson]),
+    ).toThrow('Academy course contains an invalid lesson reference')
   })
 })

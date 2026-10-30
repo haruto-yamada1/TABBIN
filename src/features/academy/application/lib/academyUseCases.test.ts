@@ -86,7 +86,10 @@ describe('Academy application use-cases', () => {
     expect(read().lessons['test-lesson']?.startedAt).toBe(1000)
     expect(read().lessons['test-lesson']?.skippedAt).toBe(3000)
     expect(read().intro).toEqual({ dismissedAt: 3000, skippedAt: 3000 })
-    expect(read().lessons['test-lesson']?.video.watchedAt).toBeNull()
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.watchedAt ??
+        null,
+    ).toBeNull()
   })
 
   it('records only a validated sandbox achievement; duplicates keep original timestamp', async () => {
@@ -117,7 +120,10 @@ describe('Academy application use-cases', () => {
     expect(read().lessons['test-lesson']?.practice).toEqual({
       'test-step': 1000,
     })
-    expect(read().lessons['test-lesson']?.video.watchedAt).toBeNull()
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.watchedAt ??
+        null,
+    ).toBeNull()
   })
 
   it('counts unique real-time playback and ignores seek, duplicate reports, pause and long gaps', async () => {
@@ -140,7 +146,10 @@ describe('Academy application use-cases', () => {
       },
       Promise.resolve(),
     )
-    expect(read().lessons['test-lesson']?.video.watchedAt).not.toBeNull()
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.watchedAt ??
+        null,
+    ).not.toBeNull()
     expect(read().lessons['test-lesson']?.practice).toEqual({})
     const watched = structuredClone(read().lessons['test-lesson']?.video)
     advance(1000)
@@ -171,8 +180,13 @@ describe('Academy application use-cases', () => {
     })
     advance(60000)
     await record({ ...sample, sequence: 3, positionSeconds: 100 })
-    expect(read().lessons['test-lesson']?.video.watchedAt).toBeNull()
-    expect(read().lessons['test-lesson']?.video.ranges).toEqual([])
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.watchedAt ??
+        null,
+    ).toBeNull()
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.ranges ?? [],
+    ).toEqual([])
     // A fresh controller after leaving the page establishes a new baseline.
     const revisit = createRecordVideoProgressUseCase(ports)
     await revisit({
@@ -181,7 +195,10 @@ describe('Academy application use-cases', () => {
       sequence: 0,
       positionSeconds: 95,
     })
-    expect(read().lessons['test-lesson']?.video.watchedAt).toBeNull()
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.watchedAt ??
+        null,
+    ).toBeNull()
   })
 
   it('explicit reset invalidates old tokens and keeps intro state', async () => {

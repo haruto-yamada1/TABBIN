@@ -1,7 +1,7 @@
 import type { LessonProgress } from './academySchemas'
 
 export type AcademyState = {
-  schemaVersion: 1
+  schemaVersion: 2
   lessons: Record<string, LessonProgress>
   intro: { dismissedAt: number | null; skippedAt: number | null }
 }
@@ -15,7 +15,7 @@ export type AcademyProgressRepository = {
 }
 
 export const emptyAcademyState = (): AcademyState => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   lessons: {},
   intro: { dismissedAt: null, skippedAt: null },
 })
