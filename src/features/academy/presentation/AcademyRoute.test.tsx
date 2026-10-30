@@ -68,10 +68,9 @@ describe('Academy learning screen', () => {
       'disabled',
       true,
     )
-    expect(screen.getByRole('tab', { name: 'Try it yourself' })).toHaveProperty(
-      'disabled',
-      true,
-    )
+    expect(
+      screen.getByRole('tab', { name: 'Practice with samples' }),
+    ).toHaveProperty('disabled', true)
     expect(
       screen.getByText(
         /Videos, captions and playback controls are being prepared/,
@@ -83,17 +82,38 @@ describe('Academy learning screen', () => {
   it('opens isolated practice without granting practice completion', async () => {
     const useCases = createUseCases()
     const user = userEvent.setup()
-    show({ useCases }, '/academy/domain-mode')
+    show({ useCases }, '/academy/parent-categories')
     await user.click(
-      await screen.findByRole('tab', { name: 'Try it yourself' }),
+      await screen.findByRole('tab', { name: 'Practice with samples' }),
     )
     expect(
       screen
-        .getByRole('link', { name: 'Try it yourself' })
+        .getByRole('link', { name: 'Practice with samples' })
         .getAttribute('href'),
-    ).toBe('practice.html?lessonId=domain-mode&lang=en')
+    ).toBe('practice.html?lessonId=parent-categories&lang=en')
     expect((await useCases.getProgress()).summary.completed).toBe(0)
   })
+
+  it.each(['domain-mode', 'save-tabs'])(
+    'keeps %s screen explanations outside the sample adapter',
+    async (lessonId) => {
+      const useCases = createUseCases()
+      const user = userEvent.setup()
+      show({ useCases }, `/academy/${lessonId}`)
+      await user.click(
+        await screen.findByRole('tab', { name: 'Practice with samples' }),
+      )
+      expect(
+        screen.queryByRole('link', { name: 'Practice with samples' }),
+      ).toBeNull()
+      expect(
+        screen
+          .getByRole('link', { name: 'Open the real screen' })
+          .getAttribute('href'),
+      ).toBe('/saved-tabs?mode=domain')
+      expect((await useCases.getProgress()).summary.completed).toBe(0)
+    },
+  )
 
   it('preserves previous progress when skipping and reviewing a lesson', async () => {
     const useCases = createUseCases()

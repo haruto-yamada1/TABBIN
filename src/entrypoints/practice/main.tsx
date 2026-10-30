@@ -8,11 +8,12 @@ import '@/assets/global.css'
 
 const params = new URLSearchParams(window.location.search)
 const language = params.get('lang') === 'ja' ? 'ja' : 'en'
+document.documentElement.lang = language
 document.documentElement.classList.toggle(
   'dark',
   window.matchMedia('(prefers-color-scheme: dark)').matches,
 )
-const lessonId = params.get('lessonId') ?? 'domain-mode'
+const lessonId = params.get('lessonId') ?? ''
 
 // No persistence bootstrap, production settings, AI widget or recovery export.
 mountToElement(

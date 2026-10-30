@@ -19,19 +19,17 @@ const ui = {
     intermediate: 'Intermediate',
     minutes: 'min',
     video: 'Learn by video',
-    practice: 'Try it yourself',
+    practice: 'Practice with samples',
     text: 'Read the guide',
     videoPlanned: 'Video: coming soon',
-    practicePlanned: 'Practice available',
+    practicePlanned: 'Optional sample practice',
     practiceSafe:
-      'Practice uses fictional data. Saving and restoring tabs are simulated; your real tabs, saved data and settings stay unchanged.',
-    noPractice: 'Practice: not available for this lesson',
+      'Optional: practice category edits, moves and deletion using samples in the same TABBIN interface. Restoring tabs is simulated; your real saved data, settings and tabs stay unchanged.',
+    noPractice: 'Use the real screen or text guide',
     videoUnavailable:
       'Videos, captions and playback controls are being prepared. Use the text guide below.',
-    practiceUnavailable:
-      'Safe practice is being prepared. No real tabs or saved data will be changed by this guide.',
-    nativePractice:
-      'Installation and pinning use the browser toolbar and cannot be practiced inside this page.',
+    screenGuide:
+      'Screen explanations use your usual TABBIN interface and current saved data. If the list is empty, use the text guide. No samples are added to your saved tabs.',
     empty: 'No lessons are available yet.',
     loading: 'Loading learning progress…',
     loadError: 'Could not load learning progress.',
@@ -53,7 +51,7 @@ const ui = {
     pendingPractice: 'Practice not completed',
     textNote:
       'Reading and navigation do not mark video viewing or practice as completed.',
-    related: 'Open the related feature',
+    related: 'Open the real screen',
     supplement: 'Custom mode and backups',
     custom:
       'In Custom mode, group URLs into projects independently of their domains. Switch between Domain and Custom from the sidebar.',
@@ -80,19 +78,17 @@ const ui = {
     intermediate: '中級',
     minutes: '分',
     video: '動画で学ぶ',
-    practice: '実際に試す',
+    practice: 'サンプルで練習する',
     text: 'テキストで学ぶ',
     videoPlanned: '動画：準備中',
-    practicePlanned: '実習できます',
+    practicePlanned: '任意のサンプル練習',
     practiceSafe:
-      '架空データで練習します。タブの保存・復元は模擬操作です。本物のタブ・保存データ・設定は変わりません。',
-    noPractice: '実習：このレッスンでは非対応',
+      '希望する場合だけ、TABBINの同じ画面でカテゴリ編集・移動・削除をサンプルで練習できます。復元は模擬操作です。本物の保存データ・設定・タブは変わりません。',
+    noPractice: '実画面・テキストで確認',
     videoUnavailable:
       '動画・字幕・再生制御は準備中です。下のテキストガイドをご利用ください。',
-    practiceUnavailable:
-      '安全に試せる実習を準備中です。このガイドは実際のタブや保存データを変更しません。',
-    nativePractice:
-      'インストールと固定はブラウザのツールバーで行うため、この画面では実習できません。',
+    screenGuide:
+      '画面の見方は、普段のTABBINと現在の保存データで確認できます。一覧が空の場合はテキストを参考にしてください。保存タブにサンプルを追加することはありません。',
     empty: '公開中のレッスンはまだありません。',
     loading: '学習の進捗を読み込み中…',
     loadError: '学習の進捗を読み込めませんでした。',

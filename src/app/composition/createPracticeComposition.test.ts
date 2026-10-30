@@ -104,13 +104,10 @@ it('serializes simultaneous mutations and preserves state when an operation fail
   expect(practice.getSnapshot().groups).toHaveLength(5)
 })
 
-it('provides deterministic empty, save, reset and disposal without reviving queued work', async () => {
-  const practice = createPracticeComposition('empty')
-  expect(practice.getSnapshot().urls).toHaveLength(0)
-  await practice.saveDemoTabs()
+it('provides deterministic empty, reset and disposal without reviving queued work', async () => {
+  const practice = createPracticeComposition()
   const saved = practice.getSnapshot()
   expect(saved.urls).toHaveLength(6)
-  expect(practice.getBrowserActions()[0]?.type).toBe('close')
   const pending = practice.useCases.createParentCategory({
     name: 'Late update',
   })

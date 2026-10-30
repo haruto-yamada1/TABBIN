@@ -10,6 +10,7 @@ import { SavedTabsResponsiveLayoutProvider } from '@/contexts/saved-tabs/present
 import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
+import { canPracticeWithSamples } from '@/features/academy/application/services/AcademyPracticeService'
 import { ACADEMY_LESSONS } from '@/features/academy/domain/academyCatalog'
 import { practiceMessages } from '@/features/academy/presentation/practiceMessages'
 import { useI18n } from '@/features/i18n/context/I18nContext'
@@ -56,23 +57,19 @@ const PracticeSavedTabs = ({
   )
 }
 
-export const PracticePage = ({
-  lessonId = 'domain-mode',
+const PracticeSession = ({
+  lessonId,
   createComposition = createPracticeComposition,
 }: {
-  lessonId?: string
+  lessonId: string
   createComposition?: typeof createPracticeComposition
 }) => {
   const { language, setLanguageSetting } = useI18n()
   const text = practiceMessages[language]
   const [composition, setComposition] = useState(() => createComposition())
   const [revision, setRevision] = useState(0)
-  const [failed, setFailed] = useState(false)
   const [actionCount, setActionCount] = useState(0)
-  const validLesson = ACADEMY_LESSONS.find(
-    (lesson) => lesson.lessonId === lessonId,
-  )
-  const backHref = `app.html#/academy/${validLesson?.lessonId ?? ''}`
+  const backHref = `app.html#/academy/${lessonId}`
 
   useEffect(
     () => () => {
@@ -96,24 +93,12 @@ export const PracticePage = ({
     composition.dispose()
     setComposition(createComposition('saved'))
     setRevision((current) => current + 1)
-    setFailed(false)
   }, [composition, createComposition])
   const startEmpty = useCallback(() => {
     composition.dispose()
     setComposition(createComposition('empty'))
     setRevision((current) => current + 1)
-    setFailed(false)
   }, [composition, createComposition])
-  const save = useCallback(() => {
-    void composition
-      .saveDemoTabs()
-      .then(() => {
-        setRevision((current) => current + 1)
-      })
-      .catch(() => {
-        setFailed(true)
-      })
-  }, [composition])
   const changeLanguage = useCallback(() => {
     void setLanguageSetting(language === 'en' ? 'ja' : 'en')
   }, [language, setLanguageSetting])
@@ -145,9 +130,6 @@ export const PracticePage = ({
           <Button variant='outline' onClick={startEmpty}>
             {text.empty}
           </Button>
-          <Button variant='outline' onClick={save}>
-            {text.save}
-          </Button>
           <Button variant='outline' asChild>
             <a href={backHref} onClick={exit}>
               {text.exit}
@@ -155,14 +137,44 @@ export const PracticePage = ({
           </Button>
         </nav>
       </header>
-      {failed ? (
-        <p role='alert' className='p-4 text-destructive'>
-          {text.failed}
-        </p>
-      ) : null}
       <RenderErrorBoundary key={revision}>
         <PracticeSavedTabs composition={composition} />
       </RenderErrorBoundary>
+    </main>
+  )
+}
+
+/** A read-only or native lesson never constructs sample repositories. */
+export const PracticePage = ({
+  lessonId = '',
+  createComposition = createPracticeComposition,
+}: {
+  lessonId?: string
+  createComposition?: typeof createPracticeComposition
+}) => {
+  const { language } = useI18n()
+  const lesson = ACADEMY_LESSONS.find((item) => item.lessonId === lessonId)
+  if (lesson && canPracticeWithSamples(lesson)) {
+    return (
+      <PracticeSession
+        lessonId={lesson.lessonId}
+        createComposition={createComposition}
+      />
+    )
+  }
+  const text = practiceMessages[language]
+  return (
+    <main className='min-h-screen space-y-4 bg-amber-50 p-6 text-amber-950 dark:bg-amber-950 dark:text-amber-50'>
+      <h1 className='text-xl font-bold'>TABBIN Academy · {text.title}</h1>
+      <output className='block'>{text.unavailable}</output>
+      <a
+        className='underline'
+        href={
+          lesson ? `app.html#/academy/${lesson.lessonId}` : 'app.html#/academy'
+        }
+      >
+        {text.exit}
+      </a>
     </main>
   )
 }

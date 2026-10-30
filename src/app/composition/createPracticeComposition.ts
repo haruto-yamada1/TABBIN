@@ -48,7 +48,6 @@ export type PracticeComposition = {
   readonly getSnapshot: () => PracticeSnapshotDto
   readonly getBrowserActions: () => readonly PracticeBrowserAction[]
   readonly subscribe: (listener: () => void) => () => void
-  readonly saveDemoTabs: () => Promise<void>
   readonly resetPracticeSession: (
     lessonId?: string,
     stepId?: string,
@@ -350,17 +349,6 @@ export const createPracticeComposition = (
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
-    saveDemoTabs: async () =>
-      run((session) => {
-        if (session.state.collections.length > 0) {
-          return
-        }
-        session.state = createSession('saved').state
-        session.actions.push({
-          type: 'close',
-          urls: session.state.urls.map(({ url }) => url),
-        })
-      }),
     resetPracticeSession: (_lessonId, _stepId, seed = initialSeed) => {
       ensureActive()
       current = createSession(seed)

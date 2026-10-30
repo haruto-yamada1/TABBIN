@@ -1,55 +1,61 @@
-# ADR 0003: Academy の練習環境を本番 API から分離する
+# ADR 0003: 書き込み練習だけを本番データから隔離する
 
-- 状態: 採用
+- 状態: 採用（Issue #1001 の更新方針を反映）
 - 日付: 2026-10-30
 - 関連: #1001、#996、#997、#1002、#1003
 
-## 判断
+## 実画面の案内と任意の書き込み練習
 
-Academy の「実際に試す」は専用 `practice.html` へ同じタブで移動する。
-通常の `app.html` は IndexedDB bootstrap、native title relay、設定の読み込みと
-修復、AI 会話など本番の副作用を持つため、練習には起動しない。
+Domain/Custom の見方、保存 URL の表示位置、検索欄などの画面案内は、普段の
+TABBIN UI とユーザーの現在の保存データを使う。ダミーの一覧画面を作らず、
+練習用 repository や #997 のデモデータを前提にしない。データが空なら空状態と
+テキスト・動画を使い、本番の一覧へサンプルを自動追加しない。
+Joyride による read-only オーバーレイと案内の進捗は #1002 が担当する。
+今回の通常画面リンク自体をツアーの完了や操作習得とはみなさない。
 
-練習は composition root の `createPracticeComposition` が作る独立したメモリ内
-セッションだけを使う。`SavedTabsApp`、controller、application use case、
-`createNativeSavedTabsPersistenceAdapters` の canonical state adapter と domain
-不変条件を再利用する。保存スキーマやカテゴリ編集・削除・移動のロジックは複製しない。
-後者は IndexedDB という名前の state 型を使うが、実行時の DB/API 依存を持たない。
+#1001 はカテゴリ作成・変更、URL/ドメイン移動、削除、復元など、書き込みを伴う
+練習の隔離だけを担当する。ユーザーが「サンプルで練習する」を明示選択した時だけ
+メモリ内の composition を起動する。画面説明だけのレッスン、native ツールバーの
+保存操作、未知のレッスンは、練習 URL に直接アクセスしても adapter を作らない。
 
-ブラウザ port は操作要求をメモリに記録する。保存・終了・復元は常時「模擬操作」と
-明示する。URL 項目は実リンクや native draggable URI を出さず、注入した操作のみを
-呼ぶ。実際のタブを開く fallback は練習では使わない。AI、設定、復旧 export と
-本番 navigation shell は mount しない。言語設定も独立したメモリ内 provider を使う。
+## 本物の React UI の再利用
 
-## セッションと障害
+練習も `SavedTabsApp`、`CategoryModal`、CategoryGroup、DomainCard、controller、
+application use-case、`createNativeSavedTabsPersistenceAdapters` と domain の
+不変条件を再利用する。画面や業務ルールを別の偽 UI として実装しない。
+composition root の `createPracticeComposition` が repository、設定、検索履歴、
+並び順、ブラウザ操作を独立したメモリ内の依存へ差し替える。
 
-更新は既存 use case を実行する一時コピーを直列化し、成功した結果だけ採用する。
-reset、終了、アンマウント、リロードで練習状態を破棄し、遅延した旧セッションの更新を
-拒否する。lesson/step 単位の reset API と空/保存済み fixture を提供する。
-Error Boundary と操作失敗は練習画面に留まり、本番 composition へ切り替えない。
-実習状態の途中保存は行わない。追加権限、外部送信、永続化 namespace は増やさない。
+`practice.html` はこの同じ UI を安全に起動するための entrypoint である。
+通常の `app.html` が持つ DB bootstrap、設定修復、native title relay、AI 会話、
+本番復旧 export は起動しない。言語設定もメモリ内に限定する。
+常時表示するラベルと説明で通常画面と区別する。
 
-学習進捗は #996 の契約が唯一の永続化窓口。今回の自由練習への入室・reset・退出は
-操作達成とはみなさず、進捗を書き換えない。#1002 の成功判定で必要な事実だけを記録する。
+ブラウザ port は復元要求をメモリに記録し、「模擬操作」と明示する。
+URL 項目に実リンク・native draggable URI を出さず、実タブへ fallback しない。
+ツールバー保存や実タブ終了は動画・テキストの対象とし、汎用の模擬保存ボタンや
+ブラウザ全体のシミュレーターは提供しない。
 
-## 再利用のギャップ
+## 最小データとセッション
 
-- 保存タブ一覧、Domain/Custom、親/子カテゴリ、並べ替え、移動、削除、復元の UI と
-  use case は再利用する。ブラウザの保存アイコン・タブ終了自体は native UI なので、
-  練習ボタンが固定の架空 snapshot を投入し、終了要求を模擬記録する。
-- #997 の共通 fixture は実装時点で未提供。決定的な `.test` 3 hostname、6 URL、
-  親カテゴリ2個、各 collection の子カテゴリ2個、Custom collection を seed する。
-  既存 integrity checker で検証し、後続の共通 fixture は同じ snapshot 入力へ置換できる。
-  30 site/40 tab の録画環境や test server を本番 bundle に含めない。
-- Joyride、レッスンごとの達成判定・自動 step 遷移、教材は #1002/#1003 で扱う。
-  今回は安全に自由練習できる composition と reset API を提供する。
+練習対象に必要な `.test` 3 hostname・6 URL・親2個・子カテゴリ複数・Custom1個を
+固定 seed とし、既存 integrity checker で検証する。空状態も利用できる。
+#997 は任意の素材元であり、30 site/40 tab や録画サーバを本番へ含めない。
+
+更新は既存 use-case を一時コピーで直列に実行し、成功結果だけを採用する。
+reset、終了、アンマウント、リロードで破棄し、旧セッションの遅延更新を拒否する。
+lesson/step 単位の reset API を共通利用できる。Error Boundary、未対応レッスン、
+操作失敗でも本番の書き込みへ切り替えず、説明へ戻る。
+
+練習データを通常の保存タブへ移行せず、途中保存もしない。追加権限、外部送信、
+新しい本番スキーマは不要。学習の記録は #996 の契約を維持し、入室・reset・退出を
+達成扱いにしない。成功判定と具体的な実習教材は #1002/#1003 が担当する。
 
 ## 検証と rollback
 
-単体契約テストで native globals を拒否し、作成・移動・削除・復元・Undo、同時操作、
-失敗 rollback、reset/終了時の遅延操作を検証する。実ブラウザ E2E は練習 entrypoint
-からの IndexedDB・storage 書込・tab API を拒否し、本番 IndexedDB snapshot、設定、
-実 tab ID が操作・reset・reload・退出後も一致することを確認する。
+Vitest は書き込み対象への限定、read-only/未知の direct URL で adapter 未生成、
+native API 拒否、作成・移動・削除・模擬復元・Undo、失敗 rollback、遅延更新を検証。
+Playwright は通常画面が実データ/空状態を表示して練習コードやサンプルを使わないこと、
+明示選択後の練習で本番 IndexedDB・設定・実タブの前後 snapshot が一致することを確認する。
 
-rollback は Academy の練習導線と専用 entrypoint を戻すだけでよい。本番 DB の変更や
-migration はなく、練習データはページ終了で破棄される。
+rollback は練習導線と専用 entrypoint を戻すだけで、本番 DB の移行は不要。

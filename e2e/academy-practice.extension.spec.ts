@@ -103,8 +103,11 @@ const exercisePracticeData = async (page: Page) => {
   await expect(items).toHaveCount(6)
   await page.getByRole('button', { name: 'Start empty', exact: true }).click()
   await expect(items).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Simulate saving tabs', exact: true }),
+  ).toHaveCount(0)
   await page
-    .getByRole('button', { name: 'Simulate saving tabs', exact: true })
+    .getByRole('button', { name: 'Reset practice', exact: true })
     .click()
   await expect(items).toHaveCount(6)
 }
@@ -158,11 +161,19 @@ test('Academy practice modifies only memory through create, delete, restore, res
     persistence: createExamplePersistenceFixture(1_800_000_000_000),
   })
   await guardPracticeApis(page)
-  await page.goto(getExtensionUrl(extensionId, 'app.html#/academy/domain-mode'))
-  await page.getByRole('tab', { name: 'Try it yourself', exact: true }).click()
+  await page.goto(
+    getExtensionUrl(extensionId, 'app.html#/academy/parent-categories'),
+  )
+  await page
+    .getByRole('tab', { name: 'Practice with samples', exact: true })
+    .click()
   const before = await readBoundary(serviceWorker)
-  await page.getByRole('link', { name: 'Try it yourself', exact: true }).click()
-  await expect(page).toHaveURL(/practice\.html\?lessonId=domain-mode&lang=en$/u)
+  await page
+    .getByRole('link', { name: 'Practice with samples', exact: true })
+    .click()
+  await expect(page).toHaveURL(
+    /practice\.html\?lessonId=parent-categories&lang=en$/u,
+  )
   await expect(
     page.getByRole('heading', {
       name: 'TABBIN Academy · Practice data',
@@ -192,7 +203,7 @@ test('Academy practice modifies only memory through create, delete, restore, res
     fullPage: true,
   })
   await page.getByRole('link', { name: 'Exit practice', exact: true }).click()
-  await expect(page).toHaveURL(/app\.html#\/academy\/domain-mode$/u)
+  await expect(page).toHaveURL(/app\.html#\/academy\/parent-categories$/u)
   expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
     before.savedTabs,
   )
@@ -212,7 +223,10 @@ test('Academy practice stays explicit in Japanese narrow dark keyboard use', asy
   await page.setViewportSize({ width: 390, height: 844 })
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
   await page.goto(
-    getExtensionUrl(extensionId, 'practice.html?lang=ja&lessonId=domain-mode'),
+    getExtensionUrl(
+      extensionId,
+      'practice.html?lang=ja&lessonId=parent-categories',
+    ),
   )
   await expect(
     page.getByRole('heading', {

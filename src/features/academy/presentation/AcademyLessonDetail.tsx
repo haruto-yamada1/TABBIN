@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { canPracticeWithSamples } from '@/features/academy/application/services/AcademyPracticeService'
 import type { Lesson } from '@/features/academy/domain/academySchemas'
 
 import { getAcademyGuide, getAcademyRelatedRoute } from './academyLessonGuide'
@@ -79,9 +80,7 @@ export const AcademyLessonDetail = ({
   const handleSkip = useCallback(() => {
     void record(lesson.lessonId, true)
   }, [record, lesson.lessonId])
-  const hasPractice = lesson.steps.some(
-    (step) => step.practiceRequirement !== null,
-  )
+  const hasPractice = canPracticeWithSamples(lesson)
   let reviewLabel: 'saving' | 'replay' | 'start' = 'start'
   if (busy) {
     reviewLabel = 'saving'
@@ -141,7 +140,7 @@ export const AcademyLessonDetail = ({
         <div className='space-y-2 rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground'>
           <p id='academy-video-unavailable'>{text('videoUnavailable')}</p>
           <p id='academy-practice-unavailable'>
-            {text(hasPractice ? 'practiceSafe' : 'nativePractice')}
+            {text(hasPractice ? 'practiceSafe' : 'screenGuide')}
           </p>
         </div>
         {hasPractice ? (
@@ -180,6 +179,8 @@ export const AcademyLessonDetail = ({
             </article>
           </div>
           <p className='text-sm text-muted-foreground'>
+            {text('screenGuide')}
+            <br />
             {text('prerequisite')}
           </p>
         </TabsContent>
