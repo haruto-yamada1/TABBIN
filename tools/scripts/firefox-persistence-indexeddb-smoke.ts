@@ -11,6 +11,7 @@ import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
 import type { StagedOpeningMeasurement } from '../../e2e/support/staged-url-opening-measurements'
 import {
+  createFirefoxSmokeProcessEnvironment,
   FirefoxIndexedDbSmokeUnsupportedError,
   resolveFirefoxSmokeEnvironment,
 } from './firefoxSmokeEnvironment'
@@ -40,6 +41,19 @@ type WebDriverSession = {
 }
 
 type SmokeResult = {
+  readonly academy: {
+    readonly first: {
+      readonly lessonId: string
+      readonly generation: string | null
+      readonly startedAt: number | null
+      readonly skippedAt: number | null
+      readonly mastered: boolean
+    }
+    readonly intro: {
+      readonly dismissedAt: number | null
+      readonly skippedAt: number | null
+    }
+  }
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -400,6 +414,11 @@ const runHarnessPhase = async (
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
+  assert.equal(result.academy.first.lessonId, 'install-extension')
+  assert.ok(result.academy.first.startedAt)
+  assert.ok(result.academy.first.skippedAt)
+  assert.ok(result.academy.intro.dismissedAt)
+  assert.equal(result.academy.first.mastered, false)
   assert.equal(result.incognitoPolicy, 'not_allowed')
   assert.equal(result.privateAccessAllowed, false)
   assert.equal(result.inIncognitoContext, false)
@@ -576,6 +595,15 @@ const run = async (): Promise<void> => {
   )
   const profileDir = path.join(temporaryRoot, 'profile')
   await mkdir(profileDir)
+  if (process.platform === 'darwin') {
+    // Precreate disposable Cocoa home directories so macOS does not add
+    // user-home deny-delete ACLs to this temporary test state.
+    await Promise.all(
+      ['Library/Application Support', 'Downloads'].map(async (directory) =>
+        mkdir(path.join(temporaryRoot, directory), { recursive: true }),
+      ),
+    )
+  }
   const xpiPath = await createSmokeAddon(temporaryRoot)
   const port = await reservePort()
   const baseUrl = `http://127.0.0.1:${port}`
@@ -584,7 +612,14 @@ const run = async (): Promise<void> => {
   const geckodriver = spawn(
     executables.geckodriverPath,
     ['--port', String(port), '--allow-system-access', '--log', 'info'],
-    { stdio: ['ignore', 'pipe', 'pipe'] },
+    {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: createFirefoxSmokeProcessEnvironment({
+        environment: process.env,
+        platform: process.platform,
+        appDataDirectory: temporaryRoot,
+      }),
+    },
   )
   for (const stream of [geckodriver.stdout, geckodriver.stderr]) {
     stream.setEncoding('utf8')
@@ -621,6 +656,7 @@ const run = async (): Promise<void> => {
     await installAddon(session, xpiPath)
     const verified = await runHarnessPhase(session, 'verify')
     assertVerifyResult(verified, obsoleteStorageBefore, fresh.backup)
+    assert.deepEqual(verified.academy, fresh.academy)
 
     console.log(
       JSON.stringify(

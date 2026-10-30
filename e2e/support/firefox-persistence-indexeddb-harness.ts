@@ -16,6 +16,7 @@ import {
   obsoletePersistenceStorageFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
+import { runAcademyPersistenceSmoke } from './academy-progress-browser-harness'
 import {
   runFirefoxUrlOpeningSmoke,
   verifyFirefoxUrlOpeningAfterRestart,
@@ -208,6 +209,7 @@ const fresh = async () => {
     url: 'https://example.com/custom',
   })
   const result = {
+    academy: await runAcademyPersistenceSmoke('fresh'),
     urlOpening: await runFirefoxUrlOpeningSmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
       chrome.extension.isAllowedIncognitoAccess(resolve)
@@ -300,6 +302,7 @@ const verifyAfterRestart = async () => {
     url: 'https://example.com/firefox-write',
   })
   const result = {
+    academy: await runAcademyPersistenceSmoke('verify'),
     urlOpeningAfterRestart: await verifyFirefoxUrlOpeningAfterRestart(),
     backup: await exportBackup(
       runtime.connectionManager,
