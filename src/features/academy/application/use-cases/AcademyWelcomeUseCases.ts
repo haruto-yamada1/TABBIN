@@ -2,7 +2,8 @@ import type { AcademyWelcomePorts } from '@/features/academy/application/ports/A
 
 export const createAcademyWelcomeCommands = (ports: AcademyWelcomePorts) => ({
   prepareInstall: async (): Promise<void> => {
-    await ports.ready()
+    // Eligibility is control state. Data initialization gates presentation in
+    // claim(), so a stalled bootstrap cannot prevent the install page opening.
     await ports.welcome.prepare()
   },
   claim: async (): Promise<boolean> => {

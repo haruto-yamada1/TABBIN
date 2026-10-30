@@ -1,5 +1,8 @@
 import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { createAcademyWelcomeCommands } from '@/features/academy/application/use-cases/AcademyWelcomeUseCases'
+import { emptyAcademyState } from '@/features/academy/domain/AcademyProgressRepository'
+
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
   prepareAcademyInstall: vi.fn(async () => {}),
@@ -479,6 +482,49 @@ describe('Academy install-only welcome integration', () => {
     await installed
     expect(mocked.openSavedTabsPage).toHaveBeenCalledOnce()
   })
+
+  it.each([2, 3] as const)(
+    'MV%s opens the install page and records version while data initialization remains pending',
+    async (manifestVersion) => {
+      const ready = Promise.withResolvers<undefined>()
+      const harness = await loadBackground({
+        manifestVersion,
+        setupMocks: () => mocked.ready.mockReturnValue(ready.promise),
+      })
+      const commands = createAcademyWelcomeCommands({
+        ready: mocked.ready,
+        welcome: {
+          prepare: async () =>
+            chrome.storage.local.set({ academyWelcomeV1: 'pending' }),
+          isPending: async () => true,
+          claim: async () => true,
+        },
+        progress: {
+          read: async () => emptyAcademyState(),
+          update: async (change) => change(emptyAcademyState()),
+          exportRaw: async () => undefined,
+        },
+        recordIntro: async () => {},
+      })
+      mocked.prepareAcademyInstall.mockImplementation(commands.prepareInstall)
+      const installed = triggerInstalled(harness, 'install')
+      try {
+        await flushMicrotasks()
+        expect(mocked.openSavedTabsPage).toHaveBeenCalledOnce()
+        expect(harness.storageSet).toHaveBeenCalledWith({
+          academyWelcomeV1: 'pending',
+        })
+        expect(harness.storageSet).toHaveBeenCalledWith({
+          changelogShown: true,
+          seenVersion: '9.9.9',
+        })
+      } finally {
+        ready.resolve(undefined)
+        await installed
+      }
+      expect(mocked.openSavedTabsPage).toHaveBeenCalledOnce()
+    },
+  )
 
   it('never arms a guide on update, browser startup, or browser update', async () => {
     const harness = await loadBackground()

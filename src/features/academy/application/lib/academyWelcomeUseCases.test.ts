@@ -23,15 +23,32 @@ const setup = () => {
 }
 
 describe('Academy welcome commands', () => {
-  it('waits for initialization before marking a new installation eligible', async () => {
+  it('records install eligibility independently of unfinished data initialization', async () => {
     const { ports, commands } = setup()
     const ready = Promise.withResolvers<undefined>()
     ports.ready.mockReturnValue(ready.promise)
     const prepared = commands.prepareInstall()
-    expect(ports.welcome.prepare).not.toHaveBeenCalled()
+    try {
+      await Promise.resolve()
+      expect(ports.welcome.prepare).toHaveBeenCalledOnce()
+      expect(ports.ready).not.toHaveBeenCalled()
+    } finally {
+      ready.resolve(undefined)
+      await prepared
+    }
+  })
+
+  it('waits for data readiness before reading progress or claiming a presentation', async () => {
+    const { ports, commands } = setup()
+    const ready = Promise.withResolvers<undefined>()
+    ports.ready.mockReturnValue(ready.promise)
+    const claim = commands.claim()
+    expect(ports.welcome.isPending).not.toHaveBeenCalled()
+    expect(ports.progress.read).not.toHaveBeenCalled()
+    expect(ports.welcome.claim).not.toHaveBeenCalled()
     ready.resolve(undefined)
-    await prepared
-    expect(ports.welcome.prepare).toHaveBeenCalledOnce()
+    expect(await claim).toBe(true)
+    expect(ports.welcome.claim).toHaveBeenCalledOnce()
   })
 
   it('does not propose a guide to existing users without an install marker', async () => {
@@ -71,12 +88,12 @@ describe('Academy welcome commands', () => {
     },
   )
 
-  it('does not arm or claim a guide when data initialization fails', async () => {
+  it('records the install marker but never claims a presentation when data initialization fails', async () => {
     const { ports, commands } = setup()
     ports.ready.mockRejectedValue(new Error('unavailable'))
-    await expect(commands.prepareInstall()).rejects.toThrow('unavailable')
+    await commands.prepareInstall()
+    expect(ports.welcome.prepare).toHaveBeenCalledOnce()
     await expect(commands.claim()).rejects.toThrow('unavailable')
-    expect(ports.welcome.prepare).not.toHaveBeenCalled()
     expect(ports.welcome.claim).not.toHaveBeenCalled()
   })
 
