@@ -107,7 +107,7 @@ const CategoryGroupComponent = ({
       categoryManagementModalUseCases={categoryManagementModalUseCases}
     >
       <CategoryGroupHeader>
-        <div className='flex grow items-center gap-2'>
+        <div className='flex min-w-0 grow items-center gap-2'>
           <CategoryGroupCollapseControl />
           <CategoryGroupSortControl />
           <CategoryGroupTitle />

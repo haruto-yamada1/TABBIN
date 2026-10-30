@@ -49,12 +49,12 @@ const chapters: Chapter[] = [
     en: [
       'Save tabs together',
       'Learn why saved browser tabs close after saving.',
-      'Save the sample tabs in the practice environment.',
+      'Use the video or text guide to understand how saving closes the original tabs.',
     ],
     ja: [
       'タブをまとめて保存',
       '保存後に元のタブが閉じる仕組みを学びます。',
-      '練習環境のサンプルタブをまとめて保存します。',
+      '動画またはテキストで、保存後に元のタブが閉じる仕組みを確認します。',
     ],
     action: 'save-tabs',
     dataTour: 'academy-save-tabs',
@@ -65,12 +65,12 @@ const chapters: Chapter[] = [
     en: [
       'Explore Domain mode',
       'Find saved URLs grouped by their domain.',
-      'Select the sample domain and inspect its saved URLs.',
+      'Expand an existing saved domain to inspect its URLs, or use the text guide if the list is empty.',
     ],
     ja: [
       'Domainモードを見る',
       '同じドメインの保存URLがまとまる表示を学びます。',
-      'サンプルドメインを選択して保存URLを確認します。',
+      '現在保存しているドメインのURLを確認します。一覧が空の場合はテキストを参考にします。',
     ],
     action: 'inspect-domain',
     dataTour: 'academy-domain-card',

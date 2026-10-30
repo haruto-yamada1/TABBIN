@@ -79,6 +79,63 @@ const ProjectUrlContent = ({ item }: Pick<ProjectUrlItemProps, 'item'>) => (
   </>
 )
 
+type ProjectUrlActivationProps = Pick<ProjectUrlItemProps, 'item'> & {
+  isPractice: boolean
+  onClick: (event: React.MouseEvent<HTMLElement>) => void
+  onDragStart: (event: React.DragEvent<HTMLElement>) => void
+  onDragEnd: (event: React.DragEvent<HTMLElement>) => void
+}
+
+const ProjectUrlActivation = ({
+  item,
+  isPractice,
+  onClick,
+  onDragStart,
+  onDragEnd,
+}: ProjectUrlActivationProps) => {
+  const safeHref = toSafeSavedUrlHref(item.url)
+  if (!safeHref) {
+    return (
+      <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
+        <ProjectUrlContent item={item} />
+      </span>
+    )
+  }
+  if (isPractice) {
+    return (
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        onClick={onClick}
+        className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+      >
+        <ProjectUrlContent item={item} />
+      </Button>
+    )
+  }
+  return (
+    <Button
+      asChild
+      variant='ghost'
+      size='sm'
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+    >
+      <a
+        href={safeHref}
+        target='_blank'
+        rel='noopener noreferrer'
+        onClick={onClick}
+      >
+        <ProjectUrlContent item={item} />
+      </a>
+    </Button>
+  )
+}
+
 // eslint-disable-next-line eslint/complexity
 const ProjectUrlItemComponent = ({
   item,
@@ -105,6 +162,7 @@ const ProjectUrlItemComponent = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
+  const isPractice = savedTabsUseCases?.interactionMode === 'practice'
   const canReorderUrls = useUrlReorderAvailable()
 
   // ドラッグアンドドロップの設定を強化
@@ -223,18 +281,16 @@ const ProjectUrlItemComponent = ({
   const isInSubcategory = categoryLevel > 0
 
   const handleUrlClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (!isManagedLinkActivation(event)) {
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (!isPractice && !isManagedLinkActivation(event)) {
         return
       }
 
       event.preventDefault()
       handleOpenUrl(item.url)
     },
-    [handleOpenUrl, item.url],
+    [isPractice, handleOpenUrl, item.url],
   )
-
-  const safeHref = toSafeSavedUrlHref(originalUrl)
 
   const handleDeleteButtonClick = useCallback(
     (e: React.MouseEvent) => {
@@ -296,30 +352,13 @@ const ProjectUrlItemComponent = ({
         />
         {/* タイトル＋バッジ部 */}
         <div className='flex min-w-0 flex-1 items-center'>
-          {safeHref ? (
-            <Button
-              asChild
-              variant='ghost'
-              size='sm'
-              draggable
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
-            >
-              <a
-                href={safeHref}
-                target='_blank'
-                rel='noopener noreferrer'
-                onClick={handleUrlClick}
-              >
-                <ProjectUrlContent item={item} />
-              </a>
-            </Button>
-          ) : (
-            <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
-              <ProjectUrlContent item={item} />
-            </span>
-          )}
+          <ProjectUrlActivation
+            item={item}
+            isPractice={isPractice}
+            onClick={handleUrlClick}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
         </div>
         {/* ボタン群 */}
         <div

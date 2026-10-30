@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import type { AcademyProgressDto } from '@/features/academy/application/dto/AcademyProgressDto'
+import { canPracticeWithSamples } from '@/features/academy/application/services/AcademyPracticeService'
 import type { Course, Lesson } from '@/features/academy/domain/academySchemas'
 
 import {
@@ -43,9 +44,7 @@ const LessonCard = ({
         <p className='text-xs text-muted-foreground'>
           {text('videoPlanned')} ·{' '}
           {text(
-            lesson.steps.some((step) => step.practiceRequirement !== null)
-              ? 'practicePlanned'
-              : 'noPractice',
+            canPracticeWithSamples(lesson) ? 'practicePlanned' : 'noPractice',
           )}
         </p>
         <AcademyEvidenceStatus progress={progress} />

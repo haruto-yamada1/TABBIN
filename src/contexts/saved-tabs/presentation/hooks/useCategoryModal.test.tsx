@@ -54,4 +54,42 @@ describe('useCategoryModal', () => {
       'newer',
     ])
   })
+
+  it('keeps the selected parent when a domain update refreshes the modal', async () => {
+    const pageData: PageData = {
+      parentCategories: ['first', 'practice'].map((id) => ({
+        id,
+        name: id,
+        collections: [],
+      })),
+      tabGroups: [],
+      userSettings: savedTabsDefaultUserSettings,
+    }
+    const getSavedTabsPageDataQuery = vi
+      .fn<GetSavedTabsPageDataQuery>()
+      .mockResolvedValue(pageData)
+    const { result, rerender } = renderHook(
+      ({ tabGroups }) =>
+        useCategoryModal({
+          tabGroups,
+          getSavedTabsPageDataQuery,
+          createParentCategoryUseCase: vi.fn(),
+          deleteParentCategoryUseCase: vi.fn(),
+          assignDomainToCategoryUseCase: vi.fn(),
+        }),
+      { initialProps: { tabGroups: [] } },
+    )
+    await act(async () => {
+      await Promise.resolve()
+    })
+    act(() => {
+      result.current.selection.handleCategoryChange('practice')
+    })
+    expect(result.current.selection.selectedCategoryId).toBe('practice')
+    rerender({ tabGroups: [] })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(result.current.selection.selectedCategoryId).toBe('practice')
+  })
 })

@@ -9,6 +9,11 @@ import {
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
@@ -504,6 +509,37 @@ describe('CustomProjectCategory', () => {
       'https://example.com/0',
       '_blank',
       'noopener,noreferrer',
+    )
+  })
+
+  it('practice mode never falls back to window.open when the bulk callback is missing', async () => {
+    const user = userEvent.setup()
+    using openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const handleOpenUrl = vi.fn()
+    const { handleOpenAllUrls: _handleOpenAllUrls, ...props } = createProps({
+      handleOpenUrl,
+      urls: [
+        {
+          url: 'https://practice.example/article',
+          title: 'Practice',
+          category: 'Work',
+        },
+      ],
+    })
+    const value = {
+      deps: createSavedTabsPresentationPortsStub(),
+      useCases: createSavedTabsUseCasesStub(),
+      interactionMode: 'practice' as const,
+    }
+    render(
+      <SavedTabsUseCasesProvider value={value}>
+        <CustomProjectCategory {...props} />
+      </SavedTabsUseCasesProvider>,
+    )
+    await user.click(screen.getByRole('button', { name: 'すべて開く' }))
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(handleOpenUrl).toHaveBeenCalledWith(
+      'https://practice.example/article',
     )
   })
 

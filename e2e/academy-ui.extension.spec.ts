@@ -2,7 +2,10 @@ import { ok } from 'node:assert/strict'
 
 import type { Page } from '@playwright/test'
 
-import { createExamplePersistenceFixture } from '@/test/fixtures/persistenceBrowserFixtures'
+import {
+  createEmptyPersistenceFixture,
+  createExamplePersistenceFixture,
+} from '@/test/fixtures/persistenceBrowserFixtures'
 
 import { assertNoAxeViolations } from './helpers/axe'
 import {
@@ -100,6 +103,80 @@ test('Academy code loads only when navigating to the learning center', async ({
   )
 })
 
+for (const scenario of [
+  {
+    name: 'saved',
+    fixture: () => createExamplePersistenceFixture(1_800_000_000_000),
+    titles: ['Example Home'],
+  },
+  { name: 'empty', fixture: createEmptyPersistenceFixture, titles: [] },
+]) {
+  test(`Academy screen explanation opens the real ${scenario.name} data without practice adapters or injected samples`, async ({
+    page,
+    extensionId,
+    serviceWorker,
+  }) => {
+    await seedSavedTabsFixture(serviceWorker, {
+      storage: createBaseSeed(),
+      persistence: scenario.fixture(),
+    })
+    const requested: string[] = []
+    page.on('request', (request) => requested.push(request.url()))
+    await page.goto(
+      getExtensionUrl(extensionId, 'app.html#/academy/domain-mode'),
+    )
+    await expect(
+      page.getByRole('heading', { name: 'Explore Domain mode', exact: true }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('tab', { name: 'Practice with samples', exact: true }),
+    ).toBeDisabled()
+    await expect(page.locator('a[href*="practice.html"]')).toHaveCount(0)
+    const before = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+    const settingsBefore = await readStorage(serviceWorker, ['userSettings'])
+    const tabsBefore = await serviceWorker.evaluate(async () =>
+      (await chrome.tabs.query({}))
+        .map(({ id }) => id)
+        .toSorted((left, right) => (left ?? -1) - (right ?? -1)),
+    )
+    await page
+      .getByRole('link', { name: 'Open the real screen', exact: true })
+      .click()
+    await expect(page).toHaveURL(/app\.html#\/saved-tabs\?mode=domain$/u)
+    await expect(
+      page.getByTestId('saved-tabs-page-presentation'),
+    ).toHaveAttribute('data-loading', 'false')
+    await expect(page.getByTestId('url-title-label')).toHaveText(
+      scenario.titles,
+    )
+    await expect(page.getByTestId('sortable-url-item')).toHaveCount(
+      scenario.titles.length,
+    )
+    await expect(
+      page.getByRole('heading', { name: /Practice data/ }),
+    ).toHaveCount(0)
+    await expect(page.getByText(/academy\.test/u)).toHaveCount(0)
+    expect(
+      requested.filter((url) =>
+        /\/(?:practice|PracticePage|createPracticeComposition)[-.]/u.test(url),
+      ),
+    ).toEqual([])
+    expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
+      before,
+    )
+    expect(await readStorage(serviceWorker, ['userSettings'])).toEqual(
+      settingsBefore,
+    )
+    expect(
+      await serviceWorker.evaluate(async () =>
+        (await chrome.tabs.query({}))
+          .map(({ id }) => id)
+          .toSorted((left, right) => (left ?? -1) - (right ?? -1)),
+      ),
+    ).toEqual(tabsBefore)
+  })
+}
+
 test('Academy direct links, navigation and review preserve saved data and real tabs', async ({
   page,
   extensionId,
@@ -124,7 +201,7 @@ test('Academy direct links, navigation and review preserve saved data and real t
     page.getByRole('tab', { name: 'Learn by video', exact: true }),
   ).toBeDisabled()
   await expect(
-    page.getByRole('tab', { name: 'Try it yourself', exact: true }),
+    page.getByRole('tab', { name: 'Practice with samples', exact: true }),
   ).toBeDisabled()
   await page
     .getByRole('button', { name: 'Start this lesson', exact: true })

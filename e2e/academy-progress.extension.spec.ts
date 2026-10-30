@@ -51,7 +51,9 @@ const loadHarness = async (context: BrowserContext): Promise<Page> => {
     context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
   const page = await context.newPage()
   const extensionId = new URL(worker.url()).host
-  await page.goto(`chrome-extension://${extensionId}/app.html#/saved-tabs`)
+  // Startup closes duplicate saved-tabs pages. The progress harness needs only
+  // the Academy origin, so use its route when opening concurrent/restarted tabs.
+  await page.goto(`chrome-extension://${extensionId}/app.html#/academy`)
   await page.evaluate(async () => {
     await new Promise<void>((resolve, reject) => {
       const element = document.createElement('script')
