@@ -44,7 +44,9 @@ URL 項目に実リンク・native draggable URI を出さず、実タブへ fal
 
 更新は既存 use-case を一時コピーで直列に実行し、成功結果だけを採用する。
 reset、終了、アンマウント、リロードで破棄し、旧セッションの遅延更新を拒否する。
-lesson/step 単位の reset API を共通利用できる。Error Boundary、未対応レッスン、
+lesson/step 単位の reset API は Promise を返し、同じ composition の保存データ・
+検索・並び順の購読者への通知完了を await できる。破棄や再 reset によるキャンセル、
+通知の失敗は呼び出し元に返し、握りつぶさない。Error Boundary、未対応レッスン、
 操作失敗でも本番の書き込みへ切り替えず、説明へ戻る。
 
 練習データを通常の保存タブへ移行せず、途中保存もしない。追加権限、外部送信、

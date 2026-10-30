@@ -52,7 +52,7 @@ export type PracticeComposition = {
     lessonId?: string,
     stepId?: string,
     seed?: PracticeSeed,
-  ) => void
+  ) => Promise<void>
   readonly dispose: () => void
 }
 
@@ -349,12 +349,29 @@ export const createPracticeComposition = (
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
-    resetPracticeSession: (_lessonId, _stepId, seed = initialSeed) => {
+    resetPracticeSession: async (_lessonId, _stepId, seed = initialSeed) => {
       ensureActive()
       current = createSession(seed)
+      const session = current
+      const previousHistory = searchHistory
       sortPreferences.clear()
       searchHistory = []
-      notify()
+      for (const subscriptions of sortListeners.values()) {
+        for (const listener of subscriptions) {
+          listener('default')
+        }
+      }
+      for (const listener of historyListeners) {
+        listener(previousHistory)
+      }
+      // Callers await delivery, including lifecycle cancellation and listener
+      // failures. Reset never launches an unobserved publication promise.
+      const delivery = publishChanges(session)
+      session.queue = delivery.then(
+        () => undefined,
+        () => undefined,
+      )
+      await delivery
     },
     dispose: () => {
       disposed = true

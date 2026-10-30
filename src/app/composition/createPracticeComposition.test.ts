@@ -111,11 +111,13 @@ it('provides deterministic empty, reset and disposal without reviving queued wor
   const pending = practice.useCases.createParentCategory({
     name: 'Late update',
   })
-  practice.resetPracticeSession('lesson', 'step', 'saved')
-  await expect(pending).rejects.toThrow('session has ended')
+  await Promise.all([
+    expect(pending).rejects.toThrow('session has ended'),
+    practice.resetPracticeSession('lesson', 'step', 'saved'),
+  ])
   expect(practice.getSnapshot()).toEqual(saved)
   expect(practice.getBrowserActions()).toEqual([])
-  practice.resetPracticeSession('lesson', 'next-step', 'empty')
+  await practice.resetPracticeSession('lesson', 'next-step', 'empty')
   expect(practice.getSnapshot().urls).toHaveLength(0)
   const finalOperation = practice.useCases.createParentCategory({
     name: 'Too late',
@@ -125,7 +127,9 @@ it('provides deterministic empty, reset and disposal without reviving queued wor
   await expect(practice.useCases.getSavedTabsPageData()).rejects.toThrow(
     'session has ended',
   )
-  expect(() => practice.resetPracticeSession()).toThrow('session has ended')
+  await expect(practice.resetPracticeSession()).rejects.toThrow(
+    'session has ended',
+  )
   expect(practice.getSnapshot().urls).toHaveLength(0)
 })
 
@@ -161,7 +165,7 @@ it('keeps search, sort and browser ports local and discards their state on reset
     url: 'https://notes.academy.test/guide',
   })
   expect(practice.getBrowserActions()).toHaveLength(1)
-  practice.resetPracticeSession()
+  await practice.resetPracticeSession()
   expect(await history?.read()).toEqual([])
   expect(await sort?.read('domain', 'practice-domain-0')).toBe('default')
   expect(practice.getBrowserActions()).toHaveLength(0)
@@ -173,7 +177,102 @@ it('keeps injected use-case identities stable through updates and reset', async 
   expect(practice.useCases.getSavedTabsPageData).toBe(read)
   await practice.useCases.createParentCategory({ name: 'Practice only' })
   expect(practice.useCases.getSavedTabsPageData).toBe(read)
-  practice.resetPracticeSession()
+  await practice.resetPracticeSession()
   expect(practice.useCases.getSavedTabsPageData).toBe(read)
   expect((await read()).parentCategories).toHaveLength(2)
+})
+
+it('updates the same storage subscribers when resetting to empty and saved data', async () => {
+  const practice = createPracticeComposition()
+  let visibleParents = (
+    await practice.useCases.getSavedTabsPageData()
+  ).parentCategories.map(({ name }) => name)
+  let visibleDomainCount = (await practice.useCases.getSavedTabs()).length
+  const stop = practice.deps.storageChangePort.subscribe((changes) => {
+    for (const change of changes) {
+      if (change.kind === 'parsed' && change.key === 'parentCategories') {
+        visibleParents = change.payload.map(({ name }) => name)
+      }
+      if (change.kind === 'parsed' && change.key === 'savedTabs') {
+        visibleDomainCount = change.payload.length
+      }
+    }
+  })
+  await practice.resetPracticeSession('parent-categories', 'step', 'empty')
+  expect(visibleParents).toEqual([])
+  expect(visibleDomainCount).toBe(0)
+  await practice.resetPracticeSession('parent-categories', 'step', 'saved')
+  expect(visibleParents).toEqual(['Demo workspace', 'Demo learning'])
+  expect(visibleDomainCount).toBe(3)
+  stop()
+})
+
+it('rejects reset delivery after disposal or supersession without publishing stale data', async () => {
+  const practice = createPracticeComposition()
+  const storageListener = vi.fn()
+  practice.deps.storageChangePort.subscribe(storageListener)
+  const first = practice.resetPracticeSession('parent', 'first', 'empty')
+  await Promise.all([
+    expect(first).rejects.toThrow('session has ended'),
+    practice.resetPracticeSession('parent', 'second', 'saved'),
+  ])
+  expect(storageListener).toHaveBeenCalledTimes(1)
+  storageListener.mockClear()
+  const finalReset = practice.resetPracticeSession('parent', 'last', 'empty')
+  practice.dispose()
+  await expect(finalReset).rejects.toThrow('session has ended')
+  expect(storageListener).not.toHaveBeenCalled()
+})
+
+it('reports reset subscriber errors to the caller', async () => {
+  const practice = createPracticeComposition()
+  const failure = new Error('Practice view rejected the update')
+  practice.deps.storageChangePort.subscribe(() => {
+    throw failure
+  })
+  await expect(practice.resetPracticeSession()).rejects.toBe(failure)
+})
+
+it('resets subscribed sort and search views along with the repository', async () => {
+  const practice = createPracticeComposition()
+  const sortListener = vi.fn()
+  const historyListener = vi.fn()
+  const sort = practice.deps.sortPreferencesPort
+  const history = practice.deps.searchHistoryPort
+  await sort?.write('domain', 'practice-domain-0', 'desc')
+  await history?.record('sample query')
+  sort?.subscribe('domain', 'practice-domain-0', sortListener)
+  history?.subscribe(historyListener)
+  await practice.resetPracticeSession()
+  expect(sortListener).toHaveBeenCalledExactlyOnceWith('default')
+  expect(historyListener).toHaveBeenCalledExactlyOnceWith(['sample query'])
+  expect(await sort?.read('domain', 'practice-domain-0')).toBe('default')
+  expect(await history?.read()).toEqual([])
+})
+
+it('delivers reset before queued mutations and lets subscribers reread without deadlock', async () => {
+  const practice = createPracticeComposition()
+  const views: string[][] = []
+  const rereads: ReturnType<typeof practice.useCases.getSavedTabsPageData>[] =
+    []
+  practice.deps.storageChangePort.subscribe((changes) => {
+    for (const change of changes) {
+      if (change.kind === 'parsed' && change.key === 'parentCategories') {
+        views.push(change.payload.map(({ name }) => name))
+      }
+    }
+    rereads.push(practice.useCases.getSavedTabsPageData())
+  })
+  const reset = practice.resetPracticeSession('parent', 'step', 'empty')
+  const mutation = practice.useCases.createParentCategory({
+    name: 'After reset',
+  })
+  await Promise.all([reset, mutation])
+  expect(views).toEqual([[], ['After reset']])
+  const refreshed = await Promise.all(rereads)
+  expect(
+    refreshed.every(
+      ({ parentCategories }) => parentCategories[0]?.name === 'After reset',
+    ),
+  ).toBe(true)
 })
