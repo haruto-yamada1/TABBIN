@@ -157,6 +157,42 @@ describe('Academy application use-cases', () => {
     expect(read().lessons['test-lesson']?.video).toEqual(watched)
   })
 
+  it.each([
+    { previousDelay: 400, currentDelay: 0, delta: 1, expected: [[0, 1]] },
+    { previousDelay: 0, currentDelay: 400, delta: 1.25, expected: [] },
+  ])(
+    'uses sample receipt time despite storage delay: %j',
+    async ({ previousDelay, currentDelay, delta, expected }) => {
+      const { ports, read, advance } = setup()
+      const attempt = await createStartLessonUseCase(ports)('test-lesson')
+      let updates = 0
+      const record = createRecordVideoProgressUseCase({
+        ...ports,
+        repository: {
+          ...ports.repository,
+          update: async (change) => {
+            advance(updates++ === 0 ? previousDelay : currentDelay)
+            return ports.repository.update(change)
+          },
+        },
+      })
+      const sample = {
+        ...attempt,
+        sessionId: 'delayed-session',
+        assetId: 'test-video',
+        playing: true,
+        seeking: false,
+      }
+      await record({ ...sample, sequence: 0, positionSeconds: 0 })
+      // The next report arrives exactly one second after the first report.
+      advance(1000 - previousDelay)
+      await record({ ...sample, sequence: 1, positionSeconds: delta })
+      expect(
+        read().lessons['test-lesson']?.video.assets['test-video']?.ranges ?? [],
+      ).toEqual(expected)
+    },
+  )
+
   it('does not turn seeking or briefly replaying the same range into watched', async () => {
     const { ports, read, advance } = setup()
     const attempt = await createStartLessonUseCase(ports)('test-lesson')

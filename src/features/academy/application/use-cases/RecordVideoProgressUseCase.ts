@@ -86,13 +86,13 @@ export const createRecordVideoProgressUseCase = (ports: AcademyPorts) => {
       command.sessionId,
     ])
     let accepted: Sample | undefined
+    const at = ports.now()
     await ports.repository.update((state) => {
       const progress = currentAttempt(state, lesson, command)
       const previous = samples.get(key)
       if (previous && command.sequence <= previous.sequence) {
         return state
       }
-      const at = ports.now()
       const next = {
         sequence: command.sequence,
         position: command.positionSeconds,

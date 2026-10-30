@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { cp, mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -22,7 +23,29 @@ declare global {
   }
 }
 
-const artifact = path.join(process.cwd(), '.output/chrome-mv3')
+const builtArtifact = path.join(process.cwd(), '.output/chrome-mv3')
+const snapshotArtifact = async () => {
+  const entries = await readdir(builtArtifact, {
+    recursive: true,
+    withFileTypes: true,
+  })
+  const files = await Promise.all(
+    entries
+      .filter((entry) => entry.isFile())
+      .map(async (entry) => {
+        const filename = path.join(entry.parentPath, entry.name)
+        return {
+          path: path.relative(builtArtifact, filename),
+          sha256: createHash('sha256')
+            .update(await readFile(filename))
+            .digest('hex'),
+        }
+      }),
+  )
+  return files.toSorted((left, right) =>
+    left.path.localeCompare(right.path, 'en'),
+  )
+}
 const loadHarness = async (context: BrowserContext): Promise<Page> => {
   const worker =
     context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
@@ -44,18 +67,10 @@ const loadHarness = async (context: BrowserContext): Promise<Page> => {
 }
 
 test('Academy progress survives browser restart and concurrent tabs without changing saved data', async () => {
-  execFileSync(
-    'bun',
-    [
-      'build',
-      'e2e/support/academy-progress-browser-harness.ts',
-      `--outfile=${artifact}/academy-progress-browser-harness.js`,
-      '--target=browser',
-      '--format=iife',
-    ],
-    { stdio: 'pipe' },
-  )
-  const profile = await mkdtemp(path.join(os.tmpdir(), 'tabbin-academy-'))
+  const artifactBefore = await snapshotArtifact()
+  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'tabbin-academy-'))
+  const artifact = path.join(temporaryRoot, 'extension')
+  const profile = path.join(temporaryRoot, 'profile')
   const violations = new Set<string>()
   const launch = async () => {
     const launched = await chromium.launchPersistentContext(profile, {
@@ -73,8 +88,21 @@ test('Academy progress survives browser restart and concurrent tabs without chan
     })
     return launched
   }
-  let context = await launch()
+  let context: BrowserContext | undefined
   try {
+    await cp(builtArtifact, artifact, { recursive: true })
+    execFileSync(
+      'bun',
+      [
+        'build',
+        'e2e/support/academy-progress-browser-harness.ts',
+        `--outfile=${artifact}/academy-progress-browser-harness.js`,
+        '--target=browser',
+        '--format=iife',
+      ],
+      { stdio: 'pipe' },
+    )
+    context = await launch()
     const page = await loadHarness(context)
     const savedTabs = createExamplePersistenceFixture(Date.now())
     await seedPersistenceV2SavedTabs(page, savedTabs)
@@ -109,6 +137,7 @@ test('Academy progress survives browser restart and concurrent tabs without chan
     )
     expect(await readPersistenceV2SavedTabsSnapshot(page)).toEqual(before)
     await context.close()
+    context = undefined
     context = await launch()
     const restarted = await loadHarness(context)
     expect(
@@ -125,9 +154,15 @@ test('Academy progress survives browser restart and concurrent tabs without chan
       ),
     ).toBe('preserve')
   } finally {
-    await context.close()
-    await rm(profile, { recursive: true, force: true })
+    try {
+      await context?.close()
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true })
+    }
   }
+  expect(await snapshotArtifact(), 'built extension remains unchanged').toEqual(
+    artifactBefore,
+  )
   expect(
     [...violations],
     'unexpected outbound request from an extension page or service worker',
