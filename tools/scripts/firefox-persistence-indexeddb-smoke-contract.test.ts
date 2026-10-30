@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { parse } from 'yaml'
 
 const repoRoot = path.resolve(import.meta.dirname, '../..')
 
@@ -73,5 +74,33 @@ describe('Firefox IndexedDB persistence smoke contract', () => {
 
     const ci = readRequired(requiredFiles.ci)
     expect(ci).toContain('bun run test:firefox:indexeddb-smoke')
+  })
+})
+
+describe('Academy Firefox UI CI prerequisites', () => {
+  it('prepares the native harness and executable paths before the Playwright startup smoke', () => {
+    const workflow = parse(readRequired(requiredFiles.ci)) as {
+      jobs: Record<
+        string,
+        { steps: { run?: string; env?: Record<string, string> }[] }
+      >
+    }
+    const job = Object.values(workflow.jobs).find((item) =>
+      item.steps.some((step) => step.run === 'bun run test:firefox:smoke'),
+    )
+    expect(job).toBeDefined()
+    const steps = job?.steps ?? []
+    const smokeIndex = steps.findIndex(
+      (step) => step.run === 'bun run test:firefox:smoke',
+    )
+    const buildIndex = steps.findIndex(
+      (step) => step.run === 'bun run build:firefox:indexeddb-smoke-harness',
+    )
+    expect(buildIndex).toBeGreaterThan(-1)
+    expect(buildIndex).toBeLessThan(smokeIndex)
+    expect(steps[smokeIndex]?.env?.GECKODRIVER_PATH).toBe('/tmp/geckodriver')
+    expect(steps[smokeIndex]?.env?.FIREFOX_EXECUTABLE_PATH).toBe(
+      `\${{ steps.firefox-executable.outputs.path }}`,
+    )
   })
 })

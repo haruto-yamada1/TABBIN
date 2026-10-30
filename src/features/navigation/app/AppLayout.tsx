@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 
 import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
+import { AcademyWelcome } from '@/features/academy/presentation/AcademyWelcome'
 import { DocumentTitleSync } from '@/features/i18n/components/DocumentTitleSync'
 import { resolveTitlePageKeyFromPathname } from '@/features/i18n/lib/title'
 import { ExtensionPageShell } from '@/features/navigation/components/ExtensionPageShell'
@@ -13,6 +14,7 @@ export const AppLayout = () => {
   return (
     <ExtensionPageShell pathname={location.pathname} search={location.search}>
       <DocumentTitleSync page={titlePage} />
+      <AcademyWelcome />
       <div
         className='flex min-h-0 flex-1 flex-col overflow-hidden'
         data-testid='app-layout'

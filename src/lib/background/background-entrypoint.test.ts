@@ -2,6 +2,7 @@ import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-
 
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
+  prepareAcademyInstall: vi.fn(async () => {}),
   setupExpiredTabsCheckAlarm: vi.fn(),
   registerReviewReminderListeners: vi.fn(),
   registerSavedTabTitleIndicator: vi.fn(),
@@ -27,6 +28,11 @@ vi.mock(
     }),
   }),
 )
+vi.mock('@/app/composition/createAcademyWelcomeUseCases', () => ({
+  createAcademyWelcomeUseCases: () => ({
+    prepareInstall: mocked.prepareAcademyInstall,
+  }),
+}))
 vi.mock('wxt/utils/define-background', () => ({
   defineBackground: (setup: () => void) => {
     setup()
@@ -198,6 +204,7 @@ const loadBackground = async (
   }
   mocked.openSavedTabsPage.mockResolvedValue(123)
   mocked.ready.mockResolvedValue(undefined)
+  mocked.prepareAcademyInstall.mockResolvedValue(undefined)
   mocked.createContextMenus.mockImplementation(() => {})
   mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {})
   mocked.setupMessageListener.mockImplementation(() => {})
@@ -456,5 +463,39 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     } finally {
       vi.unstubAllEnvs()
     }
+  })
+})
+
+describe('Academy install-only welcome integration', () => {
+  it('prepares the guide before opening the installation page', async () => {
+    const harness = await loadBackground()
+    const prepared = Promise.withResolvers<undefined>()
+    mocked.prepareAcademyInstall.mockReturnValue(prepared.promise)
+    const installed = triggerInstalled(harness, 'install')
+    await flushMicrotasks()
+    expect(mocked.prepareAcademyInstall).toHaveBeenCalledOnce()
+    expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+    prepared.resolve(undefined)
+    await installed
+    expect(mocked.openSavedTabsPage).toHaveBeenCalledOnce()
+  })
+
+  it('never arms a guide on update, browser startup, or browser update', async () => {
+    const harness = await loadBackground()
+    await triggerInstalled(harness, 'update')
+    await triggerStartup(harness)
+    await triggerInstalled(harness, 'chrome_update')
+    expect(mocked.prepareAcademyInstall).not.toHaveBeenCalled()
+    expect(mocked.openSavedTabsPage).toHaveBeenCalledTimes(2)
+  })
+
+  it('preserves the existing install page behavior when guide preparation fails', async () => {
+    const harness = await loadBackground()
+    mocked.prepareAcademyInstall.mockRejectedValue(new Error('not ready'))
+    await triggerInstalled(harness, 'install')
+    expect(mocked.openSavedTabsPage).toHaveBeenCalledOnce()
+    expect(mocked.logger.warn).toHaveBeenCalledWith(
+      'background_academy_welcome_unavailable',
+    )
   })
 })

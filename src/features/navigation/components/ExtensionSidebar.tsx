@@ -3,6 +3,7 @@ import {
   Clock3,
   Folder,
   FolderTree,
+  GraduationCap,
   Globe,
   MessageCircleMore,
   PanelLeft,
@@ -98,6 +99,7 @@ const topLevelItems: {
   id: SidebarItemId
   labelKey: string
 }[] = [
+  { icon: GraduationCap, id: 'academy', labelKey: 'sidebar.academy' },
   {
     icon: MessageCircleMore,
     id: 'ai-chat',

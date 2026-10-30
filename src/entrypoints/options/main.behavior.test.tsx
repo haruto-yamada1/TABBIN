@@ -77,17 +77,23 @@ vi.mock('@/components/ui/button', () => ({
     children,
     onClick,
     type = 'button',
+    asChild = false,
     ...props
   }: {
     children: React.ReactNode
     onClick?: () => void
     type?: 'button' | 'submit'
-  } & Record<string, unknown>) => (
-    // eslint-disable-next-line react/button-has-type
-    <button onClick={onClick} type={type} {...props}>
-      {children}
-    </button>
-  ),
+  } & Record<string, unknown>): React.ReactNode => {
+    if (asChild) {
+      return children
+    }
+    return (
+      // eslint-disable-next-line react/button-has-type -- preserve the mocked Button's variable type
+      <button onClick={onClick} type={type} {...props}>
+        {children}
+      </button>
+    )
+  },
 }))
 
 vi.mock('@/components/ui/checkbox', () => ({
