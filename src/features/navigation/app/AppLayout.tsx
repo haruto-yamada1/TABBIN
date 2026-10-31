@@ -29,9 +29,11 @@ export const AppLayout = () => {
       <DocumentTitleSync page={titlePage} />
       <AcademyWelcome />
       {guideLesson ? (
-        <Suspense fallback={null}>
-          <ScreenGuide key={guideLesson} lessonId={guideLesson} />
-        </Suspense>
+        <RenderErrorBoundary key={guideLesson} fallback={null}>
+          <Suspense fallback={null}>
+            <ScreenGuide lessonId={guideLesson} />
+          </Suspense>
+        </RenderErrorBoundary>
       ) : null}
       <div
         className='flex min-h-0 flex-1 flex-col overflow-hidden'

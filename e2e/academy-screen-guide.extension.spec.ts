@@ -131,7 +131,6 @@ test('Academy screen guide completes the real Domain and Custom views without ch
   await expect(
     guide(page).getByRole('button', { name: 'Back', exact: true }),
   ).toHaveCount(0)
-  await page.screenshot({ path: '/tmp/tabbin-1002-guide.png', fullPage: true })
   await page.screenshot({
     path: testInfo.outputPath('academy-screen-guide-first-step.png'),
     fullPage: true,

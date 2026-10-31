@@ -278,6 +278,7 @@ describe('Bun dependency changes', () => {
     'Apache-2.0 AND MIT',
     'MIT AND ISC',
     '(MPL-2.0 OR Apache-2.0)',
+    '(MIT OR CC0-1.0)',
   ])(
     'accepts the explicitly reviewed permissive license %s',
     async (license) => {
@@ -299,6 +300,10 @@ describe('Bun dependency changes', () => {
 
   it.each([
     'MIT OR GPL-3.0-only',
+    '(MIT OR GPL-3.0-only)',
+    '(MIT OR UNKNOWN)',
+    '(MIT OR CC0-1.0 OR GPL-3.0-only)',
+    'MIT OR CC0-1.0',
     'MIT AND UNKNOWN',
     'MIT AND Apache-2.0',
     '(MPL-2.0 OR GPL-3.0-only)',
