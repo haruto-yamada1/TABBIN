@@ -257,7 +257,7 @@
     "adm-zip": "0.6.1",
     "browserslist": "4.28.8",
     "defu": "6.1.7",
-    "fast-uri": "3.1.8",
+    "fast-uri": "3.1.9",
     "js-yaml": "4.3.2",
     "lodash-es": "4.18.1",
     "node-forge": "github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65",
