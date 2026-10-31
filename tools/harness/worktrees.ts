@@ -127,10 +127,13 @@ function locked<T>(repo: Repository, action: () => T): T {
   const lock = path.join(repo.common, 'tabbin-worktrees.lock')
   try {
     mkdirSync(lock, { mode: 0o700 })
-  } catch {
-    throw new WorktreeLockError(
-      'worktree lifecycle lock exists; inspect owner/stale lock manually',
-    )
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'EEXIST') {
+      throw new WorktreeLockError(
+        'worktree lifecycle lock exists; inspect owner/stale lock manually',
+      )
+    }
+    throw error
   }
   try {
     writeFileSync(

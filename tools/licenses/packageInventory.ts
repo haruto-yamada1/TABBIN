@@ -272,14 +272,52 @@ function reviewedProvenance(review: ReviewedLicense | undefined) {
   if (!review) {
     return undefined
   }
-  const { sourceUrl, packageIntegrity, provenanceNote, provenanceUrl } = review
-  return { sourceUrl, packageIntegrity, provenanceNote, provenanceUrl }
+  const {
+    sourceUrl,
+    packageIntegrity,
+    provenanceNote,
+    provenanceUrl,
+    expectedMetadataLicense,
+  } = review
+  return {
+    sourceUrl,
+    packageIntegrity,
+    provenanceNote,
+    provenanceUrl,
+    expectedMetadataLicense,
+  }
 }
 
 function metadataLicenseOf(metadata: PackageManifest): string | null {
   return typeof metadata.license === 'string'
     ? metadata.license
     : (metadata.license?.type ?? null)
+}
+
+function selectPackageLicense(
+  metadataLicense: string | null,
+  review: ReviewedLicense | undefined,
+  id: string,
+): string {
+  const correctMetadata = review?.expectedMetadataLicense !== undefined
+  if (correctMetadata && review.expectedMetadataLicense !== metadataLicense) {
+    throw new Error(
+      `Reviewed expected metadata differs from installed metadata: ${id}`,
+    )
+  }
+  const license = selectedLicense(
+    correctMetadata
+      ? review.license
+      : (metadataLicense ?? review?.license ?? null),
+  )
+  if (
+    !correctMetadata &&
+    review &&
+    license !== selectedLicense(review.license)
+  ) {
+    throw new Error(`Reviewed license differs from installed metadata: ${id}`)
+  }
+  return license
 }
 
 function collectPackage(
@@ -295,10 +333,7 @@ function collectPackage(
   const review = reviewed.find(
     (item) => item.name === metadata.name && item.version === metadata.version,
   )
-  const license = selectedLicense(metadataLicense ?? review?.license ?? null)
-  if (review && license !== selectedLicense(review.license)) {
-    throw new Error(`Reviewed license differs from installed metadata: ${id}`)
-  }
+  const license = selectPackageLicense(metadataLicense, review, id)
   if (review) {
     assertReviewedIntegrity(projectRoot, review)
   }

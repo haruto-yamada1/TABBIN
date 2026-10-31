@@ -73,7 +73,7 @@ const chapters: Chapter[] = [
       '現在保存しているドメインのURLを確認します。一覧が空の場合はテキストを参考にします。',
     ],
     action: 'inspect-domain',
-    dataTour: 'academy-domain-card',
+    dataTour: 'academy-saved-url',
   },
   {
     lessonId: 'parent-categories',

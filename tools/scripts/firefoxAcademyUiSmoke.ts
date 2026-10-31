@@ -8,6 +8,11 @@ type Commands = <Value = unknown>(
 const browserHelpers = `
   const byText = (selector, text) => [...document.querySelectorAll(selector)]
     .find((element) => element.textContent.trim() === text)
+  const guideAtStep = (index, total) => {
+    const tooltip = document.querySelector('dialog[data-academy-tour-ui]')
+    return tooltip?.querySelector('[aria-live="polite"]')?.textContent.trim() === index + ' / ' + total
+      ? tooltip : null
+  }
   const waitFor = (condition) => new Promise((resolve, reject) => {
     const observer = new MutationObserver(check)
     const timer = setTimeout(() => {
@@ -96,9 +101,57 @@ export const runFirefoxAcademyUiSmoke = async (
   await navigate('/academy/domain-mode')
   const englishDirect = await evaluate<boolean>(`
     await waitFor(() => byText('main h1', 'Explore Domain mode'))
-    return ['Learn by video', 'Try it yourself'].every((name) => byText('[role="tab"]', name)?.disabled === true)
+    return ['Learn by video', 'Practice with samples'].every((name) => byText('[role="tab"]', name)?.disabled === true)
   `)
   assert.equal(englishDirect, true)
+  await navigate('/saved-tabs?mode=domain&guide=domain-mode')
+  const screenGuideViewedAt = await evaluate<number>(`
+    await waitFor(() => guideAtStep(1, 3) && document.querySelector('[data-tour="academy-saved-url"]')?.getClientRects().length)
+    byText('dialog[data-academy-tour-ui] button', 'Next').click()
+    await waitFor(() => guideAtStep(2, 3) && document.querySelector('[data-tour="academy-view-mode"][data-mode="domain"]'))
+    byText('dialog[data-academy-tour-ui] button', 'Next').click()
+    await waitFor(() => guideAtStep(3, 3) && document.querySelector('[data-tour="academy-view-mode"][data-mode="custom"]'))
+    byText('dialog[data-academy-tour-ui] button', 'Finish').click()
+    await waitFor(() => byText('[data-academy-tour-ui] output', 'Screen guide viewed'))
+    const values = await browser.storage.local.get('academyProgressV1')
+    const progress = values.academyProgressV1.lessons['domain-mode']
+    if (Object.keys(progress.practice).length !== 0) throw new Error('Screen guidance must not grant practice achievement')
+    return progress.guideViewedAt
+  `)
+  assert.equal(Number.isFinite(screenGuideViewedAt), true)
+  await navigate('/academy/domain-mode')
+  const screenGuide = await evaluate<boolean>(`
+    await waitFor(() => byText('main h1', 'Explore Domain mode') && document.querySelector('main')?.textContent.includes('Screen guide viewed'))
+    const values = await browser.storage.local.get('academyProgressV1')
+    const progress = values.academyProgressV1.lessons['domain-mode']
+    return progress.guideViewedAt === ${JSON.stringify(screenGuideViewedAt)}
+      && Object.keys(progress.practice).length === 0
+      && document.querySelector('main').textContent.includes('Practice not completed')
+  `)
+  assert.equal(screenGuide, true)
+  await navigate('/saved-tabs?mode=domain&guide=parent-categories')
+  const parentGuideViewedAt = await evaluate<number>(`
+    await waitFor(() => guideAtStep(1, 2) && document.querySelector('[data-tour="academy-parent-categories"]'))
+    byText('dialog[data-academy-tour-ui] button', 'Next').click()
+    await waitFor(() => guideAtStep(2, 2) && document.querySelector('[data-tour="academy-parent-dialog"] dialog[data-academy-tour-ui]'))
+    byText('dialog[data-academy-tour-ui] button', 'Finish').click()
+    await waitFor(() => !document.querySelector('[data-tour="academy-parent-dialog"]') && byText('[data-academy-tour-ui] output', 'Screen guide viewed'))
+    const values = await browser.storage.local.get('academyProgressV1')
+    const progress = values.academyProgressV1.lessons['parent-categories']
+    if (Object.keys(progress.practice).length !== 0) throw new Error('Parent-category guidance must not grant practice achievement')
+    return progress.guideViewedAt
+  `)
+  assert.equal(Number.isFinite(parentGuideViewedAt), true)
+  await navigate('/academy/parent-categories')
+  const parentGuide = await evaluate<boolean>(`
+    await waitFor(() => byText('main h1', 'Organize parent categories') && document.querySelector('main')?.textContent.includes('Screen guide viewed'))
+    const values = await browser.storage.local.get('academyProgressV1')
+    const progress = values.academyProgressV1.lessons['parent-categories']
+    return progress.guideViewedAt === ${JSON.stringify(parentGuideViewedAt)}
+      && Object.keys(progress.practice).length === 0
+      && document.querySelector('main').textContent.includes('Practice not completed')
+  `)
+  assert.equal(parentGuide, true)
   await command('/window/rect', { width: 390, height: 844 })
   await evaluate(`
     const values = await browser.storage.local.get(['userSettings', 'academyProgressV1'])
@@ -159,5 +212,7 @@ export const runFirefoxAcademyUiSmoke = async (
     narrowDarkReducedMotion,
     revisit,
     persistenceUnchanged: true,
+    screenGuide,
+    parentGuide,
   }
 }

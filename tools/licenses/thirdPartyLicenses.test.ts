@@ -93,6 +93,33 @@ describe('third-party release notices', () => {
   const build = async (moduleIds: string[]) =>
     writeThirdPartyLicenseFiles({ outDir, projectRoot: root, moduleIds })
 
+  async function reviewedMetadataCorrection(expectedMetadataLicense?: string) {
+    const module = await pkg('mismatched', '1.0.0', 'ISC')
+    await file('tools/licenses/reviewed/mismatched-LICENSE', mit)
+    const review = {
+      name: 'mismatched',
+      version: '1.0.0',
+      license: 'MIT',
+      expectedMetadataLicense,
+      packageIntegrity,
+      sourceUrl: 'https://example.invalid/pinned-commit/LICENSE',
+      provenanceNote:
+        'Exact release metadata says ISC; its license text is MIT.',
+      files: [
+        {
+          path: 'mismatched-LICENSE',
+          originalPath: 'LICENSE',
+          sha256: digest(mit),
+        },
+      ],
+    }
+    await writeFile(
+      path.join(legalDir, 'reviewed-licenses.json'),
+      JSON.stringify([review]),
+    )
+    return { module, review }
+  }
+
   it('attributes private subpaths to their npm distribution and retains distinct versions', async () => {
     const first = await pkg('@scope/resolvers')
     const internal = await file(
@@ -160,6 +187,58 @@ describe('third-party release notices', () => {
     const module = await pkg('fixture')
     await rm(path.join(path.dirname(module), 'LICENSE'))
     await expect(build([module])).rejects.toThrow(/license text/i)
+  })
+
+  it('rejects conflicting metadata without an explicit reviewed correction', async () => {
+    const module = await pkg('mismatched', '1.0.0', 'ISC')
+    await expect(build([module])).rejects.toThrow(/missing full ISC license/i)
+    const reviewed = await reviewedMetadataCorrection()
+    await expect(build([reviewed.module])).rejects.toThrow(
+      /reviewed license differs from installed metadata/i,
+    )
+  })
+
+  it('applies an exact reviewed metadata correction while preserving original metadata and notices', async () => {
+    const { module } = await reviewedMetadataCorrection('ISC')
+    await expect(build([module])).resolves.toMatchObject({ packageCount: 1 })
+    const inventory = JSON.parse(
+      await readFile(path.join(outDir, 'THIRD_PARTY_LICENSES.json'), 'utf8'),
+    )
+    expect(inventory.packages).toMatchObject([
+      {
+        name: 'mismatched',
+        version: '1.0.0',
+        metadataLicense: 'ISC',
+        selectedLicense: 'MIT',
+        reviewedLicense: { expectedMetadataLicense: 'ISC', packageIntegrity },
+      },
+    ])
+    expect(
+      await readFile(path.join(outDir, 'THIRD_PARTY_NOTICES.txt'), 'utf8'),
+    ).toContain(mit)
+    await expect(verifyThirdPartyLicenseFiles(outDir)).resolves.toBeUndefined()
+  })
+
+  it('rejects a metadata correction when installed metadata, integrity or reviewed text changes', async () => {
+    const { module, review } = await reviewedMetadataCorrection('MIT')
+    await expect(build([module])).rejects.toThrow(/metadata/i)
+    await writeFile(
+      path.join(legalDir, 'reviewed-licenses.json'),
+      JSON.stringify([
+        {
+          ...review,
+          expectedMetadataLicense: 'ISC',
+          packageIntegrity: `sha512-${Buffer.alloc(64, 1).toString('base64')}`,
+        },
+      ]),
+    )
+    await expect(build([module])).rejects.toThrow(/integrity/i)
+    await writeFile(
+      path.join(legalDir, 'reviewed-licenses.json'),
+      JSON.stringify([{ ...review, expectedMetadataLicense: 'ISC' }]),
+    )
+    await file('tools/licenses/reviewed/mismatched-LICENSE', `${mit}changed`)
+    await expect(build([module])).rejects.toThrow(/digest/i)
   })
 
   it('requires a reviewed exact package and digest for missing metadata or fallback texts', async () => {

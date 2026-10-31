@@ -14,7 +14,7 @@ test.beforeAll(() => {
   )
 })
 
-test('Firefox Academy uses real extension DOM for English direct access and Japanese keyboard revisit', () => {
+test('Firefox Academy verifies read-only screen guides and Japanese keyboard revisit in the real extension DOM', () => {
   // Firefox's profile-copy loader does not install the unsigned addon on all
   // supported builds. Reuse the release smoke's temporary-XPI WebDriver session.
   const output = execFileSync('bun', ['run', 'test:firefox:indexeddb-smoke'], {
@@ -35,6 +35,8 @@ test('Firefox Academy uses real extension DOM for English direct access and Japa
       narrowDarkReducedMotion: true,
       revisit: true,
       persistenceUnchanged: true,
+      screenGuide: true,
+      parentGuide: true,
     },
   })
 })

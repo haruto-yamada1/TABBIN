@@ -485,7 +485,10 @@ describe('Harness worktree lifecycle', () => {
   it('cleans known ignored files beyond the default output buffer and keeps the branch', () => {
     const { root, work } = largeIgnoredWorktree()
     const result = run(root, 'cleanup', '--issue', '941', '--confirm', '941')
-    expect(result.status).toBe(0)
+    expect(
+      result.status,
+      `cleanup output:\n${result.stdout}\n${result.stderr}`,
+    ).toBe(0)
     expect(existsSync(work)).toBe(false)
     expect(
       git(root, 'show-ref', '--verify', 'refs/heads/codex/issue-941-fixture'),
@@ -553,9 +556,9 @@ describe('Harness worktree lifecycle', () => {
   it('fails closed for shared symlinks, Git lock contention and mismatched branch', () => {
     const root = project()
     mkdirSync(path.join(root, '.git/tabbin-worktrees.lock'))
-    expect(
-      run(root, 'start', '--issue', '941', '--slug', 'fixture').status,
-    ).not.toBe(0)
+    const contention = run(root, 'start', '--issue', '941', '--slug', 'fixture')
+    expect(contention.status).not.toBe(0)
+    expect(contention.stderr).toContain('worktree lifecycle lock exists')
     rmSync(path.join(root, '.git/tabbin-worktrees.lock'), { recursive: true })
     const work = start(root, 941)
     rmSync(path.join(work, 'node_modules'), { recursive: true })
@@ -567,6 +570,61 @@ describe('Harness worktree lifecycle', () => {
     git(work, 'switch', '-c', 'unexpected')
     expect(run(root, 'resume', '--issue', '941').status).not.toBe(0)
   })
+
+  it.each(['EACCES', 'EPERM'])(
+    'reports %s from lifecycle lock creation without suggesting stale lock cleanup',
+    (code) => {
+      const root = project()
+      const common = path.join(root, '.git')
+      const lock = path.join(common, 'tabbin-worktrees.lock')
+      const preload = path.join(root, '.fixture-tools', 'deny-lock.ts')
+      mkdirSync(path.dirname(preload), { recursive: true })
+      // A child-only filesystem fault keeps this regression meaningful under
+      // root, CAP_DAC_OVERRIDE and platforms that do not enforce chmod bits.
+      writeFileSync(
+        preload,
+        [
+          "import { mock } from 'bun:test'",
+          "import * as fs from 'node:fs'",
+          'const mkdir = fs.mkdirSync',
+          "mock.module('node:fs', () => ({",
+          '  ...fs,',
+          '  mkdirSync(directory, ...options) {',
+          `    if (String(directory) === ${JSON.stringify(lock)}) {`,
+          `      throw Object.assign(new Error(${JSON.stringify(`${code}: fixture denied lifecycle lock mkdir`)}), { code: ${JSON.stringify(code)} })`,
+          '    }',
+          '    return mkdir(directory, ...options)',
+          '  },',
+          '}))',
+          '',
+        ].join('\n'),
+      )
+      const denied = spawnSync(
+        'bun',
+        [
+          '--preload',
+          preload,
+          cli,
+          'worktree',
+          'start',
+          '--issue',
+          '941',
+          '--slug',
+          'fixture',
+        ],
+        { cwd: root, encoding: 'utf8', env: childEnvironment() },
+      )
+      expect(denied.status).not.toBe(0)
+      expect(denied.stderr).toContain(
+        `${code}: fixture denied lifecycle lock mkdir`,
+      )
+      expect(denied.stderr).not.toContain('worktree lifecycle lock exists')
+      expect(existsSync(lock)).toBe(false)
+      expect(existsSync(path.join(root, '.worktrees/issue-941-fixture'))).toBe(
+        false,
+      )
+    },
+  )
 
   it('retains failed APM setup and retries the same Issue Harness on resume', () => {
     const root = project({ failApmCheckOnce: true })

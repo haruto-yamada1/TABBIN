@@ -6,6 +6,7 @@ export type AcademyProgressDto = {
     contentVersion: number
     startedAt: number | null
     skippedAt: number | null
+    guideViewedAt: number | null
     videoWatchedAt: number | null
     completedPracticeStepIds: string[]
     notStarted: boolean

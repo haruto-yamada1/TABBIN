@@ -1,4 +1,5 @@
 import type { AcademyProgressDto } from '@/features/academy/application/dto/AcademyProgressDto'
+import { hasAcademyScreenGuide } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
 
 import { useAcademyText } from './academyUiMessages'
 
@@ -38,6 +39,14 @@ export const AcademyEvidenceStatus = ({
       {text(
         progress?.practiceCompleted ? 'completedPractice' : 'pendingPractice',
       )}
+      {progress && hasAcademyScreenGuide(progress.lessonId) ? (
+        <>
+          {' · '}
+          {text(
+            progress.guideViewedAt !== null ? 'completedGuide' : 'pendingGuide',
+          )}
+        </>
+      ) : null}
     </p>
   )
 }

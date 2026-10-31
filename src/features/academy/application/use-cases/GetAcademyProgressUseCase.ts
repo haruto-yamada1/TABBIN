@@ -20,6 +20,7 @@ export const createGetAcademyProgressUseCase =
           contentVersion: lesson.contentVersion,
           startedAt: progress?.startedAt ?? null,
           skippedAt: progress?.skippedAt ?? null,
+          guideViewedAt: progress?.guideViewedAt ?? null,
           videoWatchedAt: progress ? getVideoWatchedAt(progress) : null,
           completedPracticeStepIds: Object.keys(progress?.practice ?? {}),
           ...deriveLessonState(lesson, progress ?? null),

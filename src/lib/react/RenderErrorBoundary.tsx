@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 export type RenderRecoveryOptions = {
   readonly onExport?: (() => Promise<void>) | undefined
+  readonly fallback?: ReactNode
 }
 
 type Props = RenderRecoveryOptions & {
@@ -133,6 +134,9 @@ export class RenderErrorBoundary extends Component<Props, State> {
   override render(): ReactNode {
     if (!this.state.failed) {
       return this.props.children
+    }
+    if (this.props.fallback !== undefined) {
+      return this.props.fallback
     }
     return (
       <RenderErrorFallback

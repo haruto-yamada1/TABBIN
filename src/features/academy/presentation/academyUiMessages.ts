@@ -49,6 +49,8 @@ const ui = {
     pendingVideo: 'Video not watched',
     completedPractice: 'Practice completed',
     pendingPractice: 'Practice not completed',
+    completedGuide: 'Screen guide viewed',
+    pendingGuide: 'Screen guide not viewed',
     textNote:
       'Reading and navigation do not mark video viewing or practice as completed.',
     related: 'Open the real screen',
@@ -108,6 +110,8 @@ const ui = {
     pendingVideo: '動画未視聴',
     completedPractice: '実習達成済み',
     pendingPractice: '実習未達成',
+    completedGuide: '画面案内を閲覧済み',
+    pendingGuide: '画面案内は未閲覧',
     textNote:
       '読むことや「次へ」だけでは、動画視聴・操作達成には記録されません。',
     related: '関連する機能を開く',

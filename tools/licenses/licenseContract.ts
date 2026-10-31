@@ -34,6 +34,7 @@ const packageSchema = z.object({
   reviewedLicense: z
     .object({
       sourceUrl: z.url(),
+      expectedMetadataLicense: z.string().min(1).optional(),
       ...provenanceSchema,
     })
     .optional(),
@@ -53,6 +54,7 @@ export const sourceSchema = z.object({
 export const reviewedSchema = z.object({
   ...identitySchema,
   license: z.string(),
+  expectedMetadataLicense: z.string().min(1).optional(),
   sourceUrl: z.url(),
   ...provenanceSchema,
   files: z

@@ -217,6 +217,17 @@ describe('Academy catalog contract', () => {
 })
 
 describe('Academy independent achievement facts', () => {
+  it('counts screen-guide viewing as activity without granting video or practice mastery', () => {
+    const progress = { ...fresh(), guideViewedAt: 20 }
+    expect(deriveLessonState(lesson, progress)).toMatchObject({
+      notStarted: false,
+      inProgress: true,
+      videoWatched: false,
+      practiceCompleted: false,
+      mastered: false,
+    })
+  })
+
   it('separates skip, start, video viewing, practice and derived mastery', () => {
     const progress = fresh()
     expect(deriveLessonState(lesson, progress).notStarted).toBe(true)

@@ -34,7 +34,11 @@ const ButtonContent = ({
     className='flex w-full min-w-0 flex-col overflow-hidden'
     data-testid='url-text-column'
   >
-    <span className='block truncate text-left' data-testid='url-title-label'>
+    <span
+      className='block truncate text-left'
+      data-testid='url-title-label'
+      data-tour='academy-saved-url'
+    >
       {title}
     </span>
     {savedAt !== undefined && (

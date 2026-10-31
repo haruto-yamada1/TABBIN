@@ -221,6 +221,7 @@ describe('asset-specific Academy video evidence', () => {
       startedAt: 2,
       skippedAt: 3,
       videoWatchedAt: 4,
+      guideViewedAt: null,
       completedPracticeStepIds: ['prior-step'],
     })
     expect(await context.ports.repository.exportRaw()).toEqual(initial)

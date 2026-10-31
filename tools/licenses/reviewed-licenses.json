@@ -148,6 +148,23 @@
     "provenanceNote": "Official npm gitHead and matching release tag identify the pinned upstream commit; the published package omits the repository-root license."
   },
   {
+    "name": "scrollparent",
+    "version": "2.1.0",
+    "license": "MIT",
+    "expectedMetadataLicense": "ISC",
+    "sourceUrl": "https://raw.githubusercontent.com/olahol/scrollparent.js/ac1f5a8ff47798cedb8dd24bebd63d689a05e372/LICENSE",
+    "packageIntegrity": "sha512-bnnvJL28/Rtz/kz2+4wpBjHzWoEzXhVg/TE8BeVGJHUqE8THNIRnDxDWMktwM+qahvlRdvlLdsQfYe+cuqfZeA==",
+    "files": [
+      {
+        "path": "scrollparent-2.1.0/LICENSE",
+        "sha256": "25c0309972a0ac7ed86eeaf35b5e4d8b0b1245844a2a66c15197471467d36dc4",
+        "originalPath": "LICENSE",
+        "sourceUrl": "https://raw.githubusercontent.com/olahol/scrollparent.js/ac1f5a8ff47798cedb8dd24bebd63d689a05e372/LICENSE"
+      }
+    ],
+    "provenanceNote": "The exact published 2.1.0 npm distribution declares ISC in package.json but includes the complete MIT grant and original 2014 Ola Holmström copyright in LICENSE. The official 2.1.0 tag resolves to commit ac1f5a8ff47798cedb8dd24bebd63d689a05e372; its LICENSE is byte-identical to the installed distribution. Select those explicit MIT terms while preserving metadataLicense ISC. This correction requires the exact expected metadata, npm integrity and reviewed document digest; changes require a new review."
+  },
+  {
     "name": "victory-vendor",
     "version": "37.3.6",
     "license": "MIT AND ISC",
