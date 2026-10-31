@@ -101,7 +101,10 @@ const SavedTabsRoutePage = () => {
 
   const handleViewModeNavigate = useCallback(
     (mode: 'custom' | 'domain') => {
-      const nextRoute = getSavedTabsHrefForMode(mode)
+      const guide = new URLSearchParams(routerLocation.search).get('guide')
+      const nextRoute =
+        getSavedTabsHrefForMode(mode) +
+        (guide ? `&guide=${encodeURIComponent(guide)}` : '')
       const currentRoute = `${routerLocation.pathname}${routerLocation.search}`
 
       if (currentRoute === nextRoute) {

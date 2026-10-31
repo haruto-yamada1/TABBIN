@@ -89,6 +89,8 @@ export const lessonProgressSchema = z.strictObject({
   generation: z.string().min(1).max(MAX_GENERATION_LENGTH),
   startedAt: timestamp.nullable(),
   skippedAt: timestamp.nullable(),
+  // An additive fact: older v1/v2 records omit it. It never implies mastery.
+  guideViewedAt: timestamp.nullable().optional(),
   video: z.strictObject({
     assets: z
       .record(id, videoEvidenceSchema)

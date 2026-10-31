@@ -1,5 +1,6 @@
 import { createCompletePracticeStepUseCase } from '@/features/academy/application/use-cases/CompletePracticeStepUseCase'
 import { createGetAcademyProgressUseCase } from '@/features/academy/application/use-cases/GetAcademyProgressUseCase'
+import { createRecordGuideViewedUseCase } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
 import { createRecordIntroUseCase } from '@/features/academy/application/use-cases/RecordIntroUseCase'
 import { createRecordVideoProgressUseCase } from '@/features/academy/application/use-cases/RecordVideoProgressUseCase'
 import { createResetProgressUseCase } from '@/features/academy/application/use-cases/ResetProgressUseCase'
@@ -17,6 +18,7 @@ export const createAcademyUseCases = () => {
   }
   return {
     startLesson: createStartLessonUseCase(ports),
+    recordGuideViewed: createRecordGuideViewedUseCase(ports),
     recordVideoProgress: createRecordVideoProgressUseCase(ports),
     completePracticeStep: createCompletePracticeStepUseCase(ports),
     skipLesson: createSkipLessonUseCase(ports),

@@ -31,6 +31,8 @@ const academyUiResult = {
     narrowDarkReducedMotion: true,
     revisit: true,
     persistenceUnchanged: true,
+    screenGuide: true,
+    parentGuide: true,
   },
 }
 
@@ -162,6 +164,22 @@ describe('Firefox IndexedDB persistence smoke contract', () => {
 })
 
 describe('Academy Firefox Playwright smoke contract', () => {
+  it.each(['screenGuide', 'parentGuide'] as const)(
+    'fails when the native result omits the %s runtime proof',
+    (field) => {
+      const facts = { ...academyUiResult.academyUI }
+      Reflect.deleteProperty(facts, field)
+      const result = runAcademySpec({
+        flag: '1',
+        smokeResult: { ...academyUiResult, academyUI: facts },
+      })
+      expect(result.error).toBeUndefined()
+      expect(result.status).toBe(1)
+      expect(result.stdout).toContain('"unexpected": 1')
+    },
+    20_000,
+  )
+
   it.each(['', 'true'])(
     'does not run the native command when FIREFOX_EXTENSION_SMOKE=%j',
     (flag) => {

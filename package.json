@@ -175,6 +175,7 @@
     "react-dom": "^19.3.1",
     "react-dropzone": "^20.1.4",
     "react-hook-form": "^7.90.0",
+    "react-joyride": "3.2.0",
     "react-router-dom": "^7.18.4",
     "recharts": "3.10.1",
     "shiki": "^4.5.0",

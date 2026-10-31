@@ -117,6 +117,38 @@ describe('Academy progress persistence', () => {
     expect(storage.set).not.toHaveBeenCalled()
   })
 
+  it('loads previous v2 records without repair and retains screen-guide evidence after reopening', async () => {
+    const initial = {
+      ...emptyAcademyState(),
+      lessons: { 'domain-mode': progress('domain-mode') },
+    }
+    const storage = createStorage(initial)
+    const repository = createChromeAcademyProgressRepository({
+      storage,
+      runExclusive,
+    })
+    expect(await repository.read()).toEqual(initial)
+    expect(storage.set).not.toHaveBeenCalled()
+    await repository.update((state) => {
+      const lesson = state.lessons['domain-mode']
+      if (lesson) {
+        lesson.guideViewedAt = 300
+      }
+      return state
+    })
+    const reopened = createChromeAcademyProgressRepository({
+      storage,
+      runExclusive,
+    })
+    expect((await reopened.read()).lessons['domain-mode']).toEqual({
+      ...initial.lessons['domain-mode'],
+      guideViewedAt: 300,
+    })
+    expect(Object.keys(storage.set.mock.calls[0]?.[0] ?? {})).toEqual([
+      ACADEMY_PROGRESS_KEY,
+    ])
+  })
+
   it('detects in-place changes before deciding whether a write is necessary', async () => {
     const storage = createStorage(emptyAcademyState())
     const repository = createChromeAcademyProgressRepository({
@@ -167,6 +199,10 @@ describe('Academy progress persistence', () => {
       intro: { dismissedAt: null, skippedAt: null },
     },
     { ...emptyAcademyState(), extra: true },
+    {
+      ...emptyAcademyState(),
+      lessons: { 'unknown-lesson': { ...progress(), guideViewedAt: -1 } },
+    },
     {
       ...emptyAcademyState(),
       lessons: {

@@ -54,6 +54,19 @@ const show = (props: AcademyRouteProps, route = '/academy') =>
   )
 
 describe('Academy learning screen', () => {
+  it('offers a read-only guide independently of sample practice', async () => {
+    const useCases = createUseCases()
+    const user = userEvent.setup()
+    show({ useCases }, '/academy/domain-mode')
+    await user.click(await screen.findByRole('tab', { name: 'Screen guide' }))
+    expect(
+      screen
+        .getByRole('link', { name: 'Start screen guide' })
+        .getAttribute('href'),
+    ).toBe('/saved-tabs?mode=domain&guide=domain-mode')
+    expect((await useCases.getProgress()).summary.completed).toBe(0)
+  })
+
   it('opens a lesson from the course list without granting completion', async () => {
     const useCases = createUseCases()
     const user = userEvent.setup()

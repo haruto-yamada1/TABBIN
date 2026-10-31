@@ -553,9 +553,9 @@ describe('Harness worktree lifecycle', () => {
   it('fails closed for shared symlinks, Git lock contention and mismatched branch', () => {
     const root = project()
     mkdirSync(path.join(root, '.git/tabbin-worktrees.lock'))
-    expect(
-      run(root, 'start', '--issue', '941', '--slug', 'fixture').status,
-    ).not.toBe(0)
+    const contention = run(root, 'start', '--issue', '941', '--slug', 'fixture')
+    expect(contention.status).not.toBe(0)
+    expect(contention.stderr).toContain('worktree lifecycle lock exists')
     rmSync(path.join(root, '.git/tabbin-worktrees.lock'), { recursive: true })
     const work = start(root, 941)
     rmSync(path.join(work, 'node_modules'), { recursive: true })
@@ -566,6 +566,24 @@ describe('Harness worktree lifecycle', () => {
     rmSync(path.join(work, 'node_modules'))
     git(work, 'switch', '-c', 'unexpected')
     expect(run(root, 'resume', '--issue', '941').status).not.toBe(0)
+  })
+
+  it('reports Git directory permission failures without suggesting stale lock cleanup', () => {
+    const root = project()
+    const common = path.join(root, '.git')
+    chmodSync(common, 0o500)
+    try {
+      const denied = run(root, 'start', '--issue', '941', '--slug', 'fixture')
+      expect(denied.status).not.toBe(0)
+      expect(denied.stderr).toMatch(/EACCES|EPERM/)
+      expect(denied.stderr).not.toContain('worktree lifecycle lock exists')
+      expect(existsSync(path.join(common, 'tabbin-worktrees.lock'))).toBe(false)
+      expect(existsSync(path.join(root, '.worktrees/issue-941-fixture'))).toBe(
+        false,
+      )
+    } finally {
+      chmodSync(common, 0o755)
+    }
   })
 
   it('retains failed APM setup and retries the same Issue Harness on resume', () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { AcademyPorts } from '@/features/academy/application/ports/AcademyPorts'
 import { createCompletePracticeStepUseCase } from '@/features/academy/application/use-cases/CompletePracticeStepUseCase'
 import { createGetAcademyProgressUseCase } from '@/features/academy/application/use-cases/GetAcademyProgressUseCase'
+import { createRecordGuideViewedUseCase } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
 import { createRecordIntroUseCase } from '@/features/academy/application/use-cases/RecordIntroUseCase'
 import { createRecordVideoProgressUseCase } from '@/features/academy/application/use-cases/RecordVideoProgressUseCase'
 import { createResetProgressUseCase } from '@/features/academy/application/use-cases/ResetProgressUseCase'
@@ -74,6 +75,76 @@ const setup = () => {
 }
 
 describe('Academy application use-cases', () => {
+  it('records a viewed screen guide separately from practice and preserves it on skip and replay', async () => {
+    const { ports, read, advance } = setup()
+    const guidePorts = { ...ports, lessons: ACADEMY_LESSONS }
+    const start = createStartLessonUseCase(guidePorts)
+    const attempt = await start('domain-mode')
+    const record = createRecordGuideViewedUseCase(guidePorts)
+    await record(attempt)
+    advance(1000)
+    await record(attempt)
+    await createSkipLessonUseCase(guidePorts)(attempt)
+    expect(await start('domain-mode')).toEqual(attempt)
+    expect(read().lessons['domain-mode']).toMatchObject({
+      guideViewedAt: 1000,
+      skippedAt: 2000,
+      practice: {},
+      video: { assets: {}, legacy: null },
+    })
+    const progress = await createGetAcademyProgressUseCase(guidePorts)()
+    expect(
+      progress.lessons.find((item) => item.lessonId === 'domain-mode'),
+    ).toMatchObject({
+      guideViewedAt: 1000,
+      practiceCompleted: false,
+      videoWatched: false,
+      mastered: false,
+    })
+    expect(progress.summary.completed).toBe(0)
+  })
+
+  it('rejects unsupported guides, obsolete attempts and changed assessments without changing facts', async () => {
+    const { ports, read } = setup()
+    const guidePorts = { ...ports, lessons: ACADEMY_LESSONS }
+    const record = createRecordGuideViewedUseCase(guidePorts)
+    await expect(
+      record({ lessonId: 'unknown', generation: 'x' }),
+    ).rejects.toThrow('UNKNOWN_LESSON')
+    const unsupported =
+      await createStartLessonUseCase(guidePorts)('pin-extension')
+    await expect(record(unsupported)).rejects.toThrow('INVALID_EVENT')
+    const attempt =
+      await createStartLessonUseCase(guidePorts)('parent-categories')
+    await record(attempt)
+    const changed = {
+      ...guidePorts,
+      lessons: ACADEMY_LESSONS.map((lesson) => ({
+        ...lesson,
+        assessmentVersion: 2,
+      })),
+    }
+    await expect(
+      createRecordGuideViewedUseCase(changed)(attempt),
+    ).rejects.toThrow('RELEARNING_REQUIRED')
+    await createResetProgressUseCase(guidePorts)('parent-categories')
+    await expect(record(attempt)).rejects.toThrow('STALE_ATTEMPT')
+    const next = await createStartLessonUseCase(guidePorts)('parent-categories')
+    await expect(record(attempt)).rejects.toThrow('STALE_ATTEMPT')
+    expect(next.generation).not.toBe(attempt.generation)
+    expect(
+      read().lessons['parent-categories']?.guideViewedAt ?? null,
+    ).toBeNull()
+    await record(next)
+    expect(read().lessons['parent-categories']?.guideViewedAt).toBe(1000)
+    await createResetProgressUseCase(guidePorts)()
+    expect(
+      (await createGetAcademyProgressUseCase(guidePorts)()).lessons.every(
+        (lesson) => lesson.guideViewedAt === null,
+      ),
+    ).toBe(true)
+  })
+
   it('starts once, resumes with same token and preserves independent skip/intro facts', async () => {
     const { ports, read, advance } = setup()
     const start = createStartLessonUseCase(ports)
@@ -317,6 +388,7 @@ describe('Academy application use-cases', () => {
     const before = await get()
     expect(before.summary.total).toBe(1)
     expect(before.lessons[0]).toMatchObject({
+      guideViewedAt: null,
       inProgress: true,
       mastered: false,
       prerequisitesMet: true,

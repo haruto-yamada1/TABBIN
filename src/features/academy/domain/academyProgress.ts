@@ -58,6 +58,7 @@ const hasPracticeAchievement = (
 
 const hasActivity = (progress: LessonProgress): boolean =>
   progress.startedAt !== null ||
+  (progress.guideViewedAt ?? null) !== null ||
   videoEvidence(progress).some((evidence) => evidence.ranges.length > 0) ||
   Object.keys(progress.practice).length > 0
 

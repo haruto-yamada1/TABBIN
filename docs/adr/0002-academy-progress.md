@@ -48,6 +48,16 @@ all lessons. The DTO derives `notStarted`, `inProgress`, `videoWatched`,
 persisted. A skipped lesson can later become mastered without deleting the skip
 fact. Only explicit reset removes progress; reset preserves intro decisions.
 
+Issue #1002 adds the independent `guideViewedAt` timestamp for completed
+read-only screen guides. It is recorded by an application command after every
+target screen has actually appeared. It never supplies practice/video evidence
+or mastery, and skip/replay retain it. The field is optional in the strict
+lesson record so existing schema v1/v2 data remains readable without a repair
+write; the DTO exposes missing evidence as `null`. Only successful guide
+completion adds the field. Earlier clients reject this unknown field rather
+than silently overwriting it, and raw export remains available for recovery.
+Removing guide callers leaves saved URLs and previously stored evidence intact.
+
 A video-only lesson requires video evidence. A practice lesson requires every
 listed sandbox success. A lesson requiring both must satisfy both. No empty
 requirement set is mastered. Prerequisites describe the recommended learning

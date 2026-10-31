@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { canPracticeWithSamples } from '@/features/academy/application/services/AcademyPracticeService'
+import { hasAcademyScreenGuide } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
 import type { Lesson } from '@/features/academy/domain/academySchemas'
 
 import { getAcademyGuide, getAcademyRelatedRoute } from './academyLessonGuide'
@@ -15,6 +16,7 @@ import {
 } from './AcademyProgressStatus'
 import type { AcademyLessonProgress } from './AcademyProgressStatus'
 import { useAcademyText } from './academyUiMessages'
+import { useScreenGuideText } from './screenGuideMessages'
 
 const AcademyChapters = ({
   guide,
@@ -65,6 +67,7 @@ export const AcademyLessonDetail = ({
   record: (lessonId: string, skip: boolean) => Promise<void>
 }) => {
   const { text, content, language } = useAcademyText()
+  const tourText = useScreenGuideText()
   const [chapter, setChapter] = useState(0)
   const guide = getAcademyGuide(lesson.lessonId, language)
   const index = lessons.findIndex((item) => item.lessonId === lesson.lessonId)
@@ -122,6 +125,9 @@ export const AcademyLessonDetail = ({
           aria-label={content(lesson.titleKey)}
         >
           <TabsTrigger value='text'>{text('text')}</TabsTrigger>
+          {hasAcademyScreenGuide(lesson.lessonId) ? (
+            <TabsTrigger value='guide'>{tourText.title}</TabsTrigger>
+          ) : null}
           <TabsTrigger
             value='video'
             disabled
@@ -143,6 +149,16 @@ export const AcademyLessonDetail = ({
             {text(hasPractice ? 'practiceSafe' : 'screenGuide')}
           </p>
         </div>
+        {hasAcademyScreenGuide(lesson.lessonId) ? (
+          <TabsContent value='guide' className='space-y-4'>
+            <p>{tourText.safe}</p>
+            <Button asChild>
+              <Link to={`/saved-tabs?mode=domain&guide=${lesson.lessonId}`}>
+                {tourText.start}
+              </Link>
+            </Button>
+          </TabsContent>
+        ) : null}
         {hasPractice ? (
           <TabsContent value='practice' className='space-y-4'>
             <p>{text('practiceSafe')}</p>
