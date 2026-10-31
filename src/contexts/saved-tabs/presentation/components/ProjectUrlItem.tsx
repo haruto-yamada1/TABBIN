@@ -35,6 +35,19 @@ import { SavedUrlFavoriteButton } from './shared/SavedUrlFavoriteButton'
 
 const MAX_URL_PREVIEW_LENGTH = 30
 
+const resolveUrlRowIndentClass = (
+  isInUncategorizedArea: boolean,
+  isInSubcategory: boolean,
+): string => {
+  if (isInUncategorizedArea && !isInSubcategory) {
+    return ''
+  }
+  if (isInSubcategory) {
+    return 'pl-2'
+  }
+  return 'pl-1'
+}
+
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
 let isGlobalInternalDrop = false
 if (typeof window !== 'undefined') {
@@ -309,12 +322,17 @@ const ProjectUrlItemComponent = ({
     handleDeleteUrl(projectId, item.url)
   }, [handleDeleteUrl, projectId, item.url])
 
+  const liIndentClass = resolveUrlRowIndentClass(
+    isInUncategorizedArea,
+    isInSubcategory,
+  )
+
   return (
     <>
       <li
         ref={setNodeRef}
         style={style}
-        className={`group relative flex min-w-0 items-center overflow-hidden border-b border-border pb-1 last:border-0 ${isDragging ? 'bg-secondary/50 opacity-50' : ''} ${isInSubcategory ? 'pl-2' : ''} ${item.category ? 'border-l-2 border-l-primary/30' : ''} `}
+        className={`group relative flex min-w-0 items-center overflow-hidden border-b border-border pb-1 last:border-0 ${isDragging ? 'bg-secondary/50 opacity-50' : ''} ${liIndentClass} ${item.category ? 'border-l-2 border-l-primary/30' : ''} `}
         data-testid='project-url-item'
         data-url={originalUrl}
         data-project-id={projectId}
@@ -337,7 +355,7 @@ const ProjectUrlItemComponent = ({
           aria-label={t('savedTabs.url.dragHandleAria', undefined, {
             name: item.title || originalUrl,
           })}
-          className='cursor-grab p-1 active:cursor-grabbing'
+          className='flex w-10 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing'
           data-testid='project-url-drag-handle'
         >
           <SavedTabDragHandleIcon
@@ -349,6 +367,7 @@ const ProjectUrlItemComponent = ({
           url={originalUrl}
           title={item.title}
           isFavorite={item.isFavorite ?? false}
+          className='ml-2 w-10'
         />
         {/* タイトル＋バッジ部 */}
         <div className='flex min-w-0 flex-1 items-center'>

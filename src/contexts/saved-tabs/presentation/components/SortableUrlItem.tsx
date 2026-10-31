@@ -302,7 +302,7 @@ export const SortableUrlItem = ({
       >
         {selection.checkbox}
         <div
-          className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
+          className='z-10 flex w-10 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:cursor-grab active:cursor-grabbing'
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
@@ -326,6 +326,7 @@ export const SortableUrlItem = ({
           title={title}
           isFavorite={isFavorite}
           disabled={selection.isSelectionMode}
+          className='ml-2 w-10'
         />
         <div className='relative min-w-0 flex-1 overflow-hidden'>
           {urlActivation}
