@@ -65,9 +65,12 @@ export const useScreenGuideController = (
   const failedAction = useRef<'finish' | 'skip' | 'start'>('start')
   const safeClick = useRef(false)
   const mounted = useRef(true)
+  const stopped = useRef(false)
   const steps = lessonId === 'domain-mode' ? domainSteps : parentSteps
   const step = steps[index] ?? domainSteps[0]
   const returnToLesson = useCallback(() => {
+    stopped.current = true
+    targetPreparation.current?.abort()
     void navigate(`/academy/${lessonId}`)
   }, [navigate, lessonId])
   const closeOwnedDialog = useCallback(() => {
@@ -93,12 +96,12 @@ export const useScreenGuideController = (
     void useCases
       .startLesson(lessonId)
       .then((value) => {
-        if (!cancelled) {
+        if (!cancelled && !stopped.current) {
           setAttempt(value)
         }
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!cancelled && !stopped.current) {
           setPhase('error')
         }
       })
@@ -107,7 +110,7 @@ export const useScreenGuideController = (
     }
   }, [attempt, lessonId, useCases, revision])
   useEffect(() => {
-    if (!attempt) {
+    if (!attempt || stopped.current) {
       return undefined
     }
     const abort = new AbortController()
@@ -256,6 +259,7 @@ export const useScreenGuideController = (
     if (actionInFlight.current) {
       return
     }
+    stopped.current = false
     setPhase('loading')
     setIndex(0)
     setRevision((value) => value + 1)
@@ -296,6 +300,7 @@ export const useScreenGuideController = (
     ) {
       void finish()
     } else {
+      stopped.current = false
       setPhase('loading')
       setRevision((value) => value + 1)
     }

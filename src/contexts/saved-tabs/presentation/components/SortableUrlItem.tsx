@@ -300,32 +300,38 @@ export const SortableUrlItem = ({
         data-category-context={categoryContext}
         data-testid='sortable-url-item'
       >
-        {selection.checkbox}
-        <div
-          className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
-          aria-describedby={
-            isOpen
-              ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
-              : attributes['aria-describedby']
-          }
-          aria-label={t('savedTabs.url.dragHandleAria', undefined, {
-            name: title,
-          })}
-        >
-          <SavedTabDragHandleIcon
-            isOpen={isOpen}
-            descriptionId={openStateDescriptionId}
-          />
-        </div>
+        {selection.checkbox ? (
+          <div className='z-10 flex w-10 shrink-0 items-center justify-center'>
+            {selection.checkbox}
+          </div>
+        ) : (
+          <div
+            className='z-10 flex w-10 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:cursor-grab active:cursor-grabbing'
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+            aria-describedby={
+              isOpen
+                ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+                : attributes['aria-describedby']
+            }
+            aria-label={t('savedTabs.url.dragHandleAria', undefined, {
+              name: title,
+            })}
+          >
+            <SavedTabDragHandleIcon
+              isOpen={isOpen}
+              descriptionId={openStateDescriptionId}
+            />
+          </div>
+        )}
         <SavedUrlFavoriteButton
           url={url}
           title={title}
           isFavorite={isFavorite}
           disabled={selection.isSelectionMode}
+          className='ml-2 w-10'
         />
         <div className='relative min-w-0 flex-1 overflow-hidden'>
           {urlActivation}
