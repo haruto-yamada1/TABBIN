@@ -36,7 +36,7 @@ const setup = (japaneseDuration = 60, initial?: unknown) => {
             assetId: 'english-video',
             kind: 'video',
             locale: 'en',
-            path: 'academy/videos/install-extension.en.mp4',
+            path: 'academy/videos/pin-extension.en.mp4',
             status: 'available',
             durationSeconds: 100,
           },
@@ -44,7 +44,7 @@ const setup = (japaneseDuration = 60, initial?: unknown) => {
             assetId: 'japanese-video',
             kind: 'video',
             locale: 'ja',
-            path: 'academy/videos/install-extension.ja.mp4',
+            path: 'academy/videos/pin-extension.ja.mp4',
             status: 'available',
             durationSeconds: japaneseDuration,
           },
@@ -93,8 +93,8 @@ const legacy = (watched = false) => ({
   schemaVersion: 1,
   intro: { dismissedAt: 7, skippedAt: 8 },
   lessons: {
-    'install-extension': {
-      lessonId: 'install-extension',
+    'pin-extension': {
+      lessonId: 'pin-extension',
       contentVersion: 1,
       assessmentVersion: 1,
       generation: 'existing-attempt',
@@ -114,7 +114,7 @@ describe('asset-specific Academy video evidence', () => {
   it('finishes a shorter language video after partially watching a longer one, including after reopening storage', async () => {
     const context = setup()
     const attempt = await createStartLessonUseCase(context.ports)(
-      'install-extension',
+      'pin-extension',
     )
     const record = createRecordVideoProgressUseCase(context.ports)
     await play(context, record, attempt, 'english-video', 0, 1)
@@ -136,7 +136,7 @@ describe('asset-specific Academy video evidence', () => {
     expect(await reopened.exportRaw()).toMatchObject({
       schemaVersion: 2,
       lessons: {
-        'install-extension': {
+        'pin-extension': {
           video: {
             assets: {
               'english-video': {
@@ -155,10 +155,10 @@ describe('asset-specific Academy video evidence', () => {
   it('initializes the duration of an empty persisted asset before crediting playback', async () => {
     const context = setup()
     const attempt = await createStartLessonUseCase(context.ports)(
-      'install-extension',
+      'pin-extension',
     )
     await context.ports.repository.update((state) => {
-      const progress = state.lessons['install-extension']
+      const progress = state.lessons['pin-extension']
       if (!progress) {
         throw new Error('Expected started lesson')
       }
@@ -179,7 +179,7 @@ describe('asset-specific Academy video evidence', () => {
     )
     expect(context.raw()).toMatchObject({
       lessons: {
-        'install-extension': {
+        'pin-extension': {
           video: {
             assets: {
               'english-video': {
@@ -197,7 +197,7 @@ describe('asset-specific Academy video evidence', () => {
   it('does not combine intervals across language assets even when durations match', async () => {
     const context = setup(100)
     const attempt = await createStartLessonUseCase(context.ports)(
-      'install-extension',
+      'pin-extension',
     )
     const record = createRecordVideoProgressUseCase(context.ports)
     await play(context, record, attempt, 'english-video', 0, 50)
@@ -233,10 +233,10 @@ describe('asset-specific Academy video evidence', () => {
       schemaVersion: 2,
       intro: { dismissedAt: 7, skippedAt: 9 },
       lessons: {
-        'install-extension': {
+        'pin-extension': {
           generation: 'existing-attempt',
           video: {
-            legacy: initial.lessons['install-extension'].video,
+            legacy: initial.lessons['pin-extension'].video,
             assets: {},
           },
         },
@@ -251,7 +251,7 @@ describe('asset-specific Academy video evidence', () => {
   it('does not mix migrated unscoped partial ranges into a new asset', async () => {
     const context = setup(100, legacy())
     const attempt = await createStartLessonUseCase(context.ports)(
-      'install-extension',
+      'pin-extension',
     )
     await play(
       context,

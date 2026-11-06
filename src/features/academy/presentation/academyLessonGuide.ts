@@ -1,15 +1,5 @@
 type Guide = { en: string[]; ja: string[] }
 const guides: Record<string, Guide> = {
-  'install-extension': {
-    en: [
-      'Chrome: install TABBIN from the Chrome Web Store. Firefox: install it from Firefox Add-ons. Check the extension name and requested permissions before adding it.',
-      'After installation, return to Academy from the sidebar or Options whenever you need help. Reading this guide does not save any tabs.',
-    ],
-    ja: [
-      'ChromeではChrome ウェブストア、FirefoxではFirefox Add-onsからTABBINを追加します。拡張機能名と要求される権限を確認してください。',
-      '追加後はサイドバーやOptionsからAcademyへいつでも戻れます。このガイドを読むだけではタブは保存されません。',
-    ],
-  },
   'pin-extension': {
     en: [
       'Chrome: open the puzzle-shaped Extensions menu and select the pin next to TABBIN.',
@@ -84,6 +74,4 @@ const guides: Record<string, Guide> = {
 export const getAcademyGuide = (lessonId: string, language: 'ja' | 'en') =>
   guides[lessonId]?.[language] ?? []
 export const getAcademyRelatedRoute = (lessonId: string) =>
-  lessonId === 'install-extension' || lessonId === 'pin-extension'
-    ? '/options'
-    : '/saved-tabs?mode=domain'
+  lessonId === 'pin-extension' ? '/options' : '/saved-tabs?mode=domain'

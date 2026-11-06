@@ -125,7 +125,7 @@ describe('isolated practice page', () => {
     expect(accessed).not.toHaveBeenCalled()
   })
 
-  it.each(['domain-mode', 'save-tabs', 'install-extension', 'missing-lesson'])(
+  it.each(['domain-mode', 'save-tabs', 'pin-extension', 'missing-lesson'])(
     'refuses %s without constructing a practice adapter',
     (lessonId) => {
       const createComposition = vi.fn(createPracticeComposition)

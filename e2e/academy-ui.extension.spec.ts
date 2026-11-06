@@ -1,7 +1,5 @@
 import { ok } from 'node:assert/strict'
 
-import type { Page } from '@playwright/test'
-
 import {
   createEmptyPersistenceFixture,
   createExamplePersistenceFixture,
@@ -19,28 +17,9 @@ import {
   test,
 } from './helpers/extension'
 
-const dismissWelcome = {
-  later: async (page: Page) =>
-    page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Later', exact: true })
-      .click(),
-  skip: async (page: Page) =>
-    page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Skip', exact: true })
-      .click(),
-  escape: async (page: Page) => page.keyboard.press('Escape'),
-  start: async (page: Page) =>
-    page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Start the guide', exact: true })
-      .click(),
-}
-
 const academyProgressKey = 'academyProgressV1'
 
-test('Academy is offered on a real fresh install without saving tabs', async ({
+test('Fresh install opens the saved tabs page without storing tabs', async ({
   extensionContext,
   serviceWorker,
 }) => {
@@ -63,13 +42,11 @@ test('Academy is offered on a real fresh install without saving tabs', async ({
     .pages()
     .find((candidate) => candidate.url().includes('app.html'))
   ok(installed, 'Install page missing')
-  await expect(
-    installed.getByRole('dialog', { name: 'Welcome to TABBIN' }),
-  ).toBeVisible()
   const before = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
-  await installed.getByRole('button', { name: 'Later', exact: true }).click()
+  await expect(
+    installed.getByRole('heading', { name: 'Saved tabs', exact: true }),
+  ).toBeVisible()
   await installed.reload()
-  await expect(installed.getByRole('dialog')).toBeHidden()
   expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
     before,
   )
@@ -240,42 +217,6 @@ test('Academy direct links, navigation and review preserve saved data and real t
   ).toEqual(tabIds)
 })
 
-for (const action of ['later', 'skip', 'escape', 'start'] as const) {
-  test(`Academy first-install ${action} stays dismissed after reload and manual revisit`, async ({
-    page,
-    extensionId,
-    serviceWorker,
-  }) => {
-    await seedStorage(
-      serviceWorker,
-      createBaseSeed({ academyWelcomeV1: 'pending' }),
-    )
-    const app = getExtensionUrl(extensionId, 'app.html')
-    await page.goto(`${app}#/academy`)
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await dismissWelcome[action](page)
-    await expect(dialog).toBeHidden()
-    expect(
-      (
-        await readStorage<{ academyWelcomeV1: string }>(serviceWorker, [
-          'academyWelcomeV1',
-        ])
-      ).academyWelcomeV1,
-    ).toBe('presented')
-    await page.reload()
-    await expect(
-      page.getByRole('heading', { name: 'TABBIN Academy', exact: true }),
-    ).toBeVisible()
-    await expect(dialog).toBeHidden()
-    await page.goto(`${app}#/academy/install-extension`)
-    await expect(
-      page.getByRole('heading', { name: 'Install TABBIN', exact: true }),
-    ).toBeVisible()
-    await expect(dialog).toBeHidden()
-  })
-}
-
 test('Academy handles progress failure, retry and missing lesson URLs', async ({
   page,
   extensionId,
@@ -295,7 +236,7 @@ test('Academy handles progress failure, retry and missing lesson URLs', async ({
   )
   await page.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(
-    page.getByRole('link', { name: 'Install TABBIN', exact: true }),
+    page.getByRole('link', { name: 'Pin the extension', exact: true }),
   ).toBeVisible()
   await page.goto(`${app}#/academy/unknown-lesson`)
   await expect(
@@ -321,13 +262,13 @@ test('Academy Japanese narrow dark reduced-motion keyboard accessibility', async
     page.getByRole('heading', { name: 'はじめてのTABBIN', exact: true }),
   ).toBeVisible()
   const lesson = page.getByRole('link', {
-    name: 'TABBINをインストール',
+    name: '拡張機能を固定',
     exact: true,
   })
   await lesson.focus()
   await page.keyboard.press('Enter')
   await expect(
-    page.getByRole('heading', { name: 'TABBINをインストール', exact: true }),
+    page.getByRole('heading', { name: '拡張機能を固定', exact: true }),
   ).toBeVisible()
   expect(
     await page.evaluate(

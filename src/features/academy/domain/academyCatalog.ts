@@ -13,22 +13,6 @@ type Chapter = {
 
 const chapters: Chapter[] = [
   {
-    lessonId: 'install-extension',
-    courseId: 'getting-started',
-    en: [
-      'Install TABBIN',
-      'Install the extension in Chrome or Firefox.',
-      'Follow the browser-specific installation instructions.',
-    ],
-    ja: [
-      'TABBINをインストール',
-      'Chrome・Firefoxに拡張機能をインストールします。',
-      '利用中のブラウザに合わせた導入手順を確認します。',
-    ],
-    action: null,
-    dataTour: null,
-  },
-  {
     lessonId: 'pin-extension',
     courseId: 'getting-started',
     en: [

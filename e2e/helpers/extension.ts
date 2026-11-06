@@ -80,8 +80,8 @@ export const test = base.extend<ExtensionFixtures>({
       serviceWorker = await extensionContext.waitForEvent('serviceworker')
     }
 
-    // Seeding must follow onInstalled: its asynchronous preparation can otherwise
-    // overwrite a scenario's welcome marker after chrome.storage.local.clear().
+    // Seeding must follow onInstalled: its asynchronous setup can otherwise
+    // overwrite a scenario's seed after chrome.storage.local.clear().
     await expect
       .poll(async () =>
         serviceWorker.evaluate(async () => {
@@ -90,16 +90,6 @@ export const test = base.extend<ExtensionFixtures>({
         }),
       )
       .toBe(true)
-    // The auto-opened app also claims the install invitation asynchronously.
-    // Drain that claim before a test arms its own first-install scenario.
-    await expect
-      .poll(async () =>
-        serviceWorker.evaluate(async () => {
-          const values = await chrome.storage.local.get('academyWelcomeV1')
-          return values.academyWelcomeV1
-        }),
-      )
-      .toBe('presented')
 
     await runFixture(serviceWorker)
   },
@@ -126,8 +116,6 @@ export const defaultUserSettings = {
 }
 
 export const createBaseSeed = (overrides?: Record<string, unknown>) => ({
-  // Existing-user scenarios suppress installation onboarding; first-install tests override it.
-  academyWelcomeV1: 'presented',
   'tab-manager-theme': 'system',
   userSettings: { ...defaultUserSettings },
   viewMode: 'domain',

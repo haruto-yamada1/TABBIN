@@ -100,8 +100,8 @@ describe('Academy catalog contract', () => {
     }
   })
 
-  it('publishes eight stable bilingual chapter scenarios with valid references', () => {
-    expect(ACADEMY_LESSONS.length).toBeGreaterThanOrEqual(8)
+  it('publishes seven stable bilingual chapter scenarios with valid references', () => {
+    expect(ACADEMY_LESSONS.length).toBeGreaterThanOrEqual(7)
     expect(() =>
       validateCatalog(ACADEMY_COURSES, ACADEMY_LESSONS),
     ).not.toThrow()

@@ -4,7 +4,6 @@ import type { AcademyPorts } from '@/features/academy/application/ports/AcademyP
 import { createCompletePracticeStepUseCase } from '@/features/academy/application/use-cases/CompletePracticeStepUseCase'
 import { createGetAcademyProgressUseCase } from '@/features/academy/application/use-cases/GetAcademyProgressUseCase'
 import { createRecordGuideViewedUseCase } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
-import { createRecordIntroUseCase } from '@/features/academy/application/use-cases/RecordIntroUseCase'
 import { createRecordVideoProgressUseCase } from '@/features/academy/application/use-cases/RecordVideoProgressUseCase'
 import { createResetProgressUseCase } from '@/features/academy/application/use-cases/ResetProgressUseCase'
 import { createSkipLessonUseCase } from '@/features/academy/application/use-cases/SkipLessonUseCase'
@@ -145,18 +144,16 @@ describe('Academy application use-cases', () => {
     ).toBe(true)
   })
 
-  it('starts once, resumes with same token and preserves independent skip/intro facts', async () => {
+  it('starts once, resumes with same token and preserves independent skip facts', async () => {
     const { ports, read, advance } = setup()
     const start = createStartLessonUseCase(ports)
     const attempt = await start('test-lesson')
     advance(2000)
     await createSkipLessonUseCase(ports)(attempt)
-    await createRecordIntroUseCase(ports)('dismiss')
-    await createRecordIntroUseCase(ports)('skip')
     expect(await start('test-lesson')).toEqual(attempt)
     expect(read().lessons['test-lesson']?.startedAt).toBe(1000)
     expect(read().lessons['test-lesson']?.skippedAt).toBe(3000)
-    expect(read().intro).toEqual({ dismissedAt: 3000, skippedAt: 3000 })
+    expect(read().intro).toEqual({ dismissedAt: null, skippedAt: null })
     expect(
       read().lessons['test-lesson']?.video.assets['test-video']?.watchedAt ??
         null,
@@ -310,8 +307,11 @@ describe('Academy application use-cases', () => {
 
   it('explicit reset invalidates old tokens and keeps intro state', async () => {
     const { ports, read } = setup()
+    await ports.repository.update((state) => {
+      state.intro.skippedAt = 1000
+      return state
+    })
     const attempt = await createStartLessonUseCase(ports)('test-lesson')
-    await createRecordIntroUseCase(ports)('skip')
     await createResetProgressUseCase(ports)('test-lesson')
     await expect(createSkipLessonUseCase(ports)(attempt)).rejects.toThrow(
       'Academy command rejected:',
@@ -383,7 +383,10 @@ describe('Academy application use-cases', () => {
   it('returns independent facts through a DTO and resets all lessons explicitly', async () => {
     const { ports } = setup()
     await createStartLessonUseCase(ports)('test-lesson')
-    await createRecordIntroUseCase(ports)('dismiss')
+    await ports.repository.update((state) => {
+      state.intro.dismissedAt = 1000
+      return state
+    })
     const get = createGetAcademyProgressUseCase(ports)
     const before = await get()
     expect(before.summary.total).toBe(1)

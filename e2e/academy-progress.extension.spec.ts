@@ -118,22 +118,17 @@ test('Academy progress survives browser restart and concurrent tabs without chan
     expect(before.memberships).toEqual(savedTabs.memberships)
     const [attempt, concurrentAttempt] = await Promise.all([
       page.evaluate(async () =>
-        globalThis.__tabbinAcademySmoke.startLesson('install-extension'),
+        globalThis.__tabbinAcademySmoke.startLesson('pin-extension'),
       ),
       other.evaluate(async () =>
-        globalThis.__tabbinAcademySmoke.startLesson('install-extension'),
+        globalThis.__tabbinAcademySmoke.startLesson('pin-extension'),
       ),
     ])
     expect(concurrentAttempt).toEqual(attempt)
-    await Promise.all([
-      page.evaluate(
-        async (attempt) => globalThis.__tabbinAcademySmoke.skipLesson(attempt),
-        attempt,
-      ),
-      other.evaluate(async () =>
-        globalThis.__tabbinAcademySmoke.recordIntro('dismiss'),
-      ),
-    ])
+    await other.evaluate(
+      async (attempt) => globalThis.__tabbinAcademySmoke.skipLesson(attempt),
+      attempt,
+    )
     const expected = await page.evaluate(async () =>
       globalThis.__tabbinAcademySmoke.runAcademyPersistenceSmoke('fresh'),
     )

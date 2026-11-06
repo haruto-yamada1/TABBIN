@@ -97,9 +97,6 @@ vi.mock('@/features/periodic-execution/routes/PeriodicExecutionRoute', () => ({
   PeriodicExecutionRoute: () => <div>periodic-execution-route</div>,
 }))
 
-vi.mock('@/features/academy/presentation/AcademyWelcome', () => ({
-  AcademyWelcome: () => null,
-}))
 vi.mock('@/features/academy/presentation/AcademyRoute', () => {
   routeModuleLoads.academy += 1
   return { AcademyRoute: () => <div>academy-route</div> }

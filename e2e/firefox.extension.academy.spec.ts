@@ -31,7 +31,6 @@ test('Firefox Academy verifies read-only screen guides and Japanese keyboard rev
     academyUI: {
       englishDirect: true,
       japaneseKeyboard: true,
-      invitationDismissed: true,
       narrowDarkReducedMotion: true,
       revisit: true,
       persistenceUnchanged: true,

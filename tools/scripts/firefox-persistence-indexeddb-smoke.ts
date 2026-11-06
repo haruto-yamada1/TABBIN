@@ -50,10 +50,6 @@ type SmokeResult = {
       readonly skippedAt: number | null
       readonly mastered: boolean
     }
-    readonly intro: {
-      readonly dismissedAt: number | null
-      readonly skippedAt: number | null
-    }
   }
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
@@ -416,10 +412,9 @@ const runHarnessPhase = async (
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
-  assert.equal(result.academy.first.lessonId, 'install-extension')
+  assert.equal(result.academy.first.lessonId, 'pin-extension')
   assert.ok(result.academy.first.startedAt)
   assert.ok(result.academy.first.skippedAt)
-  assert.ok(result.academy.intro.dismissedAt)
   assert.equal(result.academy.first.mastered, false)
   assert.equal(result.incognitoPolicy, 'not_allowed')
   assert.equal(result.privateAccessAllowed, false)

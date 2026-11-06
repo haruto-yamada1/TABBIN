@@ -97,7 +97,6 @@ export const runFirefoxAcademyUiSmoke = async (
     const values = await browser.storage.local.get('userSettings')
     await browser.storage.local.set({
       userSettings: { ...values.userSettings, language: 'en' },
-      academyWelcomeV1: 'presented',
     })
   `)
   await navigate('/academy/domain-mode')
@@ -156,35 +155,18 @@ export const runFirefoxAcademyUiSmoke = async (
   assert.equal(parentGuide, true)
   await command('/window/rect', { width: 390, height: 844 })
   await evaluate(`
-    const values = await browser.storage.local.get(['userSettings', 'academyProgressV1'])
+    const values = await browser.storage.local.get('userSettings')
     await browser.storage.local.set({
       userSettings: { ...values.userSettings, language: 'ja' },
       'tab-manager-theme': 'dark',
-      academyWelcomeV1: 'pending',
-      academyProgressV1: { ...values.academyProgressV1, intro: { dismissedAt: null, skippedAt: null } },
     })
   `)
   await navigate('/academy')
   await command('/refresh', {})
-  await evaluate(
-    `await waitFor(() => byText('[role="dialog"] h2', 'TABBINへようこそ'))`,
-  )
-  await press('\uE00C')
-  await evaluate(
-    `await waitFor(() => !document.querySelector('[role="dialog"]'))`,
-  )
-  await navigate('/academy')
-  await command('/refresh', {})
-  const invitationDismissed = await evaluate<boolean>(`
-    await waitFor(() => byText('main h2', 'はじめてのTABBIN'))
-    const values = await browser.storage.local.get('academyWelcomeV1')
-    return !document.querySelector('[role="dialog"]') && values.academyWelcomeV1 === 'presented'
-  `)
-  assert.equal(invitationDismissed, true)
-  await evaluate(`byText('main a', 'TABBINをインストール').focus()`)
+  await evaluate(`byText('main a', '拡張機能を固定').focus()`)
   await press('\uE007')
   const japaneseKeyboard = await evaluate<boolean>(`
-    await waitFor(() => byText('main h1', 'TABBINをインストール'))
+    await waitFor(() => byText('main h1', '拡張機能を固定'))
     return byText('[role="tab"]', '動画で学ぶ')?.disabled === true
   `)
   assert.equal(japaneseKeyboard, true)
@@ -211,7 +193,6 @@ export const runFirefoxAcademyUiSmoke = async (
   return {
     englishDirect,
     japaneseKeyboard,
-    invitationDismissed,
     narrowDarkReducedMotion,
     revisit,
     persistenceUnchanged: true,
