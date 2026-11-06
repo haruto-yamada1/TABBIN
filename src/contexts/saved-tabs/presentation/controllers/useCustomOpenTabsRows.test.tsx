@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, renderHook, waitFor } from '@testing-library/react'
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -22,13 +22,13 @@ const createOpenUrlsFake = () => {
   const port = {
     getSnapshot: () => false,
     subscribe: () => () => {},
-    getOpenUrlsSnapshot: () => [...urls],
-    subscribeOpenUrls: (listener: () => void) => {
+    getOpenUrlsSnapshot: vi.fn(() => [...urls]),
+    subscribeOpenUrls: vi.fn((listener: () => void) => {
       listeners.add(listener)
       return () => {
         listeners.delete(listener)
       }
-    },
+    }),
   }
   const setOpen = (url: string, isOpen: boolean) => {
     if (isOpen) {
@@ -38,7 +38,7 @@ const createOpenUrlsFake = () => {
     }
     notify()
   }
-  return { port, setOpen }
+  return { port, setOpen, listeners }
 }
 
 const withProvider = (fakePort: unknown, ui: React.ReactNode) => (
@@ -90,6 +90,8 @@ describe('useCustomOpenTabsRows', () => {
     )
     expect(result.current).toEqual([])
     expect(getProjectUrlsSpy).not.toHaveBeenCalled()
+    expect(fake.port.getOpenUrlsSnapshot).not.toHaveBeenCalled()
+    expect(fake.port.subscribeOpenUrls).not.toHaveBeenCalled()
     rerender({ enabled: true })
     await waitFor(() => {
       expect(result.current.map((row) => row.url)).toEqual(['https://a.test/1'])
@@ -97,6 +99,15 @@ describe('useCustomOpenTabsRows', () => {
     rerender({ enabled: false })
     expect(result.current).toEqual([])
     expect(getProjectUrlsSpy).toHaveBeenCalledTimes(1)
+    expect(fake.listeners.size).toBe(0)
+    fake.port.getOpenUrlsSnapshot.mockClear()
+    rerender({ enabled: false })
+    expect(fake.port.getOpenUrlsSnapshot).not.toHaveBeenCalled()
+    rerender({ enabled: true })
+    await waitFor(() => {
+      expect(result.current.map((row) => row.url)).toEqual(['https://a.test/1'])
+    })
+    expect(getProjectUrlsSpy).toHaveBeenCalledTimes(2)
   })
 
   afterEach(() => {
@@ -169,44 +180,133 @@ describe('useCustomOpenTabsRows', () => {
     expect(getProjectUrlsSpy.mock.calls[0]?.[0]?.id).toBe('p2')
   })
 
-  it('returns empty rows while searching and restores rows after clearing', async () => {
+  it('does not fetch or observe open urls during search and resumes when cleared', async () => {
     const fake = createOpenUrlsFake()
     fake.setOpen('https://a.test/1', true)
-    const getProjectUrlsSpy = vi.fn<GetProjectUrlsUseCase>().mockResolvedValue([
-      {
-        id: 'u1',
-        title: 'One',
-        url: 'https://a.test/1',
-        savedAt: 0,
-      },
-    ])
+    const getProjectUrlsSpy = vi
+      .fn<GetProjectUrlsUseCase>()
+      .mockResolvedValue([
+        { id: 'u1', title: 'One', url: 'https://a.test/1', savedAt: 0 },
+      ])
     const projects = [project('p1', undefined)]
-
     const { result, rerender } = renderHook(
-      ({ query }: { query: string }) =>
+      ({ query, currentProjects }) =>
         useCustomOpenTabsRows({
           getProjectUrlsUseCase: getProjectUrlsSpy,
-          projects,
+          projects: currentProjects,
           searchQuery: query,
         }),
       {
-        initialProps: { query: '' },
+        initialProps: { query: 'one', currentProjects: projects },
         wrapper: ({ children }) => withProvider(fake.port, children),
       },
     )
-    // 検索中は空 (未取得を問わず)
     expect(result.current).toEqual([])
+    expect(getProjectUrlsSpy).not.toHaveBeenCalled()
+    expect(fake.port.getOpenUrlsSnapshot).not.toHaveBeenCalled()
+    expect(fake.port.subscribeOpenUrls).not.toHaveBeenCalled()
+    rerender({ query: 'two', currentProjects: [...projects] })
+    expect(getProjectUrlsSpy).not.toHaveBeenCalled()
+    expect(fake.port.getOpenUrlsSnapshot).not.toHaveBeenCalled()
 
-    rerender({ query: 'one' })
-    expect(result.current).toEqual([])
-
-    rerender({ query: '' })
+    rerender({ query: '  ', currentProjects: projects })
     await waitFor(() => {
-      expect(result.current.map((row) => row.url)).toStrictEqual([
-        'https://a.test/1',
-      ])
+      expect(result.current.map((row) => row.url)).toEqual(['https://a.test/1'])
     })
     expect(getProjectUrlsSpy).toHaveBeenCalledTimes(1)
+    rerender({ query: 'one', currentProjects: projects })
+    expect(result.current).toEqual([])
+    expect(fake.listeners.size).toBe(0)
+  })
+
+  it.each(['projects', 'loader'] as const)(
+    'hides stale rows immediately when the %s changes until the matching read finishes',
+    async (changedSource) => {
+      const fake = createOpenUrlsFake()
+      fake.setOpen('https://a.test/1', true)
+      fake.setOpen('https://a.test/2', true)
+      const heldRead =
+        Promise.withResolvers<Awaited<ReturnType<GetProjectUrlsUseCase>>>()
+      const firstLoader = vi
+        .fn<GetProjectUrlsUseCase>()
+        .mockResolvedValueOnce([
+          { id: 'u1', title: 'One', url: 'https://a.test/1', savedAt: 0 },
+        ])
+        .mockReturnValue(heldRead.promise)
+      const projects = [project('p1', undefined)]
+      const { result, rerender } = renderHook(
+        ({ currentProjects, loader }) =>
+          useCustomOpenTabsRows({
+            getProjectUrlsUseCase: loader,
+            projects: currentProjects,
+            searchQuery: '',
+          }),
+        {
+          initialProps: { currentProjects: projects, loader: firstLoader },
+          wrapper: ({ children }) => withProvider(fake.port, children),
+        },
+      )
+      await waitFor(() => {
+        expect(result.current.map((row) => row.url)).toEqual([
+          'https://a.test/1',
+        ])
+      })
+      rerender({
+        currentProjects:
+          changedSource === 'projects' ? [project('p1', undefined)] : projects,
+        loader:
+          changedSource === 'loader'
+            ? vi.fn<GetProjectUrlsUseCase>().mockReturnValue(heldRead.promise)
+            : firstLoader,
+      })
+      expect(result.current).toEqual([])
+      await act(async () => {
+        heldRead.resolve([
+          { id: 'u2', title: 'Two', url: 'https://a.test/2', savedAt: 0 },
+        ])
+      })
+      expect(result.current.map((row) => row.url)).toEqual(['https://a.test/2'])
+    },
+  )
+
+  it('discards a late read for an earlier projects snapshot', async () => {
+    const fake = createOpenUrlsFake()
+    fake.setOpen('https://a.test/1', true)
+    fake.setOpen('https://a.test/2', true)
+    const firstRead =
+      Promise.withResolvers<Awaited<ReturnType<GetProjectUrlsUseCase>>>()
+    const nextRead =
+      Promise.withResolvers<Awaited<ReturnType<GetProjectUrlsUseCase>>>()
+    const getProjectUrlsSpy = vi
+      .fn<GetProjectUrlsUseCase>()
+      .mockReturnValueOnce(firstRead.promise)
+      .mockReturnValueOnce(nextRead.promise)
+    const { result, rerender } = renderHook(
+      ({ projects }) =>
+        useCustomOpenTabsRows({
+          getProjectUrlsUseCase: getProjectUrlsSpy,
+          projects,
+          searchQuery: '',
+        }),
+      {
+        initialProps: { projects: [project('p1', undefined)] },
+        wrapper: ({ children }) => withProvider(fake.port, children),
+      },
+    )
+    rerender({ projects: [project('p2', undefined)] })
+    await act(async () => {
+      nextRead.resolve([
+        { id: 'u2', title: 'Two', url: 'https://a.test/2', savedAt: 0 },
+      ])
+    })
+    expect(result.current.map((row) => row.groupId)).toEqual(['p2'])
+    await act(async () => {
+      firstRead.resolve([
+        { id: 'u1', title: 'One', url: 'https://a.test/1', savedAt: 0 },
+      ])
+    })
+    expect(result.current.map((row) => row.url)).toEqual(['https://a.test/2'])
+    expect(result.current.map((row) => row.groupId)).toEqual(['p2'])
   })
 
   it('logs and keeps rows empty when url fetch fails', async () => {

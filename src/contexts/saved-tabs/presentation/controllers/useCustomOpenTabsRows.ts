@@ -18,8 +18,8 @@ const EMPTY_OPEN_TABS_ROWS: readonly OpenTabsRow[] = []
  * (`useCustomProjectCard`) と同じ `getProjectUrlsUseCase` を使い、
  * `projects` 参照変更時に併せて読み直す。
  *
- * 検索入力中は domain モードと同様に行の部分的なすり抜けを避けるため
- * 空配列を返す。
+ * 非表示・検索入力中は追加読み取りと open URL の購読を止める。
+ * 取得結果は要求に紐づけ、入力変更直後から古い行を表示しない。
  */
 export const useCustomOpenTabsRows = ({
   enabled = true,
@@ -32,24 +32,30 @@ export const useCustomOpenTabsRows = ({
   projects: readonly CustomProject[]
   searchQuery: string
 }): readonly OpenTabsRow[] => {
-  const remoteOpenUrls = useOpenSavedUrls()
-  const [projectsWithUrls, setProjectsWithUrls] = useState<
-    readonly CustomProject[]
-  >([])
+  const isActive = enabled && searchQuery.trim().length === 0
+  const remoteOpenUrls = useOpenSavedUrls(isActive)
+  const request = useMemo(
+    () => ({ isActive, getProjectUrlsUseCase, projects }),
+    [isActive, getProjectUrlsUseCase, projects],
+  )
+  const [snapshot, setSnapshot] = useState<{
+    request: typeof request
+    projectsWithUrls: readonly CustomProject[]
+  }>()
 
   useEffect(() => {
-    if (!enabled) {
+    if (!request.isActive) {
       return () => {}
     }
     let isCancelled = false
     const run = async () => {
       const nextProjects = await Promise.all(
-        projects.map(async (project) => {
+        request.projects.map(async (project) => {
           if (project.urls !== undefined) {
             return project
           }
           try {
-            const urls = await getProjectUrlsUseCase(
+            const urls = await request.getProjectUrlsUseCase(
               toCustomProjectFromViewModel(project),
             )
             return { ...project, urls }
@@ -60,19 +66,19 @@ export const useCustomOpenTabsRows = ({
         }),
       )
       if (!isCancelled) {
-        setProjectsWithUrls(nextProjects)
+        setSnapshot({ request, projectsWithUrls: nextProjects })
       }
     }
     void run()
     return () => {
       isCancelled = true
     }
-  }, [enabled, getProjectUrlsUseCase, projects])
+  }, [request])
 
   return useMemo((): readonly OpenTabsRow[] => {
-    if (!enabled || searchQuery.trim().length > 0) {
+    if (!isActive || snapshot?.request !== request) {
       return EMPTY_OPEN_TABS_ROWS
     }
-    return buildOpenTabsRows(projectsWithUrls, remoteOpenUrls)
-  }, [enabled, searchQuery, projectsWithUrls, remoteOpenUrls])
+    return buildOpenTabsRows(snapshot.projectsWithUrls, remoteOpenUrls)
+  }, [isActive, snapshot, request, remoteOpenUrls])
 }

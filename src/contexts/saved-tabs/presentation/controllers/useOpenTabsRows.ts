@@ -15,17 +15,20 @@ const EMPTY_OPEN_TABS_ROWS: readonly OpenTabsRow[] = []
  * 追加・保存側に無い行) を避けるため空配列を返す。
  */
 export const useOpenTabsRows = ({
+  enabled = true,
   searchQuery,
   tabGroups,
 }: {
+  enabled?: boolean
   searchQuery: string
   tabGroups: readonly TabGroup[]
 }): readonly OpenTabsRow[] => {
-  const remoteOpenUrls = useOpenSavedUrls()
+  const isActive = enabled && searchQuery.trim().length === 0
+  const remoteOpenUrls = useOpenSavedUrls(isActive)
   return useMemo((): readonly OpenTabsRow[] => {
-    if (searchQuery.trim().length > 0) {
+    if (!isActive) {
       return EMPTY_OPEN_TABS_ROWS
     }
     return buildOpenTabsRows(tabGroups, remoteOpenUrls)
-  }, [searchQuery, tabGroups, remoteOpenUrls])
+  }, [isActive, tabGroups, remoteOpenUrls])
 }

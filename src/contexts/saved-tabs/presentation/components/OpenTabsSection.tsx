@@ -7,20 +7,12 @@ import {
 } from '@dnd-kit/sortable'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
+import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
 import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
@@ -37,6 +29,7 @@ import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
 
+import { ActionConfirmDialog } from './shared/ActionConfirmDialog'
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
 import { SortableUrlItem } from './SortableUrlItem'
@@ -53,6 +46,8 @@ export type OpenTabsSectionProps = {
   handleDeleteUrl: (groupId: string, url: string) => Promise<void>
   /** まとめ削除の fast path。未指定時は 1 行ずつ `handleDeleteUrl` を呼ぶ。 */
   handleDeleteUrls?: (groupId: string, urls: string[]) => Promise<void>
+  /** One mode-owned atomic deletion and Undo for all displayed occurrences. */
+  handleDeleteRows?: (items: SavedTabSelectionItem[]) => Promise<void>
 }
 
 type TooltipIconButtonProps = {
@@ -134,6 +129,7 @@ export const OpenTabsSection = ({
   handleOpenTab,
   handleDeleteUrl,
   handleDeleteUrls,
+  handleDeleteRows,
 }: OpenTabsSectionProps) => {
   const { t } = useI18n()
   const accessibility = useDndAccessibility('immediate')
@@ -218,20 +214,29 @@ export const OpenTabsSection = ({
   )
 
   const deleteAllRows = useCallback(async () => {
-    await Promise.all(
-      groupedForDeleteAll.map(async ({ groupId, urls }) => {
-        if (handleDeleteUrls) {
-          await handleDeleteUrls(groupId, urls)
-          return
-        }
-        await Promise.all(
-          urls.map(async (url) => {
-            await handleDeleteUrl(groupId, url)
-          }),
-        )
-      }),
+    if (handleDeleteRows) {
+      await handleDeleteRows(
+        rows.map(({ groupId, url, title }) => ({ groupId, url, title })),
+      )
+      return
+    }
+    const deletions = groupedForDeleteAll.flatMap(({ groupId, urls }) =>
+      handleDeleteUrls
+        ? [async () => handleDeleteUrls(groupId, urls)]
+        : urls.map((url) => async () => handleDeleteUrl(groupId, url)),
     )
-  }, [groupedForDeleteAll, handleDeleteUrl, handleDeleteUrls])
+    // Each fallback handler owns a read-modify-write and its Undo snapshot.
+    await deletions.reduce(
+      async (previous, remove) => previous.then(remove),
+      Promise.resolve(),
+    )
+  }, [
+    groupedForDeleteAll,
+    handleDeleteRows,
+    handleDeleteUrl,
+    handleDeleteUrls,
+    rows,
+  ])
 
   const handleDeleteAllClick = useCallback(() => {
     setIsDeleteConfirmOpen(false)
@@ -239,11 +244,12 @@ export const OpenTabsSection = ({
     void deleteAllRows()
       .catch((error: unknown) => {
         console.error('開いているタブの削除に失敗しました:', error)
+        toast.error(t('savedTabs.tab.deleteError'))
       })
       .finally(() => {
         setIsDeleting(false)
       })
-  }, [deleteAllRows])
+  }, [deleteAllRows, t])
 
   const handleDeleteAllClickWithConfirm = useCallback(
     (event: React.MouseEvent) => {
@@ -357,56 +363,34 @@ export const OpenTabsSection = ({
       </section>
 
       {/* まとめて削除の確認ダイアログ */}
-      <AlertDialog
+      <ActionConfirmDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.sortableCategory.bulkDeleteTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.openTabs.deleteAllWarning')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              variant='destructive'
-              onClick={handleDeleteAllClick}
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t('savedTabs.sortableCategory.bulkDeleteTitle')}
+        description={t('savedTabs.openTabs.deleteAllWarning')}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.delete')}
+        variant='destructive'
+        onConfirm={handleDeleteAllClick}
+      />
 
       {/* すべて開く確認ダイアログ */}
-      <AlertDialog
+      <ActionConfirmDialog
         open={isOpenAllConfirmOpen}
         onOpenChange={setIsOpenAllConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('savedTabs.sortableCategory.bulkOpenTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('savedTabs.openAllConfirmDescriptionWithName', undefined, {
-                count: String(urlsToOpen.length),
-                name: t('savedTabs.openTabs.title'),
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmOpenAll}>
-              {t('common.open')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t('savedTabs.sortableCategory.bulkOpenTitle')}
+        description={t(
+          'savedTabs.openAllConfirmDescriptionWithName',
+          undefined,
+          {
+            count: String(urlsToOpen.length),
+            name: t('savedTabs.openTabs.title'),
+          },
+        )}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('common.open')}
+        onConfirm={handleConfirmOpenAll}
+      />
     </>
   )
 }

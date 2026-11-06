@@ -576,6 +576,9 @@ export const DomainModeContainer = ({
             // eslint-disable-next-line typescript/no-misused-promises
             handleDeleteUrl={handleDeleteUrl}
             {...(handleDeleteUrls !== undefined ? { handleDeleteUrls } : {})}
+            {...(handleDeleteSelectedUrls !== undefined
+              ? { handleDeleteRows: handleDeleteSelectedUrls }
+              : {})}
           />
         )}
 

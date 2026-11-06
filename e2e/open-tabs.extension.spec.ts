@@ -3,6 +3,7 @@ import { getExtensionUrl, test } from './helpers/extension'
 import {
   verifyOpenTabDragging,
   verifyOpenTabs,
+  verifyOpenTabsBulkDelete,
   verifyOpenTabsDisplaySetting,
 } from './helpers/open-tabs'
 
@@ -10,8 +11,21 @@ test('currently open tabs display defaults on and preserves explicit choices', a
   extensionContext,
   extensionId,
   page,
-}) => {
+}, testInfo) => {
   await verifyOpenTabsDisplaySetting({
+    page,
+    context: extensionContext,
+    appUrl: getExtensionUrl(extensionId, 'app.html'),
+    testInfo,
+  })
+})
+
+test('open tabs bulk delete spans domains and restores with one Undo', async ({
+  extensionContext,
+  extensionId,
+  page,
+}) => {
+  await verifyOpenTabsBulkDelete({
     page,
     context: extensionContext,
     appUrl: getExtensionUrl(extensionId, 'app.html'),

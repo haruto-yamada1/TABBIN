@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import type { BrowserContext, Locator, Page } from '@playwright/test'
+import type { BrowserContext, Locator, Page, TestInfo } from '@playwright/test'
 
 import {
   createCustomCollectionFixture,
@@ -153,10 +153,12 @@ export const verifyOpenTabsDisplaySetting = async ({
   page,
   context,
   appUrl,
+  testInfo,
 }: {
   page: Page
   context: BrowserContext
   appUrl: string
+  testInfo: TestInfo
 }) => {
   await routeOpenTabFixture(context)
   await page.goto(`${appUrl}#/options`)
@@ -209,12 +211,95 @@ export const verifyOpenTabsDisplaySetting = async ({
   await expect(checkbox).toBeChecked()
   await checkbox.scrollIntoViewIfNeeded()
   await options.screenshot({
-    path: '/tmp/tabbin-open-tabs-publish/options.png',
+    path: testInfo.outputPath('options.png'),
   })
   await verifyMode('domain', true, true)
   await verifyMode('custom', true, true)
   await options.close()
   await live.close()
+}
+
+export const verifyOpenTabsBulkDelete = async ({
+  page,
+  context,
+  appUrl,
+}: {
+  page: Page
+  context: BrowserContext
+  appUrl: string
+}) => {
+  const otherUrl = 'https://other-open-tabs.example.test/article'
+  await routeOpenTabFixture(context)
+  await context.route(
+    'https://other-open-tabs.example.test/**',
+    async (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: '<title>Other tab</title>',
+      }),
+  )
+  await page.goto(`${appUrl}#/options`)
+  const fixture = createOpenTabsFixture()
+  const now = Date.now()
+  await seedSavedTabsFixture(page, {
+    storage: fixture.storage,
+    persistence: {
+      ...fixture.persistence,
+      collections: [
+        ...fixture.persistence.collections,
+        createDomainCollectionFixture(
+          'other-domain',
+          'other-open-tabs.example.test',
+          now,
+        ),
+      ],
+      memberships: [
+        ...fixture.persistence.memberships,
+        createMembershipFixture('other-domain', 'other-url', now),
+      ],
+      urls: [
+        ...fixture.persistence.urls,
+        createUrlFixture('other-url', otherUrl, 'Other open domain', now),
+      ],
+    },
+  })
+  const before = await readPersistenceV2SavedTabsSnapshot(page)
+  const firstTab = await context.newPage()
+  await firstTab.goto(firstUrl)
+  const otherTab = await context.newPage()
+  await otherTab.goto(otherUrl)
+  await page.goto(`${appUrl}#/saved-tabs?mode=domain`)
+  const section = page.getByTestId('open-tabs-section')
+  await expect(section.getByTestId('sortable-url-item')).toHaveCount(2)
+  await section.getByRole('button', { name: /Delete all/ }).click()
+  await expect(section).toHaveCount(0)
+  await expect
+    .poll(async () =>
+      (
+        await readPersistenceV2Store<ReturnType<typeof createUrlFixture>>(
+          page,
+          'urls',
+        )
+      )
+        .map(({ url }) => url)
+        .toSorted(),
+    )
+    .toEqual([hashUrl, secondUrl].toSorted())
+  const undo = page.getByRole('button', { name: 'Undo', exact: true })
+  await expect(undo).toHaveCount(1)
+  await undo.click()
+  const { revision: _beforeRevision, ...beforeData } = before
+  await expect
+    .poll(async () => {
+      const { revision: _revision, ...data } =
+        await readPersistenceV2SavedTabsSnapshot(page)
+      return data
+    })
+    .toEqual(beforeData)
+  await page.reload()
+  await expect(section.getByTestId('sortable-url-item')).toHaveCount(2)
+  await firstTab.close()
+  await otherTab.close()
 }
 
 export const verifyOpenTabs = async ({

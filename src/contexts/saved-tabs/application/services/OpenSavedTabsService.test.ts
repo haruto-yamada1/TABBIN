@@ -255,6 +255,57 @@ describe('open saved urls snapshot', () => {
     expect(f.service.getOpenUrlsSnapshot()).toEqual([])
   })
 
+  it('keeps reused listeners subscribed until their own registration is removed', async () => {
+    const f = setup(Promise.resolve([{ id: 1, url: A }]))
+    const changed = vi.fn()
+    const stopFirst = f.service.subscribeOpenUrls(changed)
+    const stopSecond = f.service.subscribeOpenUrls(changed)
+    await flush()
+    changed.mockClear()
+
+    stopFirst()
+    expect(f.unsubscribe).not.toHaveBeenCalled()
+    f.emit({ type: 'upsert', tab: { id: 2, url: B } })
+    expect(changed).toHaveBeenCalledTimes(1)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([A, B])
+
+    stopSecond()
+    expect(f.unsubscribe).toHaveBeenCalledTimes(1)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([])
+  })
+
+  it.each(['bulk', 'URL-specific'] as const)(
+    'restarts observation for a %s subscriber after repeated bulk cleanup',
+    async (kind) => {
+      const f = setup(Promise.resolve([{ id: 1, url: A }]))
+      const stop = f.service.subscribeOpenUrls(vi.fn())
+      await flush()
+      stop()
+      stop()
+      f.query.mockResolvedValueOnce([{ id: 2, url: B }])
+
+      const changed = vi.fn()
+      const stopAgain =
+        kind === 'bulk'
+          ? f.service.subscribeOpenUrls(changed)
+          : f.service.subscribe(B, changed)
+      await flush()
+      expect(f.subscribe).toHaveBeenCalledTimes(2)
+      expect(f.query).toHaveBeenCalledTimes(2)
+      expect(f.service.getOpenUrlsSnapshot()).toEqual([B])
+      expect(f.service.getSnapshot(A)).toBe(false)
+      expect(f.service.getSnapshot(B)).toBe(true)
+      expect(changed).toHaveBeenCalledTimes(1)
+
+      f.emit({ type: 'remove', tabId: 2 })
+      expect(f.service.getOpenUrlsSnapshot()).toEqual([])
+      expect(f.service.getSnapshot(B)).toBe(false)
+      expect(changed).toHaveBeenCalledTimes(2)
+      stopAgain()
+      expect(f.unsubscribe).toHaveBeenCalledTimes(2)
+    },
+  )
+
   it('keeps the snapshot empty when the query fails and recovers on later events', async () => {
     const f = setup(Promise.reject(new Error('private browser diagnostic')))
     const changed = vi.fn()

@@ -14,6 +14,11 @@ import {
 } from '@/app/composition/testing/SavedTabsAppFixtures'
 import type { SavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { createSavedTabsTabGroupDto as createCurrentTabGroup } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { toSavedTabsTabGroupViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
@@ -575,6 +580,65 @@ describe('SavedTabsApp custom search', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('一覧の全URL購読はdomainモードで表示設定がONの間だけ行う', async () => {
+    const listeners = new Set<() => void>()
+    const openSavedTabsPort = {
+      getSnapshot: () => false,
+      subscribe: () => () => {},
+      getOpenUrlsSnapshot: vi.fn(() => ['https://example.com/reading']),
+      subscribeOpenUrls: vi.fn((listener: () => void) => {
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
+      }),
+    }
+    const contextValue = {
+      deps: { ...createSavedTabsPresentationPortsStub(), openSavedTabsPort },
+      useCases: createSavedTabsUseCasesStub(),
+    }
+    const view = (
+      <SavedTabsUseCasesProvider value={contextValue}>
+        <SavedTabsApp />
+      </SavedTabsUseCasesProvider>
+    )
+    const { rerender } = render(view)
+    expect(openSavedTabsPort.getOpenUrlsSnapshot).not.toHaveBeenCalled()
+    expect(openSavedTabsPort.subscribeOpenUrls).not.toHaveBeenCalled()
+
+    mocked.projectState.viewMode = 'domain'
+    mocked.projectState.viewModeRef.current = 'domain'
+    rerender(
+      <SavedTabsUseCasesProvider value={contextValue}>
+        <SavedTabsApp />
+      </SavedTabsUseCasesProvider>,
+    )
+    expect(listeners.size).toBe(1)
+    await waitFor(() => expect(syncStorageChanges).toHaveBeenCalled())
+    const { setSettings } = getLastCallFirstArg<
+      Parameters<typeof syncStorageChanges>[0]
+    >(vi.mocked(syncStorageChanges))
+    act(() => setSettings({ ...mocked.settings, showOpenTabs: false }))
+    expect(listeners.size).toBe(0)
+    openSavedTabsPort.getOpenUrlsSnapshot.mockClear()
+    rerender(
+      <SavedTabsUseCasesProvider value={contextValue}>
+        <SavedTabsApp />
+      </SavedTabsUseCasesProvider>,
+    )
+    expect(openSavedTabsPort.getOpenUrlsSnapshot).not.toHaveBeenCalled()
+    act(() => setSettings({ ...mocked.settings, showOpenTabs: true }))
+    expect(listeners.size).toBe(1)
+    mocked.projectState.viewMode = 'custom'
+    mocked.projectState.viewModeRef.current = 'custom'
+    rerender(
+      <SavedTabsUseCasesProvider value={contextValue}>
+        <SavedTabsApp />
+      </SavedTabsUseCasesProvider>,
+    )
+    expect(listeners.size).toBe(0)
   })
 
   it('helper は URL ID 抽出、カテゴリ並び替え、削除失敗復元エラーを扱う', async () => {

@@ -175,13 +175,21 @@ export const createOpenSavedTabsService = (
     },
     getOpenUrlsSnapshot: () => openUrlsSnapshot,
     subscribeOpenUrls: (listener) => {
-      openUrlsListeners.add(listener)
+      const registration = () => {
+        listener()
+      }
+      openUrlsListeners.add(registration)
       subscriberCount += 1
       if (subscriberCount === 1) {
         start()
       }
+      let active = true
       return () => {
-        openUrlsListeners.delete(listener)
+        if (!active) {
+          return
+        }
+        active = false
+        openUrlsListeners.delete(registration)
         subscriberCount -= 1
         if (subscriberCount === 0) {
           stopObservation()

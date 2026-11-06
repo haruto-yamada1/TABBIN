@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { OpenTabsRow } from '@/contexts/saved-tabs/presentation/lib/open-tabs-display'
@@ -318,6 +325,70 @@ describe('OpenTabsSection', () => {
     expect(props.handleDeleteUrls.mock.calls[1]?.[0]).toBe('group-2')
     expect(props.handleDeleteUrl).not.toHaveBeenCalled()
   })
+
+  it('uses one aggregate deletion when the owning mode provides it', async () => {
+    const props = baseProps()
+    const handleDeleteRows = vi.fn(async () => {})
+    render(<OpenTabsSection {...props} handleDeleteRows={handleDeleteRows} />)
+    await userEvent.setup().click(
+      screen.getByRole('button', {
+        name: '「今開いているタブ」のすべてのタブを削除',
+      }),
+    )
+    expect(handleDeleteRows).toHaveBeenCalledExactlyOnceWith(
+      props.rows.map(({ groupId, url, title }) => ({ groupId, url, title })),
+    )
+    expect(props.handleDeleteUrls).not.toHaveBeenCalled()
+    expect(props.handleDeleteUrl).not.toHaveBeenCalled()
+  })
+
+  it('reports an aggregate failure without retrying it as separate writes', async () => {
+    const props = baseProps()
+    const notifyError = vi.spyOn(toast, 'error').mockReturnValue('error-toast')
+    const handleDeleteRows = vi.fn().mockRejectedValue(new Error('failed'))
+    render(<OpenTabsSection {...props} handleDeleteRows={handleDeleteRows} />)
+    const button = screen.getByRole('button', {
+      name: '「今開いているタブ」のすべてのタブを削除',
+    })
+    await userEvent.setup().click(button)
+    await waitFor(() => {
+      expect(notifyError).toHaveBeenCalledWith('savedTabs.tab.deleteError')
+      expect(button).toBeEnabled()
+    })
+    expect(props.handleDeleteUrls).not.toHaveBeenCalled()
+    expect(props.handleDeleteUrl).not.toHaveBeenCalled()
+  })
+
+  it.each([true, false])(
+    'serializes fallback writes while bulk handler availability is %s',
+    async (bulkAvailable) => {
+      const props = baseProps()
+      const { handleDeleteUrls: _bulkHandler, ...withoutBulk } = props
+      let finishFirst = () => {}
+      const firstWrite = new Promise<void>((resolve) => {
+        finishFirst = resolve
+      })
+      const write = vi.fn().mockImplementationOnce(async () => firstWrite)
+      render(
+        <OpenTabsSection
+          {...withoutBulk}
+          handleDeleteUrl={bulkAvailable ? props.handleDeleteUrl : write}
+          {...(bulkAvailable ? { handleDeleteUrls: write } : {})}
+        />,
+      )
+      const button = screen.getByRole('button', {
+        name: '「今開いているタブ」のすべてのタブを削除',
+      })
+      await userEvent.setup().click(button)
+      expect(write).toHaveBeenCalledTimes(1)
+      expect(button).toBeDisabled()
+      finishFirst()
+      await waitFor(() => {
+        expect(write).toHaveBeenCalledTimes(bulkAvailable ? 2 : 3)
+        expect(button).toBeEnabled()
+      })
+    },
+  )
 
   it('asks for confirmation before deleting all rows', async () => {
     const props = baseProps()

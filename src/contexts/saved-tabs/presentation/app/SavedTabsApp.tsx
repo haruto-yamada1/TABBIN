@@ -185,6 +185,7 @@ const useSavedTabsAppView = ({
     handleRenameCategory,
   } = projectState
   const openTabsRows = useOpenTabsRows({
+    enabled: viewMode === 'domain' && settings.showOpenTabs !== false,
     searchQuery,
     tabGroups,
   })
