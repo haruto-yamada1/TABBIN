@@ -192,6 +192,13 @@ const useOptionsRouteView = () => {
     [updateSetting],
   )
 
+  const handleToggleShowOpenTabs = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('showOpenTabs', checked)
+    },
+    [updateSetting],
+  )
+
   const handleToggleRelativeSavedTime = useCallback(
     async (checked: boolean) => {
       await updateSetting('showRelativeSavedTime', checked)
@@ -437,6 +444,25 @@ const useOptionsRouteView = () => {
           </div>
           <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.allWindowsDescription')}
+          </p>
+
+          <div className='mt-6 mb-4 flex items-center gap-x-2'>
+            <Checkbox
+              id='show-open-tabs'
+              checked={settings.showOpenTabs !== false}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onCheckedChange={handleToggleShowOpenTabs}
+              className='cursor-pointer'
+            />
+            <Label
+              htmlFor='show-open-tabs'
+              className='cursor-pointer text-foreground'
+            >
+              {t('options.showOpenTabs')}
+            </Label>
+          </div>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
+            {t('options.showOpenTabsDescription')}
           </p>
 
           <div className='mt-6 mb-4 flex items-center gap-x-2'>

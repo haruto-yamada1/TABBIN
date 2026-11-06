@@ -20,6 +20,9 @@ export const toSavedTabsUserSettingsDto = (
   settings: UserSettingsDto,
 ): SavedTabsUserSettingsDto => {
   const dto: SavedTabsUserSettingsDto = {
+    ...(settings.showOpenTabs !== undefined
+      ? { showOpenTabs: settings.showOpenTabs }
+      : {}),
     clickBehavior: settings.clickBehavior,
     confirmDeleteAll: settings.confirmDeleteAll,
     confirmDeleteEach: settings.confirmDeleteEach,

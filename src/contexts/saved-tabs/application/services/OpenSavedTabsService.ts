@@ -6,6 +6,8 @@ import type {
 } from '@/contexts/saved-tabs/application/ports/OpenSavedTabsPort'
 import { createUrlIdentityKey } from '@/contexts/saved-tabs/domain/services/UrlIdentityPolicy'
 
+const EMPTY_OPEN_URLS: readonly string[] = Object.freeze([])
+
 /** One observation per mounted page, with notifications scoped to changed URLs. */
 export const createOpenSavedTabsService = (
   source: BrowserOpenTabsSource,
@@ -13,12 +15,29 @@ export const createOpenSavedTabsService = (
   const tabs = new Map<number, string>()
   const counts = new Map<string, number>()
   const listeners = new Map<string, Set<() => void>>()
+  const openUrls = new Set<string>()
+  const openUrlsListeners = new Set<() => void>()
   let subscriberCount = 0
   let generation = 0
   let stopSource: (() => void) | undefined
+  let openUrlsSnapshot: readonly string[] = EMPTY_OPEN_URLS
+  let openUrlsDirty = false
 
   const notify = (url: string) => {
     for (const listener of listeners.get(url) ?? []) {
+      listener()
+    }
+  }
+  const rebuildOpenUrlsSnapshot = () => {
+    openUrlsSnapshot = openUrls.size === 0 ? EMPTY_OPEN_URLS : [...openUrls]
+  }
+  const flushOpenUrls = () => {
+    if (!openUrlsDirty) {
+      return
+    }
+    openUrlsDirty = false
+    rebuildOpenUrlsSnapshot()
+    for (const listener of openUrlsListeners) {
       listener()
     }
   }
@@ -30,8 +49,17 @@ export const createOpenSavedTabsService = (
     } else {
       counts.delete(url)
     }
-    if (publish && before > 0 !== after > 0) {
-      notify(url)
+    if (before > 0 !== after > 0) {
+      if (after > 0) {
+        openUrls.add(url)
+      } else {
+        openUrls.delete(url)
+      }
+      openUrlsDirty = true
+      if (publish) {
+        notify(url)
+        flushOpenUrls()
+      }
     }
   }
   const apply = (change: BrowserOpenTabChange, publish: boolean) => {
@@ -97,7 +125,19 @@ export const createOpenSavedTabsService = (
       for (const url of counts.keys()) {
         notify(url)
       }
+      flushOpenUrls()
     })()
+  }
+
+  const stopObservation = () => {
+    generation += 1
+    stopSource?.()
+    stopSource = undefined
+    tabs.clear()
+    counts.clear()
+    openUrls.clear()
+    openUrlsSnapshot = EMPTY_OPEN_URLS
+    openUrlsDirty = false
   }
 
   return {
@@ -129,11 +169,22 @@ export const createOpenSavedTabsService = (
         }
         subscriberCount -= 1
         if (subscriberCount === 0) {
-          generation += 1
-          stopSource?.()
-          stopSource = undefined
-          tabs.clear()
-          counts.clear()
+          stopObservation()
+        }
+      }
+    },
+    getOpenUrlsSnapshot: () => openUrlsSnapshot,
+    subscribeOpenUrls: (listener) => {
+      openUrlsListeners.add(listener)
+      subscriberCount += 1
+      if (subscriberCount === 1) {
+        start()
+      }
+      return () => {
+        openUrlsListeners.delete(listener)
+        subscriberCount -= 1
+        if (subscriberCount === 0) {
+          stopObservation()
         }
       }
     },

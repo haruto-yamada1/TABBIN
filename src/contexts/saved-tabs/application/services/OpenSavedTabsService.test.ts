@@ -203,3 +203,67 @@ describe('open saved tabs', () => {
     expect(f.unsubscribe).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('open saved urls snapshot', () => {
+  it('publishes one notification with the full open set after the initial query', async () => {
+    const f = setup(
+      Promise.resolve([
+        { id: 1, url: A },
+        { id: 2, url: A },
+        { id: 3, url: B },
+      ]),
+    )
+    const changed = vi.fn()
+    f.service.subscribeOpenUrls(changed)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([])
+    await flush()
+    expect(changed).toHaveBeenCalledTimes(1)
+    const first = f.service.getOpenUrlsSnapshot()
+    expect(first).toEqual([A, B])
+    expect(f.service.getOpenUrlsSnapshot()).toBe(first)
+    f.emit({ type: 'upsert', tab: { id: 4, url: B } })
+    expect(changed).toHaveBeenCalledTimes(1)
+    const second = f.service.getOpenUrlsSnapshot()
+    expect(second).toEqual(first)
+    expect(f.service.getOpenUrlsSnapshot()).toBe(second)
+    f.emit({ type: 'remove', tabId: 1 })
+    expect(changed).toHaveBeenCalledTimes(1)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([A, B])
+    f.emit({ type: 'remove', tabId: 2 })
+    expect(changed).toHaveBeenCalledTimes(2)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([B])
+    f.emit({ type: 'remove', tabId: 4 })
+    expect(changed).toHaveBeenCalledTimes(2)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([B])
+    f.emit({ type: 'remove', tabId: 3 })
+    expect(changed).toHaveBeenCalledTimes(3)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([])
+  })
+
+  it('starts the observation from a bulk subscription alone and resets on unsubscribe', async () => {
+    const f = setup(Promise.resolve([{ id: 1, url: A }]))
+    const changed = vi.fn()
+    const stop = f.service.subscribeOpenUrls(changed)
+    await flush()
+    expect(f.query).toHaveBeenCalledTimes(1)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([A])
+    f.emit({ type: 'upsert', tab: { id: 2, url: B } })
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([A, B])
+    stop()
+    stop()
+    expect(f.unsubscribe).toHaveBeenCalledTimes(1)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([])
+  })
+
+  it('keeps the snapshot empty when the query fails and recovers on later events', async () => {
+    const f = setup(Promise.reject(new Error('private browser diagnostic')))
+    const changed = vi.fn()
+    f.service.subscribeOpenUrls(changed)
+    await flush()
+    expect(changed).not.toHaveBeenCalled()
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([])
+    f.emit({ type: 'upsert', tab: { id: 1, url: A } })
+    expect(changed).toHaveBeenCalledTimes(1)
+    expect(f.service.getOpenUrlsSnapshot()).toEqual([A])
+  })
+})

@@ -32,6 +32,7 @@ export const defaultUserSettings: UserSettingsDto = {
   autoDeletePeriod: 'never',
   showRelativeSavedTime: false,
   showSavedTime: false,
+  showOpenTabs: true,
   clickBehavior: 'saveSameDomainTabs',
   excludePinnedTabs: true,
   openUrlInBackground: true,
@@ -81,6 +82,9 @@ type ParsedStoredUserSettings = ReturnType<typeof parseStoredUserSettings>
 const toUserSettingsPresentationPatch = (
   settings: ParsedStoredUserSettings,
 ): Partial<UserSettingsDto> => ({
+  ...(settings.showOpenTabs !== undefined
+    ? { showOpenTabs: settings.showOpenTabs }
+    : {}),
   ...(settings.activeAiSystemPromptId !== undefined
     ? { activeAiSystemPromptId: settings.activeAiSystemPromptId }
     : {}),
@@ -192,6 +196,7 @@ const fromNormalizedStorageUserSettings = (
     fontSizePercent,
     language,
     ollamaModel,
+    showOpenTabs,
     ...settings
   } = storage
   return {
@@ -206,6 +211,7 @@ const fromNormalizedStorageUserSettings = (
     ...(fontSizePercent !== undefined ? { fontSizePercent } : {}),
     ...(language !== undefined ? { language } : {}),
     ...(ollamaModel !== undefined ? { ollamaModel } : {}),
+    ...(showOpenTabs !== undefined ? { showOpenTabs } : {}),
   }
 }
 

@@ -57,7 +57,8 @@ export const defaultSettings: UserSettings = {
   // デフォルトでは自動削除しない
   showRelativeSavedTime: false,
   showSavedTime: false,
-  // デフォルトでは表示しない
+  // デフォルトでは保存日時を表示しない
+  showOpenTabs: true,
   clickBehavior: 'saveSameDomainTabs',
   // デフォルトは「現在開いているドメインのタブをすべて保存」
   excludePinnedTabs: true,

@@ -35,6 +35,9 @@ import type {
  * 値をそのまま詰め替える。
  */
 export const toUserSettingsDto = (storage: UserSettings): UserSettingsDto => ({
+  ...(storage.showOpenTabs !== undefined
+    ? { showOpenTabs: storage.showOpenTabs }
+    : {}),
   ...(storage.activeAiSystemPromptId !== undefined
     ? { activeAiSystemPromptId: storage.activeAiSystemPromptId }
     : {}),
@@ -78,6 +81,9 @@ export const toStorageUserSettings = (dto: UserSettingsDto): UserSettings => {
   // OK: structural copy with optional fields stripped from undefined.
   // `excludePatterns` は必須フィールドなので常にコピーする。
   const result: UserSettings = {
+    ...(dto.showOpenTabs !== undefined
+      ? { showOpenTabs: dto.showOpenTabs }
+      : {}),
     clickBehavior: dto.clickBehavior,
     confirmDeleteAll: dto.confirmDeleteAll,
     confirmDeleteEach: dto.confirmDeleteEach,

@@ -97,7 +97,8 @@ export type SortableUrlItemProps = {
     url: string,
     subCategory: string,
   ) => void
-  handleUpdateUrls: (
+  /** body 内で参照しない非推奨プロパティ。「今開いているタブ」行では省略可。 */
+  handleUpdateUrls?: (
     groupId: string,
     updatedUrls: { url: string; title: string; subCategory?: string }[],
   ) => void | Promise<void>

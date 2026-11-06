@@ -155,6 +155,69 @@ const deferred = <T,>() => {
 }
 
 describe('saved tab selection', () => {
+  it('keeps a duplicated visible URL selectable after its original card collapses', async () => {
+    const onOpen = vi.fn(async () => {})
+    const onDelete = vi.fn(async () => {})
+    const ui = (showOriginal: boolean) => (
+      <SavedTabsSelectionProvider
+        scopeKey=''
+        confirmDeleteAll={false}
+        onOpen={onOpen}
+        onDelete={onDelete}
+      >
+        <div data-testid='open-rows'>
+          <Row item={alpha} />
+        </div>
+        {showOriginal && <Row item={alpha} />}
+        <Row item={beta} />
+      </SavedTabsSelectionProvider>
+    )
+    const view = render(ui(true))
+    await enterSelection()
+    await user.click(screen.getByRole('button', { name: 'Select all visible' }))
+    expect(screen.getByRole('status')).toHaveTextContent('2 tabs selected')
+    view.rerender(ui(false))
+    const topCheckbox = within(screen.getByTestId('open-rows')).getByRole(
+      'checkbox',
+      { name: 'Select Alpha' },
+    )
+    await waitFor(() => expect(topCheckbox).toBeChecked())
+    await user.click(topCheckbox)
+    expect(topCheckbox).not.toBeChecked()
+    await user.click(topCheckbox)
+    expect(topCheckbox).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Open selected' }))
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith([alpha, beta])
+  })
+
+  it('uses the first visible occurrence for ranges across duplicated URLs', async () => {
+    render(
+      <SavedTabsSelectionProvider
+        scopeKey=''
+        confirmDeleteAll={false}
+        onOpen={async () => {}}
+        onDelete={async () => {}}
+      >
+        <div data-testid='open-rows'>
+          <Row item={alpha} />
+          <Row item={beta} />
+        </div>
+        <Row item={gamma} />
+        <Row item={alpha} />
+      </SavedTabsSelectionProvider>,
+    )
+    await enterSelection()
+    await user.click(
+      within(screen.getByTestId('open-rows')).getByRole('checkbox', {
+        name: 'Select Alpha',
+      }),
+    )
+    await clickWithModifiers(checkbox('Beta'), { shiftKey: true })
+    expect(checkbox('Beta')).toBeChecked()
+    expect(checkbox('Gamma')).not.toBeChecked()
+    expect(screen.getByRole('status')).toHaveTextContent('2 tabs selected')
+  })
+
   it('keeps row links unchanged until explicit selection and toggles plain/Ctrl/Meta clicks while active', async () => {
     const onNavigate = vi.fn()
     render(

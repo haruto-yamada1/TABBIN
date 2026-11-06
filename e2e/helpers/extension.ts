@@ -113,6 +113,8 @@ export const defaultUserSettings = {
   removeTabAfterExternalDrop: true,
   removeTabAfterOpen: true,
   showSavedTime: false,
+  // Saved-collection scenarios opt out; the display-setting scenario tests defaults.
+  showOpenTabs: false,
 }
 
 export const createBaseSeed = (overrides?: Record<string, unknown>) => ({

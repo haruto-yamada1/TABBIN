@@ -39,6 +39,7 @@ export type UserSettingsDto = {
   autoDeletePeriod?: string
   showRelativeSavedTime: boolean
   showSavedTime: boolean
+  showOpenTabs?: boolean
   clickBehavior:
     | 'saveCurrentTab'
     | 'saveWindowTabs'

@@ -586,6 +586,9 @@ const messages = {
     'options.previewFontSizeCustomization': 'Font size',
     'options.releaseNotes': 'Release Notes',
     'options.showRelativeSavedTime': 'Show relative saved time',
+    'options.showOpenTabs': 'Show currently open tabs',
+    'options.showOpenTabsDescription':
+      'Show saved tabs that are currently open at the top of Domain mode and Custom mode.',
     'options.showSavedTime': 'Show saved time',
     'options.showSavedTimeDescription':
       'When enabled, the saved date is shown in the saved tabs list.',
@@ -737,6 +740,9 @@ const messages = {
     'savedTabs.openAllConfirmDescriptionWithName':
       'Open {{count}} tabs for "{{name}}". Continue?',
     'savedTabs.openAllConfirmTitle': 'Open all tabs?',
+    'savedTabs.openTabs.deleteAllWarning':
+      'Remove all currently open tabs from the saved list. This action cannot be undone.',
+    'savedTabs.openTabs.title': 'Currently open tabs',
     'savedTabs.project.deleteAllItemName': 'tabs in this project',
     'savedTabs.project.deleteAllWarning':
       'Delete all tabs in this project. This action cannot be undone.',
@@ -1488,6 +1494,9 @@ const messages = {
     'options.previewFontSizeCustomization': 'フォントサイズ',
     'options.releaseNotes': 'リリースノート',
     'options.showRelativeSavedTime': '保存日時を相対表示する',
+    'options.showOpenTabs': '今開いているタブを表示する',
+    'options.showOpenTabsDescription':
+      '保存済みタブのうち、今開いているものをドメインモードとカスタムモードの上部に表示します。',
     'options.showSavedTime': '保存日時を表示する',
     'options.showSavedTimeDescription':
       'オンにすると、保存タブ一覧に保存された日時が表示されます。',
@@ -1636,6 +1645,9 @@ const messages = {
     'savedTabs.openAllConfirmDescriptionWithName':
       '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
     'savedTabs.openAllConfirmTitle': 'タブをすべて開きますか？',
+    'savedTabs.openTabs.deleteAllWarning':
+      '保存リストから今開いているタブをすべて削除します。この操作は取り消せません。',
+    'savedTabs.openTabs.title': '今開いているタブ',
     'savedTabs.project.deleteAllItemName': 'このプロジェクトのタブ',
     'savedTabs.project.deleteAllWarning':
       'このプロジェクト内のすべてのタブを削除します。この操作は元に戻せません。',
