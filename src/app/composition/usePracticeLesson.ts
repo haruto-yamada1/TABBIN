@@ -43,25 +43,26 @@ export const usePracticeLesson = (
   const [requiresRestart, setRequiresRestart] = useState(false)
   const [saving, setSaving] = useState(false)
   const sessionRef = useRef<PracticeLessonSession | null>(null)
-  sessionRef.current ??= {
-    index: 0,
-    stopped: false,
-    rewinding: false,
-    previous: composition.getSnapshot(),
-    actions: composition.getBrowserActions(),
-    checkpoints: [composition.captureCheckpoint()],
-    pendingSkip: false,
-    pending: [],
-    attempt: null,
-    saving: false,
-  }
   const mounted = useRef(true)
   useEffect(() => {
+    // Only a committed mount owns an assessment session and its checkpoints.
+    sessionRef.current = {
+      index: 0,
+      stopped: false,
+      rewinding: false,
+      previous: composition.getSnapshot(),
+      actions: composition.getBrowserActions(),
+      checkpoints: [composition.captureCheckpoint()],
+      pendingSkip: false,
+      pending: [],
+      attempt: null,
+      saving: false,
+    }
     mounted.current = true
     return () => {
       mounted.current = false
     }
-  }, [])
+  }, [composition])
   const save = useCallback(
     async function persist(): Promise<void> {
       const session = sessionRef.current
@@ -114,10 +115,9 @@ export const usePracticeLesson = (
         session.saving = false
         // A committed operation can arrive between the last queue read and this
         // finalizer. Restart only a successful drain; failures require user retry.
+        setSaving(false)
         if (succeeded && (session.pending.length > 0 || session.pendingSkip)) {
           void persist()
-        } else if (mounted.current) {
-          setSaving(false)
         }
       }
     },
