@@ -41,6 +41,50 @@ describe('isolated practice page', () => {
     expect(screen.queryByRole('button', { name: 'Next' })).toBeNull()
   })
 
+  it.each([
+    {
+      language: 'en',
+      retry: 'Retry step',
+      message: 'Practice state could not be restored.',
+    },
+    {
+      language: 'ja',
+      retry: 'この手順をやり直す',
+      message: '練習状態を戻せませんでした。',
+    },
+  ] as const)(
+    'shows a rewind-specific error and clears it on retry in $language',
+    async ({ language, retry, message }) => {
+      const composition = createPracticeComposition()
+      const restore = vi
+        .fn(composition.captureCheckpoint())
+        .mockRejectedValueOnce(new Error('restore failed'))
+      vi.spyOn(composition, 'captureCheckpoint').mockReturnValueOnce(restore)
+      const user = userEvent.setup()
+      render(
+        <MemoryI18nProvider initialLanguage={language}>
+          <TooltipProvider>
+            <PracticePage
+              lessonId='parent-categories'
+              createComposition={() => composition}
+            />
+          </TooltipProvider>
+        </MemoryI18nProvider>,
+      )
+      await user.click(screen.getByRole('button', { name: retry }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert').textContent).toContain(message),
+      )
+      expect(
+        screen.queryByRole('button', {
+          name: /Retry saving progress|進捗の保存を再試行/u,
+        }),
+      ).toBeNull()
+      await user.click(screen.getByRole('button', { name: retry }))
+      await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    },
+  )
+
   it('uses the real saved-tabs UI with no production API access across reset and language changes', async () => {
     const accessed = vi.fn(() => {
       throw new Error('Production API accessed')

@@ -29,6 +29,8 @@ const messages = {
       'Perform the operation in the sample UI. Only a successful change completes a step.',
     error:
       'Progress could not be saved. Your successful operations remain available to retry.',
+    rewindError:
+      'Practice state could not be restored. Retry the previous action or reset practice.',
     save: 'Retry saving progress',
     saving: 'Saving progress…',
     restart: 'Restart this lesson’s progress',
@@ -49,6 +51,8 @@ const messages = {
     pending:
       'サンプル画面で操作してください。成功した状態の変化だけで手順を達成します。',
     error: '進捗を保存できませんでした。成功した操作は、保存を再試行できます。',
+    rewindError:
+      '練習状態を戻せませんでした。直前の操作を再試行するか、練習をリセットしてください。',
     save: '進捗の保存を再試行',
     saving: '進捗を保存中…',
     restart: 'このレッスンの進捗をリセット',
@@ -173,6 +177,7 @@ const PracticeFeedback = ({ state }: { state: LessonState }) => {
     state
   return (
     <>
+      {state.rewindFailed ? <p role='alert'>{text.rewindError}</p> : null}
       {state.error ? (
         <div role='alert'>
           <p>{state.requiresRestart ? text.obsolete : text.error}</p>

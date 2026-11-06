@@ -214,4 +214,104 @@ describe('practice achievement integration', () => {
     })
     expect(result.current.index).toBe(0)
   })
+
+  it('keeps rewind failures separate and clears them after a successful retry without progress storage', async () => {
+    const composition = createPracticeComposition()
+    const restore = vi
+      .fn(composition.captureCheckpoint())
+      .mockRejectedValueOnce(new Error('restore failed'))
+    vi.spyOn(composition, 'captureCheckpoint').mockReturnValueOnce(restore)
+    const { result } = renderHook(() =>
+      usePracticeLesson('parent-categories', composition, undefined, vi.fn()),
+    )
+    await act(async () => {
+      await composition.useCases.createParentCategory({ name: 'Development' })
+    })
+    act(() => result.current.back())
+    await waitFor(() => expect(result.current.rewindFailed).toBe(true))
+    expect(result.current.error).toBe(false)
+    expect(result.current.rewindFailed).toBe(true)
+    expect(result.current.index).toBe(1)
+    act(() => result.current.back())
+    await waitFor(() => expect(result.current.index).toBe(0))
+    expect(result.current.rewindFailed).toBe(false)
+    expect(result.current.error).toBe(false)
+  })
+
+  it('preserves an independent save failure when rewinding succeeds', async () => {
+    const composition = createPracticeComposition()
+    const progress = createProgress()
+    progress.completePracticeStep.mockRejectedValueOnce(new Error('offline'))
+    const { result } = renderHook(() =>
+      usePracticeLesson('parent-categories', composition, progress, vi.fn()),
+    )
+    await act(async () => {
+      await composition.useCases.createParentCategory({ name: 'Development' })
+    })
+    await waitFor(() => expect(result.current.error).toBe(true))
+    act(() => result.current.back())
+    await waitFor(() => expect(result.current.index).toBe(0))
+    expect(result.current.error).toBe(true)
+    expect(result.current.rewindFailed).toBe(false)
+  })
+
+  it('does not report a restarted attempt as recovered until its practice checkpoint restores', async () => {
+    const composition = createPracticeComposition()
+    const restore = vi
+      .fn(composition.captureCheckpoint())
+      .mockRejectedValueOnce(new Error('restore failed'))
+    vi.spyOn(composition, 'captureCheckpoint').mockReturnValueOnce(restore)
+    const progress = createProgress()
+    progress.startLesson.mockRejectedValueOnce(
+      new AcademyCommandError('RELEARNING_REQUIRED'),
+    )
+    const { result } = renderHook(() =>
+      usePracticeLesson('parent-categories', composition, progress, vi.fn()),
+    )
+    await act(async () => {
+      await composition.useCases.createParentCategory({ name: 'Development' })
+    })
+    await waitFor(() => expect(result.current.requiresRestart).toBe(true))
+    act(() => result.current.restartProgress())
+    await waitFor(() => expect(result.current.rewindFailed).toBe(true))
+    await waitFor(() => expect(result.current.saving).toBe(false))
+    expect(result.current.requiresRestart).toBe(true)
+    expect(result.current.error).toBe(true)
+    expect(result.current.rewindFailed).toBe(true)
+    expect(result.current.index).toBe(1)
+    act(() => result.current.restartProgress())
+    await waitFor(() => expect(result.current.index).toBe(0))
+    await waitFor(() => expect(result.current.saving).toBe(false))
+    expect(result.current.requiresRestart).toBe(false)
+    expect(result.current.error).toBe(false)
+    expect(result.current.rewindFailed).toBe(false)
+  })
+
+  it('does not persist or lock a skipped practice when its rewind fails', async () => {
+    const composition = createPracticeComposition()
+    const restore = vi
+      .fn(composition.captureCheckpoint())
+      .mockRejectedValueOnce(new Error('restore failed'))
+    vi.spyOn(composition, 'captureCheckpoint').mockReturnValueOnce(restore)
+    const progress = createProgress()
+    const { result } = renderHook(() =>
+      usePracticeLesson('parent-categories', composition, progress, vi.fn()),
+    )
+    await act(async () => {
+      await composition.useCases.createParentCategory({ name: 'Development' })
+    })
+    await waitFor(() =>
+      expect(progress.completePracticeStep).toHaveBeenCalledOnce(),
+    )
+    act(() => result.current.skip())
+    await waitFor(() => expect(result.current.rewindFailed).toBe(true))
+    await waitFor(() => expect(result.current.stopped).toBe(false))
+    expect(progress.skipLesson).not.toHaveBeenCalled()
+    expect(result.current.rewindFailed).toBe(true)
+    act(() => result.current.skip())
+    await waitFor(() => expect(progress.skipLesson).toHaveBeenCalledOnce())
+    expect(result.current.stopped).toBe(true)
+    expect(result.current.index).toBe(0)
+    expect(result.current.rewindFailed).toBe(false)
+  })
 })

@@ -40,6 +40,7 @@ export const usePracticeLesson = (
   const [index, setIndex] = useState(0)
   const [stopped, setStopped] = useState(false)
   const [error, setError] = useState(false)
+  const [rewindFailed, setRewindFailed] = useState(false)
   const [requiresRestart, setRequiresRestart] = useState(false)
   const [saving, setSaving] = useState(false)
   const sessionRef = useRef<PracticeLessonSession | null>(null)
@@ -165,7 +166,7 @@ export const usePracticeLesson = (
       const session = sessionRef.current
       const restore = session?.checkpoints[next]
       if (!session || !restore || session.rewinding) {
-        return
+        return false
       }
       session.rewinding = true
       try {
@@ -176,8 +177,11 @@ export const usePracticeLesson = (
         session.actions = composition.getBrowserActions()
         setIndex(next)
         onRewind()
+        setRewindFailed(false)
+        return true
       } catch {
-        setError(true)
+        setRewindFailed(true)
+        return false
       } finally {
         session.rewinding = false
       }
@@ -189,10 +193,15 @@ export const usePracticeLesson = (
     if (!session) {
       return
     }
+    const wasStopped = session.stopped
     session.stopped = true
     setStopped(true)
+    if (!(await rewind(0))) {
+      session.stopped = wasStopped
+      setStopped(wasStopped)
+      return
+    }
     session.pendingSkip = true
-    await rewind(0)
     await save()
   }, [rewind, save])
   const restartProgress = useCallback(async () => {
@@ -210,7 +219,10 @@ export const usePracticeLesson = (
       session.attempt = null
       session.pending = []
       session.pendingSkip = false
-      await rewind(0)
+      if (!(await rewind(0))) {
+        session.stopped = wasStopped
+        return
+      }
       session.stopped = false
       setStopped(false)
       setRequiresRestart(false)
@@ -229,6 +241,7 @@ export const usePracticeLesson = (
     index,
     stopped,
     error,
+    rewindFailed,
     requiresRestart,
     saving,
     back: () => {

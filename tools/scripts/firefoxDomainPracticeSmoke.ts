@@ -56,16 +56,20 @@ const support = `
   }
 `
 
-const createFirefoxPracticeUi = (command: Commands, origin: string) => {
-  const evaluate = async <Value = unknown>(source: string): Promise<Value> => {
+export const createFirefoxPracticeUi = (command: Commands, origin: string) => {
+  const evaluate = async <Value = unknown>(
+    source: string,
+    args: unknown[] = [],
+  ): Promise<Value> => {
     const result = await command<{
       ok: boolean
       value: Value
       reason?: string
     }>('/execute/async', {
-      args: [],
+      args,
       script: `
         const finish = arguments[arguments.length - 1]
+        const parameters = Array.from(arguments).slice(0, -1)
         ${support}
         Promise.resolve().then(async () => { ${source} }).then(
           (value) => finish({ ok: true, value }),
@@ -76,24 +80,26 @@ const createFirefoxPracticeUi = (command: Commands, origin: string) => {
     assert.equal(result.ok, true, `${result.reason ?? ''}\nCheck: ${source}`)
     return result.value
   }
-  const element = async (expression: string) => {
+  const element = async (expression: string, args: unknown[] = []) => {
     const reference = await evaluate<Record<string, string>>(
       `return until(() => ${expression})`,
+      args,
     )
     const id = reference[elementKey]
     assert.ok(id, `Missing WebDriver element: ${expression}`)
     return id
   }
   const click = async (selector: string) => {
-    const id = await element(
-      `document.querySelector(${JSON.stringify(selector)})`,
-    )
+    const id = await element('document.querySelector(parameters[0])', [
+      selector,
+    ])
     await command(`/element/${id}/click`, {})
   }
   const clickText = async (selector: string, text: string) => {
-    const id = await element(
-      `exact(${JSON.stringify(selector)}, ${JSON.stringify(text)})`,
-    )
+    const id = await element('exact(parameters[0], parameters[1])', [
+      selector,
+      text,
+    ])
     await command(`/element/${id}/click`, {})
   }
   const press = async (value: string) => {
@@ -111,9 +117,9 @@ const createFirefoxPracticeUi = (command: Commands, origin: string) => {
     })
   }
   const fill = async (selector: string, text: string) => {
-    const id = await element(
-      `document.querySelector(${JSON.stringify(selector)})`,
-    )
+    const id = await element('document.querySelector(parameters[0])', [
+      selector,
+    ])
     // Native clear dispatches change/blur and can unmount a controlled rename
     // field before typing. Select its contents with the actual keyboard instead.
     await command(`/element/${id}/click`, {})
@@ -132,13 +138,13 @@ const createFirefoxPracticeUi = (command: Commands, origin: string) => {
         },
       ],
     })
-    const active = await element(
-      `document.querySelector(${JSON.stringify(selector)})`,
-    )
+    const active = await element('document.querySelector(parameters[0])', [
+      selector,
+    ])
     await command(`/element/${active}/value`, { text })
   }
   const step = async (id: string) => {
-    await evaluate(`await until(() => status(${JSON.stringify(id)}))`)
+    await evaluate('await until(() => status(parameters[0]))', [id])
   }
   const nativeCalls: string[][] = []
   const guard = async () => {
@@ -198,13 +204,16 @@ const createFirefoxPracticeUi = (command: Commands, origin: string) => {
   }
   const completed = async (lessonId: string, count: number) => {
     await step('complete')
-    const progress = await evaluate<number>(`
+    const progress = await evaluate<number>(
+      `
       return eventually(async () => {
         const value = await browser.storage.local.get('academyProgressV1')
-        const count = Object.keys(value.academyProgressV1?.lessons[${JSON.stringify(lessonId)}]?.practice ?? {}).length
-        return count === ${count} ? count : null
+        const count = Object.keys(value.academyProgressV1?.lessons[parameters[0]]?.practice ?? {}).length
+        return count === parameters[1] ? count : null
       })
-    `)
+    `,
+      [lessonId, count],
+    )
     assert.equal(progress, count)
   }
 
@@ -325,25 +334,32 @@ export const runFirefoxDomainPracticeSmoke = async (
   const parentHandle =
     '[data-parent-id="practice-parent-0"] [data-tour="academy-parent-drag"]'
   const focusHandle = async (selector: string) => {
-    await evaluate(`
-      const handle = await until(() => document.querySelector(${JSON.stringify(selector)}))
+    await evaluate(
+      `
+      const handle = await until(() => document.querySelector(parameters[0]))
       handle.scrollIntoView({ block: 'center' })
       handle.focus()
-    `)
+    `,
+      [selector],
+    )
   }
   const activateDrag = async (selector: string) => {
     await focusHandle(selector)
     await press('\uE00D')
-    await evaluate(`
-      await until(() => document.querySelector(${JSON.stringify(selector)})?.getAttribute('aria-pressed') === 'true')
+    await evaluate(
+      `
+      await until(() => document.querySelector(parameters[0])?.getAttribute('aria-pressed') === 'true')
       await new Promise((resolve) => setTimeout(resolve, 0))
       await until(() => [...document.querySelectorAll('[role="status"][aria-live="assertive"]')].some((node) => node.textContent.includes(' is over ')))
-    `)
+    `,
+      [selector],
+    )
   }
   const waitForRestoredFocus = async (selector: string) => {
-    await evaluate(`
+    await evaluate(
+      `
       const focused = () => {
-        const handle = document.querySelector(${JSON.stringify(selector)})
+        const handle = document.querySelector(parameters[0])
         return handle && handle.getAttribute('aria-pressed') !== 'true' && document.activeElement === handle
       }
       // A completed parent drag removes aria-pressed instead of setting false.
@@ -353,14 +369,19 @@ export const runFirefoxDomainPracticeSmoke = async (
       // that restoration before focusing the confirmation button.
       await new Promise((resolve) => requestAnimationFrame(resolve))
       await eventually(focused)
-    `)
+    `,
+      [selector],
+    )
   }
   const moveKeyboard = async (selector: string, destination: string) => {
     await activateDrag(selector)
     await press('\uE015')
-    await evaluate(`
-      await until(() => [...document.querySelectorAll('[role="status"][aria-live="assertive"]')].some((node) => node.textContent.includes(${JSON.stringify(destination)})))
-    `)
+    await evaluate(
+      `
+      await until(() => [...document.querySelectorAll('[role="status"][aria-live="assertive"]')].some((node) => node.textContent.includes(parameters[0])))
+    `,
+      [destination],
+    )
     await press('\uE00D')
     await waitForRestoredFocus(selector)
   }
@@ -369,7 +390,8 @@ export const runFirefoxDomainPracticeSmoke = async (
     await focusHandle(selector)
     await press(enter)
     await evaluate(
-      `await until(() => !document.querySelector(${JSON.stringify(selector)}))`,
+      'await until(() => !document.querySelector(parameters[0]))',
+      [selector],
     )
   }
   await activateDrag(parentHandle)
