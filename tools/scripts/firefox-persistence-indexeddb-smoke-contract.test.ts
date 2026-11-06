@@ -33,6 +33,17 @@ const academyUiResult = {
     persistenceUnchanged: true,
     screenGuide: true,
     parentGuide: true,
+    domainPractice: {
+      parentComplete: true,
+      childComplete: true,
+      reorderComplete: true,
+      restoreSimulated: true,
+      rewindResetSkip: true,
+      japaneseNarrow: true,
+      nativeCalls: 0,
+      persistenceUnchanged: true,
+      tabsUnchanged: true,
+    },
   },
 }
 
@@ -164,7 +175,22 @@ describe('Firefox IndexedDB persistence smoke contract', () => {
 })
 
 describe('Academy Firefox Playwright smoke contract', () => {
-  it.each(['screenGuide', 'parentGuide'] as const)(
+  it('fails when Domain practice omits its committed reorder proof', () => {
+    const domainPractice = { ...academyUiResult.academyUI.domainPractice }
+    Reflect.deleteProperty(domainPractice, 'reorderComplete')
+    const result = runAcademySpec({
+      flag: '1',
+      smokeResult: {
+        ...academyUiResult,
+        academyUI: { ...academyUiResult.academyUI, domainPractice },
+      },
+    })
+    expect(result.error).toBeUndefined()
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain('"unexpected": 1')
+  }, 20_000)
+
+  it.each(['screenGuide', 'parentGuide', 'domainPractice'] as const)(
     'fails when the native result omits the %s runtime proof',
     (field) => {
       const facts = { ...academyUiResult.academyUI }

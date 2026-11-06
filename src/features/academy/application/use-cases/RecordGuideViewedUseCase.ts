@@ -9,7 +9,9 @@ import {
 } from '@/features/academy/application/services/AcademyProgressService'
 
 export const hasAcademyScreenGuide = (lessonId: string): boolean =>
-  lessonId === 'domain-mode' || lessonId === 'parent-categories'
+  lessonId === 'domain-mode' ||
+  lessonId === 'parent-categories' ||
+  lessonId === 'restore-tabs'
 
 /** Called after every screen in a read-only guide was displayed successfully. */
 export const createRecordGuideViewedUseCase =

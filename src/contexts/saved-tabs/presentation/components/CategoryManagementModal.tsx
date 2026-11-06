@@ -289,6 +289,7 @@ const CategoryRenameSection = ({
           </div>
           <Input
             ref={inputRef}
+            data-tour='academy-parent-rename'
             value={newCategoryName}
             onChange={handleCategoryNameChange}
             placeholder={t('savedTabs.categoryManagement.renamePlaceholder')}
@@ -621,7 +622,10 @@ const useCategoryManagementModalView = ({
   }
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className='max-h-[90vh] overflow-y-auto'>
+      <DialogContent
+        data-tour='academy-parent-manage'
+        className='max-h-[90vh] overflow-y-auto'
+      >
         <DialogHeader className='text-left'>
           <DialogTitle>
             {t('savedTabs.categoryManagement.title', undefined, {

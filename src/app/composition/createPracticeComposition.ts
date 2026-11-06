@@ -53,6 +53,7 @@ export type PracticeComposition = {
     stepId?: string,
     seed?: PracticeSeed,
   ) => Promise<void>
+  readonly captureCheckpoint: () => () => Promise<void>
   readonly dispose: () => void
 }
 
@@ -343,6 +344,29 @@ export const createPracticeComposition = (
   return {
     deps,
     useCases,
+    captureCheckpoint: () => {
+      ensureActive()
+      const saved = structuredClone({
+        state: current.state,
+        actions: current.actions,
+        settings: current.settings,
+        nextId: current.nextId,
+      })
+      return async () => {
+        ensureActive()
+        // A new session identity rejects in-flight work from the abandoned step.
+        current = { ...structuredClone(saved), queue: Promise.resolve() }
+        sortPreferences.clear()
+        searchHistory = []
+        const session = current
+        const delivery = publishChanges(session)
+        session.queue = delivery.then(
+          () => undefined,
+          () => undefined,
+        )
+        await delivery
+      }
+    },
     getSnapshot: () => structuredClone(current.state),
     getBrowserActions: () => structuredClone(current.actions),
     subscribe: (listener) => {

@@ -41,6 +41,7 @@ export const CategoryGroupTitle = () => {
 
   return (
     <CardGroupTitle
+      dataTour='academy-parent-drag'
       touchHandleOnly
       activatorRef={sortable.setActivatorNodeRef}
       title={category.name}

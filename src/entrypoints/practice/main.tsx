@@ -1,3 +1,4 @@
+import { createAcademyUseCases } from '@/app/composition/createAcademyUseCases'
 import { PracticePage } from '@/app/composition/PracticePage'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { MemoryI18nProvider } from '@/features/i18n/context/MemoryI18nProvider'
@@ -20,7 +21,10 @@ mountToElement(
   'practice',
   <MemoryI18nProvider initialLanguage={language}>
     <TooltipProvider>
-      <PracticePage lessonId={lessonId} />
+      <PracticePage
+        lessonId={lessonId}
+        progressUseCases={createAcademyUseCases()}
+      />
     </TooltipProvider>
   </MemoryI18nProvider>,
   'Practice container is missing',

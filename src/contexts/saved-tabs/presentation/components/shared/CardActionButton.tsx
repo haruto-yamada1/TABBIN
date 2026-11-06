@@ -15,6 +15,7 @@ type CardActionButtonProps = {
   accessibleLabel: string
   tooltip: string
   onClick: MouseEventHandler<HTMLButtonElement>
+  dataTour?: string
 }
 
 export const CardActionButton = ({
@@ -23,6 +24,7 @@ export const CardActionButton = ({
   accessibleLabel,
   tooltip,
   onClick,
+  dataTour,
 }: CardActionButtonProps) => (
   <Tooltip>
     <TooltipTrigger asChild>
@@ -32,6 +34,7 @@ export const CardActionButton = ({
         onClick={onClick}
         className='flex cursor-pointer items-center gap-1'
         aria-label={accessibleLabel}
+        data-tour={dataTour}
       >
         <Icon size={14} />
         <SavedTabsResponsiveLabel>{label}</SavedTabsResponsiveLabel>

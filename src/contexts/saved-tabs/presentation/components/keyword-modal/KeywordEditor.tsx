@@ -96,6 +96,7 @@ export const KeywordEditor = () => {
       <div className='my-2 flex'>
         <Input
           id='keyword-input'
+          data-tour='academy-child-keywords'
           value={keywordsState.newKeyword}
           onChange={handleChange}
           placeholder={t('savedTabs.keywords.placeholder')}

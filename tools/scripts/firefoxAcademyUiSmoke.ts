@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 
+import { runFirefoxDomainPracticeSmoke } from './firefoxDomainPracticeSmoke'
+
 type Commands = <Value = unknown>(
   path: string,
   body?: unknown,
@@ -203,6 +205,7 @@ export const runFirefoxAcademyUiSmoke = async (
     return !document.querySelector('[role="dialog"]')
   `)
   assert.equal(revisit, true)
+  const domainPractice = await runFirefoxDomainPracticeSmoke(command, origin)
   assert.deepEqual(await evaluate('return savedSnapshot()'), beforeSaved)
   assert.deepEqual(await command('/window/handles'), beforeTabs)
   return {
@@ -214,5 +217,6 @@ export const runFirefoxAcademyUiSmoke = async (
     persistenceUnchanged: true,
     screenGuide,
     parentGuide,
+    domainPractice,
   }
 }

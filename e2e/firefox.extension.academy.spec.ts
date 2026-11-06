@@ -37,6 +37,17 @@ test('Firefox Academy verifies read-only screen guides and Japanese keyboard rev
       persistenceUnchanged: true,
       screenGuide: true,
       parentGuide: true,
+      domainPractice: {
+        parentComplete: true,
+        childComplete: true,
+        reorderComplete: true,
+        restoreSimulated: true,
+        rewindResetSkip: true,
+        japaneseNarrow: true,
+        nativeCalls: 0,
+        persistenceUnchanged: true,
+        tabsUnchanged: true,
+      },
     },
   })
 })

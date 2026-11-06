@@ -12,11 +12,13 @@ import { useSavedTabsController } from '@/contexts/saved-tabs/presentation/contr
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { canPracticeWithSamples } from '@/features/academy/application/services/AcademyPracticeService'
 import { ACADEMY_LESSONS } from '@/features/academy/domain/academyCatalog'
+import { PracticeLessonGuide } from '@/features/academy/presentation/PracticeLessonGuide'
 import { practiceMessages } from '@/features/academy/presentation/practiceMessages'
 import { useI18n } from '@/features/i18n/context/I18nContext'
 import { RenderErrorBoundary } from '@/lib/react/RenderErrorBoundary'
 
 import { createPracticeComposition } from './createPracticeComposition'
+import type { PracticeProgressUseCases } from './usePracticeLesson'
 
 type PracticeComposition = ReturnType<typeof createPracticeComposition>
 
@@ -60,15 +62,21 @@ const PracticeSavedTabs = ({
 const PracticeSession = ({
   lessonId,
   createComposition = createPracticeComposition,
+  progressUseCases,
 }: {
   lessonId: string
   createComposition?: typeof createPracticeComposition
+  progressUseCases?: PracticeProgressUseCases | undefined
 }) => {
   const { language, setLanguageSetting } = useI18n()
   const text = practiceMessages[language]
   const [composition, setComposition] = useState(() => createComposition())
   const [revision, setRevision] = useState(0)
+  const [sessionId, setSessionId] = useState(0)
   const [actionCount, setActionCount] = useState(0)
+  const remount = useCallback(() => {
+    setRevision((current) => current + 1)
+  }, [])
   const backHref = `app.html#/academy/${lessonId}`
 
   useEffect(
@@ -92,11 +100,13 @@ const PracticeSession = ({
   const reset = useCallback(() => {
     composition.dispose()
     setComposition(createComposition('saved'))
+    setSessionId((current) => current + 1)
     setRevision((current) => current + 1)
   }, [composition, createComposition])
   const startEmpty = useCallback(() => {
     composition.dispose()
     setComposition(createComposition('empty'))
+    setSessionId((current) => current + 1)
     setRevision((current) => current + 1)
   }, [composition, createComposition])
   const changeLanguage = useCallback(() => {
@@ -108,7 +118,7 @@ const PracticeSession = ({
 
   return (
     <main className='min-h-screen min-w-0 bg-amber-50 text-foreground dark:bg-amber-950/30'>
-      <header className='sticky top-0 z-[60] space-y-3 border-b-2 border-amber-600 bg-amber-100 px-4 py-4 text-amber-950 shadow-sm dark:border-amber-400 dark:bg-amber-950 dark:text-amber-50'>
+      <header className='space-y-3 border-b-2 border-amber-600 bg-amber-100 px-4 py-4 text-amber-950 shadow-sm dark:border-amber-400 dark:bg-amber-950 dark:text-amber-50'>
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <h1 className='text-xl font-bold'>TABBIN Academy · {text.title}</h1>
           <Button
@@ -137,7 +147,14 @@ const PracticeSession = ({
           </Button>
         </nav>
       </header>
-      <RenderErrorBoundary key={revision}>
+      <PracticeLessonGuide
+        key={`lesson-${sessionId}`}
+        lessonId={lessonId}
+        composition={composition}
+        progress={progressUseCases}
+        onRewind={remount}
+      />
+      <RenderErrorBoundary key={`ui-${revision}`}>
         <PracticeSavedTabs composition={composition} />
       </RenderErrorBoundary>
     </main>
@@ -148,9 +165,11 @@ const PracticeSession = ({
 export const PracticePage = ({
   lessonId = '',
   createComposition = createPracticeComposition,
+  progressUseCases,
 }: {
   lessonId?: string
   createComposition?: typeof createPracticeComposition
+  progressUseCases?: PracticeProgressUseCases | undefined
 }) => {
   const { language } = useI18n()
   const lesson = ACADEMY_LESSONS.find((item) => item.lessonId === lessonId)
@@ -159,6 +178,7 @@ export const PracticePage = ({
       <PracticeSession
         lessonId={lesson.lessonId}
         createComposition={createComposition}
+        progressUseCases={progressUseCases}
       />
     )
   }
