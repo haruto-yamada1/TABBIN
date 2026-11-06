@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom'
 
 import { exportRenderRecoveryBackup } from '@/app/composition/renderRecoveryExport'
 import { hasAcademyScreenGuide } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
-import { AcademyWelcome } from '@/features/academy/presentation/AcademyWelcome'
 import { DocumentTitleSync } from '@/features/i18n/components/DocumentTitleSync'
 import { resolveTitlePageKeyFromPathname } from '@/features/i18n/lib/title'
 import { ExtensionPageShell } from '@/features/navigation/components/ExtensionPageShell'
@@ -27,7 +26,6 @@ export const AppLayout = () => {
   return (
     <ExtensionPageShell pathname={location.pathname} search={location.search}>
       <DocumentTitleSync page={titlePage} />
-      <AcademyWelcome />
       {guideLesson ? (
         <RenderErrorBoundary key={guideLesson} fallback={null}>
           <Suspense fallback={null}>

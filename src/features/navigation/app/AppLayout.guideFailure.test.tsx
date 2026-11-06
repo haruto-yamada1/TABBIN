@@ -9,9 +9,6 @@ import { RenderErrorBoundary } from '@/lib/react/RenderErrorBoundary'
 
 import { AppLayout } from './AppLayout'
 
-vi.mock('@/features/academy/presentation/AcademyWelcome', () => ({
-  AcademyWelcome: () => null,
-}))
 vi.mock('@/features/navigation/components/ExtensionPageShell', () => ({
   ExtensionPageShell: ({ children }: { children: ReactNode }) => (
     <div>

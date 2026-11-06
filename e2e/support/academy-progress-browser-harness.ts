@@ -6,7 +6,7 @@ import { ACADEMY_LESSONS } from '@/features/academy/domain/academyCatalog'
 import { createChromeAcademyProgressRepository } from '@/features/academy/infrastructure/ChromeAcademyProgressRepository'
 
 const useCases = createAcademyUseCases()
-const firstLessonId = 'install-extension'
+const firstLessonId = 'pin-extension'
 
 const videoRestartSmoke = async (phase: 'fresh' | 'verify') => {
   const lesson = ACADEMY_LESSONS.find(
@@ -69,7 +69,6 @@ export const runAcademyPersistenceSmoke = async (phase: 'fresh' | 'verify') => {
   if (phase === 'fresh') {
     const attempt = await useCases.startLesson(firstLessonId)
     await useCases.skipLesson(attempt)
-    await useCases.recordIntro('dismiss')
   }
   const video = await videoRestartSmoke(phase)
   const progress = await useCases.getProgress()
@@ -80,7 +79,6 @@ export const runAcademyPersistenceSmoke = async (phase: 'fresh' | 'verify') => {
     !first ||
     first.startedAt === null ||
     first.skippedAt === null ||
-    progress.intro.dismissedAt === null ||
     first.mastered ||
     first.videoWatched ||
     first.practiceCompleted
@@ -89,7 +87,6 @@ export const runAcademyPersistenceSmoke = async (phase: 'fresh' | 'verify') => {
   }
   return {
     first,
-    intro: progress.intro,
     summary: progress.summary,
     video,
   }

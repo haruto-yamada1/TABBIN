@@ -1,7 +1,6 @@
 import { createCompletePracticeStepUseCase } from '@/features/academy/application/use-cases/CompletePracticeStepUseCase'
 import { createGetAcademyProgressUseCase } from '@/features/academy/application/use-cases/GetAcademyProgressUseCase'
 import { createRecordGuideViewedUseCase } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
-import { createRecordIntroUseCase } from '@/features/academy/application/use-cases/RecordIntroUseCase'
 import { createRecordVideoProgressUseCase } from '@/features/academy/application/use-cases/RecordVideoProgressUseCase'
 import { createResetProgressUseCase } from '@/features/academy/application/use-cases/ResetProgressUseCase'
 import { createSkipLessonUseCase } from '@/features/academy/application/use-cases/SkipLessonUseCase'
@@ -23,7 +22,6 @@ export const createAcademyUseCases = () => {
     completePracticeStep: createCompletePracticeStepUseCase(ports),
     skipLesson: createSkipLessonUseCase(ports),
     resetProgress: createResetProgressUseCase(ports),
-    recordIntro: createRecordIntroUseCase(ports),
     getProgress: createGetAcademyProgressUseCase(ports),
     exportRawProgress: async () => ports.repository.exportRaw(),
   }

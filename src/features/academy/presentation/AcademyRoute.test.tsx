@@ -72,10 +72,13 @@ describe('Academy learning screen', () => {
     const user = userEvent.setup()
     show({ useCases })
     await user.click(
-      await screen.findByRole('link', { name: /Install TABBIN/ }),
+      await screen.findByRole('link', { name: /Pin the extension/ }),
     )
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Install TABBIN' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Pin the extension',
+      }),
     ).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Learn by video' })).toHaveProperty(
       'disabled',
@@ -132,15 +135,14 @@ describe('Academy learning screen', () => {
     const useCases = createUseCases()
     await useCases.startLesson('save-tabs')
     const user = userEvent.setup()
-    show({ useCases }, '/academy/install-extension')
+    show({ useCases }, '/academy/pin-extension')
     await user.click(
       await screen.findByRole('button', { name: 'Skip this lesson' }),
     )
     await waitFor(async () => {
       const data = await useCases.getProgress()
       expect(
-        data.lessons.find((item) => item.lessonId === 'install-extension')
-          ?.skipped,
+        data.lessons.find((item) => item.lessonId === 'pin-extension')?.skipped,
       ).toBe(true)
     })
     expect(
@@ -153,9 +155,9 @@ describe('Academy learning screen', () => {
 
   it('resumes the latest active lesson while keeping skipped lessons out of resume', async () => {
     const useCases = createUseCases()
-    await useCases.startLesson('install-extension')
+    await useCases.startLesson('pin-extension')
     await useCases.startLesson('domain-mode')
-    await useCases.skipLesson(await useCases.startLesson('pin-extension'))
+    await useCases.skipLesson(await useCases.startLesson('save-tabs'))
     const user = userEvent.setup()
     show({ useCases })
     const resume = await screen.findByRole('link', {
@@ -253,7 +255,7 @@ describe('Academy learning screen', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     expect(
-      await screen.findByRole('link', { name: /Install TABBIN/ }),
+      await screen.findByRole('link', { name: /Pin the extension/ }),
     ).toBeTruthy()
   })
 })

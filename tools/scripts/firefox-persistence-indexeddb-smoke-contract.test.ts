@@ -27,7 +27,6 @@ const academyUiResult = {
   academyUI: {
     englishDirect: true,
     japaneseKeyboard: true,
-    invitationDismissed: true,
     narrowDarkReducedMotion: true,
     revisit: true,
     persistenceUnchanged: true,
