@@ -170,6 +170,7 @@ export const DomainCardActions = () => {
         {/* 子カテゴリ管理 */}
         <CardActionButton
           icon={Settings}
+          dataTour='academy-child-categories'
           label={t('savedTabs.manageSubcategories')}
           accessibleLabel={manageSubcategoriesLabel}
           tooltip={manageSubcategoriesLabel}
@@ -179,6 +180,7 @@ export const DomainCardActions = () => {
         {/* すべて開く */}
         <CardActionButton
           icon={ExternalLink}
+          dataTour='academy-restore-tabs'
           label={t('savedTabs.openAll')}
           accessibleLabel={openAllTabsLabel}
           tooltip={openAllTabsLabel}

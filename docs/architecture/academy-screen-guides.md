@@ -1,8 +1,10 @@
 # Academy の画面案内
 
 Issue #1002 の画面案内は、本番の保存タブ画面を読み取り専用で説明します。
-`/academy/domain-mode` と `/academy/parent-categories` の「画面案内」から開始します。
+`/academy/domain-mode`、`/academy/parent-categories`、`/academy/restore-tabs` の「画面案内」から開始します。
 動画は未提供の理由を表示し、書込練習は既存の隔離された `practice.html` へ分離します。
+復元の画面案内は操作位置と一括復元・削除設定の注意点を説明し、実タブを開きません。
+書込操作の教材は [Domain 操作練習](academy-domain-practice.md) を参照してください。
 拡張のインストールやツールバー固定はテキストで説明し、ツアーの対象にしません。
 
 ## 実行と達成判定

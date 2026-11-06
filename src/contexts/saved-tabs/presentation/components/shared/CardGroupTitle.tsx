@@ -14,6 +14,7 @@ type CardGroupTitleProps = {
   activatorRef?: ((node: HTMLElement | null) => void) | undefined
   className?: string
   touchHandleOnly?: boolean
+  dataTour?: string
 }
 
 /**
@@ -28,10 +29,12 @@ export const CardGroupTitle = ({
   activatorRef,
   className = '',
   touchHandleOnly = false,
+  dataTour,
 }: CardGroupTitleProps) => (
   <div
     ref={activatorRef}
     data-testid='card-group-title'
+    data-tour={dataTour}
     className={`flex w-full min-w-0 cursor-grab items-center gap-2 text-foreground hover:cursor-grab active:cursor-grabbing ${className}`}
     {...sortableAttributes}
     {...(touchHandleOnly

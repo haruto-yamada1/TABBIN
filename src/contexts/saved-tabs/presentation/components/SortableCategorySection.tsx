@@ -347,6 +347,7 @@ const useSortableCategorySectionView = ({
           <div
             className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
             ref={setActivatorNodeRef}
+            data-tour='academy-child-drag'
             {...attributes}
             {...getTouchHandleListeners(listeners)}
             aria-label={t('savedTabs.category.dragHandleAria', undefined, {

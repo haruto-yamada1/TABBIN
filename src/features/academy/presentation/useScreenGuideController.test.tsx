@@ -107,6 +107,19 @@ const renderController = (
   )
 
 describe('screen-guide controller', () => {
+  it('explains restore controls read-only and records no practice achievement', async () => {
+    const target = mount('academy-restore-tabs')
+    const { useCases, read } = makeUseCases()
+    const { result } = renderController(useCases, 'restore-tabs')
+    await waitFor(() => expect(result.current.phase).toBe('showing'))
+    expect(result.current.target).toBe(target)
+    expect(result.current.step.text).toBe('restore')
+    act(() => result.current.handleNext())
+    await waitFor(() => expect(result.current.phase).toBe('complete'))
+    expect(read().lessons['restore-tabs']?.practice).toEqual({})
+    expect(read().lessons['restore-tabs']?.guideViewedAt).toBe(100)
+  })
+
   it('shows actual targets and navigates modes, then records guide viewing separately from mastery', async () => {
     const targets = mountDomain()
     const { useCases, read } = makeUseCases()

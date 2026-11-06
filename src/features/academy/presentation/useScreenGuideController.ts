@@ -20,7 +20,7 @@ export type ScreenGuidePhase =
 export type ScreenGuideStep = {
   selector: string
   mode: 'domain' | 'custom'
-  text: 'url' | 'domain' | 'custom' | 'parents' | 'dialog'
+  text: 'url' | 'domain' | 'custom' | 'parents' | 'dialog' | 'restore'
 }
 const TARGET_POLL_MS = 100
 const domainSteps: [ScreenGuideStep, ...ScreenGuideStep[]] = [
@@ -34,6 +34,13 @@ const domainSteps: [ScreenGuideStep, ...ScreenGuideStep[]] = [
     selector: '[data-tour="academy-view-mode"][data-mode="custom"]',
     mode: 'custom',
     text: 'custom',
+  },
+]
+const restoreSteps: [ScreenGuideStep, ...ScreenGuideStep[]] = [
+  {
+    selector: '[data-tour="academy-restore-tabs"]',
+    mode: 'domain',
+    text: 'restore',
   },
 ]
 const parentSteps: [ScreenGuideStep, ...ScreenGuideStep[]] = [
@@ -66,7 +73,12 @@ export const useScreenGuideController = (
   const safeClick = useRef(false)
   const mounted = useRef(true)
   const stopped = useRef(false)
-  const steps = lessonId === 'domain-mode' ? domainSteps : parentSteps
+  const steps =
+    {
+      'domain-mode': domainSteps,
+      'parent-categories': parentSteps,
+      'restore-tabs': restoreSteps,
+    }[lessonId] ?? domainSteps
   const step = steps[index] ?? domainSteps[0]
   const returnToLesson = useCallback(() => {
     stopped.current = true

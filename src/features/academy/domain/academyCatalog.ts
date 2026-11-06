@@ -1,5 +1,6 @@
 import { courseSchema, lessonSchema } from './academySchemas'
 import type { Course, Lesson } from './academySchemas'
+import { getDomainPracticeSteps } from './domainPracticeLessons'
 
 type Chapter = {
   lessonId: string
@@ -164,11 +165,42 @@ export const ACADEMY_LESSONS: Lesson[] = chapters.map((chapter, index) => {
   }
   const stepId =
     chapter.lessonId + (chapter.action === null ? '-native-step' : '-success')
+  const practiceSteps = getDomainPracticeSteps(chapter.lessonId)
+  for (const step of practiceSteps) {
+    for (const locale of ['en', 'ja'] as const) {
+      ACADEMY_MESSAGES[locale][`${prefix}.${step.stepId.replaceAll('-', '')}`] =
+        step.instruction[locale]
+    }
+  }
+  const steps: Lesson['steps'] = practiceSteps.length
+    ? practiceSteps.map((step) => ({
+        stepId: step.stepId,
+        instructionKey: `${prefix}.${step.stepId.replaceAll('-', '')}`,
+        dataTour: step.dataTour,
+        practiceRequirement: {
+          action: step.action,
+          environment: 'academy-sandbox',
+        },
+      }))
+    : [
+        {
+          stepId,
+          instructionKey: `${prefix}.instruction`,
+          dataTour: chapter.dataTour,
+          practiceRequirement:
+            chapter.action === null
+              ? null
+              : {
+                  action: chapter.action,
+                  environment: 'academy-sandbox',
+                },
+        },
+      ]
   return {
     lessonId: chapter.lessonId,
     courseId: chapter.courseId,
-    contentVersion: 1,
-    assessmentVersion: 1,
+    contentVersion: practiceSteps.length ? 2 : 1,
+    assessmentVersion: practiceSteps.length > 1 ? 2 : 1,
     titleKey: `${prefix}.title`,
     descriptionKey: `${prefix}.description`,
     difficulty: 'beginner',
@@ -177,20 +209,7 @@ export const ACADEMY_LESSONS: Lesson[] = chapters.map((chapter, index) => {
       index === 0
         ? []
         : chapters.slice(index - 1, index).map((previous) => previous.lessonId),
-    steps: [
-      {
-        stepId,
-        instructionKey: `${prefix}.instruction`,
-        dataTour: chapter.dataTour,
-        practiceRequirement:
-          chapter.action === null
-            ? null
-            : {
-                action: chapter.action,
-                environment: 'academy-sandbox',
-              },
-      },
-    ],
+    steps,
     assets: (['ja', 'en'] as const).map((locale) => ({
       assetId: `${chapter.lessonId}-${locale}`,
       kind: 'video',
@@ -201,7 +220,8 @@ export const ACADEMY_LESSONS: Lesson[] = chapters.map((chapter, index) => {
     })),
     mastery: {
       videoRequired: chapter.action === null,
-      practiceStepIds: chapter.action === null ? [] : [stepId],
+      practiceStepIds:
+        chapter.action === null ? [] : steps.map((step) => step.stepId),
     },
   }
 })

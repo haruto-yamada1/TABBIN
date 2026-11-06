@@ -85,6 +85,21 @@ const scopedVideo = (evidence: VideoEvidence) => ({
 })
 
 describe('Academy catalog contract', () => {
+  it('requires each successful Domain practice operation independently', () => {
+    for (const [lessonId, expected] of [
+      ['parent-categories', 4],
+      ['child-categories', 4],
+      ['reorder-items', 3],
+      ['restore-tabs', 1],
+    ] as const) {
+      const item = ACADEMY_LESSONS.find((entry) => entry.lessonId === lessonId)
+      expect(item?.steps).toHaveLength(expected)
+      expect(item?.mastery.practiceStepIds).toEqual(
+        item?.steps.map((step) => step.stepId),
+      )
+    }
+  })
+
   it('publishes eight stable bilingual chapter scenarios with valid references', () => {
     expect(ACADEMY_LESSONS.length).toBeGreaterThanOrEqual(8)
     expect(() =>

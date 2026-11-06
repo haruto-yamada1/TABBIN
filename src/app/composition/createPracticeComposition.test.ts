@@ -5,6 +5,30 @@ import { checkPersistenceIntegrity } from '@/contexts/saved-tabs/public-api'
 import { createPracticeComposition } from './createPracticeComposition'
 
 describe('Academy practice composition', () => {
+  it('rewinds a step checkpoint without reviving pending mutations or browser actions', async () => {
+    const practice = createPracticeComposition()
+    expect(practice).toHaveProperty('captureCheckpoint', expect.any(Function))
+    const restore = practice.captureCheckpoint()
+    const before = practice.getSnapshot()
+    await practice.useCases.createParentCategory({ name: 'Temporary' })
+    await practice.deps.browserTabPort.open({
+      url: 'https://notes.academy.test/guide',
+    })
+    const pending = practice.useCases.createParentCategory({ name: 'Late' })
+    await Promise.all([
+      expect(pending).rejects.toThrow('session has ended'),
+      restore(),
+    ])
+    expect(practice.getSnapshot()).toEqual(before)
+    expect(practice.getBrowserActions()).toEqual([])
+    await practice.useCases.createParentCategory({ name: 'New attempt' })
+    expect(checkPersistenceIntegrity(practice.getSnapshot()).isHealthy).toBe(
+      true,
+    )
+    practice.dispose()
+    await expect(restore()).rejects.toThrow('session has ended')
+  })
+
   it('starts with deterministic fictional parent, child, Domain and Custom data', () => {
     const practice = createPracticeComposition()
     const state = practice.getSnapshot()

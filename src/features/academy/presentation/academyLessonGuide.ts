@@ -52,12 +52,12 @@ const guides: Record<string, Guide> = {
   },
   'child-categories': {
     en: [
-      'Create a child category within a parent to organize a more specific topic.',
-      'Assign saved URLs to the child category. Choose names that help distinguish the URLs within the same site.',
+      'Open a domain card’s category controls to create a child category. These categories classify URLs within that domain; Custom mode has its own category structure.',
+      'Edit a child category’s name and keywords. Keywords match saved URL titles and move matching URLs into the category.',
     ],
     ja: [
-      '親カテゴリの中に子カテゴリを作ると、より細かいテーマで整理できます。',
-      '保存URLを子カテゴリに割り当てます。同じサイト内でも内容を区別しやすい名前を付けましょう。',
+      'ドメインカードのカテゴリ操作から子カテゴリを作成します。子カテゴリはそのドメイン内のURLを分類します。Customモードのカテゴリ構造とは別です。',
+      '子カテゴリの名前とキーワードを編集します。保存URLのタイトルがキーワードに一致すると、その子カテゴリへ再分類されます。',
     ],
   },
   'reorder-items': {

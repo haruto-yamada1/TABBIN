@@ -15,7 +15,11 @@ import {
 
 const readBoundary = async (serviceWorker: Worker) => ({
   savedTabs: await readPersistenceV2SavedTabsSnapshot(serviceWorker),
-  storage: await readStorage<Record<string, unknown>>(serviceWorker),
+  storage: Object.fromEntries(
+    Object.entries(
+      await readStorage<Record<string, unknown>>(serviceWorker),
+    ).filter(([key]) => key !== 'academyProgressV1'),
+  ),
   tabs: await serviceWorker.evaluate(async () =>
     (await chrome.tabs.query({}))
       .map((tab) => tab.id)
@@ -49,7 +53,19 @@ const guardPracticeApis = async (page: Page) => {
     Object.defineProperty(chrome.runtime, 'sendMessage', {
       value: blocked('runtime.sendMessage'),
     })
-    for (const method of ['set', 'remove', 'clear']) {
+    const saveProgress = chrome.storage.local.set.bind(chrome.storage.local)
+    Object.defineProperty(chrome.storage.local, 'set', {
+      value: async (values: Record<string, unknown>) => {
+        if (
+          Object.keys(values).length === 1 &&
+          Object.hasOwn(values, 'academyProgressV1')
+        ) {
+          return saveProgress(values)
+        }
+        return blocked('storage.local.set')()
+      },
+    })
+    for (const method of ['remove', 'clear']) {
       Object.defineProperty(chrome.storage.local, method, {
         value: blocked(`storage.local.${method}`),
       })

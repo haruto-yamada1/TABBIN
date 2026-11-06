@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { MemoryI18nProvider } from '@/features/i18n/context/MemoryI18nProvider'
@@ -9,12 +9,38 @@ import { MemoryI18nProvider } from '@/features/i18n/context/MemoryI18nProvider'
 import { createPracticeComposition } from './createPracticeComposition'
 import { PracticePage } from './PracticePage'
 
+beforeEach(() => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({
+      matches: false,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  )
+})
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
 })
 
 describe('isolated practice page', () => {
+  it('shows an operation-gated lesson instead of granting progress for visiting', async () => {
+    render(
+      <MemoryI18nProvider initialLanguage='en'>
+        <TooltipProvider>
+          <PracticePage lessonId='parent-categories' />
+        </TooltipProvider>
+      </MemoryI18nProvider>,
+    )
+    expect(await screen.findByText('0 / 4')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry step' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull()
+  })
+
   it('uses the real saved-tabs UI with no production API access across reset and language changes', async () => {
     const accessed = vi.fn(() => {
       throw new Error('Production API accessed')

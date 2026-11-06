@@ -121,7 +121,7 @@ describe('Academy application use-cases', () => {
       ...guidePorts,
       lessons: ACADEMY_LESSONS.map((lesson) => ({
         ...lesson,
-        assessmentVersion: 2,
+        assessmentVersion: lesson.assessmentVersion + 1,
       })),
     }
     await expect(

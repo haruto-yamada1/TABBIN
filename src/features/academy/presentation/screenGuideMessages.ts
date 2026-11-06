@@ -24,6 +24,8 @@ const messages = {
       'Domain mode groups your saved URLs by website. Next shows the same TABBIN interface in Custom mode.',
     custom:
       'Custom mode groups URLs into your projects. Empty projects are fine; this guide does not create or move anything.',
+    restore:
+      'Use this Open all control or a saved URL to restore tabs. Bulk restoring may open many tabs; check the scope and your remove-after-open setting. This guide will not open any tabs.',
     parents:
       'This button opens parent category management. Next opens the real dialog for a read-only explanation.',
     dialog:
@@ -52,6 +54,8 @@ const messages = {
       'Domainモードは同じサイトの保存URLをまとめます。「次へ」で実際のTABBINをCustomモードに切り替えます。',
     custom:
       'CustomモードではURLをプロジェクトごとに確認できます。プロジェクトが空でも、この案内でデータを作成・移動することはありません。',
+    restore:
+      'この「すべて開く」や保存URLからタブを復元できます。一括復元は多くのタブを開くため、対象範囲と復元後の削除設定を確認してください。この案内ではタブを開きません。',
     parents:
       'このボタンから親カテゴリ管理を開きます。「次へ」で実際のダイアログを読み取り専用で案内します。',
     dialog:
