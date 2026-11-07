@@ -6,7 +6,7 @@ description: "TABBIN の Vitest 実行コマンドの使い分け。USE FOR: テ
 # テスト実行コマンドの使い分け
 
 TABBIN の Vitest は `vitest.ci.config.ts` で `projects` 構成 (node / dom) を
-採用し、`pool: 'threads'` と `isolate: false` で高速化しています。
+採用しています。pool、isolate、対象ファイル、しきい値は現在の設定を確認します。
 
 ## scripts 一覧 (package.json)
 
@@ -34,6 +34,13 @@ TABBIN の Vitest は `vitest.ci.config.ts` で `projects` 構成 (node / dom) �
 
 - ローカルで全テスト走らせる → `bun run test`
 - カバレッジも検証する → `bun run test:coverage`
+
+同じ checkout の `bun run test:coverage` と `bun run quality:check` は順次実行します。
+`src/lib/architecture/oxlintConfig.test.ts` はテスト中に
+`src/contexts/__oxlint-fixture-*` を作成・削除するため、別の Vitest のファイル収集と
+重なると、一時 `.test.ts` の消失で失敗します。各 gate の終了と結果を確認してから
+次を開始してください。競合した場合は一時ファイルを coverage 対象外にせず、
+先行 gate の終了後に失敗した gate を単独で再実行します。
 
 ## test:changed / test:related の使い方
 
