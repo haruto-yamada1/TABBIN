@@ -1,64 +1,78 @@
+import type {
+  PersistenceV2Collection,
+  PersistenceV2CollectionMembership,
+  PersistenceV2Url,
+} from '@/contexts/saved-tabs/public-api'
+
 export const createUrlFixture = (
   id: string,
   url: string,
   title: string,
   savedAt: number,
-) => ({
-  firstSavedAt: savedAt,
-  firstSavedAtProvenance: 'exact',
-  id,
-  lastSavedAt: savedAt,
-  lastSavedAtProvenance: 'exact',
-  normalizedUrl: url,
-  title,
-  updatedAt: savedAt,
-  url,
-})
+) =>
+  ({
+    firstSavedAt: savedAt,
+    firstSavedAtProvenance: 'exact',
+    id,
+    lastSavedAt: savedAt,
+    lastSavedAtProvenance: 'exact',
+    normalizedUrl: url,
+    title,
+    updatedAt: savedAt,
+    url,
+  }) satisfies PersistenceV2Url
 
 export const createDomainCollectionFixture = (
   id: string,
   domain: string,
   createdAt: number,
   sortOrder = 0,
-) => ({
-  createdAt,
-  definition: { domain, type: 'domain' },
-  id,
-  name: domain,
-  sortOrder,
-  updatedAt: createdAt,
-})
+) =>
+  ({
+    createdAt,
+    definition: { domain, type: 'domain' },
+    id,
+    name: domain,
+    sortOrder,
+    updatedAt: createdAt,
+  }) satisfies PersistenceV2Collection
 
 export const createMembershipFixture = (
   collectionId: string,
   urlId: string,
   addedAt: number,
   sortOrder = 0,
-) => ({
-  addedAt,
-  addedAtProvenance: 'exact',
-  collectionId,
-  sortOrder,
-  updatedAt: addedAt,
-  urlId,
-})
+) =>
+  ({
+    addedAt,
+    addedAtProvenance: 'exact',
+    collectionId,
+    sortOrder,
+    updatedAt: addedAt,
+    urlId,
+  }) satisfies PersistenceV2CollectionMembership
 
 export const createCustomCollectionFixture = (
   id: string,
   name: string,
   createdAt: number,
   sortOrder = 0,
-) => ({
-  createdAt,
-  definition: {
-    projectKeywords: { domainKeywords: [], titleKeywords: [], urlKeywords: [] },
-    type: 'custom',
-  },
-  id,
-  name,
-  sortOrder,
-  updatedAt: createdAt,
-})
+) =>
+  ({
+    createdAt,
+    definition: {
+      projectKeywords: {
+        domainKeywords: [],
+        titleKeywords: [],
+        urlKeywords: [],
+      },
+      type: 'custom',
+    },
+    id,
+    name,
+    sortOrder,
+    updatedAt: createdAt,
+  }) satisfies PersistenceV2Collection
 
 export const createEmptyPersistenceFixture = () => ({
   categories: [],
