@@ -42,6 +42,11 @@ bun install --frozen-lockfile
 bun tools/academy/recording/run.ts --source chrome-web-store --browser chromium
 ```
 
+`--browser` を省略すると、どちらの導入元でも検証済みの Chrome for Testing
+（`chromium` channel）を使います。ストア版では `--browser chrome` の明示指定も
+可能ですが、以下のウィンドウ ID helper は Chrome for Testing 専用です。
+通常版 Chrome の native 操作・録画方式は別途検証してください。
+
 端末へ `runDir` と一時 `profileDir` が表示されます。このプロセスが開いた専用
 ウィンドウだけを操作してください。アカウントへログインせず、他の拡張機能を
 追加しません。最初に表示される公式ストアの ID は

@@ -561,11 +561,13 @@ const recordStartupFailure = async ({
   )
 }
 
+/**
+ * Starts a fresh profile with the verified Chrome for Testing channel by default.
+ * Store-mode Chrome overrides require their own native capture setup.
+ */
 export const startRecordingSession = async (
   source: RecordingSource,
-  browser: RecordingBrowser = source === 'chrome-web-store'
-    ? 'chrome'
-    : 'chromium',
+  browser: RecordingBrowser = 'chromium',
 ) => {
   const options = recordingLaunchOptions(source, browser)
   const baseDir = path.resolve('recordings', 'academy')

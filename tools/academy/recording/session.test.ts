@@ -9,6 +9,7 @@ import {
 import os from 'node:os'
 import path from 'node:path'
 
+import { chromium } from '@playwright/test'
 import type { BrowserContext, Page, Worker } from '@playwright/test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -16,6 +17,7 @@ import {
   RecordingSession,
   recordingLaunchOptions,
   requireRecordingStage,
+  startRecordingSession,
 } from './session'
 
 describe('Academy recording launch boundary', () => {
@@ -175,7 +177,11 @@ const createLifecycle = async () => {
       return Buffer.from('unit-test-screenshot')
     })
   const pageFactory = vi.fn<() => Page>()
-  vi.mocked(pageFactory, { partial: true }).mockReturnValue({ screenshot })
+  const goto = vi.fn<Page['goto']>().mockResolvedValue(null)
+  vi.mocked(pageFactory, { partial: true }).mockReturnValue({
+    screenshot,
+    goto,
+  })
   const page = pageFactory()
   const contextFactory = vi.fn<() => BrowserContext>()
   const close = vi.fn<BrowserContext['close']>().mockResolvedValue(undefined)
@@ -237,6 +243,34 @@ const createLifecycle = async () => {
     readOperations,
   }
 }
+
+describe('RecordingSession browser selection', () => {
+  it.each([
+    ['chrome-web-store', undefined, 'chromium'],
+    ['unpacked-development', undefined, 'chromium'],
+    ['chrome-web-store', 'chrome', 'chrome'],
+    ['chrome-web-store', 'chromium', 'chromium'],
+  ] as const)(
+    'launches %s with browser %s using channel %s',
+    async (source, browser, channel) => {
+      const scene = await createLifecycle()
+      const launch = vi
+        .spyOn(chromium, 'launchPersistentContext')
+        .mockResolvedValue(scene.context)
+      const session = await startRecordingSession(source, browser)
+      lifecycleRoots.push(session.runDir, session.profileDir)
+      try {
+        expect(launch).toHaveBeenCalledWith(
+          session.profileDir,
+          expect.objectContaining({ channel, headless: false }),
+        )
+        expect(session.browser).toBe(channel)
+      } finally {
+        await session.close()
+      }
+    },
+  )
+})
 
 describe('RecordingSession observable lifecycle', () => {
   it('records a refused out-of-order command and failure screenshot without deleting the scene', async () => {
