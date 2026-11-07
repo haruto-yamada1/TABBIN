@@ -50,6 +50,10 @@ Firefox で同じデータを使うテストを追加する場合も、既存の
 
 ## 撮影
 
+ストアからのインストール・ツールバーへの固定・実タブの保存を撮る場合は、
+[ネイティブ録画 PoC](recording/README.md) を使ってください。以下の既存ツールは
+保存済み fixture の Web ページ部分を録画するもので、導入・固定の原本は収録しません。
+
 ```sh
 bun run build
 bun tools/academy/record.ts --scenario minimal

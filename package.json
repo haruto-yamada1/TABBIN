@@ -10,6 +10,7 @@
   "imports": {
     "#academy-fixture": "./tools/academy/fixture.ts",
     "#academy-browser": "./e2e/helpers/academy-fixture.ts",
+    "#academy-extension": "./e2e/helpers/extension.ts",
     "#third-party-licenses": "./tools/licenses/thirdPartyLicenses.ts",
     "#default-language": "./src/constants/language.ts",
     "#extension-permissions": "./src/constants/extensionPermissions.ts",

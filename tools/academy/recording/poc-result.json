@@ -1,0 +1,64 @@
+{
+  "issue": 998,
+  "recordedAt": "2026-11-07",
+  "environment": {
+    "os": "macOS 27.2 (26B123)",
+    "browser": "Google Chrome for Testing 156.0.8078.4",
+    "extensionVersion": "2.0.19",
+    "source": "chrome-web-store",
+    "installType": "normal",
+    "guiAutomation": "CUA macOS",
+    "nativeCapture": "screencapture: verified window ID only; no audio"
+  },
+  "status": "passed",
+  "assertions": {
+    "fixtureHostnames": 3,
+    "openedTabs": 6,
+    "savedUrls": 6,
+    "closedFixtureTabIds": 6,
+    "remainingTabs": 1,
+    "activeRoute": "app.html#/saved-tabs?mode=domain",
+    "actualClickBehavior": "saveWindowTabs",
+    "isOnToolbar": true,
+    "emptyPersistenceBeforeSave": true,
+    "profileRemoved": true
+  },
+  "clips": [
+    {
+      "stage": "install",
+      "file": "native/install.mov",
+      "bytes": 10479037,
+      "container": "iso-bmff",
+      "sha256": "6e2ea8fb201d6cea6f9323d64d65fbb4db98e90a0fc5aaa79adc4dcbfebee3ab",
+      "durationSeconds": 54.983333
+    },
+    {
+      "stage": "pin",
+      "file": "native/pin.mov",
+      "bytes": 4180525,
+      "container": "iso-bmff",
+      "sha256": "32815cf92bee366fc363c630893c29d6ce824dd7412190d58f6e1aaf5abafb7f",
+      "durationSeconds": 19.995
+    },
+    {
+      "stage": "save",
+      "file": "native/save.mov",
+      "bytes": 3006702,
+      "container": "iso-bmff",
+      "sha256": "75d0931210d23b3167725c6a7fa868978526f0600ca6fbadea658740e5bcb580",
+      "durationSeconds": 25.001667
+    }
+  ],
+  "visualReview": {
+    "method": "AVFoundation decoded-frame contact sheets + independently decoded key frames and CUA native action logs",
+    "reviewedBy": "Codex main + fresh-context Evaluator: independent AVFoundation decoded-frame reviews and CUA native action logs",
+    "privacyReviewed": true,
+    "authenticNativeUi": true
+  },
+  "failureEvidence": {
+    "prematureVerify": "failed, failure-1.png retained, profileRemoved=true",
+    "missingNativeReview": "finalize exit 1; retained in finalization-attempts.jsonl",
+    "rejectedNativeTake": "failed-pin-attempt.mov retained and excluded from final clips"
+  },
+  "originals": "Retained locally in recordings/academy/poc-MqTGDW/native; original clips and private operation logs are excluded from git and production builds."
+}
