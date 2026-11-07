@@ -8,6 +8,8 @@
   ],
   "type": "module",
   "imports": {
+    "#academy-fixture": "./tools/academy/fixture.ts",
+    "#academy-browser": "./e2e/helpers/academy-fixture.ts",
     "#third-party-licenses": "./tools/licenses/thirdPartyLicenses.ts",
     "#default-language": "./src/constants/language.ts",
     "#extension-permissions": "./src/constants/extensionPermissions.ts",

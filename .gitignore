@@ -10,6 +10,7 @@ stats.html
 stats-*.json
 
 # Test artifacts
+/recordings/academy/
 .stryker-tmp/
 /reports/mutation/
 /reports/flakes/

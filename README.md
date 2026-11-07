@@ -40,6 +40,9 @@ TABBIN(タビン)はブラウザのタブを整理・分類する拡張機能で
 
 ### [🌐 DeepWiki](https://deepwiki.com/TarouTanakaYokohama/TABBIN/1-overview)
 
+動画撮影・E2E 専用の最小データと隔離プロファイルの使い方は
+[Academy fixture README](tools/academy/README.md) を参照してください。
+
 ### 📦 リリース手順
 
 配布前に以下のコマンドで品質とビルドを確認します。
