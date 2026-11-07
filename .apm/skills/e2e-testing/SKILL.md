@@ -1,6 +1,6 @@
 ---
 name: e2e-testing
-description: TABBIN の WXT ブラウザ拡張フローに対する Playwright E2E カバレッジを追加、変更、デバッグ、レビューするときに使います。
+description: TABBIN の WXT ブラウザ拡張フローに対する Playwright E2E カバレッジの追加・変更・デバッグ・レビュー、および Academy の実ブラウザ・native UI の動画撮影に使います。
 ---
 
 # E2E テスト
@@ -20,6 +20,15 @@ unit test だけでは十分に覆えない重要なユーザーフローを優�
 
 純粋な data transform、小さな UI state、storage helper の edge case は、
 browser lifecycle が本質でない限り Vitest 側に置きます。
+
+## Academy の実ブラウザ撮影
+
+起動・操作の前に [撮影 README](../../../tools/academy/recording/README.md) と
+[ADR 0004](../../../docs/adr/0004-academy-native-recording.md) を読みます。
+README の「AI が再撮影する前の確認」を、過去 run の成功を流用する前にも確認します。
+専用 launcher と現在の native UI を対応付け、実操作・OS 録画・保存検証・原本レビューを
+それぞれの証跡で確認してください。GUI 操作と録画の方式・権限は、現在の tool の
+規約とユーザーの許可範囲に従います。
 
 ## TABBIN の Playwright ワークフロー
 
