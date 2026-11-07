@@ -56,31 +56,25 @@ const hostnameSchema = z.enum(
 const actionsSchema = z
   .array(
     z.discriminatedUnion('type', [
-      z
-        .object({
-          type: z.literal('assert-domains'),
-          hostnames: z
-            .array(hostnameSchema)
-            .min(1)
-            .refine(
-              (hostnames) => new Set(hostnames).size === hostnames.length,
-              'Domain assertions must not contain duplicates.',
-            ),
-        })
-        .strict(),
-      z
-        .object({
-          type: z.literal('assert-urls'),
-          count: z.number().int().nonnegative(),
-        })
-        .strict(),
-      z
-        .object({
-          type: z.literal('focus-domain'),
-          hostname: hostnameSchema,
-          holdSeconds: z.number().min(0).max(30),
-        })
-        .strict(),
+      z.strictObject({
+        type: z.literal('assert-domains'),
+        hostnames: z
+          .array(hostnameSchema)
+          .min(1)
+          .refine(
+            (hostnames) => new Set(hostnames).size === hostnames.length,
+            'Domain assertions must not contain duplicates.',
+          ),
+      }),
+      z.strictObject({
+        type: z.literal('assert-urls'),
+        count: z.number().int().nonnegative(),
+      }),
+      z.strictObject({
+        type: z.literal('focus-domain'),
+        hostname: hostnameSchema,
+        holdSeconds: z.number().min(0).max(30),
+      }),
     ]),
   )
   .min(1)

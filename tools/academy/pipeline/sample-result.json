@@ -77,5 +77,37 @@
     "productionFilesPerBrowser": 212,
     "productionContentComparedToDevelop": "all file SHA256 values identical",
     "productionBundleGrowthBytes": 0
+  },
+  "formatComparison": {
+    "verifiedAt": "2026-11-08",
+    "referenceMp4Sha256": "a228d41e25472e597c543afe80fdcb6cb88cf606a9f287ff5e23b1bab01c2255",
+    "comparisonSource": "transcode of the verified 27-second MP4; one candidate profile, not equal-quality or original-source quality benchmarking",
+    "webm": {
+      "codec": "vp9",
+      "pixelFormat": "yuv420p",
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "frames": 810,
+      "durationSeconds": 27,
+      "bytes": 528855,
+      "sha256": "32163d776d6c523c0ada9a751fdc78075e815be5086ba9da8c2ce700d9d08aa9",
+      "encoder": "libvpx-vp9",
+      "crf": 32,
+      "bitrate": 0,
+      "rowMt": 1,
+      "threads": 2,
+      "ssimAllAgainstMp4": 0.998863
+    },
+    "browserPlayback": {
+      "chromium": "156.0.8078.4",
+      "firefox": "157.0",
+      "pause": true,
+      "playbackRate": 1.5,
+      "seekSeconds": 8,
+      "englishCues": 4,
+      "activeCueVerified": true
+    },
+    "decision": "Keep MP4: smaller for this fixture/profile pair and verified in both browsers; WebM remains an evaluated candidate, not a product asset."
   }
 }

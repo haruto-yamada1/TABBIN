@@ -492,6 +492,14 @@ describe('Academy page capture lifecycle', () => {
     },
     { type: 'focus-domain', hostname: 'notes.filming.test', holdSeconds: -1 },
     { type: 'assert-urls', count: 1.5 },
+    { type: 'assert-domains', hostnames: ['notes.filming.test'], extra: true },
+    { type: 'assert-urls', count: 1, extra: true },
+    {
+      type: 'focus-domain',
+      hostname: 'notes.filming.test',
+      holdSeconds: 0,
+      extra: true,
+    },
     { type: 'assert-domains', hostnames: [] },
     { type: 'arbitrary-script', script: 'not allowed' },
   ])('rejects invalid scenario action %j before launching', async (action) => {
