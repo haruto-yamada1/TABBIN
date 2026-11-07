@@ -48,6 +48,13 @@ bun run e2e e2e/academy-fixtures.extension.spec.ts --project=extension --workers
 Firefox で同じデータを使うテストを追加する場合も、既存の Firefox 専用一時
 プロファイル helper を使ってください。通常プロファイルへの接続引数は追加しません。
 
+## シナリオからの教材生成
+
+字幕・章タイトル・ズーム・終了カードを付けた完成動画を生成する場合は、
+[動画制作パイプライン](pipeline/README.md)を使ってください。検証済みの native 原本と
+実保存 snapshot から、専用環境の実 UI を録画・合成・自動検証します。
+`bun run academy:make` の入力と再撮影・差分確認は同 README にまとめています。
+
 ## 撮影
 
 ストアからのインストール・ツールバーへの固定・実タブの保存を撮る場合は、

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { constants } from 'node:fs'
 import { open, readFile, realpath, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { isDeepStrictEqual } from 'node:util'
 
 import { academyManifest } from '#academy-fixture'
 import { z } from 'zod'
@@ -47,18 +48,23 @@ const afterSchema = z.object({
   isOnToolbar: z.boolean(),
   clickBehavior: z.string(),
   snapshot: z.object({
-    urls: z.array(z.object({ id: z.string().min(1), url: z.url() })),
+    categories: z.array(z.record(z.string(), z.unknown())),
+    groups: z.array(z.record(z.string(), z.unknown())),
+    urls: z.array(z.looseObject({ id: z.string().min(1), url: z.url() })),
     collections: z.array(
-      z.object({
+      z.looseObject({
         id: z.string().min(1),
         definition: z.union([
-          z.object({ type: z.literal('domain'), domain: z.string() }),
-          z.object({ type: z.literal('custom') }),
+          z.looseObject({ type: z.literal('domain'), domain: z.string() }),
+          z.looseObject({ type: z.literal('custom') }),
         ]),
       }),
     ),
     memberships: z.array(
-      z.object({ collectionId: z.string().min(1), urlId: z.string().min(1) }),
+      z.looseObject({
+        collectionId: z.string().min(1),
+        urlId: z.string().min(1),
+      }),
     ),
   }),
   validation: passedValidationSchema,
@@ -270,6 +276,57 @@ const appendAttempt = async (root: string, result: FinalRecordingResult) => {
   } finally {
     await file.close()
   }
+}
+
+/** Revalidates an existing successful PoC without changing its original evidence. */
+export const verifyFinalizedRecording = async (runDir: string) => {
+  const root = await realpath(path.resolve(runDir))
+  const [result, after, review, installation, finalized] = await Promise.all([
+    readRunJson(root, 'result.json', resultSchema),
+    readRunJson(root, 'after.json', afterSchema),
+    readRunJson(root, 'native-review.json', reviewSchema),
+    readRunJson(root, 'installation.json', installationSchema),
+    readRunJson(
+      root,
+      'final-result.json',
+      z.object({
+        status: z.literal('passed'),
+        source: sourceSchema,
+        browser: browserSchema,
+        installation: installationSchema,
+        review: z.object({
+          os: z.string(),
+          reviewedBy: z.string(),
+          privacyReviewed: z.literal(true),
+          authenticNativeUi: z.literal(true),
+        }),
+        clips: z.array(
+          z.object({
+            stage: z.enum(['install', 'pin', 'save']),
+            file: z.string(),
+            sha256: z.string(),
+            bytes: z.number(),
+            container: z.enum(['iso-bmff', 'webm']),
+          }),
+        ),
+      }),
+    ),
+  ])
+  validateRun(result, after, review)
+  const clips = await verifyReviewClips(root, review)
+  if (
+    finalized.source !== result.source ||
+    finalized.browser !== result.browser ||
+    !isDeepStrictEqual(finalized.clips, clips) ||
+    !isDeepStrictEqual(finalized.installation, installation) ||
+    finalized.review.os !== review.os ||
+    finalized.review.reviewedBy !== review.reviewedBy
+  ) {
+    throw new Error(
+      'Finalized recording no longer matches the reviewed evidence.',
+    )
+  }
+  return { clips, installation, after, review: finalized.review }
 }
 
 export const finalizeRecording = async (

@@ -13,7 +13,9 @@ import path from 'node:path'
 import { createAcademyFixture } from '#academy-fixture'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { finalizeRecording } from './nativeEvidence'
+import { createCustomCollectionFixture } from '@/test/fixtures/persistenceBrowserFixtures'
+
+import { finalizeRecording, verifyFinalizedRecording } from './nativeEvidence'
 
 const temporaryDirs: string[] = []
 afterEach(async () => {
@@ -99,6 +101,54 @@ const createRun = async () => {
 }
 
 describe('Native recording evidence gate', () => {
+  it('imports a finalized run read-only and rechecks the reviewed clip digest', async () => {
+    const { runDir, after } = await createRun()
+    await finalizeRecording(runDir)
+    const before = await readFile(
+      path.join(runDir, 'finalization-attempts.jsonl'),
+      'utf8',
+    )
+    await expect(verifyFinalizedRecording(runDir)).resolves.toMatchObject({
+      after: { snapshot: after.snapshot },
+      installation: { version: '2.0.19' },
+      clips: expect.arrayContaining([
+        expect.objectContaining({ stage: 'save' }),
+      ]),
+    })
+    expect(
+      await readFile(path.join(runDir, 'finalization-attempts.jsonl'), 'utf8'),
+    ).toBe(before)
+    await writeFile(
+      path.join(runDir, 'native/session.mov'),
+      Buffer.concat([
+        await readFile(path.join(runDir, 'native/session.mov')),
+        Buffer.from('tamper'),
+      ]),
+    )
+    await expect(verifyFinalizedRecording(runDir)).rejects.toThrow(
+      /digest|container/u,
+    )
+  })
+
+  it('preserves the real post-save Custom definition for page snapshot replay', async () => {
+    const { runDir, after } = await createRun()
+    const snapshot = {
+      ...after.snapshot,
+      collections: [
+        ...after.snapshot.collections,
+        createCustomCollectionFixture('custom-uncategorized', '未分類', 1000),
+      ],
+    }
+    await writeFile(
+      path.join(runDir, 'after.json'),
+      JSON.stringify({ ...after, snapshot }),
+    )
+    expect((await finalizeRecording(runDir)).status).toBe('passed')
+    await expect(verifyFinalizedRecording(runDir)).resolves.toMatchObject({
+      after: { snapshot },
+    })
+  })
+
   it('accepts a verified store run with reviewed real files and retains raw failure history', async () => {
     const { runDir, result } = await createRun()
     const finalized = await finalizeRecording(runDir)
