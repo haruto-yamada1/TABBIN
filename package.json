@@ -20,7 +20,9 @@
     "#production-network-policy": "./src/constants/productionNetworkPolicy.ts",
     "#typescript-parser": "./tools/typescript/native-parser.mjs",
     "#codex-issue-evaluation": "./tools/codex-issues/runner.ts",
-    "#codex-issue-pressure": "./tools/codex-issues/pressure.ts"
+    "#codex-issue-pressure": "./tools/codex-issues/pressure.ts",
+    "#academy-native-evidence": "./tools/academy/recording/nativeEvidence.ts",
+    "#academy-save-scenario": "./tools/academy/scenarios/save-tabs.json"
   },
   "scripts": {
     "dev": "wxt",
@@ -127,7 +129,11 @@
     "perf:report": "bun tools/performance-budget/cli.ts",
     "test:visual": "playwright test --config playwright.visual.config.ts",
     "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots=all",
-    "verify:firefox-smoke-environment": "bun tools/scripts/verify-firefox-smoke-environment.ts"
+    "verify:firefox-smoke-environment": "bun tools/scripts/verify-firefox-smoke-environment.ts",
+    "academy:record": "bun tools/academy/pipeline/cli.ts record",
+    "academy:render": "bun tools/academy/pipeline/cli.ts render",
+    "academy:verify": "bun tools/academy/pipeline/cli.ts verify",
+    "academy:make": "bun tools/academy/pipeline/cli.ts make"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

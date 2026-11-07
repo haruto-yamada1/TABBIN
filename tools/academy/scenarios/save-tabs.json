@@ -1,0 +1,97 @@
+{
+  "id": "save-tabs",
+  "lessonId": "save-tabs",
+  "version": 1,
+  "prerequisites": [997, 998],
+  "viewport": { "width": 1280, "height": 720 },
+  "browserVersion": "156.0.8078.4",
+  "demoSeed": "academy-997-v1",
+  "actions": [
+    { "type": "assert-urls", "count": 6 },
+    {
+      "type": "assert-domains",
+      "hostnames": [
+        "study.filming.test",
+        "notes.filming.test",
+        "garden.filming.test"
+      ]
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "study.filming.test",
+      "holdSeconds": 3
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "notes.filming.test",
+      "holdSeconds": 3
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "garden.filming.test",
+      "holdSeconds": 3
+    }
+  ],
+  "assertions": { "urls": 6, "domains": 3 },
+  "segments": [
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": { "ja": "01 / 複数タブを保存", "en": "01 / Save multiple tabs" },
+      "detail": {
+        "ja": "Chrome / Chrome for Testing",
+        "en": "Chrome / Chrome for Testing"
+      }
+    },
+    { "kind": "native", "stage": "save", "start": 0, "seconds": 10, "zoom": 1 },
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": { "ja": "02 / Domain 表示", "en": "02 / Domain view" },
+      "detail": {
+        "ja": "編集点：同じ保存結果を専用環境で解説",
+        "en": "Edit: the same saved result in a fresh demo profile"
+      }
+    },
+    { "kind": "page", "start": 0, "seconds": 8, "zoom": 1.08 },
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "保存したタブを、ドメインごとに",
+        "en": "Saved tabs, grouped by domain"
+      },
+      "detail": {
+        "ja": "一時停止・再生速度変更で確認できます",
+        "en": "Pause or change playback speed to review"
+      }
+    }
+  ],
+  "captions": [
+    {
+      "start": 3,
+      "end": 7,
+      "ja": "準備：Options で「ウィンドウのすべてのタブを保存」を選択済み",
+      "en": "Setup: select Save all tabs in the window in Options first"
+    },
+    {
+      "start": 7,
+      "end": 13,
+      "ja": "固定した本物の TABBIN アイコンから6タブを保存・終了",
+      "en": "The pinned TABBIN icon saves and closes six real tabs"
+    },
+    {
+      "start": 16,
+      "end": 20,
+      "ja": "同じ hostname の URL が Domain にまとまります",
+      "en": "URLs with the same hostname appear in one Domain"
+    },
+    {
+      "start": 20,
+      "end": 24,
+      "ja": "3つのドメイン・6つの保存 URL を実画面で確認",
+      "en": "Review three domains and six saved URLs in the real UI"
+    }
+  ],
+  "output": { "filename": "save-tabs.mp4", "fps": 30, "maxBytes": 20000000 }
+}
