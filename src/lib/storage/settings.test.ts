@@ -26,6 +26,32 @@ const loadModule = async () => {
 }
 
 describe('settings storage', () => {
+  it('今開いているタブは初期ONで、明示OFFも保存して再読み込みできる', async () => {
+    const { defaultSettings, getUserSettings, saveUserSettings } =
+      await loadModule()
+    let storedValue: unknown = {}
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({ userSettings: storedValue })),
+      set: vi.fn(async ({ userSettings }: { userSettings: unknown }) => {
+        storedValue = userSettings
+      }),
+    })
+    expect(defaultSettings).toHaveProperty('showOpenTabs', true)
+    await expect(getUserSettings()).resolves.toMatchObject({
+      showOpenTabs: true,
+    })
+    const verifySavedSetting = async (showOpenTabs: boolean) => {
+      await saveUserSettings({ ...defaultSettings, showOpenTabs })
+      await expect(getUserSettings()).resolves.toMatchObject({ showOpenTabs })
+    }
+    await verifySavedSetting(true)
+    await verifySavedSetting(false)
+    storedValue = { showOpenTabs: 'true' }
+    await expect(getUserSettings()).resolves.toMatchObject({
+      showOpenTabs: true,
+    })
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })

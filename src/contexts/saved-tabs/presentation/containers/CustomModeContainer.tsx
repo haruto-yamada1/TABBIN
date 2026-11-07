@@ -1,6 +1,8 @@
 import { LoadingState } from '@/components/ui/loading-state'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
+import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
+import { useCustomOpenTabsRows } from '@/contexts/saved-tabs/presentation/controllers/useCustomOpenTabsRows'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsProjectKeywordSettingsDto as ProjectKeywordSettings,
@@ -61,6 +63,8 @@ type CustomModeContainerProps = {
     newCategoryName: string,
   ) => Promise<void>
   getProjectUrlsUseCase: GetProjectUrlsUseCase
+  /** 検索入力中は行の部分的なすり抜けを避けるためセクションを出さない。 */
+  searchQuery: string
 }
 
 export const CustomModeContainer = ({
@@ -86,52 +90,75 @@ export const CustomModeContainer = ({
   handleReorderProjects,
   handleRenameCategory,
   getProjectUrlsUseCase,
+  searchQuery,
 }: CustomModeContainerProps) => {
+  const openTabsRows = useCustomOpenTabsRows({
+    enabled: settings.showOpenTabs !== false,
+    getProjectUrlsUseCase,
+    projects,
+    searchQuery,
+  })
   if (isLoading) {
     return <LoadingState />
   }
 
   return (
-    <CustomProjectSection
-      projects={projects}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleOpenUrl={handleOpenUrl}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleDeleteUrl={handleDeleteUrl}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleDeleteUrlsFromProject={handleDeleteUrlsFromProject}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleAddUrl={handleAddUrl}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleCreateProject={handleCreateProject}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleDeleteProject={handleDeleteProject}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleRenameProject={handleRenameProject}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleUpdateProjectKeywords={handleUpdateProjectKeywords}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleAddCategory={handleAddCategory}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleDeleteCategory={handleDeleteCategory}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleSetUrlCategory={handleSetUrlCategory}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleUpdateCategoryOrder={handleUpdateCategoryOrder}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleReorderUrls={handleReorderUrls}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleOpenAllUrls={handleOpenAllUrls}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleMoveUrlBetweenProjects={handleMoveUrlBetweenProjects}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleMoveUrlsBetweenCategories={handleMoveUrlsBetweenCategories}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleReorderProjects={handleReorderProjects}
-      // eslint-disable-next-line typescript/no-misused-promises
-      handleRenameCategory={handleRenameCategory}
-      getProjectUrlsUseCase={getProjectUrlsUseCase}
-      settings={settings}
-    />
+    <div>
+      {settings.showOpenTabs !== false && openTabsRows.length > 0 && (
+        <OpenTabsSection
+          mode='custom'
+          rows={openTabsRows}
+          settings={settings}
+          // eslint-disable-next-line typescript/no-misused-promises
+          handleOpenAllTabs={handleOpenAllUrls}
+          // eslint-disable-next-line typescript/no-misused-promises
+          handleOpenTab={handleOpenUrl}
+          // eslint-disable-next-line typescript/no-misused-promises
+          handleDeleteUrl={handleDeleteUrl}
+          handleDeleteUrls={handleDeleteUrlsFromProject}
+        />
+      )}
+      <CustomProjectSection
+        projects={projects}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleOpenUrl={handleOpenUrl}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleDeleteUrl={handleDeleteUrl}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleDeleteUrlsFromProject={handleDeleteUrlsFromProject}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleAddUrl={handleAddUrl}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleCreateProject={handleCreateProject}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleDeleteProject={handleDeleteProject}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleRenameProject={handleRenameProject}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleUpdateProjectKeywords={handleUpdateProjectKeywords}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleAddCategory={handleAddCategory}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleDeleteCategory={handleDeleteCategory}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleSetUrlCategory={handleSetUrlCategory}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleUpdateCategoryOrder={handleUpdateCategoryOrder}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleReorderUrls={handleReorderUrls}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleOpenAllUrls={handleOpenAllUrls}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleMoveUrlBetweenProjects={handleMoveUrlBetweenProjects}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleMoveUrlsBetweenCategories={handleMoveUrlsBetweenCategories}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleReorderProjects={handleReorderProjects}
+        // eslint-disable-next-line typescript/no-misused-promises
+        handleRenameCategory={handleRenameCategory}
+        getProjectUrlsUseCase={getProjectUrlsUseCase}
+        settings={settings}
+      />
+    </div>
   )
 }

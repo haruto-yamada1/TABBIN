@@ -109,6 +109,7 @@ describe('SavedTabsPresentationMapper', () => {
       removeTabAfterOpen: true,
       showRelativeSavedTime: true,
       showSavedTime: true,
+      showOpenTabs: true,
     }
 
     const dto = toSavedTabsUserSettingsDto(source)

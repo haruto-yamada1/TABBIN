@@ -6,6 +6,15 @@ import {
 } from './UserSettingsDefaults'
 
 describe('normalizeUserSettings', () => {
+  it.each([undefined, null, 'true', false, true])(
+    '今開いているタブは未設定ならON、明示OFFを維持する: %j',
+    (showOpenTabs) => {
+      expect(
+        normalizeUserSettings({ userSettings: { showOpenTabs } }).normalized,
+      ).toMatchObject({ showOpenTabs: showOpenTabs !== false })
+    },
+  )
+
   it.each([undefined, null, 'invalid', {}, { userSettings: null }])(
     '保存値が利用できない場合は既定値を返す: %j',
     (stored) => {

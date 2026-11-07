@@ -37,6 +37,7 @@ describe('SavedTabsDtosMapper.toUserSettingsDto', () => {
       removeTabAfterOpen: true,
       showRelativeSavedTime: true,
       showSavedTime: false,
+      showOpenTabs: true,
     }
     const dto = toUserSettingsDto(storage)
     expect(dto).toStrictEqual(storage)
@@ -76,6 +77,7 @@ describe('SavedTabsDtosMapper.toStorageUserSettings', () => {
       removeTabAfterOpen: true,
       showRelativeSavedTime: true,
       showSavedTime: true,
+      showOpenTabs: false,
     }
     const dto = toUserSettingsDto(original)
     const storage = toStorageUserSettings(dto)

@@ -213,6 +213,37 @@ describe('Backup V2 schemas', () => {
     })
   })
 
+  it.each([true, false])(
+    'round-trips the open tabs display setting %j in Backup V2',
+    (showOpenTabs) => {
+      const data = BackupMapper.toBackupData(createLogicalSnapshot(), {
+        ...userSettings,
+        showOpenTabs,
+      })
+      const serialized = JSON.stringify(data)
+      const decoded: unknown = JSON.parse(serialized)
+      expect(BackupDataV2Schema.parse(decoded).userSettings).toMatchObject({
+        showOpenTabs,
+      })
+    },
+  )
+
+  it('accepts older backups without the open tabs display setting', () => {
+    const data = BackupMapper.toBackupData(
+      createLogicalSnapshot(),
+      userSettings,
+    )
+    expect(
+      BackupDataV2Schema.parse(data).userSettings.showOpenTabs,
+    ).toBeUndefined()
+    expect(
+      BackupDataV2Schema.safeParse({
+        ...data,
+        userSettings: { ...data.userSettings, showOpenTabs: 'true' },
+      }).success,
+    ).toBe(false)
+  })
+
   it('round-trips relative saved time independently of its parent setting', () => {
     const settings = {
       ...userSettings,

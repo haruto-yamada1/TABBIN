@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import type { BrowserContext, Locator, Page } from '@playwright/test'
+import type { BrowserContext, Locator, Page, TestInfo } from '@playwright/test'
 
 import {
   createCustomCollectionFixture,
@@ -43,7 +43,11 @@ const createOpenTabsFixture = () => {
   ]
   return {
     storage: createBaseSeed({
-      userSettings: { ...defaultUserSettings, removeTabAfterOpen: false },
+      userSettings: {
+        ...defaultUserSettings,
+        removeTabAfterOpen: false,
+        showOpenTabs: true,
+      },
     }),
     persistence: {
       categories: [],
@@ -65,8 +69,17 @@ const createOpenTabsFixture = () => {
   }
 }
 
-const row = (page: Page, title: string) =>
-  page.getByRole('listitem').filter({
+const savedRowsScope = (page: Page, mode: 'domain' | 'custom'): Locator =>
+  mode === 'domain'
+    ? // 「今開いているタブ」セクションの行 (data-category-context="open-tabs") を除外
+      page.locator(
+        'li[data-testid="sortable-url-item"]:not([data-category-context="open-tabs"])',
+      )
+    : // custom モードはプロジェクト行のみ (セクション行は sortable-url-item)
+      page.locator('li[data-testid="project-url-item"]')
+
+const row = (page: Page, title: string, mode: 'domain' | 'custom' = 'custom') =>
+  savedRowsScope(page, mode).filter({
     has: page.getByRole('link', { name: title, exact: true }),
   })
 
@@ -136,6 +149,159 @@ const routeOpenTabFixture = async (context: BrowserContext) => {
   })
 }
 
+export const verifyOpenTabsDisplaySetting = async ({
+  page,
+  context,
+  appUrl,
+  testInfo,
+}: {
+  page: Page
+  context: BrowserContext
+  appUrl: string
+  testInfo: TestInfo
+}) => {
+  await routeOpenTabFixture(context)
+  await page.goto(`${appUrl}#/options`)
+  const fixture = createOpenTabsFixture()
+  const { showOpenTabs: _showOpenTabs, ...legacySettings } = defaultUserSettings
+  await seedSavedTabsFixture(page, {
+    ...fixture,
+    storage: createBaseSeed({
+      userSettings: { ...legacySettings, removeTabAfterOpen: false },
+    }),
+  })
+  const live = await context.newPage()
+  await live.goto(firstUrl)
+  const verifyMode = async (
+    mode: 'domain' | 'custom',
+    enabled: boolean,
+    reload = false,
+  ) => {
+    await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
+    await expectOpenState(row(page, 'Saved article', mode), true)
+    await expect(page.getByTestId('open-tabs-section')).toHaveCount(
+      enabled ? 1 : 0,
+    )
+    if (reload) {
+      await page.reload()
+      await expect(page.getByTestId('open-tabs-section')).toHaveCount(
+        enabled ? 1 : 0,
+      )
+    }
+  }
+  await verifyMode('domain', true, true)
+  await verifyMode('custom', true, true)
+  const options = await context.newPage()
+  await options.goto(`${appUrl}#/options`)
+  const checkbox = options.getByRole('checkbox', {
+    name: 'Show currently open tabs',
+    exact: true,
+  })
+  await expect(checkbox).toBeChecked()
+  await checkbox.uncheck()
+  await expect(page.getByTestId('open-tabs-section')).toHaveCount(0)
+  await options.reload()
+  await expect(checkbox).not.toBeChecked()
+  await expectOpenState(row(page, 'Saved article', 'custom'), true)
+  await verifyMode('domain', false, true)
+  await verifyMode('custom', false, true)
+  await checkbox.check()
+  await expect(page.getByTestId('open-tabs-section')).toBeVisible()
+  await options.reload()
+  await expect(checkbox).toBeChecked()
+  await checkbox.scrollIntoViewIfNeeded()
+  await options.screenshot({
+    path: testInfo.outputPath('options.png'),
+  })
+  await verifyMode('domain', true, true)
+  await verifyMode('custom', true, true)
+  await options.close()
+  await live.close()
+}
+
+export const verifyOpenTabsBulkDelete = async ({
+  page,
+  context,
+  appUrl,
+}: {
+  page: Page
+  context: BrowserContext
+  appUrl: string
+}) => {
+  const otherUrl = 'https://other-open-tabs.example.test/article'
+  await routeOpenTabFixture(context)
+  await context.route(
+    'https://other-open-tabs.example.test/**',
+    async (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: '<title>Other tab</title>',
+      }),
+  )
+  await page.goto(`${appUrl}#/options`)
+  const fixture = createOpenTabsFixture()
+  const now = Date.now()
+  await seedSavedTabsFixture(page, {
+    storage: fixture.storage,
+    persistence: {
+      ...fixture.persistence,
+      collections: [
+        ...fixture.persistence.collections,
+        createDomainCollectionFixture(
+          'other-domain',
+          'other-open-tabs.example.test',
+          now,
+        ),
+      ],
+      memberships: [
+        ...fixture.persistence.memberships,
+        createMembershipFixture('other-domain', 'other-url', now),
+      ],
+      urls: [
+        ...fixture.persistence.urls,
+        createUrlFixture('other-url', otherUrl, 'Other open domain', now),
+      ],
+    },
+  })
+  const before = await readPersistenceV2SavedTabsSnapshot(page)
+  const firstTab = await context.newPage()
+  await firstTab.goto(firstUrl)
+  const otherTab = await context.newPage()
+  await otherTab.goto(otherUrl)
+  await page.goto(`${appUrl}#/saved-tabs?mode=domain`)
+  const section = page.getByTestId('open-tabs-section')
+  await expect(section.getByTestId('sortable-url-item')).toHaveCount(2)
+  await section.getByRole('button', { name: /Delete all/ }).click()
+  await expect(section).toHaveCount(0)
+  await expect
+    .poll(async () =>
+      (
+        await readPersistenceV2Store<ReturnType<typeof createUrlFixture>>(
+          page,
+          'urls',
+        )
+      )
+        .map(({ url }) => url)
+        .toSorted(),
+    )
+    .toEqual([hashUrl, secondUrl].toSorted())
+  const undo = page.getByRole('button', { name: 'Undo', exact: true })
+  await expect(undo).toHaveCount(1)
+  await undo.click()
+  const { revision: _beforeRevision, ...beforeData } = before
+  await expect
+    .poll(async () => {
+      const { revision: _revision, ...data } =
+        await readPersistenceV2SavedTabsSnapshot(page)
+      return data
+    })
+    .toEqual(beforeData)
+  await page.reload()
+  await expect(section.getByTestId('sortable-url-item')).toHaveCount(2)
+  await firstTab.close()
+  await otherTab.close()
+}
+
 export const verifyOpenTabs = async ({
   page,
   context,
@@ -184,10 +350,18 @@ export const verifyOpenTabs = async ({
   const existing = await context.newPage()
   await existing.goto(firstUrl)
   await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
-  const firstRow = row(page, 'Saved article')
-  const secondRow = row(page, 'Other saved article')
-  const hashRow = row(page, 'Article section')
+  const firstRow = row(page, 'Saved article', mode)
+  const secondRow = row(page, 'Other saved article', mode)
+  const hashRow = row(page, 'Article section', mode)
   await expectOpenState(firstRow, true)
+  {
+    // 保存カード/project 行に加え、「今開いているタブ」セクションにも同じ URL の行が出る
+    await expect(
+      page.locator('[data-testid="open-tabs-section"] li').filter({
+        has: page.getByRole('link', { name: 'Saved article', exact: true }),
+      }),
+    ).toBeVisible()
+  }
   await expectOpenState(secondRow, false)
   await expectOpenState(hashRow, false)
   await expectHoverTooltip(page, dragHandle(firstRow))
@@ -244,6 +418,8 @@ export const verifyOpenTabs = async ({
     false,
     screenshots ? '開いています' : 'Open now',
   )
+  // 開いているタブがなくなればセクションは消える
+  await expect(page.getByTestId('open-tabs-section')).toHaveCount(0)
   expect(await readPersistenceV2SavedTabsSnapshot(page)).toEqual(
     persistenceBefore,
   )
@@ -280,13 +456,14 @@ export const verifyOpenTabDragging = async ({
   await page.bringToFront()
 
   const collectionId = mode === 'domain' ? 'open-domain' : 'open-project'
-  const rows = page.getByTestId(
-    mode === 'domain' ? 'sortable-url-item' : 'project-url-item',
-  )
-  const links = rows.getByRole('link')
-  const firstRow = row(page, 'Saved article')
+  const links = (
+    mode === 'domain'
+      ? savedRowsScope(page, mode)
+      : page.getByTestId('project-url-item')
+  ).getByRole('link')
+  const firstRow = row(page, 'Saved article', mode)
   const handle = dragHandle(firstRow)
-  const secondHandle = dragHandle(row(page, 'Other saved article'))
+  const secondHandle = dragHandle(row(page, 'Other saved article', mode))
   const originalTitles = [
     'Saved article',
     'Other saved article',
@@ -359,6 +536,18 @@ export const verifyOpenTabDragging = async ({
   await expect(handle).not.toHaveAttribute('aria-pressed', 'true')
   await expect(links).toHaveText(pointerTitles)
   expect(await readOrder()).toEqual(['open-second', 'open-first', 'open-hash'])
+
+  // Cancelling restores focus before sortable's row transitions finish.
+  // Wait for the actual layout to settle before measuring the next drag.
+  await expect
+    .poll(async () =>
+      savedRowsScope(page, mode).evaluateAll((elements) =>
+        elements.every(
+          (element) => window.getComputedStyle(element).transform === 'none',
+        ),
+      ),
+    )
+    .toBe(true)
 
   await startKeyboardDrag(page, handle, 'Space')
   await page.keyboard.press('ArrowUp')

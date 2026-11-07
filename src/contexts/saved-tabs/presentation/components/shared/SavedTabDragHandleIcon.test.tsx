@@ -62,6 +62,7 @@ const expectNoInlineStatus = (label = 'Open now') => {
 const createOpenTabsFake = () => {
   const openUrls = new Set<string>()
   const listeners = new Map<string, Set<() => void>>()
+  const openUrlListeners = new Set<() => void>()
   const port = {
     getSnapshot: (url: string) => openUrls.has(url),
     subscribe: (url: string, listener: () => void) => {
@@ -75,20 +76,31 @@ const createOpenTabsFake = () => {
         }
       }
     },
+    getOpenUrlsSnapshot: () => [...openUrls],
+    subscribeOpenUrls: (listener: () => void) => {
+      openUrlListeners.add(listener)
+      return () => {
+        openUrlListeners.delete(listener)
+      }
+    },
+  }
+  const setOpen = (url: string, isOpen: boolean) => {
+    if (isOpen) {
+      openUrls.add(url)
+    } else {
+      openUrls.delete(url)
+    }
+    for (const listener of listeners.get(url) ?? []) {
+      listener()
+    }
+    for (const listener of openUrlListeners) {
+      listener()
+    }
   }
   return {
     port,
     listeners,
-    setOpen: (url: string, isOpen: boolean) => {
-      if (isOpen) {
-        openUrls.add(url)
-      } else {
-        openUrls.delete(url)
-      }
-      for (const listener of listeners.get(url) ?? []) {
-        listener()
-      }
-    },
+    setOpen,
   }
 }
 

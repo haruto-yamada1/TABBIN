@@ -49,6 +49,7 @@ import {
   shouldWaitForInitialViewMode,
   syncSavedTabsViewModeLocation,
   syncStorageChanges,
+  useOpenTabsRows,
   useSavedTabsStorageSync,
 } from './savedTabsApp.helpers'
 
@@ -183,6 +184,11 @@ const useSavedTabsAppView = ({
     handleReorderProjects,
     handleRenameCategory,
   } = projectState
+  const openTabsRows = useOpenTabsRows({
+    enabled: viewMode === 'domain' && settings.showOpenTabs !== false,
+    searchQuery,
+    tabGroups,
+  })
   const categoryLookup = useMemo(
     () => buildPresentationCategoryLookup(categories),
     [categories],
@@ -486,6 +492,7 @@ const useSavedTabsAppView = ({
         handleUncategorizedDragEnd={handleUncategorizedDragEnd}
         hasContentTabGroupsCount={hasContentTabGroups.length}
         reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
+        openTabsRows={openTabsRows}
         renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}
         categoryManagementModalDeps={categoryManagementModalDeps}
         categoryManagementModalUseCases={categoryManagementModalUseCases}
@@ -514,6 +521,7 @@ const useSavedTabsAppView = ({
         handleReorderProjects={handleReorderProjects}
         handleRenameCategory={handleRenameCategory}
         getProjectUrlsUseCase={savedTabsUseCases.getProjectUrls}
+        searchQuery={searchQuery}
       />
     )
   return (

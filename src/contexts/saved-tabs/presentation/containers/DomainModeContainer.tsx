@@ -17,6 +17,7 @@ import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
+import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
 import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
@@ -27,6 +28,7 @@ import {
 import { SortableDomainCard } from '@/contexts/saved-tabs/presentation/components/SortableDomainCard'
 import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
 import { getScopedNounActionLabel } from '@/contexts/saved-tabs/presentation/lib/accessibility'
+import type { OpenTabsRow } from '@/contexts/saved-tabs/presentation/lib/open-tabs-display'
 import type {
   SavedTabsParentCategoryDto as ParentCategory,
   SavedTabsTabGroupDto as TabGroup,
@@ -155,6 +157,11 @@ type DomainModeContainerProps = {
   handleUncategorizedDragEnd: (event: DragEndEvent) => void
   hasContentTabGroupsCount: number
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
+  /**
+   * 「今開いているタブ」行。コンテンツ最上部に表示する。空または未指定の
+   * ときはセクションを出さない (issue: currently open tabs)。
+   */
+  openTabsRows?: readonly OpenTabsRow[]
   /**
    * 親カテゴリリネーム use-case（issue #502）。
    */
@@ -459,6 +466,7 @@ export const DomainModeContainer = ({
   handleUncategorizedDragEnd,
   hasContentTabGroupsCount,
   reorderTabGroupUrlsUseCase,
+  openTabsRows,
   renameParentCategoryUseCase,
   categoryManagementModalDeps,
   categoryManagementModalUseCases,
@@ -554,6 +562,26 @@ export const DomainModeContainer = ({
 
   const content = (
     <>
+      {settings.showOpenTabs !== false &&
+        openTabsRows !== undefined &&
+        openTabsRows.length > 0 && (
+          <OpenTabsSection
+            mode='domain'
+            rows={openTabsRows}
+            settings={settings}
+            // eslint-disable-next-line typescript/no-misused-promises
+            handleOpenAllTabs={handleOpenAllTabs}
+            // eslint-disable-next-line typescript/no-misused-promises
+            handleOpenTab={handleOpenTab}
+            // eslint-disable-next-line typescript/no-misused-promises
+            handleDeleteUrl={handleDeleteUrl}
+            {...(handleDeleteUrls !== undefined ? { handleDeleteUrls } : {})}
+            {...(handleDeleteSelectedUrls !== undefined
+              ? { handleDeleteRows: handleDeleteSelectedUrls }
+              : {})}
+          />
+        )}
+
       {settings.enableCategories && Object.keys(categorized).length > 0 && (
         <DndKitContext
           accessibility={accessibility}

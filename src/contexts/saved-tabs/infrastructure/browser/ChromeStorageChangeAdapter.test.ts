@@ -42,6 +42,24 @@ const createMockOnChanged = (): MockOnChanged => {
 }
 
 describe('createChromeStorageChangeAdapter', () => {
+  it.each([false, true])(
+    '今開いているタブの表示変更%sを開いた画面へ通知する',
+    (showOpenTabs) => {
+      const onChanged = createMockOnChanged()
+      const listener = vi.fn()
+      createChromeStorageChangeAdapter({
+        getOnChanged: () => onChanged,
+      }).subscribe(listener)
+      onChanged.emit({ userSettings: { newValue: { showOpenTabs } } }, 'local')
+      expect(listener).toHaveBeenCalledWith([
+        expect.objectContaining({
+          key: 'userSettings',
+          payload: [{ showOpenTabs }],
+        }),
+      ])
+    },
+  )
+
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()

@@ -168,6 +168,32 @@ const createSettings = (
 })
 
 describe('OptionsRoute', () => {
+  it('今開いているタブの表示は未設定ならONで表示する', () => {
+    optionsRouteMocks.settings = createSettings()
+    render(<OptionsRoute />)
+    expect(
+      screen.getByRole('checkbox', { name: 'options.showOpenTabs' }),
+    ).toBeChecked()
+  })
+
+  it.each([false, true])(
+    '今開いているタブの表示設定%sを切り替える',
+    async (showOpenTabs) => {
+      optionsRouteMocks.settings = createSettings({ showOpenTabs })
+      const user = userEvent.setup()
+      render(<OptionsRoute />)
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'options.showOpenTabs',
+      })
+      expect(checkbox).toHaveProperty('checked', showOpenTabs)
+      await user.click(checkbox)
+      expect(optionsRouteMocks.updateSetting).toHaveBeenCalledExactlyOnceWith(
+        'showOpenTabs',
+        !showOpenTabs,
+      )
+    },
+  )
+
   it.each([false, true])('親OFFなら子の値%sを保って無効化する', (child) => {
     optionsRouteMocks.settings = createSettings({
       showSavedTime: false,

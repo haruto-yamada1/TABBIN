@@ -301,6 +301,8 @@ export const createPracticeComposition = (
     openSavedTabsPort: {
       getSnapshot: () => false,
       subscribe: () => () => undefined,
+      getOpenUrlsSnapshot: () => [],
+      subscribeOpenUrls: () => () => undefined,
     },
     searchHistoryPort: {
       read: async () => [...searchHistory],
