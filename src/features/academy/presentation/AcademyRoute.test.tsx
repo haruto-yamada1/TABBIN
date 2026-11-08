@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -15,6 +16,7 @@ import { createRecordVideoProgressUseCase } from '@/features/academy/application
 import { createSkipLessonUseCase } from '@/features/academy/application/use-cases/SkipLessonUseCase'
 import { createStartLessonUseCase } from '@/features/academy/application/use-cases/StartLessonUseCase'
 import { ACADEMY_LESSONS } from '@/features/academy/domain/academyCatalog'
+import { VIDEO_MAX_SAMPLE_GAP_SECONDS } from '@/features/academy/domain/academyProgress'
 import { emptyAcademyState } from '@/features/academy/domain/AcademyProgressRepository'
 import type { AcademyState } from '@/features/academy/domain/AcademyProgressRepository'
 
@@ -29,7 +31,7 @@ afterEach(() => {
   cleanup()
   uiLanguage.value = 'en'
 })
-const createUseCases = () => {
+const createUseCases = (now?: () => number) => {
   let state: AcademyState = emptyAcademyState()
   let timestamp = 100
   const ports = {
@@ -42,7 +44,7 @@ const createUseCases = () => {
         return structuredClone(state)
       },
     },
-    now: () => timestamp++,
+    now: now ?? (() => timestamp++),
     newId: () => 'attempt-1',
   }
   return {
@@ -188,6 +190,109 @@ describe('Academy learning screen', () => {
     expect(tracks.map((track) => track.mode)).toEqual(['showing', 'disabled'])
     await user.selectOptions(screen.getByLabelText('Captions'), 'off')
     expect(tracks.every((track) => track.mode === 'disabled')).toBe(true)
+  })
+
+  it('limits timeupdate writes to one per second without delaying lifecycle events', async () => {
+    const useCases = createUseCases()
+    const recordVideoProgress = vi
+      .fn(useCases.recordVideoProgress)
+      .mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    show(
+      { useCases: { ...useCases, recordVideoProgress } },
+      '/academy/pin-extension',
+    )
+    await user.click(await screen.findByRole('tab', { name: 'Learn by video' }))
+    await user.click(screen.getByRole('button', { name: 'Load video' }))
+    const video = screen.getByLabelText<HTMLVideoElement>('Learn by video', {
+      selector: 'video',
+    })
+    Object.defineProperty(video, 'paused', { configurable: true, value: false })
+    const clock = vi.spyOn(performance, 'now')
+    try {
+      await act(async () => {
+        for (const time of [1000, 1001, 1500, 1999]) {
+          clock.mockReturnValue(time)
+          video.currentTime = time / 1000
+          fireEvent.timeUpdate(video)
+        }
+      })
+      expect(recordVideoProgress).toHaveBeenCalledTimes(1)
+      clock.mockReturnValue(2000)
+      await act(async () => {
+        fireEvent.timeUpdate(video)
+      })
+      expect(recordVideoProgress).toHaveBeenCalledTimes(2)
+      await act(async () => {
+        clock.mockReturnValue(2001)
+        fireEvent.play(video)
+        fireEvent.pause(video)
+        fireEvent.seeking(video)
+        fireEvent.seeked(video)
+        fireEvent.rateChange(video)
+        fireEvent.ended(video)
+      })
+      expect(recordVideoProgress).toHaveBeenCalledTimes(8)
+      expect(
+        recordVideoProgress.mock.calls.map(([sample]) => sample.sequence),
+      ).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
+      expect(1).toBeLessThan(VIDEO_MAX_SAMPLE_GAP_SECONDS)
+    } finally {
+      clock.mockRestore()
+    }
+  })
+
+  it('credits a whole short chapter at two-times speed with one-second samples', async () => {
+    let wallTime = 1000
+    const useCases = createUseCases(() => wallTime)
+    const recordVideoProgress = vi.fn(useCases.recordVideoProgress)
+    const user = userEvent.setup()
+    show(
+      { useCases: { ...useCases, recordVideoProgress } },
+      '/academy/pin-extension',
+    )
+    await user.click(await screen.findByRole('tab', { name: 'Learn by video' }))
+    await user.click(screen.getByRole('button', { name: 'Load video' }))
+    const video = screen.getByLabelText<HTMLVideoElement>('Learn by video', {
+      selector: 'video',
+    })
+    Object.defineProperties(video, {
+      paused: { configurable: true, value: false },
+      ended: { configurable: true, value: false },
+    })
+    video.playbackRate = 2
+    const clock = vi
+      .spyOn(performance, 'now')
+      .mockImplementation(() => wallTime)
+    try {
+      await act(async () => {
+        fireEvent.play(video)
+      })
+      await Array.from({ length: 9 }, (_, index) => index + 1).reduce(
+        async (previous, index) => {
+          await previous
+          wallTime = 1000 + index * 1000
+          video.currentTime = index * 2
+          await act(async () => {
+            fireEvent.timeUpdate(video)
+          })
+        },
+        Promise.resolve(),
+      )
+      video.currentTime = 20
+      Object.defineProperty(video, 'ended', { configurable: true, value: true })
+      await act(async () => {
+        fireEvent.ended(video)
+      })
+      const progress = await useCases.getProgress()
+      expect(
+        progress.lessons.find((lesson) => lesson.lessonId === 'pin-extension')
+          ?.videoWatched,
+      ).toBe(true)
+      expect(progress.summary.completed).toBe(1)
+    } finally {
+      clock.mockRestore()
+    }
   })
 
   it('records playback events using the real media state and keeps seeking separate', async () => {

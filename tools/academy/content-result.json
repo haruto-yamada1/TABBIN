@@ -116,5 +116,28 @@
       "importantFindings": 0,
       "realVideoWatchedEvidence": "20-second English pin chapter completed at2x in a fresh Chromium extension profile; persisted range0..19.9687 and watchedAt verified"
     }
+  },
+  "reviewFollowup": {
+    "baselineCommit": "34507b61cf5b2ab7929ec91471c974098af28d63",
+    "publication": "Locale order is ja/en; publication date is UTC; store version is derived from matching validated native recording evidence before copying.",
+    "progress": "Only timeupdate is sampled at most once per second. Play/pause/seek/rate/end remain immediate; replay resets the timeupdate baseline.",
+    "playbackVerification": "Single-byte-range responses preserve Chromium seek; all16 localized movies pass in Chromium156 and Firefox157. Firefox-only owned app-data cleanup is attempted; OS-protected cleanup failures warn without ACL changes.",
+    "coverage": {
+      "settings": "CI=true FLAKE_REPORT_PATH=test-results/flake-coverage.json FLAKE_SUITE=coverage",
+      "statements": 90.28,
+      "branches": 85.06,
+      "functions": 91.46,
+      "lines": 90.25,
+      "configuredThresholdsPassed": true,
+      "exclusionsOrThresholdsChanged": false
+    },
+    "tests": {
+      "files": 537,
+      "passed": 6513,
+      "existingSkipped": 1,
+      "academyPlayerDom": 19,
+      "mediaRangeResponses": 14,
+      "naturalViewing": "Current extension, 20-second pin chapter completed at2x without seek or clock mocks; real storage ranges0..19.5345 and watchedAt verified."
+    }
   }
 }

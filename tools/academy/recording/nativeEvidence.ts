@@ -26,7 +26,7 @@ const resultSchema = z.object({
   failureCount: z.number().int().nonnegative(),
   saveFlow: passedValidationSchema,
 })
-const installationSchema = z.object({
+export const installationSchema = z.object({
   source: z.literal('chrome-web-store'),
   id: z.literal('dljblklbpmoocinnlcejeokopmfoldaj'),
   installType: z.literal('normal'),

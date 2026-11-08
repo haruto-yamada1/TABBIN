@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
@@ -6,8 +6,8 @@ import { parseArgs } from 'node:util'
 import { chromium, expect, firefox } from '@playwright/test'
 import type { Browser } from '@playwright/test'
 
-// eslint-disable-next-line import/no-relative-parent-imports -- Reuse the repository's macOS Firefox app-data isolation contract.
-import { createFirefoxSmokeProcessEnvironment } from '../scripts/firefoxSmokeEnvironment'
+import { createMediaResponse } from './mediaResponse'
+import { createPlaybackAppData } from './playbackAppData'
 
 const tracksReady = (video: HTMLElement | SVGElement) => {
   if (!(video instanceof HTMLVideoElement)) {
@@ -54,7 +54,12 @@ const server = createServer((request, response) => {
       'Content-Type',
       pathname.endsWith('.mp4') ? 'video/mp4' : 'text/vtt; charset=utf-8',
     )
-    response.end(file)
+    const media = createMediaResponse(
+      file,
+      request.method === 'GET' ? request.headers.range : undefined,
+    )
+    response.writeHead(media.status, media.headers)
+    response.end(media.body)
   } else if (pathname === '/') {
     response.setHeader('Content-Type', 'text/html; charset=utf-8')
     response.end(
@@ -75,26 +80,22 @@ if (!address || typeof address === 'string') {
 const origin = `http://127.0.0.1:${address.port}`
 let browser: Browser | undefined
 const results: unknown[] = []
-const appDataDirectory = await mkdtemp(
-  path.join(output, `${browserName}-app-data-`),
-)
-const firefoxEnvironment = createFirefoxSmokeProcessEnvironment({
-  environment: process.env,
-  platform: process.platform,
-  appDataDirectory,
-})
+let appData: Awaited<ReturnType<typeof createPlaybackAppData>>
 try {
-  browser =
-    browserName === 'firefox'
-      ? await firefox.launch(
-          process.env.FIREFOX_EXECUTABLE_PATH
-            ? {
-                executablePath: process.env.FIREFOX_EXECUTABLE_PATH,
-                env: firefoxEnvironment,
-              }
-            : { env: firefoxEnvironment },
-        )
-      : await chromium.launch({ channel: 'chromium' })
+  appData = await createPlaybackAppData(browserName, output)
+  if (browserName === 'firefox') {
+    if (!appData) {
+      throw new Error('Firefox app-data isolation is unavailable.')
+    }
+    browser = await firefox.launch({
+      ...(process.env.FIREFOX_EXECUTABLE_PATH
+        ? { executablePath: process.env.FIREFOX_EXECUTABLE_PATH }
+        : {}),
+      env: appData.environment,
+    })
+  } else {
+    browser = await chromium.launch({ channel: 'chromium' })
+  }
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
     reducedMotion: 'reduce',
@@ -182,6 +183,16 @@ try {
       })
     })
     await expect
+      .poll(async () =>
+        page.locator('video').evaluate((video) => {
+          if (!(video instanceof HTMLVideoElement)) {
+            throw new TypeError('Video missing.')
+          }
+          return video.currentTime
+        }),
+      )
+      .toBeCloseTo(5, 1)
+    await expect
       .poll(async () => page.locator('video').evaluate(tracksReady))
       .toBe(true)
     const state = await page.locator('video').evaluate((video) => {
@@ -264,14 +275,21 @@ try {
   )
   throw error
 } finally {
-  await browser?.close()
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error)
-      } else {
-        resolve()
-      }
-    })
-  })
+  try {
+    await browser?.close()
+  } finally {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error)
+          } else {
+            resolve()
+          }
+        })
+      })
+    } finally {
+      await appData?.cleanup()
+    }
+  }
 }

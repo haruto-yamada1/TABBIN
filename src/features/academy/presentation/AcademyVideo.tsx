@@ -12,6 +12,8 @@ import type { AcademyUiUseCases } from './AcademyRoute.types'
 import { useAcademyText } from './academyUiMessages'
 
 type CaptionLanguage = 'ja' | 'en' | 'off'
+// Well inside the domain's 10-second maximum sample gap. Lifecycle events always report.
+const TIMEUPDATE_INTERVAL_MS = 1000
 const setCaptionMode = (
   video: HTMLVideoElement | null,
   language: CaptionLanguage,
@@ -48,6 +50,7 @@ export const AcademyVideo = ({
   const sequence = useRef(0)
   const sessionId = useRef<string | null>(null)
   const pending = useRef<Promise<void> | null>(null)
+  const lastTimeUpdate = useRef<number | null>(null)
   const applyCaptions = useCallback(() => {
     setCaptionMode(videoRef.current, captions)
   }, [captions])
@@ -66,6 +69,16 @@ export const AcademyVideo = ({
     (event: SyntheticEvent<HTMLVideoElement>) => {
       if (!asset) {
         return
+      }
+      if (event.type === 'timeupdate') {
+        const now = performance.now()
+        if (
+          lastTimeUpdate.current !== null &&
+          now - lastTimeUpdate.current < TIMEUPDATE_INTERVAL_MS
+        ) {
+          return
+        }
+        lastTimeUpdate.current = now
       }
       const video = event.currentTarget
       const sample: Omit<VideoProgressCommand, keyof LessonAttempt> = {
@@ -115,6 +128,7 @@ export const AcademyVideo = ({
     video.currentTime = 0
     sessionId.current = crypto.randomUUID()
     sequence.current = 0
+    lastTimeUpdate.current = null
     void video.play().catch(() => {
       setFailed(true)
     })

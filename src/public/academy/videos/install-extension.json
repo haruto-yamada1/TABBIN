@@ -8,20 +8,6 @@
   "captionMode": "tracks",
   "narration": false,
   "assets": {
-    "en": {
-      "status": "passed",
-      "bytes": 353673,
-      "durationSeconds": 30,
-      "codec": "h264",
-      "width": 1280,
-      "height": 720,
-      "videoSha256": "1ea1d1833b6bb1d28fa08b9cfa422fa46eb19dc50f2dead98e99e4d0f233ff15",
-      "subtitles": {
-        "ja": "1de576b83d6cb51bb5249b4579d08f97ce99b32a58d4e1c6ade2166c50a8bc20",
-        "en": "879f1cc7bc15788b40e89f0a780b800350af7e541bbeea2219cecb81da49c2ef"
-      },
-      "sha256": "1ea1d1833b6bb1d28fa08b9cfa422fa46eb19dc50f2dead98e99e4d0f233ff15"
-    },
     "ja": {
       "status": "passed",
       "bytes": 351850,
@@ -35,6 +21,20 @@
         "en": "879f1cc7bc15788b40e89f0a780b800350af7e541bbeea2219cecb81da49c2ef"
       },
       "sha256": "e0c0e90b3816394ec9627d30d813a32b3e7408a68b5a740f7b9f0bbb9585830a"
+    },
+    "en": {
+      "status": "passed",
+      "bytes": 353673,
+      "durationSeconds": 30,
+      "codec": "h264",
+      "width": 1280,
+      "height": 720,
+      "videoSha256": "1ea1d1833b6bb1d28fa08b9cfa422fa46eb19dc50f2dead98e99e4d0f233ff15",
+      "subtitles": {
+        "ja": "1de576b83d6cb51bb5249b4579d08f97ce99b32a58d4e1c6ade2166c50a8bc20",
+        "en": "879f1cc7bc15788b40e89f0a780b800350af7e541bbeea2219cecb81da49c2ef"
+      },
+      "sha256": "1ea1d1833b6bb1d28fa08b9cfa422fa46eb19dc50f2dead98e99e4d0f233ff15"
     }
   }
 }

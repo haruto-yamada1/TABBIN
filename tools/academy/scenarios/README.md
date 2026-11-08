@@ -43,7 +43,9 @@ bun tools/academy/publishLesson.ts --ja /absolute/path/to/verified-ja-render --e
 
 `--lesson` を表のIDに変えて繰り返します。recordとrenderが出力するtake directoryを次へ渡します。
 publishは両言語と現在のscenarioの一致、codec・尺・全フレームdecode・VTT整合を再検査してから
-MP4/VTT/poster/manifestを配置します。技術検査だけで教材内容の承認にはしません。
+MP4/VTT/poster/manifestを配置します。manifestのasset順はja/enで固定し、公開日はUTCの
+実行日、ストア版は両言語のnative-evidenceに一致したinstallation.versionから取得します。
+技術検査だけで教材内容の承認にはしません。
 
 この端末のBun 1.3.14では、FFmpeg終了後にレンダーが待機したテイクを観測しました。
 同じTypeScriptを指定のNodeへ一時ビルドして編集・検証できます。制作依存は増やしません。
@@ -94,7 +96,8 @@ bun tools/academy/verifyPlayback.ts --browser firefox
 FirefoxにはPlaywright対応の実行ファイルを準備し、必要なら `FIREFOX_EXECUTABLE_PATH` を指定します。
 検証用serverはloopbackで、素材以外の通信を遮断します。macOSでは既存Firefox smokeと同じ
 アプリデータ分離helperを使い、`recordings/academy/content-review/` に診断を残します。
-OSが作成する保護フォルダのACLを変更して後片付けを強制しません。
+Firefox専用のアプリデータは検証後に削除を試みます。保護フォルダ等で削除できない場合は
+警告を記録し、ACLを変更せずその診断領域を保持します。Chromium用には作成しません。
 Bunの編集待機を避ける場合、verifyPlaybackも同じ `bun build --target=node` で一時生成できます。
 
 総素材容量とZIPサイズ、ブラウザ版、検証結果は[content-result.json](../content-result.json)に記録します。

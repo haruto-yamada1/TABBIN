@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { seedSavedTabsFixture } from '#academy-extension'
+import { academyManifest } from '#academy-fixture'
 import { chromium } from '@playwright/test'
 import type {
   Browser,
@@ -249,6 +250,33 @@ const createLifecycle = async () => {
   }
 }
 
+const dispatchCaptureRequest = async (
+  lifecycle: Awaited<ReturnType<typeof createLifecycle>>,
+  url: string,
+) => {
+  const handler = lifecycle.route.mock.calls[0]?.[1]
+  if (typeof handler !== 'function') {
+    throw new TypeError('Route handler missing.')
+  }
+  const requestFactory = vi.fn<() => Request>()
+  vi.mocked(requestFactory, { partial: true }).mockReturnValue({
+    url: () => url,
+  })
+  const request = requestFactory()
+  const abort = vi.fn(async () => undefined)
+  const resume = vi.fn(async () => undefined)
+  const fulfill = vi.fn(async () => undefined)
+  const routeFactory = vi.fn<() => Route>()
+  vi.mocked(routeFactory, { partial: true }).mockReturnValue({
+    request: () => request,
+    abort,
+    continue: resume,
+    fulfill,
+  })
+  await handler(routeFactory(), request)
+  return { abort, resume, fulfill }
+}
+
 describe('Academy page capture lifecycle', () => {
   it('records a verified snapshot continuation and returns only after video finalization', async () => {
     const lifecycle = await createLifecycle()
@@ -336,6 +364,56 @@ describe('Academy page capture lifecycle', () => {
       code: 1008,
       reason: 'Academy capture is offline.',
     })
+  })
+
+  it('allows only the owned extension origin to continue normally', async () => {
+    const lifecycle = await createLifecycle()
+    await capturePage(lifecycle.options)
+    const decision = await dispatchCaptureRequest(
+      lifecycle,
+      'chrome-extension://test-extension/app.html',
+    )
+    expect(decision.resume).toHaveBeenCalledOnce()
+    expect(decision.abort).not.toHaveBeenCalled()
+    expect(decision.fulfill).not.toHaveBeenCalled()
+  })
+
+  it.each(
+    academyManifest.sites.flatMap((site) =>
+      site.pages.map((item) => ({
+        url: `https://${site.hostname}${item.path}`,
+        title: item.title,
+      })),
+    ),
+  )(
+    'fulfills the declared fictional page $url without outbound traffic',
+    async ({ url, title }) => {
+      const lifecycle = await createLifecycle()
+      await capturePage(lifecycle.options)
+      const decision = await dispatchCaptureRequest(lifecycle, url)
+      expect(decision.fulfill).toHaveBeenCalledWith({
+        contentType: 'text/html',
+        body: expect.stringContaining(`<h1>${title}</h1>`),
+      })
+      expect(decision.resume).not.toHaveBeenCalled()
+      expect(decision.abort).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    'https://study.filming.test/not-filmed',
+    'https://study.filming.test/guide?tracking=private',
+    'http://study.filming.test/guide',
+    'https://study.filming.test.other.test/guide',
+    'chrome-extension://other-extension/app.html',
+    'not a URL',
+  ])('blocks undeclared navigation %s', async (url) => {
+    const lifecycle = await createLifecycle()
+    await capturePage(lifecycle.options)
+    const decision = await dispatchCaptureRequest(lifecycle, url)
+    expect(decision.abort).toHaveBeenCalledWith('blockedbyclient')
+    expect(decision.resume).not.toHaveBeenCalled()
+    expect(decision.fulfill).not.toHaveBeenCalled()
   })
 
   it('visibly emphasizes the actual domain while focused and restores its original style', async () => {

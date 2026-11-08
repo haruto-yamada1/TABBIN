@@ -49,6 +49,30 @@ describe('Academy scenario contract', () => {
     expect(parseScenario(scenario).lessonId).toBe('parent-categories')
   })
 
+  it.each(['install-extension', 'pin-extension'])(
+    'rejects %s without the real native operation',
+    (lessonId) => {
+      expect(() =>
+        parseScenario({ ...saveTabs, id: lessonId, lessonId }),
+      ).toThrow('operation clip')
+    },
+  )
+
+  it('rejects a demonstration of another lesson even on a valid page timeline', () => {
+    expect(() =>
+      parseScenario({
+        ...saveTabs,
+        id: 'reorder-items',
+        lessonId: 'reorder-items',
+        actions: [
+          saveTabs.actions[0],
+          saveTabs.actions[1],
+          { type: 'demonstrate-lesson', lessonId: 'restore-tabs', seconds: 20 },
+        ],
+      }),
+    ).toThrow('identifiers must match')
+  })
+
   it.each([
     { ...saveTabs, output: { ...saveTabs.output, filename: '../escape.mp4' } },
     { ...saveTabs, browserVersion: '' },

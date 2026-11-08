@@ -12,6 +12,11 @@ import { parseArgs } from 'node:util'
 import { fileDigest, verifyLessonArtifacts } from './pipeline/artifacts'
 import { runMediaCommand } from './pipeline/render'
 import { parseScenario } from './pipeline/scenario'
+import type { Locale } from './pipeline/scenario'
+import {
+  createPublicationManifest,
+  readNativeStoreVersion,
+} from './publicationManifest'
 
 const { values } = parseArgs({
   options: { ja: { type: 'string' }, en: { type: 'string' } },
@@ -52,28 +57,31 @@ if (JSON.stringify(currentScenario) !== JSON.stringify(scenario)) {
     'Current scenario differs from the rendered input. Regenerate before publishing.',
   )
 }
+const nativeStoreVersion = await readNativeStoreVersion(directories)
+const [japaneseVerification, englishVerification] = await Promise.all([
+  verifyLessonArtifacts(directories.ja, scenario),
+  verifyLessonArtifacts(directories.en, scenario),
+])
+const verified = { ja: japaneseVerification, en: englishVerification }
 const output = path.resolve('src/public/academy/videos')
 await mkdir(output, { recursive: true })
-const assets: Record<string, unknown> = {}
-await Promise.all(
-  (['ja', 'en'] as const).map(async (locale) => {
-    // Decode and check the actual file again before adding it to the product.
-    const verification = await verifyLessonArtifacts(
-      directories[locale],
-      scenario,
-    )
-    const name = `${scenario.lessonId}.${locale}.mp4`
-    const source = path.join(directories[locale], scenario.output.filename)
-    const temporary = path.join(output, `${name}.tmp`)
-    await copyFile(source, temporary)
-    await rename(temporary, path.join(output, name))
-    await copyFile(
-      path.join(directories[locale], `${scenario.id}.${locale}.vtt`),
-      path.join(output, `${scenario.lessonId}.${locale}.vtt`),
-    )
-    assets[locale] = { ...verification, sha256: await fileDigest(source) }
-  }),
-)
+const publishAsset = async (locale: Locale) => {
+  const name = `${scenario.lessonId}.${locale}.mp4`
+  const source = path.join(directories[locale], scenario.output.filename)
+  const temporary = path.join(output, `${name}.tmp`)
+  await copyFile(source, temporary)
+  await rename(temporary, path.join(output, name))
+  await copyFile(
+    path.join(directories[locale], `${scenario.id}.${locale}.vtt`),
+    path.join(output, `${scenario.lessonId}.${locale}.vtt`),
+  )
+  return { ...verified[locale], sha256: await fileDigest(source) }
+}
+const [japaneseAsset, englishAsset] = await Promise.all([
+  publishAsset('ja'),
+  publishAsset('en'),
+])
+const assets = { ja: japaneseAsset, en: englishAsset }
 const poster = `${scenario.lessonId}.poster.jpg`
 const firstClip = scenario.segments.findIndex(
   (segment) => segment.kind !== 'card',
@@ -104,19 +112,14 @@ try {
 } finally {
   await rm(posterTemp, { force: true })
 }
-const manifest = {
-  lessonId: scenario.lessonId,
-  version: scenario.version,
-  updatedAt: '2026-11-08',
+const manifest = createPublicationManifest({
+  scenario,
+  nativeStoreVersion,
   scenarioSha256: await fileDigest(
     path.resolve('tools/academy/scenarios', `${scenario.id}.json`),
   ),
-  browser: scenario.browserVersion,
-  nativeStoreVersion: '2.0.19',
-  captionMode: 'tracks',
-  narration: false,
   assets,
-}
+})
 await writeFile(
   path.join(output, `${scenario.lessonId}.json`),
   `${JSON.stringify(manifest, null, 2)}\n`,
