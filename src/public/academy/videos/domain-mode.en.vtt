@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:03.000 --> 00:00:11.000
+Saved URLs with the same hostname are grouped into one Domain
+
+00:00:11.000 --> 00:00:19.000
+Three fictional domains, with two URLs each. Different hostnames form separate groups
+
+00:00:19.000 --> 00:00:27.000
+Domain mode groups by site. Parent and child categories add more organization

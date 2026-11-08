@@ -21,11 +21,15 @@ import { chromium, expect } from '@playwright/test'
 import type { BrowserContext, Page } from '@playwright/test'
 import { z } from 'zod'
 
+import { demonstrateLesson } from './demonstrations'
+import { demonstrationSchema } from './scenario'
+
 export type PersistenceV2SavedTabsSnapshot = PersistenceV2SavedTabsSeed & {
   revision?: unknown
 }
 
 export type PageAction =
+  | z.infer<typeof demonstrationSchema>
   | { type: 'assert-domains'; hostnames: string[] }
   | { type: 'assert-urls'; count: number }
   | { type: 'focus-domain'; hostname: string; holdSeconds: number }
@@ -56,6 +60,7 @@ const hostnameSchema = z.enum(
 const actionsSchema = z
   .array(
     z.discriminatedUnion('type', [
+      demonstrationSchema,
       z.strictObject({
         type: z.literal('assert-domains'),
         hostnames: z
@@ -111,8 +116,16 @@ export const captureLaunchOptions = (
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 
-const runPageAction = async (page: Page, action: PageAction): Promise<void> => {
+const runPageAction = async (
+  page: Page,
+  action: PageAction,
+  runDir: string,
+): Promise<void> => {
   switch (action.type) {
+    case 'demonstrate-lesson': {
+      await demonstrateLesson(page, action, runDir)
+      break
+    }
     case 'assert-domains': {
       const headings = page
         .getByTestId('domain-scroll-target')
@@ -225,6 +238,24 @@ const closeCapture = async (
   }
 }
 
+export const captureTimestamp = (
+  snapshot: PersistenceV2SavedTabsSnapshot,
+): number =>
+  Math.max(
+    academyManifest.savedAt,
+    ...[
+      ...snapshot.urls,
+      ...snapshot.collections,
+      ...snapshot.categories,
+      ...snapshot.groups,
+      ...snapshot.memberships,
+    ].flatMap((row) =>
+      Object.entries(row).flatMap(([key, value]) =>
+        key.endsWith('At') && typeof value === 'number' ? [value] : [],
+      ),
+    ),
+  ) + 1000
+
 const prepareCapturePage = async (
   state: CaptureState,
   options: CapturePageOptions,
@@ -241,6 +272,21 @@ const prepareCapturePage = async (
     const url = URL.parse(route.request().url())
     if (url?.protocol === 'chrome-extension:' && url.host === extensionId) {
       await route.continue()
+      return
+    }
+    const fixture = academyManifest.sites
+      .flatMap((site) =>
+        site.pages.map((item) => ({
+          url: `https://${site.hostname}${item.path}`,
+          title: item.title,
+        })),
+      )
+      .find((item) => item.url === url?.href)
+    if (fixture) {
+      await route.fulfill({
+        contentType: 'text/html',
+        body: `<!doctype html><title>${fixture.title}</title><h1>${fixture.title}</h1><p>TABBIN Academy filming fixture.</p>`,
+      })
       return
     }
     await route.abort('blockedbyclient')
@@ -261,13 +307,23 @@ const prepareCapturePage = async (
   await seedSavedTabsFixture(worker, {
     storage: createBaseSeed({
       'tab-manager-theme': 'light',
-      userSettings: { ...defaultUserSettings, language: 'ja' },
+      userSettings: {
+        ...defaultUserSettings,
+        language: 'ja',
+        showOpenTabs: options.actions.some(
+          (item) =>
+            item.type === 'demonstrate-lesson' &&
+            item.lessonId === 'restore-tabs',
+        ),
+      },
     }),
     persistence: options.snapshot,
   })
   const page = await context.newPage()
   state.page = page
-  await page.clock.setFixedTime(academyManifest.savedAt)
+  if (!options.actions.some((item) => item.type === 'demonstrate-lesson')) {
+    await page.clock.setFixedTime(captureTimestamp(options.snapshot))
+  }
   await page.goto(
     getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
   )
@@ -342,7 +398,7 @@ export const capturePage = async (
       state.actionIndex = index
       const startedAt = performance.now()
       // eslint-disable-next-line no-await-in-loop -- Scenario actions must run in declared order.
-      await runPageAction(page, action)
+      await runPageAction(page, action, root)
       const entry = {
         index,
         action,

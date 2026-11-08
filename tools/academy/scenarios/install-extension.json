@@ -1,0 +1,94 @@
+{
+  "id": "install-extension",
+  "lessonId": "install-extension",
+  "version": 1,
+  "prerequisites": [997, 998],
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "browserVersion": "156.0.8078.4",
+  "demoSeed": "academy-997-v1",
+  "actions": [
+    {
+      "type": "assert-urls",
+      "count": 6
+    },
+    {
+      "type": "assert-domains",
+      "hostnames": [
+        "study.filming.test",
+        "notes.filming.test",
+        "garden.filming.test"
+      ]
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "study.filming.test",
+      "holdSeconds": 1
+    }
+  ],
+  "assertions": {
+    "urls": 6,
+    "domains": 3
+  },
+  "segments": [
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "インストールする",
+        "en": "Install TABBIN"
+      },
+      "detail": {
+        "ja": "Chrome / Chromium 実録画・ナレーションなし",
+        "en": "Real Chrome / Chromium capture · no narration"
+      }
+    },
+    {
+      "kind": "native",
+      "stage": "install",
+      "start": 4,
+      "seconds": 24,
+      "zoom": 1
+    },
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "いつでも一時停止して復習",
+        "en": "Pause and review anytime"
+      },
+      "detail": {
+        "ja": "日英字幕・テキスト手順を利用できます",
+        "en": "Japanese / English captions and text instructions available"
+      }
+    }
+  ],
+  "captions": [
+    {
+      "start": 3,
+      "end": 9,
+      "ja": "公式Chromeウェブストアで TABBIN を確認し「Chrome に追加」",
+      "en": "Find TABBIN in the official Chrome Web Store and choose Add to Chrome"
+    },
+    {
+      "start": 9,
+      "end": 24,
+      "ja": "権限を確認して「拡張機能を追加」。これは公開ストア版の実録画です",
+      "en": "Review permissions and add the extension. This is a real store installation"
+    },
+    {
+      "start": 24,
+      "end": 27,
+      "ja": "導入後に保存一覧が開きます。Firefoxは別の導入手順です",
+      "en": "The saved tabs page opens after installation. Firefox uses a different store"
+    }
+  ],
+  "output": {
+    "filename": "install-extension.mp4",
+    "fps": 30,
+    "maxBytes": 20000000
+  },
+  "captionMode": "tracks"
+}

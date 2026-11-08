@@ -16,7 +16,7 @@ import type {
 } from '@playwright/test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { captureLaunchOptions, capturePage } from './capture'
+import { captureLaunchOptions, capturePage, captureTimestamp } from './capture'
 import type { CapturePageOptions, PageAction } from './capture'
 
 vi.mock('#academy-extension', async (importOriginal) => {
@@ -36,6 +36,17 @@ afterEach(async () => {
 })
 
 describe('Academy page capture launch contract', () => {
+  it('keeps writes after the timestamps in a verified native snapshot', () => {
+    const snapshot = {
+      urls: [{ id: 'fixture-url', savedAt: 1794000000000 }],
+      collections: [],
+      categories: [],
+      groups: [],
+      memberships: [],
+    }
+    expect(captureTimestamp(snapshot)).toBe(1794000001000)
+  })
+
   it('owns its profile and fixes presentation inputs without exposing profile overrides', () => {
     const options = captureLaunchOptions({ width: 1280, height: 720 })
     expect(options).toMatchObject({

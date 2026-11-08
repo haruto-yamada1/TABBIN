@@ -3,7 +3,7 @@
 Issue #999 の制作専用 TypeScript ツールです。`../scenarios/save-tabs.json` は
 #998 の本物の native 保存クリップと、同じ実保存 snapshot を使った実 Domain UI の
 自動録画から27秒の教材を生成します。架空の TABBIN UI は生成しません。
-全8本の内容制作・本番 assets の登録は別作業です。
+全8本の制作・本番登録と章別再生成は[教材README](../scenarios/README.md)を参照してください。
 
 ## 前提と最初の生成
 
@@ -94,7 +94,7 @@ page を扱い、source の切り出し秒数・duration・簡易 zoom を宣言
 
 制作ツール、原本、trace、font、FFmpeg は production bundle に含めません。
 必要な完成 MP4 と VTT だけを内容制作 Issue で本番配置し、既存 Academy の遅延ロードに
-登録します。ここから `public/` への自動コピーや全動画の preload はしません。
+登録します。ここから `src/public/` への自動コピーや全動画の preload はしません。
 
 ```sh
 bun run test:node tools/academy

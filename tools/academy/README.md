@@ -48,6 +48,10 @@ bun run e2e e2e/academy-fixtures.extension.spec.ts --project=extension --workers
 Firefox で同じデータを使うテストを追加する場合も、既存の Firefox 専用一時
 プロファイル helper を使ってください。通常プロファイルへの接続引数は追加しません。
 
+## 8章の完成教材
+
+配布する教材、日英字幕、章別の再生成とレビューは[教材README](scenarios/README.md)にまとめています。
+
 ## シナリオからの教材生成
 
 字幕・章タイトル・ズーム・終了カードを付けた完成動画を生成する場合は、

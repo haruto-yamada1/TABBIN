@@ -11,7 +11,9 @@ import { ACADEMY_LESSONS } from '@/features/academy/domain/academyCatalog'
 import { createChromeAcademyProgressRepository } from '@/features/academy/infrastructure/ChromeAcademyProgressRepository'
 
 const setup = (japaneseDuration = 60, initial?: unknown) => {
-  const base = ACADEMY_LESSONS[0]
+  const base = ACADEMY_LESSONS.find(
+    (lesson) => lesson.lessonId === 'pin-extension',
+  )
   if (!base) {
     throw new Error('Initial catalog must contain a lesson')
   }

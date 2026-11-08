@@ -1,0 +1,7 @@
+WEBVTT
+
+00:00:03.000 --> 00:00:11.000
+Open one URL in a background tab. Remove after opening is enabled in this recording
+
+00:00:11.000 --> 00:00:22.000
+Open all in a Domain restores multiple tabs. Only successfully opened URLs are removed

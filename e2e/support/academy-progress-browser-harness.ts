@@ -21,8 +21,11 @@ const videoRestartSmoke = async (phase: 'fresh' | 'verify') => {
     lessons: [
       {
         ...lesson,
+        // Synthetic duration/asset evidence must not become the real lesson's viewing fact.
+        lessonId: 'restart-video-smoke',
         assets: lesson.assets.map((asset) => ({
           ...asset,
+          assetId: `restart-smoke-${asset.assetId}`,
           status: 'available' as const,
           durationSeconds: asset.locale === 'en' ? 100 : 60,
         })),
@@ -32,7 +35,7 @@ const videoRestartSmoke = async (phase: 'fresh' | 'verify') => {
     newId: () => crypto.randomUUID(),
   }
   if (phase === 'fresh') {
-    const attempt = await createStartLessonUseCase(ports)(lesson.lessonId)
+    const attempt = await createStartLessonUseCase(ports)('restart-video-smoke')
     const record = createRecordVideoProgressUseCase(ports)
     await (ports.lessons[0]?.assets ?? [])
       .toSorted((left, right) => left.locale.localeCompare(right.locale))

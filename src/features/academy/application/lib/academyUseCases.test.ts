@@ -74,6 +74,36 @@ const setup = () => {
 }
 
 describe('Academy application use-cases', () => {
+  it('credits measured double-speed playback but rejects seeking and impossible rates', async () => {
+    const { ports, read, advance } = setup()
+    const attempt = await createStartLessonUseCase(ports)('test-lesson')
+    const record = createRecordVideoProgressUseCase(ports)
+    const sample = {
+      ...attempt,
+      sessionId: 'speed-session',
+      assetId: 'test-video',
+      playing: true,
+      seeking: false,
+      playbackRate: 2,
+    }
+    await record({ ...sample, sequence: 0, positionSeconds: 0 })
+    advance(1000)
+    await record({ ...sample, sequence: 1, positionSeconds: 2 })
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.ranges,
+    ).toEqual([[0, 2]])
+    advance(1000)
+    await record({ ...sample, sequence: 2, positionSeconds: 50, seeking: true })
+    advance(1000)
+    await record({ ...sample, sequence: 3, positionSeconds: 52 })
+    expect(
+      read().lessons['test-lesson']?.video.assets['test-video']?.ranges,
+    ).toEqual([[0, 2]])
+    await expect(
+      record({ ...sample, sequence: 4, positionSeconds: 54, playbackRate: 99 }),
+    ).rejects.toMatchObject({ code: 'INVALID_EVENT' })
+  })
+
   it('records a viewed screen guide separately from practice and preserves it on skip and replay', async () => {
     const { ports, read, advance } = setup()
     const guidePorts = { ...ports, lessons: ACADEMY_LESSONS }

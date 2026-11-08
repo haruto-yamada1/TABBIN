@@ -11,6 +11,44 @@ describe('Academy scenario contract', () => {
     })
   })
 
+  it('accepts a native installation chapter without pretending it is a save', () => {
+    const scenario = {
+      ...saveTabs,
+      id: 'install-extension',
+      lessonId: 'install-extension',
+      segments: [
+        saveTabs.segments[0],
+        { kind: 'native', stage: 'install', start: 0, seconds: 24, zoom: 1 },
+        saveTabs.segments.at(-1),
+      ],
+    }
+    expect(parseScenario(scenario).lessonId).toBe('install-extension')
+  })
+
+  it('accepts a bounded real UI category demonstration with selectable caption tracks', () => {
+    const scenario = {
+      ...saveTabs,
+      id: 'parent-categories',
+      lessonId: 'parent-categories',
+      captionMode: 'tracks',
+      actions: [
+        saveTabs.actions[0],
+        saveTabs.actions[1],
+        {
+          type: 'demonstrate-lesson',
+          lessonId: 'parent-categories',
+          seconds: 34,
+        },
+      ],
+      segments: [
+        saveTabs.segments[0],
+        { kind: 'page', start: 0, seconds: 34, zoom: 1 },
+        saveTabs.segments.at(-1),
+      ],
+    }
+    expect(parseScenario(scenario).lessonId).toBe('parent-categories')
+  })
+
   it.each([
     { ...saveTabs, output: { ...saveTabs.output, filename: '../escape.mp4' } },
     { ...saveTabs, browserVersion: '' },

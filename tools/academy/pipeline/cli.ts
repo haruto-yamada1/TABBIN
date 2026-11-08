@@ -10,6 +10,7 @@ import {
 import path from 'node:path'
 import { parseArgs, promisify } from 'node:util'
 
+import { createAcademyFixture } from '#academy-fixture'
 import { verifyFinalizedRecording } from '#academy-native-evidence'
 import { z } from 'zod'
 
@@ -104,9 +105,37 @@ const record = async (scenario: LessonScenario, nativeRun: string) => {
     )
     await save(runDir, 'scenario.json', scenario)
     await save(runDir, 'native-evidence.json', evidence)
+    const snapshot =
+      scenario.pageSeed === 'organized'
+        ? createAcademyFixture('minimal')
+        : evidence.after.snapshot
+    if (scenario.pageSeed === 'organized') {
+      const learning = snapshot.groups.find(
+        (group) => group.name === 'Learning',
+      )
+      if (!learning) {
+        throw new Error('Learning fixture missing.')
+      }
+      snapshot.collections = snapshot.collections.map((collection) => {
+        if (collection.definition.type !== 'domain') {
+          return collection
+        }
+        if (collection.definition.domain === 'notes.filming.test') {
+          return { ...collection, groupId: learning.id }
+        }
+        if (collection.definition.domain === 'garden.filming.test') {
+          return {
+            ...collection,
+            groupId: snapshot.groups.find((group) => group.name === 'Personal')
+              ?.id,
+          }
+        }
+        return collection
+      })
+    }
     const captured = await capturePage({
       runDir,
-      snapshot: evidence.after.snapshot,
+      snapshot,
       actions: scenario.actions,
       viewport: scenario.viewport,
       browserVersion: scenario.browserVersion,

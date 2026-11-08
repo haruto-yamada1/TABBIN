@@ -26,7 +26,7 @@ export const AcademyRoute = ({
   const state = useAcademyProgress(useCases)
   const lesson = lessons.find((item) => item.lessonId === lessonId)
   return (
-    <main className='min-h-0 flex-1 overflow-y-auto'>
+    <main className='min-h-0 flex-1 overflow-y-auto text-foreground'>
       <div
         className='mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-8 sm:py-10'
         aria-label={text('title')}
@@ -83,6 +83,8 @@ export const AcademyRoute = ({
                 )}
                 busy={state.busy}
                 record={state.record}
+                useCases={useCases}
+                refresh={state.refresh}
               />
             ) : null}
             {lessonId && !lesson ? (

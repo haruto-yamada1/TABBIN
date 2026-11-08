@@ -1,0 +1,120 @@
+{
+  "issue": 1000,
+  "updatedAt": "2026-11-08",
+  "status": "passed",
+  "sourceCommit": "caa5996b65641164ac648bb6147a6d42e92f48e2",
+  "browser": "Chromium 156.0.8078.4",
+  "nativeStoreVersion": "2.0.19",
+  "chapters": [
+    {
+      "lessonId": "child-categories",
+      "version": 1,
+      "durationSeconds": 40,
+      "jaBytes": 535193,
+      "enBytes": 537680
+    },
+    {
+      "lessonId": "domain-mode",
+      "version": 1,
+      "durationSeconds": 30,
+      "jaBytes": 269455,
+      "enBytes": 271129
+    },
+    {
+      "lessonId": "install-extension",
+      "version": 1,
+      "durationSeconds": 30,
+      "jaBytes": 351850,
+      "enBytes": 353673
+    },
+    {
+      "lessonId": "parent-categories",
+      "version": 1,
+      "durationSeconds": 40,
+      "jaBytes": 700284,
+      "enBytes": 702933
+    },
+    {
+      "lessonId": "pin-extension",
+      "version": 1,
+      "durationSeconds": 20,
+      "jaBytes": 130911,
+      "enBytes": 129425
+    },
+    {
+      "lessonId": "reorder-items",
+      "version": 1,
+      "durationSeconds": 30,
+      "jaBytes": 459872,
+      "enBytes": 461912
+    },
+    {
+      "lessonId": "restore-tabs",
+      "version": 1,
+      "durationSeconds": 25,
+      "jaBytes": 227108,
+      "enBytes": 230300
+    },
+    {
+      "lessonId": "save-tabs",
+      "version": 2,
+      "durationSeconds": 27,
+      "jaBytes": 250049,
+      "enBytes": 246998
+    }
+  ],
+  "media": {
+    "files": 48,
+    "bytes": 6246409,
+    "mp4Bytes": 5858772,
+    "chapterCount": 8,
+    "localizedVideos": 16,
+    "captions": 16,
+    "posters": 8,
+    "technicalManifests": 8,
+    "totalChapterSeconds": 242
+  },
+  "loading": {
+    "academyInitialMediaRequests": 0,
+    "academyInitialMediaBytes": 0,
+    "sourceAttached": "explicit Load video action",
+    "preload": "metadata",
+    "installDownloadsAllBundledAssets": true
+  },
+  "packaging": {
+    "tabbin-2.0.19-sources.zip": 7926057,
+    "tabbin-2.0.19-firefox.zip": 7943818,
+    "tabbin-2.0.19-chrome.zip": 7943802
+  },
+  "verification": {
+    "chromiumAcademyAndVideosE2E": 10,
+    "chromiumProgressRestartE2E": 1,
+    "firefoxStandaloneVideos": 16,
+    "firefoxNativeExtensionSmoke": "passed",
+    "ffmpegFullDecode": "passed",
+    "captionsExactScenarioMatch": "passed",
+    "visualReview": "Decoded 4-second contact sheets for every chapter, critical native/menu/ending frames, real in-app captions, plus independent parent/child/reorder/restore review. No narration/audio track.",
+    "privacy": "Dedicated profiles and minimal fictional URLs; no accounts, credentials or personal browser data. Raw takes and diagnostics excluded from git/production.",
+    "qualityCheck": "passed",
+    "coverage": {
+      "statements": 90.26,
+      "branches": 85.08,
+      "functions": 91.45,
+      "lines": 90.23,
+      "allConfiguredThresholdsPassed": true
+    },
+    "releaseCheck": "passed",
+    "productZipMediaHashesMatchSource": true,
+    "reactDoctor": {
+      "scope": "full",
+      "errorCount": 0,
+      "warningCount": 0,
+      "scoreApi": false,
+      "supplyChainApi": false
+    },
+    "independentReview": {
+      "importantFindings": 0,
+      "realVideoWatchedEvidence": "20-second English pin chapter completed at2x in a fresh Chromium extension profile; persisted range0..19.9687 and watchedAt verified"
+    }
+  }
+}

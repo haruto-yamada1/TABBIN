@@ -19,10 +19,13 @@ type Sample = {
   playing: boolean
   seeking: boolean
   assetId: string
+  playbackRate: number
 }
 const MILLISECONDS_PER_SECOND = 1000
 const POSITION_TIMING_TOLERANCE = 1.05
 const MAX_VIDEO_SESSIONS = 32
+const MIN_PLAYBACK_RATE = 0.5
+const MAX_PLAYBACK_RATE = 2
 const isValidReport = (
   command: VideoProgressCommand,
   duration: number,
@@ -34,6 +37,9 @@ const isValidReport = (
   command.positionSeconds <= duration &&
   typeof command.playing === 'boolean' &&
   typeof command.seeking === 'boolean' &&
+  Number.isFinite(command.playbackRate ?? 1) &&
+  (command.playbackRate ?? 1) >= MIN_PLAYBACK_RATE &&
+  (command.playbackRate ?? 1) <= MAX_PLAYBACK_RATE &&
   typeof command.sessionId === 'string' &&
   /^[a-zA-Z0-9-]{1,128}$/.test(command.sessionId)
 
@@ -50,7 +56,8 @@ const canCredit = (previous: Sample, next: Sample): boolean => {
     elapsed > 0 &&
     elapsed <= VIDEO_MAX_SAMPLE_GAP_SECONDS &&
     delta > 0 &&
-    delta <= elapsed * POSITION_TIMING_TOLERANCE
+    previous.playbackRate === next.playbackRate &&
+    delta <= elapsed * previous.playbackRate * POSITION_TIMING_TOLERANCE
   )
 }
 const mergeRanges = (ranges: [number, number][]): [number, number][] => {
@@ -100,6 +107,7 @@ export const createRecordVideoProgressUseCase = (ports: AcademyPorts) => {
         playing: command.playing,
         seeking: command.seeking,
         assetId: asset.assetId,
+        playbackRate: command.playbackRate ?? 1,
       }
       accepted = next
       const evidence = progress.video.assets[asset.assetId] ?? {

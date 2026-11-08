@@ -54,5 +54,16 @@ export const useAcademyProgress = (useCases: AcademyUiUseCases) => {
     },
     [useCases],
   )
-  return { progress, loadState, handleRetry, busy, actionError, record }
+  const refresh = useCallback(async () => {
+    setProgress(await useCases.getProgress())
+  }, [useCases])
+  return {
+    progress,
+    loadState,
+    handleRetry,
+    busy,
+    actionError,
+    record,
+    refresh,
+  }
 }
