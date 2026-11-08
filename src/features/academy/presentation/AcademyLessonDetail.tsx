@@ -9,13 +9,16 @@ import { canPracticeWithSamples } from '@/features/academy/application/services/
 import { hasAcademyScreenGuide } from '@/features/academy/application/use-cases/RecordGuideViewedUseCase'
 import type { Lesson } from '@/features/academy/domain/academySchemas'
 
+import { AcademyLessonFacts } from './AcademyLessonFacts'
 import { getAcademyGuide, getAcademyRelatedRoute } from './academyLessonGuide'
 import {
   AcademyEvidenceStatus,
   AcademyProgressStatus,
 } from './AcademyProgressStatus'
 import type { AcademyLessonProgress } from './AcademyProgressStatus'
+import type { AcademyUiUseCases } from './AcademyRoute.types'
 import { useAcademyText } from './academyUiMessages'
+import { AcademyVideo } from './AcademyVideo'
 import { useScreenGuideText } from './screenGuideMessages'
 
 const AcademyChapters = ({
@@ -59,11 +62,15 @@ export const AcademyLessonDetail = ({
   progress,
   busy,
   record,
+  useCases,
+  refresh,
 }: {
   lesson: Lesson
   lessons: readonly Lesson[]
   progress: AcademyLessonProgress | undefined
   busy: boolean
+  useCases: AcademyUiUseCases
+  refresh: () => Promise<void>
   record: (lessonId: string, skip: boolean) => Promise<void>
 }) => {
   const { text, content, language } = useAcademyText()
@@ -84,6 +91,7 @@ export const AcademyLessonDetail = ({
     void record(lesson.lessonId, true)
   }, [record, lesson.lessonId])
   const hasPractice = canPracticeWithSamples(lesson)
+  const hasVideo = lesson.assets.some((asset) => asset.status === 'available')
   let reviewLabel: 'saving' | 'replay' | 'start' = 'start'
   if (busy) {
     reviewLabel = 'saving'
@@ -119,6 +127,7 @@ export const AcademyLessonDetail = ({
         </p>
         <AcademyEvidenceStatus progress={progress} />
       </header>
+      <AcademyLessonFacts lessonId={lesson.lessonId} part='before' />
       <Tabs defaultValue='text' className='space-y-4'>
         <TabsList
           className='h-auto max-w-full flex-wrap justify-start gap-1'
@@ -130,8 +139,10 @@ export const AcademyLessonDetail = ({
           ) : null}
           <TabsTrigger
             value='video'
-            disabled
-            aria-describedby='academy-video-unavailable'
+            disabled={!hasVideo}
+            aria-describedby={
+              hasVideo ? undefined : 'academy-video-unavailable'
+            }
           >
             {text('video')}
           </TabsTrigger>
@@ -144,7 +155,9 @@ export const AcademyLessonDetail = ({
           </TabsTrigger>
         </TabsList>
         <div className='space-y-2 rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground'>
-          <p id='academy-video-unavailable'>{text('videoUnavailable')}</p>
+          {!hasVideo ? (
+            <p id='academy-video-unavailable'>{text('videoUnavailable')}</p>
+          ) : null}
           <p id='academy-practice-unavailable'>
             {text(hasPractice ? 'practiceSafe' : 'screenGuide')}
           </p>
@@ -159,6 +172,14 @@ export const AcademyLessonDetail = ({
             </Button>
           </TabsContent>
         ) : null}
+        <TabsContent value='video'>
+          <AcademyVideo
+            key={`${lesson.lessonId}-${language}`}
+            lesson={lesson}
+            useCases={useCases}
+            refresh={refresh}
+          />
+        </TabsContent>
         {hasPractice ? (
           <TabsContent value='practice' className='space-y-4'>
             <p>{text('practiceSafe')}</p>
@@ -201,6 +222,7 @@ export const AcademyLessonDetail = ({
           </p>
         </TabsContent>
       </Tabs>
+      <AcademyLessonFacts lessonId={lesson.lessonId} part='after' />
       <p className='text-sm text-muted-foreground'>{text('textNote')}</p>
       <div className='flex flex-wrap items-center gap-3'>
         <Button type='button' onClick={handleReview} disabled={busy}>

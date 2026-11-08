@@ -16,6 +16,7 @@ export type VideoProgressCommand = LessonAttempt & {
   positionSeconds: number
   playing: boolean
   seeking: boolean
+  playbackRate?: number
 }
 export type PracticeStepCommand = LessonAttempt & {
   stepId: string

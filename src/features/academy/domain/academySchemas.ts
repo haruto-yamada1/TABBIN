@@ -41,6 +41,16 @@ export const lessonAssetSchema = z.strictObject({
     .string()
     .max(MAX_ASSET_PATH_LENGTH)
     .regex(/^academy\/videos\/[a-z][a-z0-9-]*\.(ja|en)\.mp4$/),
+  posterPath: z
+    .string()
+    .regex(/^academy\/videos\/[a-z][a-z0-9-]*\.poster\.jpg$/)
+    .optional(),
+  captionPaths: z
+    .strictObject({
+      ja: z.string().regex(/^academy\/videos\/[a-z][a-z0-9-]*\.ja\.vtt$/),
+      en: z.string().regex(/^academy\/videos\/[a-z][a-z0-9-]*\.en\.vtt$/),
+    })
+    .optional(),
   durationSeconds: z.number().positive().max(MAX_VIDEO_SECONDS),
   status: z.enum(['planned', 'available']),
 })
@@ -49,6 +59,8 @@ export const lessonSchema = z.strictObject({
   courseId: id,
   contentVersion: version,
   assessmentVersion: version,
+  contentUpdatedAt: z.iso.date().optional(),
+  scenarioVersion: version.optional(),
   titleKey: key,
   descriptionKey: key,
   difficulty: z.enum(['beginner', 'intermediate']),

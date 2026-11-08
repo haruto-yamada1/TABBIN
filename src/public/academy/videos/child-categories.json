@@ -1,0 +1,40 @@
+{
+  "lessonId": "child-categories",
+  "version": 1,
+  "updatedAt": "2026-11-08",
+  "scenarioSha256": "0c54b5597a8f9a5689a410a6973b7460b22c02eb17073b1c9f01a9cdb7891550",
+  "browser": "156.0.8078.4",
+  "nativeStoreVersion": "2.0.19",
+  "captionMode": "tracks",
+  "narration": false,
+  "assets": {
+    "ja": {
+      "status": "passed",
+      "bytes": 535193,
+      "durationSeconds": 40,
+      "codec": "h264",
+      "width": 1280,
+      "height": 720,
+      "videoSha256": "5b70b4206eb0986402055f4e3696ea3dc35c7e20a554a194b599618fe8209177",
+      "subtitles": {
+        "ja": "9f64aab89af2364bacfe20f9f268294cab3db3898dbcb7b988dd89f2489f8631",
+        "en": "7a218d1c2374be22d402d1b9a59fe867d276d37c6e5bcf974aaec411ecd68cca"
+      },
+      "sha256": "5b70b4206eb0986402055f4e3696ea3dc35c7e20a554a194b599618fe8209177"
+    },
+    "en": {
+      "status": "passed",
+      "bytes": 537680,
+      "durationSeconds": 40,
+      "codec": "h264",
+      "width": 1280,
+      "height": 720,
+      "videoSha256": "51580b231de3762bd7787391e8eb6744683c8c8a4bbb43b056d7c2b18c2e085f",
+      "subtitles": {
+        "ja": "9f64aab89af2364bacfe20f9f268294cab3db3898dbcb7b988dd89f2489f8631",
+        "en": "7a218d1c2374be22d402d1b9a59fe867d276d37c6e5bcf974aaec411ecd68cca"
+      },
+      "sha256": "51580b231de3762bd7787391e8eb6744683c8c8a4bbb43b056d7c2b18c2e085f"
+    }
+  }
+}

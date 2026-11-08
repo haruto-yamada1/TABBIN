@@ -1,0 +1,93 @@
+{
+  "id": "child-categories",
+  "lessonId": "child-categories",
+  "version": 1,
+  "prerequisites": [997, 998],
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "browserVersion": "156.0.8078.4",
+  "demoSeed": "academy-997-v1",
+  "actions": [
+    {
+      "type": "assert-urls",
+      "count": 6
+    },
+    {
+      "type": "assert-domains",
+      "hostnames": [
+        "study.filming.test",
+        "notes.filming.test",
+        "garden.filming.test"
+      ]
+    },
+    {
+      "type": "demonstrate-lesson",
+      "lessonId": "child-categories",
+      "seconds": 34
+    }
+  ],
+  "assertions": {
+    "urls": 6,
+    "domains": 3
+  },
+  "segments": [
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "子カテゴリを整理する",
+        "en": "Organize child categories"
+      },
+      "detail": {
+        "ja": "Chrome / Chromium 実録画・ナレーションなし",
+        "en": "Real Chrome / Chromium capture · no narration"
+      }
+    },
+    {
+      "kind": "page",
+      "start": 0,
+      "seconds": 34,
+      "zoom": 1
+    },
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "いつでも一時停止して復習",
+        "en": "Pause and review anytime"
+      },
+      "detail": {
+        "ja": "日英字幕・テキスト手順を利用できます",
+        "en": "Japanese / English captions and text instructions available"
+      }
+    }
+  ],
+  "captions": [
+    {
+      "start": 3,
+      "end": 15,
+      "ja": "Domain の子カテゴリ管理で新規作成し、名前を変更します",
+      "en": "Create and rename a child category in the Domain category manager"
+    },
+    {
+      "start": 15,
+      "end": 26,
+      "ja": "キーワード guide で、一致するタイトルの保存URLを自動分類します",
+      "en": "The keyword guide assigns saved URLs by their matching titles"
+    },
+    {
+      "start": 26,
+      "end": 37,
+      "ja": "別カテゴリの reference でも分類。これはキーワード設定による実際の移動です",
+      "en": "Classify reference in another category. These are real keyword-driven assignments"
+    }
+  ],
+  "output": {
+    "filename": "child-categories.mp4",
+    "fps": 30,
+    "maxBytes": 20000000
+  },
+  "captionMode": "tracks"
+}

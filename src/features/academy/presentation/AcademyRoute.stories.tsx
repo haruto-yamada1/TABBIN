@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import { createGetAcademyProgressUseCase } from '@/features/academy/application/use-cases/GetAcademyProgressUseCase'
+import { createRecordVideoProgressUseCase } from '@/features/academy/application/use-cases/RecordVideoProgressUseCase'
 import { createSkipLessonUseCase } from '@/features/academy/application/use-cases/SkipLessonUseCase'
 import { createStartLessonUseCase } from '@/features/academy/application/use-cases/StartLessonUseCase'
 import { ACADEMY_LESSONS } from '@/features/academy/domain/academyCatalog'
@@ -55,6 +56,7 @@ const createPreviewUseCases = (scenario: Scenario): AcademyUiUseCases => {
     },
     startLesson: createStartLessonUseCase(ports),
     skipLesson: createSkipLessonUseCase(ports),
+    recordVideoProgress: createRecordVideoProgressUseCase(ports),
   }
 }
 const AcademyPreview = ({ scenario }: { scenario: Scenario }) => {

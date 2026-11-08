@@ -22,7 +22,19 @@ const seconds = z.number().positive().max(45)
 const start = z.number().nonnegative().max(45)
 const zoom = z.number().min(1).max(1.3)
 
+export const demonstrationSchema = z.strictObject({
+  type: z.literal('demonstrate-lesson'),
+  lessonId: z.enum([
+    'parent-categories',
+    'child-categories',
+    'reorder-items',
+    'restore-tabs',
+  ]),
+  seconds: z.number().min(15).max(39),
+})
+
 const action = z.discriminatedUnion('type', [
+  demonstrationSchema,
   z.strictObject({ type: z.literal('assert-urls'), count: z.literal(6) }),
   z.strictObject({
     type: z.literal('assert-domains'),
@@ -44,6 +56,14 @@ const segment = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('native'),
     stage: z.enum(['install', 'pin', 'save']),
+    sourceCrop: z
+      .strictObject({
+        x: z.number().int().nonnegative().max(8192),
+        y: z.number().int().nonnegative().max(8192),
+        width: z.number().int().positive().max(8192),
+        height: z.number().int().positive().max(8192),
+      })
+      .optional(),
     start,
     seconds,
     zoom,
@@ -56,6 +76,8 @@ const scenarioSchema = z
     id: z.string().regex(/^[a-z][a-z0-9-]{0,60}$/u),
     lessonId: z.string().regex(/^[a-z][a-z0-9-]{0,60}$/u),
     version: z.number().int().positive(),
+    captionMode: z.enum(['burned', 'tracks']).optional(),
+    pageSeed: z.enum(['native-save', 'organized']).optional(),
     prerequisites: z.array(z.number().int().positive()).min(1),
     viewport: z.strictObject({
       width: z.literal(1280),
@@ -93,22 +115,54 @@ const scenarioSchema = z
       invalid('Opening and ending cards are required.')
     }
     if (
-      !scenario.segments.some(
+      scenario.lessonId === 'save-tabs' &&
+      (!scenario.segments.some(
         (item) => item.kind === 'native' && item.stage === 'save',
       ) ||
-      !scenario.segments.some((item) => item.kind === 'page')
+        !scenario.segments.some((item) => item.kind === 'page'))
     ) {
       invalid('A native save clip and a real page continuation are required.')
     }
-    const holds = scenario.actions.reduce(
-      (sum, item) =>
-        sum + (item.type === 'focus-domain' ? item.holdSeconds : 0),
-      0,
-    )
+    const holds = scenario.actions.reduce((sum, item) => {
+      if (item.type === 'focus-domain') {
+        return sum + item.holdSeconds
+      }
+      if (item.type === 'demonstrate-lesson') {
+        return sum + item.seconds
+      }
+      return sum
+    }, 0)
     for (const item of scenario.segments) {
       if (item.kind === 'page' && item.start + item.seconds > holds) {
         invalid('Page segment exceeds the planned recorded presentation.')
       }
+    }
+  })
+  .superRefine((scenario, ctx) => {
+    const invalid = (message: string) => {
+      ctx.addIssue({ code: 'custom', message })
+    }
+    const nativeStages: Record<string, 'install' | 'pin' | undefined> = {
+      'install-extension': 'install',
+      'pin-extension': 'pin',
+    }
+    const nativeStage = nativeStages[scenario.lessonId]
+    if (
+      nativeStage &&
+      !scenario.segments.some(
+        (item) => item.kind === 'native' && item.stage === nativeStage,
+      )
+    ) {
+      invalid('Native chapter requires its actual operation clip.')
+    }
+    if (
+      scenario.actions.some(
+        (item) =>
+          item.type === 'demonstrate-lesson' &&
+          item.lessonId !== scenario.lessonId,
+      )
+    ) {
+      invalid('Demonstration and lesson identifiers must match.')
     }
   })
   .superRefine((scenario, ctx) => {

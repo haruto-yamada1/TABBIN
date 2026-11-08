@@ -176,7 +176,7 @@ test('Academy direct links, navigation and review preserve saved data and real t
   )
   await expect(
     page.getByRole('tab', { name: 'Learn by video', exact: true }),
-  ).toBeDisabled()
+  ).toBeEnabled()
   await expect(
     page.getByRole('tab', { name: 'Practice with samples', exact: true }),
   ).toBeDisabled()

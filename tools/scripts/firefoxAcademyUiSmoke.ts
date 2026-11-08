@@ -102,9 +102,44 @@ export const runFirefoxAcademyUiSmoke = async (
   await navigate('/academy/domain-mode')
   const englishDirect = await evaluate<boolean>(`
     await waitFor(() => byText('main h1', 'Explore Domain mode'))
-    return ['Learn by video', 'Practice with samples'].every((name) => byText('[role="tab"]', name)?.disabled === true)
+    return byText('[role="tab"]', 'Learn by video')?.disabled === false
+      && byText('[role="tab"]', 'Practice with samples')?.disabled === true
+      && !document.querySelector('video')
   `)
   assert.equal(englishDirect, true)
+  await evaluate(`byText('[role="tab"]', 'Learn by video').focus()`)
+  await press('\uE007')
+  const videoPlayback = await evaluate<{
+    duration: number
+    rate: number
+    paused: boolean
+    captions: number
+  }>(`
+    const load = await waitFor(() => byText('button', 'Load video'))
+    load.click()
+    const video = await waitFor(() => document.querySelector('video'))
+    const mediaEvent = (name, condition) => new Promise((resolve, reject) => {
+      const cleanup = () => { clearTimeout(timer); video.removeEventListener(name, check) }
+      const check = () => { if (condition()) { cleanup(); resolve() } }
+      const timer = setTimeout(() => { cleanup(); reject(new Error('Video event missing: ' + name)) }, 5000)
+      video.addEventListener(name, check)
+      check()
+    })
+    await mediaEvent('loadeddata', () => video.readyState >= 2)
+    video.muted = true
+    video.playbackRate = 1.5
+    await video.play()
+    await mediaEvent('timeupdate', () => video.currentTime > 0)
+    video.pause()
+    const seek = mediaEvent('seeked', () => !video.seeking && Math.abs(video.currentTime - 5) < 0.1)
+    video.currentTime = 5
+    await seek
+    return { duration: video.duration, rate: video.playbackRate, paused: video.paused, captions: video.textTracks.length }
+  `)
+  assert.equal(videoPlayback.duration, 30)
+  assert.equal(videoPlayback.rate, 1.5)
+  assert.equal(videoPlayback.paused, true)
+  assert.equal(videoPlayback.captions, 2)
   await navigate('/saved-tabs?mode=domain&guide=domain-mode')
   const screenGuideViewedAt = await evaluate<number>(`
     await waitFor(() => guideAtStep(1, 3) && document.querySelector('[data-tour="academy-saved-url"]')?.getClientRects().length)
@@ -163,11 +198,15 @@ export const runFirefoxAcademyUiSmoke = async (
   `)
   await navigate('/academy')
   await command('/refresh', {})
-  await evaluate(`byText('main a', '拡張機能を固定').focus()`)
+  await evaluate(`
+    const link = await waitFor(() => byText('main a', '拡張機能を固定'))
+    link.focus()
+  `)
   await press('\uE007')
   const japaneseKeyboard = await evaluate<boolean>(`
     await waitFor(() => byText('main h1', '拡張機能を固定'))
-    return byText('[role="tab"]', '動画で学ぶ')?.disabled === true
+    return byText('[role="tab"]', '動画で学ぶ')?.disabled === false
+      && !document.querySelector('video')
   `)
   assert.equal(japaneseKeyboard, true)
   const narrowDarkReducedMotion = await evaluate<boolean>(`
@@ -192,6 +231,7 @@ export const runFirefoxAcademyUiSmoke = async (
   assert.deepEqual(await command('/window/handles'), beforeTabs)
   return {
     englishDirect,
+    videoPlayback,
     japaneseKeyboard,
     narrowDarkReducedMotion,
     revisit,

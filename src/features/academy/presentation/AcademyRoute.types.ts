@@ -3,7 +3,7 @@ import type { Course, Lesson } from '@/features/academy/domain/academySchemas'
 
 export type AcademyUiUseCases = Pick<
   ReturnType<typeof createAcademyUseCases>,
-  'getProgress' | 'startLesson' | 'skipLesson'
+  'getProgress' | 'startLesson' | 'skipLesson' | 'recordVideoProgress'
 >
 export type AcademyRouteProps = {
   useCases?: AcademyUiUseCases

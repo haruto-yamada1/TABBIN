@@ -11,7 +11,36 @@ type Chapter = {
   dataTour: string | null
 }
 
+const PRACTICE_CONTENT_VERSION = 3
+const VIDEO_CONTENT_VERSION = 2
+const FILMING_DURATIONS: Record<string, number> = {
+  'install-extension': 30,
+  'pin-extension': 20,
+  'save-tabs': 27,
+  'domain-mode': 30,
+  'parent-categories': 40,
+  'child-categories': 40,
+  'reorder-items': 30,
+  'restore-tabs': 25,
+}
+const DEFAULT_FILMING_DURATION = 30
 const chapters: Chapter[] = [
+  {
+    lessonId: 'install-extension',
+    courseId: 'getting-started',
+    en: [
+      'Install TABBIN',
+      'Install the official extension and review the browser permission prompt.',
+      'Watch the official store installation; use the Firefox text alternative when needed.',
+    ],
+    ja: [
+      'TABBINをインストール',
+      '公式ストアから導入し、ブラウザの権限確認を読みます。',
+      '公式ストアからの導入を確認します。Firefoxではテキストの代替手順を使えます。',
+    ],
+    action: null,
+    dataTour: null,
+  },
   {
     lessonId: 'pin-extension',
     courseId: 'getting-started',
@@ -113,12 +142,12 @@ const chapters: Chapter[] = [
     courseId: 'recovery',
     en: [
       'Restore saved tabs',
-      'Practice restoring tabs without opening real browser tabs.',
+      'Restore individual URLs and groups, then check the opening settings.',
       'Restore the sample saved tabs in the simulated browser.',
     ],
     ja: [
       '保存タブを復元',
-      '実際のブラウザタブを開かずに復元を練習します。',
+      '1件・複数件のURLを復元し、開いた後の設定を確認します。',
       '練習環境の模擬ブラウザへサンプルの保存タブを復元します。',
     ],
     action: 'restore-tabs',
@@ -183,7 +212,11 @@ export const ACADEMY_LESSONS: Lesson[] = chapters.map((chapter, index) => {
   return {
     lessonId: chapter.lessonId,
     courseId: chapter.courseId,
-    contentVersion: practiceSteps.length ? 2 : 1,
+    contentVersion: practiceSteps.length
+      ? PRACTICE_CONTENT_VERSION
+      : VIDEO_CONTENT_VERSION,
+    contentUpdatedAt: '2026-11-08',
+    scenarioVersion: chapter.lessonId === 'save-tabs' ? 2 : 1,
     assessmentVersion: practiceSteps.length > 1 ? 2 : 1,
     titleKey: `${prefix}.title`,
     descriptionKey: `${prefix}.description`,
@@ -199,8 +232,14 @@ export const ACADEMY_LESSONS: Lesson[] = chapters.map((chapter, index) => {
       kind: 'video',
       locale,
       path: `academy/videos/${chapter.lessonId}.${locale}.mp4`,
-      durationSeconds: 60,
-      status: 'planned',
+      durationSeconds:
+        FILMING_DURATIONS[chapter.lessonId] ?? DEFAULT_FILMING_DURATION,
+      posterPath: `academy/videos/${chapter.lessonId}.poster.jpg`,
+      captionPaths: {
+        ja: `academy/videos/${chapter.lessonId}.ja.vtt`,
+        en: `academy/videos/${chapter.lessonId}.en.vtt`,
+      },
+      status: 'available',
     })),
     mastery: {
       videoRequired: chapter.action === null,

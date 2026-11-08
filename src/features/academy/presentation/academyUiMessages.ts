@@ -22,6 +22,24 @@ const ui = {
     practice: 'Practice with samples',
     text: 'Read the guide',
     videoPlanned: 'Video: coming soon',
+    videoReady: 'Video available offline',
+    loadVideo: 'Load video',
+    replayVideo: 'Replay video',
+    playbackSpeed: 'Playback speed',
+    captions: 'Captions',
+    captionsOff: 'Off',
+    videoPoster: 'Lesson video preview',
+    videoFallback:
+      'The video could not play. Read the full text guide on the Read the guide tab.',
+    videoBrowser:
+      'Recorded in Chromium on macOS. Firefox store installation and toolbar menus differ; use the Firefox steps in the text guide. Shared TABBIN screens work in both browsers.',
+    narrationNone:
+      'No narration. Choose Japanese or English captions, or turn captions off. Playback starts only when you choose to play.',
+    objective: 'Learning goal',
+    targetScreen: 'Screen',
+    beforeStarting: 'Before starting',
+    cautions: 'Notes and shortcuts',
+    completion: 'Done when',
     practicePlanned: 'Optional sample practice',
     practiceSafe:
       'Optional: practice category edits, moves and deletion using samples in the same TABBIN interface. Restoring tabs is simulated; your real saved data, settings and tabs stay unchanged.',
@@ -83,6 +101,24 @@ const ui = {
     practice: 'サンプルで練習する',
     text: 'テキストで学ぶ',
     videoPlanned: '動画：準備中',
+    videoReady: 'オフライン動画あり',
+    loadVideo: '動画を読み込む',
+    replayVideo: '動画を最初から再生',
+    playbackSpeed: '再生速度',
+    captions: '字幕',
+    captionsOff: '表示しない',
+    videoPoster: '教材動画のプレビュー',
+    videoFallback:
+      '動画を再生できません。「テキストで学ぶ」タブの手順をご利用ください。',
+    videoBrowser:
+      '映像はmacOSのChromiumで撮影しています。Firefoxのストア導入・固定メニューは異なるため、テキストのFirefox手順をご覧ください。TABBIN内の共通画面は両ブラウザで利用できます。',
+    narrationNone:
+      'ナレーションはありません。日本語・英語の字幕、または字幕なしを選べます。再生操作をするまで動画は動きません。',
+    objective: '学習目標',
+    targetScreen: '対象画面',
+    beforeStarting: '前提条件',
+    cautions: '注意点・ショートカット',
+    completion: '完了条件',
     practicePlanned: '任意のサンプル練習',
     practiceSafe:
       '希望する場合だけ、TABBINの同じ画面でカテゴリ編集・移動・削除をサンプルで練習できます。復元は模擬操作です。本物の保存データ・設定・タブは変わりません。',

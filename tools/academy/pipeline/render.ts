@@ -1,6 +1,13 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { appendFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import {
+  appendFile,
+  copyFile,
+  mkdir,
+  readFile,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import path from 'node:path'
 
 import { chromium } from '@playwright/test'
@@ -91,6 +98,7 @@ export const runMediaCommand = async (
     const timer = setTimeout(() => {
       timedOut = true
       child.kill('SIGTERM')
+      reject(new Error(`${binary} failed: timeout. See render.log.`))
     }, 120_000)
     child.stdout.setEncoding('utf8')
     child.stderr.setEncoding('utf8')
@@ -102,21 +110,27 @@ export const runMediaCommand = async (
     })
     child.once('error', (error) => {
       clearTimeout(timer)
-      reject(error)
+      reject(error instanceof Error ? error : new Error(String(error)))
     })
     child.once('close', (code, signal) => {
-      clearTimeout(timer)
-      void appendFile(logFile, stderr).then(() => {
-        if (timedOut || code !== 0) {
-          reject(
-            new Error(
-              `${binary} failed: ${timedOut ? 'timeout' : String(code ?? signal)}. See render.log.`,
-            ),
-          )
-        } else {
-          resolve(stdout)
-        }
-      }, reject)
+      void (stderr ? appendFile(logFile, stderr) : Promise.resolve()).then(
+        () => {
+          clearTimeout(timer)
+          if (timedOut || code !== 0) {
+            reject(
+              new Error(
+                `${binary} failed: ${timedOut ? 'timeout' : String(code ?? signal)}. See render.log.`,
+              ),
+            )
+          } else {
+            resolve(stdout)
+          }
+        },
+        (error: unknown) => {
+          clearTimeout(timer)
+          reject(error instanceof Error ? error : new Error(String(error)))
+        },
+      )
     })
   })
 }
@@ -271,7 +285,11 @@ export const renderLesson = async (
       const zoom = segment.kind === 'card' ? 1 : segment.zoom
       const zoomWidth = Math.ceil((width * zoom) / 2) * 2
       const zoomHeight = Math.ceil((height * zoom) / 2) * 2
+      const crop = segment.kind === 'native' ? segment.sourceCrop : undefined
       const filter = [
+        ...(crop
+          ? [`crop=${crop.width}:${crop.height}:${crop.x}:${crop.y}`]
+          : []),
         `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
         `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black`,
         `scale=${zoomWidth}:${zoomHeight}`,
@@ -319,6 +337,19 @@ export const renderLesson = async (
     '-1',
     'timeline.mp4',
   ])
+  if (options.scenario.captionMode === 'tracks') {
+    const output = path.join(options.runDir, options.scenario.output.filename)
+    await copyFile(path.join(options.runDir, 'timeline.mp4'), output)
+    return {
+      file: output,
+      tools: {
+        ffmpeg: ffmpeg.split('\n')[0] ?? '',
+        ffprobe: ffprobe.split('\n')[0] ?? '',
+        browserVersion: overlays.browserVersion,
+      },
+      fontSha256: overlays.fontSha256,
+    }
+  }
   const captionInputs = options.scenario.captions.flatMap((_, index) => [
     '-loop',
     '1',

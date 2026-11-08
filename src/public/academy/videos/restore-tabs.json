@@ -1,0 +1,40 @@
+{
+  "lessonId": "restore-tabs",
+  "version": 1,
+  "updatedAt": "2026-11-08",
+  "scenarioSha256": "b7ef071f0530232ede34c2960379efb980a51158d7677a91437b455884560b34",
+  "browser": "156.0.8078.4",
+  "nativeStoreVersion": "2.0.19",
+  "captionMode": "tracks",
+  "narration": false,
+  "assets": {
+    "ja": {
+      "status": "passed",
+      "bytes": 227108,
+      "durationSeconds": 25,
+      "codec": "h264",
+      "width": 1280,
+      "height": 720,
+      "videoSha256": "cb11aac11e4463275ca2ecfca450c33b3cd7bf98012d61dad079553e35575580",
+      "subtitles": {
+        "ja": "fba00b83f745b30b47e768ccab5f47fe7c7e1248dd9082a792805dd9166fedd7",
+        "en": "7aaeee8960d775699b673d81baae346aef62179cc8f0a422ca52a504a73548ed"
+      },
+      "sha256": "cb11aac11e4463275ca2ecfca450c33b3cd7bf98012d61dad079553e35575580"
+    },
+    "en": {
+      "status": "passed",
+      "bytes": 230300,
+      "durationSeconds": 25,
+      "codec": "h264",
+      "width": 1280,
+      "height": 720,
+      "videoSha256": "6d60276556e28f0637773e30c33d5db3fe2394d135e4fff36bc8ee4da54ccaee",
+      "subtitles": {
+        "ja": "fba00b83f745b30b47e768ccab5f47fe7c7e1248dd9082a792805dd9166fedd7",
+        "en": "7aaeee8960d775699b673d81baae346aef62179cc8f0a422ca52a504a73548ed"
+      },
+      "sha256": "6d60276556e28f0637773e30c33d5db3fe2394d135e4fff36bc8ee4da54ccaee"
+    }
+  }
+}

@@ -1,13 +1,19 @@
 {
   "id": "save-tabs",
   "lessonId": "save-tabs",
-  "version": 1,
+  "version": 2,
   "prerequisites": [997, 998],
-  "viewport": { "width": 1280, "height": 720 },
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
   "browserVersion": "156.0.8078.4",
   "demoSeed": "academy-997-v1",
   "actions": [
-    { "type": "assert-urls", "count": 6 },
+    {
+      "type": "assert-urls",
+      "count": 6
+    },
     {
       "type": "assert-domains",
       "hostnames": [
@@ -32,28 +38,48 @@
       "holdSeconds": 3
     }
   ],
-  "assertions": { "urls": 6, "domains": 3 },
+  "assertions": {
+    "urls": 6,
+    "domains": 3
+  },
   "segments": [
     {
       "kind": "card",
       "seconds": 3,
-      "title": { "ja": "01 / 複数タブを保存", "en": "01 / Save multiple tabs" },
+      "title": {
+        "ja": "01 / 複数タブを保存",
+        "en": "01 / Save multiple tabs"
+      },
       "detail": {
         "ja": "Chrome / Chrome for Testing",
         "en": "Chrome / Chrome for Testing"
       }
     },
-    { "kind": "native", "stage": "save", "start": 0, "seconds": 10, "zoom": 1 },
+    {
+      "kind": "native",
+      "stage": "save",
+      "start": 0,
+      "seconds": 10,
+      "zoom": 1
+    },
     {
       "kind": "card",
       "seconds": 3,
-      "title": { "ja": "02 / Domain 表示", "en": "02 / Domain view" },
+      "title": {
+        "ja": "02 / Domain 表示",
+        "en": "02 / Domain view"
+      },
       "detail": {
         "ja": "編集点：同じ保存結果を専用環境で解説",
         "en": "Edit: the same saved result in a fresh demo profile"
       }
     },
-    { "kind": "page", "start": 0, "seconds": 8, "zoom": 1.08 },
+    {
+      "kind": "page",
+      "start": 0,
+      "seconds": 8,
+      "zoom": 1.08
+    },
     {
       "kind": "card",
       "seconds": 3,
@@ -93,5 +119,10 @@
       "en": "Review three domains and six saved URLs in the real UI"
     }
   ],
-  "output": { "filename": "save-tabs.mp4", "fps": 30, "maxBytes": 20000000 }
+  "output": {
+    "filename": "save-tabs.mp4",
+    "fps": 30,
+    "maxBytes": 20000000
+  },
+  "captionMode": "tracks"
 }

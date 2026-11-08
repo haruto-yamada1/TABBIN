@@ -1,0 +1,87 @@
+{
+  "id": "restore-tabs",
+  "lessonId": "restore-tabs",
+  "version": 1,
+  "prerequisites": [997, 998],
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "browserVersion": "156.0.8078.4",
+  "demoSeed": "academy-997-v1",
+  "actions": [
+    {
+      "type": "assert-urls",
+      "count": 6
+    },
+    {
+      "type": "assert-domains",
+      "hostnames": [
+        "study.filming.test",
+        "notes.filming.test",
+        "garden.filming.test"
+      ]
+    },
+    {
+      "type": "demonstrate-lesson",
+      "lessonId": "restore-tabs",
+      "seconds": 19
+    }
+  ],
+  "assertions": {
+    "urls": 6,
+    "domains": 3
+  },
+  "segments": [
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "タブを復元する",
+        "en": "Restore saved tabs"
+      },
+      "detail": {
+        "ja": "Chrome / Chromium 実録画・ナレーションなし",
+        "en": "Real Chrome / Chromium capture · no narration"
+      }
+    },
+    {
+      "kind": "page",
+      "start": 0,
+      "seconds": 19,
+      "zoom": 1
+    },
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "いつでも一時停止して復習",
+        "en": "Pause and review anytime"
+      },
+      "detail": {
+        "ja": "日英字幕・テキスト手順を利用できます",
+        "en": "Japanese / English captions and text instructions available"
+      }
+    }
+  ],
+  "captions": [
+    {
+      "start": 3,
+      "end": 11,
+      "ja": "URLを1件開くと背景タブに復元。撮影では「開いたら削除」がONです",
+      "en": "Open one URL in a background tab. Remove after opening is enabled in this recording"
+    },
+    {
+      "start": 11,
+      "end": 22,
+      "ja": "Domain の「すべて開く」で複数件を復元。成功分だけ保存一覧から消えます",
+      "en": "Open all in a Domain restores multiple tabs. Only successfully opened URLs are removed"
+    }
+  ],
+  "output": {
+    "filename": "restore-tabs.mp4",
+    "fps": 30,
+    "maxBytes": 20000000
+  },
+  "captionMode": "tracks"
+}

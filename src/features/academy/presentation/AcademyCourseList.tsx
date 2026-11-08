@@ -42,7 +42,12 @@ const LessonCard = ({
       </p>
       <div className='mt-4 space-y-2'>
         <p className='text-xs text-muted-foreground'>
-          {text('videoPlanned')} ·{' '}
+          {text(
+            lesson.assets.some((asset) => asset.status === 'available')
+              ? 'videoReady'
+              : 'videoPlanned',
+          )}{' '}
+          ·{' '}
           {text(
             canPracticeWithSamples(lesson) ? 'practicePlanned' : 'noPractice',
           )}
