@@ -17,6 +17,8 @@ import { firefox } from '@playwright/test'
 import { zipSync } from 'fflate'
 import type { Zippable } from 'fflate'
 
+import { createFirefoxSmokeProcessEnvironment } from './firefoxSmokeEnvironment'
+
 const ADDON_ID = 'tabbin@local'
 const COMMAND_TIMEOUT_MS = 30_000
 
@@ -260,6 +262,13 @@ export const withFirefoxExtension = async <T>(
   const failures: unknown[] = []
   let completion: { value: T } | undefined
   try {
+    if (process.platform === 'darwin') {
+      await Promise.all(
+        ['Library/Application Support', 'Downloads'].map(async (directory) =>
+          mkdir(path.join(root, directory), { recursive: true }),
+        ),
+      )
+    }
     const archive = await archiveAddon(directory, root)
     const profile = path.join(root, 'profile')
     await mkdir(profile)
@@ -268,7 +277,14 @@ export const withFirefoxExtension = async <T>(
     driver = spawn(
       process.env.GECKODRIVER_PATH ?? 'geckodriver',
       ['--host', '127.0.0.1', '--port', '0', '--allow-system-access'],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: createFirefoxSmokeProcessEnvironment({
+          environment: process.env,
+          platform: process.platform,
+          appDataDirectory: root,
+        }),
+      },
     )
     base = await driverAddress(driver)
     const created = await request('/session', {

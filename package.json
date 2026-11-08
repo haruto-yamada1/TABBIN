@@ -33,9 +33,9 @@
     "zip:firefox": "wxt zip -b firefox",
     "size:loads": "playwright test --config playwright.loads.config.ts",
     "size:report": "bun tools/scripts/report-artifact-size.ts",
-    "release:check": "git diff --exit-code && bun run verify:firefox-smoke-environment && bun run verify:dependency-licenses && bun run security:audit && bun run quality:check && bun run build && bun run build:firefox && bun run verify:third-party-licenses && bun run verify:production-logging && bun run verify:app-version && bun run verify:persistence-release-compatibility && bun run verify:production-network-policy && bun run verify:firefox-artifact && bun run verify:firefox-source && bun run release:e2e && git diff --exit-code",
-    "release:e2e": "bun run e2e:release && bun run test:firefox:indexeddb-smoke",
-    "release:zip": "bun run release:check && bun run zip && bun run zip:firefox && bun run verify:third-party-license-zips && bun run release:provenance",
+    "release:check": "git diff --exit-code && bun run verify:firefox-smoke-environment && bun run verify:dependency-licenses && bun run security:audit && bun run academy:check && bun run quality:check && bun run build && bun run build:firefox && bun run verify:third-party-licenses && bun run verify:production-logging && bun run verify:app-version && bun run verify:persistence-release-compatibility && bun run verify:production-network-policy && bun run verify:firefox-artifact && bun run academy:check .output/chrome-mv3 .output/firefox-mv2 && bun run verify:firefox-source && bun run release:e2e && git diff --exit-code",
+    "release:e2e": "bun run e2e:release && bun run academy:e2e && bun run test:firefox:indexeddb-smoke",
+    "release:zip": "bun run release:check && bun run zip && bun run zip:firefox && bun run verify:third-party-license-zips && bun run academy:check .output/*-chrome.zip .output/*-firefox.zip && bun run release:provenance",
     "compile": "node node_modules/typescript/bin/tsc --noEmit",
     "secretlint": "secretlint \"**/*\"",
     "security:audit": "bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun audit --audit-level=high",
@@ -133,7 +133,9 @@
     "academy:record": "bun tools/academy/pipeline/cli.ts record",
     "academy:render": "bun tools/academy/pipeline/cli.ts render",
     "academy:verify": "bun tools/academy/pipeline/cli.ts verify",
-    "academy:make": "bun tools/academy/pipeline/cli.ts make"
+    "academy:make": "bun tools/academy/pipeline/cli.ts make",
+    "academy:check": "bun build tools/academy/quality.ts --target=node --external='#typescript-parser' --external=playwright --external=@playwright/test --outfile=.output/academy-quality-check.mjs && node .output/academy-quality-check.mjs",
+    "academy:e2e": "playwright test --config playwright.academy.config.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

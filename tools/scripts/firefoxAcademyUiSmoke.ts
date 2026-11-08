@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 
+import { runFirefoxAcademyQualitySmoke } from './firefoxAcademyQualitySmoke'
 import { runFirefoxDomainPracticeSmoke } from './firefoxDomainPracticeSmoke'
 
 type Commands = <Value = unknown>(
@@ -226,6 +227,7 @@ export const runFirefoxAcademyUiSmoke = async (
     return !document.querySelector('[role="dialog"]')
   `)
   assert.equal(revisit, true)
+  const quality = await runFirefoxAcademyQualitySmoke(command, origin)
   const domainPractice = await runFirefoxDomainPracticeSmoke(command, origin)
   assert.deepEqual(await evaluate('return savedSnapshot()'), beforeSaved)
   assert.deepEqual(await command('/window/handles'), beforeTabs)
@@ -239,5 +241,6 @@ export const runFirefoxAcademyUiSmoke = async (
     screenGuide,
     parentGuide,
     domainPractice,
+    quality,
   }
 }

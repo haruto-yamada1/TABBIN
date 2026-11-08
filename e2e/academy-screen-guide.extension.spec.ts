@@ -44,6 +44,21 @@ const startFromLesson = async (
     .getByRole('link', { name: 'Start screen guide', exact: true })
     .click()
   await expect(guide(page)).toBeVisible()
+  // Visible includes partially transparent frames; axe needs the final colors.
+  await expect
+    .poll(async () =>
+      guide(page).evaluate((element) => {
+        let ancestor: Element | null = element
+        while (ancestor) {
+          if (getComputedStyle(ancestor).opacity !== '1') {
+            return false
+          }
+          ancestor = ancestor.parentElement
+        }
+        return true
+      }),
+    )
+    .toBe(true)
   return before
 }
 
@@ -119,6 +134,15 @@ test('Academy screen guide completes the real Domain and Custom views without ch
   extensionId,
   serviceWorker,
 }, testInfo) => {
+  // Reproduce the CI race: visibility becomes true before Joyride's fade ends.
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style')
+      style.textContent =
+        '.react-joyride__floater { transition-duration: 1.5s !important; }'
+      document.head.append(style)
+    })
+  })
   await seedSavedTabsFixture(serviceWorker, {
     storage: createBaseSeed(),
     persistence: createExamplePersistenceFixture(1_800_000_000_000),

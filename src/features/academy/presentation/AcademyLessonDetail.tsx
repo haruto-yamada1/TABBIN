@@ -130,7 +130,7 @@ export const AcademyLessonDetail = ({
       <AcademyLessonFacts lessonId={lesson.lessonId} part='before' />
       <Tabs defaultValue='text' className='space-y-4'>
         <TabsList
-          className='h-auto max-w-full flex-wrap justify-start gap-1'
+          className='h-auto max-w-full flex-wrap justify-start gap-1 text-foreground'
           aria-label={content(lesson.titleKey)}
         >
           <TabsTrigger value='text'>{text('text')}</TabsTrigger>

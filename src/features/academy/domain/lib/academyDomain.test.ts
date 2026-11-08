@@ -85,6 +85,14 @@ const scopedVideo = (evidence: VideoEvidence) => ({
 })
 
 describe('Academy catalog contract', () => {
+  it('assesses the native save explanation by video without a nonexistent practice target', () => {
+    const item = ACADEMY_LESSONS.find((entry) => entry.lessonId === 'save-tabs')
+    expect(item?.mastery).toEqual({ videoRequired: true, practiceStepIds: [] })
+    expect(item?.steps).toEqual([
+      expect.objectContaining({ dataTour: null, practiceRequirement: null }),
+    ])
+  })
+
   it('requires each successful Domain practice operation independently', () => {
     for (const [lessonId, expected] of [
       ['parent-categories', 4],

@@ -74,6 +74,49 @@ const setup = () => {
 }
 
 describe('Academy application use-cases', () => {
+  it('continues existing save lesson viewing without resetting prior facts', async () => {
+    const { ports, read } = setup()
+    const lesson = ACADEMY_LESSONS.find((item) => item.lessonId === 'save-tabs')
+    if (!lesson) {
+      throw new Error('Save lesson missing')
+    }
+    const legacyPorts = {
+      ...ports,
+      lessons: [{ ...lesson, contentVersion: 2, assessmentVersion: 1 }],
+    }
+    const attempt = await createStartLessonUseCase(legacyPorts)('save-tabs')
+    const sample = {
+      ...attempt,
+      sessionId: 'before-update',
+      sequence: 0,
+      assetId: 'save-tabs-en',
+      positionSeconds: 0,
+      playing: true,
+      seeking: false,
+      playbackRate: 1,
+    }
+    await createRecordVideoProgressUseCase(legacyPorts)(sample)
+    await createSkipLessonUseCase(legacyPorts)(attempt)
+    const before = structuredClone(read().lessons['save-tabs'])
+    const currentPorts = { ...ports, lessons: ACADEMY_LESSONS }
+    expect(await createStartLessonUseCase(currentPorts)('save-tabs')).toEqual(
+      attempt,
+    )
+    expect(read().lessons['save-tabs']).toMatchObject({
+      generation: before?.generation,
+      startedAt: before?.startedAt,
+      skippedAt: before?.skippedAt,
+      video: before?.video,
+      practice: before?.practice,
+    })
+    await expect(
+      createRecordVideoProgressUseCase(currentPorts)({
+        ...sample,
+        sessionId: 'after-update',
+      }),
+    ).resolves.toBeUndefined()
+  })
+
   it('credits measured double-speed playback but rejects seeking and impossible rates', async () => {
     const { ports, read, advance } = setup()
     const attempt = await createStartLessonUseCase(ports)('test-lesson')

@@ -32,6 +32,16 @@ const academyUiResult = {
     persistenceUnchanged: true,
     screenGuide: true,
     parentGuide: true,
+    quality: {
+      lessonPaths: 8,
+      videoVariants: 16,
+      captionLanguages: ['ja', 'en'],
+      noAutoplay: true,
+      manualPlayback: true,
+      progressIndependent: true,
+      persistenceUnchanged: true,
+      tabsUnchanged: true,
+    },
     domainPractice: {
       parentComplete: true,
       childComplete: true,
@@ -189,7 +199,7 @@ describe('Academy Firefox Playwright smoke contract', () => {
     expect(result.stdout).toContain('"unexpected": 1')
   }, 20_000)
 
-  it.each(['screenGuide', 'parentGuide', 'domainPractice'] as const)(
+  it.each(['screenGuide', 'parentGuide', 'domainPractice', 'quality'] as const)(
     'fails when the native result omits the %s runtime proof',
     (field) => {
       const facts = { ...academyUiResult.academyUI }
