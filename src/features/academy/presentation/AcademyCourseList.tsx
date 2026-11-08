@@ -21,9 +21,10 @@ const LessonCard = ({
 }) => {
   const { text, content } = useAcademyText()
   return (
-    <article className='group h-full min-w-0 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-accent/40'>
+    <article className='h-full min-w-0'>
       <Link
-        className='block rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
+        aria-label={content(lesson.titleKey)}
+        className='block h-full rounded-xl border border-border bg-card p-5 transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
         to={`/academy/${lesson.lessonId}`}
       >
         <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>

@@ -199,7 +199,7 @@ export const runFirefoxAcademyUiSmoke = async (
   await navigate('/academy')
   await command('/refresh', {})
   await evaluate(`
-    const link = await waitFor(() => byText('main a', '拡張機能を固定'))
+    const link = await waitFor(() => byText('main h3', '拡張機能を固定')?.closest('a') ?? null)
     link.focus()
   `)
   await press('\uE007')
