@@ -133,6 +133,10 @@ const startPractice = async (
     storage: createBaseSeed({ domainPracticeMarker: 'unchanged' }),
     persistence: createExamplePersistenceFixture(1_800_000_000_000),
   })
+  await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+  await expect(
+    page.getByRole('heading', { name: 'Options', exact: true }),
+  ).toBeVisible()
   await guardPractice(page)
   const before = await readBoundary(worker)
   await page.goto(

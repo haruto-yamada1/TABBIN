@@ -70,8 +70,8 @@ const chapters: Chapter[] = [
       '保存後に元のタブが閉じる仕組みを学びます。',
       '動画またはテキストで、保存後に元のタブが閉じる仕組みを確認します。',
     ],
-    action: 'save-tabs',
-    dataTour: 'academy-save-tabs',
+    action: null,
+    dataTour: null,
   },
   {
     lessonId: 'domain-mode',
@@ -212,9 +212,10 @@ export const ACADEMY_LESSONS: Lesson[] = chapters.map((chapter, index) => {
   return {
     lessonId: chapter.lessonId,
     courseId: chapter.courseId,
-    contentVersion: practiceSteps.length
-      ? PRACTICE_CONTENT_VERSION
-      : VIDEO_CONTENT_VERSION,
+    contentVersion:
+      practiceSteps.length || chapter.lessonId === 'save-tabs'
+        ? PRACTICE_CONTENT_VERSION
+        : VIDEO_CONTENT_VERSION,
     contentUpdatedAt: '2026-11-08',
     scenarioVersion: chapter.lessonId === 'save-tabs' ? 2 : 1,
     assessmentVersion: practiceSteps.length > 1 ? 2 : 1,

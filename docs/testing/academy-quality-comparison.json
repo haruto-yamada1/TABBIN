@@ -1,0 +1,86 @@
+{
+  "issue": 1004,
+  "baseRevision": "54687d1c53fdd18d637c71f032924738e23116f9",
+  "head": "Issue #1004 working diff on baseRevision; same dependencies and build commands",
+  "environment": "darwin/arm64; Node 24.3.0; Bun 1.3.14",
+  "measurement": "size:loads parsed-module-sources-v1 + size:report; fresh isolated profiles; ZIP bytes measured directly",
+  "mediaBytes": 6246409,
+  "browsers": {
+    "chrome": {
+      "version": "156.0.8078.4",
+      "totals": {
+        "zipBytes": {
+          "base": 7943424,
+          "head": 7943524,
+          "delta": 100
+        },
+        "unpackedBytes": {
+          "base": 15711565,
+          "head": 15711585,
+          "delta": 20
+        },
+        "javascriptBytes": {
+          "base": 8436935,
+          "head": 8436955,
+          "delta": 20
+        }
+      },
+      "initialFeatureJavaScript": {
+        "saved-tabs": {
+          "base": 1266006,
+          "head": 1266006
+        },
+        "options": {
+          "base": 1018162,
+          "head": 1018162
+        },
+        "ai-chat": {
+          "base": 2081324,
+          "head": 2081324
+        },
+        "analytics": {
+          "base": 952288,
+          "head": 952288
+        }
+      }
+    },
+    "firefox": {
+      "version": "157.0",
+      "totals": {
+        "zipBytes": {
+          "base": 7943440,
+          "head": 7943540,
+          "delta": 100
+        },
+        "unpackedBytes": {
+          "base": 15711570,
+          "head": 15711590,
+          "delta": 20
+        },
+        "javascriptBytes": {
+          "base": 8436935,
+          "head": 8436955,
+          "delta": 20
+        }
+      },
+      "initialFeatureJavaScript": {
+        "saved-tabs": {
+          "base": 1266006,
+          "head": 1266006
+        },
+        "options": {
+          "base": 1018162,
+          "head": 1018162
+        },
+        "ai-chat": {
+          "base": 2081324,
+          "head": 2081324
+        },
+        "analytics": {
+          "base": 952288,
+          "head": 952288
+        }
+      }
+    }
+  }
+}

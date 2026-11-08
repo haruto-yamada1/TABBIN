@@ -234,6 +234,11 @@ test('Academy practice stays explicit in Japanese narrow dark keyboard use', asy
     storage: createBaseSeed(),
     persistence: createExamplePersistenceFixture(1_800_000_000_000),
   })
+  // Finish normal app settings migration before measuring practice's boundary.
+  await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
+  await expect(
+    page.getByRole('heading', { name: 'Options', exact: true }),
+  ).toBeVisible()
   const before = await readBoundary(serviceWorker)
   await guardPracticeApis(page)
   await page.setViewportSize({ width: 390, height: 844 })
