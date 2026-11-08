@@ -99,7 +99,6 @@ const topLevelItems: {
   id: SidebarItemId
   labelKey: string
 }[] = [
-  { icon: GraduationCap, id: 'academy', labelKey: 'sidebar.academy' },
   {
     icon: MessageCircleMore,
     id: 'ai-chat',
@@ -115,6 +114,7 @@ const topLevelItems: {
     id: 'periodic-execution',
     labelKey: 'sidebar.periodicExecution',
   },
+  { icon: GraduationCap, id: 'academy', labelKey: 'sidebar.academy' },
 ]
 
 const tabListItems: {

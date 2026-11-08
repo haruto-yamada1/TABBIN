@@ -222,7 +222,7 @@ export const runFirefoxAcademyUiSmoke = async (
   `)
   await press('\uE007')
   const revisit = await evaluate<boolean>(`
-    await waitFor(() => byText('main h1', 'TABBIN Academy'))
+    await waitFor(() => byText('main h1', '(preview)TABBIN Academy'))
     return !document.querySelector('[role="dialog"]')
   `)
   assert.equal(revisit, true)
