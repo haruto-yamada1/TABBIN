@@ -199,7 +199,7 @@ export const runFirefoxAcademyUiSmoke = async (
   await navigate('/academy')
   await command('/refresh', {})
   await evaluate(`
-    const link = await waitFor(() => byText('main a', '拡張機能を固定'))
+    const link = await waitFor(() => byText('main h3', '拡張機能を固定')?.closest('a') ?? null)
     link.focus()
   `)
   await press('\uE007')
@@ -222,7 +222,7 @@ export const runFirefoxAcademyUiSmoke = async (
   `)
   await press('\uE007')
   const revisit = await evaluate<boolean>(`
-    await waitFor(() => byText('main h1', 'TABBIN Academy'))
+    await waitFor(() => byText('main h1', '(preview)TABBIN Academy'))
     return !document.querySelector('[role="dialog"]')
   `)
   assert.equal(revisit, true)

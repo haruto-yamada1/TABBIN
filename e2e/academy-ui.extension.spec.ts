@@ -66,11 +66,11 @@ test('Academy code loads only when navigating to the learning center', async ({
   ).toBeVisible()
   expect(requested.filter((url) => url.includes('/AcademyRoute-'))).toEqual([])
   await page
-    .getByRole('link', { name: 'TABBIN Academy', exact: true })
+    .getByRole('link', { name: '(preview)TABBIN Academy', exact: true })
     .first()
     .click()
   await expect(
-    page.getByRole('heading', { name: 'TABBIN Academy', exact: true }),
+    page.getByRole('heading', { name: '(preview)TABBIN Academy', exact: true }),
   ).toBeVisible()
   expect(requested.filter((url) => url.includes('/AcademyRoute-'))).not.toEqual(
     [],
@@ -188,7 +188,7 @@ test('Academy direct links, navigation and review preserve saved data and real t
     .click()
   await page.goto(`${app}#/academy`)
   await expect(
-    page.getByRole('heading', { name: 'TABBIN Academy', exact: true }),
+    page.getByRole('heading', { name: '(preview)TABBIN Academy', exact: true }),
   ).toBeVisible()
   await page.screenshot({
     path: testInfo.outputPath('academy-top-en.png'),
@@ -199,11 +199,11 @@ test('Academy direct links, navigation and review preserve saved data and real t
     .getByRole('link', { name: 'Open TABBIN Academy', exact: true })
     .click()
   await expect(
-    page.getByRole('heading', { name: 'TABBIN Academy', exact: true }),
+    page.getByRole('heading', { name: '(preview)TABBIN Academy', exact: true }),
   ).toBeVisible()
   await page.reload()
   await expect(
-    page.getByRole('heading', { name: 'TABBIN Academy', exact: true }),
+    page.getByRole('heading', { name: '(preview)TABBIN Academy', exact: true }),
   ).toBeVisible()
   expect(await readPersistenceV2SavedTabsSnapshot(serviceWorker)).toEqual(
     before,

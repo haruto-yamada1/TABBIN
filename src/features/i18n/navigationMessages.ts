@@ -1,7 +1,7 @@
 export const navigationMessages = {
   en: {
-    'sidebar.academy': 'TABBIN Academy',
-    'htmlTitle.academy': 'TABBIN Academy',
+    'sidebar.academy': '(preview)TABBIN Academy',
+    'htmlTitle.academy': '(preview)TABBIN Academy',
     'htmlTitle.aiChat': 'AI Chat - TABBIN',
     'htmlTitle.analytics': 'Analytics - TABBIN',
     'htmlTitle.app': 'TABBIN',
@@ -19,8 +19,8 @@ export const navigationMessages = {
     'sidebar.tabList': 'Saved tabs',
   },
   ja: {
-    'sidebar.academy': 'TABBIN Academy',
-    'htmlTitle.academy': 'TABBIN Academy',
+    'sidebar.academy': '(preview)TABBIN Academy',
+    'htmlTitle.academy': '(preview)TABBIN Academy',
     'htmlTitle.aiChat': 'AIチャット - TABBIN',
     'htmlTitle.analytics': '分析 - TABBIN',
     'htmlTitle.app': 'TABBIN',

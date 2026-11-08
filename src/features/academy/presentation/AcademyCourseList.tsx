@@ -21,39 +21,38 @@ const LessonCard = ({
 }) => {
   const { text, content } = useAcademyText()
   return (
-    <article className='min-w-0 rounded-xl border border-border bg-card p-5'>
-      <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
-        <span className='text-xs text-muted-foreground'>
-          {text(lesson.difficulty)} · {lesson.estimatedMinutes}{' '}
-          {text('minutes')}
-        </span>
-        <AcademyProgressStatus progress={progress} />
-      </div>
-      <h3 className='text-lg font-semibold'>
-        <Link
-          className='rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring'
-          to={`/academy/${lesson.lessonId}`}
-        >
-          {content(lesson.titleKey)}
-        </Link>
-      </h3>
-      <p className='mt-2 text-sm text-muted-foreground'>
-        {content(lesson.descriptionKey)}
-      </p>
-      <div className='mt-4 space-y-2'>
-        <p className='text-xs text-muted-foreground'>
-          {text(
-            lesson.assets.some((asset) => asset.status === 'available')
-              ? 'videoReady'
-              : 'videoPlanned',
-          )}{' '}
-          ·{' '}
-          {text(
-            canPracticeWithSamples(lesson) ? 'practicePlanned' : 'noPractice',
-          )}
+    <article className='h-full min-w-0'>
+      <Link
+        aria-label={content(lesson.titleKey)}
+        className='block h-full rounded-xl border border-border bg-card p-5 transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
+        to={`/academy/${lesson.lessonId}`}
+      >
+        <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
+          <span className='text-xs text-muted-foreground'>
+            {text(lesson.difficulty)} · {lesson.estimatedMinutes}{' '}
+            {text('minutes')}
+          </span>
+          <AcademyProgressStatus progress={progress} />
+        </div>
+        <h3 className='text-lg font-semibold'>{content(lesson.titleKey)}</h3>
+        <p className='mt-2 text-sm text-muted-foreground'>
+          {content(lesson.descriptionKey)}
         </p>
-        <AcademyEvidenceStatus progress={progress} />
-      </div>
+        <div className='mt-4 space-y-2'>
+          <p className='text-xs text-muted-foreground'>
+            {text(
+              lesson.assets.some((asset) => asset.status === 'available')
+                ? 'videoReady'
+                : 'videoPlanned',
+            )}{' '}
+            ·{' '}
+            {text(
+              canPracticeWithSamples(lesson) ? 'practicePlanned' : 'noPractice',
+            )}
+          </p>
+          <AcademyEvidenceStatus progress={progress} />
+        </div>
+      </Link>
     </article>
   )
 }
@@ -137,7 +136,7 @@ export const AcademyCourseList = ({
                 const lesson = lessons.find((item) => item.lessonId === id)
                 return lesson
                   ? [
-                      <li key={id} className='min-w-0'>
+                      <li key={id} className='h-full min-w-0'>
                         <LessonCard
                           lesson={lesson}
                           progress={progress.lessons.find(
@@ -152,22 +151,6 @@ export const AcademyCourseList = ({
           </section>
         ))}
       </div>
-      <section className='rounded-xl border border-border bg-card p-5'>
-        <h2 className='font-semibold'>{text('supplement')}</h2>
-        <p className='mt-2 text-sm text-muted-foreground'>{text('custom')}</p>
-        <p className='mt-2 text-sm text-muted-foreground'>{text('backup')}</p>
-        <div className='mt-4 flex flex-wrap gap-4 text-sm'>
-          <Link
-            className='underline underline-offset-4'
-            to='/saved-tabs?mode=custom'
-          >
-            Custom
-          </Link>
-          <Link className='underline underline-offset-4' to='/options'>
-            Options
-          </Link>
-        </div>
-      </section>
     </div>
   )
 }
