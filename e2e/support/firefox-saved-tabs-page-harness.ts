@@ -18,11 +18,32 @@ export type FirefoxSavedTabsPageSmokeResult = {
   }[]
 }
 
-const waitForRoute = async (id: number, expectedUrl: string): Promise<void> =>
+// Fail a single route wait before the outer WebDriver script deadline (60s).
+const ROUTE_TIMEOUT_MS = 10_000
+
+export const waitForRoute = async (
+  id: number,
+  expectedUrl: string,
+): Promise<void> =>
   new Promise((resolve, reject) => {
+    const cleanup = () => {
+      clearTimeout(timer)
+      browser.tabs.onUpdated.removeListener(onUpdated)
+    }
+    const fail = (error: unknown) => {
+      cleanup()
+      reject(error instanceof Error ? error : new Error(String(error)))
+    }
+    const timer = setTimeout(() => {
+      fail(
+        new Error(
+          `Tab ${id} did not reach ${expectedUrl} within ${ROUTE_TIMEOUT_MS} ms.`,
+        ),
+      )
+    }, ROUTE_TIMEOUT_MS)
     const inspect = (tab: Pick<chrome.tabs.Tab, 'id' | 'url'>) => {
       if (tab.id === id && tab.url?.startsWith(expectedUrl)) {
-        browser.tabs.onUpdated.removeListener(onUpdated)
+        cleanup()
         resolve()
       }
     }
@@ -33,14 +54,12 @@ const waitForRoute = async (id: number, expectedUrl: string): Promise<void> =>
         inspect(tab)
       }
     }
-    browser.tabs.onUpdated.addListener(onUpdated)
-    void browser.tabs
-      .get(id)
-      .then(inspect)
-      .catch((error: unknown) => {
-        browser.tabs.onUpdated.removeListener(onUpdated)
-        reject(error instanceof Error ? error : new Error(String(error)))
-      })
+    try {
+      browser.tabs.onUpdated.addListener(onUpdated)
+      void browser.tabs.get(id).then(inspect).catch(fail)
+    } catch (error) {
+      fail(error)
+    }
   })
 
 export const runFirefoxSavedTabsPageSmoke =
