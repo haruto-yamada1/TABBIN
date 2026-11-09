@@ -152,6 +152,31 @@ describe('extension-actions モジュール', () => {
   })
 
   it.each([
+    ['window', handleSaveWindowTabs],
+    ['all windows', handleSaveAllWindowsTabs],
+  ])(
+    '%s: 保存画面IDが不明なら保存結果を返して全タブを保全する',
+    async (_name, save) => {
+      const chromeTabs = createChromeTabsHarness()
+      const source = tab({
+        id: 10,
+        url: 'https://example.test/article',
+        title: 'Article',
+      })
+      chromeTabs.query.mockResolvedValue([source])
+      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+      mocked.openSavedTabsPage.mockResolvedValueOnce(null)
+
+      await expect(save()).resolves.toEqual([
+        { url: source.url, title: source.title },
+      ])
+
+      expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith([source])
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
     ['current', handleSaveCurrentTab],
     ['window', handleSaveWindowTabs],
     ['domain', handleSaveSameDomainTabs],

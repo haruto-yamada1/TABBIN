@@ -17,6 +17,7 @@ import {
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
 import { runAcademyPersistenceSmoke } from './academy-progress-browser-harness'
+import { runFirefoxSavedTabsPageSmoke } from './firefox-saved-tabs-page-harness'
 import {
   runFirefoxUrlOpeningSmoke,
   verifyFirefoxUrlOpeningAfterRestart,
@@ -229,7 +230,7 @@ const fresh = async () => {
     storageIndependent: true,
   }
   runtime.connectionManager.close()
-  return result
+  return { ...result, savedTabsPage: await runFirefoxSavedTabsPageSmoke() }
 }
 
 class RecoverableIndexedDbFactory implements IDBFactory {

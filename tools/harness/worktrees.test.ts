@@ -15,7 +15,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, assert, describe, expect, it } from 'vitest'
 
 import type { WorktreeRecord } from './worktrees-io'
 
@@ -651,7 +651,7 @@ describe('Harness worktree lifecycle', () => {
     )
 
     const resumed = run(root, 'resume', '--issue', '941')
-    expect(resumed.status).toBe(0)
+    assert.strictEqual(resumed.status, 0, resumed.stderr || resumed.stdout)
     const after = registryRecord(root)
     expect(after.phase).toBe('ready')
     expect(after.runId).toBe(before.runId)
