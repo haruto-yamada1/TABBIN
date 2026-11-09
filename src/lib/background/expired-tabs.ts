@@ -4,8 +4,9 @@
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { logger } from '@/lib/logging/logger'
-import { getUserSettings } from '@/lib/storage/settings'
 import type { AutoDeletePeriod } from '@/types/background'
+
+import { requireOperationalUserSettings } from './settings-policy'
 
 const SECOND_MS = 1000
 const SECONDS_PER_MINUTE = 60
@@ -82,7 +83,7 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
   try {
     logger.debug('background_expired_tabs_check_started')
     const autoDeletePeriod =
-      (await getUserSettings()).autoDeletePeriod ?? 'never'
+      (await requireOperationalUserSettings()).autoDeletePeriod ?? 'never'
     if (autoDeletePeriod === 'never') {
       logger.debug('background_expired_tabs_auto_delete_disabled')
       return
@@ -120,6 +121,7 @@ export const updateTabTimestamps = async (
   period?: string,
 ): Promise<{ readonly success: boolean; readonly timestamp: number }> => {
   try {
+    await requireOperationalUserSettings()
     logger.debug('background_tab_timestamp_update_started')
     const now = Date.now()
     let timestamp = now

@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-
 
 import type { UserSettings } from '@/types/storage'
 
-vi.mock('@/lib/storage/settings', () => ({
-  getUserSettings: vi.fn(),
-}))
+vi.mock('@/lib/storage/settings', () => {
+  const getUserSettings = vi.fn()
+  return { getUserSettings, requireUserSettings: getUserSettings }
+})
 
 vi.mock('./alarm-notification', () => ({
   showNotification: vi.fn(),
@@ -173,14 +174,12 @@ describe('filterTabsByUserSettings関数', () => {
     )
   })
 
-  it('設定取得に失敗した場合は元のタブ配列を返す', async () => {
+  it('設定取得に失敗した場合は操作を中断する', async () => {
     const error = new Error('settings failed')
     vi.mocked(getUserSettings).mockRejectedValue(error)
 
     const tabs = [tab({ id: 20, url: 'https://allowed.example' })]
-    const result = await filterTabsByUserSettings(tabs)
-
-    expect(result).toBe(tabs)
+    await expect(filterTabsByUserSettings(tabs)).rejects.toThrow(error)
     expect(console.error).toHaveBeenCalledWith(
       'タブフィルタリングエラー:',
       error,

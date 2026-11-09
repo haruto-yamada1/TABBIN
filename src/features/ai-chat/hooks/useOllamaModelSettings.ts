@@ -12,7 +12,7 @@ import {
   requestOllamaModels,
 } from '@/features/ai-chat/components/savedTabsChat/streaming'
 import { normalizeAiSystemPromptSettings } from '@/features/ai-chat/lib/systemPromptPresets'
-import { saveUserSettings } from '@/lib/storage/settings'
+import { requireUserSettings, saveUserSettings } from '@/lib/storage/settings'
 import type { OllamaErrorDetails } from '@/types/background'
 import type { UserSettings } from '@/types/storage'
 
@@ -29,7 +29,6 @@ type UseOllamaModelSettingsOptions = {
 
 const useOllamaModelSettings = ({
   onSettingsSaved,
-  settings,
   t,
 }: UseOllamaModelSettingsOptions) => {
   const [modelOptions, setModelOptions] = useState<OllamaModelOption[]>([])
@@ -124,12 +123,11 @@ const useOllamaModelSettings = ({
       setSetupErrorMessage('')
       setSetupOllamaError(undefined)
 
-      const nextSettings = normalizeAiSystemPromptSettings({
-        ...settings,
-        ollamaModel: modelName,
-      })
-
       try {
+        const nextSettings = normalizeAiSystemPromptSettings({
+          ...(await requireUserSettings()),
+          ollamaModel: modelName,
+        })
         await saveUserSettings(nextSettings)
         if (!isMountedRef.current) {
           return false
@@ -149,7 +147,7 @@ const useOllamaModelSettings = ({
         }
       }
     },
-    [settings, t],
+    [t],
   )
 
   return {

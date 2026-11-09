@@ -35,6 +35,7 @@ const mocked = vi.hoisted(() => ({
     showSavedTime: false,
   },
   getUserSettings: vi.fn(),
+  requireUserSettings: vi.fn(),
   saveUserSettings: vi.fn(),
   sendRuntimeMessage: vi.fn(),
 }))
@@ -42,6 +43,7 @@ const mocked = vi.hoisted(() => ({
 vi.mock('@/lib/storage/settings', () => ({
   defaultSettings: mocked.defaultSettings,
   getUserSettings: mocked.getUserSettings,
+  requireUserSettings: mocked.requireUserSettings,
   saveUserSettings: mocked.saveUserSettings,
 }))
 
@@ -100,6 +102,7 @@ describe('useSavedTabsChatController', () => {
     vi.clearAllMocks()
     mocked.connectRuntimePort.mockResolvedValue(null)
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
+    mocked.requireUserSettings.mockResolvedValue(buildConfiguredSettings())
     mocked.saveUserSettings.mockResolvedValue(undefined)
     vi.stubGlobal('chrome', createChromeMock())
   })
@@ -107,6 +110,40 @@ describe('useSavedTabsChatController', () => {
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
+  })
+
+  it('最新設定を保持して有効プロンプトだけを変更する', async () => {
+    const baseSettings = buildConfiguredSettings()
+    const stored = {
+      ...baseSettings,
+      removeTabAfterOpen: false,
+      excludePatterns: ['https://private.example/*'],
+      aiSystemPrompts: [
+        ...(baseSettings.aiSystemPrompts ?? []),
+        {
+          id: 'custom',
+          name: 'Custom',
+          template: 'Custom prompt',
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    }
+    mocked.requireUserSettings.mockResolvedValue(stored)
+    const { result } = renderHook(() =>
+      useSavedTabsChatController({ mode: 'page' }),
+    )
+    await waitFor(() => expect(result.current.layout.isOpen).toBe(true))
+    act(() => result.current.actions.handleSelectSystemPrompt('custom'))
+    await waitFor(() =>
+      expect(mocked.saveUserSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          removeTabAfterOpen: false,
+          excludePatterns: ['https://private.example/*'],
+          activeAiSystemPromptId: 'custom',
+        }),
+      ),
+    )
   })
 
   it('keeps page mode open and owns floating open state callbacks', () => {

@@ -54,6 +54,7 @@ vi.mock('@/lib/storage/projects', () => ({
 }))
 vi.mock('@/lib/storage/settings', () => ({
   getUserSettings: mocked.getUserSettings,
+  requireUserSettings: mocked.getUserSettings,
 }))
 vi.mock('./saved-tabs-page', () => ({
   openSavedTabsPage: mocked.openSavedTabsPage,

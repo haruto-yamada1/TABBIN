@@ -65,7 +65,7 @@ import {
   saveSavedAnalyticsViews,
 } from '@/lib/storage/analytics'
 import type { SavedAnalyticsView } from '@/lib/storage/analytics'
-import { defaultSettings, getUserSettings } from '@/lib/storage/settings'
+import { requireUserSettings } from '@/lib/storage/settings'
 import { cn } from '@/lib/utils'
 
 const defaultAnalyticsQuery = getDefaultAnalyticsQuery()
@@ -220,14 +220,12 @@ const useAnalyticsRouteView = () => {
     loadedAt: number | null
     records: typeof awaitableEmptyRecords
     savedViews: SavedAnalyticsView[]
-    settings: typeof defaultSettings
   }>(() => ({
     loadedAt: null,
     records: awaitableEmptyRecords,
     savedViews: [],
-    settings: defaultSettings,
   }))
-  const { records, savedViews, settings, loadedAt } = analyticsData
+  const { records, savedViews, loadedAt } = analyticsData
   const setRecords = (records: typeof awaitableEmptyRecords) => {
     setAnalyticsData((current) => ({
       ...current,
@@ -268,22 +266,19 @@ const useAnalyticsRouteView = () => {
   useEffect(() => {
     let cancelled = false
 
-    void Promise.all([
-      loadAnalyticsRecords(),
-      loadSavedAnalyticsViews(),
-      getUserSettings(),
-    ]).then(([nextRecords, nextSavedViews, nextSettings]) => {
-      if (cancelled) {
-        return
-      }
+    void Promise.all([loadAnalyticsRecords(), loadSavedAnalyticsViews()]).then(
+      ([nextRecords, nextSavedViews]) => {
+        if (cancelled) {
+          return
+        }
 
-      setAnalyticsData({
-        loadedAt: Date.now(),
-        records: nextRecords,
-        savedViews: nextSavedViews,
-        settings: nextSettings,
-      })
-    })
+        setAnalyticsData({
+          loadedAt: Date.now(),
+          records: nextRecords,
+          savedViews: nextSavedViews,
+        })
+      },
+    )
 
     return () => {
       cancelled = true
@@ -476,6 +471,7 @@ const useAnalyticsRouteView = () => {
         onRun: async () => {
           try {
             setDeletingUrl(record.url)
+            await requireUserSettings()
             const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
             const nextRecords = await removeUrlFromStorage(record.url).then(
               async () => refreshRecords(),
@@ -507,23 +503,29 @@ const useAnalyticsRouteView = () => {
 
   const handleDeleteClick = useCallback(
     (record: AiSavedUrlRecord) => {
-      const action = getDeleteClickAction({
-        confirmDeleteEach: settings.confirmDeleteEach,
-        deletingUrl,
-        isBulkDeleting,
-      })
-      const actions: Record<DeleteClickAction, () => void> = {
-        confirm: () => {
-          setDeleteTarget(record)
-        },
-        delete: () => {
-          void performDelete(record)
-        },
-        skip: noop,
-      }
-      actions[action]()
+      void requireUserSettings()
+        .then((verifiedSettings) => {
+          const action = getDeleteClickAction({
+            confirmDeleteEach: verifiedSettings.confirmDeleteEach,
+            deletingUrl,
+            isBulkDeleting,
+          })
+          const actions: Record<DeleteClickAction, () => void> = {
+            confirm: () => {
+              setDeleteTarget(record)
+            },
+            delete: () => {
+              void performDelete(record)
+            },
+            skip: noop,
+          }
+          actions[action]()
+        })
+        .catch(() => {
+          toast.error(t('savedTabs.tab.deleteError'))
+        })
     },
-    [settings, deletingUrl, isBulkDeleting, performDelete],
+    [deletingUrl, isBulkDeleting, performDelete, t],
   )
 
   const handleOpenAllDrilldownRecords = useCallback(() => {
@@ -556,6 +558,7 @@ const useAnalyticsRouteView = () => {
       onRun: async () => {
         try {
           setIsBulkDeleting(true)
+          await requireUserSettings()
           const undoSnapshot = await getAnalyticsDeleteUndoSnapshot()
           const nextRecords = await removeUrlRecordsFromStorage(
             matchingRecords.map((record) => record.id),
@@ -588,30 +591,30 @@ const useAnalyticsRouteView = () => {
   ])
 
   const handleDeleteAllClick = useCallback(() => {
-    const action = getDeleteAllAction({
-      confirmDeleteAll: settings.confirmDeleteAll,
-      deletingUrl,
-      isBulkDeleting,
-      matchingRecordCount:
-        getDrilldownMatchingRecords(drilldownSelection).length,
-    })
-    const actions: Record<DeleteAllAction, () => void> = {
-      confirm: () => {
-        setIsBulkDeleteConfirmOpen(true)
-      },
-      delete: () => {
-        void performBulkDelete()
-      },
-      skip: noop,
-    }
-    actions[action]()
-  }, [
-    settings,
-    deletingUrl,
-    isBulkDeleting,
-    drilldownSelection,
-    performBulkDelete,
-  ])
+    void requireUserSettings()
+      .then((verifiedSettings) => {
+        const action = getDeleteAllAction({
+          confirmDeleteAll: verifiedSettings.confirmDeleteAll,
+          deletingUrl,
+          isBulkDeleting,
+          matchingRecordCount:
+            getDrilldownMatchingRecords(drilldownSelection).length,
+        })
+        const actions: Record<DeleteAllAction, () => void> = {
+          confirm: () => {
+            setIsBulkDeleteConfirmOpen(true)
+          },
+          delete: () => {
+            void performBulkDelete()
+          },
+          skip: noop,
+        }
+        actions[action]()
+      })
+      .catch(() => {
+        toast.error(t('analytics.deleteTabsError'))
+      })
+  }, [deletingUrl, isBulkDeleting, drilldownSelection, performBulkDelete, t])
 
   const isDeleteActionDisabled = deletingUrl !== null || isBulkDeleting
 

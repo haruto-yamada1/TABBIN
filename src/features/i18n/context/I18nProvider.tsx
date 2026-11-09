@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import {
   getBrowserUiLocale,
@@ -15,6 +16,7 @@ import {
 import {
   defaultSettings,
   getUserSettings,
+  requireUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
 
@@ -50,8 +52,8 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
             uiLocale: getUiLocale(),
           })
         }
-      } catch (error) {
-        console.error('言語設定の読み込みエラー:', error)
+      } catch {
+        console.error('言語設定の読み込みエラー: 設定を確認できませんでした')
       }
     }
 
@@ -90,18 +92,26 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
-  const setLanguageSetting = async (nextLanguage: LanguageSetting) => {
-    setI18nState({
-      languageSetting: nextLanguage,
-      uiLocale: getUiLocale(),
-    })
-
-    const settings = await getUserSettings()
-    await saveUserSettings({
-      ...settings,
-      language: nextLanguage,
-    })
-  }
+  const setLanguageSetting = useCallback(
+    async (nextLanguage: LanguageSetting) => {
+      try {
+        const settings = await requireUserSettings()
+        await saveUserSettings({ ...settings, language: nextLanguage })
+        setI18nState({
+          languageSetting: nextLanguage,
+          uiLocale: getUiLocale(),
+        })
+      } catch {
+        toast.error(
+          getMessage(
+            resolveLanguage(languageSetting, uiLocale),
+            'background.settings.readErrorMessage',
+          ),
+        )
+      }
+    },
+    [languageSetting, uiLocale],
+  )
 
   const language = resolveLanguage(languageSetting, uiLocale)
 
@@ -112,7 +122,7 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
       setLanguageSetting,
       t: (key, fallback, values) => getMessage(language, key, fallback, values),
     }),
-    [language, languageSetting],
+    [language, languageSetting, setLanguageSetting],
   )
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>

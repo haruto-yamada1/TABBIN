@@ -4,8 +4,9 @@
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { getUserSettings } from '@/lib/storage/settings'
 import type { DraggedUrlInfo } from '@/types/background'
+
+import { requireOperationalUserSettings } from './settings-policy'
 
 let draggedUrlInfo: DraggedUrlInfo | null = null
 let savedTabsStorageMutationQueue: Promise<void> = Promise.resolve()
@@ -117,7 +118,7 @@ const handleUrlDropped = async (
   console.log('URLドロップを検知:', redactUrlForLog(url))
   if (fromExternal === true) {
     try {
-      const settings = await getUserSettings()
+      const settings = await requireOperationalUserSettings()
       if (settings.removeTabAfterExternalDrop) {
         await removeUrlFromStorage(url)
         console.log('外部ドロップ後にURLを削除しました:', redactUrlForLog(url))
@@ -157,7 +158,7 @@ const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
     console.log('URLが一致しています')
     try {
       draggedUrlInfo.processed = true
-      const settings = await getUserSettings()
+      const settings = await requireOperationalUserSettings()
       if (!settings.removeTabAfterOpen) {
         console.log('設定により削除をスキップします')
         return

@@ -8,6 +8,8 @@ import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
+import { defaultUserSettings } from '@/contexts/saved-tabs/domain/services/UserSettingsDefaults'
 import {
   createCustomProject,
   createTabGroup,
@@ -16,6 +18,7 @@ import {
 import { createOpenAllSavedUrlsUseCase } from './OpenAllSavedUrlsUseCase'
 
 type Repositories = {
+  userSettingsRepository: UserSettingsRepository
   tabGroupRepository: TabGroupRepository
   urlRecordRepository: UrlRecordRepository
   customProjectRepository: CustomProjectRepository
@@ -86,7 +89,18 @@ const createInMemoryRepositories = (
 
     saveOrder: async () => undefined,
   }
-  return { customProjectRepository, tabGroupRepository, urlRecordRepository }
+  return {
+    customProjectRepository,
+    tabGroupRepository,
+    urlRecordRepository,
+    userSettingsRepository: {
+      findAll: async () => ({
+        ...defaultUserSettings,
+        removeTabAfterExternalDrop: true,
+      }),
+      save: async () => undefined,
+    },
+  }
 }
 
 const createSpyBrowserTabPort = (): {
@@ -131,6 +145,68 @@ const createPendingRequests = (urls: readonly string[]) => {
 }
 
 describe('OpenAllSavedUrlsUseCase', () => {
+  it.each(['backgroundTabs', 'newWindow'] as const)(
+    '%s: settings rejection prevents browser and persistence operations',
+    async (mode) => {
+      const record = createUrlRecord({
+        id: 'url-1',
+        title: 'A',
+        url: 'https://example.com/a',
+        savedAt: 1,
+      })
+      const repos = createInMemoryRepositories({ urlRecords: [record] })
+      const failure = new Error('Settings unavailable')
+      vi.spyOn(repos.userSettingsRepository, 'findAll').mockRejectedValue(
+        failure,
+      )
+      const remove = vi.spyOn(repos.urlRecordRepository, 'removeByIds')
+      const saveGroups = vi.spyOn(repos.tabGroupRepository, 'saveAll')
+      const saveProjects = vi.spyOn(repos.customProjectRepository, 'saveAll')
+      const browser = createSpyBrowserTabPort()
+      const windows = createSpyBrowserWindowPort()
+      const useCase = createOpenAllSavedUrlsUseCase({
+        ...repos,
+        browserTabPort: browser.port,
+        browserWindowPort: windows.port,
+      })
+      await expect(
+        useCase({ urls: [record.url], mode, removeTabAfterOpen: true }),
+      ).rejects.toBe(failure)
+      expect(browser.opened).toEqual([])
+      expect(windows.opened).toEqual([])
+      expect(remove).not.toHaveBeenCalled()
+      expect(saveGroups).not.toHaveBeenCalled()
+      expect(saveProjects).not.toHaveBeenCalled()
+    },
+  )
+
+  it('verified no-delete policy overrides stale bulk-open settings', async () => {
+    const record = createUrlRecord({
+      id: 'url-1',
+      title: 'A',
+      url: 'https://example.com/a',
+      savedAt: 1,
+    })
+    const repos = createInMemoryRepositories({ urlRecords: [record] })
+    vi.spyOn(repos.userSettingsRepository, 'findAll').mockResolvedValue({
+      ...defaultUserSettings,
+      removeTabAfterOpen: false,
+    })
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort: createSpyBrowserTabPort().port,
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+    await expect(
+      useCase({
+        urls: [record.url],
+        mode: 'backgroundTabs',
+        removeTabAfterOpen: true,
+      }),
+    ).resolves.toMatchObject({ removedUrlRecordIds: [] })
+    expect(await repos.urlRecordRepository.findAll()).toEqual([record])
+  })
+
   it('limits creation to five pending tabs, reports progress, and preserves request order', async () => {
     const urls = Array.from(
       { length: 12 },

@@ -64,6 +64,7 @@ vi.mock('@/lib/storage/settings', () => ({
     ollamaModel: '',
   },
   getUserSettings: mocked.getUserSettings,
+  requireUserSettings: mocked.getUserSettings,
   saveUserSettings: mocked.saveUserSettings,
 }))
 
