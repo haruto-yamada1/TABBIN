@@ -176,12 +176,12 @@ describe('settings safety at background operation boundaries', () => {
     expect(remove).toHaveBeenCalledWith(source.id)
   })
 
-  it('a rejected repair cannot replace an explicit no-delete policy with defaults', async () => {
+  it('strict read does not write repairs and keeps an explicit no-delete policy', async () => {
     get.mockResolvedValue({
       userSettings: { aiProvider: 'ollama', removeTabAfterExternalDrop: false },
     })
-    set.mockRejectedValue(new Error('repair failed'))
     await expect(handleUrlDropped(sourceUrl, true)).resolves.toBe('skipped')
     expect(mocked.removeUrl).not.toHaveBeenCalled()
+    expect(set).not.toHaveBeenCalled()
   })
 })

@@ -18,6 +18,27 @@ import {
   getUniquePromptName,
 } from './prompts'
 
+const arePromptPresetsEqual = (
+  current: readonly AiSystemPromptPreset[] | undefined,
+  base: readonly AiSystemPromptPreset[],
+): boolean => {
+  const currentPrompts = current ?? []
+  return (
+    currentPrompts.length === base.length &&
+    currentPrompts.every((prompt, index) => {
+      const previous = base[index]
+      return (
+        previous !== undefined &&
+        prompt.id === previous.id &&
+        prompt.name === previous.name &&
+        prompt.template === previous.template &&
+        prompt.createdAt === previous.createdAt &&
+        prompt.updatedAt === previous.updatedAt
+      )
+    })
+  )
+}
+
 const useChatPromptManager = ({
   resolvedSettings,
   activeSystemPrompt,
@@ -241,8 +262,10 @@ const useChatPromptManager = ({
     try {
       const verifiedSettings = await requireUserSettings()
       if (
-        JSON.stringify(verifiedSettings.aiSystemPrompts) !==
-        JSON.stringify(baseSystemPrompts)
+        !arePromptPresetsEqual(
+          verifiedSettings.aiSystemPrompts,
+          baseSystemPrompts,
+        )
       ) {
         // A display fallback or stale editor must not replace unseen stored presets.
         const currentPrompt = getActiveAiSystemPrompt(verifiedSettings)

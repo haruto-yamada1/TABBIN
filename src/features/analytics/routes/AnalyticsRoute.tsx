@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
@@ -258,6 +258,7 @@ const useAnalyticsRouteView = () => {
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null)
   const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const deleteActionPendingRef = useRef(false)
   const [isOpenAllConfirmOpen, setIsOpenAllConfirmOpen] = useState(false)
   const [isUsingAiCharts, setIsUsingAiCharts] = useState(false)
   const { analyticsChartTypeOptions, analyticsGroupByOptions, chartMessages } =
@@ -503,26 +504,32 @@ const useAnalyticsRouteView = () => {
 
   const handleDeleteClick = useCallback(
     (record: AiSavedUrlRecord) => {
+      if (deleteActionPendingRef.current) {
+        return
+      }
+      deleteActionPendingRef.current = true
       void requireUserSettings()
-        .then((verifiedSettings) => {
+        .then(async (verifiedSettings) => {
           const action = getDeleteClickAction({
             confirmDeleteEach: verifiedSettings.confirmDeleteEach,
             deletingUrl,
             isBulkDeleting,
           })
-          const actions: Record<DeleteClickAction, () => void> = {
-            confirm: () => {
-              setDeleteTarget(record)
-            },
-            delete: () => {
-              void performDelete(record)
-            },
-            skip: noop,
-          }
-          actions[action]()
+          const actions: Record<DeleteClickAction, () => void | Promise<void>> =
+            {
+              confirm: () => {
+                setDeleteTarget(record)
+              },
+              delete: async () => performDelete(record),
+              skip: noop,
+            }
+          await actions[action]()
         })
         .catch(() => {
           toast.error(t('savedTabs.tab.deleteError'))
+        })
+        .finally(() => {
+          deleteActionPendingRef.current = false
         })
     },
     [deletingUrl, isBulkDeleting, performDelete, t],
@@ -591,8 +598,12 @@ const useAnalyticsRouteView = () => {
   ])
 
   const handleDeleteAllClick = useCallback(() => {
+    if (deleteActionPendingRef.current) {
+      return
+    }
+    deleteActionPendingRef.current = true
     void requireUserSettings()
-      .then((verifiedSettings) => {
+      .then(async (verifiedSettings) => {
         const action = getDeleteAllAction({
           confirmDeleteAll: verifiedSettings.confirmDeleteAll,
           deletingUrl,
@@ -600,19 +611,20 @@ const useAnalyticsRouteView = () => {
           matchingRecordCount:
             getDrilldownMatchingRecords(drilldownSelection).length,
         })
-        const actions: Record<DeleteAllAction, () => void> = {
+        const actions: Record<DeleteAllAction, () => void | Promise<void>> = {
           confirm: () => {
             setIsBulkDeleteConfirmOpen(true)
           },
-          delete: () => {
-            void performBulkDelete()
-          },
+          delete: async () => performBulkDelete(),
           skip: noop,
         }
-        actions[action]()
+        await actions[action]()
       })
       .catch(() => {
         toast.error(t('analytics.deleteTabsError'))
+      })
+      .finally(() => {
+        deleteActionPendingRef.current = false
       })
   }, [deletingUrl, isBulkDeleting, drilldownSelection, performBulkDelete, t])
 

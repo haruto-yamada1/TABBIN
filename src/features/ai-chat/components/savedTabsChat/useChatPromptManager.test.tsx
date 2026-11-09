@@ -11,6 +11,7 @@ import {
   requireUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
+import { aiSystemPromptPresetSchema } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 import { useChatPromptManager } from './useChatPromptManager'
@@ -62,6 +63,106 @@ describe('プロンプト設定の安全な保存', () => {
       }),
     )
   })
+
+  it('保存schemaによるキー順の変更だけなら下書きを失わず保存する', async () => {
+    vi.mocked(requireUserSettings).mockResolvedValue({
+      ...displaySettings,
+      aiSystemPrompts: displaySettings.aiSystemPrompts.map((prompt) =>
+        aiSystemPromptPresetSchema.parse(prompt),
+      ),
+    })
+    const { result } = renderHook(useManager)
+    act(() => result.current.handleOpenSystemPromptManager())
+    act(() => result.current.handleChangePromptName('Keep this draft'))
+    await act(async () => result.current.handleSavePromptManager())
+
+    expect(saveUserSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiSystemPrompts: expect.arrayContaining([
+          expect.objectContaining({ name: 'Keep this draft' }),
+        ]),
+      }),
+    )
+    expect(result.current.promptManagerError).toBe('')
+    expect(result.current.isPromptManagerOpen).toBe(false)
+  })
+
+  it('未設定の一覧は空のsnapshotと同じと扱い最初のpresetを保存する', async () => {
+    const initial = { ...displaySettings, aiSystemPrompts: undefined }
+    vi.mocked(requireUserSettings).mockResolvedValue(initial)
+    const { result } = renderHook(() => useManager(initial))
+    act(() => result.current.handleOpenSystemPromptManager())
+    act(() => result.current.handleCreatePrompt())
+    act(() => result.current.handleChangePromptName('First preset'))
+    act(() => result.current.handleChangePromptTemplate('First template'))
+    await act(async () => result.current.handleSavePromptManager())
+
+    expect(saveUserSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiSystemPrompts: [
+          expect.objectContaining({
+            name: 'First preset',
+            template: 'First template',
+          }),
+        ],
+      }),
+    )
+  })
+
+  it.each([
+    { id: 'external-id' },
+    { name: 'External name' },
+    { template: 'External template' },
+    { createdAt: 1 },
+    { updatedAt: 1 },
+  ])('保存済みpresetのfield変更%jは競合として保護する', async (patch) => {
+    const currentPrompts = displaySettings.aiSystemPrompts.map((prompt) => ({
+      ...prompt,
+      ...patch,
+    }))
+    vi.mocked(requireUserSettings).mockResolvedValue({
+      ...displaySettings,
+      aiSystemPrompts: currentPrompts,
+    })
+    const { result } = renderHook(useManager)
+    act(() => result.current.handleOpenSystemPromptManager())
+    act(() => result.current.handleChangePromptName('Stale draft'))
+    await act(async () => result.current.handleSavePromptManager())
+
+    expect(saveUserSettings).not.toHaveBeenCalled()
+    expect(result.current.promptDrafts).toEqual(currentPrompts)
+    expect(result.current.promptManagerError).toBe(
+      'aiChat.systemPrompt.reloadRequired',
+    )
+  })
+
+  it.each(['remove', 'append', 'reorder'] as const)(
+    '保存済みpresetの配列変更%sは競合として保護する',
+    async (change) => {
+      const first = displaySettings.aiSystemPrompts[0]
+      const second = { ...first, id: 'second', name: 'Second preset' }
+      const initial = {
+        ...displaySettings,
+        aiSystemPrompts: [first, second],
+      }
+      const currentPrompts = {
+        remove: [first],
+        append: [first, second, { ...second, id: 'third' }],
+        reorder: [second, first],
+      }[change]
+      vi.mocked(requireUserSettings).mockResolvedValue({
+        ...displaySettings,
+        aiSystemPrompts: currentPrompts,
+      })
+      const { result } = renderHook(() => useManager(initial))
+      act(() => result.current.handleOpenSystemPromptManager())
+      act(() => result.current.handleChangePromptName('Stale draft'))
+      await act(async () => result.current.handleSavePromptManager())
+
+      expect(saveUserSettings).not.toHaveBeenCalled()
+      expect(result.current.promptDrafts).toEqual(currentPrompts)
+    },
+  )
 
   it('表示fallbackに存在しない保存済みプロンプトを上書きせず再表示する', async () => {
     const storedPrompt = {

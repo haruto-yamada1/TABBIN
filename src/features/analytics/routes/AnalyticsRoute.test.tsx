@@ -7,6 +7,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -2372,6 +2373,114 @@ describe('AnalyticsRoute', () => {
       expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
       expect(analyticsRouteMocks.readUndoSnapshotMock).not.toHaveBeenCalled()
       expect(screen.getByText('Example Docs')).toBeInTheDocument()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '設定読込待ちの %s 削除は連打しても削除とUndoを一度だけ実行する',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      let resolveSettings:
+        | ((settings: typeof defaultSettings) => void)
+        | undefined
+      const settingsRead = new Promise<typeof defaultSettings>((resolve) => {
+        resolveSettings = resolve
+      })
+      analyticsRouteMocks.requireSettingsMock
+        .mockReturnValueOnce(settingsRead)
+        .mockReturnValueOnce(settingsRead)
+        .mockResolvedValue(defaultSettings)
+      const deleteButton = screen.getByRole('button', {
+        name: mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+      })
+      await user.click(deleteButton)
+      await user.click(deleteButton)
+      expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
+      await act(async () => {
+        resolveSettings?.(defaultSettings)
+      })
+      await waitFor(() => {
+        expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledOnce()
+      })
+      expect(toast.info).toHaveBeenCalledOnce()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '設定読込待ちの %s 削除と別種の削除を同時実行しない',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      let resolveSettings:
+        | ((settings: typeof defaultSettings) => void)
+        | undefined
+      const settingsRead = new Promise<typeof defaultSettings>((resolve) => {
+        resolveSettings = resolve
+      })
+      analyticsRouteMocks.requireSettingsMock
+        .mockReturnValueOnce(settingsRead)
+        .mockReturnValueOnce(settingsRead)
+        .mockResolvedValue(defaultSettings)
+      const singleDelete = screen.getByRole('button', { name: 'Delete tab' })
+      const bulkDelete = screen.getByRole('button', {
+        name: 'Delete all tabs in this item',
+      })
+      await user.click(mode === 'single' ? singleDelete : bulkDelete)
+      await user.click(mode === 'single' ? bulkDelete : singleDelete)
+      await act(async () => {
+        resolveSettings?.(defaultSettings)
+      })
+      await waitFor(() => {
+        expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledOnce()
+      })
+      expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action:
+            mode === 'single'
+              ? 'removeUrlFromStorage'
+              : 'removeUrlRecordsFromStorage',
+        }),
+        expect.any(Function),
+      )
+      expect(toast.info).toHaveBeenCalledOnce()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '設定読込が失敗した %s 削除はガードを解除して再試行できる',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      let rejectSettings: ((error: Error) => void) | undefined
+      const settingsRead = new Promise<typeof defaultSettings>(
+        (_resolve, reject) => {
+          rejectSettings = reject
+        },
+      )
+      analyticsRouteMocks.requireSettingsMock
+        .mockReturnValueOnce(settingsRead)
+        .mockResolvedValue(defaultSettings)
+      const deleteButton = screen.getByRole('button', {
+        name: mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+      })
+      await user.click(deleteButton)
+      await act(async () => {
+        rejectSettings?.(new Error('settings unavailable'))
+      })
+      await waitFor(() => expect(toast.error).toHaveBeenCalledOnce())
+      expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
+      await user.click(deleteButton)
+      await waitFor(() => {
+        expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledOnce()
+      })
+      expect(toast.info).toHaveBeenCalledOnce()
     },
   )
 
