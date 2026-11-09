@@ -6,6 +6,8 @@ import { createServer } from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 
+// eslint-disable-next-line import/no-relative-parent-imports -- native browser smoke result is a shared WebDriver boundary contract
+import type { FirefoxSavedTabsPageSmokeResult } from '../../e2e/support/firefox-saved-tabs-page-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- shared browser harness result is the WebDriver protocol contract
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
@@ -51,6 +53,7 @@ type SmokeResult = {
       readonly mastered: boolean
     }
   }
+  readonly savedTabsPage?: FirefoxSavedTabsPageSmokeResult
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -436,6 +439,29 @@ const assertFreshResult = (result: SmokeResult): JsonRecord => {
   assert.equal(result.backup.data.messages.length, 1)
   assert.ok(result.obsoleteStorageBefore)
   assertUrlOpeningResult(result.urlOpening)
+  assert.ok(
+    result.savedTabsPage,
+    'Firefox Saved Tabs lifecycle result must be present.',
+  )
+  assert.deepEqual(
+    result.savedTabsPage.scenarios.map(({ requestedPath }) => requestedPath),
+    ['saved-tabs.html', 'app.html#/saved-tabs?mode=custom'],
+  )
+  for (const scenario of result.savedTabsPage.scenarios) {
+    assert.deepEqual(scenario.concurrentIds, [
+      scenario.mainId,
+      scenario.mainId,
+      scenario.mainId,
+    ])
+    assert.equal(scenario.reusedId, scenario.mainId)
+    assert.equal(scenario.mainPinned, true)
+    assert.equal(scenario.duplicateRemoved, true)
+    assert.equal(scenario.fakeUntouched, true)
+    assert.equal(scenario.navigatedUntouched, true)
+    assert.notEqual(scenario.replacementId, null)
+    assert.notEqual(scenario.replacementId, scenario.mainId)
+    assert.equal(scenario.replacementIsSavedTabsPage, true)
+  }
   return result.obsoleteStorageBefore
 }
 
@@ -679,6 +705,7 @@ const run = async (): Promise<void> => {
             savedTabsReadCount: verified.savedTabsReadCount,
           },
           schemaVersion: verified.backup.schemaVersion,
+          savedTabsPage: fresh.savedTabsPage,
           urlOpening: fresh.urlOpening,
           urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',

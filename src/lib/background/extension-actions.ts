@@ -335,6 +335,12 @@ export const handleSaveAllWindowsTabs = async (): Promise<
         openSavedTabsPage(),
       ])
 
+    // 保存画面を確認できない場合は、保存済みでもタブを閉じずに残す。
+    if (savedTabsTabId === null) {
+      await showNotification(notificationTitle, notificationMessage)
+      return toResultItems(savedTabs)
+    }
+
     // タブを閉じる（一括処理）
     const tabIdsToClose = filteredTabs.reduce<number[]>((ids, tab) => {
       if (tab.id && tab.id !== savedTabsTabId) {
@@ -390,6 +396,10 @@ export const handleSaveWindowTabs = async (): Promise<
       }),
     ])
   await showNotification(notificationTitle, notificationMessage)
+
+  if (savedTabsTabId === null) {
+    return toResultItems(savedTabs)
+  }
 
   // 閉じるタブを収集
   const tabIdsToClose: number[] = []

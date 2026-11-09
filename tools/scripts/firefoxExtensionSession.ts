@@ -17,6 +17,7 @@ import { firefox } from '@playwright/test'
 import { zipSync } from 'fflate'
 import type { Zippable } from 'fflate'
 
+import { parsedSourceProcessScript } from './firefoxParsedSources'
 import { createFirefoxSmokeProcessEnvironment } from './firefoxSmokeEnvironment'
 
 const ADDON_ID = 'tabbin@local'
@@ -39,44 +40,6 @@ const browserVersion = (capabilities: unknown): string =>
   record(capabilities) && typeof capabilities.browserVersion === 'string'
     ? capabilities.browserVersion
     : 'unknown'
-
-// Extension resource timings and BiDi network events omit moz-extension loads.
-// Inspect only real Window globals for this document, excluding WebDriver
-// sandboxes and other extension tabs in the same process.
-const parsedSourceProcessScript = (
-  href: string,
-  channel: string,
-  marker: string,
-): string => `
-  (() => {
-    let debuggerInstance;
-    try {
-      const { addDebuggerToGlobal } = ChromeUtils.importESModule('resource://gre/modules/jsdebugger.sys.mjs');
-      const sandbox = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), { freshCompartment: true });
-      addDebuggerToGlobal(sandbox);
-      debuggerInstance = new sandbox.Debugger();
-      const urls = new Set();
-      let matched = false;
-      for (const global of debuggerInstance.findAllGlobals()) {
-        if (global.class !== 'Window') continue;
-        const window = global.unsafeDereference();
-        if (window.location?.href !== ${JSON.stringify(href)}) continue;
-        if ((window.wrappedJSObject ?? window)[${JSON.stringify(marker)}] !== ${JSON.stringify(marker)}) continue;
-        matched = true;
-        debuggerInstance.addDebuggee(window);
-        for (const script of debuggerInstance.findScripts({ global })) {
-          const url = script.source?.url ?? script.url;
-          if (typeof url === 'string') urls.add(url);
-        }
-      }
-      if (matched && urls.size) sendAsyncMessage(${JSON.stringify(channel)}, { urls: [...urls] });
-    } catch (error) {
-      sendAsyncMessage(${JSON.stringify(channel)}, { error: String(error) });
-    } finally {
-      debuggerInstance?.removeAllDebuggees();
-    }
-  })();
-`
 
 const parsedSourceParentScript = `
   return new Promise((resolve, reject) => {
