@@ -17,6 +17,7 @@ import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 import {
   lookupUrlRecordIdsByUrl,
   removeUrlRecordIdsFromTabGroups,
@@ -31,6 +32,7 @@ export type OpenAllSavedUrlsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository
+  readonly userSettingsRepository: UserSettingsRepository
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
 }
@@ -390,16 +392,22 @@ export const createOpenAllSavedUrlsUseCase = (
       }
     }
 
-    const [allTabGroups, allUrlRecords, allCustomProjects] = await Promise.all([
-      deps.tabGroupRepository.findAll(),
-      deps.urlRecordRepository.findAll(),
-      deps.customProjectRepository.findAll(),
-    ])
+    const [allTabGroups, allUrlRecords, allCustomProjects, settings] =
+      await Promise.all([
+        deps.tabGroupRepository.findAll(),
+        deps.urlRecordRepository.findAll(),
+        deps.customProjectRepository.findAll(),
+        deps.userSettingsRepository.findAll(),
+      ])
 
     // 保存状態の取得が成功してから開く。取得失敗時にブラウザ操作だけが
     // 先行しないよう、この snapshot をオープン・削除フェーズへ渡す。
     return openAndRemoveFromSnapshot(
-      command,
+      {
+        ...command,
+        removeTabAfterOpen:
+          command.removeTabAfterOpen && settings.removeTabAfterOpen,
+      },
       deps,
       {
         customProjects: allCustomProjects,

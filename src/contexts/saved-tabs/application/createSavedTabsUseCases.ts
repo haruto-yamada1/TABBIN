@@ -211,12 +211,14 @@ export const createSavedTabsUseCases = (
     customProjectRepository: deps.customProjectRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
+    userSettingsRepository: deps.userSettingsRepository,
   }),
   openSavedUrl: createOpenSavedUrlUseCase({
     browserTabPort: deps.browserTabPort,
     customProjectRepository: deps.customProjectRepository,
     tabGroupRepository: deps.tabGroupRepository,
     urlRecordRepository: deps.urlRecordRepository,
+    userSettingsRepository: deps.userSettingsRepository,
   }),
   prepareTabGroupDeletion: createPrepareTabGroupDeletionUseCase({
     categoriesCommandService: deps.categoriesCommandService,

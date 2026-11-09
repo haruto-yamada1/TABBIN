@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { useLayoutEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { assert, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import type { UserSettings } from '@/types/storage'
 const mocked = vi.hoisted(() => ({
   getRuntimePlatform: vi.fn(),
   requestOllamaModels: vi.fn(),
+  requireUserSettings: vi.fn(),
   saveUserSettings: vi.fn(),
 }))
 
@@ -26,6 +27,7 @@ vi.mock('@/lib/storage/settings', async () => {
   return {
     ...actual,
     saveUserSettings: mocked.saveUserSettings,
+    requireUserSettings: mocked.requireUserSettings,
   }
 })
 
@@ -60,6 +62,7 @@ describe('useOllamaModelSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocked.getRuntimePlatform.mockResolvedValue('unknown')
+    mocked.requireUserSettings.mockResolvedValue(settings)
     mocked.saveUserSettings.mockResolvedValue(undefined)
   })
 
@@ -175,6 +178,39 @@ describe('useOllamaModelSettings', () => {
     expect(result.current.isSavingModel).toBe(false)
   })
 
+  it('表示用fallbackの後も最新設定を保持してモデルだけを変更する', async () => {
+    mocked.requireUserSettings.mockResolvedValue({
+      ...settings,
+      removeTabAfterOpen: false,
+      excludePatterns: ['https://private.example/*'],
+    })
+    const onSettingsSaved = vi.fn()
+    const { result } = renderHook(() =>
+      useOllamaModelSettings({ onSettingsSaved, settings, t }),
+    )
+    await act(async () => {
+      await result.current.selectModel('qwen3')
+    })
+    expect(mocked.saveUserSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        removeTabAfterOpen: false,
+        excludePatterns: ['https://private.example/*'],
+        ollamaModel: 'qwen3',
+      }),
+    )
+  })
+
+  it('最新設定が読めなければモデル設定を保存しない', async () => {
+    mocked.requireUserSettings.mockRejectedValue(new Error('unavailable'))
+    const { result } = renderHook(() =>
+      useOllamaModelSettings({ onSettingsSaved: vi.fn(), settings, t }),
+    )
+    await act(async () => {
+      expect(await result.current.selectModel('qwen3')).toBe(false)
+    })
+    expect(mocked.saveUserSettings).not.toHaveBeenCalled()
+  })
+
   it('保存失敗時は owner へ通知せず error を返す', async () => {
     mocked.saveUserSettings.mockRejectedValue(new Error('storage failed'))
     const onSettingsSaved = vi.fn()
@@ -262,7 +298,7 @@ describe('useOllamaModelSettings', () => {
     })
 
     expect(mocked.requestOllamaModels).toHaveBeenCalledOnce()
-    expect(mocked.saveUserSettings).toHaveBeenCalledOnce()
+    await waitFor(() => expect(mocked.saveUserSettings).toHaveBeenCalledOnce())
     await expect(secondSave).resolves.toBe(false)
 
     await act(async () => {

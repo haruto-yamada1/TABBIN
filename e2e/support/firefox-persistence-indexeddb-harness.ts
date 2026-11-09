@@ -18,6 +18,7 @@ import {
 
 import { runAcademyPersistenceSmoke } from './academy-progress-browser-harness'
 import { runFirefoxSavedTabsPageSmoke } from './firefox-saved-tabs-page-harness'
+import { runFirefoxSettingsSafetySmoke } from './firefox-settings-safety-harness'
 import {
   runFirefoxUrlOpeningSmoke,
   verifyFirefoxUrlOpeningAfterRestart,
@@ -211,6 +212,7 @@ const fresh = async () => {
   })
   const result = {
     academy: await runAcademyPersistenceSmoke('fresh'),
+    settingsSafety: await runFirefoxSettingsSafetySmoke(),
     urlOpening: await runFirefoxUrlOpeningSmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
       chrome.extension.isAllowedIncognitoAccess(resolve)

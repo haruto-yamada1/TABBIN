@@ -2,10 +2,10 @@
  * Background script用ユーティリティ関数
  */
 
-import { getUserSettings } from '@/lib/storage/settings'
 import { filterItemsBySavableUrl } from '@/lib/url-filter'
 
 import { showNotification } from './alarm-notification'
+import { requireOperationalUserSettings } from './settings-policy'
 
 /**
  * タブをユーザー設定に基づいてフィルタリングする共通関数
@@ -15,7 +15,7 @@ export const filterTabsByUserSettings = async (
 ): Promise<chrome.tabs.Tab[]> => {
   try {
     // ユーザー設定を取得
-    const settings = await getUserSettings()
+    const settings = await requireOperationalUserSettings()
     let filteredTabs = [...tabs]
 
     // 固定タブを除外
@@ -38,7 +38,7 @@ export const filterTabsByUserSettings = async (
     return filteredTabs
   } catch (error) {
     console.error('タブフィルタリングエラー:', error)
-    return tabs // エラー時は元のタブをそのまま返す
+    throw error
   }
 } // 通知表示の再エクスポート
 export { showNotification }

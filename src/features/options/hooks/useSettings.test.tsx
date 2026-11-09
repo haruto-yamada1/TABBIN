@@ -23,9 +23,15 @@ vi.mock('@/lib/storage/settings', () => {
     colors: {},
   }
 
+  const getUserSettings = vi.fn()
   return {
     defaultSettings,
-    getUserSettings: vi.fn(),
+    getUserSettings,
+    readUserSettingsStrict: vi.fn(async () => ({
+      status: 'available',
+      settings: await getUserSettings(),
+    })),
+    resetInvalidUserSettings: vi.fn(),
     saveUserSettings: vi.fn(),
   }
 })
@@ -33,6 +39,8 @@ vi.mock('@/lib/storage/settings', () => {
 import {
   defaultSettings,
   getUserSettings,
+  readUserSettingsStrict,
+  resetInvalidUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
 
@@ -102,13 +110,10 @@ describe('useSettingsフック', () => {
     })
 
     expect(result.current.settings).toStrictEqual(defaultSettings)
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '設定の読み込みエラー:',
-      expect.any(Error),
-    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith('設定の読み込みに失敗しました')
   })
 
-  it('読み込み失敗後の保存は画面に戻したデフォルト設定を使う', async () => {
+  it('読み込み失敗後はデフォルト値で保存しない', async () => {
     using consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined)
@@ -127,18 +132,63 @@ describe('useSettingsフック', () => {
     })
     expect(result.current.settings).toStrictEqual(defaultSettings)
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '設定の読み込みエラー:',
-      expect.any(Error),
-    )
+    expect(consoleErrorSpy).toHaveBeenCalledWith('設定の読み込みに失敗しました')
 
     await act(async () => {
       await result.current.updateSetting('openUrlInBackground', false)
     })
+    expect(saveUserSettings).not.toHaveBeenCalled()
+  })
+
+  it('不正な設定では全保存経路を止め、再読込成功後に保存できる', async () => {
+    vi.mocked(readUserSettingsStrict).mockResolvedValueOnce({
+      status: 'invalid',
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(defaultSettings)
+    const { result } = renderHook(() => useSettings())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.loadError).toBe('invalid')
+    act(() => result.current.setExcludePatternInput('example.com'))
+    await act(async () => {
+      expect(await result.current.updateSetting('showSavedTime', true)).toBe(
+        false,
+      )
+      expect(await result.current.handleSaveSettings()).toBe(false)
+      expect(await result.current.addExcludePattern()).toBe(false)
+      expect(await result.current.removeExcludePattern('chrome://')).toBe(false)
+    })
+    expect(saveUserSettings).not.toHaveBeenCalled()
+    await act(async () => result.current.retryLoadSettings())
+    expect(result.current.loadError).toBeNull()
+    await act(async () => {
+      await result.current.updateSetting('showSavedTime', true)
+    })
     expect(saveUserSettings).toHaveBeenCalledExactlyOnceWith({
       ...defaultSettings,
-      openUrlInBackground: false,
+      showSavedTime: true,
     })
+  })
+
+  it('不正設定の明示リセット後に読み直して復旧する', async () => {
+    vi.mocked(readUserSettingsStrict).mockResolvedValueOnce({
+      status: 'invalid',
+    })
+    vi.mocked(getUserSettings).mockResolvedValue(defaultSettings)
+    const { result } = renderHook(() => useSettings())
+    await waitFor(() => expect(result.current.loadError).toBe('invalid'))
+    await act(async () => result.current.resetInvalidSettings())
+    expect(resetInvalidUserSettings).toHaveBeenCalledTimes(1)
+    expect(result.current.loadError).toBeNull()
+  })
+
+  it('読込不能時には明示リセットも実行しない', async () => {
+    vi.mocked(readUserSettingsStrict).mockResolvedValueOnce({
+      status: 'unavailable',
+    })
+    const { result } = renderHook(() => useSettings())
+    await waitFor(() => expect(result.current.loadError).toBe('unavailable'))
+    await act(async () => result.current.resetInvalidSettings())
+    expect(resetInvalidUserSettings).toHaveBeenCalledTimes(0)
   })
 
   it('updateSetting はローカル状態を更新し設定を永続化する', async () => {
@@ -259,6 +309,27 @@ describe('useSettingsフック', () => {
         ],
       }),
     )
+  })
+
+  it('保存値nullへの変更通知を未保存と混同せず復旧状態にする', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(defaultSettings)
+    const { result } = renderHook(() => useSettings())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    vi.mocked(readUserSettingsStrict).mockResolvedValueOnce({
+      status: 'invalid',
+    })
+    act(() => {
+      const listener = listeners[0]
+      assert.isDefined(listener)
+      listener({ userSettings: { newValue: null } }, 'local')
+    })
+    await waitFor(() => expect(result.current.loadError).toBe('invalid'))
+    await act(async () => {
+      expect(
+        await result.current.updateSetting('removeTabAfterOpen', true),
+      ).toBe(false)
+    })
+    expect(saveUserSettings).not.toHaveBeenCalled()
   })
 
   it('chrome.storage.onChanged イベントから状態を更新する', async () => {

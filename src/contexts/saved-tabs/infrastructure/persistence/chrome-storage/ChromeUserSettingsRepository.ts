@@ -5,6 +5,8 @@ import {
   getChromeStorageLocal,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
+import { UserSettingsReadError } from '@/lib/storage/settings'
+import { strictStoredUserSettingsSchema } from '@/lib/storage/zod-storage'
 
 import type { ChromeUserSettingsStoragePort } from './ChromeUserSettingsStorage'
 import {
@@ -27,11 +29,23 @@ const createChromeUserSettingsRepositoryImpl = (
   port: ChromeUserSettingsStoragePort,
 ): UserSettingsRepository => {
   const findAll = async (): Promise<UserSettingsDto> => {
-    const result = await port.get(USER_SETTINGS_KEY)
+    let result: Record<string, unknown>
+    try {
+      result = await port.get(USER_SETTINGS_KEY)
+    } catch {
+      throw new UserSettingsReadError('unavailable')
+    }
+    if (
+      result.userSettings !== undefined &&
+      !strictStoredUserSettingsSchema.safeParse(result.userSettings).success
+    ) {
+      throw new UserSettingsReadError('invalid')
+    }
     return normalizeUserSettings(result).normalized
   }
 
   const save = async (settings: UserSettingsDto): Promise<void> => {
+    await findAll()
     const normalized = normalizeUserSettings({
       userSettings: settings,
     }).normalized

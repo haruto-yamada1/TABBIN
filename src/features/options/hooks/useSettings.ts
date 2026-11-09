@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { StorageChange } from '@/lib/browser/chrome-storage'
@@ -8,13 +8,11 @@ import {
 } from '@/lib/browser/chrome-storage'
 import {
   defaultSettings,
-  getUserSettings,
+  readUserSettingsStrict,
+  resetInvalidUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
-import {
-  fromStorageChange,
-  UserSettingsSchema,
-} from '@/lib/storage/zod-storage'
+import { UserSettingsSchema } from '@/lib/storage/zod-storage'
 import type { UserSettings } from '@/types/storage'
 
 const normalizeExcludePattern = (pattern: string) => pattern.trim()
@@ -27,6 +25,11 @@ export const useSettings = () => {
     settings: defaultSettings,
   })
   const { isLoading, settings } = settingsState
+  const [loadError, setLoadError] = useState<'invalid' | 'unavailable' | null>(
+    null,
+  )
+  const settingsReadyRef = useRef(false)
+  const loadErrorRef = useRef<'invalid' | 'unavailable' | null>(null)
   const [excludePatternInput, setExcludePatternInput] = useState('')
   const settingsRef = useRef(settings)
   const persistedSettingsRef = useRef(settings)
@@ -46,6 +49,9 @@ export const useSettings = () => {
     failedSettings: UserSettings,
     rollbackSettings: UserSettings,
   ) => {
+    if (!settingsReadyRef.current) {
+      return
+    }
     settingsRef.current = failedSettings
     setSettings(failedSettings)
 
@@ -86,28 +92,47 @@ export const useSettings = () => {
     notifySaveError(failedSettings, rollbackSettings)
   }
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const userSettings = await getUserSettings()
-        settingsRef.current = userSettings
-        persistedSettingsRef.current = userSettings
-        setSettingsState({
-          isLoading: false,
-          settings: userSettings,
-        })
-      } catch (error) {
-        console.error('設定の読み込みエラー:', error)
-        settingsRef.current = defaultSettings
-        setSettingsState({
-          isLoading: false,
-          settings: defaultSettings,
-        })
+  const retryLoadSettings = useCallback(async () => {
+    settingsReadyRef.current = false
+    try {
+      const result = await readUserSettingsStrict()
+      if (!('settings' in result)) {
+        loadErrorRef.current = result.status
+        setLoadError(result.status)
+        setSettingsState((prev) => ({ ...prev, isLoading: false }))
+        return
       }
+      settingsRef.current = result.settings
+      persistedSettingsRef.current = result.settings
+      settingsReadyRef.current = true
+      loadErrorRef.current = null
+      setLoadError(null)
+      setSettingsState({ isLoading: false, settings: result.settings })
+    } catch {
+      console.error('設定の読み込みに失敗しました')
+      loadErrorRef.current = 'unavailable'
+      setLoadError('unavailable')
+      settingsRef.current = defaultSettings
+      setSettingsState({ isLoading: false, settings: defaultSettings })
     }
-
-    void loadSettings()
   }, [])
+
+  const resetInvalidSettings = async () => {
+    if (loadErrorRef.current !== 'invalid') {
+      return
+    }
+    try {
+      await resetInvalidUserSettings()
+      await retryLoadSettings()
+    } catch {
+      loadErrorRef.current = 'unavailable'
+      setLoadError('unavailable')
+    }
+  }
+
+  useEffect(() => {
+    void Promise.resolve().then(retryLoadSettings)
+  }, [retryLoadSettings])
 
   useEffect(() => {
     const storageChangeListener = (
@@ -120,17 +145,24 @@ export const useSettings = () => {
         Object.hasOwn(changes, 'userSettings') &&
         settingsChange
       ) {
-        if (settingsChange.newValue) {
+        if (settingsChange.newValue !== undefined) {
           // NewValue は完全な UserSettings オブジェクトであると期待
-          const nextSettings = fromStorageChange(
-            UserSettingsSchema,
-            settingsChange.newValue,
-          )
-          persistedSettingsRef.current = nextSettings
-          setSettings(nextSettings)
+          const parsed = UserSettingsSchema.safeParse(settingsChange.newValue)
+          if (!parsed.success) {
+            void retryLoadSettings()
+            return
+          }
+          settingsReadyRef.current = true
+          loadErrorRef.current = null
+          setLoadError(null)
+          persistedSettingsRef.current = parsed.data
+          setSettings(parsed.data)
         } else {
           // UserSettings がストレージから削除された場合 (newValue が undefined)
           // デフォルト設定に戻す
+          settingsReadyRef.current = true
+          loadErrorRef.current = null
+          setLoadError(null)
           persistedSettingsRef.current = defaultSettings
           setSettings(defaultSettings)
         }
@@ -150,9 +182,12 @@ export const useSettings = () => {
     return () => {
       storageOnChanged.removeListener(storageChangeListener)
     }
-  }, [])
+  }, [retryLoadSettings])
 
   const handleSaveSettings = async () => {
+    if (!settingsReadyRef.current) {
+      return false
+    }
     const rollbackSettings = persistedSettingsRef.current
     // 保存する前に空の行を除外
     const cleanSettings = {
@@ -184,6 +219,9 @@ export const useSettings = () => {
     key: K,
     value: UserSettings[K],
   ) => {
+    if (!settingsReadyRef.current) {
+      return false
+    }
     const rollbackSettings = settingsRef.current
     const newSettings = {
       ...settingsRef.current,
@@ -230,6 +268,9 @@ export const useSettings = () => {
   }
 
   const addExcludePattern = async () => {
+    if (!settingsReadyRef.current) {
+      return false
+    }
     const trimmedPattern = normalizeExcludePattern(excludePatternInput)
 
     if (!trimmedPattern) {
@@ -270,6 +311,9 @@ export const useSettings = () => {
   }
 
   const removeExcludePattern = async (patternToRemove: string) => {
+    if (!settingsReadyRef.current) {
+      return false
+    }
     const targetPattern = normalizeExcludePattern(patternToRemove)
     const rollbackSettings = settingsRef.current
     const newSettings = {
@@ -305,6 +349,9 @@ export const useSettings = () => {
     handleExcludePatternsChange,
     handleSaveSettings,
     isLoading,
+    loadError,
+    retryLoadSettings,
+    resetInvalidSettings,
     removeExcludePattern,
     setExcludePatternInput,
     setSettings,

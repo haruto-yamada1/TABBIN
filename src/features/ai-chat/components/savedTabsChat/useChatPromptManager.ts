@@ -7,7 +7,7 @@ import {
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
 import type { AppLanguage } from '@/features/i18n/messages'
-import { saveUserSettings } from '@/lib/storage/settings'
+import { requireUserSettings, saveUserSettings } from '@/lib/storage/settings'
 import type { AiSystemPromptPreset, UserSettings } from '@/types/storage'
 
 import type { TranslateFn } from './messages'
@@ -17,6 +17,27 @@ import {
   getSelectedPrompt,
   getUniquePromptName,
 } from './prompts'
+
+const arePromptPresetsEqual = (
+  current: readonly AiSystemPromptPreset[] | undefined,
+  base: readonly AiSystemPromptPreset[],
+): boolean => {
+  const currentPrompts = current ?? []
+  return (
+    currentPrompts.length === base.length &&
+    currentPrompts.every((prompt, index) => {
+      const previous = base[index]
+      return (
+        previous !== undefined &&
+        prompt.id === previous.id &&
+        prompt.name === previous.name &&
+        prompt.template === previous.template &&
+        prompt.createdAt === previous.createdAt &&
+        prompt.updatedAt === previous.updatedAt
+      )
+    })
+  )
+}
 
 const useChatPromptManager = ({
   resolvedSettings,
@@ -35,16 +56,22 @@ const useChatPromptManager = ({
 }) => {
   const [isPromptManagerOpen, setIsPromptManagerOpen] = useState(false)
   const [draftState, setDraftState] = useState<{
+    baseSystemPrompts: AiSystemPromptPreset[]
     promptDrafts: AiSystemPromptPreset[]
     selectedPromptIdInModal: string
     draftActivePromptId: string
   }>({
+    baseSystemPrompts: [],
     promptDrafts: [],
     selectedPromptIdInModal: '',
     draftActivePromptId: '',
   })
-  const { promptDrafts, selectedPromptIdInModal, draftActivePromptId } =
-    draftState
+  const {
+    baseSystemPrompts,
+    promptDrafts,
+    selectedPromptIdInModal,
+    draftActivePromptId,
+  } = draftState
   const setSelectedPromptIdInModal = (id: string) => {
     setDraftState((current) => ({ ...current, selectedPromptIdInModal: id }))
   }
@@ -53,6 +80,7 @@ const useChatPromptManager = ({
 
   const handleOpenSystemPromptManager = () => {
     setDraftState({
+      baseSystemPrompts: resolvedSettings.aiSystemPrompts ?? [],
       promptDrafts: resolvedSettings.aiSystemPrompts ?? [],
       selectedPromptIdInModal: activeSystemPrompt.id,
       draftActivePromptId: resolvedSettings.activeAiSystemPromptId ?? '',
@@ -65,6 +93,7 @@ const useChatPromptManager = ({
     setIsPromptManagerOpen(false)
     setPromptManagerError('')
     setDraftState({
+      baseSystemPrompts: [],
       promptDrafts: [],
       selectedPromptIdInModal: '',
       draftActivePromptId: '',
@@ -204,6 +233,7 @@ const useChatPromptManager = ({
         return current
       }
       return {
+        ...current,
         promptDrafts: nextPrompts,
         selectedPromptIdInModal: fallbackPrompt.id,
         draftActivePromptId:
@@ -226,17 +256,35 @@ const useChatPromptManager = ({
       template: prompt.template.trim(),
     }))
 
-    const nextSettings = normalizeAiSystemPromptSettings({
-      ...resolvedSettings,
-      activeAiSystemPromptId:
-        draftActivePromptId || (normalizedPrompts[0]?.id ?? ''),
-      aiSystemPrompts: normalizedPrompts,
-    })
-
     setIsSavingPrompts(true)
     setPromptManagerError('')
 
     try {
+      const verifiedSettings = await requireUserSettings()
+      if (
+        !arePromptPresetsEqual(
+          verifiedSettings.aiSystemPrompts,
+          baseSystemPrompts,
+        )
+      ) {
+        // A display fallback or stale editor must not replace unseen stored presets.
+        const currentPrompt = getActiveAiSystemPrompt(verifiedSettings)
+        onSettingsChange(verifiedSettings)
+        setDraftState({
+          baseSystemPrompts: verifiedSettings.aiSystemPrompts ?? [],
+          promptDrafts: verifiedSettings.aiSystemPrompts ?? [],
+          selectedPromptIdInModal: currentPrompt.id,
+          draftActivePromptId: currentPrompt.id,
+        })
+        setPromptManagerError(t('aiChat.systemPrompt.reloadRequired'))
+        return
+      }
+      const nextSettings = normalizeAiSystemPromptSettings({
+        ...verifiedSettings,
+        activeAiSystemPromptId:
+          draftActivePromptId || (normalizedPrompts[0]?.id ?? ''),
+        aiSystemPrompts: normalizedPrompts,
+      })
       await saveUserSettings(nextSettings)
 
       const nextActivePrompt = getActiveAiSystemPrompt(nextSettings)

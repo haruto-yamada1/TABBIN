@@ -30,9 +30,15 @@ vi.mock('@/lib/storage/settings', () => {
     colors: {},
   }
 
+  const getUserSettings = vi.fn()
   return {
     defaultSettings,
-    getUserSettings: vi.fn(),
+    getUserSettings,
+    readUserSettingsStrict: vi.fn(async () => ({
+      status: 'available',
+      settings: await getUserSettings(),
+    })),
+    resetInvalidUserSettings: vi.fn(),
     saveUserSettings: vi.fn(),
   }
 })

@@ -72,6 +72,9 @@ const useOptionsRouteView = () => {
     settings,
     setSettings,
     isLoading,
+    loadError,
+    retryLoadSettings,
+    resetInvalidSettings,
     removeExcludePattern,
     updateSetting,
   } = useSettings()
@@ -304,8 +307,38 @@ const useOptionsRouteView = () => {
     )
   }, [])
 
+  const handleRetryLoadSettings = useCallback(() => {
+    void retryLoadSettings()
+  }, [retryLoadSettings])
+  const handleResetInvalidSettings = useCallback(() => {
+    void resetInvalidSettings()
+  }, [resetInvalidSettings])
+
   if (isLoading) {
     return <LoadingState minHeightClassName='min-h-[300px]' />
+  }
+  if (loadError) {
+    return (
+      <main className='mx-auto max-w-xl p-6'>
+        <h1 className='mb-6 text-3xl font-semibold'>{t('options.title')}</h1>
+        <div role='alert' className='rounded-lg border border-border p-6'>
+          <h2 className='mb-2 text-xl font-semibold'>
+            {t('options.settingsRead.title')}
+          </h2>
+          <p>{t(`options.settingsRead.${loadError}`)}</p>
+          <div className='mt-4 flex flex-wrap gap-3'>
+            <Button onClick={handleRetryLoadSettings}>
+              {t('options.settingsRead.retry')}
+            </Button>
+            {loadError === 'invalid' && (
+              <Button variant='outline' onClick={handleResetInvalidSettings}>
+                {t('options.settingsRead.reset')}
+              </Button>
+            )}
+          </div>
+        </div>
+      </main>
+    )
   }
   const activeExcludePatterns = settings.excludePatterns.filter((pattern) =>
     pattern.trim(),

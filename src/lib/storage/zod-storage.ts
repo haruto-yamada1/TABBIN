@@ -164,6 +164,9 @@ export const UserSettingsSchema = z.object({
   activeAiSystemPromptId: z.string().optional(),
 })
 
+/** Strict policy read: older absent fields are valid, malformed present fields are not. */
+export const strictStoredUserSettingsSchema = UserSettingsSchema.partial()
+
 /**
  * `chrome.storage.local` / import から読み込んだ unknown 値を安全に検証する
  * stored variant。全 field を optional + `.catch(undefined)` とし、

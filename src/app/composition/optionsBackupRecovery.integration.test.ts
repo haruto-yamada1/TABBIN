@@ -19,7 +19,7 @@ import { isJsonValue } from '@/lib/persistence/jsonValue'
 import {
   defaultSettings,
   normalizeUserSettingsForStorage,
-  readUserSettingsWithoutRepair,
+  requireUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
 import { canonicalUserSettings } from '@/test/arbitraries/persistence/backupArbitrary'
@@ -75,7 +75,7 @@ const createRuntime = (corruptImportedSettings = false) => {
     getOperationGate: () => gate,
     idGenerator: { generate: () => `settings-recovery-${++nextId}` },
     normalizeUserSettings: normalizeUserSettingsForStorage,
-    readUserSettings: readUserSettingsWithoutRepair,
+    readUserSettings: requireUserSettings,
     writeUserSettings,
   })
   const reopen = async () => {
@@ -87,6 +87,9 @@ const createRuntime = (corruptImportedSettings = false) => {
     replacement,
     repository,
     runtime,
+    setStoredSettings: (value: unknown) => {
+      storedSettings = value
+    },
     snapshotReader,
     writeUserSettings,
   }
@@ -223,6 +226,27 @@ describe('Backup V2 with production settings storage', () => {
     vi.unstubAllGlobals()
   })
 
+  it('不正な現在設定では import preview を作らずデータを保持する', async () => {
+    const {
+      runtime,
+      replacement,
+      snapshotReader,
+      setStoredSettings,
+      writeUserSettings,
+    } = createRuntime()
+    await replacement.replaceAll(createSelectionSnapshot('current'))
+    const before = await snapshotReader.readConsistentSnapshot()
+    setStoredSettings({ removeTabAfterOpen: 'invalid' })
+
+    await expect(runtime.readImportCurrent()).rejects.toThrow(
+      'Settings could not be verified',
+    )
+
+    expect(await snapshotReader.readConsistentSnapshot()).toStrictEqual(before)
+    expect(writeUserSettings).not.toHaveBeenCalled()
+    expect(await runtime.listRecoverySnapshots()).toHaveLength(0)
+  })
+
   it.each(['savedTabs', 'userSettings', 'aiChat', 'analyticsViews'] as const)(
     'imports only selected %s and preserves the other sections after reopening',
     async (selectedSection) => {
@@ -264,10 +288,7 @@ describe('Backup V2 with production settings storage', () => {
       ).resolves.toMatchObject({ revision: current.revision + 2 })
       const reopened = await reopen()
       expect(
-        BackupMapper.toBackupData(
-          reopened,
-          await readUserSettingsWithoutRepair(),
-        ),
+        BackupMapper.toBackupData(reopened, await requireUserSettings()),
       ).toStrictEqual(
         BackupMapper.toBackupData(
           BackupMapper.toLogicalSnapshot(
@@ -463,9 +484,7 @@ describe('Backup V2 with production settings storage', () => {
           ? inspection.data.savedTabs
           : current.data.savedTabs,
       )
-      expect(await readUserSettingsWithoutRepair()).toStrictEqual(
-        concurrentSettings,
-      )
+      expect(await requireUserSettings()).toStrictEqual(concurrentSettings)
       expect(writeUserSettings).not.toHaveBeenCalled()
       expect(await runtime.listRecoverySnapshots()).toHaveLength(1)
     },
@@ -506,7 +525,7 @@ describe('Backup V2 with production settings storage', () => {
     ).toStrictEqual(
       BackupMapper.toBackupData(concurrent, defaultSettings).savedTabs,
     )
-    expect((await readUserSettingsWithoutRepair()).language).toBe('ja')
+    expect((await requireUserSettings()).language).toBe('ja')
     expect(writeUserSettings).toHaveBeenCalledTimes(1)
   })
 
@@ -545,7 +564,7 @@ describe('Backup V2 with production settings storage', () => {
     ).toStrictEqual(
       BackupMapper.toBackupData(concurrent, defaultSettings).savedTabs,
     )
-    expect((await readUserSettingsWithoutRepair()).language).toBe(
+    expect((await requireUserSettings()).language).toBe(
       defaultSettings.language,
     )
     expect(writeUserSettings).toHaveBeenCalledTimes(1)
@@ -604,7 +623,7 @@ describe('Backup V2 with production settings storage', () => {
     async ({ scenario, extraPatterns }) => {
       const { reopen, runtime } = createRuntime()
       await saveUserSettings(defaultSettings)
-      const previousSettings = await readUserSettingsWithoutRepair()
+      const previousSettings = await requireUserSettings()
       const inspection = await createInspection(
         createSettingsForScenario(scenario),
       )
@@ -614,7 +633,7 @@ describe('Backup V2 with production settings storage', () => {
       })
       const imported = await reopen()
       expect(imported.savedTabs).toStrictEqual(inspection.data.savedTabs)
-      const readbackSettings = await readUserSettingsWithoutRepair()
+      const readbackSettings = await requireUserSettings()
       expect(readbackSettings).toMatchObject({
         autoDeletePeriod: 'never',
         colors: {},
@@ -649,16 +668,14 @@ describe('Backup V2 with production settings storage', () => {
       expect(recovery).toBeDefined()
       await runtime.restoreRecoverySnapshot(recovery?.id ?? '')
       expect((await reopen()).savedTabs.urls).toEqual([])
-      expect(await readUserSettingsWithoutRepair()).toStrictEqual(
-        previousSettings,
-      )
+      expect(await requireUserSettings()).toStrictEqual(previousSettings)
     },
   )
 
   it('rejects a genuine settings mismatch and restores the previous tabs and settings', async () => {
     const { reopen, replacement, runtime } = createRuntime(true)
     await saveUserSettings(defaultSettings)
-    const previousSettings = await readUserSettingsWithoutRepair()
+    const previousSettings = await requireUserSettings()
     const inspection = await createInspection({
       ...canonicalUserSettings,
       language: 'ja',
@@ -677,9 +694,7 @@ describe('Backup V2 with production settings storage', () => {
       code: 'READBACK_MISMATCH',
     })
     expect((await reopen()).savedTabs).toStrictEqual(previousSavedTabs)
-    expect(await readUserSettingsWithoutRepair()).toStrictEqual(
-      previousSettings,
-    )
+    expect(await requireUserSettings()).toStrictEqual(previousSettings)
   })
 
   it('restores an existing recovery snapshot whose settings need current defaults', async () => {
@@ -716,7 +731,7 @@ describe('Backup V2 with production settings storage', () => {
     expect(restored.savedTabs).toStrictEqual(
       BackupMapper.toLogicalSnapshot(inspection.data, 0).savedTabs,
     )
-    expect(await readUserSettingsWithoutRepair()).toMatchObject({
+    expect(await requireUserSettings()).toMatchObject({
       fontSizePercent: 100,
       language: 'ja',
     })

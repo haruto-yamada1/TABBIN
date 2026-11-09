@@ -121,6 +121,27 @@ const readRequired = (relativePath: string): string => {
 }
 
 describe('Firefox IndexedDB persistence smoke contract', () => {
+  it('requires native settings safety evidence before accepting a fresh Firefox result', () => {
+    const harness = readRequired(requiredFiles.harness)
+    const runner = readRequired(requiredFiles.runner)
+    expect(harness).toContain(
+      'settingsSafety: await runFirefoxSettingsSafetySmoke()',
+    )
+    expect(runner).toContain('assert.deepEqual(result.settingsSafety, {')
+    for (const fact of [
+      'firstUseDefaults',
+      'legacyReadUnchanged',
+      'legacyUpgradePreserved',
+      'invalidReadRejected',
+      'invalidWriteRejected',
+      'invalidUnchanged',
+      'resetDefaults',
+      'restored',
+    ]) {
+      expect(runner).toContain(`${fact}: true`)
+    }
+  })
+
   it('owns a dedicated non-skippable WebDriver restart scenario', () => {
     const runner = readRequired(requiredFiles.runner)
 

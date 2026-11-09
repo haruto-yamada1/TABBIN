@@ -11,6 +11,7 @@ import { getFallbackText } from './I18nProvider.utils'
 const mocks = vi.hoisted(() => ({
   getChromeStorageOnChanged: vi.fn(),
   getUserSettings: vi.fn(),
+  requireUserSettings: vi.fn(),
   saveUserSettings: vi.fn(),
   warnMissingChromeStorage: vi.fn(),
 }))
@@ -29,6 +30,7 @@ vi.mock('@/lib/storage/settings', async () => {
   return {
     ...actual,
     getUserSettings: mocks.getUserSettings,
+    requireUserSettings: mocks.requireUserSettings,
     saveUserSettings: mocks.saveUserSettings,
   }
 })
@@ -81,6 +83,7 @@ describe('I18nProvider', () => {
       },
     } as unknown as typeof chrome
     mocks.getUserSettings.mockResolvedValue({})
+    mocks.requireUserSettings.mockResolvedValue({})
     mocks.saveUserSettings.mockResolvedValue(undefined)
     mocks.getChromeStorageOnChanged.mockReturnValue({
       addListener: vi.fn(),
@@ -115,6 +118,24 @@ describe('I18nProvider', () => {
       }),
     )
     expect(screen.getByTestId('language').textContent).toBe('en')
+  })
+
+  it('表示用fallbackで言語変更時に保存済み設定を上書きしない', async () => {
+    mocks.requireUserSettings.mockRejectedValueOnce(
+      new Error('private setting value'),
+    )
+    const user = userEvent.setup()
+    render(
+      <I18nProvider>
+        <Consumer />
+      </I18nProvider>,
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('setting').textContent).toBe('system'),
+    )
+    await user.click(screen.getByText('set-en'))
+    expect(mocks.saveUserSettings).not.toHaveBeenCalled()
+    expect(screen.getByTestId('setting').textContent).toBe('system')
   })
 
   it('storage change を購読し local userSettings だけ反映して unmount で解除する', async () => {

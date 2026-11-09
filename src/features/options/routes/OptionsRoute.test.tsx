@@ -23,6 +23,9 @@ import {
 const optionsRouteMocks = vi.hoisted(() => ({
   handleColorChange: vi.fn(),
   handleResetColors: vi.fn(),
+  loadError: null as 'invalid' | 'unavailable' | null,
+  retryLoadSettings: vi.fn(),
+  resetInvalidSettings: vi.fn(),
   settings: undefined as UserSettings | undefined,
   updateSetting: vi.fn(),
 }))
@@ -139,6 +142,9 @@ vi.mock('@/features/options/hooks/useSettings', () => ({
     excludePatternInput: '',
     handleExcludePatternInputChange: vi.fn(),
     isLoading: false,
+    loadError: optionsRouteMocks.loadError,
+    retryLoadSettings: optionsRouteMocks.retryLoadSettings,
+    resetInvalidSettings: optionsRouteMocks.resetInvalidSettings,
     removeExcludePattern: vi.fn(),
     setSettings: vi.fn(),
     settings: optionsRouteMocks.settings,
@@ -168,6 +174,35 @@ const createSettings = (
 })
 
 describe('OptionsRoute', () => {
+  it('読込失敗では編集を止め再試行導線だけを表示する', async () => {
+    optionsRouteMocks.settings = createSettings()
+    optionsRouteMocks.loadError = 'unavailable'
+    render(<OptionsRoute />)
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'options.settingsRead.unavailable',
+    )
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole('button', { name: 'options.settingsRead.retry' }),
+    )
+    expect(optionsRouteMocks.retryLoadSettings).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('button', { name: 'options.settingsRead.reset' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('不正設定に限り明示リセットを表示する', async () => {
+    optionsRouteMocks.settings = createSettings()
+    optionsRouteMocks.loadError = 'invalid'
+    render(<OptionsRoute />)
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole('button', { name: 'options.settingsRead.reset' }),
+    )
+    expect(optionsRouteMocks.resetInvalidSettings).toHaveBeenCalledTimes(1)
+  })
+
   it('今開いているタブの表示は未設定ならONで表示する', () => {
     optionsRouteMocks.settings = createSettings()
     render(<OptionsRoute />)
@@ -274,6 +309,7 @@ describe('OptionsRoute', () => {
   })
 
   beforeEach(() => {
+    optionsRouteMocks.loadError = null
     vi.clearAllMocks()
     optionsRouteMocks.settings = createSettings()
     optionsRouteMocks.updateSetting.mockResolvedValue(true)

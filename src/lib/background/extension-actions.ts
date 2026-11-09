@@ -9,12 +9,12 @@ import {
   normalizeSavedTabTitles,
 } from '@/lib/browser/normalize-saved-tab-titles'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { getUserSettings } from '@/lib/storage/settings'
 import { normalizeUrlCandidate } from '@/lib/url-filter'
 import type { UserSettings } from '@/types/storage'
 
 import { getBackgroundLanguage } from './i18n'
 import { openSavedTabsPage } from './saved-tabs-page'
+import { requireOperationalUserSettings } from './settings-policy'
 import { filterTabsByUserSettings, showNotification } from './utils'
 
 const resolveClickBehavior = (
@@ -136,7 +136,7 @@ export const handleExtensionActionClick = async (): Promise<void> => {
   console.log('拡張機能アイコンがクリックされました')
   try {
     // ユーザー設定を取得
-    const settings = await getUserSettings()
+    const settings = await requireOperationalUserSettings()
 
     // クリック挙動を取得（デフォルトはウィンドウのタブ保存）
     const clickBehavior = resolveClickBehavior(settings.clickBehavior)
@@ -271,7 +271,7 @@ export const handleSaveSameDomainTabs = async (): Promise<
     const [savedTabs, settings, notificationTitle, notificationMessage] =
       await Promise.all([
         saveTabsInBothModes(filteredTabs),
-        getUserSettings(),
+        requireOperationalUserSettings(),
         getBackgroundText('background.saveTabs.notificationTitle'),
         getBackgroundText('background.saveTabs.sameDomainSaved', undefined, {
           count: String(filteredTabs.length),
@@ -389,7 +389,7 @@ export const handleSaveWindowTabs = async (): Promise<
   const [savedTabsTabId, settings, notificationTitle, notificationMessage] =
     await Promise.all([
       openSavedTabsPage(),
-      getUserSettings(),
+      requireOperationalUserSettings(),
       getBackgroundText('background.saveTabs.notificationTitle'),
       getBackgroundText('background.saveTabs.windowTabsSaved', undefined, {
         count: String(filteredTabs.length),

@@ -22,6 +22,7 @@ vi.mock('@/lib/storage/settings', async () => {
   return {
     ...actual,
     getUserSettings: mockedSettings.getUserSettings,
+    requireUserSettings: mockedSettings.getUserSettings,
     saveUserSettings: mockedSettings.saveUserSettings,
   }
 })

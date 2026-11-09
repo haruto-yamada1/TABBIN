@@ -8,6 +8,8 @@ import path from 'node:path'
 
 // eslint-disable-next-line import/no-relative-parent-imports -- native browser smoke result is a shared WebDriver boundary contract
 import type { FirefoxSavedTabsPageSmokeResult } from '../../e2e/support/firefox-saved-tabs-page-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- native settings smoke shares its WebDriver result contract
+import type { FirefoxSettingsSafetySmokeResult } from '../../e2e/support/firefox-settings-safety-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- shared browser harness result is the WebDriver protocol contract
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
@@ -54,6 +56,7 @@ type SmokeResult = {
     }
   }
   readonly savedTabsPage?: FirefoxSavedTabsPageSmokeResult
+  readonly settingsSafety?: FirefoxSettingsSafetySmokeResult
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -415,6 +418,20 @@ const runHarnessPhase = async (
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
+  assert.deepEqual(result.settingsSafety, {
+    missingStatus: 'missing',
+    firstUseDefaults: true,
+    legacyStatus: 'available',
+    legacyReadUnchanged: true,
+    legacyUpgradePreserved: true,
+    invalidStatus: 'invalid',
+    invalidReadRejected: true,
+    invalidWriteRejected: true,
+    invalidUnchanged: true,
+    resetStatus: 'available',
+    resetDefaults: true,
+    restored: true,
+  })
   assert.equal(result.academy.first.lessonId, 'pin-extension')
   assert.ok(result.academy.first.startedAt)
   assert.ok(result.academy.first.skippedAt)
@@ -706,6 +723,7 @@ const run = async (): Promise<void> => {
           },
           schemaVersion: verified.backup.schemaVersion,
           savedTabsPage: fresh.savedTabsPage,
+          settingsSafety: fresh.settingsSafety,
           urlOpening: fresh.urlOpening,
           urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',

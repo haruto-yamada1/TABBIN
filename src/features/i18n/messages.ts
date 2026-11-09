@@ -192,6 +192,8 @@ const messages = {
     'aiChat.systemPrompt.placeholder': 'Prompt',
     'aiChat.systemPrompt.save': 'Save',
     'aiChat.systemPrompt.saveError': 'Could not save the system prompts',
+    'aiChat.systemPrompt.reloadRequired':
+      'Saved prompts were reloaded. Review them before saving again.',
     'aiChat.systemPrompt.saving': 'Saving...',
     'aiChat.systemPrompt.select': 'Select a system prompt',
     'aiChat.systemPrompt.settingsTooltip': 'System prompt settings',
@@ -1101,6 +1103,8 @@ const messages = {
     'aiChat.systemPrompt.placeholder': 'プロンプト',
     'aiChat.systemPrompt.save': '保存',
     'aiChat.systemPrompt.saveError': 'システムプロンプトを保存できませんでした',
+    'aiChat.systemPrompt.reloadRequired':
+      '保存済みのプロンプトを読み直しました。内容を確認してから再度保存してください。',
     'aiChat.systemPrompt.saving': '保存中...',
     'aiChat.systemPrompt.select': 'システムプロンプトを選択',
     'aiChat.systemPrompt.settingsTooltip': 'システムプロンプト設定',

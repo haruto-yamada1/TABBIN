@@ -15,6 +15,7 @@ vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
 
 vi.mock('@/lib/storage/settings', () => ({
   getUserSettings: mocked.getUserSettings,
+  requireUserSettings: mocked.getUserSettings,
 }))
 
 import {

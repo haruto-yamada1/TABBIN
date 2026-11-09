@@ -12,6 +12,7 @@ import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedT
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 import {
   decideUrlRecordIdsToRemoveAfterOpen,
   removeUrlRecordIdsFromTabGroups,
@@ -26,6 +27,7 @@ export type OpenSavedUrlUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository
+  readonly userSettingsRepository: UserSettingsRepository
   readonly browserTabPort: BrowserTabPort
 }
 
@@ -57,11 +59,13 @@ export const createOpenSavedUrlUseCase = (
 ): OpenSavedUrlUseCase => {
   return async (command) => {
     const urlRecordId = createUrlRecordId(command.urlRecordId)
-    const [urlRecord, allTabGroups, allCustomProjects] = await Promise.all([
-      deps.urlRecordRepository.findById(urlRecordId),
-      deps.tabGroupRepository.findAll(),
-      deps.customProjectRepository.findAll(),
-    ])
+    const [urlRecord, allTabGroups, allCustomProjects, settings] =
+      await Promise.all([
+        deps.urlRecordRepository.findById(urlRecordId),
+        deps.tabGroupRepository.findAll(),
+        deps.customProjectRepository.findAll(),
+        deps.userSettingsRepository.findAll(),
+      ])
     if (!urlRecord) {
       throw new SavedTabsDomainError(
         '対象 UrlRecord が見つかりません',
@@ -74,7 +78,14 @@ export const createOpenSavedUrlUseCase = (
     try {
       const idsToRemove = decideUrlRecordIdsToRemoveAfterOpen({
         openedUrls: [{ origin: command.origin, urlRecordId: urlRecord.id }],
-        settings: command.settings,
+        // A caller may opt out, but stale presentation state cannot authorize deletion.
+        settings: {
+          removeTabAfterOpen:
+            command.settings.removeTabAfterOpen && settings.removeTabAfterOpen,
+          removeTabAfterExternalDrop:
+            command.settings.removeTabAfterExternalDrop &&
+            settings.removeTabAfterExternalDrop,
+        },
       })
       if (idsToRemove.size === 0) {
         return {

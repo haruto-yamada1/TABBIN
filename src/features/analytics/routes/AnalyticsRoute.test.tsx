@@ -7,6 +7,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -63,6 +64,7 @@ const analyticsRouteMocks = vi.hoisted(() => ({
   language: 'en' as 'en' | 'ja',
   loadRecordsMock: vi.fn<() => Promise<AiSavedUrlRecord[]>>(),
   loadSettingsMock: vi.fn(),
+  requireSettingsMock: vi.fn(),
   loadViewsMock: vi.fn<() => Promise<SavedAnalyticsView[]>>(),
   readUndoSnapshotMock: vi.fn(),
   restoreUndoSnapshotMock: vi.fn(),
@@ -120,6 +122,7 @@ vi.mock('@/lib/storage/settings', async () => {
   return {
     ...actual,
     getUserSettings: analyticsRouteMocks.loadSettingsMock,
+    requireUserSettings: analyticsRouteMocks.requireSettingsMock,
   }
 })
 
@@ -844,6 +847,7 @@ describe('AnalyticsRoute', () => {
     analyticsRouteMocks.deleteViewMock.mockReset()
     analyticsRouteMocks.loadRecordsMock.mockReset()
     analyticsRouteMocks.loadSettingsMock.mockReset()
+    analyticsRouteMocks.requireSettingsMock.mockReset()
     analyticsRouteMocks.loadViewsMock.mockReset()
     analyticsRouteMocks.readUndoSnapshotMock.mockReset()
     analyticsRouteMocks.restoreUndoSnapshotMock.mockReset()
@@ -854,6 +858,9 @@ describe('AnalyticsRoute', () => {
     analyticsRouteMocks.updateMessagesMock.mockReset()
     analyticsRouteMocks.loadRecordsMock.mockResolvedValue(records)
     analyticsRouteMocks.loadSettingsMock.mockResolvedValue(defaultSettings)
+    analyticsRouteMocks.requireSettingsMock.mockImplementation(() =>
+      analyticsRouteMocks.loadSettingsMock(),
+    )
     analyticsRouteMocks.loadViewsMock.mockResolvedValue([])
     analyticsRouteMocks.readUndoSnapshotMock.mockResolvedValue({
       revision: 1,
@@ -2284,6 +2291,198 @@ describe('AnalyticsRoute', () => {
 
     expect(openSpy).toHaveBeenCalledTimes(10)
   })
+
+  it.each(['single', 'bulk'] as const)(
+    '表示用 fallback 後に復旧した %s 削除では検証済みの確認設定を使う',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      analyticsRouteMocks.requireSettingsMock.mockResolvedValue({
+        ...defaultSettings,
+        confirmDeleteAll: true,
+        confirmDeleteEach: true,
+      })
+      await user.click(
+        await screen.findByRole('button', {
+          name:
+            mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+        }),
+      )
+      await screen.findByText(
+        mode === 'single' ? 'Delete this tab?' : 'Delete all tabs?',
+      )
+      expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '設定の再読込に失敗したとき %s 削除は開始しない',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      analyticsRouteMocks.requireSettingsMock.mockRejectedValue(
+        new Error('User settings unavailable'),
+      )
+      await user.click(
+        await screen.findByRole('button', {
+          name:
+            mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+        }),
+      )
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled()
+      })
+      expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
+      expect(analyticsRouteMocks.readUndoSnapshotMock).not.toHaveBeenCalled()
+      expect(screen.getByText('Example Docs')).toBeInTheDocument()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '確認ダイアログの待機中に設定が読めなくなった %s 削除を中断する',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      analyticsRouteMocks.requireSettingsMock
+        .mockResolvedValueOnce({
+          ...defaultSettings,
+          confirmDeleteAll: true,
+          confirmDeleteEach: true,
+        })
+        .mockRejectedValue(new Error('User settings invalid'))
+      await user.click(
+        await screen.findByRole('button', {
+          name:
+            mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+        }),
+      )
+      await screen.findByText(
+        mode === 'single' ? 'Delete this tab?' : 'Delete all tabs?',
+      )
+      await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled()
+      })
+      expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
+      expect(analyticsRouteMocks.readUndoSnapshotMock).not.toHaveBeenCalled()
+      expect(screen.getByText('Example Docs')).toBeInTheDocument()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '設定読込待ちの %s 削除は連打しても削除とUndoを一度だけ実行する',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      let resolveSettings:
+        | ((settings: typeof defaultSettings) => void)
+        | undefined
+      const settingsRead = new Promise<typeof defaultSettings>((resolve) => {
+        resolveSettings = resolve
+      })
+      analyticsRouteMocks.requireSettingsMock
+        .mockReturnValueOnce(settingsRead)
+        .mockReturnValueOnce(settingsRead)
+        .mockResolvedValue(defaultSettings)
+      const deleteButton = screen.getByRole('button', {
+        name: mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+      })
+      await user.click(deleteButton)
+      await user.click(deleteButton)
+      expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
+      await act(async () => {
+        resolveSettings?.(defaultSettings)
+      })
+      await waitFor(() => {
+        expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledOnce()
+      })
+      expect(toast.info).toHaveBeenCalledOnce()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '設定読込待ちの %s 削除と別種の削除を同時実行しない',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      let resolveSettings:
+        | ((settings: typeof defaultSettings) => void)
+        | undefined
+      const settingsRead = new Promise<typeof defaultSettings>((resolve) => {
+        resolveSettings = resolve
+      })
+      analyticsRouteMocks.requireSettingsMock
+        .mockReturnValueOnce(settingsRead)
+        .mockReturnValueOnce(settingsRead)
+        .mockResolvedValue(defaultSettings)
+      const singleDelete = screen.getByRole('button', { name: 'Delete tab' })
+      const bulkDelete = screen.getByRole('button', {
+        name: 'Delete all tabs in this item',
+      })
+      await user.click(mode === 'single' ? singleDelete : bulkDelete)
+      await user.click(mode === 'single' ? bulkDelete : singleDelete)
+      await act(async () => {
+        resolveSettings?.(defaultSettings)
+      })
+      await waitFor(() => {
+        expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledOnce()
+      })
+      expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action:
+            mode === 'single'
+              ? 'removeUrlFromStorage'
+              : 'removeUrlRecordsFromStorage',
+        }),
+        expect.any(Function),
+      )
+      expect(toast.info).toHaveBeenCalledOnce()
+    },
+  )
+
+  it.each(['single', 'bulk'] as const)(
+    '設定読込が失敗した %s 削除はガードを解除して再試行できる',
+    async (mode) => {
+      const user = userEvent.setup()
+      render(<AnalyticsRoute />)
+      await screen.findAllByText('Saved count by domain')
+      await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+      let rejectSettings: ((error: Error) => void) | undefined
+      const settingsRead = new Promise<typeof defaultSettings>(
+        (_resolve, reject) => {
+          rejectSettings = reject
+        },
+      )
+      analyticsRouteMocks.requireSettingsMock
+        .mockReturnValueOnce(settingsRead)
+        .mockResolvedValue(defaultSettings)
+      const deleteButton = screen.getByRole('button', {
+        name: mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+      })
+      await user.click(deleteButton)
+      await act(async () => {
+        rejectSettings?.(new Error('settings unavailable'))
+      })
+      await waitFor(() => expect(toast.error).toHaveBeenCalledOnce())
+      expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
+      await user.click(deleteButton)
+      await waitFor(() => {
+        expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledOnce()
+      })
+      expect(toast.info).toHaveBeenCalledOnce()
+    },
+  )
 
   it('confirmDeleteAll=false のときドリルダウンのすべて削除で対象URL IDを一括削除する', async () => {
     const user = userEvent.setup()

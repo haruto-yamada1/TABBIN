@@ -78,3 +78,22 @@ describe('ChromeUserSettingsRepository', () => {
     expect(local.set).toHaveBeenCalled()
   })
 })
+
+describe('settings policy safety', () => {
+  it('不正な設定で保存URL削除ポリシーを返さない', async () => {
+    const port = createPort({ removeTabAfterOpen: 'false' })
+    await expect(
+      createChromeUserSettingsRepository(port).findAll(),
+    ).rejects.toThrow('Settings could not be verified')
+    expect(port.set).not.toHaveBeenCalled()
+  })
+
+  it('読込不能時は設定を書き込まない', async () => {
+    const port = createPort({})
+    port.get.mockRejectedValue(new Error('read failed'))
+    await expect(
+      createChromeUserSettingsRepository(port).save(defaultUserSettings),
+    ).rejects.toThrow('Settings could not be verified')
+    expect(port.set).not.toHaveBeenCalled()
+  })
+})
