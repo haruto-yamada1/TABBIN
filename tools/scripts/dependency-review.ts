@@ -36,13 +36,14 @@ export const allowedLicenses = [
   'Zlib',
 ]
 
-// Explicitly reviewed conjunctions, type-fest's MIT/CC0 choice and DOMPurify's
-// Apache-2.0 choice. Do not infer other SPDX expressions or MPL-only use.
+// Reviewed conjunctions and explicit permissive choices: type-fest MIT/CC0,
+// DOMPurify Apache-2.0, Forge BSD-3-Clause. Do not infer other SPDX expressions.
 const allowedLicenseExpressions = new Set([
   'Apache-2.0 AND MIT',
   'MIT AND ISC',
   '(MPL-2.0 OR Apache-2.0)',
   '(MIT OR CC0-1.0)',
+  '(BSD-3-Clause OR GPL-2.0)',
 ])
 
 const lockSchema = z.object({
@@ -154,10 +155,16 @@ export const reviewDependencyChanges = async (
   patchContents: PatchContents = {},
   licenseContents: LicenseContents = {},
   now = new Date(),
+  basePatchContents: PatchContents = {},
 ): Promise<{ dependencies: string[]; findings: string[] }> => {
   const base = readLock(baseContent)
   const head = readLock(headContent)
-  const newlyPatched = verifyReviewedPatchAdditions(base, head, patchContents)
+  const newlyPatched = verifyReviewedPatchAdditions(
+    base,
+    head,
+    patchContents,
+    basePatchContents,
+  )
   const previous = dependencies(base)
   const current = dependencies(head)
   const reviewedResolutions = reviewedLicenseResolutions(head.packages)

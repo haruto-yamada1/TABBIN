@@ -22,36 +22,82 @@ import {
 import { verifyBackportReviewApproval } from './security-audit-review-approvals'
 
 const root = path.resolve(import.meta.dirname, '../..')
-const policy = JSON.parse(
-  readFileSync(path.join(root, 'tools/security-audit-policy.json'), 'utf8'),
-) as { schemaVersion: number; nodeForgeBackport: Record<string, string> }
-const pkg = JSON.parse(
-  readFileSync(path.join(root, 'package.json'), 'utf8'),
-) as {
-  devDependencies: Record<string, string>
-  overrides: Record<string, string>
-  patchedDependencies: Record<string, string>
+// Historical fixtures keep the retired backport's approval, expiry and artifact
+// protections testable after the active dependency moves to the npm release.
+const source =
+  'github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65'
+const patchKey = 'node-forge@github:digitalbazaar/forge#ceba344'
+const patchPath = 'patches/node-forge-null-parameters.patch'
+const policy: {
+  schemaVersion: number
+  nodeForgeBackport: Record<string, string>
+} = {
+  schemaVersion: 1,
+  nodeForgeBackport: {
+    advisory: 'GHSA-86w9-cpqp-85rv',
+    source,
+    patch: patchPath,
+    dependencyPath: 'web-ext -> @devicefarmer/adbkit -> node-forge',
+    owner: 'dependency maintenance / @haruto-yamada1',
+    rationale: 'Reviewed Git snapshot and NULL-parameter security backport.',
+    upstreamStatus: 'Awaiting a verified published release.',
+    trackingIssue: 'https://github.com/haruto-yamada1/TABBIN/issues/924',
+    reviewedAt: '2026-10-11',
+    expiresAt: '2026-11-10',
+  },
+}
+const pkg = {
+  devDependencies: { 'node-forge': source },
+  overrides: { 'node-forge': source },
+  patchedDependencies: { [patchKey]: patchPath },
 }
 const now = new Date('2026-10-16T00:00:00Z')
 const withReview = (fields: Record<string, string>) => ({
   ...policy,
   nodeForgeBackport: { ...policy.nodeForgeBackport, ...fields },
 })
-const lockContent = readFileSync(path.join(root, 'bun.lock'), 'utf8')
-const patchBytes = readFileSync(
-  path.join(root, 'patches/node-forge-null-parameters.patch'),
-)
+const lockContent = JSON.stringify({
+  lockfileVersion: 1,
+  workspaces: { '': { devDependencies: pkg.devDependencies } },
+  overrides: pkg.overrides,
+  patchedDependencies: pkg.patchedDependencies,
+  packages: {
+    'node-forge': [
+      patchKey,
+      {},
+      'digitalbazaar-forge-ceba344',
+      'sha512-wQzUb9EXQPFuPFkcj/4B6mxSxkAbkRTgCJ7xEH61S0uBcaeUy3x0y7ppyHDW8xMGwsvkxgMzPaJH0hgWZHs4cQ==',
+    ],
+  },
+})
+const patchBytes = Buffer.from(`diff --git a/lib/rsa.js b/lib/rsa.js
+--- a/lib/rsa.js
++++ b/lib/rsa.js
+@@ -1178,5 +1178,6 @@
+             obj.value.length !== 2 ||
+             obj.value[0].value.length !==
+-              (('parameters' in capture) ? 2 : 1)) {
++              (('parameters' in capture) ? 2 : 1) ||
++            (('parameters' in capture) && capture.parameters !== '')) {
+             var error = new Error(
+               'ASN.1 object does not contain a valid RSASSA-PKCS1-v1_5 ' +
+`)
 const runPolicyCli = (
   input: unknown = policy,
   patch: Uint8Array | null = patchBytes,
   lock: string | null = lockContent,
   kind: 'regular' | 'symlink' | 'executable' = 'regular',
+  packageInput: unknown = pkg,
+  clock = '2026-10-16T00:00:00Z',
 ) => {
   const directory = mkdtempSync(path.join(os.tmpdir(), 'audit-policy-'))
   try {
     mkdirSync(path.join(directory, 'tools'))
     mkdirSync(path.join(directory, 'patches'))
-    writeFileSync(path.join(directory, 'package.json'), JSON.stringify(pkg))
+    writeFileSync(
+      path.join(directory, 'package.json'),
+      JSON.stringify(packageInput),
+    )
     writeFileSync(
       path.join(directory, 'tools/security-audit-policy.json'),
       JSON.stringify(input),
@@ -67,10 +113,9 @@ const runPolicyCli = (
       }
       if (kind === 'symlink') {
         rmSync(patchPath)
-        symlinkSync(
-          path.join(root, 'patches/node-forge-null-parameters.patch'),
-          patchPath,
-        )
+        const target = path.join(directory, 'historical.patch')
+        writeFileSync(target, patch)
+        symlinkSync(target, patchPath)
       }
     }
     if (lock !== null) {
@@ -78,13 +123,136 @@ const runPolicyCli = (
     }
     return spawnSync(
       'bun',
-      [path.join(root, 'tools/scripts/verify-security-audit-policy.ts')],
+      [
+        '--eval',
+        `const RealDate = Date;
+         globalThis.Date = class extends RealDate {
+           constructor(value = ${JSON.stringify(clock)}) { super(value) }
+         };
+         await import(${JSON.stringify(path.join(root, 'tools/scripts/verify-security-audit-policy.ts'))})`,
+      ],
       { cwd: directory, encoding: 'utf8' },
     )
   } finally {
     rmSync(directory, { recursive: true, force: true })
   }
 }
+
+describe('published node-forge release policy', () => {
+  const releasePolicy = {
+    schemaVersion: 2,
+    nodeForgeRelease: {
+      source: 'npm:node-forge@1.4.3',
+      version: '1.4.3',
+      integrity:
+        'sha512-P6wzfh6t70avmV8FrVEAd/36sOPJQ+hkaJVX1Laap9J/77m7M0eyozDvc8SwnDf4P7MP94gwbAAo0rg3YVXT+g==',
+      dependencyPath: 'web-ext -> @devicefarmer/adbkit -> node-forge',
+      owner: 'dependency maintenance / @haruto-yamada1',
+      rationale: 'The published release replaces the reviewed Git backport.',
+      upstreamEvidence:
+        'https://github.com/digitalbazaar/forge/blob/v1.4.3/CHANGELOG.md',
+      verification: 'bun run verify:node-forge-backport',
+      trackingIssue: 'https://github.com/haruto-yamada1/TABBIN/issues/1067',
+      reviewedAt: '2026-11-10',
+    },
+  }
+  const releasePackage = {
+    devDependencies: { 'node-forge': '1.4.3' },
+    overrides: { 'node-forge': '1.4.3' },
+    patchedDependencies: { 'other@1.0.0': 'patches/other.patch' },
+  }
+  const releaseLock = {
+    lockfileVersion: 1,
+    workspaces: { '': { devDependencies: releasePackage.devDependencies } },
+    overrides: releasePackage.overrides,
+    patchedDependencies: releasePackage.patchedDependencies,
+    packages: {
+      'node-forge': [
+        'node-forge@1.4.3',
+        '',
+        {},
+        releasePolicy.nodeForgeRelease.integrity,
+      ],
+    },
+  }
+  const releaseNow = new Date('2026-11-10T00:00:00Z')
+
+  it('accepts the reviewed published release after the legacy review expires', () => {
+    expect(
+      verifySecurityAuditPolicy(releasePolicy, releasePackage, releaseNow),
+    ).toMatch(/1\.4\.3.*no advisory ignores/)
+  })
+
+  it('runs the release CLI without the retired patch file', () => {
+    const result = runPolicyCli(
+      releasePolicy,
+      null,
+      JSON.stringify(releaseLock),
+      'regular',
+      releasePackage,
+      '2026-11-10T00:00:00Z',
+    )
+    expect(result.stderr).toBe('')
+    expect(result.status).toBe(0)
+  })
+
+  it('rejects a package-shaped bun.lock through the release CLI', () => {
+    const result = runPolicyCli(
+      releasePolicy,
+      null,
+      JSON.stringify(releasePackage),
+      'regular',
+      releasePackage,
+      '2026-11-10T00:00:00Z',
+    )
+    expect(result.status).toBe(1)
+    expect(result.stderr).toMatch(/lockfileVersion|packages|node-forge/)
+  })
+
+  it.each([
+    { source: 'npm:node-forge@1.4.4' },
+    { version: '1.4.4' },
+    { integrity: 'sha512-changed' },
+    { owner: 'unreviewed' },
+    { upstreamEvidence: 'https://example.com/claim' },
+    { verification: 'bun audit' },
+    { trackingIssue: 'https://github.com/haruto-yamada1/TABBIN/issues/924' },
+    { reviewedAt: '2026-11-11' },
+    { rationale: '' },
+    { ignores: ['GHSA-other'] },
+  ])('rejects unapproved release review changes: %j', (fields) => {
+    expect(() =>
+      verifySecurityAuditPolicy(
+        {
+          ...releasePolicy,
+          nodeForgeRelease: { ...releasePolicy.nodeForgeRelease, ...fields },
+        },
+        releasePackage,
+        releaseNow,
+      ),
+    ).toThrow(/Invalid|Too small|Unrecognized/)
+  })
+
+  it('rejects a future release review and invalid clock', () => {
+    for (const clock of [now, new Date('invalid')]) {
+      expect(() =>
+        verifySecurityAuditPolicy(releasePolicy, releasePackage, clock),
+      ).toThrow(/future or invalid/)
+    }
+  })
+
+  it('checks the current repository policy and package together', () => {
+    const activePolicy: unknown = JSON.parse(
+      readFileSync(path.join(root, 'tools/security-audit-policy.json'), 'utf8'),
+    )
+    const activePackage: unknown = JSON.parse(
+      readFileSync(path.join(root, 'package.json'), 'utf8'),
+    )
+    expect(
+      verifySecurityAuditPolicy(activePolicy, activePackage, releaseNow),
+    ).toContain('1.4.3')
+  })
+})
 
 describe('security audit backport policy', () => {
   it('rejects a date-only renewal using the previous tracking Issue', () => {
@@ -115,8 +283,8 @@ describe('security audit backport policy', () => {
       policy,
       patchBytes,
       lockContent.replace(
-        '"node-forge@github:digitalbazaar/forge#ceba344", {},',
-        '"node-forge@github:digitalbazaar/forge#deadbee", {},',
+        '"node-forge@github:digitalbazaar/forge#ceba344",{},',
+        '"node-forge@github:digitalbazaar/forge#deadbee",{},',
       ),
     )
     expect(result.status).toBe(1)
@@ -200,7 +368,8 @@ describe('security audit backport policy', () => {
       if (key === undefined) {
         throw new Error('missing fixture binding')
       }
-      changed[field][key] = 'unreviewed'
+      const binding: Record<string, string> = changed[field]
+      binding[key] = 'unreviewed'
       expect(() => verifySecurityAuditPolicy(policy, changed, now)).toThrow(
         /node-forge/,
       )

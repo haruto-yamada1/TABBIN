@@ -3,6 +3,10 @@ import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
 import {
+  reviewedNodeForgeRelease,
+  verifyNodeForgeReleaseBinding,
+} from './node-forge-release-policy'
+import {
   backportTrackingIssueSchema,
   verifyBackportReviewApproval,
 } from './security-audit-review-approvals'
@@ -12,7 +16,7 @@ const source =
 const patchKey = 'node-forge@github:digitalbazaar/forge#ceba344'
 const patchFile = 'patches/node-forge-null-parameters.patch'
 const text = z.string().trim().min(1)
-const policySchema = z.strictObject({
+const backportPolicySchema = z.strictObject({
   schemaVersion: z.literal(1),
   nodeForgeBackport: z.strictObject({
     advisory: z.literal('GHSA-86w9-cpqp-85rv'),
@@ -27,6 +31,29 @@ const policySchema = z.strictObject({
     expiresAt: z.iso.date(),
   }),
 })
+const releasePolicySchema = z.strictObject({
+  schemaVersion: z.literal(2),
+  nodeForgeRelease: z.strictObject({
+    source: z.literal(reviewedNodeForgeRelease.source),
+    version: z.literal(reviewedNodeForgeRelease.version),
+    integrity: z.literal(reviewedNodeForgeRelease.integrity),
+    dependencyPath: text,
+    owner: z.literal('dependency maintenance / @haruto-yamada1'),
+    rationale: text,
+    upstreamEvidence: z.literal(
+      'https://github.com/digitalbazaar/forge/blob/v1.4.3/CHANGELOG.md',
+    ),
+    verification: z.literal('bun run verify:node-forge-backport'),
+    trackingIssue: z.literal(
+      'https://github.com/haruto-yamada1/TABBIN/issues/1067',
+    ),
+    reviewedAt: z.literal('2026-11-10'),
+  }),
+})
+const policySchema = z.discriminatedUnion('schemaVersion', [
+  backportPolicySchema,
+  releasePolicySchema,
+])
 const packageSchema = z.object({
   devDependencies: z.object({ 'node-forge': z.literal(source) }),
   overrides: z.object({ 'node-forge': z.literal(source) }),
@@ -54,8 +81,18 @@ const resolutionSchema = z.tuple([
 
 export function verifySecurityAuditArtifacts(
   lockInput: unknown,
-  patchBytes: Uint8Array,
+  patchBytes?: Uint8Array,
 ): void {
+  if (patchBytes === undefined) {
+    // The shared binding verifier also accepts package manifests for the
+    // preinstall guard. Audit artifacts must be an actual Bun lock snapshot.
+    z.object({
+      lockfileVersion: z.literal(1),
+      packages: z.record(z.string(), z.unknown()),
+    }).parse(lockInput)
+    verifyNodeForgeReleaseBinding(lockInput)
+    return
+  }
   if (
     createHash('sha256').update(patchBytes).digest('hex') !==
     '66b0a5fbdb250c8faa4c2df38f3921bc39942e45491ad081bd452b906b067721'
@@ -82,14 +119,28 @@ export function verifySecurityAuditArtifacts(
   }
 }
 
-// This is a review deadline for the existing verified Git backport, never an
-// advisory suppression. Bun still audits all npm dependencies without ignores.
+// Both modes verify reviewed sources, never suppress advisories. The legacy
+// backport retains its original expiry and approval requirements.
 export function verifySecurityAuditPolicy(
   policyInput: unknown,
   packageInput: unknown,
   now = new Date(),
 ): string {
-  const policy = policySchema.parse(policyInput).nodeForgeBackport
+  const input = policySchema.parse(policyInput)
+  if (input.schemaVersion === 2) {
+    const policy = input.nodeForgeRelease
+    verifyNodeForgeReleaseBinding(packageInput)
+    if (
+      !Number.isFinite(now.getTime()) ||
+      Date.parse(`${policy.reviewedAt}T00:00:00Z`) > now.getTime()
+    ) {
+      throw new Error(
+        'node-forge release review date is in the future or invalid',
+      )
+    }
+    return `node-forge ${policy.version} npm release verified (${policy.owner}); no advisory ignores`
+  }
+  const policy = input.nodeForgeBackport
   packageSchema.parse(packageInput)
   const reviewed = Date.parse(`${policy.reviewedAt}T00:00:00Z`)
   const expires = Date.parse(`${policy.expiresAt}T00:00:00Z`)
