@@ -9,6 +9,9 @@ import { reviewedNodeForgeBackport } from './dependency-patch-policy'
 import { reviewDependencyChanges } from './dependency-review'
 import type { ReviewRequest } from './dependency-review'
 
+const forgePatch =
+  "diff --git a/lib/rsa.js b/lib/rsa.js\n--- a/lib/rsa.js\n+++ b/lib/rsa.js\n@@ -1178,5 +1178,6 @@\n             obj.value.length !== 2 ||\n             obj.value[0].value.length !==\n-              (('parameters' in capture) ? 2 : 1)) {\n+              (('parameters' in capture) ? 2 : 1) ||\n+            (('parameters' in capture) && capture.parameters !== '')) {\n             var error = new Error(\n               'ASN.1 object does not contain a valid RSASSA-PKCS1-v1_5 ' +\n"
+
 const lock = (packages: Record<string, unknown>) =>
   JSON.stringify({ lockfileVersion: 1, workspaces: {}, packages })
 const entry = (name: string, version: string) => [
@@ -585,7 +588,7 @@ describe('Bun dependency changes', () => {
       packages: { 'node-forge': forge },
       patchedDependencies: { [dependency]: path },
     })
-    const contents = { [path]: readFileSync(path, 'utf8') }
+    const contents = { [path]: forgePatch }
     const request = vi.fn<ReviewRequest>()
     expect(
       await reviewDependencyChanges(lock({}), base, request, contents),
@@ -622,6 +625,54 @@ describe('Bun dependency changes', () => {
       ),
     ).rejects.toThrow('patch changes')
     expect(request).not.toHaveBeenCalled()
+  })
+
+  it('retires only the verified backport and reviews the published replacement', async () => {
+    const forge = reviewedNodeForgeBackport
+    const base = JSON.stringify({
+      lockfileVersion: 1,
+      workspaces: { '': { devDependencies: { 'node-forge': forge.source } } },
+      overrides: { 'node-forge': forge.source },
+      packages: { 'node-forge': forge.resolution },
+      patchedDependencies: { [forge.dependency]: forge.path },
+    })
+    const head = JSON.stringify({
+      lockfileVersion: 1,
+      workspaces: { '': { devDependencies: { 'node-forge': '1.4.3' } } },
+      overrides: { 'node-forge': '1.4.3' },
+      packages: { 'node-forge': installedLock.packages['node-forge'] },
+      patchedDependencies: {},
+    })
+    const request = vi.fn<ReviewRequest>().mockImplementation(async (url) =>
+      url.startsWith('https://api.github.com/')
+        ? response([])
+        : response({
+            name: 'node-forge',
+            version: '1.4.3',
+            license: '(BSD-3-Clause OR GPL-2.0)',
+          }),
+    )
+    const result = await reviewDependencyChanges(
+      base,
+      head,
+      request,
+      {},
+      {},
+      new Date(),
+      { [forge.path]: forgePatch },
+    )
+    expect(result).toEqual({ dependencies: ['node-forge@1.4.3'], findings: [] })
+    expect(request).toHaveBeenCalledWith(
+      expect.stringContaining('api.github.com/advisories?'),
+      expect.any(Object),
+    )
+    expect(request).toHaveBeenCalledWith(
+      'https://registry.npmjs.org/node-forge/1.4.3',
+      expect.any(Object),
+    )
+    await expect(
+      reviewDependencyChanges(base, head, request, reviewedContents),
+    ).rejects.toThrow(/patch changes/)
   })
 
   it('recognizes local workspaces while checking their third-party dependencies', async () => {

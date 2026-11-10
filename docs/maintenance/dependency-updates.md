@@ -20,9 +20,16 @@ CI success や vulnerability warning がないことだけを安全性の保証�
   `bun run deps:check -- --packageFile tools/legacy-tooling/package.json --configFilePath .`
   を使う（更新時は `deps:update`）。
 - 公開前には、CI と同じ Bun resolved dependency review も実行する。
-  `git show origin/develop:bun.lock > /tmp/tabbin-base-bun.lock` で比較元を保存し、
-  `BASE_LOCK=/tmp/tabbin-base-bun.lock bun tools/scripts/run-dependency-review.ts`
-  で advisory と直接・間接依存の license を検査する。GitHub API の認証が必要な
+  同じ完全な commit SHA から比較元 lock と patch 本文を取得する。
+
+  ```sh
+  dependency_base_sha="$(git rev-parse origin/develop)"
+  git show "$dependency_base_sha:bun.lock" > /tmp/tabbin-base-bun.lock
+  BASE_LOCK=/tmp/tabbin-base-bun.lock BASE_SHA="$dependency_base_sha" \
+    bun tools/scripts/run-dependency-review.ts
+  ```
+
+  advisory と直接・間接依存の license を検査する。GitHub API の認証が必要な
   環境では既存の認証情報を使い、token をログやファイルへ出力しない。
   `security:audit` と配布物の license 検証だけでは、この差分検査を代替できない。
 
@@ -218,52 +225,41 @@ package も追加していない。
 
 ## Vulnerability response
 
-### node-forge RSA validation backport (2026-10-03)
+### node-forge 公開版移行 (2026-11-10、Issue #1067)
 
-`web-ext` は WXT 0.21 の Chrome / Firefox 開発ブラウザー起動に必要で、
-`web-ext → @devicefarmer/adbkit → node-forge` が
-[GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) の対象となる。
-公開済み最新版 1.4.0 に修正がないため、
-[上流 PR #1152](https://github.com/digitalbazaar/forge/pull/1152) の修正を含む
-`digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65` に固定する。
-これは未リリースの snapshot (`1.4.1-0`) で、npm の修正版公開を意味しない。
+`web-ext → @devicefarmer/adbkit → node-forge` は開発ツールの依存で、
+production bundle には含めない。旧 Git snapshot と NULL-parameter patch は、
+公開版 `1.4.3` の実 RSA probe が通ることを確認して置き換えた。
+[upstream 1.4.3 の CHANGELOG](https://github.com/digitalbazaar/forge/blob/v1.4.3/CHANGELOG.md)
+には 1.4.1 以降の nested DigestAlgorithm 要素数・非正規 NULL の拒否と、
+1.4.3 の追加 security fix が記録されている。
 
-1.4.0 との差分は RSA の nested DigestAlgorithm 要素数検査、回帰テスト、
-changelog、snapshot version のみ。依存と lifecycle script に変更はなく、
-`trustedDependencies` は空のまま維持する。owner は dependency maintenance。
-上流 snapshot にも残る非空 ASN.1 NULL parameters の受理は、
-`patches/node-forge-null-parameters.patch` で拒否する。
-Bun の `patchedDependencies` と lockfile に patch の適用を記録し、
-fresh install で適用と正常署名の互換性を確認する。
-正式版への切替と patch 削除は、下記の検証がすべて成功する版の公開後に行う。
+直接依存と override は `1.4.3` に固定し、すべての nested / aliased lock 解決を
+公開 npm artifact の integrity と照合する。`tools/security-audit-policy.json` の
+schemaVersion 2 が active な公開版の source、owner、根拠、tracking Issue を記録し、
+`node-forge-release-policy.ts` の固定 version / integrity と一致することを検証する。
+旧 Git source、混在した解決、forge patch map の残存、hash の改変を拒否する。
+旧 backport の期限だけを延長した承認は作らない。
 
-Git dependency は npm advisory の version 照合だけでは検証できないため、
-`security:audit` の先頭で `tools/security-audit-policy.json` の再評価期限と
-`package.json` / `bun.lock` の固定 snapshot・patch map・全 node-forge 解決の
-revision / archive / integrity と、patch 本文の承認済み SHA-256 を照合する。
-patch は通常の非実行ファイルに限定し、欠落・symlink・改変を拒否する。続いて実 RSA 署名の
-正常系と異常 ASN.1 構造の拒否を検証する。
-OID のみ / OID + 空の NULL は受理し、余分な OCTET STRING / NULL と
-非空の NULL parameters は拒否する。
-未修正 1.4.0 でこの probe が失敗することを確認済み。
-その後の `bun audit --audit-level=high` は維持し、ignore は追加しない。
+`verify:node-forge-backport` のコマンド名は CI 互換のため維持し、公開版でも実 RSA の
+正常署名・改変メッセージ・OID のみ / OID + 空 NULL の受理と、余分な要素 / 非空 NULL
+の拒否を検証する。`security:audit` は policy / lock 照合 → この probe →
+`bun audit --audit-level=high` を実行し、監査 ignore は追加しない。
+Forge の dual license は同梱 LICENSE に基づき BSD-3-Clause を選択する。
 
-運用する再評価記録は `tools/security-audit-policy.json` に置き、期限の承認は
-`tools/scripts/security-audit-review-approvals.ts` の承認履歴を source of truth とする。
-policy の追跡 Issue・review 日・期限は最新の承認レコードと完全一致させる。
-既存の初期承認はコード内の固定 anchor として照合し、承認履歴からの削除・書換えを拒否する。
-anchor 自体の変更は通常の期限更新ではなく、別途 security policy review の対象とする。
-現在の期限は 2026-11-10 **00:00 UTC** で、この時刻以降は CI / release の
-`security:audit` を失敗させる。期限は review 日から最大30日とし、未来の review 日、
-実在しない日付、owner・依存経路・根拠・upstream status・tracking Issue の欠落、
-未承認 snapshot / patch を拒否する。この記録は npm version 照合対象外の
-検証済み backport の再評価管理であり、High / Critical を許容する ignore ではない。
-正式版に更新する場合は probe と policy binding を同じ PR で見直す。
+Bun の7日待機は通常どおり維持する。1.4.3 の npm 公開日時は
+2026-11-04T01:06:47.014Z で、初回解決時だけ security update として
+一時設定の `minimumReleaseAgeExcludes = ["node-forge"]` を使用した。
+他依存の待機期間と repository の `bunfig.toml` は変更せず、lock 差分が Forge だけであること、
+配布 integrity、probe、監査、通常設定での `bun install --frozen-lockfile` 成功を確認する。
+`trustedDependencies` は空のまま、不要な lifecycle script 許可は追加しない。
 
-security update は14日待機を機械的に適用せず urgency を判断する。GitHub vulnerability
-alerts、Renovate vulnerability PR、OSV、`bun audit` の結果を突き合わせる。
-一時 ignore が必要な場合は advisory、dependency path、影響、upstream status、期限、
-owner をこの文書または専用 Issue に残し、恒久的な ignore にしない。
+旧 backport の再導入を検出する schemaVersion 1 の検証と元の承認 anchor は残す。
+その source / patch bytes / lock binding、最大30日の期限、未来日・期限切れ・日付のみの
+延長拒否を historical fixture で検証し、公開版 policy への移行で保護を削除しない。
+patch 削除は、Git base の承認済み patch bytes と binding を検証し、head が上記公開版に
+完全に移行し、旧 patch の file/map/source が残らない場合だけ許可する。
+他の patch の編集・削除・未知追加は従来どおり security review で拒否する。
 
 ### 定期監査と通知
 

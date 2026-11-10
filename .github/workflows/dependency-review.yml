@@ -42,6 +42,7 @@ jobs:
         run: git show "$BASE_SHA:bun.lock" > "$RUNNER_TEMP/base-bun.lock"
       - name: Review Bun resolved dependency changes
         env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           BASE_LOCK: ${{ runner.temp }}/base-bun.lock
           GITHUB_TOKEN: ${{ github.token }}
         run: bun tools/scripts/run-dependency-review.ts

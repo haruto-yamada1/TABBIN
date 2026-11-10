@@ -49,6 +49,7 @@ describe('Dependency Review workflow permissions and policy', () => {
       for (const name of [
         'verify-dependency-patches.ts',
         'dependency-patch-policy.ts',
+        'node-forge-release-policy.ts',
       ]) {
         writeFileSync(
           path.join(scriptDirectory, name),
