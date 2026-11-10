@@ -8,8 +8,13 @@ intentionally not forwarded to the save handlers.
 `reconcileContextMenus()` serializes browser API writes. It updates each stable
 ID and creates it when updating fails. Chrome has no menu enumeration API; a
 duplicate create error is consumed and logged safely, rather than creating an
-alternative ID. A later reconciliation retries partial failures. Translation,
-removal, update and create failures cannot prevent click registration.
+alternative ID. Each pass attempts every item in definition order, waiting for
+its browser callback before starting the next item. An individual update/create
+failure does not stop the remaining items: failures are collected and reported
+as one `AggregateError` after all items have been attempted. A later
+reconciliation retries failed items while retaining successful items; a recovered
+missing ID is appended at the browser's insertion position. Translation, removal,
+update and create failures cannot prevent click registration.
 
 Normal worker starts update the six desired items without `removeAll()`. This
 preserves Chrome MV3 menus across worker wakes and also supplies missing items

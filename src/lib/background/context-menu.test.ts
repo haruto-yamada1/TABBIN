@@ -336,21 +336,97 @@ describe('recoverable context menu reconciliation', () => {
       expect.any(Error),
     )
     expect(harness.listeners.size).toBe(1)
+    const itemFailed = [
+      'create callback',
+      'create throw',
+      'update throw',
+    ].includes(failure)
+    // Successful later items stay in place; retry appends only the missing ID.
+    expect([...harness.menus.keys()]).toEqual(itemFailed ? ids.slice(1) : [])
     await subject.reconcileContextMenus()
-    expect([...harness.menus.keys()]).toEqual(ids)
+    expect([...harness.menus.keys()]).toEqual(
+      itemFailed ? [...ids.slice(1), ids[0]] : ids,
+    )
   })
 
-  it('重複IDの runtime.lastError を消費してメニューを増殖させない', async () => {
+  it('重複IDの失敗後も同じ照合で後続項目の更新と欠落項目の復旧を続ける', async () => {
     const harness = createChromeHarness()
     await subject.reconcileContextMenus()
+    harness.menus.delete('saveAllWindowsTabs')
+    harness.update.mockClear()
+    mocked.getBackgroundMessage.mockImplementation(
+      async (key: string) => `ja:${key}`,
+    )
     harness.update.mockImplementationOnce((_id, _properties, callback) =>
       harness.callbackWithError(callback, 'update failed'),
     )
     await subject.reconcileContextMenus()
+    expect(harness.menus.get('saveAllWindowsTabs')?.title).toBe(
+      'ja:background.contextMenu.saveAllWindowsTabs',
+    )
+    expect(harness.menus.get('saveCurrentTab')?.title).toBe(
+      'ja:background.contextMenu.saveCurrentTab',
+    )
+    expect(harness.update).toHaveBeenCalledTimes(6)
     expect(harness.menus.size).toBe(6)
-    expect(mocked.logger.error).toHaveBeenCalledOnce()
+    expect(mocked.logger.error).toHaveBeenCalledExactlyOnceWith(
+      'background_context_menu_reconciliation_failed',
+      expect.objectContaining({
+        name: 'AggregateError',
+        errors: [expect.any(Error)],
+      }),
+    )
     await subject.reconcileContextMenus()
     expect(harness.menus.size).toBe(6)
+    expect(harness.menus.get('openSavedTabs')?.title).toBe(
+      'ja:background.contextMenu.openSavedTabs',
+    )
+  })
+
+  it('複数項目の作成失敗を集約し、成功する後続項目を同じ照合で作成する', async () => {
+    const harness = createChromeHarness()
+    const create = harness.create.getMockImplementation()
+    assert.isDefined(create)
+    const failedIds = new Set(['openSavedTabs', 'saveCurrentTab'])
+    harness.create.mockImplementation((item, callback) => {
+      if (failedIds.has(String(item.id))) {
+        harness.callbackWithError(callback, 'create failed')
+      } else {
+        create(item, callback)
+      }
+    })
+    await expect(subject.reconcileContextMenus()).resolves.toBeUndefined()
+    expect([...harness.menus.keys()]).toEqual(
+      ids.filter((id) => !failedIds.has(id)),
+    )
+    expect(harness.update).toHaveBeenCalledTimes(6)
+    expect(mocked.logger.error).toHaveBeenCalledExactlyOnceWith(
+      'background_context_menu_reconciliation_failed',
+      expect.objectContaining({
+        name: 'AggregateError',
+        errors: [expect.any(Error), expect.any(Error)],
+      }),
+    )
+    harness.create.mockImplementation(create)
+    await subject.reconcileContextMenus()
+    expect(harness.menus.size).toBe(6)
+  })
+
+  it('前項目の browser callback 完了まで次項目を開始せず挿入順を保つ', async () => {
+    const harness = createChromeHarness()
+    const create = harness.create.getMockImplementation()
+    assert.isDefined(create)
+    const firstCreate = Promise.withResolvers<() => void>()
+    harness.create.mockImplementationOnce((item, callback) => {
+      firstCreate.resolve(() => create(item, callback))
+    })
+    const reconciliation = subject.reconcileContextMenus()
+    const completeFirstCreate = await firstCreate.promise
+    expect(harness.update).toHaveBeenCalledTimes(1)
+    expect(harness.create).toHaveBeenCalledTimes(1)
+    completeFirstCreate()
+    await reconciliation
+    expect([...harness.menus.keys()]).toEqual(ids)
   })
 
   it.each([

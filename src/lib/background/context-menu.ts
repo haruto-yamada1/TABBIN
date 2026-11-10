@@ -132,9 +132,22 @@ const reconcileContextMenus = async (
       if (options.reset) {
         await removeMenus()
       }
+      const failures: unknown[] = []
+      // Creation shares browser insertion order: observe each callback before
+      // starting the next item, while isolating individual item failures.
+      let pendingItem = Promise.resolve()
       for (const item of items) {
-        // eslint-disable-next-line no-await-in-loop -- menu insertion order is visible to users
-        await updateOrCreateMenu(item)
+        pendingItem = pendingItem.then(async () => {
+          try {
+            await updateOrCreateMenu(item)
+          } catch (error) {
+            failures.push(error)
+          }
+        })
+      }
+      await pendingItem
+      if (failures.length > 0) {
+        throw new AggregateError(failures, 'Context menu reconciliation failed')
       }
     })
     .catch((error: unknown) => {
