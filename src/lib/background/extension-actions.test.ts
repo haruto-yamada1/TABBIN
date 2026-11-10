@@ -157,6 +157,34 @@ describe('extension-actions モジュール', () => {
     mocked.proveCapturedTitleUnowned.mockResolvedValue(false)
   })
 
+  it('all windows: prepares readonly feedback while saving, then opens the saved page', async () => {
+    const chromeTabs = createChromeTabsHarness()
+    const source = tab({ id: 10, url: 'https://example.test/article' })
+    chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+    let complete = () => {}
+    mocked.saveTabsWithAutoCategory.mockImplementationOnce(
+      async () =>
+        new Promise<void>((resolve) => {
+          complete = resolve
+        }),
+    )
+    const saving = handleSaveAllWindowsTabs()
+    try {
+      await vi.waitFor(() =>
+        expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledOnce(),
+      )
+      expect(mocked.getUserSettings).toHaveBeenCalledTimes(2)
+      expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+      expect(mocked.showNotification).not.toHaveBeenCalled()
+    } finally {
+      complete()
+      await saving
+    }
+    expect(mocked.openSavedTabsPage).toHaveBeenCalledOnce()
+    expect(chromeTabs.remove).toHaveBeenCalledOnce()
+  })
+
   const captureActions = [
     ['current', handleSaveCurrentTab],
     ['window', handleSaveWindowTabs],
@@ -214,6 +242,7 @@ describe('extension-actions モジュール', () => {
           expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledOnce(),
         )
         expect(chromeTabs.remove).not.toHaveBeenCalled()
+        expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
         expect(mocked.showNotification).not.toHaveBeenCalled()
         complete()
         await saving

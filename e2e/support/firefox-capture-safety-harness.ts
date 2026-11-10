@@ -52,6 +52,20 @@ const requireFact = (fact: boolean, message: string): void => {
 const sameValue = (left: unknown, right: unknown): boolean =>
   JSON.stringify(left) === JSON.stringify(right)
 
+const sameDescriptor = (
+  left: PropertyDescriptor | undefined,
+  right: PropertyDescriptor | undefined,
+): boolean =>
+  left === right ||
+  (left !== undefined &&
+    right !== undefined &&
+    Object.is(left.value, right.value) &&
+    left.get === right.get &&
+    left.set === right.set &&
+    left.writable === right.writable &&
+    left.enumerable === right.enumerable &&
+    left.configurable === right.configurable)
+
 const expectedError = (failure: Failure): Error => {
   if (failure === 'settings-unavailable') {
     return new UserSettingsReadError('unavailable')
@@ -88,7 +102,7 @@ const nativeTabSnapshot = async () =>
     .toSorted((left, right) => (left.id ?? 0) - (right.id ?? 0))
 
 /** Every override is scoped to this harness and restored even on assertion failure. */
-const replaceMethod = (target: object, key: string, value: unknown) => {
+export const replaceMethod = (target: object, key: string, value: unknown) => {
   const previous = Object.getOwnPropertyDescriptor(target, key)
   Object.defineProperty(target, key, { configurable: true, value })
   return () => {
@@ -98,7 +112,7 @@ const replaceMethod = (target: object, key: string, value: unknown) => {
       Reflect.deleteProperty(target, key)
     }
     requireFact(
-      sameValue(Object.getOwnPropertyDescriptor(target, key), previous),
+      sameDescriptor(Object.getOwnPropertyDescriptor(target, key), previous),
       `Firefox capture smoke did not restore ${key}.`,
     )
   }

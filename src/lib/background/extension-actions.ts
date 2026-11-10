@@ -355,16 +355,21 @@ export const handleSaveAllWindowsTabs = async (): Promise<
     }
     console.log(`保存対象タブ数: ${filteredTabs.length}`)
 
-    // タブを保存
-    const savedTabs = await saveTabsInBothModes(filteredTabs)
-    const [notificationTitle, notificationMessage, savedTabsTabId] =
-      await Promise.all([
-        getBackgroundText('background.saveTabs.notificationTitle'),
-        getBackgroundText('background.saveTabs.allWindowsSaved', undefined, {
-          count: String(filteredTabs.length),
-        }),
-        openSavedTabsPage(),
-      ])
+    // 文言の読み取りは並行できるが、重複タブを整理する画面表示は保存成功後だけ。
+    const [
+      { savedTabs, savedTabsTabId },
+      notificationTitle,
+      notificationMessage,
+    ] = await Promise.all([
+      saveTabsInBothModes(filteredTabs).then(async (savedTabs) => ({
+        savedTabs,
+        savedTabsTabId: await openSavedTabsPage(),
+      })),
+      getBackgroundText('background.saveTabs.notificationTitle'),
+      getBackgroundText('background.saveTabs.allWindowsSaved', undefined, {
+        count: String(filteredTabs.length),
+      }),
+    ])
 
     // 保存画面を確認できない場合は、保存済みでもタブを閉じずに残す。
     if (savedTabsTabId === null) {
