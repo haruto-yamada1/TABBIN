@@ -6,7 +6,9 @@ const mocked = vi.hoisted(() => ({
   registerReviewReminderListeners: vi.fn(),
   registerSavedTabTitleIndicator: vi.fn(),
   reconcileReviewReminderAlarm: vi.fn(async () => {}),
-  createContextMenus: vi.fn(),
+  registerContextMenuClickListener: vi.fn(),
+  registerContextMenuSettingsListener: vi.fn(),
+  reconcileContextMenus: vi.fn(async () => {}),
   handleExtensionActionClick: vi.fn(),
   setupMessageListener: vi.fn(),
   openSavedTabsPage: vi.fn(),
@@ -44,7 +46,10 @@ vi.mock('@/lib/background/saved-tab-title-indicator', () => ({
   registerSavedTabTitleIndicator: mocked.registerSavedTabTitleIndicator,
 }))
 vi.mock('@/lib/background/context-menu', () => ({
-  createContextMenus: mocked.createContextMenus,
+  registerContextMenuClickListener: mocked.registerContextMenuClickListener,
+  registerContextMenuSettingsListener:
+    mocked.registerContextMenuSettingsListener,
+  reconcileContextMenus: mocked.reconcileContextMenus,
 }))
 vi.mock('@/lib/background/extension-actions', () => ({
   handleExtensionActionClick: mocked.handleExtensionActionClick,
@@ -198,7 +203,7 @@ const loadBackground = async (
   }
   mocked.openSavedTabsPage.mockResolvedValue(123)
   mocked.ready.mockResolvedValue(undefined)
-  mocked.createContextMenus.mockImplementation(() => {})
+  mocked.reconcileContextMenus.mockResolvedValue(undefined)
   mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {})
   mocked.setupMessageListener.mockImplementation(() => {})
   options.setupMocks?.()
@@ -412,20 +417,41 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
   })
 
-  it('バックグラウンドセットアップ中のコンテキストメニュー初期化エラーを処理する', async () => {
+  it('DB とメニュー構築が pending でも click/settings を同期登録する', async () => {
+    const pending = Promise.withResolvers<undefined>()
     await loadBackground({
       clearAfterImport: false,
       setupMocks: () => {
-        mocked.createContextMenus.mockImplementation(() => {
-          throw new Error('context menu failed')
-        })
+        mocked.ready.mockReturnValue(pending.promise)
+        mocked.reconcileContextMenus.mockReturnValue(pending.promise)
       },
     })
-    expect(mocked.logger.error).toHaveBeenCalledWith(
-      'background_context_menu_initialization_failed',
-      expect.any(Error),
+    expect(mocked.registerContextMenuClickListener).toHaveBeenCalledOnce()
+    expect(mocked.registerContextMenuSettingsListener).toHaveBeenCalledOnce()
+    expect(
+      mocked.registerContextMenuClickListener.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
+    expect(
+      mocked.registerContextMenuClickListener.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      mocked.reconcileContextMenus.mock.invocationCallOrder[0] ?? 0,
     )
+    pending.resolve(undefined)
+    await flushMicrotasks()
   })
+
+  it.each(['install', 'update'] as const)(
+    '%s のみ旧メニュー定義を reset する',
+    async (reason) => {
+      const harness = await loadBackground({ clearAfterImport: false })
+      expect(mocked.reconcileContextMenus).toHaveBeenCalledExactlyOnceWith()
+      await triggerInstalled(harness, reason)
+      expect(mocked.reconcileContextMenus).toHaveBeenLastCalledWith({
+        reset: true,
+      })
+      expect(mocked.reconcileContextMenus).toHaveBeenCalledTimes(2)
+    },
+  )
 
   it('バックグラウンド初期化 IIFE のエラーを処理する', async () => {
     await loadBackground({
