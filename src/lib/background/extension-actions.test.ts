@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type * as UserSettingsModule from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
+
+import type * as TabUtilsModule from './utils'
 
 const mocked = vi.hoisted(() => ({
   saveTabsWithAutoCategory: vi.fn(),
@@ -52,14 +55,16 @@ vi.mock('@/lib/storage/migration', () => ({
 vi.mock('@/lib/storage/projects', () => ({
   saveUrlsToCustomProjects: mocked.saveUrlsToCustomProjects,
 }))
-vi.mock('@/lib/storage/settings', () => ({
+vi.mock('@/lib/storage/settings', async (importOriginal) => ({
+  ...(await importOriginal<typeof UserSettingsModule>()),
   getUserSettings: mocked.getUserSettings,
   requireUserSettings: mocked.getUserSettings,
 }))
 vi.mock('./saved-tabs-page', () => ({
   openSavedTabsPage: mocked.openSavedTabsPage,
 }))
-vi.mock('./utils', () => ({
+vi.mock('./utils', async (importOriginal) => ({
+  ...(await importOriginal<typeof TabUtilsModule>()),
   filterTabsByUserSettings: mocked.filterTabsByUserSettings,
   showNotification: mocked.showNotification,
 }))
@@ -151,6 +156,71 @@ describe('extension-actions モジュール', () => {
     mocked.showNotification.mockResolvedValue(undefined)
     mocked.proveCapturedTitleUnowned.mockResolvedValue(false)
   })
+
+  const captureActions = [
+    ['current', handleSaveCurrentTab],
+    ['window', handleSaveWindowTabs],
+    ['domain', handleSaveSameDomainTabs],
+    ['all windows', handleSaveAllWindowsTabs],
+  ] as const
+
+  describe.each(captureActions)(
+    '%s capture failure boundary',
+    (_name, save) => {
+      it.each(['filter', 'query', 'persistence'] as const)(
+        '%s failure rejects, keeps source tabs and gives retry feedback',
+        async (failure) => {
+          const chromeTabs = createChromeTabsHarness()
+          const source = tab({ id: 10, url: 'https://example.test/article' })
+          chromeTabs.query.mockResolvedValue([source])
+          chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+          const error = new Error('private failure detail')
+          if (failure === 'filter') {
+            mocked.filterTabsByUserSettings.mockRejectedValueOnce(error)
+          } else if (failure === 'query') {
+            chromeTabs.getAllWindows.mockRejectedValueOnce(error)
+            chromeTabs.query.mockRejectedValueOnce(error)
+          } else {
+            mocked.saveTabsWithAutoCategory.mockRejectedValueOnce(error)
+          }
+
+          await expect(save()).rejects.toThrow(error)
+          expect(chromeTabs.remove).not.toHaveBeenCalled()
+          expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledTimes(
+            failure === 'persistence' ? 1 : 0,
+          )
+          expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+          expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+            'タブの保存を完了できませんでした',
+            'タブは閉じていません。保存状態を確認してから、もう一度保存してください。',
+          )
+        },
+      )
+
+      it('保存が完了するまで成功通知もタブ閉鎖もしない', async () => {
+        const chromeTabs = createChromeTabsHarness()
+        const source = tab({ id: 10, url: 'https://example.test/article' })
+        chromeTabs.query.mockResolvedValue([source])
+        chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+        let complete = () => {}
+        mocked.saveTabsWithAutoCategory.mockImplementationOnce(
+          async () =>
+            new Promise<void>((resolve) => {
+              complete = resolve
+            }),
+        )
+        const saving = save()
+        await vi.waitFor(() =>
+          expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledOnce(),
+        )
+        expect(chromeTabs.remove).not.toHaveBeenCalled()
+        expect(mocked.showNotification).not.toHaveBeenCalled()
+        complete()
+        await saving
+        expect(chromeTabs.remove).toHaveBeenCalledOnce()
+      })
+    },
+  )
 
   it.each([
     ['window', handleSaveWindowTabs],
@@ -466,7 +536,7 @@ describe('extension-actions モジュール', () => {
       )
     })
 
-    it('atomic save failureを成功扱いせず通知とタブcloseを中止する', async () => {
+    it('atomic save failureを通知しタブcloseを中止する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const activeTab = tab({
         id: 12,
@@ -480,7 +550,10 @@ describe('extension-actions モジュール', () => {
       )
 
       await expect(handleSaveCurrentTab()).rejects.toThrow('custom sync failed')
-      expect(mocked.showNotification).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブの保存を完了できませんでした',
+        'タブは閉じていません。保存状態を確認してから、もう一度保存してください。',
+      )
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
 
@@ -723,7 +796,7 @@ describe('extension-actions モジュール', () => {
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
 
-    it('現在タブ URL の解析に失敗した場合はログ出力して空を返す', async () => {
+    it('現在タブ URL が不正なら保存対象0件として空を返す', async () => {
       const chromeTabs = createChromeTabsHarness()
       chromeTabs.query.mockResolvedValueOnce([
         tab({
@@ -733,10 +806,9 @@ describe('extension-actions モジュール', () => {
         }),
       ])
       await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([])
-      expect(console.error).toHaveBeenCalledWith(
-        'ドメインタブ保存エラー:',
-        expect.any(Error),
-      )
+      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+      expect(mocked.showNotification).not.toHaveBeenCalled()
     })
 
     it('同一ドメインフローの一括クローズ失敗時はログ出力して継続する', async () => {
@@ -901,16 +973,14 @@ describe('extension-actions モジュール', () => {
       expect(chromeTabs.remove).not.toHaveBeenCalled()
     })
 
-    it('全タブ取得に失敗した場合はログ出力して空を返す', async () => {
+    it('全タブ取得に失敗した場合は失敗を返して再試行を通知する', async () => {
       const chromeTabs = createChromeTabsHarness()
       const error = new Error('query failed')
       chromeTabs.getAllWindows.mockRejectedValueOnce(error)
       chromeTabs.query.mockRejectedValueOnce(error)
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([])
-      expect(console.error).toHaveBeenCalledWith(
-        'すべてのタブ保存エラー:',
-        error,
-      )
+      await expect(handleSaveAllWindowsTabs()).rejects.toThrow(error)
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledOnce()
     })
 
     it('全ウィンドウフローの一括クローズ失敗時はログ出力して継続する', async () => {

@@ -17,6 +17,7 @@ import {
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
 import { runAcademyPersistenceSmoke } from './academy-progress-browser-harness'
+import { runFirefoxCaptureSafetySmoke } from './firefox-capture-safety-harness'
 import { runFirefoxSavedTabsPageSmoke } from './firefox-saved-tabs-page-harness'
 import { runFirefoxSettingsSafetySmoke } from './firefox-settings-safety-harness'
 import {
@@ -213,6 +214,7 @@ const fresh = async () => {
   const result = {
     academy: await runAcademyPersistenceSmoke('fresh'),
     settingsSafety: await runFirefoxSettingsSafetySmoke(),
+    captureSafety: await runFirefoxCaptureSafetySmoke(),
     urlOpening: await runFirefoxUrlOpeningSmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
       chrome.extension.isAllowedIncognitoAccess(resolve)

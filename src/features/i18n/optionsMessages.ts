@@ -3,6 +3,12 @@ import { reviewReminderMessages } from './reviewReminderMessages'
 export const optionsMessages = {
   en: {
     ...reviewReminderMessages.en,
+    'background.saveTabs.filterErrorTitle': 'Tabs were not saved',
+    'background.saveTabs.filterErrorMessage':
+      'Could not check which tabs to save. No tabs were saved or closed. Check pinned-tab and exclusion settings in Options, then try again.',
+    'background.saveTabs.captureErrorTitle': 'Could not complete saving tabs',
+    'background.saveTabs.captureErrorMessage':
+      'Tabs have been kept open. Check your saved tabs, then try saving again.',
     'background.settings.readErrorTitle': 'Settings could not be verified',
     'background.settings.readErrorMessage':
       'The operation was stopped to protect your data. Reload or recover your settings in Options, then try again.',
@@ -29,6 +35,12 @@ export const optionsMessages = {
   },
   ja: {
     ...reviewReminderMessages.ja,
+    'background.saveTabs.filterErrorTitle': 'タブを保存できませんでした',
+    'background.saveTabs.filterErrorMessage':
+      '保存対象を判定できませんでした。タブの保存やクローズは行っていません。設定画面で固定タブと除外設定を確認してから再試行してください。',
+    'background.saveTabs.captureErrorTitle': 'タブの保存を完了できませんでした',
+    'background.saveTabs.captureErrorMessage':
+      'タブは閉じていません。保存状態を確認してから、もう一度保存してください。',
     'background.settings.readErrorTitle': '設定を確認できません',
     'background.settings.readErrorMessage':
       'データを保護するため操作を中止しました。設定画面で設定を再読み込み・復旧してから再試行してください。',

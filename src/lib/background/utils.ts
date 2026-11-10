@@ -7,15 +7,31 @@ import { filterItemsBySavableUrl } from '@/lib/url-filter'
 import { showNotification } from './alarm-notification'
 import { requireOperationalUserSettings } from './settings-policy'
 
+export class TabFilteringError extends Error {
+  public readonly reason: 'invalid-exclude-patterns' | 'evaluation-failed'
+
+  public constructor(reason: 'invalid-exclude-patterns' | 'evaluation-failed') {
+    super('Tab filtering could not be completed.')
+    this.name = 'TabFilteringError'
+    this.reason = reason
+  }
+}
+
 /**
  * タブをユーザー設定に基づいてフィルタリングする共通関数
  */
 export const filterTabsByUserSettings = async (
   tabs: chrome.tabs.Tab[],
 ): Promise<chrome.tabs.Tab[]> => {
+  // Settings errors retain their strict-read type and recovery notification.
+  const settings = await requireOperationalUserSettings()
   try {
-    // ユーザー設定を取得
-    const settings = await requireOperationalUserSettings()
+    if (
+      !Array.isArray(settings.excludePatterns) ||
+      !settings.excludePatterns.every((pattern) => typeof pattern === 'string')
+    ) {
+      throw new TabFilteringError('invalid-exclude-patterns')
+    }
     let filteredTabs = [...tabs]
 
     // 固定タブを除外
@@ -37,8 +53,11 @@ export const filterTabsByUserSettings = async (
     )
     return filteredTabs
   } catch (error) {
-    console.error('タブフィルタリングエラー:', error)
-    throw error
+    throw error instanceof TabFilteringError
+      ? error
+      : new TabFilteringError('evaluation-failed')
   }
-} // 通知表示の再エクスポート
+}
+
+// 通知表示の再エクスポート
 export { showNotification }
