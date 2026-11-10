@@ -121,6 +121,26 @@ const readRequired = (relativePath: string): string => {
 }
 
 describe('Firefox IndexedDB persistence smoke contract', () => {
+  it('requires native capture failure evidence before accepting a fresh Firefox result', () => {
+    const harness = readRequired(requiredFiles.harness)
+    const runner = readRequired(requiredFiles.runner)
+    expect(harness).toContain(
+      'captureSafety: await runFirefoxCaptureSafetySmoke()',
+    )
+    expect(runner).toContain('assert.deepEqual(result.captureSafety, {')
+    for (const fact of [
+      'directFailures: 16',
+      'toolbarFailures: 16',
+      'fixtureTabs: 3',
+      'tabsUnchanged: true',
+      'persistenceUnchanged: true',
+      'settingsUnchanged: true',
+      'restored: true',
+    ]) {
+      expect(runner).toContain(fact)
+    }
+  })
+
   it('requires native settings safety evidence before accepting a fresh Firefox result', () => {
     const harness = readRequired(requiredFiles.harness)
     const runner = readRequired(requiredFiles.runner)

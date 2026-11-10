@@ -6,6 +6,8 @@ import { createServer } from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
 
+// eslint-disable-next-line import/no-relative-parent-imports -- native capture smoke shares its WebDriver result contract
+import type { FirefoxCaptureSafetySmokeResult } from '../../e2e/support/firefox-capture-safety-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- native browser smoke result is a shared WebDriver boundary contract
 import type { FirefoxSavedTabsPageSmokeResult } from '../../e2e/support/firefox-saved-tabs-page-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- native settings smoke shares its WebDriver result contract
@@ -57,6 +59,7 @@ type SmokeResult = {
   }
   readonly savedTabsPage?: FirefoxSavedTabsPageSmokeResult
   readonly settingsSafety?: FirefoxSettingsSafetySmokeResult
+  readonly captureSafety?: FirefoxCaptureSafetySmokeResult
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -418,6 +421,15 @@ const runHarnessPhase = async (
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
+  assert.deepEqual(result.captureSafety, {
+    directFailures: 16,
+    toolbarFailures: 16,
+    fixtureTabs: 3,
+    tabsUnchanged: true,
+    persistenceUnchanged: true,
+    settingsUnchanged: true,
+    restored: true,
+  })
   assert.deepEqual(result.settingsSafety, {
     missingStatus: 'missing',
     firstUseDefaults: true,
@@ -639,8 +651,9 @@ const run = async (): Promise<void> => {
     // Precreate disposable Cocoa home directories so macOS does not add
     // user-home deny-delete ACLs to this temporary test state.
     await Promise.all(
-      ['Library/Application Support', 'Downloads'].map(async (directory) =>
-        mkdir(path.join(temporaryRoot, directory), { recursive: true }),
+      ['Library/Application Support', 'Documents', 'Downloads'].map(
+        async (directory) =>
+          mkdir(path.join(temporaryRoot, directory), { recursive: true }),
       ),
     )
   }
@@ -724,6 +737,7 @@ const run = async (): Promise<void> => {
           schemaVersion: verified.backup.schemaVersion,
           savedTabsPage: fresh.savedTabsPage,
           settingsSafety: fresh.settingsSafety,
+          captureSafety: fresh.captureSafety,
           urlOpening: fresh.urlOpening,
           urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',

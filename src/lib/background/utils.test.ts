@@ -180,9 +180,33 @@ describe('filterTabsByUserSettings関数', () => {
 
     const tabs = [tab({ id: 20, url: 'https://allowed.example' })]
     await expect(filterTabsByUserSettings(tabs)).rejects.toThrow(error)
-    expect(console.error).toHaveBeenCalledWith(
-      'タブフィルタリングエラー:',
-      error,
-    )
+  })
+
+  it('不正な除外パターンを無視せず型付き障害として中断する', async () => {
+    const settings = buildSettings()
+    Reflect.set(settings, 'excludePatterns', ['blocked.example', 42])
+    vi.mocked(getUserSettings).mockResolvedValue(settings)
+
+    await expect(
+      filterTabsByUserSettings([tab({ url: 'https://allowed.example' })]),
+    ).rejects.toMatchObject({
+      name: 'TabFilteringError',
+      reason: 'invalid-exclude-patterns',
+    })
+  })
+
+  it('除外判定の例外を空配列や元タブへ変換しない', async () => {
+    vi.mocked(getUserSettings).mockResolvedValue(buildSettings())
+    const source = tab({ url: 'https://allowed.example' })
+    Object.defineProperty(source, 'pinned', {
+      get: () => {
+        throw new Error('private tab data')
+      },
+    })
+
+    await expect(filterTabsByUserSettings([source])).rejects.toMatchObject({
+      name: 'TabFilteringError',
+      reason: 'evaluation-failed',
+    })
   })
 })

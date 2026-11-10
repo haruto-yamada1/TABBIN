@@ -9,13 +9,18 @@ import {
   normalizeSavedTabTitles,
 } from '@/lib/browser/normalize-saved-tab-titles'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
-import { normalizeUrlCandidate } from '@/lib/url-filter'
+import { UserSettingsReadError } from '@/lib/storage/settings'
+import { isValidUrl, normalizeUrlCandidate } from '@/lib/url-filter'
 import type { UserSettings } from '@/types/storage'
 
 import { getBackgroundLanguage } from './i18n'
 import { openSavedTabsPage } from './saved-tabs-page'
 import { requireOperationalUserSettings } from './settings-policy'
-import { filterTabsByUserSettings, showNotification } from './utils'
+import {
+  filterTabsByUserSettings,
+  showNotification,
+  TabFilteringError,
+} from './utils'
 
 const resolveClickBehavior = (
   value: UserSettings['clickBehavior'] | undefined,
@@ -26,9 +31,37 @@ const getBackgroundText = async (
   fallback?: string,
   values?: Record<string, string>,
 ) => {
-  const language = await getBackgroundLanguage()
+  const language = await getBackgroundLanguage({ repairStoredSettings: false })
 
   return getMessage(language, key, fallback, values)
+}
+
+// Empty targets resolve to []; failures stay observable to every caller.
+const runTabCapture = async <Result>(
+  capture: () => Promise<Result>,
+): Promise<Result> => {
+  try {
+    return await capture()
+  } catch (error) {
+    // These boundaries already explain how to recover; do not notify twice.
+    if (
+      !(error instanceof UserSettingsReadError) &&
+      !(error instanceof NativeSavedTabTitleCaptureError)
+    ) {
+      const prefix =
+        error instanceof TabFilteringError
+          ? 'background.saveTabs.filterError'
+          : 'background.saveTabs.captureError'
+      const language = await getBackgroundLanguage({
+        repairStoredSettings: false,
+      })
+      await showNotification(
+        getMessage(language, `${prefix}Title`),
+        getMessage(language, `${prefix}Message`),
+      )
+    }
+    throw error
+  }
 }
 
 const isWindowsGetAll = (
@@ -93,7 +126,9 @@ const saveTabsInBothModes = async (
     normalizedTabs = await normalizeSavedTabTitles(tabs)
   } catch (error) {
     if (error instanceof NativeSavedTabTitleCaptureError) {
-      const language = await getBackgroundLanguage()
+      const language = await getBackgroundLanguage({
+        repairStoredSettings: false,
+      })
       await showNotification(
         getMessage(language, 'background.saveTabs.titleCaptureErrorTitle'),
         getMessage(language, 'background.saveTabs.titleCaptureErrorMessage'),
@@ -178,46 +213,46 @@ export const handleSaveCurrentTab = async (): Promise<
     url: string
     title: string
   }[]
-> => {
-  // 現在アクティブなタブのみを保存
-  const activeTabs = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
+> =>
+  runTabCapture(async () => {
+    // 現在アクティブなタブのみを保存
+    const activeTabs = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    })
+
+    // タブをフィルタリング（固定タブを除外）
+    const filteredTabs = await filterTabsByUserSettings(activeTabs)
+    const activeTab = filteredTabs[0]
+    if (!activeTab) {
+      console.log(
+        '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
+      )
+      return []
+    }
+    console.log(`現在のタブを保存: ${redactUrlForLog(activeTab.url)}`)
+
+    // タブを保存
+    const [savedTabs, notificationTitle, notificationMessage] =
+      await Promise.all([
+        saveTabsInBothModes([activeTab]),
+        getBackgroundText('background.saveTabs.notificationTitle'),
+        getBackgroundText('background.saveTabs.currentTabSaved'),
+      ])
+
+    await showNotification(notificationTitle, notificationMessage)
+    if (activeTab.id) {
+      await chrome.tabs
+        .remove(activeTab.id)
+        .then(() => {
+          console.log(`タブ ${String(activeTab.id)} を閉じました`)
+        })
+        .catch((error: unknown) => {
+          console.error('タブを閉じる際にエラー:', error)
+        })
+    }
+    return toResultItems(savedTabs)
   })
-
-  // タブをフィルタリング（固定タブを除外）
-  const filteredTabs = await filterTabsByUserSettings(activeTabs)
-  const activeTab = filteredTabs[0]
-  if (!activeTab) {
-    console.log(
-      '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
-    )
-    return []
-  }
-  console.log(`現在のタブを保存: ${redactUrlForLog(activeTab.url)}`)
-
-  // タブを保存
-  const [savedTabs, notificationTitle, notificationMessage] = await Promise.all(
-    [
-      saveTabsInBothModes([activeTab]),
-      getBackgroundText('background.saveTabs.notificationTitle'),
-      getBackgroundText('background.saveTabs.currentTabSaved'),
-    ],
-  )
-
-  await showNotification(notificationTitle, notificationMessage)
-  if (activeTab.id) {
-    await chrome.tabs
-      .remove(activeTab.id)
-      .then(() => {
-        console.log(`タブ ${String(activeTab.id)} を閉じました`)
-      })
-      .catch((error: unknown) => {
-        console.error('タブを閉じる際にエラー:', error)
-      })
-  }
-  return toResultItems(savedTabs)
-}
 /**
  * 現在のドメインのタブをすべて保存
  */
@@ -226,16 +261,16 @@ export const handleSaveSameDomainTabs = async (): Promise<
     url: string
     title: string
   }[]
-> => {
-  const currentTabs = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  })
-  const currentTab = currentTabs[0]
-  if (!currentTab?.url) {
-    return []
-  }
-  try {
+> =>
+  runTabCapture(async () => {
+    const currentTabs = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    })
+    const currentTab = currentTabs[0]
+    if (!currentTab?.url || !isValidUrl(currentTab.url)) {
+      return []
+    }
     // 現在のタブからドメインを取得
     const url = new URL(currentTab.url)
     const currentDomain = url.hostname
@@ -268,10 +303,10 @@ export const handleSaveSameDomainTabs = async (): Promise<
     console.log(`同じドメインのタブ数: ${filteredTabs.length}`)
 
     // タブを保存
-    const [savedTabs, settings, notificationTitle, notificationMessage] =
+    const settings = await requireOperationalUserSettings()
+    const [savedTabs, notificationTitle, notificationMessage] =
       await Promise.all([
         saveTabsInBothModes(filteredTabs),
-        requireOperationalUserSettings(),
         getBackgroundText('background.saveTabs.notificationTitle'),
         getBackgroundText('background.saveTabs.sameDomainSaved', undefined, {
           count: String(filteredTabs.length),
@@ -295,11 +330,7 @@ export const handleSaveSameDomainTabs = async (): Promise<
       tabIdsToClose,
     )
     return toResultItems(savedTabs)
-  } catch (error) {
-    console.error('ドメインタブ保存エラー:', error)
-    return []
-  }
-}
+  })
 /**
  * すべてのウィンドウのタブを保存
  */
@@ -308,8 +339,8 @@ export const handleSaveAllWindowsTabs = async (): Promise<
     url: string
     title: string
   }[]
-> => {
-  try {
+> =>
+  runTabCapture(async () => {
     // すべてのウィンドウのタブを取得
     const allTabs = await getAllTabsAcrossWindows()
     console.log(`取得したすべてのタブ数: ${allTabs.length}`)
@@ -324,16 +355,21 @@ export const handleSaveAllWindowsTabs = async (): Promise<
     }
     console.log(`保存対象タブ数: ${filteredTabs.length}`)
 
-    // タブを保存
-    const [savedTabs, notificationTitle, notificationMessage, savedTabsTabId] =
-      await Promise.all([
-        saveTabsInBothModes(filteredTabs),
-        getBackgroundText('background.saveTabs.notificationTitle'),
-        getBackgroundText('background.saveTabs.allWindowsSaved', undefined, {
-          count: String(filteredTabs.length),
-        }),
-        openSavedTabsPage(),
-      ])
+    // 文言の読み取りは並行できるが、重複タブを整理する画面表示は保存成功後だけ。
+    const [
+      { savedTabs, savedTabsTabId },
+      notificationTitle,
+      notificationMessage,
+    ] = await Promise.all([
+      saveTabsInBothModes(filteredTabs).then(async (savedTabs) => ({
+        savedTabs,
+        savedTabsTabId: await openSavedTabsPage(),
+      })),
+      getBackgroundText('background.saveTabs.notificationTitle'),
+      getBackgroundText('background.saveTabs.allWindowsSaved', undefined, {
+        count: String(filteredTabs.length),
+      }),
+    ])
 
     // 保存画面を確認できない場合は、保存済みでもタブを閉じずに残す。
     if (savedTabsTabId === null) {
@@ -354,11 +390,7 @@ export const handleSaveAllWindowsTabs = async (): Promise<
       tabIdsToClose,
     )
     return toResultItems(savedTabs)
-  } catch (error) {
-    console.error('すべてのタブ保存エラー:', error)
-    return []
-  }
-}
+  })
 /**
  * 現在のウィンドウのタブをすべて保存（デフォルト）
  */
@@ -367,70 +399,71 @@ export const handleSaveWindowTabs = async (): Promise<
     url: string
     title: string
   }[]
-> => {
-  const allTabs = await chrome.tabs.query({
-    currentWindow: true,
-  })
-  console.log(`取得したタブ: ${allTabs.length}個`)
+> =>
+  runTabCapture(async () => {
+    const allTabs = await chrome.tabs.query({
+      currentWindow: true,
+    })
+    console.log(`取得したタブ: ${allTabs.length}個`)
 
-  // タブをフィルタリング（固定タブと除外パターンを除外）
-  const filteredTabs = await filterTabsByUserSettings(allTabs)
-  if (filteredTabs.length === 0) {
-    console.log(
-      '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
-    )
-    return []
-  }
-  console.log(`保存対象タブ: ${filteredTabs.length}個`)
+    // タブをフィルタリング（固定タブと除外パターンを除外）
+    const filteredTabs = await filterTabsByUserSettings(allTabs)
+    if (filteredTabs.length === 0) {
+      console.log(
+        '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
+      )
+      return []
+    }
+    console.log(`保存対象タブ: ${filteredTabs.length}個`)
 
-  // タブを保存して自動カテゴライズする
-  const savedTabs = await saveTabsInBothModes(filteredTabs)
-  console.log('タブの保存と自動カテゴライズが完了しました')
-  const [savedTabsTabId, settings, notificationTitle, notificationMessage] =
-    await Promise.all([
-      openSavedTabsPage(),
-      requireOperationalUserSettings(),
-      getBackgroundText('background.saveTabs.notificationTitle'),
-      getBackgroundText('background.saveTabs.windowTabsSaved', undefined, {
-        count: String(filteredTabs.length),
-      }),
-    ])
-  await showNotification(notificationTitle, notificationMessage)
+    // タブを保存して自動カテゴライズする
+    const settings = await requireOperationalUserSettings()
+    const savedTabs = await saveTabsInBothModes(filteredTabs)
+    console.log('タブの保存と自動カテゴライズが完了しました')
+    const [savedTabsTabId, notificationTitle, notificationMessage] =
+      await Promise.all([
+        openSavedTabsPage(),
+        getBackgroundText('background.saveTabs.notificationTitle'),
+        getBackgroundText('background.saveTabs.windowTabsSaved', undefined, {
+          count: String(filteredTabs.length),
+        }),
+      ])
+    await showNotification(notificationTitle, notificationMessage)
 
-  if (savedTabsTabId === null) {
+    if (savedTabsTabId === null) {
+      return toResultItems(savedTabs)
+    }
+
+    // 閉じるタブを収集
+    const tabIdsToClose: number[] = []
+    for (const tab of filteredTabs) {
+      const tabUrl = tab.url
+      if (
+        tab.id &&
+        tab.id !== savedTabsTabId &&
+        tabUrl &&
+        !settings.excludePatterns.some(
+          (pattern) => tabUrl.split(pattern).length > 1,
+        )
+      ) {
+        tabIdsToClose.push(tab.id)
+      }
+    }
+
+    // タブを閉じる（一括処理）
+    if (tabIdsToClose.length > 0) {
+      console.log(`${tabIdsToClose.length}個のタブを閉じます:`, tabIdsToClose)
+      try {
+        await chrome.tabs.remove(tabIdsToClose)
+        console.log(`${tabIdsToClose.length}個のタブを一括で閉じました`)
+      } catch (error: unknown) {
+        console.error(
+          'タブを閉じる際にエラーが発生しました:',
+          error instanceof Error ? error.message : error,
+        )
+      }
+    } else {
+      console.log('閉じるべきタブはありません')
+    }
     return toResultItems(savedTabs)
-  }
-
-  // 閉じるタブを収集
-  const tabIdsToClose: number[] = []
-  for (const tab of filteredTabs) {
-    const tabUrl = tab.url
-    if (
-      tab.id &&
-      tab.id !== savedTabsTabId &&
-      tabUrl &&
-      !settings.excludePatterns.some(
-        (pattern) => tabUrl.split(pattern).length > 1,
-      )
-    ) {
-      tabIdsToClose.push(tab.id)
-    }
-  }
-
-  // タブを閉じる（一括処理）
-  if (tabIdsToClose.length > 0) {
-    console.log(`${tabIdsToClose.length}個のタブを閉じます:`, tabIdsToClose)
-    try {
-      await chrome.tabs.remove(tabIdsToClose)
-      console.log(`${tabIdsToClose.length}個のタブを一括で閉じました`)
-    } catch (error: unknown) {
-      console.error(
-        'タブを閉じる際にエラーが発生しました:',
-        error instanceof Error ? error.message : error,
-      )
-    }
-  } else {
-    console.log('閉じるべきタブはありません')
-  }
-  return toResultItems(savedTabs)
-}
+  })

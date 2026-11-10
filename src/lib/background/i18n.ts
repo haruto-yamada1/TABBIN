@@ -8,9 +8,11 @@ import { getUserSettings } from '@/lib/storage/settings'
 
 const getBackgroundUiLocale = () => getBrowserUiLocale('ja')
 
-const getBackgroundLanguage = async (): Promise<AppLanguage> => {
+const getBackgroundLanguage = async (options?: {
+  readonly repairStoredSettings?: boolean
+}): Promise<AppLanguage> => {
   try {
-    const settings = await getUserSettings()
+    const settings = await getUserSettings(options)
 
     return resolveLanguage(
       settings.language ?? 'system',
