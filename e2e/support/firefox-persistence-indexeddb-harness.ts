@@ -21,6 +21,7 @@ import { runFirefoxCaptureSafetySmoke } from './firefox-capture-safety-harness'
 import { runFirefoxExpiredTabsAlarmSmoke } from './firefox-expired-tabs-alarm-harness'
 import { runFirefoxSavedTabsPageSmoke } from './firefox-saved-tabs-page-harness'
 import { runFirefoxSettingsSafetySmoke } from './firefox-settings-safety-harness'
+import { runFirefoxUrlDragIdentitySmoke } from './firefox-url-drag-identity-harness'
 import {
   runFirefoxUrlOpeningSmoke,
   verifyFirefoxUrlOpeningAfterRestart,
@@ -217,6 +218,7 @@ const fresh = async () => {
     settingsSafety: await runFirefoxSettingsSafetySmoke(),
     captureSafety: await runFirefoxCaptureSafetySmoke(),
     urlOpening: await runFirefoxUrlOpeningSmoke(),
+    urlDragIdentity: await runFirefoxUrlDragIdentitySmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
       chrome.extension.isAllowedIncognitoAccess(resolve)
     }),

@@ -1,14 +1,14 @@
-/**
- * URL・ストレージ操作モジュール
- */
-
+/** URL・ストレージ操作モジュール */
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
 import type { DraggedUrlInfo } from '@/types/background'
 
 import { requireOperationalUserSettings } from './settings-policy'
 
-let draggedUrlInfo: DraggedUrlInfo | null = null
+type ActiveDrag = DraggedUrlInfo & {
+  readonly targetId: Promise<string | null>
+}
+
+let draggedUrlInfo: ActiveDrag | null = null
 let savedTabsStorageMutationQueue: Promise<void> = Promise.resolve()
 const DRAG_INFO_TIMEOUT_MS = 10_000
 
@@ -24,57 +24,42 @@ const enqueueStorageMutation = async <Result>(
 }
 
 const setDraggedUrlInfo = (info: DraggedUrlInfo): void => {
-  draggedUrlInfo = info
+  clearDraggedUrlInfo()
+  draggedUrlInfo = {
+    ...info,
+    targetId: Promise.resolve(info.urlRecordId ?? null),
+  }
 }
 
 const getDraggedUrlInfo = (): DraggedUrlInfo | null => draggedUrlInfo
 
 const clearDraggedUrlInfo = (): void => {
+  if (draggedUrlInfo?.timeoutId) {
+    clearTimeout(draggedUrlInfo.timeoutId)
+  }
   draggedUrlInfo = null
 }
 
-type ComparableUrlKeyOptions = {
-  readonly ignoreHash?: boolean
-  readonly ignoreSearch?: boolean
-}
-
-const createComparableUrlKey = (
-  rawUrl: string,
-  options: ComparableUrlKeyOptions = {},
-): string | null => {
+/** Browser navigation comparison only; never use this key for persistence. */
+const createComparableUrlKey = (rawUrl: string): string | null => {
   try {
-    const url = new URL(rawUrl.trim())
-    url.hostname = url.hostname.toLowerCase()
-    if (options.ignoreHash) {
-      url.hash = ''
-    }
-    if (options.ignoreSearch) {
-      url.search = ''
-    }
-    return url.toString()
+    return new URL(rawUrl).href
   } catch {
     return null
   }
 }
 
-const removeUrlFromStorage = async (url: string): Promise<void> => {
-  const targetUrlKey = createComparableUrlKey(url)
-  if (!targetUrlKey) {
-    console.log(
-      '削除対象URLを比較可能な形式にできないため、削除をスキップしました:',
-      redactUrlForLog(url),
-    )
+const removeUrlFromStorage = async (
+  url: string,
+  urlRecordId?: string,
+): Promise<void> => {
+  if (!createComparableUrlKey(url)) {
     return
   }
-  try {
-    await enqueueStorageMutation(async () =>
-      getBackgroundSavedTabsDataPlane().removeUrl(targetUrlKey),
-    )
-    console.log(`ストレージからURL ${redactUrlForLog(url)} を削除しました`)
-  } catch (error) {
-    console.error('URLの削除中にエラーが発生しました:', error)
-    throw error
-  }
+  // The data plane resolves exact source strings to one ID inside its mutation.
+  await enqueueStorageMutation(async () =>
+    getBackgroundSavedTabsDataPlane().removeUrl(url, urlRecordId),
+  )
 }
 
 const removeUrlRecordsFromStorage = async (
@@ -94,93 +79,124 @@ const removeUrlRecordsFromStorage = async (
   }
 }
 
-const handleUrlDragStarted = (url: string): void => {
-  console.log('ドラッグ開始を検知:', redactUrlForLog(url))
-  const dragInfo: DraggedUrlInfo = {
+const handleUrlDragStarted = (
+  url: string,
+  urlRecordId?: string,
+  sourceTabId?: number,
+): void => {
+  clearDraggedUrlInfo()
+  // Capture identity at start, before a DOM drop arrives.
+  // Keep this promise local to the drag; worker restarts cannot revive it.
+  const targetId = (async () => {
+    try {
+      const { savedTabs } =
+        await getBackgroundSavedTabsDataPlane().readUndoSnapshot()
+      const matches = savedTabs.urls.filter(
+        (record) =>
+          record.url === url &&
+          (urlRecordId === undefined || record.id === urlRecordId),
+      )
+      return matches.length === 1 ? (matches[0]?.id ?? null) : null
+    } catch {
+      return null
+    }
+  })()
+  const drag: ActiveDrag = {
     processed: false,
     timestamp: Date.now(),
     url,
+    urlRecordId,
+    sourceTabId,
+    targetId,
   }
-  draggedUrlInfo = dragInfo
-  const dragTimeout = setTimeout(() => {
-    if (draggedUrlInfo === dragInfo && !dragInfo.processed) {
-      console.log('ドラッグ情報のタイムアウト:', redactUrlForLog(dragInfo.url))
-      draggedUrlInfo = null
+  draggedUrlInfo = drag
+  drag.timeoutId = setTimeout(() => {
+    if (draggedUrlInfo === drag) {
+      clearDraggedUrlInfo()
     }
   }, DRAG_INFO_TIMEOUT_MS)
-  dragInfo.timeoutId = dragTimeout
+}
+
+const isCurrentDrag = (drag: ActiveDrag): boolean => {
+  const elapsed = Date.now() - drag.timestamp
+  return (
+    draggedUrlInfo === drag && elapsed >= 0 && elapsed < DRAG_INFO_TIMEOUT_MS
+  )
+}
+
+const consumeDrag = async (
+  drag: ActiveDrag,
+  urlRecordId?: string,
+): Promise<string> => {
+  let consumed = false
+  try {
+    const settings = await requireOperationalUserSettings()
+    const id = await drag.targetId
+    if (!isCurrentDrag(drag) || drag.processed) {
+      return 'skipped'
+    }
+    // Claim before the mutation await so duplicate drop messages cannot replay.
+    drag.processed = true
+    consumed = true
+    if (
+      !settings.removeTabAfterExternalDrop ||
+      !id ||
+      (urlRecordId !== undefined && id !== urlRecordId)
+    ) {
+      return 'skipped'
+    }
+    const removed = await enqueueStorageMutation(async () => {
+      if (!isCurrentDrag(drag)) {
+        return 0
+      }
+      // Recheck exact URL + ID atomically; a re-saved URL with a new ID survives.
+      return getBackgroundSavedTabsDataPlane().removeUrl(drag.url, id)
+    })
+    return removed > 0 ? 'removed' : 'skipped'
+  } catch (error) {
+    consumed = true
+    throw error
+  } finally {
+    if (consumed && draggedUrlInfo === drag) {
+      clearDraggedUrlInfo()
+    }
+  }
 }
 
 const handleUrlDropped = async (
   url: string,
   fromExternal?: boolean,
+  urlRecordId?: string,
+  sourceTabId?: number,
 ): Promise<string> => {
-  console.log('URLドロップを検知:', redactUrlForLog(url))
-  if (fromExternal === true) {
-    try {
-      const settings = await requireOperationalUserSettings()
-      if (settings.removeTabAfterExternalDrop) {
-        await removeUrlFromStorage(url)
-        console.log('外部ドロップ後にURLを削除しました:', redactUrlForLog(url))
-        return 'removed'
-      }
-      console.log('設定により削除をスキップ')
-      return 'skipped'
-    } catch (error) {
-      console.error('URL削除エラー:', error)
-      throw error
+  if (fromExternal !== true) {
+    if (
+      draggedUrlInfo?.url === url &&
+      (draggedUrlInfo.sourceTabId === undefined ||
+        draggedUrlInfo.sourceTabId === sourceTabId) &&
+      (urlRecordId === undefined || draggedUrlInfo.urlRecordId === urlRecordId)
+    ) {
+      clearDraggedUrlInfo()
     }
+    return 'internal_operation'
   }
-  console.log('内部操作のため削除をスキップ')
-  return 'internal_operation'
-}
-
-const handleTabCreated = async (tab: chrome.tabs.Tab): Promise<void> => {
-  console.log('新しいタブが作成されました:', redactUrlForLog(tab.url))
-  if (draggedUrlInfo && !draggedUrlInfo.processed) {
-    console.log(
-      'ドラッグ情報が存在します:',
-      redactUrlForLog(draggedUrlInfo.url),
-    )
-    console.log('新しいタブのURL:', redactUrlForLog(tab.url))
-    const draggedUrlKey = createComparableUrlKey(draggedUrlInfo.url, {
-      ignoreHash: true,
-    })
-    const tabUrlKey = createComparableUrlKey(tab.url ?? '', {
-      ignoreHash: true,
-    })
-    console.log('比較用ドラッグURL:', redactUrlForLog(draggedUrlInfo.url))
-    console.log('比較用新タブURL:', redactUrlForLog(tab.url))
-    if (!tabUrlKey || !draggedUrlKey || tabUrlKey !== draggedUrlKey) {
-      console.log('URLが一致しません。削除をスキップします')
-      return
-    }
-    console.log('URLが一致しています')
-    try {
-      draggedUrlInfo.processed = true
-      const settings = await requireOperationalUserSettings()
-      if (!settings.removeTabAfterOpen) {
-        console.log('設定により削除をスキップします')
-        return
-      }
-      console.log(
-        '設定に基づきURLを削除します:',
-        redactUrlForLog(draggedUrlInfo.url),
-      )
-      await removeUrlFromStorage(draggedUrlInfo.url)
-    } catch (error) {
-      console.error('タブ作成後の処理でエラー:', error)
-    } finally {
-      draggedUrlInfo = null
-    }
+  const drag = draggedUrlInfo
+  if (
+    !drag ||
+    drag.processed ||
+    !isCurrentDrag(drag) ||
+    drag.url !== url ||
+    (drag.sourceTabId !== undefined && drag.sourceTabId !== sourceTabId)
+  ) {
+    return 'skipped'
   }
+  return consumeDrag(drag, urlRecordId)
 }
 
 export {
   clearDraggedUrlInfo,
   createComparableUrlKey,
   getDraggedUrlInfo,
-  handleTabCreated,
   handleUrlDragStarted,
   handleUrlDropped,
   removeUrlFromStorage,

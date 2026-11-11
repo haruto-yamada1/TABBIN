@@ -14,6 +14,8 @@ import type { FirefoxExpiredTabsAlarmSmokeResult } from '../../e2e/support/firef
 import type { FirefoxSavedTabsPageSmokeResult } from '../../e2e/support/firefox-saved-tabs-page-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- native settings smoke shares its WebDriver result contract
 import type { FirefoxSettingsSafetySmokeResult } from '../../e2e/support/firefox-settings-safety-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- native drag smoke shares its WebDriver result contract
+import type { FirefoxUrlDragIdentitySmokeResult } from '../../e2e/support/firefox-url-drag-identity-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- shared browser harness result is the WebDriver protocol contract
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
@@ -63,6 +65,7 @@ type SmokeResult = {
   readonly settingsSafety?: FirefoxSettingsSafetySmokeResult
   readonly captureSafety?: FirefoxCaptureSafetySmokeResult
   readonly expiredTabsAlarm?: FirefoxExpiredTabsAlarmSmokeResult
+  readonly urlDragIdentity?: FirefoxUrlDragIdentitySmokeResult
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -444,6 +447,18 @@ const assertExpiredTabsAlarmResult = (result: {
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
+  assert.deepEqual(result.urlDragIdentity, {
+    savedOriginalUrls: true,
+    exactIdRemoved: true,
+    lookalikesPreserved: true,
+    membershipsPreserved: true,
+    hashMismatchPreserved: true,
+    queryMismatchPreserved: true,
+    externalDropDisabledPreserved: true,
+    duplicateDropPreservedNewId: true,
+    clearedDragPreserved: true,
+    restored: true,
+  })
   assert.deepEqual(result.captureSafety, {
     directFailures: 16,
     toolbarFailures: 16,
@@ -782,6 +797,7 @@ const run = async (): Promise<void> => {
           captureSafety: fresh.captureSafety,
           expiredTabsAlarm: alarmResult.expiredTabsAlarm,
           urlOpening: fresh.urlOpening,
+          urlDragIdentity: fresh.urlDragIdentity,
           urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',
         },

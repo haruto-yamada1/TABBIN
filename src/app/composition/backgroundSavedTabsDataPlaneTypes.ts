@@ -40,7 +40,7 @@ export type BackgroundSavedTabsDataPlane = {
     cutoffTime: number,
     currentTime: number,
   ) => Promise<{ readonly removedCount: number; readonly sourceCount: number }>
-  readonly removeUrl: (url: string) => Promise<number>
+  readonly removeUrl: (url: string, urlRecordId?: string) => Promise<number>
   readonly removeUrlIds: (urlIds: readonly string[]) => Promise<number>
   readonly restoreUndoSnapshot: (
     snapshot: PersistenceVersionedSavedTabsSnapshot,

@@ -24,7 +24,6 @@ import {
 } from '@/lib/background/review-reminders'
 import { registerSavedTabTitleIndicator } from '@/lib/background/saved-tab-title-indicator'
 import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
-import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
 
 const MANIFEST_V2 = 2
@@ -131,7 +130,6 @@ export default defineBackground(() => {
   // メッセージリスナーを設定
   setupMessageListener()
 
-  // 新しいタブが作成されたときの処理
-  // eslint-disable-next-line typescript/no-misused-promises
-  chrome.tabs.onCreated.addListener(handleTabCreated)
+  // Native tab events cannot prove which drag or link activation opened a URL.
+  // Saved URL removal requires an explicit open use-case or confirmed DOM drop.
 })

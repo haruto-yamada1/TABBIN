@@ -528,6 +528,67 @@ describe('setupMessageListener', () => {
     })
   })
 
+  it('URL IDとsender tabを保持し旧URL-only契約も受け付ける', async () => {
+    const { listener } = setupListener()
+    const source = { ...trustedSender, tab: { id: 11 } }
+    const response = vi.fn()
+    mocked.handleUrlDropped.mockResolvedValue('removed')
+    mocked.removeUrlFromStorage.mockResolvedValue(undefined)
+    listener(
+      {
+        action: 'urlDragStarted',
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+      },
+      source,
+      response,
+    )
+    expect(mocked.handleUrlDragStarted).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      'url-1',
+      11,
+    )
+    listener(
+      {
+        action: 'urlDropped',
+        fromExternal: true,
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+      },
+      source,
+      response,
+    )
+    expect(mocked.handleUrlDropped).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      true,
+      'url-1',
+      11,
+    )
+    listener(
+      {
+        action: 'removeUrlFromStorage',
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+      },
+      trustedSender,
+      response,
+    )
+    expect(mocked.removeUrlFromStorage).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      'url-1',
+    )
+    await vi.waitFor(() =>
+      expect(response).toHaveBeenCalledWith({ status: 'removed' }),
+    )
+    expect(
+      backgroundMessageSchema.safeParse({
+        action: 'urlDragStarted',
+        url: 'https://example.com',
+        urlRecordId: '',
+      }).success,
+    ).toBe(false)
+  })
+
   it('urlDragStarted, urlDropped, removeUrlFromStorage を処理する', async () => {
     const { listener } = setupListener()
     const dragStartedResponse = vi.fn()
@@ -546,6 +607,8 @@ describe('setupMessageListener', () => {
     ).toBe(true)
     expect(mocked.handleUrlDragStarted).toHaveBeenCalledWith(
       'https://example.com',
+      undefined,
+      undefined,
     )
     expect(dragStartedResponse).toHaveBeenCalledWith({ status: 'ok' })
 

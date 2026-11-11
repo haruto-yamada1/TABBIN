@@ -218,13 +218,20 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'urlDragStarted': {
-        handleUrlDragStartedMessage(typedMessage.url, sendResponse)
+        handleUrlDragStartedMessage(
+          typedMessage.url,
+          sendResponse,
+          typedMessage.urlRecordId,
+          sender.tab?.id,
+        )
         return true
       }
       case 'urlDropped': {
         handleUrlDroppedMessage(
           {
             url: typedMessage.url,
+            urlRecordId: typedMessage.urlRecordId,
+            sourceTabId: sender.tab?.id,
             ...(typedMessage.fromExternal !== undefined
               ? { fromExternal: typedMessage.fromExternal }
               : {}),
@@ -234,7 +241,11 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'removeUrlFromStorage': {
-        handleRemoveUrlMessage(typedMessage.url, sendResponse)
+        handleRemoveUrlMessage(
+          typedMessage.url,
+          sendResponse,
+          typedMessage.urlRecordId,
+        )
         return true
       }
       case 'removeUrlRecordsFromStorage': {
@@ -318,8 +329,10 @@ const setupMessageListener = (): void => {
 const handleUrlDragStartedMessage = (
   url: string,
   sendResponse: (response: StatusResponse) => void,
+  urlRecordId?: string,
+  sourceTabId?: number,
 ): void => {
-  handleUrlDragStarted(url)
+  handleUrlDragStarted(url, urlRecordId, sourceTabId)
   sendResponse({
     status: 'ok',
   })
@@ -331,6 +344,8 @@ const handleUrlDroppedMessage = (
   message: {
     url: string
     fromExternal?: boolean
+    urlRecordId?: string | undefined
+    sourceTabId?: number | undefined
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
@@ -338,7 +353,12 @@ const handleUrlDroppedMessage = (
 
   // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (message.fromExternal === true) {
-    handleUrlDropped(message.url, message.fromExternal)
+    handleUrlDropped(
+      message.url,
+      message.fromExternal,
+      message.urlRecordId,
+      message.sourceTabId,
+    )
       .then((status) => {
         sendResponse({
           status,
@@ -352,6 +372,12 @@ const handleUrlDroppedMessage = (
         })
       })
   } else {
+    void handleUrlDropped(
+      message.url,
+      false,
+      message.urlRecordId,
+      message.sourceTabId,
+    )
     logger.debug('background_url_drop_internal_skipped')
     sendResponse({
       status: 'internal_operation',
@@ -364,8 +390,9 @@ const handleUrlDroppedMessage = (
 const handleRemoveUrlMessage = (
   url: string,
   sendResponse: (response: StatusResponse) => void,
+  urlRecordId?: string,
 ): void => {
-  removeUrlFromStorage(url)
+  removeUrlFromStorage(url, urlRecordId)
     .then(() => {
       sendResponse({
         status: 'removed',

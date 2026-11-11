@@ -37,7 +37,6 @@ import {
 } from './extension-actions'
 import {
   clearDraggedUrlInfo,
-  handleTabCreated,
   handleUrlDragStarted,
   handleUrlDropped,
 } from './url-storage'
@@ -420,9 +419,8 @@ describe('settings safety at background operation boundaries', () => {
     '%s: external drop and open preserve saved URLs',
     async (failure) => {
       failSettings(failure)
-      await Promise.allSettled([handleUrlDropped(sourceUrl, true)])
       handleUrlDragStarted(sourceUrl)
-      await handleTabCreated(source)
+      await Promise.allSettled([handleUrlDropped(sourceUrl, true)])
       expect(mocked.removeUrl).not.toHaveBeenCalled()
       expect(mocked.showNotification).toHaveBeenCalledWith(
         'Settings could not be verified',

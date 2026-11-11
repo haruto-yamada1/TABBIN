@@ -218,6 +218,26 @@ Changing any row to same identity is a breaking identity-policy version. It
 requires a separate collision preflight and migration; it is not a helper
 refactor.
 
+### Deletion and native drag confirmation
+
+Background URL-only deletion resolves the exact source string to one saved URL
+ID inside the mutation. An optional `urlRecordId` must belong to that exact
+string; missing or ambiguous matches remove nothing. Browser-normalized hrefs
+are never persistence deletion keys.
+
+Native drag deletion captures the saved ID from the drag-start snapshot and
+requires a matching external DOM drop from the same source tab within ten
+seconds. The mutation rechecks the original URL and ID together. Duplicate,
+expired, unknown, or worker-restarted drag sessions cannot authorize deletion.
+`removeTabAfterExternalDrop` controls this path, including when
+`removeTabAfterOpen` is enabled. Explicit saved-link activation continues to use
+`OpenSavedUrlUseCase` and its ID-based `removeTabAfterOpen` policy.
+
+`tabs.onCreated` cannot establish which gesture opened a URL, even when its
+normalized URL and opener match. It therefore never authorizes saved-URL
+removal. This preserves saved data after cancelled drags, unrelated native link
+activations, and incomplete or delayed tab events.
+
 ### Uniqueness and collision handling
 
 - A verified v2 snapshot has one `Url` per `normalizedUrl`.
