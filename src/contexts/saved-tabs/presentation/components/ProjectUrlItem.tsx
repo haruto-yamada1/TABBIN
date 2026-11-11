@@ -167,6 +167,12 @@ const ProjectUrlItemComponent = ({
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const isDraggingRef = useRef(false)
+  const dragSnapshotRef = useRef<{
+    readonly dragId: string
+    readonly groupId: string
+    readonly url: string
+    readonly urlRecordId?: string
+  } | null>(null)
   const windowBlurredDuringDragRef = useRef(false)
   // 外部ウィンドウへの D&D 通知に使う `MessagingPort` (issue #531)。
   // `SavedTabsPage` 配下では `SavedTabsUseCasesProvider` が
@@ -222,16 +228,16 @@ const ProjectUrlItemComponent = ({
   )
 
   const handleExternalDrop = useCallback(() => {
-    if (!messagingPort) {
+    const drag = dragSnapshotRef.current
+    if (!messagingPort || !drag) {
       return
     }
     void messagingPort.send({
       action: 'urlDropped',
       fromExternal: true,
-      groupId: projectId,
-      url: originalUrl,
+      ...drag,
     })
-  }, [messagingPort, originalUrl, projectId])
+  }, [messagingPort])
 
   const handleWindowBlur = useCallback(() => {
     if (isDraggingRef.current) {
@@ -250,14 +256,17 @@ const ProjectUrlItemComponent = ({
       window.addEventListener('blur', handleWindowBlur)
 
       if (messagingPort) {
-        void messagingPort.send({
-          action: 'urlDragStarted',
+        const drag = {
+          dragId: crypto.randomUUID(),
           groupId: projectId,
           url: originalUrl,
-        })
+          ...(item.id !== undefined ? { urlRecordId: item.id } : {}),
+        }
+        dragSnapshotRef.current = drag
+        void messagingPort.send({ action: 'urlDragStarted', ...drag })
       }
     },
-    [originalUrl, messagingPort, projectId, handleWindowBlur],
+    [originalUrl, item.id, messagingPort, projectId, handleWindowBlur],
   )
 
   const handleDragEnd = useCallback(
@@ -275,6 +284,7 @@ const ProjectUrlItemComponent = ({
       }
 
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur, handleExternalDrop],
@@ -284,6 +294,7 @@ const ProjectUrlItemComponent = ({
     () => () => {
       window.removeEventListener('blur', handleWindowBlur)
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur],

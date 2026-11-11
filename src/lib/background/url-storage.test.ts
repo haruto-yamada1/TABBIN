@@ -23,8 +23,8 @@ import {
   clearDraggedUrlInfo,
   createComparableUrlKey,
   getDraggedUrlInfo,
-  handleUrlDragStarted,
-  handleUrlDropped,
+  handleUrlDragStarted as startDrag,
+  handleUrlDropped as dropUrl,
   removeUrlFromStorage,
   removeUrlRecordsFromStorage,
 } from './url-storage'
@@ -35,9 +35,26 @@ const createSettings = (enabled = true) => ({
   removeTabAfterOpen: true,
 })
 
+const handleUrlDragStarted = (
+  value: string,
+  id = 'saved-id',
+  source?: number,
+  dragId = 'test-drag',
+) => startDrag(value, id, source, dragId)
+const handleUrlDropped = async (
+  value: string,
+  external?: boolean,
+  id?: string,
+  source?: number,
+  dragId = 'test-drag',
+) => dropUrl(value, external, { urlRecordId: id, sourceTabId: source, dragId })
+
 describe('exact URL identity background bridge', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
+    mocked.removeUrlIds.mockImplementation(
+      async (ids: readonly string[]) => ids.length,
+    )
     vi.useRealTimers()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     clearDraggedUrlInfo()
@@ -113,33 +130,23 @@ describe('exact URL identity background bridge', () => {
     expect(mocked.removeUrl).not.toHaveBeenCalled()
   })
 
-  it.each([
-    { name: 'missing', urls: [] },
-    {
-      name: 'ambiguous',
-      urls: [
-        { id: 'one', url },
-        { id: 'two', url },
-      ],
-    },
-  ])('$name IDは推測しない', async ({ urls }) => {
-    mocked.readUndoSnapshot.mockResolvedValue({ savedTabs: { urls } })
-    handleUrlDragStarted(url)
-    await expect(handleUrlDropped(url, true)).resolves.toBe('skipped')
-    expect(mocked.removeUrl).not.toHaveBeenCalled()
+  it('開始時IDは後から取得したsnapshotの新IDへ差し替えない', async () => {
+    mocked.readUndoSnapshot.mockResolvedValue({
+      savedTabs: { urls: [{ id: 'resaved-id', url }] },
+    })
+    handleUrlDragStarted(url, 'saved-id')
+    await expect(handleUrlDropped(url, true)).resolves.toBe('removed')
+    expect(mocked.readUndoSnapshot).not.toHaveBeenCalled()
+    expect(mocked.removeUrl).toHaveBeenCalledWith(url, 'saved-id')
   })
 
-  it('snapshot読取失敗は削除しない', async () => {
-    mocked.readUndoSnapshot.mockRejectedValueOnce(new Error('unavailable'))
-    handleUrlDragStarted(url)
-    await expect(handleUrlDropped(url, true)).resolves.toBe('skipped')
-    expect(mocked.removeUrl).not.toHaveBeenCalled()
-  })
-
-  it('ID hintは開始時の原文に属することを確認する', async () => {
+  it('開始IDと原文の組み合わせがDBに存在しなければskipする', async () => {
+    mocked.removeUrl.mockResolvedValueOnce(0)
     handleUrlDragStarted(url, 'wrong-id')
-    await handleUrlDropped(url, true, 'wrong-id')
-    expect(mocked.removeUrl).not.toHaveBeenCalled()
+    await expect(handleUrlDropped(url, true, 'wrong-id')).resolves.toBe(
+      'skipped',
+    )
+    expect(mocked.removeUrl).toHaveBeenCalledExactlyOnceWith(url, 'wrong-id')
   })
 
   it('dropのID hintが開始時IDと異なる場合は削除しない', async () => {
@@ -280,5 +287,48 @@ describe('exact URL identity background bridge', () => {
     release?.()
     await Promise.all([first, second])
     expect(mocked.removeUrl).toHaveBeenCalledTimes(2)
+  })
+
+  it('legacy URL-only dragでは後から読み取った新IDを削除しない', async () => {
+    mocked.readUndoSnapshot.mockResolvedValue({
+      savedTabs: { urls: [{ id: 'resaved-id', url }] },
+    })
+    startDrag(url, undefined, 5, 'drag-old')
+    await expect(
+      handleUrlDropped(url, true, undefined, 5, 'drag-old'),
+    ).resolves.toBe('skipped')
+    expect(mocked.removeUrl).not.toHaveBeenCalled()
+  })
+
+  it('drag識別子のない旧dropは新しいdragを削除・終了しない', async () => {
+    handleUrlDragStarted(url, 'saved-id', 5, 'drag-new')
+    await expect(
+      dropUrl(url, true, { urlRecordId: 'saved-id', sourceTabId: 5 }),
+    ).resolves.toBe('skipped')
+    await dropUrl(url, false, { urlRecordId: 'saved-id', sourceTabId: 5 })
+    expect(mocked.removeUrl).not.toHaveBeenCalled()
+    expect(getDraggedUrlInfo()?.url).toBe(url)
+  })
+
+  it.each([false, true])(
+    '同じURLと送信元の旧drag通知は新dragに一致しない: external=%s',
+    async (external) => {
+      handleUrlDragStarted(url, 'saved-id', 5, 'drag-old')
+      await handleUrlDropped(url, true, 'saved-id', 5, 'drag-old')
+      mocked.removeUrl.mockClear()
+      handleUrlDragStarted(url, 'saved-id', 5, 'drag-new')
+      await handleUrlDropped(url, external, 'saved-id', 5, 'drag-old')
+      expect(mocked.removeUrl).not.toHaveBeenCalled()
+      expect(getDraggedUrlInfo()?.url).toBe(url)
+      await expect(
+        handleUrlDropped(url, true, 'saved-id', 5, 'drag-new'),
+      ).resolves.toBe('removed')
+    },
+  )
+
+  it('legacy削除は実削除件数を返す', async () => {
+    await expect(removeUrlFromStorage(url)).resolves.toBe(1)
+    mocked.removeUrl.mockResolvedValueOnce(0)
+    await expect(removeUrlFromStorage(url, 'missing-id')).resolves.toBe(0)
   })
 })

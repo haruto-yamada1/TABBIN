@@ -15,7 +15,7 @@ import type { FirefoxSavedTabsPageSmokeResult } from '../../e2e/support/firefox-
 // eslint-disable-next-line import/no-relative-parent-imports -- native settings smoke shares its WebDriver result contract
 import type { FirefoxSettingsSafetySmokeResult } from '../../e2e/support/firefox-settings-safety-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- native drag smoke shares its WebDriver result contract
-import type { FirefoxUrlDragIdentitySmokeResult } from '../../e2e/support/firefox-url-drag-identity-harness'
+import type * as FirefoxDragSmoke from '../../e2e/support/firefox-url-drag-identity-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- shared browser harness result is the WebDriver protocol contract
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
@@ -65,7 +65,7 @@ type SmokeResult = {
   readonly settingsSafety?: FirefoxSettingsSafetySmokeResult
   readonly captureSafety?: FirefoxCaptureSafetySmokeResult
   readonly expiredTabsAlarm?: FirefoxExpiredTabsAlarmSmokeResult
-  readonly urlDragIdentity?: FirefoxUrlDragIdentitySmokeResult
+  readonly urlDragIdentity?: FirefoxDragSmoke.FirefoxUrlDragIdentitySmokeResult
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -391,11 +391,11 @@ const resolveExtensionUuid = async (profileDir: string): Promise<string> => {
 
 const runHarnessPhase = async <Result = SmokeResult>(
   session: WebDriverSession,
-  phase: 'fresh' | 'verify' | 'alarm',
+  phase: 'fresh' | 'verify' | 'alarm' | 'drag-background',
 ): Promise<Result> => {
   const uuid = await resolveExtensionUuid(session.profileDir)
   await sessionCommand(session, '/url', {
-    url: `moz-extension://${uuid}/${SMOKE_PAGE}`,
+    url: `moz-extension://${uuid}/${phase === 'drag-background' ? 'app.html#/options' : SMOKE_PAGE}`,
   })
   await sessionCommand(session, '/timeouts', {
     script: WEBDRIVER_SCRIPT_TIMEOUT_MS,
@@ -772,6 +772,19 @@ const run = async (): Promise<void> => {
       readonly expiredTabsAlarm: FirefoxExpiredTabsAlarmSmokeResult
     }>(session, 'alarm')
     assertExpiredTabsAlarmResult(alarmResult)
+    const dragBackground = await runHarnessPhase<{
+      readonly urlDragBackground: FirefoxDragSmoke.FirefoxUrlDragBackgroundSmokeResult
+    }>(session, 'drag-background')
+    assert.deepEqual(dragBackground.urlDragBackground, {
+      backgroundMessagesHandled: true,
+      matchingNativeTabPreserved: true,
+      hashMismatchPreserved: true,
+      queryMismatchPreserved: true,
+      exactIdRemoved: true,
+      lookalikesPreserved: true,
+      externalDropDisabledPreserved: true,
+      restored: true,
+    })
 
     console.log(
       JSON.stringify(
@@ -798,6 +811,7 @@ const run = async (): Promise<void> => {
           expiredTabsAlarm: alarmResult.expiredTabsAlarm,
           urlOpening: fresh.urlOpening,
           urlDragIdentity: fresh.urlDragIdentity,
+          urlDragBackground: dragBackground.urlDragBackground,
           urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',
         },

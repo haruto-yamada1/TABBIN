@@ -5,6 +5,7 @@ export const OPEN_TABS_CATEGORY_CONTEXT = 'open-tabs'
 export type OpenTabsDisplaySource = {
   id: string
   urls?: readonly {
+    id?: string
     isFavorite?: boolean
     savedAt?: number
     title: string
@@ -16,6 +17,7 @@ export type OpenTabsDisplaySource = {
 export type OpenTabsRow = {
   readonly groupId: string
   readonly id: string
+  readonly urlRecordId?: string
   readonly isFavorite: boolean
   readonly savedAt?: number
   readonly title: string
@@ -53,6 +55,7 @@ export const buildOpenTabsRows = (
         url: item.url,
         title: item.title,
         id: buildOpenTabsRowId(group.id, item.url),
+        ...(item.id !== undefined ? { urlRecordId: item.id } : {}),
         groupId: group.id,
         isFavorite: item.isFavorite ?? false,
         ...(item.savedAt !== undefined ? { savedAt: item.savedAt } : {}),

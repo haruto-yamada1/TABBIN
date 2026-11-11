@@ -4,11 +4,7 @@ import type { DraggedUrlInfo } from '@/types/background'
 
 import { requireOperationalUserSettings } from './settings-policy'
 
-type ActiveDrag = DraggedUrlInfo & {
-  readonly targetId: Promise<string | null>
-}
-
-let draggedUrlInfo: ActiveDrag | null = null
+let draggedUrlInfo: DraggedUrlInfo | null = null
 let savedTabsStorageMutationQueue: Promise<void> = Promise.resolve()
 const DRAG_INFO_TIMEOUT_MS = 10_000
 
@@ -25,10 +21,7 @@ const enqueueStorageMutation = async <Result>(
 
 const setDraggedUrlInfo = (info: DraggedUrlInfo): void => {
   clearDraggedUrlInfo()
-  draggedUrlInfo = {
-    ...info,
-    targetId: Promise.resolve(info.urlRecordId ?? null),
-  }
+  draggedUrlInfo = info
 }
 
 const getDraggedUrlInfo = (): DraggedUrlInfo | null => draggedUrlInfo
@@ -52,12 +45,12 @@ const createComparableUrlKey = (rawUrl: string): string | null => {
 const removeUrlFromStorage = async (
   url: string,
   urlRecordId?: string,
-): Promise<void> => {
+): Promise<number> => {
   if (!createComparableUrlKey(url)) {
-    return
+    return 0
   }
   // The data plane resolves exact source strings to one ID inside its mutation.
-  await enqueueStorageMutation(async () =>
+  return enqueueStorageMutation(async () =>
     getBackgroundSavedTabsDataPlane().removeUrl(url, urlRecordId),
   )
 }
@@ -83,31 +76,18 @@ const handleUrlDragStarted = (
   url: string,
   urlRecordId?: string,
   sourceTabId?: number,
+  dragId?: string,
 ): void => {
   clearDraggedUrlInfo()
-  // Capture identity at start, before a DOM drop arrives.
-  // Keep this promise local to the drag; worker restarts cannot revive it.
-  const targetId = (async () => {
-    try {
-      const { savedTabs } =
-        await getBackgroundSavedTabsDataPlane().readUndoSnapshot()
-      const matches = savedTabs.urls.filter(
-        (record) =>
-          record.url === url &&
-          (urlRecordId === undefined || record.id === urlRecordId),
-      )
-      return matches.length === 1 ? (matches[0]?.id ?? null) : null
-    } catch {
-      return null
-    }
-  })()
-  const drag: ActiveDrag = {
+  // The displayed record ID is captured by the sender at the DOM start event.
+  // Resolving it from a later snapshot could select a newly re-saved record.
+  const drag: DraggedUrlInfo = {
     processed: false,
     timestamp: Date.now(),
     url,
     urlRecordId,
     sourceTabId,
-    targetId,
+    dragId,
   }
   draggedUrlInfo = drag
   drag.timeoutId = setTimeout(() => {
@@ -117,7 +97,7 @@ const handleUrlDragStarted = (
   }, DRAG_INFO_TIMEOUT_MS)
 }
 
-const isCurrentDrag = (drag: ActiveDrag): boolean => {
+const isCurrentDrag = (drag: DraggedUrlInfo): boolean => {
   const elapsed = Date.now() - drag.timestamp
   return (
     draggedUrlInfo === drag && elapsed >= 0 && elapsed < DRAG_INFO_TIMEOUT_MS
@@ -125,13 +105,13 @@ const isCurrentDrag = (drag: ActiveDrag): boolean => {
 }
 
 const consumeDrag = async (
-  drag: ActiveDrag,
+  drag: DraggedUrlInfo,
   urlRecordId?: string,
 ): Promise<string> => {
   let consumed = false
   try {
     const settings = await requireOperationalUserSettings()
-    const id = await drag.targetId
+    const id = drag.urlRecordId
     if (!isCurrentDrag(drag) || drag.processed) {
       return 'skipped'
     }
@@ -166,28 +146,26 @@ const consumeDrag = async (
 const handleUrlDropped = async (
   url: string,
   fromExternal?: boolean,
-  urlRecordId?: string,
-  sourceTabId?: number,
+  identity: Pick<DraggedUrlInfo, 'urlRecordId' | 'sourceTabId' | 'dragId'> = {},
 ): Promise<string> => {
+  const { urlRecordId, sourceTabId, dragId } = identity
+  const drag = draggedUrlInfo
+  // A URL or source tab cannot distinguish successive drags of the same item.
+  // Legacy envelopes remain accepted, but cannot authorize destructive drops.
+  const matches =
+    drag &&
+    dragId &&
+    drag.dragId === dragId &&
+    drag.url === url &&
+    (drag.sourceTabId === undefined || drag.sourceTabId === sourceTabId) &&
+    (urlRecordId === undefined || drag.urlRecordId === urlRecordId)
   if (fromExternal !== true) {
-    if (
-      draggedUrlInfo?.url === url &&
-      (draggedUrlInfo.sourceTabId === undefined ||
-        draggedUrlInfo.sourceTabId === sourceTabId) &&
-      (urlRecordId === undefined || draggedUrlInfo.urlRecordId === urlRecordId)
-    ) {
+    if (matches) {
       clearDraggedUrlInfo()
     }
     return 'internal_operation'
   }
-  const drag = draggedUrlInfo
-  if (
-    !drag ||
-    drag.processed ||
-    !isCurrentDrag(drag) ||
-    drag.url !== url ||
-    (drag.sourceTabId !== undefined && drag.sourceTabId !== sourceTabId)
-  ) {
+  if (!matches || drag.processed || !isCurrentDrag(drag)) {
     return 'skipped'
   }
   return consumeDrag(drag, urlRecordId)
