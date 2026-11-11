@@ -18,6 +18,7 @@ import {
 
 import { runAcademyPersistenceSmoke } from './academy-progress-browser-harness'
 import { runFirefoxCaptureSafetySmoke } from './firefox-capture-safety-harness'
+import { runFirefoxExpiredTabsAlarmSmoke } from './firefox-expired-tabs-alarm-harness'
 import { runFirefoxSavedTabsPageSmoke } from './firefox-saved-tabs-page-harness'
 import { runFirefoxSettingsSafetySmoke } from './firefox-settings-safety-harness'
 import {
@@ -326,11 +327,16 @@ const verifyAfterRestart = async () => {
   return result
 }
 
-export type FirefoxPersistenceSmokePhase = 'fresh' | 'verify'
+export type FirefoxPersistenceSmokePhase = 'fresh' | 'verify' | 'alarm'
 
 export const runFirefoxPersistenceSmoke = async (
   phase: FirefoxPersistenceSmokePhase,
-) => (phase === 'fresh' ? fresh() : verifyAfterRestart())
+) => {
+  if (phase === 'alarm') {
+    return { expiredTabsAlarm: await runFirefoxExpiredTabsAlarmSmoke() }
+  }
+  return phase === 'fresh' ? fresh() : verifyAfterRestart()
+}
 
 Object.assign(globalThis, {
   __tabbinFirefoxPersistenceSmoke: { runFirefoxPersistenceSmoke },

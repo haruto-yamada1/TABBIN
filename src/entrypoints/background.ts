@@ -6,7 +6,10 @@
 import { defineBackground } from 'wxt/utils/define-background'
 
 import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
-import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
+import {
+  registerExpiredTabsAlarmListener,
+  setupExpiredTabsCheckAlarm,
+} from '@/lib/background/alarm-notification'
 // 分離したモジュールをインポート
 import {
   reconcileContextMenus,
@@ -29,6 +32,7 @@ const MANIFEST_V2 = 2
 export default defineBackground(() => {
   // eslint-disable-line import/no-default-export
   // MV3 wake events must be registered before the first asynchronous bootstrap.
+  registerExpiredTabsAlarmListener()
   registerReviewReminderListeners()
   registerSavedTabTitleIndicator()
   registerContextMenuClickListener()
@@ -109,7 +113,7 @@ export default defineBackground(() => {
       }
 
       // 期限切れタブのチェック用アラームを設定
-      setupExpiredTabsCheckAlarm()
+      await setupExpiredTabsCheckAlarm()
       await reconcileReviewReminderAlarm()
     } catch (error) {
       logger.error('background_initialization_failed', error)
