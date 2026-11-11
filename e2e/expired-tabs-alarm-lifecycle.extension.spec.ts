@@ -120,20 +120,13 @@ test('a real expiration alarm wakes a stopped MV3 worker and removes only expire
     chrome.notifications.getAll(),
   )
 
-  // Arm the real repeating browser alarm earlier while retaining its normal
-  // 30-second cadence. No mocked onAlarm callback or runtime wake is used.
-  const armedAlarm = await serviceWorker.evaluate(async () => {
-    await chrome.alarms.create('checkExpiredTabs', {
-      when: Date.now() + 3_000,
-      periodInMinutes: 0.5,
-    })
+  // Remove the periodic wake before stopping, so setup has no alarm deadline.
+  await serviceWorker.evaluate(async () => {
+    await chrome.alarms.clear('checkExpiredTabs')
     Object.assign(globalThis, { __tabbinWorkerLifetimeMarker: 'before-stop' })
-    return chrome.alarms.get('checkExpiredTabs')
   })
-  expect(armedAlarm).toBeDefined()
   const cdp = await stopWorker(extensionContext, page, serviceWorker)
   try {
-    expect(armedAlarm?.scheduledTime).toBeGreaterThan(Date.now())
     let workerRunning = false
     cdp.on('ServiceWorker.workerVersionUpdated', ({ versions }) => {
       if (
@@ -151,6 +144,17 @@ test('a real expiration alarm wakes a stopped MV3 worker and removes only expire
     const before = await readPersistenceV2SavedTabsSnapshot(page)
     expect(before.urls).toHaveLength(3)
     expect(workerRunning).toBe(false)
+
+    // Only arm after the worker is stopped and the expired rows are committed.
+    // The inert page can use the native API without waking the worker itself.
+    const armedAlarm = await page.evaluate(async () => {
+      await chrome.alarms.create('checkExpiredTabs', {
+        when: Date.now() + 3_000,
+        periodInMinutes: 0.5,
+      })
+      return chrome.alarms.get('checkExpiredTabs')
+    })
+    expect(armedAlarm?.periodInMinutes).toBe(0.5)
 
     await expect.poll(() => workerRunning, { timeout: 10_000 }).toBe(true)
     await currentWorker(extensionContext, serviceWorker.url())
