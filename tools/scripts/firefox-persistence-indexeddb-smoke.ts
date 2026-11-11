@@ -8,6 +8,8 @@ import path from 'node:path'
 
 // eslint-disable-next-line import/no-relative-parent-imports -- native capture smoke shares its WebDriver result contract
 import type { FirefoxCaptureSafetySmokeResult } from '../../e2e/support/firefox-capture-safety-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- native alarm smoke shares its WebDriver result contract
+import type { FirefoxExpiredTabsAlarmSmokeResult } from '../../e2e/support/firefox-expired-tabs-alarm-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- native browser smoke result is a shared WebDriver boundary contract
 import type { FirefoxSavedTabsPageSmokeResult } from '../../e2e/support/firefox-saved-tabs-page-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- native settings smoke shares its WebDriver result contract
@@ -60,6 +62,7 @@ type SmokeResult = {
   readonly savedTabsPage?: FirefoxSavedTabsPageSmokeResult
   readonly settingsSafety?: FirefoxSettingsSafetySmokeResult
   readonly captureSafety?: FirefoxCaptureSafetySmokeResult
+  readonly expiredTabsAlarm?: FirefoxExpiredTabsAlarmSmokeResult
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -152,7 +155,10 @@ const webdriverRequest = async <Value>(
   return value as Value
 }
 
-const createSmokeAddon = async (temporaryRoot: string): Promise<string> => {
+const createSmokeAddon = async (
+  temporaryRoot: string,
+  preserveBackground = false,
+): Promise<string> => {
   if (!existsSync(firefoxArtifactDir) || !existsSync(harnessBundlePath)) {
     throw new Error(
       'Firefox artifact and IndexedDB harness must be built before the smoke.',
@@ -182,7 +188,9 @@ const createSmokeAddon = async (temporaryRoot: string): Promise<string> => {
   }
   const manifest = parsedManifest
   // The harness opens the fresh database and owns each restart assertion.
-  delete manifest.background
+  if (!preserveBackground) {
+    delete manifest.background
+  }
   const browserSpecificSettings = isRecord(manifest.browser_specific_settings)
     ? manifest.browser_specific_settings
     : {}
@@ -378,10 +386,10 @@ const resolveExtensionUuid = async (profileDir: string): Promise<string> => {
   throw new Error('Firefox did not persist the extension internal UUID.')
 }
 
-const runHarnessPhase = async (
+const runHarnessPhase = async <Result = SmokeResult>(
   session: WebDriverSession,
-  phase: 'fresh' | 'verify',
-): Promise<SmokeResult> => {
+  phase: 'fresh' | 'verify' | 'alarm',
+): Promise<Result> => {
   const uuid = await resolveExtensionUuid(session.profileDir)
   await sessionCommand(session, '/url', {
     url: `moz-extension://${uuid}/${SMOKE_PAGE}`,
@@ -417,7 +425,22 @@ const runHarnessPhase = async (
     throw new WebDriverCommandError(`IndexedDB harness ${phase}`, execution)
   }
   // eslint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- harness result is asserted field-by-field immediately after this protocol boundary
-  return execution.value as SmokeResult
+  return execution.value as Result
+}
+
+const assertExpiredTabsAlarmResult = (result: {
+  readonly expiredTabsAlarm?: FirefoxExpiredTabsAlarmSmokeResult
+}): void => {
+  assert.deepEqual(result.expiredTabsAlarm, {
+    alarmFired: true,
+    expiredRemoved: true,
+    freshPreserved: true,
+    favoritePreserved: true,
+    otherAlarmsUnchanged: true,
+    notificationsUnchanged: true,
+    settingsUnchanged: true,
+    restored: true,
+  })
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
@@ -716,6 +739,25 @@ const run = async (): Promise<void> => {
       `moz-extension://${await resolveExtensionUuid(verifiedSession.profileDir)}`,
     )
 
+    // The persistence phases intentionally omit background to own DB bootstrap.
+    // Use a separate profile and the production background for the native alarm.
+    await deleteSession(session)
+    session = undefined
+    const alarmRoot = path.join(temporaryRoot, 'alarm')
+    const alarmProfile = path.join(alarmRoot, 'profile')
+    await mkdir(alarmProfile, { recursive: true })
+    const alarmXpi = await createSmokeAddon(alarmRoot, true)
+    session = await createSession(
+      baseUrl,
+      alarmProfile,
+      executables.firefoxPath,
+    )
+    await installAddon(session, alarmXpi)
+    const alarmResult = await runHarnessPhase<{
+      readonly expiredTabsAlarm: FirefoxExpiredTabsAlarmSmokeResult
+    }>(session, 'alarm')
+    assertExpiredTabsAlarmResult(alarmResult)
+
     console.log(
       JSON.stringify(
         {
@@ -738,6 +780,7 @@ const run = async (): Promise<void> => {
           savedTabsPage: fresh.savedTabsPage,
           settingsSafety: fresh.settingsSafety,
           captureSafety: fresh.captureSafety,
+          expiredTabsAlarm: alarmResult.expiredTabsAlarm,
           urlOpening: fresh.urlOpening,
           urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',

@@ -2,96 +2,84 @@
  * アラーム・通知管理モジュール
  */
 
+import { browser } from 'wxt/browser'
+
+import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
+import { logger } from '@/lib/logging/logger'
+
 import { checkAndRemoveExpiredTabs } from './expired-tabs'
 
-/**
- * 期限切れタブのチェック用アラームを設定
- */
-const setupExpiredTabsCheckAlarm = (): void => {
-  try {
-    console.log('期限切れタブのチェックアラームを設定しています...')
+const EXPIRED_TABS_ALARM_NAME = 'checkExpiredTabs'
+const CHECK_PERIOD_MINUTES = 0.5
+const INITIAL_CHECK_DELAY_MS = 100
+let checkInFlight: Promise<void> | undefined
 
-    // Chrome.alarmsが利用可能か確認
-    if (!('alarms' in chrome)) {
-      console.error(
-        'chrome.alarms APIが利用できません。Manifest.jsonで権限を確認してください。',
-      )
-      // アラーム処理が使えない場合でも、初回のチェックは実行
-      void checkAndRemoveExpiredTabs()
-      return
-    }
-
-    // エラーハンドリングを追加してアラームを作成
-    const createAlarm = () => {
-      try {
-        console.log('アラームを作成します')
-        void chrome.alarms.create('checkExpiredTabs', {
-          periodInMinutes: 0.5, // 30秒間隔（30sec設定にも追従）
-        })
-        console.log('アラームが作成されました')
-      } catch (error) {
-        console.error('アラーム作成エラー:', error)
-      }
-    }
-
-    // 既存のアラームを確認
-    chrome.alarms.get('checkExpiredTabs', (alarm) => {
-      if (alarm) {
-        console.log('既存のアラームを検出:', alarm)
-        try {
-          // 既存のアラームをクリア（必要に応じて）
-          chrome.alarms.clear('checkExpiredTabs', (wasCleared) => {
-            console.log('既存のアラームをクリア:', wasCleared)
-            createAlarm()
-          })
-        } catch (error) {
-          console.error('アラームクリアエラー:', error)
-          // エラーが発生しても続行
-          createAlarm()
-        }
-      } else {
-        console.log('既存のアラームはありません')
-        createAlarm()
-      }
+// An alarm received during bootstrap and the startup scan share one check.
+// A new worker starts with no in-memory work and scans again; the persisted
+// periodic alarm is retained so termination cannot remove the next wake-up.
+const runExpiredTabsCheck = async (
+  action: 'alarm' | 'initialCheck',
+): Promise<void> => {
+  checkInFlight ??= Promise.resolve()
+    .then(async () => {
+      await getPersistenceBootstrapRuntime().bootstrap.ready()
+      await checkAndRemoveExpiredTabs()
     })
-
-    // アラームリスナーを登録
-    chrome.alarms.onAlarm.addListener((alarm) => {
-      console.log(
-        `アラームが発火しました: ${alarm.name} (${new Date().toLocaleString()})`,
-      )
-      if (alarm.name === 'checkExpiredTabs') {
-        void checkAndRemoveExpiredTabs()
-      }
+    .catch((error: unknown) => {
+      logger.error('background_expired_tabs_alarm_check_failed', error, {
+        action,
+      })
     })
+    .finally(() => {
+      checkInFlight = undefined
+    })
+  return checkInFlight
+}
 
-    // 初回チェックを非同期で実行
-    scheduleInitialCheck()
-  } catch (error: unknown) {
-    console.error(
-      'アラーム設定エラー:',
-      error instanceof Error ? error.message : error,
-    )
-
-    // エラーが発生しても初回チェックは実行
-    scheduleInitialCheck()
+const handleExpiredTabsAlarm = (alarm: { readonly name: string }): void => {
+  if (alarm.name === EXPIRED_TABS_ALARM_NAME) {
+    void runExpiredTabsCheck('alarm')
   }
 }
-/**
- * 初回チェックをスケジュール
- */
-const scheduleInitialCheck = (): void => {
-  const INITIAL_CHECK_DELAY_MS = 100
 
-  Promise.resolve()
-    .then(async () => {
-      await new Promise((resolve) =>
-        setTimeout(resolve, INITIAL_CHECK_DELAY_MS),
-      )
-      void checkAndRemoveExpiredTabs()
-    })
-    .catch(() => {})
+/** Register during synchronous worker setup, before any persistence awaits. */
+export const registerExpiredTabsAlarmListener = (): void => {
+  try {
+    if (!('alarms' in browser)) {
+      logger.warn('background_expired_tabs_alarms_unavailable')
+      return
+    }
+    if (!browser.alarms.onAlarm.hasListener(handleExpiredTabsAlarm)) {
+      browser.alarms.onAlarm.addListener(handleExpiredTabsAlarm)
+    }
+  } catch (error) {
+    logger.error('background_expired_tabs_alarm_listener_failed', error)
+  }
+}
+
+/** Reconcile the native schedule after bootstrap; never register listeners here. */
+export const setupExpiredTabsCheckAlarm = async (): Promise<void> => {
+  if (!('alarms' in browser)) {
+    void runExpiredTabsCheck('initialCheck')
+    return
+  }
+  try {
+    const alarm = await browser.alarms.get(EXPIRED_TABS_ALARM_NAME)
+    if (alarm?.periodInMinutes !== CHECK_PERIOD_MINUTES) {
+      await browser.alarms.create(EXPIRED_TABS_ALARM_NAME, {
+        periodInMinutes: CHECK_PERIOD_MINUTES,
+      })
+    }
+  } catch (error) {
+    logger.error('background_expired_tabs_alarm_schedule_failed', error)
+  } finally {
+    // Best-effort startup scan. A wake already waiting on bootstrap covers it.
+    if (!checkInFlight) {
+      setTimeout(() => {
+        void runExpiredTabsCheck('initialCheck')
+      }, INITIAL_CHECK_DELAY_MS)
+    }
+  }
 }
 
 export { showNotification } from './notification'
-export { setupExpiredTabsCheckAlarm }

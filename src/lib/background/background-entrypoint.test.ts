@@ -2,6 +2,7 @@ import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-
 
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
+  registerExpiredTabsAlarmListener: vi.fn(),
   setupExpiredTabsCheckAlarm: vi.fn(),
   registerReviewReminderListeners: vi.fn(),
   registerSavedTabTitleIndicator: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock('wxt/utils/define-background', () => ({
   },
 }))
 vi.mock('@/lib/background/alarm-notification', () => ({
+  registerExpiredTabsAlarmListener: mocked.registerExpiredTabsAlarmListener,
   setupExpiredTabsCheckAlarm: mocked.setupExpiredTabsCheckAlarm,
 }))
 vi.mock('@/lib/background/review-reminders', () => ({
@@ -246,6 +248,23 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 describe('バックグラウンドのライフサイクル時の自動オープン挙動', () => {
+  it('DB準備中も期限Alarm listenerを同期登録し、scheduleはready後に開始する', async () => {
+    const pending = Promise.withResolvers<undefined>()
+    await loadBackground({
+      clearAfterImport: false,
+      setupMocks: () => mocked.ready.mockReturnValue(pending.promise),
+    })
+    expect(mocked.registerExpiredTabsAlarmListener).toHaveBeenCalledOnce()
+    expect(
+      mocked.registerExpiredTabsAlarmListener.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
+    expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
+    pending.resolve(undefined)
+    await flushMicrotasks()
+    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
+    expect(mocked.registerExpiredTabsAlarmListener).toHaveBeenCalledOnce()
+  })
+
   it('reminder listenersを同期登録し、persistence readiness後にscheduleを照合する', async () => {
     const pending = Promise.withResolvers<undefined>()
     await loadBackground({
@@ -415,6 +434,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       expect.any(Error),
     )
     expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
+    expect(mocked.registerExpiredTabsAlarmListener).toHaveBeenCalledOnce()
   })
 
   it('DB とメニュー構築が pending でも click/settings を同期登録する', async () => {
