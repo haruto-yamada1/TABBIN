@@ -19,16 +19,32 @@ describe('visual regression CI boundary', () => {
     expect(commands.join('\n')).not.toContain('test:visual:update')
   })
 
-  it('installs the extraction dependency before setting up Bun in the minimal image', () => {
+  it('installs the pinned Bun through npm without OS package-manager dependencies', () => {
     const steps = workflow.jobs['storybook-visual'].steps
-    const unzipIndex = steps.findIndex((step: { run?: string }) =>
-      step.run?.includes('apt-get install -y --no-install-recommends unzip'),
+    const bootstrapIndex = steps.findIndex((step: { run?: string }) =>
+      step.run?.includes('npm install --global'),
     )
-    const bunIndex = steps.findIndex((step: { uses?: string }) =>
-      step.uses?.startsWith('oven-sh/setup-bun@'),
+    expect(bootstrapIndex).toBeGreaterThanOrEqual(0)
+    const bootstrap = steps[bootstrapIndex].run
+    expect(bootstrap).toContain('cat .bun-version')
+    expect(bootstrap).toContain('--prefix "$RUNNER_TEMP/bun-toolchain"')
+    expect(bootstrap).toContain('"bun@$ci_bun_version"')
+    expect(bootstrap).toContain('"$RUNNER_TEMP/bun-toolchain/bin"')
+    expect(bootstrap).toContain('"$GITHUB_PATH"')
+    const commands = steps
+      .flatMap((step: { run?: string }) => (step.run ? [step.run] : []))
+      .join('\n')
+    expect(commands).not.toContain('apt-get')
+    expect(commands).not.toContain('unzip')
+    const nodeIndex = steps.findIndex((step: { uses?: string }) =>
+      step.uses?.startsWith('actions/setup-node@'),
     )
-    expect(unzipIndex).toBeGreaterThanOrEqual(0)
-    expect(unzipIndex).toBeLessThan(bunIndex)
+    const verificationIndex = steps.findIndex(
+      (step: { run?: string }) =>
+        step.run === 'bun run verify:toolchain-versions',
+    )
+    expect(nodeIndex).toBeLessThan(bootstrapIndex)
+    expect(bootstrapIndex).toBeLessThan(verificationIndex)
   })
 
   it('matches the ephemeral Actions home owner before launching Firefox', () => {
