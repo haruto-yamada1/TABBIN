@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -56,13 +56,28 @@ describe('production artifact upgrade CLI', () => {
   })
 
   it('fails closed when the pinned artifact metadata is missing', () => {
-    const result = runCli([
-      '--pin',
-      path.join(os.tmpdir(), 'tabbin-missing-pin.json'),
-    ])
+    const temporaryRoot = mkdtempSync(
+      path.join(os.tmpdir(), 'tabbin-artifact-upgrade-cli-'),
+    )
+    try {
+      const currentDirectory = path.join(temporaryRoot, 'current')
+      mkdirSync(currentDirectory)
+      writeFileSync(
+        path.join(currentDirectory, 'manifest.json'),
+        JSON.stringify({ version: '2.0.19' }),
+      )
+      const result = runCli([
+        '--pin',
+        path.join(temporaryRoot, 'missing-pin.json'),
+        '--current-dir',
+        currentDirectory,
+      ])
 
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain('Published artifact pin is missing')
+      expect(result.status).toBe(1)
+      expect(result.stderr).toContain('Published artifact pin is missing')
+    } finally {
+      rmSync(temporaryRoot, { force: true, recursive: true })
+    }
   })
 
   it('shows usage without requiring artifacts', () => {

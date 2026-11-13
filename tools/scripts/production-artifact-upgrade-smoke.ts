@@ -268,6 +268,12 @@ const assertUserSettingsPreserved = (settings: unknown): void => {
   assert.equal(settings.ollamaModel, userSettingsSeed.ollamaModel)
   assert.equal(settings.removeTabAfterOpen, userSettingsSeed.removeTabAfterOpen)
   assert.equal(settings.showSavedTime, userSettingsSeed.showSavedTime)
+  assert.equal(settings.clickBehavior, userSettingsSeed.clickBehavior)
+  assert.equal(settings.confirmDeleteEach, userSettingsSeed.confirmDeleteEach)
+  assert.equal(
+    settings.openUrlInBackground,
+    userSettingsSeed.openUrlInBackground,
+  )
   assert.equal(
     settings.showRelativeSavedTime,
     userSettingsSeed.showRelativeSavedTime,
@@ -280,7 +286,7 @@ const assertUserSettingsPreserved = (settings: unknown): void => {
   assert.deepEqual(settings.colors, userSettingsSeed.colors)
   const excludePatterns = settings.excludePatterns
   assert.ok(Array.isArray(excludePatterns))
-  assert.ok(excludePatterns.includes('example.com'))
+  assert.ok(excludePatterns.some((pattern) => pattern === 'example.com'))
 }
 
 const temporaryRoot = await mkdtemp(
@@ -387,6 +393,18 @@ try {
   assert.equal(exported.data.analyticsViews.length, 1)
   assert.equal(exported.data.userSettings.language, 'en')
   assert.equal(exported.data.userSettings.ollamaModel, 'upgrade-model')
+  assert.equal(
+    exported.data.userSettings.clickBehavior,
+    userSettingsSeed.clickBehavior,
+  )
+  assert.equal(
+    exported.data.userSettings.confirmDeleteEach,
+    userSettingsSeed.confirmDeleteEach,
+  )
+  assert.equal(
+    exported.data.userSettings.openUrlInBackground,
+    userSettingsSeed.openUrlInBackground,
+  )
   assert.deepEqual(
     exported.data.userSettings.aiSystemPrompts,
     userSettingsSeed.aiSystemPrompts,
