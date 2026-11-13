@@ -88,6 +88,36 @@ const readIndexedDbSnapshot = async (worker: Worker) =>
     }
   })
 
+const userSettingsSeed = {
+  activeAiSystemPromptId: 'prompt-1',
+  aiSystemPrompts: [
+    {
+      createdAt: 1,
+      id: 'prompt-1',
+      name: 'Upgrade prompt',
+      template: 'Summarize the saved tabs.',
+      updatedAt: 2,
+    },
+  ],
+  autoDeletePeriod: 'never',
+  clickBehavior: 'saveCurrentTab',
+  colors: { primary: '#123456' },
+  confirmDeleteAll: false,
+  confirmDeleteEach: false,
+  enableCategories: true,
+  excludePatterns: ['example.com'],
+  excludePinnedTabs: true,
+  language: 'en',
+  ollamaModel: 'upgrade-model',
+  openAllInNewWindow: false,
+  openUrlInBackground: true,
+  removeTabAfterExternalDrop: true,
+  removeTabAfterOpen: false,
+  showRelativeSavedTime: true,
+  showSavedTime: true,
+  showOpenTabs: true,
+}
+
 const seed = {
   analyticsViews: [{ id: 'view-1', updatedAt: 2, value: { kind: 'weekly' } }],
   collectionCategories: [
@@ -166,12 +196,15 @@ const seed = {
       'Production IndexedDB URL',
       2,
     ),
-    persistence.createUrlFixture(
-      'url-custom',
-      'https://example.com/custom',
-      'Production custom URL',
-      3,
-    ),
+    {
+      ...persistence.createUrlFixture(
+        'url-custom',
+        'https://example.com/custom',
+        'Production custom URL',
+        3,
+      ),
+      isFavorite: true,
+    },
   ],
 }
 
@@ -218,6 +251,44 @@ const readObsoleteStorage = async (worker: Worker) =>
     Object.keys(persistence.obsoletePersistenceStorageFixture),
   )
 
+const readUserSettings = async (worker: Worker) =>
+  worker.evaluate(async () => {
+    const stored = await chrome.storage.local.get('userSettings')
+    return stored.userSettings
+  })
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const assertUserSettingsPreserved = (settings: unknown): void => {
+  if (!isRecord(settings)) {
+    throw new Error('User settings were not preserved during the upgrade.')
+  }
+  assert.equal(settings.language, userSettingsSeed.language)
+  assert.equal(settings.ollamaModel, userSettingsSeed.ollamaModel)
+  assert.equal(settings.removeTabAfterOpen, userSettingsSeed.removeTabAfterOpen)
+  assert.equal(settings.showSavedTime, userSettingsSeed.showSavedTime)
+  assert.equal(settings.clickBehavior, userSettingsSeed.clickBehavior)
+  assert.equal(settings.confirmDeleteEach, userSettingsSeed.confirmDeleteEach)
+  assert.equal(
+    settings.openUrlInBackground,
+    userSettingsSeed.openUrlInBackground,
+  )
+  assert.equal(
+    settings.showRelativeSavedTime,
+    userSettingsSeed.showRelativeSavedTime,
+  )
+  assert.equal(
+    settings.activeAiSystemPromptId,
+    userSettingsSeed.activeAiSystemPromptId,
+  )
+  assert.deepEqual(settings.aiSystemPrompts, userSettingsSeed.aiSystemPrompts)
+  assert.deepEqual(settings.colors, userSettingsSeed.colors)
+  const excludePatterns = settings.excludePatterns
+  assert.ok(Array.isArray(excludePatterns))
+  assert.ok(excludePatterns.some((pattern) => pattern === 'example.com'))
+}
+
 const temporaryRoot = await mkdtemp(
   path.join(os.tmpdir(), 'tabbin-artifact-upgrade-'),
 )
@@ -240,12 +311,15 @@ try {
   await seedIndexedDb(worker)
   const indexedDbBefore = await readIndexedDbSnapshot(worker)
   assert.equal(indexedDbBefore.urls?.length, 2)
-  await worker.evaluate(async (values) => {
-    await chrome.storage.local.set({
-      ...values,
-      userSettings: { language: 'en', autoDeletePeriod: 'never' },
-    })
-  }, persistence.obsoletePersistenceStorageFixture)
+  await worker.evaluate(
+    async ({ settings, values }) => {
+      await chrome.storage.local.set({ ...values, userSettings: settings })
+    },
+    {
+      settings: userSettingsSeed,
+      values: persistence.obsoletePersistenceStorageFixture,
+    },
+  )
   const obsoleteStorageBefore = await readObsoleteStorage(worker)
   await context.close()
   context = undefined
@@ -264,6 +338,7 @@ try {
     .waitFor({ state: 'visible' })
   assert.deepEqual(await readIndexedDbSnapshot(worker), indexedDbBefore)
   assert.deepEqual(await readObsoleteStorage(worker), obsoleteStorageBefore)
+  assertUserSettingsPreserved(await readUserSettings(worker))
   await appPage.goto(
     `chrome-extension://${extensionId}/app.html#/saved-tabs?mode=custom`,
   )
@@ -273,9 +348,26 @@ try {
   await appPage
     .getByText('Production custom URL', { exact: true })
     .waitFor({ state: 'visible' })
+  const favoriteButton = appPage.getByRole('button', {
+    name: 'Favorite: Production custom URL',
+  })
+  await favoriteButton.waitFor({ state: 'visible' })
+  assert.equal(await favoriteButton.getAttribute('aria-pressed'), 'true')
   await appPage.goto(`chrome-extension://${extensionId}/app.html#/options`)
   const downloadPromise = appPage.waitForEvent('download')
   await appPage.getByRole('button', { name: /export|エクスポート/i }).click()
+  const preview = appPage.getByRole('dialog', { name: 'Export Preview' })
+  await preview
+    .getByRole('checkbox', { name: 'Saved tabs', exact: true })
+    .check()
+  await preview.getByRole('checkbox', { name: 'Settings', exact: true }).check()
+  await preview
+    .getByRole('checkbox', { name: 'AI chat history', exact: true })
+    .check()
+  await preview
+    .getByRole('checkbox', { name: 'Analytics views', exact: true })
+    .check()
+  await preview.getByRole('button', { name: 'Download JSON backup' }).click()
   const downloadPath = await (await downloadPromise).path()
   assert.ok(downloadPath)
   const exported = BackupEnvelopeV2Schema.parse(
@@ -284,9 +376,39 @@ try {
   assert.equal(exported.schemaVersion, 2)
   assert.equal(exported.data.savedTabs.urls.length, 2)
   assert.equal(exported.data.savedTabs.categories.length, 2)
+  assert.equal(exported.data.savedTabs.memberships.length, 2)
+  assert.equal(
+    exported.data.savedTabs.urls.find((url) => url.id === 'url-custom')
+      ?.isFavorite,
+    true,
+  )
+  assert.equal(
+    exported.data.savedTabs.memberships.find(
+      (membership) => membership.collectionId === 'collection-custom',
+    )?.notes,
+    'upgrade private note',
+  )
   assert.equal(exported.data.conversations.length, 1)
   assert.equal(exported.data.messages.length, 1)
   assert.equal(exported.data.analyticsViews.length, 1)
+  assert.equal(exported.data.userSettings.language, 'en')
+  assert.equal(exported.data.userSettings.ollamaModel, 'upgrade-model')
+  assert.equal(
+    exported.data.userSettings.clickBehavior,
+    userSettingsSeed.clickBehavior,
+  )
+  assert.equal(
+    exported.data.userSettings.confirmDeleteEach,
+    userSettingsSeed.confirmDeleteEach,
+  )
+  assert.equal(
+    exported.data.userSettings.openUrlInBackground,
+    userSettingsSeed.openUrlInBackground,
+  )
+  assert.deepEqual(
+    exported.data.userSettings.aiSystemPrompts,
+    userSettingsSeed.aiSystemPrompts,
+  )
   await context.close()
   context = undefined
 
@@ -301,15 +423,20 @@ try {
     .waitFor({ state: 'visible' })
   assert.deepEqual(await readIndexedDbSnapshot(worker), indexedDbBefore)
   assert.deepEqual(await readObsoleteStorage(worker), obsoleteStorageBefore)
+  assertUserSettingsPreserved(await readUserSettings(worker))
   console.log(
     JSON.stringify({
+      aiHistoryPreserved: true,
+      backupV2SchemaVersion: exported.schemaVersion,
       extensionIdStable: true,
+      favoritesPreserved: true,
       fromVersion: previousVersion,
       indexedDbRowsPreserved: true,
+      notesPreserved: true,
       obsoleteMetadataIgnored: true,
       previousArtifact: previousArtifactLabel,
-      restart: 'indexeddb',
-      schemaVersion: exported.schemaVersion,
+      restarts: ['indexeddb', 'backup-v2'],
+      settingsPreserved: true,
       status: 'passed',
       toVersion: currentVersion,
     }),

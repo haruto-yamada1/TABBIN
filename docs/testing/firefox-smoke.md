@@ -135,13 +135,15 @@ Import が保護 snapshot を保存した後で失敗した場合、その snaps
 この確認は通常ファイルと実行権限の検査であり、browser 起動・再起動の成功保証ではない。
 起動権限や profile による失敗は引き続き実際の smoke で検出する。
 
-Chrome の artifact update 検証には `tools/scripts/production-artifact-upgrade-smoke.ts`
-を使う。変更前の IndexedDB 対応 artifact に native rows を保存し、同じ profile と
-extension ID のまま現行 artifact へ更新して再起動する。全 IndexedDB store の snapshot
-一致と Saved Tabs / custom project の実表示、Backup V2 export、旧 failed metadata の
-不変性を検証する。変更前 artifact の source ref / commit hash は build 時に記録し、
-`TABBIN_PREVIOUS_ARTIFACT_LABEL` に渡す。開発中は両 artifact の manifest version が同じ
-場合もあるため、version の差は pass 条件にしない。
+Chrome の artifact update 検証は `bun run test:production-artifact-upgrade` を使う。
+`tools/release/published-artifacts.json` に固定した Chrome Web Store の公開済み CRX を
+download・checksum 検証して展開し、変更前 artifact に native rows と設定を保存する。
+同じ profile と extension ID のまま現行 build へ更新して再起動し、全 IndexedDB store の
+snapshot 一致、Saved Tabs / custom project / favorite の実表示、Backup V2 export、
+旧 failed metadata の不変性を検証する。開発中は両 artifact の manifest version が同じ
+場合もあるため、version の差は pass 条件にしない。実行条件、失敗条件、Chrome / Firefox の
+検証範囲と実測時間は
+[配布済み artifact からの更新検証](published-artifact-upgrade.md) を参照する。
 
 ## Acceptance criteria の対応
 
@@ -211,13 +213,21 @@ skip や `|| true` で unsupported 環境を成功扱いにしない。
 成功を配布条件にします。通常 PR CI の範囲は増やしません。前提環境と Chrome 側の
 必須導線は [リリース手順](../release.md#配布前の-e2e) を参照してください。
 
-Chrome の更新 smoke は、別々に build した変更前 / 現行 artifact を指定する。
+Chrome の更新 smoke は、公開済み artifact の pin と現行 build を使って実行する。
+
+```bash
+bun run build
+bun run test:production-artifact-upgrade
+```
+
+展開済み artifact を直接指定して smoke 本体だけを再実行する場合は、次の environment
+variables を使う。通常の release gate は上の command を使う。
 
 ```bash
 TABBIN_PREVIOUS_ARTIFACT_DIR=/path/to/previous/.output/chrome-mv3 \
 TABBIN_CURRENT_ARTIFACT_DIR=/path/to/current/.output/chrome-mv3 \
 TABBIN_PREVIOUS_ARTIFACT_LABEL=origin/develop@COMMIT_HASH \
-bun run test:production-artifact-upgrade
+bun tools/scripts/production-artifact-upgrade-smoke.ts
 ```
 
 ## 注意点
