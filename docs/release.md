@@ -43,7 +43,7 @@ bun run release:check
 8. `bun run verify:production-network-policy` — 生成された manifest の host / CSP / permission 契約を検証
 9. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証
 10. `bun run verify:firefox-source` — production source に `chrome-extension://` literal や Chrome 専用 API 呼び出しが混入していないことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
-11. `bun run release:e2e` — Chrome の主要ユーザーフローと Firefox の IndexedDB smoke を実行
+11. `bun run release:e2e` — Chrome の主要ユーザーフロー、Firefox の IndexedDB smoke、公開済み Chrome artifact からの更新検証を実行
 
 ### リリース直前の依存脆弱性監査
 
@@ -72,10 +72,11 @@ fallback はありません。表示された失敗段階と Bun の診断を確
 `release:e2e` は次を順に実行し、どちらかが失敗すれば `release:check` と
 `release:zip` を失敗させます。ブラウザや geckodriver が不足していても成功扱いにしません。
 
-| コマンド                               | 検証する導線                                                                                                                                                                      |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bun run e2e:release`                  | Chrome 拡張の toolbar 保存 → reload → 検索 → 開く → 既定の保存データ削除が reload 後も維持されること。既存の Backup V2 Export → データを空にする → 実 Import UI → reload 後の復元 |
-| `bun run test:firefox:indexeddb-smoke` | Firefox の native IndexedDB fresh / restart / read / write / recovery / Backup V2。旧 storage metadata に依存しないこと                                                           |
+| コマンド                                   | 検証する導線                                                                                                                                                                      |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun run e2e:release`                      | Chrome 拡張の toolbar 保存 → reload → 検索 → 開く → 既定の保存データ削除が reload 後も維持されること。既存の Backup V2 Export → データを空にする → 実 Import UI → reload 後の復元 |
+| `bun run test:firefox:indexeddb-smoke`     | Firefox の native IndexedDB fresh / restart / read / write / recovery / Backup V2。旧 storage metadata に依存しないこと                                                           |
+| `bun run test:production-artifact-upgrade` | Chrome Web Store の公開済み CRX → 現行 build の更新。同じ profile での IndexedDB / 設定 / お気に入り / メモ / AI 履歴 / Backup V2 の保持と再起動                                  |
 
 Chrome は `playwright.release.config.ts` で `@release-saved-tabs` と
 `@release-backup-v2` の必須テストを選びます。専用 reporter が必須タグの欠落、skip、
@@ -83,6 +84,12 @@ Chrome は `playwright.release.config.ts` で `@release-saved-tabs` と
 Chrome は build を作り直し、各テスト専用 profile とローカル fixture を使います。
 Firefox は既存の smoke 用 artifact コピーと一時 profile を使うため、実ユーザーデータや
 配布用 manifest を書き換えません。Firefox の画面全体の E2E はこの gate の対象外です。
+
+公開済み Chrome artifact の更新検証は `tools/release/published-artifacts.json` の version と
+SHA-256 で固定します。download、checksum、artifact metadata、Persistence compatibility の
+いずれかが失敗した場合は release を失敗させ、skip や過去 artifact への fallback は行いません。
+Firefox は公開済み artifact が存在しないため対象外とし、理由と follow-up を
+[配布済み artifact からの更新検証](testing/published-artifact-upgrade.md) に記録しています。
 
 通常 PR CI の検査範囲と `quality:check` は維持します。全 E2E は `bun run e2e`、
 Firefox startup / UI smoke は従来どおり manual workflow で確認します。

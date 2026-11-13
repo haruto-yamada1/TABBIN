@@ -139,6 +139,48 @@ const verifyArtifact = (
   return { appVersion: value.appVersion, ...contract }
 }
 
+export const verifyPersistenceUpgradeCompatibility = ({
+  candidate: candidateInput,
+  previous: previousInput,
+}: {
+  readonly candidate: PersistenceReleaseArtifact
+  readonly previous: PersistenceReleaseArtifact
+}): {
+  readonly candidateAppVersion: string
+  readonly databaseVersion: number
+  readonly destructiveSchemaChange: boolean
+  readonly persistenceGeneration: number
+  readonly previousAppVersion: string
+} => {
+  const candidate = verifyArtifact(candidateInput)
+  const previous = verifyArtifact(previousInput)
+
+  if (compareAppVersions(candidate.appVersion, previous.appVersion) < 0) {
+    throw new Error(
+      `The candidate ${candidate.appVersion} is older than the published artifact ${previous.appVersion}.`,
+    )
+  }
+  if (candidate.persistenceGeneration !== previous.persistenceGeneration) {
+    throw new Error(
+      `Persistence generation mismatch during upgrade: published ${previous.persistenceGeneration}, candidate ${candidate.persistenceGeneration}.`,
+    )
+  }
+  if (candidate.databaseVersion < previous.databaseVersion) {
+    throw new Error(
+      `IndexedDB database version regression during upgrade: published ${previous.databaseVersion}, candidate ${candidate.databaseVersion}.`,
+    )
+  }
+
+  return {
+    candidateAppVersion: candidate.appVersion,
+    databaseVersion: candidate.databaseVersion,
+    destructiveSchemaChange:
+      candidate.rollbackCompatibility.destructiveSchemaChange,
+    persistenceGeneration: candidate.persistenceGeneration,
+    previousAppVersion: previous.appVersion,
+  }
+}
+
 export const verifyPersistenceRollbackCompatibility = ({
   candidate: candidateInput,
   deployed: deployedInput,
@@ -200,7 +242,7 @@ const projectRoot = path.resolve(import.meta.dirname, '..', '..')
 const readJsonFile = (filePath: string): unknown =>
   JSON.parse(readFileSync(filePath, 'utf8'))
 
-const readArtifact = (
+export const readPersistenceReleaseArtifact = (
   artifactDirectory: string,
 ): PersistenceReleaseArtifact => {
   const manifest = readJsonFile(path.join(artifactDirectory, 'manifest.json'))
@@ -242,7 +284,9 @@ const verifyCurrentBuildArtifacts = (): void => {
   }
 
   for (const directory of ['chrome-mv3', 'firefox-mv2']) {
-    const artifact = readArtifact(path.join(projectRoot, '.output', directory))
+    const artifact = readPersistenceReleaseArtifact(
+      path.join(projectRoot, '.output', directory),
+    )
     if (JSON.stringify(artifact) !== JSON.stringify(sourceArtifact)) {
       throw new Error(
         `${directory} persistence release metadata does not match the source contract.`,
@@ -279,8 +323,8 @@ const runVerification = (args: readonly string[]): void => {
     )
   }
   const result = verifyPersistenceRollbackCompatibility({
-    candidate: readArtifact(path.resolve(candidateDirectory)),
-    deployed: readArtifact(path.resolve(deployedDirectory)),
+    candidate: readPersistenceReleaseArtifact(path.resolve(candidateDirectory)),
+    deployed: readPersistenceReleaseArtifact(path.resolve(deployedDirectory)),
   })
   console.log(
     `persistence rollback compatible: ${result.deployedAppVersion} -> ${result.candidateAppVersion} (generation ${result.persistenceGeneration})`,

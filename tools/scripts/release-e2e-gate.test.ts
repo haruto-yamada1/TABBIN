@@ -184,26 +184,37 @@ describe('distribution release gate', () => {
     expect(result.commands).not.toContain('zip')
   })
 
-  it('runs Chrome critical flows and Firefox IndexedDB smoke before succeeding', () => {
+  it('runs Chrome critical flows, Firefox IndexedDB, and the published artifact upgrade before succeeding', () => {
     const result = runRelease()
     expect(result.status).toBe(0)
     expect(result.commands).toContain('e2e:release')
     expect(result.commands).toContain('test:firefox:indexeddb-smoke')
+    expect(result.commands).toContain('test:production-artifact-upgrade')
+    expect(
+      result.commands.indexOf('test:production-artifact-upgrade'),
+    ).toBeGreaterThan(result.commands.indexOf('build'))
     expect(scripts['quality:check']).not.toContain('release:e2e')
+    expect(scripts['quality:check']).not.toContain(
+      'test:production-artifact-upgrade',
+    )
     expect(scripts['release:zip']).toMatch(/^bun run release:check &&/u)
   })
 
-  it.each(['e2e:release', 'test:firefox:indexeddb-smoke'])(
-    'fails closed when %s fails',
-    (failure) => {
-      const result = runRelease(failure)
-      expect(result.status).toBe(23)
-    },
-  )
+  it.each([
+    'e2e:release',
+    'test:firefox:indexeddb-smoke',
+    'test:production-artifact-upgrade',
+  ])('fails closed when %s fails', (failure) => {
+    const result = runRelease(failure)
+    expect(result.status).toBe(23)
+  })
 
-  it('does not continue to Firefox after the Chrome gate fails', () => {
+  it('does not continue to later browser gates after an earlier gate fails', () => {
     expect(runRelease('e2e:release').commands).not.toContain(
       'test:firefox:indexeddb-smoke',
+    )
+    expect(runRelease('test:firefox:indexeddb-smoke').commands).not.toContain(
+      'test:production-artifact-upgrade',
     )
   })
 })

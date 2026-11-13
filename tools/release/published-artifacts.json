@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "chrome": {
+    "status": "published",
+    "version": "2.0.19",
+    "extensionId": "dljblklbpmoocinnlcejeokopmfoldaj",
+    "prodversion": "140.0",
+    "sha256": "aa5bdc1dce2b38083e121f755e9ca9a9a73892deb5dffe41938f989fec22dccb"
+  },
+  "firefox": {
+    "status": "excluded",
+    "reason": "AMO に公開済みアドオンがなく、署名済み XPI を配布する設定（browser_specific_settings.gecko.id）も未整備のため、配布済み Firefox artifact からの更新は検証できない。",
+    "followUp": "docs/testing/published-artifact-upgrade.md#firefox"
+  }
+}
