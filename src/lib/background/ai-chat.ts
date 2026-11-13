@@ -8,12 +8,12 @@ import { resolveOllamaBaseUrl } from '@/constants/productionNetworkPolicy'
 import type { OllamaBaseUrl } from '@/constants/productionNetworkPolicy'
 import { buildTextAttachmentContext } from '@/features/ai-chat/lib/attachments'
 import { inferUserInterests } from '@/features/ai-chat/lib/inferInterests'
-import { listSavedUrlPage } from '@/features/ai-chat/lib/savedUrlQuery'
 import {
   buildFinalSystemPrompt,
   getActiveAiSystemPrompt,
   normalizeAiSystemPromptSettings,
 } from '@/features/ai-chat/lib/systemPromptPresets'
+import { buildSavedUrlContextSummary } from '@/features/ai-chat/lib/untrustedSavedUrlData'
 import type {
   AiChartAxisFormat,
   AiChartDatum,
@@ -251,29 +251,6 @@ const isConnectionError = (error: unknown): boolean => {
     normalizedMessage.includes('econnrefused')
   )
 }
-
-const createContextSummary = (
-  records: AiSavedUrlRecord[],
-  language: AppLanguage,
-): string =>
-  (() => {
-    const recentSavedUrlPage = listSavedUrlPage(records, {
-      page: 1,
-      pageSize: 20,
-      sortDirection: 'desc',
-    })
-
-    return [
-      getMessage(language, 'background.aiChat.savedTabsCount', undefined, {
-        count: String(recentSavedUrlPage.totalItems),
-      }),
-      getMessage(language, 'background.aiChat.recentTabs'),
-      ...recentSavedUrlPage.items.map(
-        (record, index) =>
-          `${index + 1}. ${record.title} | ${record.url} | domain=${record.domain}`,
-      ),
-    ].join('\n')
-  })()
 
 const createUserMessageContent = (
   content: string,
@@ -810,7 +787,8 @@ const runAiChatRequest = async (
           })
         },
         instructions: buildFinalSystemPrompt({
-          savedUrlContext: createContextSummary(records, language),
+          language,
+          savedUrlContext: buildSavedUrlContextSummary(records, language),
           template: activeSystemPrompt.template,
         }),
         stopWhen: isStepCount(MAX_AI_CHAT_STEPS),

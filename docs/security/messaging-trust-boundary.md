@@ -173,6 +173,8 @@ literals and flags new writers for review rather than allowing silent additions.
 
 ## Related
 
+- [`ai-chat-trust-boundary.md`](ai-chat-trust-boundary.md) — AI prompt data,
+  model output, approval, and persistence boundary.
 - [`permissions.md`](permissions.md) — manifest permission allowlist and
   generated-manifest security invariants.
 - [`persistence-durability.md`](persistence-durability.md) — `unlimitedStorage`

@@ -1,8 +1,18 @@
 import { assert, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 import { z } from 'zod'
 
+import { AI_CHAT_TOOL_NAMES } from '@/constants/aiChatTools'
 import type { SavedTabsOrganizationCatalogDto } from '@/contexts/saved-tabs/public-api'
-import type { AiSavedUrlRecord } from '@/features/ai-chat/types'
+import {
+  createPromptInjectionCatalog,
+  createPromptInjectionRecords,
+  PROMPT_INJECTION_ATTACKS,
+} from '@/features/ai-chat/lib/promptInjection.fixture'
+import type {
+  AiSavedUrlPage,
+  AiSavedUrlRecord,
+  AiSavedUrlToolItem,
+} from '@/features/ai-chat/types'
 import type { AnalyticsResult } from '@/features/analytics/lib/analytics'
 
 import { createAiChatTools } from './ai-chat-tools'
@@ -586,6 +596,107 @@ describe('current date and time tool', () => {
       } finally {
         formatter.mockRestore()
       }
+    },
+  )
+})
+
+describe('prompt injection resistance', () => {
+  it('exposes only the reviewed read-only and proposal tools', () => {
+    const tools = createAiChatTools(
+      createPromptInjectionRecords(),
+      'en',
+      [],
+      createPromptInjectionCatalog(),
+    )
+
+    expect(Object.keys(tools).toSorted()).toStrictEqual(
+      [...AI_CHAT_TOOL_NAMES].toSorted(),
+    )
+    expect(tools).not.toHaveProperty('deleteSavedUrls')
+    expect(tools).not.toHaveProperty('updateSavedUrl')
+    expect(tools).not.toHaveProperty('transferLocalData')
+  })
+
+  it('returns hostile titles, URLs, and categories as data without writing or fetching', async () => {
+    const recordsWithAttacks = createPromptInjectionRecords()
+    const catalogWithAttacks = createPromptInjectionCatalog()
+    const before = structuredClone({
+      catalogWithAttacks,
+      recordsWithAttacks,
+    })
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    try {
+      const tools = createAiChatTools(
+        recordsWithAttacks,
+        'en',
+        [],
+        catalogWithAttacks,
+      )
+      const listSavedUrls = tools.listSavedUrls.execute
+      const listOrganizationTargets = tools.listOrganizationTargets.execute
+      const proposeSavedTabsAction = tools.proposeSavedTabsAction.execute
+      assert.isDefined(listSavedUrls)
+      assert.isDefined(listOrganizationTargets)
+      assert.isDefined(proposeSavedTabsAction)
+
+      const listed = (await Reflect.apply(listSavedUrls, undefined, [
+        { page: 1, pageSize: 50, sortDirection: 'desc' },
+        toolExecutionOptions,
+      ])) as AiSavedUrlPage<AiSavedUrlToolItem>
+      expect(listed.items).toContainEqual(
+        expect.objectContaining({
+          id: 'url-attack',
+          title: expect.stringContaining(PROMPT_INJECTION_ATTACKS.deleteAll),
+          url: 'https://attacker.invalid/ignore-instructions',
+        }),
+      )
+      const targets = (await Reflect.apply(listOrganizationTargets, undefined, [
+        { page: 1, pageSize: 50 },
+        toolExecutionOptions,
+      ])) as { projects: SavedTabsOrganizationCatalogDto['projects'] }
+      expect(targets.projects[0]?.name).toBe(PROMPT_INJECTION_ATTACKS.deleteAll)
+      expect(targets.projects[0]?.categories[0]?.name).toBe(
+        PROMPT_INJECTION_ATTACKS.skipApproval,
+      )
+      await expect(
+        Reflect.apply(proposeSavedTabsAction, undefined, [
+          { kind: 'delete_urls', urlIds: ['url-attack'] },
+          toolExecutionOptions,
+        ]),
+      ).resolves.toStrictEqual({
+        proposal: { kind: 'delete_urls', urlIds: ['url-attack'] },
+      })
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect({
+        catalogWithAttacks,
+        recordsWithAttacks,
+      }).toStrictEqual(before)
+    } finally {
+      fetchSpy.mockRestore()
+    }
+  })
+
+  it.each([
+    { kind: 'delete_urls', urlIds: ['model-invented-url'] },
+    { kind: 'delete_urls', urlIds: ['url-attack'], approved: true },
+    { kind: 'delete_urls', urlIds: ['url-attack'], execute: true },
+    { kind: 'create_project', name: 'x'.repeat(101) },
+    {
+      kind: 'move_urls',
+      sourceProjectId: 'project-attack',
+      targetProjectId: 'model-invented-project',
+      urlIds: ['url-attack'],
+    },
+  ])(
+    'rejects a model-invented or pre-approved proposal without writing: $kind',
+    async (proposal) => {
+      await expect(
+        executeOrganizationProposal(
+          proposal,
+          createPromptInjectionCatalog(),
+          createPromptInjectionRecords(),
+        ),
+      ).rejects.toThrow(/.+/)
     },
   )
 })

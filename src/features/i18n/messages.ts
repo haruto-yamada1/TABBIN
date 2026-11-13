@@ -1,3 +1,4 @@
+import { aiChatTrustMessages } from './aiChatTrustMessages'
 import { analyticsHealthMessages } from './analyticsHealthMessages'
 import { backupExportMessages } from './backupExportMessages'
 import { backupImportMessages } from './backupImportMessages'
@@ -12,6 +13,7 @@ import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
 const messages = {
   en: {
+    ...aiChatTrustMessages.en,
     ...navigationMessages.en,
     'options.academy.title': 'Learn with TABBIN Academy',
     'options.academy.description':
@@ -926,6 +928,7 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...aiChatTrustMessages.ja,
     ...navigationMessages.ja,
     'options.academy.title': 'TABBIN Academyで使い方を学ぶ',
     'options.academy.description':
