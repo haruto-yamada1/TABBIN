@@ -12,9 +12,9 @@ outbound network access.
 
 1. Only the active system prompt and the user's latest request can authorize an
    action.
-2. Saved titles, URLs, domains, project names, category names, attachment text,
-   and tool results are untrusted data. Instructions found in them are not
-   executed.
+2. Saved titles, URLs, domains, project names, category names, and tool results
+   are untrusted data. Instructions found in them are not executed. Attachment
+   text is user-provided context, but it cannot authorize an action.
 3. AI tools can read saved data and create proposals, but they cannot write.
 4. Every write requires a user-visible preview, an explicit approval, and a
    one-time approval identifier.
