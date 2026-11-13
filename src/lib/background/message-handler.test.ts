@@ -133,7 +133,7 @@ describe('setupMessageListener', () => {
     (sender) => {
       const { listener } = setupListener()
       mocked.handleUrlDropped.mockResolvedValue('removed')
-      mocked.removeUrlFromStorage.mockResolvedValue(undefined)
+      mocked.removeUrlFromStorage.mockResolvedValue(1)
       mocked.removeUrlRecordsFromStorage.mockResolvedValue(1)
       mocked.checkAndRemoveExpiredTabs.mockResolvedValue(undefined)
       mocked.updateTabTimestamps.mockResolvedValue(undefined)
@@ -528,6 +528,93 @@ describe('setupMessageListener', () => {
     })
   })
 
+  it('URL IDとsender tabを保持し旧URL-only契約も受け付ける', async () => {
+    const { listener } = setupListener()
+    const source = { ...trustedSender, tab: { id: 11 } }
+    const response = vi.fn()
+    mocked.handleUrlDropped.mockResolvedValue('removed')
+    mocked.removeUrlFromStorage.mockResolvedValue(1)
+    listener(
+      {
+        action: 'urlDragStarted',
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+        dragId: 'drag-1',
+      },
+      source,
+      response,
+    )
+    expect(mocked.handleUrlDragStarted).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      'url-1',
+      11,
+      'drag-1',
+    )
+    listener(
+      {
+        action: 'urlDropped',
+        fromExternal: true,
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+        dragId: 'drag-1',
+      },
+      source,
+      response,
+    )
+    expect(mocked.handleUrlDropped).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      true,
+      { urlRecordId: 'url-1', sourceTabId: 11, dragId: 'drag-1' },
+    )
+    listener(
+      {
+        action: 'removeUrlFromStorage',
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+      },
+      trustedSender,
+      response,
+    )
+    expect(mocked.removeUrlFromStorage).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      'url-1',
+    )
+    await vi.waitFor(() =>
+      expect(response).toHaveBeenCalledWith({
+        status: 'removed',
+        removedCount: 1,
+      }),
+    )
+    expect(
+      backgroundMessageSchema.safeParse({
+        action: 'urlDragStarted',
+        url: 'https://example.com',
+        urlRecordId: '',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('0件のURL削除はremovedを通知しない', async () => {
+    const { listener } = setupListener()
+    const response = vi.fn()
+    mocked.removeUrlFromStorage.mockResolvedValueOnce(0)
+    listener(
+      {
+        action: 'removeUrlFromStorage',
+        url: 'https://example.com',
+        urlRecordId: 'missing-id',
+      },
+      trustedSender,
+      response,
+    )
+    await vi.waitFor(() =>
+      expect(response).toHaveBeenCalledWith({
+        status: 'skipped',
+        removedCount: 0,
+      }),
+    )
+  })
+
   it('urlDragStarted, urlDropped, removeUrlFromStorage を処理する', async () => {
     const { listener } = setupListener()
     const dragStartedResponse = vi.fn()
@@ -535,7 +622,7 @@ describe('setupMessageListener', () => {
     const internalResponse = vi.fn()
     const removeResponse = vi.fn()
     mocked.handleUrlDropped.mockResolvedValue('removed')
-    mocked.removeUrlFromStorage.mockResolvedValue(undefined)
+    mocked.removeUrlFromStorage.mockResolvedValue(1)
 
     expect(
       listener(
@@ -546,6 +633,9 @@ describe('setupMessageListener', () => {
     ).toBe(true)
     expect(mocked.handleUrlDragStarted).toHaveBeenCalledWith(
       'https://example.com',
+      undefined,
+      undefined,
+      undefined,
     )
     expect(dragStartedResponse).toHaveBeenCalledWith({ status: 'ok' })
 
@@ -587,6 +677,7 @@ describe('setupMessageListener', () => {
     )
     await vi.waitFor(() => {
       expect(removeResponse).toHaveBeenCalledWith({
+        removedCount: 1,
         status: 'removed',
       })
     })

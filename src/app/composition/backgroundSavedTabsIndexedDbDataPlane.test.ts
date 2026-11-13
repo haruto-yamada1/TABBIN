@@ -294,4 +294,46 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     await expect(dataPlane.removeUrlIds(['url-1'])).rejects.toBe(error)
     expect(session.run).toHaveBeenCalledOnce()
   })
+
+  it('exact URL-only delete resolves one persistent ID and preserves lookalikes', async () => {
+    const state = createState()
+    const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
+      idGenerator: () => crypto.randomUUID(),
+      now: () => 10,
+      readSnapshot: async () => ({ revision: 1, savedTabs: state }),
+      session: { run: async (operation) => operation(state) },
+    })
+    await dataPlane.saveTabs([
+      { url: 'https://example.com' },
+      { url: 'https://example.com/' },
+      { url: 'https://EXAMPLE.com' },
+    ])
+    await expect(dataPlane.removeUrl('https://example.com')).resolves.toBe(1)
+    expect(state.urls.map(({ url }) => url)).toContain('https://example.com/')
+    expect(state.urls.map(({ url }) => url)).toContain('https://EXAMPLE.com')
+  })
+
+  it('ID hint must match the exact source URL inside the mutation', async () => {
+    const { dataPlane, state } = createDataPlane()
+    const before = structuredClone(state)
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'wrong-id'),
+    ).resolves.toBe(0)
+    expect(state).toEqual(before)
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1'),
+    ).resolves.toBe(1)
+    expect(state.urls).toEqual([])
+  })
+
+  it('ambiguous exact URL records are preserved without an ID hint', async () => {
+    const { dataPlane, state } = createDataPlane()
+    assert.isDefined(state.urls[0])
+    state.urls.push({ ...state.urls[0], id: 'duplicate' })
+    const before = structuredClone(state)
+    await expect(dataPlane.removeUrl('https://example.com/docs')).resolves.toBe(
+      0,
+    )
+    expect(state).toEqual(before)
+  })
 })

@@ -143,6 +143,7 @@ export const CategorySection = ({
                 url={item.url}
                 title={item.title}
                 id={item.url}
+                {...(item.id !== undefined ? { urlRecordId: item.id } : {})}
                 groupId={groupId}
                 {...(item.subCategory !== undefined
                   ? { subCategory: item.subCategory }

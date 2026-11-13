@@ -218,13 +218,16 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'urlDragStarted': {
-        handleUrlDragStartedMessage(typedMessage.url, sendResponse)
+        handleUrlDragStartedMessage(typedMessage, sendResponse, sender.tab?.id)
         return true
       }
       case 'urlDropped': {
         handleUrlDroppedMessage(
           {
             url: typedMessage.url,
+            urlRecordId: typedMessage.urlRecordId,
+            dragId: typedMessage.dragId,
+            sourceTabId: sender.tab?.id,
             ...(typedMessage.fromExternal !== undefined
               ? { fromExternal: typedMessage.fromExternal }
               : {}),
@@ -234,7 +237,11 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'removeUrlFromStorage': {
-        handleRemoveUrlMessage(typedMessage.url, sendResponse)
+        handleRemoveUrlMessage(
+          typedMessage.url,
+          sendResponse,
+          typedMessage.urlRecordId,
+        )
         return true
       }
       case 'removeUrlRecordsFromStorage': {
@@ -316,13 +323,17 @@ const setupMessageListener = (): void => {
  * URLドラッグ開始メッセージの処理
  */
 const handleUrlDragStartedMessage = (
-  url: string,
+  message: Extract<BackgroundMessage, { action: 'urlDragStarted' }>,
   sendResponse: (response: StatusResponse) => void,
+  sourceTabId?: number,
 ): void => {
-  handleUrlDragStarted(url)
-  sendResponse({
-    status: 'ok',
-  })
+  handleUrlDragStarted(
+    message.url,
+    message.urlRecordId,
+    sourceTabId,
+    message.dragId,
+  )
+  sendResponse({ status: 'ok' })
 }
 /**
  * URLドロップメッセージの処理
@@ -331,6 +342,9 @@ const handleUrlDroppedMessage = (
   message: {
     url: string
     fromExternal?: boolean
+    urlRecordId?: string | undefined
+    sourceTabId?: number | undefined
+    dragId?: string | undefined
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
@@ -338,7 +352,11 @@ const handleUrlDroppedMessage = (
 
   // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (message.fromExternal === true) {
-    handleUrlDropped(message.url, message.fromExternal)
+    handleUrlDropped(message.url, message.fromExternal, {
+      urlRecordId: message.urlRecordId,
+      sourceTabId: message.sourceTabId,
+      dragId: message.dragId,
+    })
       .then((status) => {
         sendResponse({
           status,
@@ -352,6 +370,11 @@ const handleUrlDroppedMessage = (
         })
       })
   } else {
+    void handleUrlDropped(message.url, false, {
+      urlRecordId: message.urlRecordId,
+      sourceTabId: message.sourceTabId,
+      dragId: message.dragId,
+    })
     logger.debug('background_url_drop_internal_skipped')
     sendResponse({
       status: 'internal_operation',
@@ -364,11 +387,13 @@ const handleUrlDroppedMessage = (
 const handleRemoveUrlMessage = (
   url: string,
   sendResponse: (response: StatusResponse) => void,
+  urlRecordId?: string,
 ): void => {
-  removeUrlFromStorage(url)
-    .then(() => {
+  removeUrlFromStorage(url, urlRecordId)
+    .then((removedCount) => {
       sendResponse({
-        status: 'removed',
+        removedCount,
+        status: removedCount > 0 ? 'removed' : 'skipped',
       })
     })
     .catch((error: unknown) => {

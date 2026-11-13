@@ -37,7 +37,6 @@ import {
 } from './extension-actions'
 import {
   clearDraggedUrlInfo,
-  handleTabCreated,
   handleUrlDragStarted,
   handleUrlDropped,
 } from './url-storage'
@@ -420,9 +419,13 @@ describe('settings safety at background operation boundaries', () => {
     '%s: external drop and open preserve saved URLs',
     async (failure) => {
       failSettings(failure)
-      await Promise.allSettled([handleUrlDropped(sourceUrl, true)])
-      handleUrlDragStarted(sourceUrl)
-      await handleTabCreated(source)
+      handleUrlDragStarted(sourceUrl, 'source-id', undefined, 'settings-drag')
+      await Promise.allSettled([
+        handleUrlDropped(sourceUrl, true, {
+          urlRecordId: 'source-id',
+          dragId: 'settings-drag',
+        }),
+      ])
       expect(mocked.removeUrl).not.toHaveBeenCalled()
       expect(mocked.showNotification).toHaveBeenCalledWith(
         'Settings could not be verified',
@@ -468,7 +471,12 @@ describe('settings safety at background operation boundaries', () => {
     get.mockResolvedValue({
       userSettings: { aiProvider: 'ollama', removeTabAfterExternalDrop: false },
     })
-    await expect(handleUrlDropped(sourceUrl, true)).resolves.toBe('skipped')
+    await expect(
+      handleUrlDropped(sourceUrl, true, {
+        urlRecordId: 'source-id',
+        dragId: 'settings-drag',
+      }),
+    ).resolves.toBe('skipped')
     expect(mocked.removeUrl).not.toHaveBeenCalled()
     expect(set).not.toHaveBeenCalled()
   })

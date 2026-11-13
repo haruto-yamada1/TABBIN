@@ -40,6 +40,22 @@ describe('buildOpenTabsRowId', () => {
 })
 
 describe('buildOpenTabsRows', () => {
+  it('keeps the persistent URL ID separate from the sortable row ID', () => {
+    const url = 'https://example.com/a'
+    const rows = buildOpenTabsRows(
+      [makeGroup({ urls: [{ id: 'persisted-url', url, title: 'Original' }] })],
+      [url],
+    )
+    expect(rows).toEqual([
+      expect.objectContaining({
+        id: buildOpenTabsRowId('group-1', url),
+        urlRecordId: 'persisted-url',
+        groupId: 'group-1',
+        url,
+      }),
+    ])
+  })
+
   it('returns a stable empty reference when nothing is open', () => {
     const groups = [makeGroup({ urls: [makeUrl('https://example.com/a')] })]
     expect(buildOpenTabsRows(groups, [])).toEqual([])

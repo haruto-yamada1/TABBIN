@@ -24,6 +24,9 @@ export type {
 export type DraggedUrlInfo = {
   url: string
   timestamp: number
+  urlRecordId?: string | undefined
+  dragId?: string | undefined
+  sourceTabId?: number | undefined
   processed: boolean
   timeoutId?: NodeJS.Timeout
 }
@@ -49,17 +52,22 @@ export const backgroundMessageSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('urlDragStarted'),
+    dragId: nonEmptyStringSchema.optional(),
+    urlRecordId: nonEmptyStringSchema.optional(),
     groupId: z.string().optional(),
     url: nonEmptyStringSchema,
   }),
   z.object({
     action: z.literal('urlDropped'),
+    dragId: nonEmptyStringSchema.optional(),
+    urlRecordId: nonEmptyStringSchema.optional(),
     fromExternal: z.boolean().optional(),
     groupId: z.string().optional(),
     url: nonEmptyStringSchema,
   }),
   z.object({
     action: z.literal('removeUrlFromStorage'),
+    urlRecordId: nonEmptyStringSchema.optional(),
     url: nonEmptyStringSchema,
   }),
   z.object({

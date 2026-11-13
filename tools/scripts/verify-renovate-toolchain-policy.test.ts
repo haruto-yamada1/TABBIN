@@ -81,9 +81,35 @@ const assertVerifierBeforeInstall = (workflow: string): void => {
     if (!job.some((line) => /uses:|\bbun\b/.test(line))) {
       continue
     }
-    const setupBunIndex = job.findIndex((line) =>
-      line.includes('uses: oven-sh/setup-bun'),
+    const npmBootstrap =
+      'npm install --global --prefix "$RUNNER_TEMP/bun-toolchain"'
+    const setupBunIndex = job.findIndex(
+      (line) =>
+        line.includes('uses: oven-sh/setup-bun') || line.includes(npmBootstrap),
     )
+    if (job[setupBunIndex]?.includes(npmBootstrap)) {
+      const commands = job.join('\n')
+      expect(
+        commands,
+        'npm bootstrap must read the canonical Bun version',
+      ).toContain('ci_bun_version="$(cat .bun-version)"')
+      expect(
+        commands,
+        'npm bootstrap must install that exact Bun version',
+      ).toContain('"bun@$ci_bun_version"')
+      expect(
+        commands,
+        'npm bootstrap must expose its isolated binary',
+      ).toContain('"$RUNNER_TEMP/bun-toolchain/bin" >> "$GITHUB_PATH"')
+      const setupNodeIndex = job.findIndex((line) =>
+        line.includes('uses: actions/setup-node'),
+      )
+      expect(
+        setupNodeIndex,
+        'npm bootstrap must have Node',
+      ).toBeGreaterThanOrEqual(0)
+      expect(setupNodeIndex).toBeLessThan(setupBunIndex)
+    }
     const verifierIndex = job.findIndex((line) =>
       line.includes('run: bun run verify:toolchain-versions'),
     )
@@ -104,6 +130,10 @@ const assertVerifierBeforeInstall = (workflow: string): void => {
       verifierIndex,
       'verifier must run before frozen install',
     ).toBeLessThan(installIndex)
+    expect(
+      setupBunIndex,
+      'Bun must be installed before verification',
+    ).toBeLessThan(verifierIndex)
   }
 }
 
@@ -320,6 +350,37 @@ jobs:
     expect(() => assertVerifierBeforeInstall(reverseCiWorkflow)).toThrow(
       /verifier must run before frozen install/,
     )
+  })
+
+  it('accepts npm bootstrap only when it keeps the pinned version and verifier order', () => {
+    const npmBootstrapWorkflow = `
+jobs:
+  visual:
+    steps:
+      - uses: actions/setup-node@foo
+        with:
+          node-version-file: '.node-version'
+      - run: |
+          ci_bun_version="$(cat .bun-version)"
+          npm install --global --prefix "$RUNNER_TEMP/bun-toolchain" \\
+            --no-audit --no-fund "bun@$ci_bun_version"
+          printf '%s\\n' "$RUNNER_TEMP/bun-toolchain/bin" >> "$GITHUB_PATH"
+      - run: bun run verify:toolchain-versions
+      - run: bun install --frozen-lockfile
+    `
+    expect(() =>
+      assertVerifierBeforeInstall(npmBootstrapWorkflow),
+    ).not.toThrow()
+    expect(() =>
+      assertVerifierBeforeInstall(
+        npmBootstrapWorkflow.replace('cat .bun-version', 'printf latest'),
+      ),
+    ).toThrow(/canonical Bun version/)
+    expect(() =>
+      assertVerifierBeforeInstall(
+        npmBootstrapWorkflow.replace('"bun@$ci_bun_version"', 'bun@latest'),
+      ),
+    ).toThrow(/that exact Bun version/)
   })
 
   it('matches all required package.json version sources for runtime sync', () => {

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -10,8 +11,17 @@ import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import type { OpenTabsRow } from '@/contexts/saved-tabs/presentation/lib/open-tabs-display'
-import { buildOpenTabsRowId } from '@/contexts/saved-tabs/presentation/lib/open-tabs-display'
+import {
+  buildOpenTabsRowId,
+  buildOpenTabsRows,
+} from '@/contexts/saved-tabs/presentation/lib/open-tabs-display'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
@@ -204,6 +214,57 @@ describe('OpenTabsSection', () => {
     vi.restoreAllMocks()
     vi.clearAllMocks()
   })
+
+  it.each(['domain', 'custom'] as const)(
+    '%s open row sends its persistent URL ID and captured drag token',
+    (mode) => {
+      const url = 'https://example.com/a'
+      const rows = buildOpenTabsRows(
+        [
+          {
+            id: 'group-1',
+            urls: [{ id: 'persisted-url', url, title: 'Drag original' }],
+          },
+        ],
+        [url],
+      )
+      const send = vi
+        .fn<MessagingPort['send']>()
+        .mockResolvedValue({ status: 'ok' })
+      const props = baseProps({ rows: [...rows] })
+      render(
+        <SavedTabsUseCasesProvider
+          value={{
+            deps: {
+              ...createSavedTabsPresentationPortsStub(),
+              messagingPort: { send },
+            },
+            useCases: createSavedTabsUseCasesStub(),
+          }}
+        >
+          <OpenTabsSection {...props} mode={mode} />
+        </SavedTabsUseCasesProvider>,
+      )
+      const link = screen.getByRole('link', { name: 'Drag original' })
+      const dataTransfer = { setData: vi.fn(), dropEffect: 'copy' }
+      fireEvent.dragStart(link, { dataTransfer })
+      fireEvent.dragEnd(link, { dataTransfer })
+      expect(send).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          action: 'urlDragStarted',
+          urlRecordId: 'persisted-url',
+          dragId: expect.any(String),
+          url,
+        }),
+      )
+      expect(send).toHaveBeenNthCalledWith(2, {
+        ...send.mock.calls[0]?.[0],
+        action: 'urlDropped',
+        fromExternal: true,
+      })
+    },
+  )
 
   it.each(['domain', 'custom'] as const)(
     '%s renders the section heading, count badge and one row per occurrence',

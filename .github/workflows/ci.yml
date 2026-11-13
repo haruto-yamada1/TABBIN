@@ -516,12 +516,13 @@ jobs:
         with:
           node-version-file: '.node-version'
 
-      - name: Install Bun extraction dependency
-        run: apt-get update && apt-get install -y --no-install-recommends unzip
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: '.bun-version'
+      - name: Install pinned Bun without OS package-manager dependencies
+        shell: bash
+        run: |
+          ci_bun_version="$(cat .bun-version)"
+          npm install --global --prefix "$RUNNER_TEMP/bun-toolchain" \
+            --no-audit --no-fund "bun@$ci_bun_version"
+          printf '%s\n' "$RUNNER_TEMP/bun-toolchain/bin" >> "$GITHUB_PATH"
 
       - name: Verify toolchain versions
         run: bun run verify:toolchain-versions

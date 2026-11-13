@@ -391,6 +391,8 @@ test.describe('extension saved-tabs', () => {
     await page.evaluate(async () => {
       await chrome.runtime.sendMessage({
         action: 'urlDragStarted',
+        dragId: 'saved-tabs-external-drop',
+        urlRecordId: 'url-example',
         groupId: 'group-example',
         url: 'https://example.com/',
       })
@@ -399,6 +401,8 @@ test.describe('extension saved-tabs', () => {
     const response = await page.evaluate(async () => {
       return chrome.runtime.sendMessage({
         action: 'urlDropped',
+        dragId: 'saved-tabs-external-drop',
+        urlRecordId: 'url-example',
         fromExternal: true,
         groupId: 'group-example',
         url: 'https://example.com/',

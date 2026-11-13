@@ -73,6 +73,7 @@ export const SortableUrlItem = ({
   url,
   title,
   id,
+  urlRecordId,
   groupId,
   isFavorite = false,
   savedAt,
@@ -106,6 +107,12 @@ export const SortableUrlItem = ({
   })
 
   const isDraggingRef = useRef(false)
+  const dragSnapshotRef = useRef<{
+    readonly dragId: string
+    readonly groupId: string
+    readonly url: string
+    readonly urlRecordId?: string
+  } | null>(null)
   const windowBlurredDuringDragRef = useRef(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   // 外部ウィンドウへの D&D 通知に使う `MessagingPort` (issue #531)。
@@ -139,29 +146,32 @@ export const SortableUrlItem = ({
 
       // ドラッグ開始をバックグラウンドに通知
       if (messagingPort) {
-        void messagingPort.send({
-          action: 'urlDragStarted',
+        const drag = {
+          dragId: crypto.randomUUID(),
           groupId,
           url,
-        })
+          ...(urlRecordId !== undefined ? { urlRecordId } : {}),
+        }
+        dragSnapshotRef.current = drag
+        void messagingPort.send({ action: 'urlDragStarted', ...drag })
       }
     },
-    [handleWindowBlur, messagingPort, groupId],
+    [handleWindowBlur, messagingPort, groupId, urlRecordId],
   )
 
   // 外部ウィンドウへのドロップ処理
   const handleExternalDrop = useCallback(() => {
-    if (!messagingPort) {
+    const drag = dragSnapshotRef.current
+    if (!messagingPort || !drag) {
       return
     }
-    // 外部へのドロップ時にタブを削除するよう通知
+    // Reuse the identity captured at drag start, even if this row was refreshed.
     void messagingPort.send({
       action: 'urlDropped',
       fromExternal: true,
-      groupId,
-      url,
+      ...drag,
     })
-  }, [messagingPort, url, groupId])
+  }, [messagingPort])
 
   const handleDragEnd = useCallback(
     (e: React.DragEvent<HTMLElement>) => {
@@ -180,6 +190,7 @@ export const SortableUrlItem = ({
       }
 
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur, handleExternalDrop],
@@ -190,6 +201,7 @@ export const SortableUrlItem = ({
     () => () => {
       window.removeEventListener('blur', handleWindowBlur)
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur],

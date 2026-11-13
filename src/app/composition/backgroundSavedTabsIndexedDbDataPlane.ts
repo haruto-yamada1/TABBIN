@@ -237,18 +237,9 @@ const removeEmptyDomainCollections = (
 const removeSelectedUrls = (
   state: IndexedDbSavedTabsMutableState,
   selectedIds: ReadonlySet<string>,
-  selectedUrls: ReadonlySet<string>,
 ): number => {
   const removedIds = new Set(
-    state.urls
-      .filter((url) => {
-        const comparable = validUrlIdentityKey(url.url)
-        return (
-          selectedIds.has(url.id) ||
-          (comparable !== null && selectedUrls.has(comparable))
-        )
-      })
-      .map(({ id }) => id),
+    state.urls.filter((url) => selectedIds.has(url.id)).map(({ id }) => id),
   )
   if (removedIds.size === 0) {
     return 0
@@ -549,18 +540,23 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   readUndoSnapshot: readSnapshot,
   removeExpiredUrls: async (cutoffTime, currentTime) =>
     session.run((state) => removeExpiredUrls(state, cutoffTime, currentTime)),
-  removeUrl: async (url) => {
-    const normalized = validUrlIdentityKey(url)
-    return normalized
-      ? session.run((state) =>
-          removeSelectedUrls(state, new Set(), new Set([normalized])),
-        )
-      : 0
+  removeUrl: async (url, urlRecordId) => {
+    const identity = validUrlIdentityKey(url)
+    if (!identity) {
+      return 0
+    }
+    return session.run((state) => {
+      const matches = state.urls.filter(
+        (record) =>
+          record.url === identity &&
+          (urlRecordId === undefined || record.id === urlRecordId),
+      )
+      const target = matches.length === 1 ? matches[0] : undefined
+      return target ? removeSelectedUrls(state, new Set([target.id])) : 0
+    })
   },
   removeUrlIds: async (urlIds) =>
-    session.run((state) =>
-      removeSelectedUrls(state, new Set(urlIds), new Set()),
-    ),
+    session.run((state) => removeSelectedUrls(state, new Set(urlIds))),
   restoreUndoSnapshot: async (snapshot) =>
     session.run((state) => {
       state.categories = [...structuredClone(snapshot.savedTabs.categories)]

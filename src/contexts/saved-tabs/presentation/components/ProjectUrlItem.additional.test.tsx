@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
 import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
@@ -130,15 +130,17 @@ const renderWithMessagingPort = (
     urlRecordRepository: {} as never,
     userSettingsRepository: {} as never,
   } as never
-  return render(
-    <SavedTabsUseCasesProvider value={{ deps, useCases: {} as never }}>
-      {ui}
-    </SavedTabsUseCasesProvider>,
-  )
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <SavedTabsUseCasesProvider value={{ deps, useCases: {} as never }}>
+        {children}
+      </SavedTabsUseCasesProvider>
+    ),
+  })
 }
 
 describe('ProjectUrlItem additional', () => {
-  const sendMessageMock = vi.fn()
+  const sendMessageMock = vi.fn<MessagingPort['send']>()
 
   beforeEach(() => {
     sendMessageMock.mockResolvedValue(undefined)
@@ -147,6 +149,80 @@ describe('ProjectUrlItem additional', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+  })
+
+  it('drag開始時の永続IDとtokenを保持し、新dragでは別tokenを生成する', () => {
+    const props = createProps()
+    const { rerender } = renderWithMessagingPort(
+      <ProjectUrlItem
+        {...props}
+        item={{ ...props.item, id: 'persistent-original' }}
+      />,
+      { send: sendMessageMock },
+    )
+    const link = screen.getByRole('link', { name: 'Doc' })
+    const dataTransfer = { setData: vi.fn(), dropEffect: 'copy' }
+    fireEvent.dragStart(link, { dataTransfer })
+    const firstStart = sendMessageMock.mock.calls[0]?.[0]
+    assert.isDefined(firstStart)
+    expect(firstStart).toEqual(
+      expect.objectContaining({
+        action: 'urlDragStarted',
+        urlRecordId: 'persistent-original',
+        dragId: expect.any(String),
+      }),
+    )
+    rerender(
+      <ProjectUrlItem
+        {...props}
+        item={{ ...props.item, id: 'persistent-replacement' }}
+      />,
+    )
+    fireEvent.dragEnd(link, { dataTransfer })
+    expect(sendMessageMock).toHaveBeenNthCalledWith(2, {
+      ...firstStart,
+      action: 'urlDropped',
+      fromExternal: true,
+    })
+
+    fireEvent.dragStart(link, { dataTransfer })
+    const secondStart = sendMessageMock.mock.calls[2]?.[0]
+    assert.isDefined(secondStart)
+    expect(secondStart).toEqual(
+      expect.objectContaining({
+        action: 'urlDragStarted',
+        urlRecordId: 'persistent-replacement',
+        dragId: expect.any(String),
+      }),
+    )
+    expect(Reflect.get(secondStart, 'dragId')).not.toBe(
+      Reflect.get(firstStart, 'dragId'),
+    )
+    fireEvent.dragEnd(link, { dataTransfer })
+    expect(sendMessageMock).toHaveBeenNthCalledWith(4, {
+      ...secondStart,
+      action: 'urlDropped',
+      fromExternal: true,
+    })
+  })
+
+  it('永続IDがない場合にDnD用IDやURLから推測しない', () => {
+    renderWithMessagingPort(<ProjectUrlItem {...createProps()} />, {
+      send: sendMessageMock,
+    })
+    const link = screen.getByRole('link', { name: 'Doc' })
+    fireEvent.dragStart(link, {
+      dataTransfer: { setData: vi.fn(), dropEffect: 'copy' },
+    })
+    expect(sendMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'urlDragStarted',
+        dragId: expect.any(String),
+      }),
+    )
+    const start = sendMessageMock.mock.calls[0]?.[0]
+    assert.isDefined(start)
+    expect(Reflect.get(start, 'urlRecordId')).toBeUndefined()
   })
 
   it('window 内 drop 済みなら MessagingPort.send を urlDropped で呼ばない', () => {

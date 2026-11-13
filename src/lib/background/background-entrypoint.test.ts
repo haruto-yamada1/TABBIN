@@ -13,7 +13,6 @@ const mocked = vi.hoisted(() => ({
   handleExtensionActionClick: vi.fn(),
   setupMessageListener: vi.fn(),
   openSavedTabsPage: vi.fn(),
-  handleTabCreated: vi.fn(),
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -61,9 +60,6 @@ vi.mock('@/lib/background/message-handler', () => ({
 }))
 vi.mock('@/lib/background/saved-tabs-page', () => ({
   openSavedTabsPage: mocked.openSavedTabsPage,
-}))
-vi.mock('@/lib/background/url-storage', () => ({
-  handleTabCreated: mocked.handleTabCreated,
 }))
 vi.mock('@/lib/logging/logger', () => ({
   logger: mocked.logger,
@@ -305,9 +301,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       mocked.handleExtensionActionClick,
     )
     expect(mocked.setupMessageListener).toHaveBeenCalledOnce()
-    expect(harness.tabsOnCreatedAddListener).toHaveBeenCalledWith(
-      mocked.handleTabCreated,
-    )
+    expect(harness.tabsOnCreatedAddListener).not.toHaveBeenCalled()
   })
 
   it('インストール時に helper 経由で saved-tabs を開いてピン留めする', async () => {
@@ -319,9 +313,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     expect(harness.actionAddListener).toHaveBeenCalledWith(
       mocked.handleExtensionActionClick,
     )
-    expect(harness.tabsOnCreatedAddListener).toHaveBeenCalledWith(
-      mocked.handleTabCreated,
-    )
+    expect(harness.tabsOnCreatedAddListener).not.toHaveBeenCalled()
     expect(mocked.setupMessageListener).toHaveBeenCalledTimes(1)
     expect(mocked.ready).toHaveBeenCalledOnce()
     await triggerInstalled(harness, 'install')

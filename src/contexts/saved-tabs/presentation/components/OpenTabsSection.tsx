@@ -340,6 +340,9 @@ export const OpenTabsSection = ({
                     url={row.url}
                     title={row.title}
                     id={row.id}
+                    {...(row.urlRecordId !== undefined
+                      ? { urlRecordId: row.urlRecordId }
+                      : {})}
                     groupId={row.groupId}
                     {...(row.savedAt !== undefined
                       ? { savedAt: row.savedAt }

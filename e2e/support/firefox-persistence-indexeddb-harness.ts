@@ -22,6 +22,10 @@ import { runFirefoxExpiredTabsAlarmSmoke } from './firefox-expired-tabs-alarm-ha
 import { runFirefoxSavedTabsPageSmoke } from './firefox-saved-tabs-page-harness'
 import { runFirefoxSettingsSafetySmoke } from './firefox-settings-safety-harness'
 import {
+  runFirefoxUrlDragBackgroundSmoke,
+  runFirefoxUrlDragIdentitySmoke,
+} from './firefox-url-drag-identity-harness'
+import {
   runFirefoxUrlOpeningSmoke,
   verifyFirefoxUrlOpeningAfterRestart,
 } from './firefox-url-opening-harness'
@@ -217,6 +221,7 @@ const fresh = async () => {
     settingsSafety: await runFirefoxSettingsSafetySmoke(),
     captureSafety: await runFirefoxCaptureSafetySmoke(),
     urlOpening: await runFirefoxUrlOpeningSmoke(),
+    urlDragIdentity: await runFirefoxUrlDragIdentitySmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
       chrome.extension.isAllowedIncognitoAccess(resolve)
     }),
@@ -327,11 +332,18 @@ const verifyAfterRestart = async () => {
   return result
 }
 
-export type FirefoxPersistenceSmokePhase = 'fresh' | 'verify' | 'alarm'
+export type FirefoxPersistenceSmokePhase =
+  | 'fresh'
+  | 'verify'
+  | 'alarm'
+  | 'drag-background'
 
 export const runFirefoxPersistenceSmoke = async (
   phase: FirefoxPersistenceSmokePhase,
 ) => {
+  if (phase === 'drag-background') {
+    return { urlDragBackground: await runFirefoxUrlDragBackgroundSmoke() }
+  }
   if (phase === 'alarm') {
     return { expiredTabsAlarm: await runFirefoxExpiredTabsAlarmSmoke() }
   }

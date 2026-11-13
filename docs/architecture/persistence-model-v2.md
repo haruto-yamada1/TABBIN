@@ -218,6 +218,41 @@ Changing any row to same identity is a breaking identity-policy version. It
 requires a separate collision preflight and migration; it is not a helper
 refactor.
 
+### Deletion and native drag confirmation
+
+Background URL-only deletion resolves the exact source string to one saved URL
+ID inside the mutation. An optional `urlRecordId` must belong to that exact
+string; missing or ambiguous matches remove nothing. Browser-normalized hrefs
+are never persistence deletion keys.
+
+Native drag deletion captures the displayed persistent URL ID synchronously in
+the DOM drag-start event. The sender retains that ID, the exact source URL and
+a fresh `dragId` until drag-end, even if the row is refreshed in between. The
+background never resolves a missing persistent URL ID from a later snapshot:
+that snapshot might already contain a newly re-saved record.
+
+A destructive external DOM drop requires the same non-empty `dragId`, exact URL
+and captured persistent ID within ten seconds. When the runtime sender provides
+a tab ID at drag-start, the drop must also come from that tab. Legacy senders
+without a tab ID are not required to match a tab; the drag and persistent IDs
+still must match. URL-only or tokenless legacy drag envelopes remain accepted,
+but cannot authorize deletion. The legacy URL-only explicit deletion message
+continues to resolve exact URL identity inside its mutation.
+
+The mutation rechecks the original URL and ID together. Duplicate, expired,
+unknown, or worker-restarted drag sessions cannot authorize deletion, and a drop
+from an older drag cannot consume a newer session of the same URL and source.
+`removeTabAfterExternalDrop` controls this path, including when
+`removeTabAfterOpen` is enabled. Explicit saved-link activation continues to use
+`OpenSavedUrlUseCase` and its ID-based `removeTabAfterOpen` policy. Explicit
+background deletion returns the actual removed count: zero matches are reported
+as `skipped`, and only a positive count is reported as `removed`.
+
+`tabs.onCreated` cannot establish which gesture opened a URL, even when its
+normalized URL and opener match. It therefore never authorizes saved-URL
+removal. This preserves saved data after cancelled drags, unrelated native link
+activations, and incomplete or delayed tab events.
+
 ### Uniqueness and collision handling
 
 - A verified v2 snapshot has one `Url` per `normalizedUrl`.
