@@ -29,4 +29,11 @@ UI での確認後も application service が入力・対象・所属・整合�
 保存後の画面通知だけが失敗した場合は、保存成功と Undo を保持し、
 他の画面の再読み込みを案内します。
 
+保存 URL・タイトル・ドメイン・プロジェクト名・カテゴリ名は信頼できない
+データとして扱います。これらに含まれる指示や承認の主張は実行せず、
+モデルが生成できるのは schema 検証済みの提案だけです。信頼境界の実装、
+攻撃 fixture、決定的な回帰テストの範囲は
+[`docs/security/ai-chat-trust-boundary.md`](security/ai-chat-trust-boundary.md)
+を参照してください。
+
 ![操作提案の確認パネル](images/issue-361-ai-actions.png)
