@@ -64,7 +64,7 @@ test('MV3 worker restart preserves a committed delete and accepts the next backg
         url: 'https://restart.test/before',
       }),
     ),
-  ).toEqual({ status: 'removed' })
+  ).toMatchObject({ status: 'removed', removedCount: 1 })
   const committed = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
   expect(committed.revision).toBe(2)
   expect(committed.urls).toMatchObject([{ id: 'after-restart' }])
@@ -102,7 +102,7 @@ test('MV3 worker restart preserves a committed delete and accepts the next backg
         url: 'https://restart.test/after',
       }),
     ),
-  ).toEqual({ status: 'removed' })
+  ).toMatchObject({ status: 'removed', removedCount: 1 })
   const afterRestart = await readPersistenceV2SavedTabsSnapshot(restartedWorker)
   expect(afterRestart.revision).toBe(3)
   expect(afterRestart.collections).toEqual([])
