@@ -149,7 +149,7 @@ A URL found in saved data is data; the AI tools never fetch or open it.
 
 ## Attack fixtures and deterministic tests
 
-`src/features/ai-chat/lib/testing/promptInjection.fixture.ts` contains hostile
+`src/features/ai-chat/lib/promptInjection.fixture.ts` contains hostile
 titles, URLs, project names, and category names. The fixtures instruct the model
 to delete every URL, skip approval, transfer local data, and spoof the end of
 the untrusted-data block.

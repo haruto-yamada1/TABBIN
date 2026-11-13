@@ -757,6 +757,7 @@ describe('runAiChatRequest', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
     try {
       await runAiChatRequest({ history: [], prompt: 'What is saved?' })
+      expect(fetchSpy).not.toHaveBeenCalled()
     } finally {
       fetchSpy.mockRestore()
     }
@@ -777,7 +778,6 @@ describe('runAiChatRequest', () => {
     expect(openIndex).toBeGreaterThanOrEqual(0)
     expect(attackIndex).toBeGreaterThan(openIndex)
     expect(attackIndex).toBeLessThan(closeIndex)
-    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('assistant history はそのまま文字列 message として渡す', async () => {

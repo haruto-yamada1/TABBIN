@@ -250,6 +250,20 @@ describe('SavedTabsOrganizationService', () => {
     })
     expect(commit).toHaveBeenCalledOnce()
 
+    const afterExecute = await reader.readVerifiedSavedTabsSnapshot()
+    expect(afterExecute.savedTabs.urls).toEqual(
+      before.savedTabs.urls.filter(({ id }) => id !== 'url-a'),
+    )
+    expect(afterExecute.savedTabs.memberships).toEqual(
+      before.savedTabs.memberships.filter(({ urlId }) => urlId !== 'url-a'),
+    )
+    expect(afterExecute.savedTabs.categories).toEqual(
+      before.savedTabs.categories,
+    )
+    expect(afterExecute.savedTabs.collections).toEqual(
+      before.savedTabs.collections,
+    )
+
     await expect(service.undo(applied.undoId)).resolves.toStrictEqual({
       notificationFailed: false,
     })
