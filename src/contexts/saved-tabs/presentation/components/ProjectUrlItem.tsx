@@ -28,6 +28,7 @@ import {
   getCategoryDisplayName,
   getCategoryLevel,
 } from './projectUrlItemHelpers'
+import { useSavedTabSelectionItem } from './selection/SavedTabsSelectionProvider'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
 import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
@@ -94,6 +95,7 @@ const ProjectUrlContent = ({ item }: Pick<ProjectUrlItemProps, 'item'>) => (
 
 type ProjectUrlActivationProps = Pick<ProjectUrlItemProps, 'item'> & {
   isPractice: boolean
+  isSelectionMode: boolean
   onClick: (event: React.MouseEvent<HTMLElement>) => void
   onDragStart: (event: React.DragEvent<HTMLElement>) => void
   onDragEnd: (event: React.DragEvent<HTMLElement>) => void
@@ -102,6 +104,7 @@ type ProjectUrlActivationProps = Pick<ProjectUrlItemProps, 'item'> & {
 const ProjectUrlActivation = ({
   item,
   isPractice,
+  isSelectionMode,
   onClick,
   onDragStart,
   onDragEnd,
@@ -132,7 +135,7 @@ const ProjectUrlActivation = ({
       asChild
       variant='ghost'
       size='sm'
-      draggable
+      draggable={!isSelectionMode}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
@@ -182,7 +185,12 @@ const ProjectUrlItemComponent = ({
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
   const isPractice = savedTabsUseCases?.interactionMode === 'practice'
-  const canReorderUrls = useUrlReorderAvailable()
+  const selection = useSavedTabSelectionItem({
+    groupId: projectId,
+    url: originalUrl,
+    title: item.title || originalUrl,
+  })
+  const canReorderUrls = useUrlReorderAvailable() && !selection.isSelectionMode
 
   // ドラッグアンドドロップの設定を強化
   const {
@@ -306,6 +314,9 @@ const ProjectUrlItemComponent = ({
 
   const handleUrlClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
+      if (selection.handleSelectionClick(event)) {
+        return
+      }
       if (!isPractice && !isManagedLinkActivation(event)) {
         return
       }
@@ -313,7 +324,7 @@ const ProjectUrlItemComponent = ({
       event.preventDefault()
       handleOpenUrl(item.url)
     },
-    [isPractice, handleOpenUrl, item.url],
+    [selection, isPractice, handleOpenUrl, item.url],
   )
 
   const handleDeleteButtonClick = useCallback(
@@ -353,31 +364,38 @@ const ProjectUrlItemComponent = ({
         data-parent-type={parentType ?? ''}
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
-        <div
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
-          aria-describedby={
-            isOpen
-              ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
-              : attributes['aria-describedby']
-          }
-          aria-label={t('savedTabs.url.dragHandleAria', undefined, {
-            name: item.title || originalUrl,
-          })}
-          className='flex w-10 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing'
-          data-testid='project-url-drag-handle'
-        >
-          <SavedTabDragHandleIcon
-            isOpen={isOpen}
-            descriptionId={openStateDescriptionId}
-          />
-        </div>
+        {selection.checkbox ? (
+          <div className='z-10 flex w-10 shrink-0 items-center justify-center'>
+            {selection.checkbox}
+          </div>
+        ) : (
+          <div
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+            aria-describedby={
+              isOpen
+                ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+                : attributes['aria-describedby']
+            }
+            aria-label={t('savedTabs.url.dragHandleAria', undefined, {
+              name: item.title || originalUrl,
+            })}
+            className='flex w-10 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing'
+            data-testid='project-url-drag-handle'
+          >
+            <SavedTabDragHandleIcon
+              isOpen={isOpen}
+              descriptionId={openStateDescriptionId}
+            />
+          </div>
+        )}
         <SavedUrlFavoriteButton
           url={originalUrl}
           title={item.title}
           isFavorite={item.isFavorite ?? false}
+          disabled={selection.isSelectionMode}
           className='ml-2 w-10'
         />
         {/* タイトル＋バッジ部 */}
@@ -385,6 +403,7 @@ const ProjectUrlItemComponent = ({
           <ProjectUrlActivation
             item={item}
             isPractice={isPractice}
+            isSelectionMode={selection.isSelectionMode}
             onClick={handleUrlClick}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
@@ -399,6 +418,7 @@ const ProjectUrlItemComponent = ({
             variant='ghost'
             size='sm'
             onClick={handleDeleteButtonClick}
+            disabled={selection.isSelectionMode}
             className='size-8 cursor-pointer p-0'
             title={t('savedTabs.url.deleteAria')}
             aria-label={t('savedTabs.url.deleteAria')}

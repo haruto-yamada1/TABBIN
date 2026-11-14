@@ -263,6 +263,39 @@ describe('DomainModeContainer', () => {
     }
   })
 
+  it('タブが 0 件のときは「タブを選択」を表示しない', () => {
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        handleDeleteSelectedUrls={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: 'タブを選択' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('タブがあるときは「タブを選択」を表示する', () => {
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        handleDeleteSelectedUrls={vi.fn()}
+        state={{
+          ...createProps().state,
+          shouldShowUncategorizedList: true,
+          shouldShowUncategorizedSectionHeader: true,
+        }}
+        uncategorizedForDisplay={uncategorizedGroups}
+        hasContentTabGroupsCount={uncategorizedGroups.length}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'タブを選択' }),
+    ).toBeInTheDocument()
+  })
+
   it('renders English empty-state copy when the display language is en', () => {
     domainModeI18nState.language = 'en'
 
