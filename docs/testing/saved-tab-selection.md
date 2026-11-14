@@ -1,11 +1,13 @@
 # 保存したタブの複数選択
 
-Domain モードで「タブを選択」を押すと、展開中の一覧にチェックボックスを表示します。
+Domain モードと Custom モードで「タブを選択」を押すと、展開中の一覧にチェックボックスを表示します。
+タブが 1 件もないときは「タブを選択」自体を表示しません。
 通常時のリンククリックや Ctrl/Cmd クリックの動作は維持します。
 
 - 選択中のクリック、Ctrl/Cmd クリック、チェックボックスの Space は選択を切り替えます。
 - Shift クリックは、最後に切り替えた項目から実際の表示順で範囲を選択します。
   親カテゴリ、ドメイン、子カテゴリをまたいで使えます。
+  Custom モードではプロジェクトやカテゴリをまたいで使えます。
 - 「表示中をすべて選択」は、展開して表示している項目だけを対象にします。
   折りたたみで隠れた項目は選択から外れ、検索変更でも選択を解除します。
 - 「選択を解除」は選択だけを消し、「選択を終了」または Escape は選択モードを終了します。
@@ -20,6 +22,12 @@ Domain モードで「タブを選択」を押すと、展開中の一覧にチ�
 成功時は、同じ transaction の更新前 snapshot を使って一度の Undo で双方を復元できます。
 一覧の再読み込みだけが失敗した場合は、削除の成功と区別して案内します。
 
+Custom モードでは、選択した行を所属プロジェクトごとにまとめて削除します。
+プロジェクトが複数にまたがっても Undo snapshot は 1 回だけ取得し、Undo も 1 件だけ表示します。
+削除は確定済みで一覧の再読み込みだけ失敗した場合は、Undo を残したまま案内を分けます。
+選択中は行のドラッグ、お気に入り、個別削除を無効化し、行クリックは選択の切り替えになります。
+「今開いているタブ」セクションの選択も同じ削除処理を使います。
+
 選択自体は画面内の一時状態で、保存形式や拡張機能の権限は変えません。
 Custom への一括追加は Issue #283 の対象です。
 
@@ -27,6 +35,10 @@ Custom への一括追加は Issue #283 の対象です。
 
 - `SavedTabsSelectionProvider.test.tsx`: 表示順、逆方向の範囲選択、キーボード、解除、
   検索・折りたたみ、処理中の二重操作防止、確認、失敗時の選択維持。
+- `CustomModeContainer.test.tsx` と `ProjectUrlItem.test.tsx`:
+  Custom モードの選択 UI 表示条件、行クリックでの選択、選択中の削除コールバック。
+- `useProjectManagement.test.tsx`: 選択 URL のプロジェクト単位の一括削除、
+  Undo 1 回、失敗時の再スロー。
 - `DeleteSelectedSavedUrlsUseCase.test.ts` と native integration:
   対象の所属検証、重複除去、単一 commit、途中失敗の rollback、カテゴリ・Custom への反映、
   Undo 後の close/reopen と手動順序。
@@ -41,3 +53,5 @@ Custom への一括追加は Issue #283 の対象です。
 `issue897-native-firefox.json` は、実行環境の `os.tmpdir()` に出力します。
 
 ![通常一覧の複数選択](../screenshots/issue-897-selection.png)
+![Custom モードの複数選択](../screenshots/custom-mode-selection.png)
+![Custom モードの選択削除確認](../screenshots/custom-mode-selection-delete-confirm.png)

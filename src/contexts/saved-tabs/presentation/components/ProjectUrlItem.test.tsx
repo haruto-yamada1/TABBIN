@@ -54,6 +54,7 @@ import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/co
 
 import { ProjectUrlItem } from './ProjectUrlItem'
 import { getCategoryDisplayName } from './projectUrlItemHelpers'
+import { SavedTabsSelectionProvider } from './selection/SavedTabsSelectionProvider'
 
 const sendMessageMock = vi.fn()
 
@@ -166,6 +167,44 @@ describe('ProjectUrlItem', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('選択モードでは行クリックで開かず、選択した URL を削除コールバックへ渡す', async () => {
+    const user = userEvent.setup()
+    const handleOpenUrl = vi.fn()
+    const onDelete = vi.fn(async () => {})
+    const item = {
+      url: 'https://example.com/path',
+      title: 'Example',
+    }
+
+    render(
+      <SavedTabsSelectionProvider
+        scopeKey=''
+        confirmDeleteAll={false}
+        hasSelectableTabs
+        onOpen={async () => {}}
+        onDelete={onDelete}
+      >
+        <ProjectUrlItem {...createProps({ handleOpenUrl, item })} />
+      </SavedTabsSelectionProvider>,
+    )
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'タブを選択' }))
+    expect(screen.queryByTestId('project-url-drag-handle')).toBeNull()
+
+    const link = screen.getByRole('link', { name: 'Example' })
+    await user.click(link)
+    expect(handleOpenUrl).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('checkbox', { name: 'Exampleを選択' }),
+    ).toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: '選択したタブを削除' }))
+    expect(onDelete).toHaveBeenCalledExactlyOnceWith([
+      { groupId: 'project-1', title: 'Example', url: item.url },
+    ])
   })
 
   it('keeps identical URLs in separate projects independently draggable and restores focus to the handle', () => {

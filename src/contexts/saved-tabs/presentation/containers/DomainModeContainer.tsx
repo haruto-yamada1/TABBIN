@@ -480,6 +480,8 @@ export const DomainModeContainer = ({
     shouldShowUncategorizedSectionHeader,
   } = state
   const { t } = useI18n()
+  const hasSelectableTabs =
+    hasContentTabGroupsCount > 0 || (openTabsRows?.length ?? 0) > 0
   const accessibility = useDndAccessibility()
   const handleDeleteGroupsForCategory = useCallback(
     (ids: string[]) => {
@@ -684,6 +686,7 @@ export const DomainModeContainer = ({
     <SavedTabsSelectionProvider
       scopeKey={`${searchQuery}\0${String(isCategoryReorderMode)}\0${String(isUncategorizedReorderMode)}`}
       confirmDeleteAll={settings.confirmDeleteAll}
+      hasSelectableTabs={hasSelectableTabs}
       onOpen={handleOpenAllTabs}
       onDelete={handleDeleteSelectedUrls}
     >

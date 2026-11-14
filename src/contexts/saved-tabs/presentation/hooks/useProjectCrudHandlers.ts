@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { toStorageCustomProject } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
@@ -319,12 +320,67 @@ const useProjectCrudHandlers = ({
     ],
   )
 
+  const handleDeleteSelectedUrls = useCallback(
+    async (items: SavedTabSelectionItem[]): Promise<void> => {
+      if (items.length === 0) {
+        return
+      }
+      const byProject = new Map<string, string[]>()
+      for (const item of items) {
+        const urls = byProject.get(item.groupId) ?? []
+        urls.push(item.url)
+        byProject.set(item.groupId, urls)
+      }
+      try {
+        const undoSnapshot =
+          await refs.getCustomProjectUndoSnapshotQueryRef.current()
+        for (const [projectId, urls] of byProject) {
+          // 同一 session の revision を順に更新するため直列に実行する。
+          // eslint-disable-next-line eslint/no-await-in-loop
+          await refs.removeUrlsFromCustomProjectUseCaseRef.current({
+            projectId,
+            urls,
+          })
+        }
+        // 削除は確定済みなので、一覧の再読み込みに失敗しても Undo は残す。
+        showCustomProjectDeleteUndoToast({
+          count: items.length,
+          restoreCustomProjectsSnapshotUseCase:
+            refs.restoreCustomProjectsSnapshotUseCaseRef.current,
+          setCustomProjects,
+          snapshot: undoSnapshot,
+          t,
+        })
+        try {
+          const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
+          setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
+        } catch (error) {
+          console.error('選択URL削除後の再読み込みエラー:', error)
+          toast.error(t('savedTabs.selection.refreshFailed'))
+        }
+      } catch (error) {
+        // 選択ストアに失敗を伝え、選択とエラー表示を維持する。
+        console.error('選択URL削除エラー:', error)
+        throw error
+      }
+    },
+    [
+      refs.getCustomProjectUndoSnapshotQueryRef,
+      refs.removeUrlsFromCustomProjectUseCaseRef,
+      refs.getCustomProjectRawsQueryRef,
+      refs.restoreCustomProjectsSnapshotUseCaseRef,
+      setCustomProjects,
+      t,
+    ],
+  )
+
   return {
     handleAddUrlToProject,
     handleCreateProject,
     handleDeleteProject,
     handleDeleteUrlFromProject,
     handleDeleteUrlsFromProject,
+    handleDeleteSelectedUrls,
     handleRenameProject,
     handleUpdateProjectKeywords,
     handleViewModeChange,

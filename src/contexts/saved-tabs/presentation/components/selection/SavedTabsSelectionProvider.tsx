@@ -31,6 +31,11 @@ type SavedTabsSelectionProviderProps = {
   children: ReactNode
   scopeKey: string
   confirmDeleteAll: boolean
+  /**
+   * 選択できるタブが 1 件以上あるか。0 件のときは「タブを選択」を出さない。
+   * 選択モード中は、対象が 0 件になっても終了操作を残すため表示を維持する。
+   */
+  hasSelectableTabs: boolean
   onOpen: (items: SavedTabSelectionItem[]) => Promise<void>
   onDelete: (items: SavedTabSelectionItem[]) => Promise<void>
 }
@@ -38,7 +43,7 @@ type SavedTabsSelectionProviderProps = {
 type SelectionSnapshot = ReturnType<SavedTabSelectionStore['getSnapshot']>
 type SelectionCallbacks = Omit<
   SavedTabsSelectionProviderProps,
-  'children' | 'scopeKey'
+  'children' | 'scopeKey' | 'hasSelectableTabs'
 >
 const SelectionContext = createContext<SavedTabSelectionStore | null>(null)
 const emptySubscribe = () => () => {}
@@ -113,8 +118,12 @@ const SelectionError = ({
 
 const SelectionToolbar = ({
   store,
+  hasSelectableTabs,
   ...callbacks
-}: SelectionCallbacks & { store: SavedTabSelectionStore }) => {
+}: SelectionCallbacks & {
+  store: SavedTabSelectionStore
+  hasSelectableTabs: boolean
+}) => {
   const { t } = useI18n()
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const instructionsId = useId()
@@ -138,6 +147,9 @@ const SelectionToolbar = ({
   const handleEnter = store.enter
   const locked = state.busy !== null || state.confirmation !== null
   const empty = state.selected.size === 0
+  if (!hasSelectableTabs && !state.active) {
+    return null
+  }
   return (
     <>
       <fieldset

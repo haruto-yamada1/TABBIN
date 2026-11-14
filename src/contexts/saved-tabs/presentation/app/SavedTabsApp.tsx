@@ -176,6 +176,7 @@ const useSavedTabsAppView = ({
     handleAddUrlToProject,
     handleDeleteUrlFromProject,
     handleDeleteUrlsFromProject,
+    handleDeleteSelectedUrls: handleDeleteSelectedCustomUrls,
     handleAddCategory,
     handleDeleteProjectCategory,
     handleSetUrlCategory,
@@ -516,6 +517,7 @@ const useSavedTabsAppView = ({
         handleUpdateCategoryOrder={handleUpdateCategoryOrder}
         handleReorderUrls={handleReorderUrls}
         handleOpenAllUrls={handleOpenAllTabs}
+        handleDeleteSelectedUrls={handleDeleteSelectedCustomUrls}
         handleMoveUrlBetweenProjects={handleMoveUrlBetweenProjects}
         handleMoveUrlsBetweenCategories={handleMoveUrlsBetweenCategories}
         handleReorderProjects={handleReorderProjects}
