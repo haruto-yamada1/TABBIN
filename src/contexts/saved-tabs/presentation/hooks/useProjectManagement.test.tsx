@@ -1494,6 +1494,110 @@ describe('useProjectManagement', () => {
     expect(toast.info).not.toHaveBeenCalled()
   })
 
+  it('選択 URL の一括削除が途中で失敗したら成功分の Undo と最新一覧を残して再スローする', async () => {
+    const firstProject: CustomProject = {
+      ...projectSnapshot[0],
+      memberships: [{ urlId: 'url-a' }],
+    }
+    const secondProject: CustomProject = {
+      categories: [],
+      createdAt: 3,
+      id: 'project-2',
+      memberships: [{ urlId: 'url-b' }],
+      name: 'Project B',
+      updatedAt: 4,
+    }
+    const projects: CustomProject[] = [firstProject, secondProject]
+    const refreshedProjects: CustomProject[] = [
+      {
+        ...firstProject,
+        memberships: [],
+        updatedAt: 3,
+      },
+      secondProject,
+    ]
+    projectManagementMocks.getCustomProjects.mockResolvedValue(projects)
+    projectManagementMocks.getCustomProjectOrder.mockResolvedValue([
+      'project-1',
+      'project-2',
+    ])
+
+    const { result } = renderHook(() =>
+      useProjectManagement(
+        projectManagementMocks.getCustomProjects,
+        projectManagementMocks.getCustomProjectOrder,
+        projectManagementMocks.getCustomProjectUndoSnapshot,
+        projectManagementMocks.getCustomProjectRaws,
+        [],
+        defaultSettings,
+        'custom',
+        projectManagementMocks.createCustomProject,
+        projectManagementMocks.deleteCustomProject,
+        projectManagementMocks.updateCustomProjectName,
+        projectManagementMocks.saveCustomProjectOrder,
+        projectManagementMocks.restoreCustomProjectsSnapshot,
+        projectManagementMocks.addUrlToCustomProject,
+        projectManagementMocks.removeUrlFromCustomProject,
+        projectManagementMocks.removeUrlsFromCustomProject,
+        projectManagementMocks.setUrlCategory,
+        projectManagementMocks.updateCategoryOrder,
+        projectManagementMocks.reorderProjectUrls,
+        projectManagementMocks.renameCategoryInProject,
+        projectManagementMocks.updateProjectKeywords,
+        projectManagementMocks.addCategoryToCustomProject,
+        projectManagementMocks.removeCategoryFromCustomProject,
+      ),
+    )
+
+    await waitForLoadedProjects(result, projects)
+
+    projectManagementMocks.getCustomProjectRaws
+      .mockResolvedValueOnce(projects.map(toRawSnapshot))
+      .mockResolvedValueOnce(refreshedProjects.map(toRawSnapshot))
+    projectManagementMocks.removeUrlsFromCustomProject
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('second project failed'))
+
+    await act(async () => {
+      await expect(
+        result.current.handleDeleteSelectedUrls([
+          {
+            groupId: 'project-1',
+            title: 'Example A',
+            url: 'https://example.com/a',
+          },
+          {
+            groupId: 'project-2',
+            title: 'Example B',
+            url: 'https://example.com/b',
+          },
+        ]),
+      ).rejects.toThrow('second project failed')
+    })
+
+    expect(
+      projectManagementMocks.removeUrlsFromCustomProject.mock.calls,
+    ).toStrictEqual([
+      [{ projectId: 'project-1', urls: ['https://example.com/a'] }],
+      [{ projectId: 'project-2', urls: ['https://example.com/b'] }],
+    ])
+    expect(toast.info).toHaveBeenCalledExactlyOnceWith(
+      '削除した1件のタブを保存データに戻せます',
+      expect.objectContaining({
+        action: expect.objectContaining({
+          label: '元に戻す',
+        }),
+      }),
+    )
+    await waitFor(() => {
+      expect(result.current.customProjects).toStrictEqual(
+        refreshedProjects.map(toPresentedSnapshot),
+      )
+    })
+    // 初回ロード、Undo snapshot、途中失敗後の一覧再読み込みで 3 回。
+    expect(projectManagementMocks.getCustomProjectRaws).toHaveBeenCalledTimes(3)
+  })
+
   it('選択 URL の削除後に一覧を再読み込みできなくても Undo を残す', async () => {
     projectManagementMocks.getCustomProjects
       .mockResolvedValueOnce(projectSnapshot)
