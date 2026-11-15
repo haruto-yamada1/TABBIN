@@ -506,6 +506,133 @@ describe('OpenSavedUrlUseCase', () => {
     expect(result.removedUrlRecordId).toBe(url.id)
   })
 
+  it.each(['click', 'externalDrop'] as const)(
+    '%s: favorite protection が ON ならお気に入りを自動削除しない',
+    async (origin) => {
+      const favorite = createUrlRecord({
+        id: 'url-favorite',
+        isFavorite: true,
+        savedAt: 1,
+        title: 'Favorite',
+        url: 'https://example.com/favorite',
+      })
+      const group = createTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        memberships: [{ urlId: favorite.id }],
+      })
+      const repos = createInMemoryRepositories({
+        tabGroups: [group],
+        urlRecords: [favorite],
+      })
+      vi.spyOn(repos.userSettingsRepository, 'findAll').mockResolvedValue({
+        ...defaultUserSettings,
+        protectFavoriteFromAutoRemoval: true,
+        removeTabAfterExternalDrop: true,
+        removeTabAfterOpen: true,
+      })
+      const browser = createSpyBrowserTabPort()
+      const useCase = createOpenSavedUrlUseCase({
+        ...repos,
+        browserTabPort: browser.port,
+      })
+
+      const result = await useCase({
+        origin,
+        settings: {
+          removeTabAfterExternalDrop: true,
+          removeTabAfterOpen: true,
+        },
+        urlRecordId: favorite.id,
+      })
+
+      expect(browser.opened).toStrictEqual([{ url: favorite.url }])
+      expect(result).toMatchObject({
+        removedUrlRecord: null,
+        removedUrlRecordId: null,
+        snapshot: null,
+      })
+      expect(repos.urlRecords).toStrictEqual([favorite])
+      expect(
+        repos.tabGroups[0]?.memberships.map(({ urlId }) => urlId),
+      ).toStrictEqual([favorite.id])
+    },
+  )
+
+  it.each(['click', 'externalDrop'] as const)(
+    '%s: favorite protection が OFF なら既存の削除設定に従う',
+    async (origin) => {
+      const favorite = createUrlRecord({
+        id: 'url-favorite',
+        isFavorite: true,
+        savedAt: 1,
+        title: 'Favorite',
+        url: 'https://example.com/favorite',
+      })
+      const group = createTabGroup({
+        domain: 'example.com',
+        id: 'group-1',
+        memberships: [{ urlId: favorite.id }],
+      })
+      const repos = createInMemoryRepositories({
+        tabGroups: [group],
+        urlRecords: [favorite],
+      })
+      vi.spyOn(repos.userSettingsRepository, 'findAll').mockResolvedValue({
+        ...defaultUserSettings,
+        protectFavoriteFromAutoRemoval: false,
+        removeTabAfterExternalDrop: true,
+        removeTabAfterOpen: true,
+      })
+      const browser = createSpyBrowserTabPort()
+      const useCase = createOpenSavedUrlUseCase({
+        ...repos,
+        browserTabPort: browser.port,
+      })
+
+      const result = await useCase({
+        origin,
+        settings: {
+          removeTabAfterExternalDrop: true,
+          removeTabAfterOpen: true,
+        },
+        urlRecordId: favorite.id,
+      })
+
+      expect(result.removedUrlRecordId).toBe(favorite.id)
+      expect(repos.urlRecords).toStrictEqual([])
+      expect(repos.tabGroups).toStrictEqual([])
+    },
+  )
+
+  it('favorite protection の既定 ON は旧設定（キーなし）でも適用される', async () => {
+    const favorite = createUrlRecord({
+      id: 'url-favorite',
+      isFavorite: true,
+      savedAt: 1,
+      title: 'Favorite',
+      url: 'https://example.com/favorite',
+    })
+    const repos = createInMemoryRepositories({ urlRecords: [favorite] })
+    vi.spyOn(repos.userSettingsRepository, 'findAll').mockResolvedValue({
+      ...defaultUserSettings,
+      removeTabAfterOpen: true,
+    })
+    const useCase = createOpenSavedUrlUseCase({
+      ...repos,
+      browserTabPort: createSpyBrowserTabPort().port,
+    })
+
+    const result = await useCase({
+      origin: 'click',
+      settings: { ...baseSettings, removeTabAfterOpen: true },
+      urlRecordId: favorite.id,
+    })
+
+    expect(result.removedUrlRecordId).toBeNull()
+    expect(repos.urlRecords).toStrictEqual([favorite])
+  })
+
   it('CustomProject の urlIds が一部だけ削除対象なら更新して保存する', async () => {
     const urlToOpen = createUrlRecord({
       id: 'url-1',

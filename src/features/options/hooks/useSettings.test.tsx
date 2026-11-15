@@ -9,6 +9,7 @@ vi.mock('@/lib/storage/settings', () => {
   const defaultSettings = {
     removeTabAfterOpen: true,
     removeTabAfterExternalDrop: true,
+    protectFavoriteFromAutoRemoval: true,
     excludePatterns: ['chrome-extension://', 'chrome://'],
     enableCategories: true,
     autoDeletePeriod: 'never',
@@ -213,6 +214,33 @@ describe('useSettingsフック', () => {
         showSavedTime: true,
       }),
     )
+  })
+
+  it('お気に入り自動削除保護の保存失敗時は元の値へ戻す', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    vi.mocked(getUserSettings).mockResolvedValue(defaultSettings)
+    vi.mocked(saveUserSettings).mockRejectedValue(new Error('persist failed'))
+
+    const { result } = renderHook(() => useSettings())
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    let success = true
+    await act(async () => {
+      success = await result.current.updateSetting(
+        'protectFavoriteFromAutoRemoval',
+        false,
+      )
+    })
+
+    expect(success).toBe(false)
+    expect(result.current.settings.protectFavoriteFromAutoRemoval).toBe(true)
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
   })
 
   it('連続した updateSetting 呼び出しでも前の変更を失わない', async () => {

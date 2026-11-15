@@ -260,6 +260,7 @@ describe('ImportExportSettingsコンポーネント', () => {
           openAllInNewWindow: false,
           openUrlInBackground: true,
           removeTabAfterExternalDrop: true,
+          protectFavoriteFromAutoRemoval: true,
           removeTabAfterOpen: true,
           showRelativeSavedTime: false,
           showSavedTime: false,

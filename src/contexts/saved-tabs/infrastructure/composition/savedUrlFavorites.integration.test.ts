@@ -13,6 +13,7 @@ import {
 
 const setup = async () => {
   let failWrite = false
+  let storedSettings: Record<string, unknown> = {}
   const gate: PersistenceOperationGatePort = {
     runIndexedDbRead: async (operation) => operation(),
     runIndexedDbWrite: async (operation) => {
@@ -24,7 +25,16 @@ const setup = async () => {
   }
   vi.stubGlobal('chrome', {
     tabs: { create: vi.fn(async () => ({})) },
-    storage: { local: { get: vi.fn(async () => ({})), set: vi.fn() } },
+    storage: {
+      local: {
+        get: vi.fn(async () =>
+          Object.keys(storedSettings).length === 0
+            ? {}
+            : { userSettings: storedSettings },
+        ),
+        set: vi.fn(),
+      },
+    },
   })
   const manager = new IndexedDbConnectionManager({
     databaseName: 'favorites',
@@ -58,6 +68,9 @@ const setup = async () => {
     rejectWrites: () => {
       failWrite = true
     },
+    setSettings: (settings: Record<string, unknown>) => {
+      storedSettings = settings
+    },
   }
 }
 
@@ -65,7 +78,7 @@ afterEach(() => vi.unstubAllGlobals())
 
 describe('saved URL favorites in IndexedDB', () => {
   it('shares the flag in both modes and persists through reopen, recapture, expiration and Undo', async () => {
-    const { manager, reader, useCases, dataPlane } = await setup()
+    const { manager, reader, setSettings, useCases, dataPlane } = await setup()
     const analyticsBefore = await dataPlane.readAnalyticsRecords()
     const before = await reader.readVerifiedSavedTabsSnapshot()
     await useCases.setSavedUrlFavorite({
@@ -124,10 +137,31 @@ describe('saved URL favorites in IndexedDB', () => {
         ({ url }) => url.endsWith('/a'),
       )?.isFavorite,
     ).toBe(true)
-    expect(await dataPlane.removeExpiredUrls(11, 12)).toEqual({
+    expect(
+      await dataPlane.removeExpiredUrls(11, 12, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).toEqual({
       removedCount: 1,
       sourceCount: 2,
     })
+    const protectedOpen = await useCases.openSavedUrl({
+      urlRecordId: favorite?.id ?? '',
+      origin: 'click',
+      settings: { removeTabAfterOpen: true, removeTabAfterExternalDrop: false },
+    })
+    expect(protectedOpen).toMatchObject({
+      removedUrlRecord: null,
+      removedUrlRecordId: null,
+      snapshot: null,
+    })
+    expect(
+      (await reader.readVerifiedSavedTabsSnapshot()).savedTabs.urls.find(
+        ({ url }) => url.endsWith('/a'),
+      )?.isFavorite,
+    ).toBe(true)
+
+    setSettings({ protectFavoriteFromAutoRemoval: false })
     const opened = await useCases.openSavedUrl({
       urlRecordId: favorite?.id ?? '',
       origin: 'click',
@@ -149,7 +183,11 @@ describe('saved URL favorites in IndexedDB', () => {
       url: 'https://example.com/a',
       isFavorite: false,
     })
-    expect(await dataPlane.removeExpiredUrls(11, 12)).toEqual({
+    expect(
+      await dataPlane.removeExpiredUrls(11, 12, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).toEqual({
       removedCount: 1,
       sourceCount: 1,
     })

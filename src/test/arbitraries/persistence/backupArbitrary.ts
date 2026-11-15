@@ -12,6 +12,7 @@ export const canonicalUserSettings = {
   excludePinnedTabs: false,
   openAllInNewWindow: false,
   openUrlInBackground: false,
+  protectFavoriteFromAutoRemoval: true,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
   showRelativeSavedTime: false,

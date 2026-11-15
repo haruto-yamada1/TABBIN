@@ -166,6 +166,7 @@ const createSettings = (
   fontSizePercent: 100,
   openAllInNewWindow: false,
   openUrlInBackground: true,
+  protectFavoriteFromAutoRemoval: true,
   removeTabAfterExternalDrop: true,
   removeTabAfterOpen: true,
   showRelativeSavedTime: false,
@@ -225,6 +226,26 @@ describe('OptionsRoute', () => {
       expect(optionsRouteMocks.updateSetting).toHaveBeenCalledExactlyOnceWith(
         'showOpenTabs',
         !showOpenTabs,
+      )
+    },
+  )
+
+  it.each([false, true])(
+    'お気に入り自動削除保護の設定%sを切り替える',
+    async (protectFavoriteFromAutoRemoval) => {
+      optionsRouteMocks.settings = createSettings({
+        protectFavoriteFromAutoRemoval,
+      })
+      const user = userEvent.setup()
+      render(<OptionsRoute />)
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'options.autoDelete.protectFavorites',
+      })
+      expect(checkbox).toHaveProperty('checked', protectFavoriteFromAutoRemoval)
+      await user.click(checkbox)
+      expect(optionsRouteMocks.updateSetting).toHaveBeenCalledExactlyOnceWith(
+        'protectFavoriteFromAutoRemoval',
+        !protectFavoriteFromAutoRemoval,
       )
     },
   )

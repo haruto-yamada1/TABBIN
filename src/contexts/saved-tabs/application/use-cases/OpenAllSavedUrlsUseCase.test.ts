@@ -1057,6 +1057,117 @@ describe('OpenAllSavedUrlsUseCase', () => {
     expect(result.snapshot).toBeNull()
   })
 
+  it('favorite protection が ON なら一括オープンでお気に入りだけを残す', async () => {
+    const favorite = createUrlRecord({
+      id: 'url-favorite',
+      isFavorite: true,
+      savedAt: 1,
+      title: 'Favorite',
+      url: 'https://example.com/favorite',
+    })
+    const regular = createUrlRecord({
+      id: 'url-regular',
+      savedAt: 1,
+      title: 'Regular',
+      url: 'https://example.com/regular',
+    })
+    const domainGroup = createTabGroup({
+      domain: 'example.com',
+      id: 'group-domain',
+      memberships: [{ urlId: favorite.id }, { urlId: regular.id }],
+    })
+    const otherGroup = createTabGroup({
+      domain: 'other.example',
+      id: 'group-other',
+      memberships: [{ urlId: favorite.id }],
+    })
+    const project = createCustomProject({
+      id: 'project-1',
+      memberships: [{ urlId: favorite.id }, { urlId: regular.id }],
+      name: 'Project',
+    })
+    const repos = createInMemoryRepositories({
+      customProjects: [project],
+      tabGroups: [domainGroup, otherGroup],
+      urlRecords: [favorite, regular],
+    })
+    vi.spyOn(repos.userSettingsRepository, 'findAll').mockResolvedValue({
+      ...defaultUserSettings,
+      protectFavoriteFromAutoRemoval: true,
+    })
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort: createSpyBrowserTabPort().port,
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+
+    const result = await useCase({
+      mode: 'backgroundTabs',
+      removeTabAfterOpen: true,
+      urls: [favorite.url, regular.url],
+    })
+
+    expect(result.removedUrlRecordIds).toStrictEqual([regular.id])
+    await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([
+      favorite,
+    ])
+    const remainingGroups = await repos.tabGroupRepository.findAll()
+    expect(
+      remainingGroups.map(({ memberships }) =>
+        memberships.map(({ urlId }) => urlId),
+      ),
+    ).toStrictEqual([[favorite.id], [favorite.id]])
+    const remainingProjects = await repos.customProjectRepository.findAll()
+    assert.isDefined(remainingProjects[0])
+    expect(
+      remainingProjects[0].memberships.map(({ urlId }) => urlId),
+    ).toStrictEqual([favorite.id])
+  })
+
+  it('favorite protection が OFF なら一括オープンでもお気に入りを削除する', async () => {
+    const favorite = createUrlRecord({
+      id: 'url-favorite',
+      isFavorite: true,
+      savedAt: 1,
+      title: 'Favorite',
+      url: 'https://example.com/favorite',
+    })
+    const regular = createUrlRecord({
+      id: 'url-regular',
+      savedAt: 1,
+      title: 'Regular',
+      url: 'https://example.com/regular',
+    })
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'group-1',
+      memberships: [{ urlId: favorite.id }, { urlId: regular.id }],
+    })
+    const repos = createInMemoryRepositories({
+      tabGroups: [group],
+      urlRecords: [favorite, regular],
+    })
+    vi.spyOn(repos.userSettingsRepository, 'findAll').mockResolvedValue({
+      ...defaultUserSettings,
+      protectFavoriteFromAutoRemoval: false,
+    })
+    const useCase = createOpenAllSavedUrlsUseCase({
+      ...repos,
+      browserTabPort: createSpyBrowserTabPort().port,
+      browserWindowPort: createSpyBrowserWindowPort().port,
+    })
+
+    const result = await useCase({
+      mode: 'backgroundTabs',
+      removeTabAfterOpen: true,
+      urls: [favorite.url, regular.url],
+    })
+
+    expect(result.removedUrlRecordIds).toStrictEqual([favorite.id, regular.id])
+    await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual([])
+    await expect(repos.tabGroupRepository.findAll()).resolves.toStrictEqual([])
+  })
+
   it('空 URL 配列のときは port を呼ばず早期 return する', async () => {
     const repos = createInMemoryRepositories()
     const tab = createSpyBrowserTabPort()

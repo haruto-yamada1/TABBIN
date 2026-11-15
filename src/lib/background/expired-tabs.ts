@@ -82,8 +82,8 @@ export const getExpirationPeriodMs = (
 export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
   try {
     logger.debug('background_expired_tabs_check_started')
-    const autoDeletePeriod =
-      (await requireOperationalUserSettings()).autoDeletePeriod ?? 'never'
+    const settings = await requireOperationalUserSettings()
+    const autoDeletePeriod = settings.autoDeletePeriod ?? 'never'
     if (autoDeletePeriod === 'never') {
       logger.debug('background_expired_tabs_auto_delete_disabled')
       return
@@ -97,6 +97,9 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     const result = await getBackgroundSavedTabsDataPlane().removeExpiredUrls(
       currentTime - expirationPeriod,
       currentTime,
+      {
+        protectFavoriteFromAutoRemoval: settings.protectFavoriteFromAutoRemoval,
+      },
     )
     if (result.sourceCount === 0) {
       logger.debug('background_expired_tabs_source_empty')

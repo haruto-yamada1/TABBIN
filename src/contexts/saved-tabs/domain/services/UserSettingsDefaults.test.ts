@@ -79,6 +79,24 @@ describe('normalizeUserSettings', () => {
     ).toBe(true)
   })
 
+  it('お気に入り自動削除保護は未設定ならON、明示OFFだけを維持する', () => {
+    expect(defaultUserSettings.protectFavoriteFromAutoRemoval).toBe(true)
+    expect(
+      normalizeUserSettings({ userSettings: {} }).normalized
+        .protectFavoriteFromAutoRemoval,
+    ).toBe(true)
+    expect(
+      normalizeUserSettings({
+        userSettings: { protectFavoriteFromAutoRemoval: 'true' },
+      }).normalized.protectFavoriteFromAutoRemoval,
+    ).toBe(true)
+    expect(
+      normalizeUserSettings({
+        userSettings: { protectFavoriteFromAutoRemoval: false },
+      }).normalized.protectFavoriteFromAutoRemoval,
+    ).toBe(false)
+  })
+
   it('除外パターンを trim・重複除去し、必須パターンを補う', () => {
     const result = normalizeUserSettings({
       userSettings: {

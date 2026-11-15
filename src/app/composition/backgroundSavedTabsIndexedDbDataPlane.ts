@@ -489,6 +489,7 @@ const removeExpiredUrls = (
   state: IndexedDbSavedTabsMutableState,
   cutoffTime: number,
   _currentTime: number,
+  options: { readonly protectFavoriteFromAutoRemoval: boolean },
 ): { readonly removedCount: number; readonly sourceCount: number } => {
   const collections = new Map(
     state.collections.map((collection) => [collection.id, collection]),
@@ -503,7 +504,10 @@ const removeExpiredUrls = (
       continue
     }
     sourceCount += 1
-    if (urls.get(membership.urlId)?.isFavorite) {
+    if (
+      options.protectFavoriteFromAutoRemoval &&
+      urls.get(membership.urlId)?.isFavorite
+    ) {
       continue
     }
     const savedAt =
@@ -538,9 +542,15 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   readInsightRecords: async () =>
     buildInsightRecords((await readSnapshot()).savedTabs),
   readUndoSnapshot: readSnapshot,
-  removeExpiredUrls: async (cutoffTime, currentTime) =>
-    session.run((state) => removeExpiredUrls(state, cutoffTime, currentTime)),
-  removeUrl: async (url, urlRecordId) => {
+  removeExpiredUrls: async (
+    cutoffTime,
+    currentTime,
+    options = { protectFavoriteFromAutoRemoval: true },
+  ) =>
+    session.run((state) =>
+      removeExpiredUrls(state, cutoffTime, currentTime, options),
+    ),
+  removeUrl: async (url, urlRecordId, options = {}) => {
     const identity = validUrlIdentityKey(url)
     if (!identity) {
       return 0
@@ -552,6 +562,13 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
           (urlRecordId === undefined || record.id === urlRecordId),
       )
       const target = matches.length === 1 ? matches[0] : undefined
+      if (
+        target &&
+        options.protectFavorite === true &&
+        target.isFavorite === true
+      ) {
+        return 0
+      }
       return target ? removeSelectedUrls(state, new Set([target.id])) : 0
     })
   },

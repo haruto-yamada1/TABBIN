@@ -18,8 +18,10 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  *
  * `removeTabAfterOpen`: 通常クリックで開いた URL を削除するか
  * `removeTabAfterExternalDrop`: 外部アプリへドラッグして開いた URL を削除するか
+ * `protectFavoriteFromAutoRemoval`: お気に入りを自動削除から保護するか
  */
 export type OpenedUrlRemovalSettings = {
+  readonly protectFavoriteFromAutoRemoval: boolean
   readonly removeTabAfterOpen: boolean
   readonly removeTabAfterExternalDrop: boolean
 }
@@ -36,15 +38,19 @@ export type OpenedUrlOrigin = 'click' | 'externalDrop'
  * 開いた URL の入力情報。
  */
 export type OpenedUrlInput = {
+  readonly isFavorite?: boolean
   readonly urlRecordId: UrlRecordId
   readonly origin: OpenedUrlOrigin
 }
 
 const shouldRemoveOpenedUrl = (
-  origin: OpenedUrlOrigin,
+  opened: OpenedUrlInput,
   settings: OpenedUrlRemovalSettings,
 ): boolean => {
-  if (origin === 'click') {
+  if (settings.protectFavoriteFromAutoRemoval && opened.isFavorite === true) {
+    return false
+  }
+  if (opened.origin === 'click') {
     return settings.removeTabAfterOpen
   }
   return settings.removeTabAfterExternalDrop
@@ -60,7 +66,11 @@ const shouldRemoveOpenedUrl = (
  * ```ts
  * const ids = decideUrlRecordIdsToRemoveAfterOpen({
  *   openedUrls: [{ urlRecordId: id, origin: 'click' }],
- *   settings: { removeTabAfterOpen: true, removeTabAfterExternalDrop: false },
+ *   settings: {
+ *     protectFavoriteFromAutoRemoval: true,
+ *     removeTabAfterOpen: true,
+ *     removeTabAfterExternalDrop: false,
+ *   },
  * })
  * ```
  */
@@ -73,7 +83,7 @@ export const decideUrlRecordIdsToRemoveAfterOpen = ({
 }): ReadonlySet<UrlRecordId> => {
   const result = new Set<UrlRecordId>()
   for (const opened of openedUrls) {
-    if (shouldRemoveOpenedUrl(opened.origin, settings)) {
+    if (shouldRemoveOpenedUrl(opened, settings)) {
       result.add(opened.urlRecordId)
     }
   }

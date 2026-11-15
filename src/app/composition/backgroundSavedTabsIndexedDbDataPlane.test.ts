@@ -243,7 +243,11 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     })
     const { dataPlane } = createDataPlane(state)
 
-    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).resolves.toEqual({
       removedCount: 1,
       sourceCount: 1,
     })
@@ -265,16 +269,80 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
     const { dataPlane } = createDataPlane(state)
     const before = structuredClone(state)
-    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).resolves.toEqual({
       removedCount: 0,
       sourceCount: 1,
     })
     expect(state).toEqual(before)
     state.urls = state.urls.map((url) => ({ ...url, isFavorite: false }))
-    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).resolves.toEqual({
       removedCount: 1,
       sourceCount: 1,
     })
+  })
+
+  it('favorite protection が OFF なら期限切れのお気に入りも削除する', async () => {
+    const state = createState()
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: false,
+      }),
+    ).resolves.toEqual({
+      removedCount: 1,
+      sourceCount: 1,
+    })
+    expect(state.urls.map(({ id }) => id)).toStrictEqual(['url-1'])
+    expect(state.memberships).toStrictEqual([
+      expect.objectContaining({
+        collectionId: 'project-1',
+        urlId: 'url-1',
+      }),
+    ])
+  })
+
+  it('外部ドロップ削除は transaction 内の最新 favorite 状態で保護する', async () => {
+    const state = createState()
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1', {
+        protectFavorite: true,
+      }),
+    ).resolves.toBe(0)
+    expect(state.urls.map(({ id }) => id)).toStrictEqual(['url-1'])
+    expect(state.memberships).toHaveLength(2)
+
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: false }))
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1', {
+        protectFavorite: true,
+      }),
+    ).resolves.toBe(1)
+    expect(state.urls).toStrictEqual([])
+    expect(state.memberships).toStrictEqual([])
+  })
+
+  it('明示的な手動削除は favorite protection の影響を受けない', async () => {
+    const state = createState()
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1'),
+    ).resolves.toBe(1)
+    expect(state.urls).toStrictEqual([])
   })
 
   it('propagates a native session failure without another backend attempt', async () => {

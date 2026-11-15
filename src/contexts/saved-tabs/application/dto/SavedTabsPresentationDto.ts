@@ -21,6 +21,7 @@ export type SavedTabsUserSettingsDto = {
   language?: 'system' | 'ja' | 'en'
   removeTabAfterOpen: boolean
   removeTabAfterExternalDrop: boolean
+  protectFavoriteFromAutoRemoval: boolean
   excludePatterns: string[]
   enableCategories: boolean
   autoDeletePeriod?: string

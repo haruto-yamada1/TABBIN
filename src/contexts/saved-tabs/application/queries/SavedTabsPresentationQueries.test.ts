@@ -27,6 +27,7 @@ const settings = {
   openAllInNewWindow: false,
   openUrlInBackground: true,
   removeTabAfterExternalDrop: false,
+  protectFavoriteFromAutoRemoval: true,
   removeTabAfterOpen: false,
   showRelativeSavedTime: false,
   showSavedTime: true,

@@ -119,6 +119,7 @@ describe('zod-storage helpers', () => {
       const result = UserSettingsSchema.safeParse({
         removeTabAfterOpen: true,
         removeTabAfterExternalDrop: false,
+        protectFavoriteFromAutoRemoval: true,
         excludePatterns: [],
         enableCategories: true,
         showRelativeSavedTime: false,

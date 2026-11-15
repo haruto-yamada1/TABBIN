@@ -77,9 +77,19 @@ export const createOpenSavedUrlUseCase = (
 
     try {
       const idsToRemove = decideUrlRecordIdsToRemoveAfterOpen({
-        openedUrls: [{ origin: command.origin, urlRecordId: urlRecord.id }],
+        openedUrls: [
+          {
+            ...(urlRecord.isFavorite === undefined
+              ? {}
+              : { isFavorite: urlRecord.isFavorite }),
+            origin: command.origin,
+            urlRecordId: urlRecord.id,
+          },
+        ],
         // A caller may opt out, but stale presentation state cannot authorize deletion.
         settings: {
+          protectFavoriteFromAutoRemoval:
+            settings.protectFavoriteFromAutoRemoval,
           removeTabAfterOpen:
             command.settings.removeTabAfterOpen && settings.removeTabAfterOpen,
           removeTabAfterExternalDrop:

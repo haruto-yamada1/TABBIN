@@ -131,6 +131,11 @@ const toUserSettingsBehaviorPatch = (
   ...(settings.openUrlInBackground !== undefined
     ? { openUrlInBackground: settings.openUrlInBackground }
     : {}),
+  ...(settings.protectFavoriteFromAutoRemoval !== undefined
+    ? {
+        protectFavoriteFromAutoRemoval: settings.protectFavoriteFromAutoRemoval,
+      }
+    : {}),
   ...(settings.removeTabAfterExternalDrop !== undefined
     ? { removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop }
     : {}),

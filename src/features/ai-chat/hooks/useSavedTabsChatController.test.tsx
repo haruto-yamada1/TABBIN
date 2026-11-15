@@ -30,6 +30,7 @@ const mocked = vi.hoisted(() => ({
     openAllInNewWindow: false,
     openUrlInBackground: true,
     removeTabAfterExternalDrop: true,
+    protectFavoriteFromAutoRemoval: true,
     removeTabAfterOpen: true,
     showRelativeSavedTime: false,
     showSavedTime: false,

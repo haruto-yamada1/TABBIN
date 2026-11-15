@@ -24,6 +24,7 @@ vi.mock('@/lib/storage/settings', () => ({
   getUserSettings: mocked.getUserSettings,
   requireUserSettings: mocked.getUserSettings,
 }))
+vi.mock('./notification', () => ({ showNotification: vi.fn() }))
 
 import {
   checkAndRemoveExpiredTabs,
@@ -36,7 +37,10 @@ describe('expired-tabs route-aware background bridge', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
-    mocked.getUserSettings.mockResolvedValue({ autoDeletePeriod: 'never' })
+    mocked.getUserSettings.mockResolvedValue({
+      autoDeletePeriod: 'never',
+      protectFavoriteFromAutoRemoval: true,
+    })
     mocked.removeExpiredUrls.mockResolvedValue({
       removedCount: 0,
       sourceCount: 0,
@@ -71,7 +75,10 @@ describe('expired-tabs route-aware background bridge', () => {
   it('selected routeへcutoffを渡して期限切れURLを削除する', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-02-24T12:00:00.000Z'))
-    mocked.getUserSettings.mockResolvedValue({ autoDeletePeriod: '1day' })
+    mocked.getUserSettings.mockResolvedValue({
+      autoDeletePeriod: '1day',
+      protectFavoriteFromAutoRemoval: true,
+    })
     mocked.removeExpiredUrls.mockResolvedValue({
       removedCount: 2,
       sourceCount: 3,
@@ -82,11 +89,34 @@ describe('expired-tabs route-aware background bridge', () => {
     expect(mocked.removeExpiredUrls).toHaveBeenCalledWith(
       Date.now() - 86_400_000,
       Date.now(),
+      { protectFavoriteFromAutoRemoval: true },
     )
     expect(mocked.logger.info).toHaveBeenCalledWith(
       'background_expired_tabs_removed',
       { recordCount: 2 },
     )
+  })
+
+  it('お気に入り保護OFFを data plane の期限切れ削除へ引き渡す', async () => {
+    mocked.getUserSettings.mockResolvedValue({
+      autoDeletePeriod: '1day',
+      protectFavoriteFromAutoRemoval: false,
+    })
+
+    await checkAndRemoveExpiredTabs()
+
+    expect(mocked.removeExpiredUrls).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      { protectFavoriteFromAutoRemoval: false },
+    )
+  })
+
+  it('設定読み込み失敗時は期限切れ削除を開始しない', async () => {
+    mocked.getUserSettings.mockRejectedValue(new Error('settings unavailable'))
+
+    await expect(checkAndRemoveExpiredTabs()).resolves.toBeUndefined()
+    expect(mocked.removeExpiredUrls).not.toHaveBeenCalled()
   })
 
   it('selected route sourceが空ならscan/remove logを出さない', async () => {

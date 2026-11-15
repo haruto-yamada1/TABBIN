@@ -351,6 +351,7 @@ describe('settings storage', () => {
       openAllInNewWindow: false,
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: true,
       showRelativeSavedTime: false,
       showSavedTime: false,
@@ -709,6 +710,7 @@ describe('strict settings states and recovery', () => {
     await expect(readUserSettingsStrict()).resolves.toMatchObject({
       status: 'available',
       settings: {
+        protectFavoriteFromAutoRemoval: true,
         removeTabAfterOpen: false,
         excludePatterns: expect.arrayContaining(['custom', 'about:']),
       },

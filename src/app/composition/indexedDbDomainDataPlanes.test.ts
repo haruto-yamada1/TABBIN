@@ -224,7 +224,9 @@ describe('IndexedDB domain data-plane production composition', () => {
     const updatedAt = Date.now() + 100
     await dataPlane.updateTabTimestamps(updatedAt)
     await expect(
-      dataPlane.removeExpiredUrls(updatedAt + 100, updatedAt + 200),
+      dataPlane.removeExpiredUrls(updatedAt + 100, updatedAt + 200, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
     ).resolves.toEqual({
       removedCount: 1,
       sourceCount: 1,
