@@ -101,6 +101,86 @@ type ProjectUrlActivationProps = Pick<ProjectUrlItemProps, 'item'> & {
   onDragEnd: (event: React.DragEvent<HTMLElement>) => void
 }
 
+type ProjectUrlClickOptions = {
+  handleOpenUrl: ProjectUrlItemProps['handleOpenUrl']
+  isPractice: boolean
+  itemUrl: string
+  selection: ReturnType<typeof useSavedTabSelectionItem>
+}
+
+const useProjectUrlClick = ({
+  handleOpenUrl,
+  isPractice,
+  itemUrl,
+  selection,
+}: ProjectUrlClickOptions) =>
+  useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (selection.handleSelectionClick(event)) {
+        return
+      }
+      if (!isPractice && !isManagedLinkActivation(event)) {
+        return
+      }
+
+      event.preventDefault()
+      handleOpenUrl(itemUrl)
+    },
+    [selection, isPractice, handleOpenUrl, itemUrl],
+  )
+
+type ProjectUrlHandleProps = {
+  attributes: ReturnType<typeof useSortable>['attributes']
+  listeners: ReturnType<typeof useSortable>['listeners']
+  setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef']
+  isOpen: boolean
+  openStateDescriptionId: string
+  selection: ReturnType<typeof useSavedTabSelectionItem>
+  title: string
+}
+
+const ProjectUrlHandle = ({
+  attributes,
+  listeners,
+  setActivatorNodeRef,
+  isOpen,
+  openStateDescriptionId,
+  selection,
+  title,
+}: ProjectUrlHandleProps) => {
+  const { t } = useI18n()
+  if (selection.checkbox) {
+    return (
+      <div className='z-10 flex w-10 shrink-0 items-center justify-center'>
+        {selection.checkbox}
+      </div>
+    )
+  }
+  return (
+    <div
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+      aria-describedby={
+        isOpen
+          ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+          : attributes['aria-describedby']
+      }
+      aria-label={t('savedTabs.url.dragHandleAria', undefined, {
+        name: title,
+      })}
+      className='flex w-10 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing'
+      data-testid='project-url-drag-handle'
+    >
+      <SavedTabDragHandleIcon
+        isOpen={isOpen}
+        descriptionId={openStateDescriptionId}
+      />
+    </div>
+  )
+}
+
 const ProjectUrlActivation = ({
   item,
   isPractice,
@@ -312,20 +392,12 @@ const ProjectUrlItemComponent = ({
   const categoryLevel = getCategoryLevel(item.category)
   const isInSubcategory = categoryLevel > 0
 
-  const handleUrlClick = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      if (selection.handleSelectionClick(event)) {
-        return
-      }
-      if (!isPractice && !isManagedLinkActivation(event)) {
-        return
-      }
-
-      event.preventDefault()
-      handleOpenUrl(item.url)
-    },
-    [selection, isPractice, handleOpenUrl, item.url],
-  )
+  const handleUrlClick = useProjectUrlClick({
+    handleOpenUrl,
+    isPractice,
+    itemUrl: item.url,
+    selection,
+  })
 
   const handleDeleteButtonClick = useCallback(
     (e: React.MouseEvent) => {
@@ -364,33 +436,15 @@ const ProjectUrlItemComponent = ({
         data-parent-type={parentType ?? ''}
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
-        {selection.checkbox ? (
-          <div className='z-10 flex w-10 shrink-0 items-center justify-center'>
-            {selection.checkbox}
-          </div>
-        ) : (
-          <div
-            ref={setActivatorNodeRef}
-            {...attributes}
-            {...listeners}
-            aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
-            aria-describedby={
-              isOpen
-                ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
-                : attributes['aria-describedby']
-            }
-            aria-label={t('savedTabs.url.dragHandleAria', undefined, {
-              name: item.title || originalUrl,
-            })}
-            className='flex w-10 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing'
-            data-testid='project-url-drag-handle'
-          >
-            <SavedTabDragHandleIcon
-              isOpen={isOpen}
-              descriptionId={openStateDescriptionId}
-            />
-          </div>
-        )}
+        <ProjectUrlHandle
+          attributes={attributes}
+          listeners={listeners}
+          setActivatorNodeRef={setActivatorNodeRef}
+          isOpen={isOpen}
+          openStateDescriptionId={openStateDescriptionId}
+          selection={selection}
+          title={item.title || originalUrl}
+        />
         <SavedUrlFavoriteButton
           url={originalUrl}
           title={item.title}

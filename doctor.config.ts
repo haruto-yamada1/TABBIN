@@ -31,6 +31,15 @@ export default defineConfig({
         files: ['src/components/ThemeProvider.tsx'],
         rules: ['react-doctor/effect-needs-cleanup'],
       },
+      {
+        // 選択 URL の一括削除は、プロジェクトごとに共有 IndexedDB
+        // session の revision を更新する。並列化すると commit が競合し、
+        // 未参照 URL の掃除順も変わるため直列実行が必要。
+        files: [
+          'src/contexts/saved-tabs/presentation/hooks/useProjectCrudHandlers.ts',
+        ],
+        rules: ['react-doctor/async-await-in-loop'],
+      },
     ],
   },
   // SavedTabsApp.tsx に絞って `async-parallel` を許容
