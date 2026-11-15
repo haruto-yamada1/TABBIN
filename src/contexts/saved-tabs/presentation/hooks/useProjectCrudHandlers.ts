@@ -2,6 +2,8 @@ import { useCallback } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import type { CustomProjectUndoSnapshot } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
+import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { toStorageCustomProject } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
@@ -319,12 +321,85 @@ const useProjectCrudHandlers = ({
     ],
   )
 
+  const handleDeleteSelectedUrls = useCallback(
+    async (items: SavedTabSelectionItem[]): Promise<void> => {
+      if (items.length === 0) {
+        return
+      }
+      const byProject = new Map<string, string[]>()
+      for (const item of items) {
+        const urls = byProject.get(item.groupId) ?? []
+        urls.push(item.url)
+        byProject.set(item.groupId, urls)
+      }
+      const refreshProjects = async (): Promise<void> => {
+        try {
+          const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
+          setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
+        } catch (error) {
+          console.error('選択URL削除後の再読み込みエラー:', error)
+          toast.error(t('savedTabs.selection.refreshFailed'))
+        }
+      }
+      let undoSnapshot: CustomProjectUndoSnapshot | undefined
+      let deletedCount = 0
+      try {
+        undoSnapshot = await refs.getCustomProjectUndoSnapshotQueryRef.current()
+        for (const [projectId, urls] of byProject) {
+          // 同一 session の revision を順に更新するため直列に実行する。
+          // eslint-disable-next-line eslint/no-await-in-loop
+          await refs.removeUrlsFromCustomProjectUseCaseRef.current({
+            projectId,
+            urls,
+          })
+          deletedCount += urls.length
+        }
+      } catch (error) {
+        // プロジェクトをまたぐ削除は 1 回ずつ commit される。先行分が
+        // 確定している場合は、失敗前に取得した snapshot で Undo と一覧を
+        // 復旧できるようにしてから、選択ストアへ失敗を伝える。
+        console.error('選択URL削除エラー:', error)
+        if (undoSnapshot && deletedCount > 0) {
+          showCustomProjectDeleteUndoToast({
+            count: deletedCount,
+            restoreCustomProjectsSnapshotUseCase:
+              refs.restoreCustomProjectsSnapshotUseCaseRef.current,
+            setCustomProjects,
+            snapshot: undoSnapshot,
+            t,
+          })
+          await refreshProjects()
+        }
+        throw error
+      }
+      // 削除は確定済みなので、一覧の再読み込みに失敗しても Undo は残す。
+      showCustomProjectDeleteUndoToast({
+        count: items.length,
+        restoreCustomProjectsSnapshotUseCase:
+          refs.restoreCustomProjectsSnapshotUseCaseRef.current,
+        setCustomProjects,
+        snapshot: undoSnapshot,
+        t,
+      })
+      await refreshProjects()
+    },
+    [
+      refs.getCustomProjectUndoSnapshotQueryRef,
+      refs.removeUrlsFromCustomProjectUseCaseRef,
+      refs.getCustomProjectRawsQueryRef,
+      refs.restoreCustomProjectsSnapshotUseCaseRef,
+      setCustomProjects,
+      t,
+    ],
+  )
+
   return {
     handleAddUrlToProject,
     handleCreateProject,
     handleDeleteProject,
     handleDeleteUrlFromProject,
     handleDeleteUrlsFromProject,
+    handleDeleteSelectedUrls,
     handleRenameProject,
     handleUpdateProjectKeywords,
     handleViewModeChange,

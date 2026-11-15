@@ -199,6 +199,16 @@ const showCustomProjectDeleteUndoToast = ({
   )
 }
 
+/**
+ * 選択削除の 1 項目。`SavedTabSelectionItem` と同形だが、この層から
+ * presentation の選択ストアへ依存を増やさないため構造的に定義する。
+ */
+type SelectedUrlItem = {
+  readonly groupId: string
+  readonly title: string
+  readonly url: string
+}
+
 /** UseProjectManagement フックの戻り値型 */
 type UseProjectManagementReturn = {
   /** カスタムプロジェクト一覧 */
@@ -271,6 +281,11 @@ type UseProjectManagementReturn = {
     projectId: string,
     urls: string[],
   ) => Promise<void>
+  /**
+   * 選択した URL を所属プロジェクトごとに一括削除する。
+   * @param items - 削除対象の選択項目
+   */
+  handleDeleteSelectedUrls: (items: SelectedUrlItem[]) => Promise<void>
   /**
    * プロジェクトにカテゴリを追加する。
    * @param projectId - 対象プロジェクトの ID

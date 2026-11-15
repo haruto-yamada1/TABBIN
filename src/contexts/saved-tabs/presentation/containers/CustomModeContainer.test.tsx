@@ -20,6 +20,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         {
           'common.loading': 'Loading...',
           'common.loadingLabel': 'Loading',
+          'savedTabs.selection.start': 'Select tabs',
         } satisfies Record<string, string>
       )[key] ?? key,
   }),
@@ -260,4 +261,47 @@ describe('CustomModeContainer', () => {
       expect(getProjectUrlsUseCase).not.toHaveBeenCalled()
     },
   )
+
+  it('タブが 0 件のときは「タブを選択」を表示しない', () => {
+    renderContainer({
+      ...baseProps,
+      getProjectUrlsUseCase: vi.fn(async () => []),
+      handleDeleteSelectedUrls: vi.fn(),
+      projects: [
+        {
+          id: 'p1',
+          name: 'p1',
+          categories: [],
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ],
+      searchQuery: '',
+    })
+
+    expect(
+      screen.queryByRole('button', { name: 'Select tabs' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('プロジェクトにタブがあるときは「タブを選択」を表示する', () => {
+    renderContainer({
+      ...baseProps,
+      getProjectUrlsUseCase: vi.fn(async () => []),
+      handleDeleteSelectedUrls: vi.fn(),
+      projects: [
+        {
+          id: 'p1',
+          name: 'p1',
+          categories: [],
+          createdAt: 1,
+          updatedAt: 2,
+          memberships: [{ urlId: 'u1' }],
+        },
+      ],
+      searchQuery: '',
+    })
+
+    expect(screen.getByRole('button', { name: 'Select tabs' })).toBeTruthy()
+  })
 })

@@ -2,6 +2,8 @@ import { LoadingState } from '@/components/ui/loading-state'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
+import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
+import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { useCustomOpenTabsRows } from '@/contexts/saved-tabs/presentation/controllers/useCustomOpenTabsRows'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
@@ -46,6 +48,8 @@ type CustomModeContainerProps = {
     urls: CustomProject['urls'],
   ) => Promise<void>
   handleOpenAllUrls: (urls: { url: string; title: string }[]) => Promise<void>
+  /** 選択した行を一括削除する。未指定のときは選択 UI を出さない。 */
+  handleDeleteSelectedUrls?: (items: SavedTabSelectionItem[]) => Promise<void>
   handleMoveUrlBetweenProjects: (
     sourceProjectId: string,
     targetProjectId: string,
@@ -85,6 +89,7 @@ export const CustomModeContainer = ({
   handleUpdateCategoryOrder,
   handleReorderUrls,
   handleOpenAllUrls,
+  handleDeleteSelectedUrls,
   handleMoveUrlBetweenProjects,
   handleMoveUrlsBetweenCategories,
   handleReorderProjects,
@@ -102,7 +107,14 @@ export const CustomModeContainer = ({
     return <LoadingState />
   }
 
-  return (
+  const hasSelectableTabs =
+    openTabsRows.length > 0 ||
+    projects.some(
+      (project) =>
+        (project.memberships?.length ?? 0) > 0 ||
+        (project.urls?.length ?? 0) > 0,
+    )
+  const content = (
     <div>
       {settings.showOpenTabs !== false && openTabsRows.length > 0 && (
         <OpenTabsSection
@@ -116,6 +128,9 @@ export const CustomModeContainer = ({
           // eslint-disable-next-line typescript/no-misused-promises
           handleDeleteUrl={handleDeleteUrl}
           handleDeleteUrls={handleDeleteUrlsFromProject}
+          {...(handleDeleteSelectedUrls !== undefined
+            ? { handleDeleteRows: handleDeleteSelectedUrls }
+            : {})}
         />
       )}
       <CustomProjectSection
@@ -160,5 +175,19 @@ export const CustomModeContainer = ({
         settings={settings}
       />
     </div>
+  )
+
+  return handleDeleteSelectedUrls ? (
+    <SavedTabsSelectionProvider
+      scopeKey={searchQuery}
+      confirmDeleteAll={settings.confirmDeleteAll}
+      hasSelectableTabs={hasSelectableTabs}
+      onOpen={handleOpenAllUrls}
+      onDelete={handleDeleteSelectedUrls}
+    >
+      {content}
+    </SavedTabsSelectionProvider>
+  ) : (
+    content
   )
 }

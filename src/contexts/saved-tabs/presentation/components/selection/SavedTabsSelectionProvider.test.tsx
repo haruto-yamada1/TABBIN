@@ -93,6 +93,7 @@ const setup = ({
   rows = items,
   scopeKey = '',
   confirmDeleteAll = false,
+  hasSelectableTabs = true,
   onOpen = vi.fn(async () => {}),
   onDelete = vi.fn(async (_items: SavedTabSelectionItem[]) => {}),
 } = {}) => {
@@ -100,6 +101,7 @@ const setup = ({
     <SavedTabsSelectionProvider
       scopeKey={nextScopeKey}
       confirmDeleteAll={confirmDeleteAll}
+      hasSelectableTabs={hasSelectableTabs}
       onOpen={onOpen}
       onDelete={onDelete}
     >
@@ -155,6 +157,14 @@ const deferred = <T,>() => {
 }
 
 describe('saved tab selection', () => {
+  it('hides the start button when no tabs are selectable', () => {
+    setup({ rows: [], hasSelectableTabs: false })
+
+    expect(
+      screen.queryByRole('button', { name: 'Select tabs' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('keeps a duplicated visible URL selectable after its original card collapses', async () => {
     const onOpen = vi.fn(async () => {})
     const onDelete = vi.fn(async () => {})
@@ -162,6 +172,7 @@ describe('saved tab selection', () => {
       <SavedTabsSelectionProvider
         scopeKey=''
         confirmDeleteAll={false}
+        hasSelectableTabs
         onOpen={onOpen}
         onDelete={onDelete}
       >
@@ -195,6 +206,7 @@ describe('saved tab selection', () => {
       <SavedTabsSelectionProvider
         scopeKey=''
         confirmDeleteAll={false}
+        hasSelectableTabs
         onOpen={async () => {}}
         onDelete={async () => {}}
       >
@@ -224,6 +236,7 @@ describe('saved tab selection', () => {
       <SavedTabsSelectionProvider
         scopeKey=''
         confirmDeleteAll={false}
+        hasSelectableTabs
         onOpen={async () => {}}
         onDelete={async () => {}}
       >
