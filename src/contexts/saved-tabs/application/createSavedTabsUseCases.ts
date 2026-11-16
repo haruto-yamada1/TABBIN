@@ -167,6 +167,9 @@ export const createSavedTabsUseCases = (
   }),
   getCustomProjectUndoSnapshot: createGetCustomProjectUndoSnapshotQuery({
     customProjectRepository: deps.customProjectRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
   }),
   getCustomProjectRaws: createGetCustomProjectRawsQuery({
     customProjectRepository: deps.customProjectRepository,
@@ -179,6 +182,9 @@ export const createSavedTabsUseCases = (
   }),
   restoreCustomProjectsSnapshot: createRestoreCustomProjectsSnapshotUseCase({
     customProjectRepository: deps.customProjectRepository,
+    parentCategoryRepository: deps.parentCategoryRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
   }),
   getSavedTabsPageData: createGetSavedTabsPageDataQuery({
     parentCategoryRepository: deps.parentCategoryRepository,
@@ -250,18 +256,20 @@ export const createSavedTabsUseCases = (
       urlRecordRepository: deps.urlRecordRepository,
     }),
   }),
-  // issue #539: CustomProject URL / カテゴリ操作 use-case 群。port
-  // (customProjectsCommandService) 経由の呼び出しを application
-  // use-case へ移設し、presentation 層は use-case 関数だけを受ける形
-  // に統一する。
+  // URL の削除は両モードの保存データを同期更新する。所属の移動や
+  // カテゴリ操作は customProjectsCommandService の個別操作を使う。
   addUrlToCustomProject: createAddUrlToCustomProjectUseCase({
     customProjectsCommandService: deps.customProjectsCommandService,
   }),
   removeUrlFromCustomProject: createRemoveUrlFromCustomProjectUseCase({
-    customProjectsCommandService: deps.customProjectsCommandService,
+    customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
   }),
   removeUrlsFromCustomProject: createRemoveUrlsFromCustomProjectUseCase({
-    customProjectsCommandService: deps.customProjectsCommandService,
+    customProjectRepository: deps.customProjectRepository,
+    tabGroupRepository: deps.tabGroupRepository,
+    urlRecordRepository: deps.urlRecordRepository,
   }),
   setCustomProjectUrlCategory: createSetCustomProjectUrlCategoryUseCase({
     customProjectsCommandService: deps.customProjectsCommandService,

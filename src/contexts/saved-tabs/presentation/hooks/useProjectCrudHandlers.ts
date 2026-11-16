@@ -251,7 +251,10 @@ const useProjectCrudHandlers = ({
     async (projectId: string, url: string): Promise<void> => {
       try {
         const undoSnapshot =
-          await refs.getCustomProjectUndoSnapshotQueryRef.current()
+          await refs.getCustomProjectUndoSnapshotQueryRef.current({
+            includeSavedUrls: true,
+            targets: [{ projectId, urls: [url] }],
+          })
         await refs.removeUrlFromCustomProjectUseCaseRef.current({
           projectId,
           url,
@@ -259,6 +262,7 @@ const useProjectCrudHandlers = ({
         const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
+          getCustomProjectRawsQuery: refs.getCustomProjectRawsQueryRef.current,
           count: 1,
           restoreCustomProjectsSnapshotUseCase:
             refs.restoreCustomProjectsSnapshotUseCaseRef.current,
@@ -286,7 +290,10 @@ const useProjectCrudHandlers = ({
     async (projectId: string, urls: string[]): Promise<void> => {
       try {
         const undoSnapshot =
-          await refs.getCustomProjectUndoSnapshotQueryRef.current()
+          await refs.getCustomProjectUndoSnapshotQueryRef.current({
+            includeSavedUrls: true,
+            targets: [{ projectId, urls }],
+          })
         await refs.removeUrlsFromCustomProjectUseCaseRef.current({
           projectId,
           urls,
@@ -294,6 +301,7 @@ const useProjectCrudHandlers = ({
         const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
         setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
+          getCustomProjectRawsQuery: refs.getCustomProjectRawsQueryRef.current,
           count: urls.length,
           restoreCustomProjectsSnapshotUseCase:
             refs.restoreCustomProjectsSnapshotUseCaseRef.current,
@@ -344,7 +352,13 @@ const useProjectCrudHandlers = ({
       let undoSnapshot: CustomProjectUndoSnapshot | undefined
       let deletedCount = 0
       try {
-        undoSnapshot = await refs.getCustomProjectUndoSnapshotQueryRef.current()
+        undoSnapshot = await refs.getCustomProjectUndoSnapshotQueryRef.current({
+          includeSavedUrls: true,
+          targets: [...byProject].map(([projectId, urls]) => ({
+            projectId,
+            urls,
+          })),
+        })
         for (const [projectId, urls] of byProject) {
           // 同一 session の revision を順に更新するため直列に実行する。
           // eslint-disable-next-line eslint/no-await-in-loop
@@ -361,6 +375,8 @@ const useProjectCrudHandlers = ({
         console.error('選択URL削除エラー:', error)
         if (undoSnapshot && deletedCount > 0) {
           showCustomProjectDeleteUndoToast({
+            getCustomProjectRawsQuery:
+              refs.getCustomProjectRawsQueryRef.current,
             count: deletedCount,
             restoreCustomProjectsSnapshotUseCase:
               refs.restoreCustomProjectsSnapshotUseCaseRef.current,
@@ -374,6 +390,7 @@ const useProjectCrudHandlers = ({
       }
       // 削除は確定済みなので、一覧の再読み込みに失敗しても Undo は残す。
       showCustomProjectDeleteUndoToast({
+        getCustomProjectRawsQuery: refs.getCustomProjectRawsQueryRef.current,
         count: items.length,
         restoreCustomProjectsSnapshotUseCase:
           refs.restoreCustomProjectsSnapshotUseCaseRef.current,

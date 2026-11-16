@@ -1,3 +1,4 @@
+import type { PersistenceV2Url } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/UrlRecordId'
 
@@ -19,7 +20,11 @@ import type { UrlRecordId } from '@/contexts/saved-tabs/domain/value-objects/Url
  */
 export type UrlRecordRepository = {
   findAll: () => Promise<readonly UrlRecord[]>
+  /** Exact persistence records for lossless Undo of timestamps and provenance. */
+  findAllRaw?: () => Promise<readonly PersistenceV2Url[]>
   findById: (id: UrlRecordId) => Promise<UrlRecord | null>
   saveAll: (records: readonly UrlRecord[]) => Promise<void>
   removeByIds: (ids: readonly UrlRecordId[]) => Promise<void>
+  /** Replaces the raw URL set. Callers merge by ID before restoring snapshots. */
+  restoreAllRaw?: (records: readonly PersistenceV2Url[]) => Promise<void>
 }

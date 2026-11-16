@@ -1,12 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
+import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
+import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type {
   CustomProjectRawSnapshot,
   CustomProjectRepository,
 } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { CustomProjectId } from '@/contexts/saved-tabs/domain/value-objects/CustomProjectId'
-import { createCustomProject } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
+import {
+  createCustomProject,
+  createTabGroup,
+} from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
+import { createMockParentCategoryRepository } from '@/contexts/saved-tabs/testing/createMockParentCategoryRepository'
+import { createMockTabGroupRepository } from '@/contexts/saved-tabs/testing/createMockTabGroupRepository'
 
 import { createRestoreCustomProjectsSnapshotUseCase } from './RestoreCustomProjectsSnapshotUseCase'
 
@@ -38,12 +45,26 @@ const projects = [
 ]
 const raws: readonly CustomProjectRawSnapshot[] = projects
 
+const createSnapshotRepositories = () => ({
+  parentCategoryRepository: createMockParentCategoryRepository({
+    parentCategories: [],
+  }),
+  tabGroupRepository: createMockTabGroupRepository({ savedTabs: [] }),
+  urlRecordRepository: {
+    findAll: vi.fn(async () => []),
+    findById: vi.fn(async () => null),
+    removeByIds: vi.fn(async () => {}),
+    saveAll: vi.fn(async () => {}),
+  },
+})
+
 describe('RestoreCustomProjectsSnapshotUseCase', () => {
   it('raw snapshotとrestoreAllRawがあればそのcurrent snapshotを復元する', async () => {
     const restoreAllRaw = vi.fn(async () => {})
     const saveAll = vi.fn(async () => {})
     const saveOrder = vi.fn(async () => {})
     const useCase = createRestoreCustomProjectsSnapshotUseCase({
+      ...createSnapshotRepositories(),
       customProjectRepository: makeRepository({
         restoreAllRaw,
         saveAll,
@@ -72,6 +93,7 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
     async (_, rawSnapshot) => {
       const saveAll = vi.fn(async () => {})
       const useCase = createRestoreCustomProjectsSnapshotUseCase({
+        ...createSnapshotRepositories(),
         customProjectRepository: makeRepository({ saveAll }),
       })
 
@@ -89,6 +111,7 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
   it('order省略時は空orderを書き戻す', async () => {
     const saveOrder = vi.fn(async () => {})
     const useCase = createRestoreCustomProjectsSnapshotUseCase({
+      ...createSnapshotRepositories(),
       customProjectRepository: makeRepository({ saveOrder }),
     })
 
@@ -100,6 +123,7 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
   it('空membershipをそのままcurrent projectとして保存する', async () => {
     const saveAll = vi.fn(async () => {})
     const useCase = createRestoreCustomProjectsSnapshotUseCase({
+      ...createSnapshotRepositories(),
       customProjectRepository: makeRepository({ saveAll }),
     })
     const emptyProject = createCustomProject({ id: 'project-empty' })
@@ -109,5 +133,57 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
     expect(saveAll).toHaveBeenCalledWith([
       expect.objectContaining({ id: 'project-empty', memberships: [] }),
     ])
+  })
+
+  it('restores deleted domain, URL metadata and category links alongside raw custom data', async () => {
+    const repositories = createSnapshotRepositories()
+    const restoreAllRaw = vi.fn(async () => {})
+    const saveOrder = vi.fn(async () => {})
+    const group = createTabGroup({
+      domain: 'example.com',
+      id: 'domain',
+      parentCategoryId: 'parent',
+      subCategories: ['Docs'],
+      memberships: [{ category: 'Docs', notes: 'domain memo', urlId: 'url-1' }],
+    })
+    const category = createParentCategory({
+      collections: [{ domain: 'example.com', id: 'domain' }],
+      id: 'parent',
+      name: 'Work',
+    })
+    const url = createUrlRecord({
+      id: 'url-1',
+      isFavorite: true,
+      savedAt: 123,
+      title: 'Saved title',
+      url: 'https://example.com/docs',
+    })
+    const useCase = createRestoreCustomProjectsSnapshotUseCase({
+      ...repositories,
+      customProjectRepository: makeRepository({ restoreAllRaw, saveOrder }),
+    })
+
+    await useCase({
+      payload: {
+        customProjectOrder: ['project-1'],
+        customProjects: projects,
+        customProjectsRaw: raws,
+        openedUrlsSnapshot: {
+          savedTabs: [group],
+          urlRecords: [url],
+          parentCategories: [category],
+        },
+      },
+    })
+
+    await expect(repositories.tabGroupRepository.findAll()).resolves.toEqual([
+      group,
+    ])
+    await expect(
+      repositories.parentCategoryRepository.findAll(),
+    ).resolves.toEqual([category])
+    expect(repositories.urlRecordRepository.saveAll).toHaveBeenCalledWith([url])
+    expect(restoreAllRaw).toHaveBeenCalledWith(raws)
+    expect(saveOrder).toHaveBeenLastCalledWith(['project-1'])
   })
 })
