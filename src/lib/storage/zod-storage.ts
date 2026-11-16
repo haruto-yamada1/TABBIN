@@ -139,6 +139,7 @@ export const UserSettingsSchema = z.object({
   language: z.enum(['system', 'ja', 'en']).optional(),
   removeTabAfterOpen: z.boolean(),
   removeTabAfterExternalDrop: z.boolean(),
+  protectFavoriteFromAutoRemoval: z.boolean(),
   excludePatterns: z.array(z.string()),
   enableCategories: z.boolean(),
   autoDeletePeriod: autoDeletePeriodField,
@@ -180,6 +181,7 @@ export const storedUserSettingsSchema = z.object({
   language: z.enum(['system', 'ja', 'en']).optional().catch(undefined),
   removeTabAfterOpen: z.boolean().optional().catch(undefined),
   removeTabAfterExternalDrop: z.boolean().optional().catch(undefined),
+  protectFavoriteFromAutoRemoval: z.boolean().optional().catch(undefined),
   excludePatterns: z
     .preprocess(
       (val) =>

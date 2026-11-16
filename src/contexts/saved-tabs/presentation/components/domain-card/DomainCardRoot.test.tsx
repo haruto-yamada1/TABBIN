@@ -180,6 +180,7 @@ describe('DomainCardRoot', () => {
         settings={{
           removeTabAfterOpen: true,
           removeTabAfterExternalDrop: true,
+          protectFavoriteFromAutoRemoval: true,
           excludePatterns: [],
           enableCategories: true,
           autoDeletePeriod: 'never',
@@ -228,6 +229,7 @@ describe('DomainCardRoot', () => {
         settings={{
           removeTabAfterOpen: true,
           removeTabAfterExternalDrop: true,
+          protectFavoriteFromAutoRemoval: true,
           excludePatterns: [],
           enableCategories: true,
           autoDeletePeriod: 'never',

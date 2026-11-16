@@ -228,6 +228,7 @@ describe('syncStorageChanges', () => {
     const initialSettings = {
       removeTabAfterOpen: false,
       removeTabAfterExternalDrop: false,
+      protectFavoriteFromAutoRemoval: true,
       excludePatterns: [],
       enableCategories: true,
       autoDeletePeriod: 'never',

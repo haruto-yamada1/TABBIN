@@ -30,7 +30,11 @@ import {
 } from './url-storage'
 
 const url = 'https://Example.com/page?mode=edit#/saved'
-const createSettings = (enabled = true) => ({
+const createSettings = (
+  enabled = true,
+  protectFavoriteFromAutoRemoval = true,
+) => ({
+  protectFavoriteFromAutoRemoval,
   removeTabAfterExternalDrop: enabled,
   removeTabAfterOpen: true,
 })
@@ -73,8 +77,19 @@ describe('exact URL identity background bridge', () => {
   it('外部drop成功は開始時の原文と永続IDを使う', async () => {
     handleUrlDragStarted(url)
     await expect(handleUrlDropped(url, true)).resolves.toBe('removed')
-    expect(mocked.removeUrl).toHaveBeenCalledExactlyOnceWith(url, 'saved-id')
+    expect(mocked.removeUrl).toHaveBeenCalledExactlyOnceWith(url, 'saved-id', {
+      protectFavorite: true,
+    })
     expect(getDraggedUrlInfo()).toBeNull()
+  })
+
+  it('お気に入り保護OFFをdata planeの削除判定へ引き渡す', async () => {
+    mocked.getUserSettings.mockResolvedValue(createSettings(true, false))
+    handleUrlDragStarted(url)
+    await expect(handleUrlDropped(url, true)).resolves.toBe('removed')
+    expect(mocked.removeUrl).toHaveBeenCalledExactlyOnceWith(url, 'saved-id', {
+      protectFavorite: false,
+    })
   })
 
   it('外部drop設定OFFならopen設定ONでも保存する', async () => {
@@ -137,7 +152,9 @@ describe('exact URL identity background bridge', () => {
     handleUrlDragStarted(url, 'saved-id')
     await expect(handleUrlDropped(url, true)).resolves.toBe('removed')
     expect(mocked.readUndoSnapshot).not.toHaveBeenCalled()
-    expect(mocked.removeUrl).toHaveBeenCalledWith(url, 'saved-id')
+    expect(mocked.removeUrl).toHaveBeenCalledWith(url, 'saved-id', {
+      protectFavorite: true,
+    })
   })
 
   it('開始IDと原文の組み合わせがDBに存在しなければskipする', async () => {
@@ -146,7 +163,9 @@ describe('exact URL identity background bridge', () => {
     await expect(handleUrlDropped(url, true, 'wrong-id')).resolves.toBe(
       'skipped',
     )
-    expect(mocked.removeUrl).toHaveBeenCalledExactlyOnceWith(url, 'wrong-id')
+    expect(mocked.removeUrl).toHaveBeenCalledExactlyOnceWith(url, 'wrong-id', {
+      protectFavorite: true,
+    })
   })
 
   it('dropのID hintが開始時IDと異なる場合は削除しない', async () => {

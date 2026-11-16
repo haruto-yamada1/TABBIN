@@ -30,6 +30,14 @@ export type BackgroundSavedTabInput = {
   readonly url?: string
 }
 
+export type BackgroundSavedTabsRemoveExpiredUrlsOptions = {
+  readonly protectFavoriteFromAutoRemoval: boolean
+}
+
+export type BackgroundSavedTabsRemoveUrlOptions = {
+  readonly protectFavorite?: boolean
+}
+
 export type BackgroundSavedTabsDataPlane = {
   readonly readAnalyticsRecords: () => Promise<
     readonly SavedTabsAnalyticsRecord[]
@@ -39,8 +47,13 @@ export type BackgroundSavedTabsDataPlane = {
   readonly removeExpiredUrls: (
     cutoffTime: number,
     currentTime: number,
+    options?: BackgroundSavedTabsRemoveExpiredUrlsOptions,
   ) => Promise<{ readonly removedCount: number; readonly sourceCount: number }>
-  readonly removeUrl: (url: string, urlRecordId?: string) => Promise<number>
+  readonly removeUrl: (
+    url: string,
+    urlRecordId?: string,
+    options?: BackgroundSavedTabsRemoveUrlOptions,
+  ) => Promise<number>
   readonly removeUrlIds: (urlIds: readonly string[]) => Promise<number>
   readonly restoreUndoSnapshot: (
     snapshot: PersistenceVersionedSavedTabsSnapshot,

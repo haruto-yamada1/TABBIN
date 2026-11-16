@@ -74,6 +74,7 @@ export const createCorruptPersistenceBrowserHarness = (
     openAllInNewWindow: false,
     openUrlInBackground: false,
     removeTabAfterExternalDrop: false,
+    protectFavoriteFromAutoRemoval: true,
     removeTabAfterOpen: false,
     showSavedTime: true,
     showRelativeSavedTime: false,

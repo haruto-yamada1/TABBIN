@@ -181,6 +181,13 @@ const useOptionsRouteView = () => {
     [updateSetting],
   )
 
+  const handleToggleProtectFavorites = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('protectFavoriteFromAutoRemoval', checked)
+    },
+    [updateSetting],
+  )
+
   const handleToggleExcludePinnedTabs = useCallback(
     async (checked: boolean) => {
       await updateSetting('excludePinnedTabs', checked)
@@ -420,6 +427,25 @@ const useOptionsRouteView = () => {
           </div>
           <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.externalDropDescription')}
+          </p>
+
+          <div className='mt-6 mb-4 flex items-center gap-x-2'>
+            <Checkbox
+              id='protect-favorites'
+              checked={settings.protectFavoriteFromAutoRemoval}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onCheckedChange={handleToggleProtectFavorites}
+              className='cursor-pointer'
+            />
+            <Label
+              htmlFor='protect-favorites'
+              className='cursor-pointer text-foreground'
+            >
+              {t('options.autoDelete.protectFavorites')}
+            </Label>
+          </div>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
+            {t('options.autoDelete.protectFavoritesDescription')}
           </p>
 
           <div className='mt-6 mb-4 flex items-center gap-x-2'>

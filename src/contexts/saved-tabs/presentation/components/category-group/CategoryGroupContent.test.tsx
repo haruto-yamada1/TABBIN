@@ -67,6 +67,7 @@ import { CategoryGroupContent } from './CategoryGroupContent'
 const settings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',

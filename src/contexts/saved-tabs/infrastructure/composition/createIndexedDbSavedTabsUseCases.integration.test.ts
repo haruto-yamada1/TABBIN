@@ -904,7 +904,9 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       readSnapshot: async () => snapshotReader.readVerifiedSavedTabsSnapshot(),
       session: runtime.session,
     })
-    await dataPlane.removeExpiredUrls(2, 3)
+    await dataPlane.removeExpiredUrls(2, 3, {
+      protectFavoriteFromAutoRemoval: true,
+    })
 
     const afterExpiryRemoval =
       await snapshotReader.readVerifiedSavedTabsSnapshot()

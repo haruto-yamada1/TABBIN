@@ -130,7 +130,9 @@ const consumeDrag = async (
         return 0
       }
       // Recheck exact URL + ID atomically; a re-saved URL with a new ID survives.
-      return getBackgroundSavedTabsDataPlane().removeUrl(drag.url, id)
+      return getBackgroundSavedTabsDataPlane().removeUrl(drag.url, id, {
+        protectFavorite: settings.protectFavoriteFromAutoRemoval,
+      })
     })
     return removed > 0 ? 'removed' : 'skipped'
   } catch (error) {

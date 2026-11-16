@@ -71,6 +71,7 @@ import { SortableUrlItem } from './SortableUrlItem'
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: '1day',

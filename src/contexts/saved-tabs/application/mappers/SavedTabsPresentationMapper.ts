@@ -31,6 +31,7 @@ export const toSavedTabsUserSettingsDto = (
     excludePinnedTabs: settings.excludePinnedTabs,
     openAllInNewWindow: settings.openAllInNewWindow,
     openUrlInBackground: settings.openUrlInBackground,
+    protectFavoriteFromAutoRemoval: settings.protectFavoriteFromAutoRemoval,
     removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop,
     removeTabAfterOpen: settings.removeTabAfterOpen,
     showRelativeSavedTime: settings.showRelativeSavedTime,

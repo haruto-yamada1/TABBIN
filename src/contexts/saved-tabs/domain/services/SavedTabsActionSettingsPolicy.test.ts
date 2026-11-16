@@ -8,6 +8,7 @@ describe('savedTabsActionSettingsDefaults', () => {
       confirmDeleteAll: false,
       confirmDeleteEach: false,
       openAllInNewWindow: false,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterExternalDrop: false,
       removeTabAfterOpen: true,
     })

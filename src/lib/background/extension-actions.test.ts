@@ -120,6 +120,7 @@ const createChromeTabsHarness = (): TabsHarness => {
 const buildSettings = (override: Partial<UserSettings> = {}): UserSettings => ({
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: ['about:', 'chrome://', 'ignore.example'],
   enableCategories: true,
   autoDeletePeriod: 'never',
