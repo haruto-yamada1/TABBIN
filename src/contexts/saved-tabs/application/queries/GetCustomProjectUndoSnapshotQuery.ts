@@ -1,12 +1,14 @@
+import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { SavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/dto/SavedTabsCustomProjectRawSnapshotDto'
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
+import type { SavedTabsUrlRecordRawSnapshotDto } from '@/contexts/saved-tabs/application/dto/SavedTabsUrlRecordRawSnapshotDto'
 import { toSavedTabsCustomProjectRawSnapshotDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsCustomProjectRawSnapshotMapper'
 import { toSavedTabsCustomProjectDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import type { BuildSavedTabsSnapshotUseCaseDeps } from '@/contexts/saved-tabs/application/use-cases/BuildSavedTabsSnapshotUseCase'
+import { createBuildSavedTabsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/BuildSavedTabsSnapshotUseCase'
+import type { CollectionProjectionDto } from '@/contexts/saved-tabs/domain/dto/CollectionProjectionDto'
 import type { CustomProject } from '@/contexts/saved-tabs/domain/entities/CustomProject'
-import type {
-  CustomProjectRawSnapshot,
-  CustomProjectRepository,
-} from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
+import type { CustomProjectRawSnapshot } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 
 /**
  * undo 用途の `CustomProject` 読み取りスナップショット (issue #538)。
@@ -16,8 +18,10 @@ import type {
  * - `customProjectsRaw`: `findAllRaw()` (raw 経路) で取得した snapshot
  *   一覧。rich フィールド (`urls` / `urlMetadata` / `projectKeywords` /
  *   `categoryOrder`) を保持する。
+ * - `openedUrlsSnapshot`: ドメイン・URL・カテゴリを含む共通保存データ。
+ *   `includeSavedUrls` 指定時だけ取得し、URL 削除を両モードで復元する。
  *
- * それぞれ「該当データが存在しない」場合に省略される optional フィールド。
+ * カスタム固有フィールドは該当データが無い場合に省略する。
  * `RestoreCustomProjectsSnapshotUseCase` 側で payload 化してから
  * `customProjectRepository.restoreAllRaw` / `saveAll` に渡す。
  */
@@ -25,6 +29,9 @@ export type CustomProjectUndoSnapshot = {
   customProjectOrder?: readonly string[]
   customProjects?: readonly SavedTabsCustomProjectDto[]
   customProjectsRaw?: readonly SavedTabsCustomProjectRawSnapshotDto[]
+  /** URL deletion changes both modes; Undo must restore their shared records. */
+  openedUrlsSnapshot?: OpenedUrlsRestoreSnapshot
+  urlRecordsRaw?: readonly SavedTabsUrlRecordRawSnapshotDto[]
 }
 
 /**
@@ -41,33 +48,160 @@ export type CustomProjectUndoSnapshot = {
  * 設定する (空配列を payload 化すると `saveOrder([])` が誤って
  * 走ってしまうため)。
  */
-export type GetCustomProjectUndoSnapshotQuery =
-  () => Promise<CustomProjectUndoSnapshot>
+export type GetCustomProjectUndoSnapshotQuery = (options?: {
+  readonly includeSavedUrls?: boolean
+  readonly targets?: readonly {
+    readonly projectId: string
+    readonly urls: readonly string[]
+  }[]
+}) => Promise<CustomProjectUndoSnapshot>
 
 /**
  * `GetCustomProjectUndoSnapshotQuery` が依存する repository 群。
  */
-export type GetCustomProjectUndoSnapshotQueryDeps = {
-  readonly customProjectRepository: CustomProjectRepository
-}
+export type GetCustomProjectUndoSnapshotQueryDeps =
+  BuildSavedTabsSnapshotUseCaseDeps
 
 const entityFromRaw = (raw: CustomProjectRawSnapshot): CustomProject =>
   toSavedTabsCustomProjectDto(raw)
+
+const selectMemberships = <Collection extends CollectionProjectionDto>(
+  collections: readonly Collection[],
+  selectedIds: ReadonlySet<string>,
+): Collection[] =>
+  collections.flatMap((collection) => {
+    const memberships = collection.memberships.filter(({ urlId }) =>
+      selectedIds.has(urlId),
+    )
+    return memberships.length > 0 ? [{ ...collection, memberships }] : []
+  })
+
+const selectSavedUrlsSnapshot = (
+  snapshot: OpenedUrlsRestoreSnapshot,
+  targets: NonNullable<
+    NonNullable<Parameters<GetCustomProjectUndoSnapshotQuery>[0]>['targets']
+  >,
+): OpenedUrlsRestoreSnapshot => {
+  const idByUrl = new Map(snapshot.urlRecords?.map(({ id, url }) => [url, id]))
+  const selectedIds = new Set<string>(
+    targets.flatMap(({ projectId, urls }) => {
+      const source = snapshot.customProjects?.find(({ id }) => id === projectId)
+      const requestedIds = new Set(urls.map((url) => idByUrl.get(url)))
+      return (source?.memberships ?? [])
+        .filter(({ urlId }) => requestedIds.has(urlId))
+        .map(({ urlId }) => urlId)
+    }),
+  )
+  const savedTabs = selectMemberships(snapshot.savedTabs ?? [], selectedIds)
+  const customProjects = selectMemberships(
+    snapshot.customProjects ?? [],
+    selectedIds,
+  )
+  const domainIds = new Set<string>(savedTabs.map(({ id }) => id))
+  const projectIds = new Set<string>(customProjects.map(({ id }) => id))
+  return {
+    customProjectOrder: (snapshot.customProjectOrder ?? []).filter((id) =>
+      projectIds.has(id),
+    ),
+    customProjects,
+    parentCategories: (snapshot.parentCategories ?? []).flatMap((category) => {
+      const collections = category.collections.filter(({ id }) =>
+        domainIds.has(id),
+      )
+      return collections.length > 0 ? [{ ...category, collections }] : []
+    }),
+    savedTabs,
+    urlRecords: (snapshot.urlRecords ?? []).filter(({ id }) =>
+      selectedIds.has(id),
+    ),
+  }
+}
+
+/** Limit a captured URL Undo to the operations that actually committed. */
+export const selectCustomProjectUndoSnapshotTargets = (
+  snapshot: CustomProjectUndoSnapshot,
+  targets: NonNullable<
+    NonNullable<Parameters<GetCustomProjectUndoSnapshotQuery>[0]>['targets']
+  >,
+): CustomProjectUndoSnapshot => {
+  if (!snapshot.openedUrlsSnapshot) {
+    throw new Error('URL Undo snapshot is missing')
+  }
+  const openedUrlsSnapshot = selectSavedUrlsSnapshot(
+    snapshot.openedUrlsSnapshot,
+    targets,
+  )
+  const selectedIds = new Set<string>(
+    (openedUrlsSnapshot.urlRecords ?? []).map(({ id }) => id),
+  )
+  return {
+    openedUrlsSnapshot,
+    customProjects: openedUrlsSnapshot.customProjects ?? [],
+    customProjectOrder: openedUrlsSnapshot.customProjectOrder ?? [],
+    ...(snapshot.customProjectsRaw
+      ? {
+          customProjectsRaw: selectMemberships(
+            snapshot.customProjectsRaw,
+            selectedIds,
+          ),
+        }
+      : {}),
+    ...(snapshot.urlRecordsRaw
+      ? {
+          urlRecordsRaw: snapshot.urlRecordsRaw.filter(({ id }) =>
+            selectedIds.has(id),
+          ),
+        }
+      : {}),
+  }
+}
+
+const readSavedUrlsUndoSnapshot = async (
+  deps: GetCustomProjectUndoSnapshotQueryDeps,
+  options: NonNullable<Parameters<GetCustomProjectUndoSnapshotQuery>[0]>,
+): Promise<
+  Pick<CustomProjectUndoSnapshot, 'openedUrlsSnapshot' | 'urlRecordsRaw'>
+> => {
+  if (!options.includeSavedUrls) {
+    return {}
+  }
+  const fullSnapshot = await createBuildSavedTabsSnapshotUseCase(deps)({})
+  const openedUrlsSnapshot = options.targets
+    ? selectSavedUrlsSnapshot(fullSnapshot, options.targets)
+    : fullSnapshot
+  const selectedIds = options.targets
+    ? new Set(openedUrlsSnapshot.urlRecords?.map(({ id }) => id))
+    : undefined
+  const urlRecordsRaw = deps.urlRecordRepository.findAllRaw
+    ? structuredClone(
+        (await deps.urlRecordRepository.findAllRaw()).filter(
+          ({ id }) => !selectedIds || selectedIds.has(id),
+        ),
+      )
+    : undefined
+  return {
+    openedUrlsSnapshot,
+    ...(urlRecordsRaw ? { urlRecordsRaw } : {}),
+  }
+}
 
 /**
  * `GetCustomProjectUndoSnapshotQuery` を生成する。
  *
  * 責務:
- * 1. `customProjectRepository.findOrder()` で order を取得
- * 2. `findAllRaw` 実装があればそれを使い、raw snapshot と entity 形を
+ * 1. URL 削除用に指定された場合だけ、共通保存データを取得する。
+ *    取得に失敗した場合は不完全な Undo を返さず reject する。
+ * 2. `customProjectRepository.findOrder()` で order を取得
+ * 3. `findAllRaw` 実装があればそれを使い、raw snapshot と entity 形を
  *    両方返す (issue #535 P1: rich フィールド保持)
- * 3. `findAllRaw` 未実装の legacy repository では `findAll()` (entity)
+ * 4. `findAllRaw` 未実装の legacy repository では `findAll()` (entity)
  *    だけでフォールバックする
  *
  * @example
  * ```ts
  * const getCustomProjectUndoSnapshot = createGetCustomProjectUndoSnapshotQuery({
- *   customProjectRepository,
+ *   customProjectRepository, tabGroupRepository,
+ *   urlRecordRepository, parentCategoryRepository,
  * })
  * const snapshot = await getCustomProjectUndoSnapshot()
  * ```
@@ -75,10 +209,27 @@ const entityFromRaw = (raw: CustomProjectRawSnapshot): CustomProject =>
 export const createGetCustomProjectUndoSnapshotQuery = (
   deps: GetCustomProjectUndoSnapshotQueryDeps,
 ): GetCustomProjectUndoSnapshotQuery => {
-  return async (): Promise<CustomProjectUndoSnapshot> => {
-    const order = await deps.customProjectRepository.findOrder()
-    const base: CustomProjectUndoSnapshot =
-      order.length > 0 ? { customProjectOrder: [...order] } : {}
+  return async (options = {}): Promise<CustomProjectUndoSnapshot> => {
+    const sharedSnapshot = await readSavedUrlsUndoSnapshot(deps, options)
+    const { openedUrlsSnapshot } = sharedSnapshot
+    const order =
+      options.targets && openedUrlsSnapshot
+        ? (openedUrlsSnapshot.customProjectOrder ?? [])
+        : await deps.customProjectRepository.findOrder()
+    const base: CustomProjectUndoSnapshot = {
+      ...sharedSnapshot,
+      ...(order.length > 0 ? { customProjectOrder: [...order] } : {}),
+    }
+    if (options.targets && openedUrlsSnapshot) {
+      const projects = openedUrlsSnapshot.customProjects ?? []
+      return {
+        ...base,
+        customProjects: projects,
+        ...(deps.customProjectRepository.findAllRaw
+          ? { customProjectsRaw: projects }
+          : {}),
+      }
+    }
     if (deps.customProjectRepository.findAllRaw) {
       const raws = await deps.customProjectRepository.findAllRaw()
       const projects = raws.map((raw) =>

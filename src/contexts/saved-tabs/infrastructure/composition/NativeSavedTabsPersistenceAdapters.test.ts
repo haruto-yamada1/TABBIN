@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
+import { createGetCustomProjectUndoSnapshotQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
+import { createRestoreCustomProjectsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/RestoreCustomProjectsSnapshotUseCase'
 import { createSetSavedUrlFavoriteUseCase } from '@/contexts/saved-tabs/application/use-cases/SetSavedUrlFavoriteUseCase'
 import { createUrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 
@@ -53,6 +55,70 @@ const createCustomCollection = (id: string) => ({
 })
 
 describe('createNativeSavedTabsPersistenceAdapters timestamp provenance', () => {
+  it.each([
+    ['exact', 'exact'],
+    ['legacy-fallback', 'legacy-fallback'],
+    ['legacy-fallback', 'exact'],
+    [undefined, undefined],
+  ] as const)(
+    'custom deletion Undo preserves URL history (%s/%s) and subsequently saved URLs',
+    async (firstProvenance, lastProvenance) => {
+      const state = createState()
+      state.collections = [createCustomCollection('project')]
+      const original = {
+        favIconUrl: '',
+        firstSavedAt: 10,
+        ...(firstProvenance ? { firstSavedAtProvenance: firstProvenance } : {}),
+        id: 'selected',
+        isFavorite: true,
+        lastSavedAt: 20,
+        ...(lastProvenance ? { lastSavedAtProvenance: lastProvenance } : {}),
+        normalizedUrl: 'https://example.com/path',
+        title: 'Original title',
+        updatedAt: 30,
+        url: 'https://EXAMPLE.com/path',
+      }
+      state.urls = [original]
+      state.memberships = [
+        {
+          addedAt: 1,
+          collectionId: 'project',
+          sortOrder: 0,
+          updatedAt: 1,
+          urlId: 'selected',
+        },
+      ]
+      const adapters = createNativeSavedTabsPersistenceAdapters(
+        state,
+        createExternalDeps(),
+      )
+      const snapshot = await createGetCustomProjectUndoSnapshotQuery(adapters)({
+        includeSavedUrls: true,
+      })
+      expect(snapshot.urlRecordsRaw).toEqual([original])
+      expect(snapshot.urlRecordsRaw?.[0]).not.toBe(state.urls[0])
+      await adapters.customProjectsCommandService.removeUrlFromCustomProject(
+        'project',
+        original.url,
+      )
+      expect(state.urls).toEqual([])
+      const subsequentlySaved = {
+        ...original,
+        id: 'new',
+        url: 'https://new.example/',
+        normalizedUrl: 'https://new.example/',
+      }
+      state.urls.push(subsequentlySaved)
+
+      await createRestoreCustomProjectsSnapshotUseCase(adapters)({
+        payload: { ...snapshot, customProjects: snapshot.customProjects ?? [] },
+      })
+
+      expect(state.urls).toEqual([subsequentlySaved, original])
+      expect(state.urls[1]).not.toBe(snapshot.urlRecordsRaw?.[0])
+    },
+  )
+
   it.each([
     [
       'single-project single URL removal',

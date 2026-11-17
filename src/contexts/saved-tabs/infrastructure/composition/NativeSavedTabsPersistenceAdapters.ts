@@ -394,9 +394,13 @@ const createUrlRecordRepository = (
     findAll,
     findById: async (id) =>
       (await findAll()).find((record) => record.id === id) ?? null,
+    findAllRaw: async () => structuredClone(state.urls),
     removeByIds: async (ids) => {
       const removed = new Set<string>(ids.map(String))
       state.urls = state.urls.filter(({ id }) => !removed.has(id))
+    },
+    restoreAllRaw: async (records) => {
+      state.urls = structuredClone([...records])
     },
     saveAll: async (records) => {
       const existingById = new Map(state.urls.map((url) => [url.id, url]))

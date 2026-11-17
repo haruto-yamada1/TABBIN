@@ -46,6 +46,7 @@ describe('projectManagementDefaults', () => {
     const restore = vi.fn()
     const setCustomProjects = vi.fn()
     defaults.showCustomProjectDeleteUndoToast({
+      getCustomProjectRawsQuery: vi.fn(async () => []),
       count: 1,
       restoreCustomProjectsSnapshotUseCase: restore,
       setCustomProjects,
@@ -62,6 +63,7 @@ describe('projectManagementDefaults', () => {
     const restore = vi.fn(async () => {})
     const setCustomProjects = vi.fn()
     defaults.showCustomProjectDeleteUndoToast({
+      getCustomProjectRawsQuery: vi.fn(async () => []),
       count: 2,
       restoreCustomProjectsSnapshotUseCase: restore,
       setCustomProjects,
@@ -130,5 +132,85 @@ describe('projectManagementDefaults', () => {
       id: 'project-1',
       categories: ['Docs'],
     })
+  })
+
+  it('forwards the domain and URL snapshot through the custom deletion Undo action', async () => {
+    const restore = vi.fn(async () => {})
+    const openedUrlsSnapshot = {
+      savedTabs: [],
+      urlRecords: [],
+      parentCategories: [],
+    }
+    const urlRecordsRaw = [
+      {
+        firstSavedAt: 1,
+        id: 'url',
+        lastSavedAt: 2,
+        normalizedUrl: 'https://example.com/',
+        title: 'Title',
+        updatedAt: 3,
+        url: 'https://example.com/',
+      },
+    ]
+    defaults.showCustomProjectDeleteUndoToast({
+      getCustomProjectRawsQuery: vi.fn(async () => []),
+      count: 1,
+      restoreCustomProjectsSnapshotUseCase: restore,
+      setCustomProjects: vi.fn(),
+      snapshot: {
+        customProjects: [
+          createCurrentCustomProject({ id: 'project', name: 'Project' }),
+        ],
+        openedUrlsSnapshot,
+        urlRecordsRaw,
+      },
+      t: (key) => key,
+    })
+
+    await clickToastAction()
+
+    expect(restore).toHaveBeenCalledWith({
+      payload: expect.objectContaining({ openedUrlsSnapshot, urlRecordsRaw }),
+    })
+  })
+
+  it('refreshes all current projects after targeted URL Undo instead of replacing UI state with the partial snapshot', async () => {
+    const selectedProject = createCurrentCustomProject({
+      id: 'source',
+      name: 'Source',
+      memberships: [{ urlId: 'selected' }],
+    })
+    const currentProjects = [
+      createCurrentCustomProject({
+        id: 'source',
+        name: 'Source',
+        memberships: [{ urlId: 'selected' }, { urlId: 'kept' }],
+      }),
+      createCurrentCustomProject({
+        id: 'later',
+        name: 'Later',
+        memberships: [{ urlId: 'added' }],
+      }),
+    ]
+    const getCustomProjectRawsQuery = vi.fn(async () => currentProjects)
+    const setCustomProjects = vi.fn()
+    const restore = vi.fn(async () => {})
+    defaults.showCustomProjectDeleteUndoToast({
+      count: 1,
+      getCustomProjectRawsQuery,
+      restoreCustomProjectsSnapshotUseCase: restore,
+      setCustomProjects,
+      snapshot: {
+        customProjects: [selectedProject],
+        customProjectsRaw: [selectedProject],
+        openedUrlsSnapshot: { customProjects: [selectedProject] },
+      },
+      t: (key) => key,
+    })
+    await clickToastAction()
+    expect(getCustomProjectRawsQuery).toHaveBeenCalledOnce()
+    expect(setCustomProjects).toHaveBeenCalledExactlyOnceWith(
+      currentProjects.map(defaults.toRawStorageCustomProject),
+    )
   })
 })

@@ -1323,6 +1323,12 @@ describe('useProjectManagement', () => {
       projectId: 'project-1',
       url: 'https://example.com/a',
     })
+    expect(
+      projectManagementMocks.getCustomProjectUndoSnapshot,
+    ).toHaveBeenCalledWith({
+      includeSavedUrls: true,
+      targets: [{ projectId: 'project-1', urls: ['https://example.com/a'] }],
+    })
     expect(toast.info).toHaveBeenCalledWith(
       '削除した1件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -1429,7 +1435,15 @@ describe('useProjectManagement', () => {
     })
     expect(
       projectManagementMocks.getCustomProjectUndoSnapshot,
-    ).toHaveBeenCalledOnce()
+    ).toHaveBeenCalledExactlyOnceWith({
+      includeSavedUrls: true,
+      targets: [
+        {
+          projectId: 'project-1',
+          urls: ['https://example.com/a', 'https://example.com/b'],
+        },
+      ],
+    })
     expect(toast.info).toHaveBeenCalledExactlyOnceWith(
       '削除した2件のタブを保存データに戻せます',
       expect.objectContaining({
@@ -1558,6 +1572,28 @@ describe('useProjectManagement', () => {
     projectManagementMocks.removeUrlsFromCustomProject
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('second project failed'))
+
+    projectManagementMocks.getCustomProjectUndoSnapshot.mockImplementationOnce(
+      async () => {
+        const raws = await projectManagementMocks.getCustomProjectRaws()
+        return {
+          customProjects: raws,
+          customProjectsRaw: raws,
+          openedUrlsSnapshot: {
+            customProjects: raws,
+            customProjectOrder: ['project-1', 'project-2'],
+            savedTabs: [],
+            parentCategories: [],
+            urlRecords: ['a', 'b'].map((id) => ({
+              id: `url-${id}`,
+              url: `https://example.com/${id}`,
+              title: id,
+              savedAt: 1,
+            })),
+          },
+        }
+      },
+    )
 
     await act(async () => {
       await expect(
@@ -1816,6 +1852,17 @@ describe('useProjectManagement', () => {
     ).toHaveBeenCalledWith({
       projectId: 'project-1',
       urls: ['https://example.com/a', 'https://example.com/b'],
+    })
+    expect(
+      projectManagementMocks.getCustomProjectUndoSnapshot,
+    ).toHaveBeenCalledWith({
+      includeSavedUrls: true,
+      targets: [
+        {
+          projectId: 'project-1',
+          urls: ['https://example.com/a', 'https://example.com/b'],
+        },
+      ],
     })
     expect(toast.info).toHaveBeenCalledWith(
       '削除した2件のタブを保存データに戻せます',

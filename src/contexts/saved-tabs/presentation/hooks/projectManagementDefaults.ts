@@ -142,17 +142,25 @@ const createCustomProjectUndoPayload = (
     ...(customProjectOrder ? { customProjectOrder } : {}),
     customProjects,
     ...(customProjectsRaw ? { customProjectsRaw } : {}),
+    ...(snapshot.openedUrlsSnapshot
+      ? { openedUrlsSnapshot: snapshot.openedUrlsSnapshot }
+      : {}),
+    ...(snapshot.urlRecordsRaw
+      ? { urlRecordsRaw: snapshot.urlRecordsRaw }
+      : {}),
   }
 }
 
 const showCustomProjectDeleteUndoToast = ({
   count,
+  getCustomProjectRawsQuery,
   restoreCustomProjectsSnapshotUseCase,
   setCustomProjects,
   snapshot,
   t,
 }: {
   count: number
+  getCustomProjectRawsQuery: GetCustomProjectRawsQuery
   restoreCustomProjectsSnapshotUseCase: RestoreCustomProjectsSnapshotUseCase
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   snapshot: CustomProjectUndoSnapshot
@@ -180,11 +188,18 @@ const showCustomProjectDeleteUndoToast = ({
             // `saveAll` へフォールバックする (issue #535 P1 / PR #506 review
             // P2 対応の責務を application 層へ移設)。
             await restoreCustomProjectsSnapshotUseCase({ payload })
-            setCustomProjects(
-              payload.customProjectsRaw
-                ? payload.customProjectsRaw.map(toRawStorageCustomProject)
-                : payload.customProjects.map(toSavedTabsCustomProjectViewModel),
-            )
+            if (payload.openedUrlsSnapshot) {
+              const currentProjects = await getCustomProjectRawsQuery()
+              setCustomProjects(currentProjects.map(toRawStorageCustomProject))
+            } else {
+              setCustomProjects(
+                payload.customProjectsRaw
+                  ? payload.customProjectsRaw.map(toRawStorageCustomProject)
+                  : payload.customProjects.map(
+                      toSavedTabsCustomProjectViewModel,
+                    ),
+              )
+            }
             toast.success(t('savedTabs.undo.restored'))
           } catch (error) {
             console.error(

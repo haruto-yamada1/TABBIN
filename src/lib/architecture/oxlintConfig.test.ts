@@ -1,9 +1,11 @@
 import { execFileSync } from 'node:child_process'
 import {
+  copyFileSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -30,10 +32,15 @@ const createFixture = (source: string, relativeSourcePath = 'src/index.ts') => {
   const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-oxlint-'))
   fixtureDirectories.push(fixtureRoot)
 
-  const isContextLayerFixture = relativeSourcePath.startsWith('src/contexts/')
-  const sourcePath = isContextLayerFixture
-    ? createContextLayerFixturePath(relativeSourcePath)
-    : path.join(fixtureRoot, relativeSourcePath)
+  const configPath = path.join(fixtureRoot, '.oxlintrc.json')
+  copyFileSync(oxlintConfigPath, configPath)
+  symlinkSync(
+    path.join(projectRoot, 'node_modules'),
+    path.join(fixtureRoot, 'node_modules'),
+    'dir',
+  )
+
+  const sourcePath = path.join(fixtureRoot, relativeSourcePath)
   mkdirSync(path.dirname(sourcePath), { recursive: true })
   writeFileSync(sourcePath, source)
   writeFileSync(
@@ -50,21 +57,11 @@ const createFixture = (source: string, relativeSourcePath = 'src/index.ts') => {
   )
 
   return {
+    configPath,
+    rootPath: fixtureRoot,
     sourcePath,
     tsconfigPath: path.join(fixtureRoot, 'tsconfig.json'),
   }
-}
-
-const createContextLayerFixturePath = (relativeSourcePath: string): string => {
-  const contextFixtureRoot = mkdtempSync(
-    path.join(projectRoot, 'src/contexts/__oxlint-fixture-'),
-  )
-  fixtureDirectories.push(contextFixtureRoot)
-
-  return path.join(
-    contextFixtureRoot,
-    relativeSourcePath.replace(/^src\/contexts\/[^/]+\//, ''),
-  )
 }
 
 const runOxlint = (
@@ -78,14 +75,14 @@ const runOxlint = (
       oxlintPath,
       [
         '--config',
-        oxlintConfigPath,
+        fixture.configPath,
         '--tsconfig',
         fixture.tsconfigPath,
         '--format',
         'json',
         fixture.sourcePath,
       ],
-      { encoding: 'utf8', stdio: 'pipe' },
+      { cwd: fixture.rootPath, encoding: 'utf8', stdio: 'pipe' },
     )
     return { status: 0, output: '' }
   } catch (error) {
@@ -107,6 +104,22 @@ afterEach(() => {
 })
 
 describe('oxlint configuration', () => {
+  it('keeps context layer fixture sources outside the production checkout', () => {
+    const relativeSourcePath =
+      'src/contexts/saved-tabs/domain/services/IsolatedDomainService.ts'
+    const fixture = createFixture(
+      'export const value = 1\n',
+      relativeSourcePath,
+    )
+
+    expect(
+      path.relative(projectRoot, fixture.sourcePath).split(path.sep)[0],
+    ).toBe('..')
+    expect(fixture.sourcePath).toBe(
+      path.join(path.dirname(fixture.tsconfigPath), relativeSourcePath),
+    )
+  })
+
   it('disallows type assertions except as const', () => {
     const config = JSON.parse(readFileSync(oxlintConfigPath, 'utf8'))
 
