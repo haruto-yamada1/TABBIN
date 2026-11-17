@@ -27,8 +27,8 @@ AI Chat は完了済みの固定メッセージを使用し、ストリーミン
 自動更新、retry、失敗の許容は行いません。CI は `bun run test:visual --repeat-each=3` を実行します。
 HTML report、JSON の件数・所要時間、失敗時の trace と画像は 14 日保持します。
 
-基準環境は **Linux amd64 / Playwright 1.63.0 Noble image** です。
-CI では最小 image にない `unzip` を Bun セットアップ前にインストールします。
+基準環境は **Linux amd64 / Playwright 1.64.1 Noble image** です。
+CI は npm から固定版 Bun を導入し、OS のパッケージマネージャーや `unzip` に依存しません。
 Firefox の起動前に、Actions 専用 `/github/home` の所有者をコンテナの実行ユーザーへ揃えます。
 ホームの環境変数やブラウザの sandbox 設定は変更しません。
 OS やフォント描画が異なる macOS の画像を Linux 基準として commit しないでください。
@@ -42,10 +42,11 @@ OS やフォント描画が異なる macOS の画像を Linux 基準として co
 ```sh
 docker run --rm --platform linux/amd64 --ipc=host \
   -v "$PWD:/work" -v /work/node_modules -w /work \
-  mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27 \
+  mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea \
   bash -lc 'npm install --global bun@1.3.14 && bun install --frozen-lockfile && bun run test:visual:update && bun run test:visual --repeat-each=3'
 ```
 
+更新対象が Options の通常幅だけなら、`bun run test:visual:update --grep 'options / (light-en|dark-en|light-ja)'` のようにケースを絞ります。
 更新した `e2e/visual/snapshots/linux/` の PNG を diff とともにレビューしてください。
 意図しない差分を取り込むために全画像を無条件で再生成しないでください。
 Playwright / image のバージョンを変える場合は、lockfile、CI image、この手順を同時に更新します。

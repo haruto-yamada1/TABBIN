@@ -2,6 +2,8 @@ export const captureMessages = {
   en: {
     selected: 'TABBIN · Selected',
     overflow: 'TABBIN · Select at most 1,000 links',
+    selectionTooLarge:
+      'The selected links contain too much text. Select fewer links and try again.',
     saving: 'Saving links…',
     confirmation: 'Save selected links?',
     preview: 'New: {new} · Already saved: {existing} · Excluded: {excluded}',
@@ -18,6 +20,8 @@ export const captureMessages = {
   ja: {
     selected: 'TABBIN · 選択',
     overflow: 'TABBIN · 1,000件以内で選択してください',
+    selectionTooLarge:
+      '選択したリンクの文字数が多すぎます。選択するリンクを減らして、もう一度お試しください。',
     saving: 'リンクを保存中…',
     confirmation: '選択したリンクを保存しますか？',
     preview: '新規: {new}件 · 保存済み: {existing}件 · 除外: {excluded}件',

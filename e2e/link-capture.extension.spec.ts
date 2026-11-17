@@ -92,6 +92,60 @@ test('capture stays off without optional site access even if storage says enable
 test.describe('link capture with native optional permission grant', () => {
   test.use({ pregrantNativeTitle: true })
 
+  test('ordinary HTTP pages save selected links with isolated-world cryptography', async ({
+    extensionContext,
+    extensionId,
+    page,
+    serviceWorker,
+  }, testInfo) => {
+    const insecureUrl = 'http://insecure.example.test/list'
+    await extensionContext.route(
+      'http://insecure.example.test/**',
+      async (route) =>
+        route.fulfill({ contentType: 'text/html', body: fixtureHtml(2) }),
+    )
+    await seedSavedTabsFixture(serviceWorker, seed(true))
+    await page.goto(getExtensionUrl(extensionId, 'icon/128.png'))
+    const source = await extensionContext.newPage()
+    await source.goto(insecureUrl)
+    await expect(source.locator('[data-tabbin-link-capture]')).toHaveCount(1)
+    const capabilities = await serviceWorker.evaluate(async (url) => {
+      const tab = (await chrome.tabs.query({})).find(
+        (entry) => entry.url === url,
+      )
+      if (tab?.id === undefined) {
+        throw new Error('HTTP fixture tab unavailable')
+      }
+      const [injected] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        world: 'ISOLATED',
+        func: () => ({
+          secureContext: isSecureContext,
+          randomUUID: typeof crypto.randomUUID,
+          getRandomValues: typeof crypto.getRandomValues,
+        }),
+      })
+      return injected?.result
+    }, insecureUrl)
+    await testInfo.attach('http-isolated-world-cryptography', {
+      body: JSON.stringify(capabilities),
+      contentType: 'application/json',
+    })
+    expect(capabilities).toMatchObject({
+      secureContext: false,
+      getRandomValues: 'function',
+    })
+    await beginDrag(source, 2)
+    await finishDrag(source)
+    await expect(source.getByRole('status')).toContainText('Saved: 2')
+    await expect
+      .poll(
+        async () =>
+          (await readPersistenceV2SavedTabsSnapshot(page)).urls.length,
+      )
+      .toBe(2)
+  })
+
   test('rectangle capture saves 30 links without changing any browser tab, reloads persistence and cancels safely', async ({
     extensionContext,
     extensionId,

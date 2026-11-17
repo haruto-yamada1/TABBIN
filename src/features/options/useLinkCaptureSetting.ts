@@ -77,12 +77,22 @@ export const useLinkCaptureSetting = () => {
       storage?.removeListener(changed)
     }
   }, [permissions])
-  const save = useCallback(async (next: LinkCaptureSettings) => {
+  const update = useCallback(async (change: Partial<LinkCaptureSettings>) => {
     const version = ++revision.current
     setPending(true)
     setError(null)
     try {
-      const value = await writeLinkCaptureSettings(next)
+      let current: LinkCaptureSettings
+      try {
+        current = await readLinkCaptureSettings()
+      } catch {
+        if (version === revision.current) {
+          setLoaded(false)
+          setError('loadError')
+        }
+        return false
+      }
+      const value = await writeLinkCaptureSettings({ ...current, ...change })
       if (version === revision.current) {
         setSettings(value)
       }
@@ -94,6 +104,11 @@ export const useLinkCaptureSetting = () => {
       setPending(false)
     }
   }, [])
+  const save = useCallback(
+    async (next: Pick<LinkCaptureSettings, 'shortcut'>) =>
+      update({ shortcut: next.shortcut }),
+    [update],
+  )
   const toggle = useCallback(
     async (enabled: boolean) => {
       if (!permissions) {
@@ -112,14 +127,14 @@ export const useLinkCaptureSetting = () => {
           }
           setGranted(true)
         }
-        await save({ ...settings, enabled })
+        await update({ enabled })
       } catch {
         setError('permissionError')
       } finally {
         setPending(false)
       }
     },
-    [permissions, save, settings],
+    [permissions, update],
   )
   return {
     settings,

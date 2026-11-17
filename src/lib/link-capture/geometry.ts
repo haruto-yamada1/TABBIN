@@ -98,22 +98,61 @@ export const collectCaptureCandidates = (
 const intersects = (a: CaptureRectangle, b: CaptureRectangle): boolean =>
   a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 
+const containingBlockProperties = [
+  'transform',
+  'translate',
+  'rotate',
+  'scale',
+  'perspective',
+  'filter',
+  'backdrop-filter',
+]
+
+const establishesContainingBlock = (
+  style: CSSStyleDeclaration,
+  position: string,
+): boolean => {
+  if (
+    position === 'absolute' &&
+    style.position &&
+    style.position !== 'static'
+  ) {
+    return true
+  }
+  return (
+    containingBlockProperties.some((property) => {
+      const value = style.getPropertyValue(property)
+      return Boolean(value && value !== 'none')
+    }) ||
+    /(?:^|\s)(?:layout|paint|strict|content)(?:\s|$)/.test(style.contain) ||
+    style.contentVisibility === 'auto' ||
+    style.willChange
+      .split(',')
+      .some((property) => containingBlockProperties.includes(property.trim()))
+  )
+}
+
 const clipFragments = (element: HTMLElement): CaptureRectangle[] => {
   let fragments: CaptureRectangle[] = Array.from(element.getClientRects())
   let ancestor = element.parentElement
-  const fixed = getComputedStyle(element).position === 'fixed'
+  let position = getComputedStyle(element).position
   while (
     ancestor &&
     ancestor !== document.body &&
     ancestor !== document.documentElement
   ) {
     const style = getComputedStyle(ancestor)
-    // A fixed descendant escapes ordinary overflow clipping. A transformed
-    // ancestor supplies its containing block and clips it normally.
-    if (fixed && (!style.transform || style.transform === 'none')) {
+    // Out-of-flow boxes (including wrappers around a link) escape overflow
+    // between themselves and their containing block. Resume clipping there
+    // and follow that box's own containing-block chain toward the viewport.
+    if (
+      ['absolute', 'fixed'].includes(position) &&
+      !establishesContainingBlock(style, position)
+    ) {
       ancestor = ancestor.parentElement
       continue
     }
+    position = style.position
     const clipsX = /hidden|clip|auto|scroll/.test(
       style.overflowX || style.overflow,
     )

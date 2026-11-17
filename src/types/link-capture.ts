@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
+import { LINK_CAPTURE_MAX_BATCH_TEXT_LENGTH } from '@/constants/linkCapture'
+
 export const LINK_CAPTURE_CONFIRM_THRESHOLD = 50
 export const LINK_CAPTURE_MAX_LINKS = 1000
 const MAX_LINK_URL_LENGTH = 8192
 const MAX_LINK_TITLE_LENGTH = 512
-const MAX_BATCH_TEXT_LENGTH = 524288
 
 export const linkCaptureMessageSchema = z
   .strictObject({
@@ -25,7 +26,7 @@ export const linkCaptureMessageSchema = z
       links.reduce(
         (size, link) => size + link.url.length + link.title.length,
         0,
-      ) <= MAX_BATCH_TEXT_LENGTH,
+      ) <= LINK_CAPTURE_MAX_BATCH_TEXT_LENGTH,
   )
 
 export type LinkCaptureMessage = z.infer<typeof linkCaptureMessageSchema>

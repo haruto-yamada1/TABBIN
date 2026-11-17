@@ -159,6 +159,115 @@ describe('capture page links', () => {
     ).toEqual([])
   })
 
+  it.each(['absolute', 'fixed'])(
+    'includes a %s link that escapes an intermediate overflow container',
+    (position) => {
+      const outer = document.createElement('div')
+      outer.style.position = 'relative'
+      if (position === 'fixed') {
+        outer.style.transform = 'translate(0)'
+      }
+      const clip = document.createElement('div')
+      clip.style.overflowX = 'hidden'
+      clip.style.overflowY = 'hidden'
+      clip.getBoundingClientRect = () => new DOMRect(0, 0, 10, 10)
+      const link = anchor('https://example.com/escaped', 'escaped', [
+        rect(20, 20),
+      ])
+      link.style.position = position
+      clip.append(link)
+      outer.append(clip)
+      document.body.append(outer)
+      expect(
+        selectCaptureLinks(collectCaptureCandidates(document), {
+          left: 0,
+          top: 0,
+          right: 100,
+          bottom: 100,
+        }).links,
+      ).toEqual([{ url: link.href, title: 'escaped' }])
+    },
+  )
+
+  it('includes an in-flow link inside an absolutely positioned wrapper that escapes clipping', () => {
+    const outer = document.createElement('div')
+    outer.style.position = 'relative'
+    const clip = document.createElement('div')
+    clip.style.overflowX = 'hidden'
+    clip.style.overflowY = 'hidden'
+    clip.getBoundingClientRect = () => new DOMRect(0, 0, 10, 10)
+    const positioned = document.createElement('div')
+    positioned.style.position = 'absolute'
+    const link = anchor('https://example.com/wrapped', 'wrapped', [
+      rect(20, 20),
+    ])
+    positioned.append(link)
+    clip.append(positioned)
+    outer.append(clip)
+    document.body.append(outer)
+    expect(
+      selectCaptureLinks(collectCaptureCandidates(document), {
+        left: 0,
+        top: 0,
+        right: 100,
+        bottom: 100,
+      }).links,
+    ).toEqual([{ url: link.href, title: 'wrapped' }])
+  })
+
+  it.each([
+    'transform: translate(0)',
+    'translate: 0px',
+    'rotate: 0deg',
+    'scale: 1',
+    'perspective: 100px',
+    'filter: blur(0)',
+    'backdrop-filter: blur(0)',
+    'contain: layout',
+    'contain: paint',
+    'will-change: transform',
+  ])('clips a fixed link at its containing block (%s)', (declaration) => {
+    const clip = document.createElement('div')
+    clip.style.cssText = declaration
+    clip.style.overflowX = 'hidden'
+    clip.style.overflowY = 'hidden'
+    clip.getBoundingClientRect = () => new DOMRect(0, 0, 10, 10)
+    const link = anchor('https://example.com/fixed', 'fixed', [rect(20, 20)])
+    link.style.position = 'fixed'
+    clip.append(link)
+    document.body.append(clip)
+    expect(
+      selectCaptureLinks(collectCaptureCandidates(document), {
+        left: 0,
+        top: 0,
+        right: 100,
+        bottom: 100,
+      }).links,
+    ).toEqual([])
+  })
+
+  it('keeps clipping above a transformed containing block for a fixed link', () => {
+    const clip = document.createElement('div')
+    clip.style.overflowX = 'hidden'
+    clip.style.overflowY = 'hidden'
+    clip.getBoundingClientRect = () => new DOMRect(0, 0, 10, 10)
+    const transformed = document.createElement('div')
+    transformed.style.transform = 'translate(0)'
+    const link = anchor('https://example.com/fixed', 'fixed', [rect(20, 20)])
+    link.style.position = 'fixed'
+    transformed.append(link)
+    clip.append(transformed)
+    document.body.append(clip)
+    expect(
+      selectCaptureLinks(collectCaptureCandidates(document), {
+        left: 0,
+        top: 0,
+        right: 100,
+        bottom: 100,
+      }).links,
+    ).toEqual([])
+  })
+
   it('rejects more than 1,000 distinct selected URLs instead of truncating a batch silently', () => {
     for (let index = 0; index < 1001; index += 1) {
       anchor(`https://example.com/${index}`)

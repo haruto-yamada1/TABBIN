@@ -10,6 +10,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { LINK_CAPTURE_SETTINGS_KEY } from '@/constants/linkCapture'
 import { getMessages } from '@/features/i18n/messages'
 import type * as LinkCaptureStorage from '@/lib/storage/link-capture-settings'
 import { DEFAULT_LINK_CAPTURE_SETTINGS } from '@/lib/storage/link-capture-settings'
@@ -112,6 +113,111 @@ describe('LinkCaptureSettings', () => {
     await user.click(toggle())
     await waitFor(() => expect(toggle()).toBeChecked())
   })
+
+  it('preserves a shortcut changed in another page while permission is pending', async () => {
+    const user = userEvent.setup()
+    const permission = Promise.withResolvers<boolean>()
+    let stored = structuredClone(DEFAULT_LINK_CAPTURE_SETTINGS)
+    mocks.read.mockImplementation(async () => structuredClone(stored))
+    mocks.write.mockImplementation(async (value) => {
+      stored = structuredClone(value)
+      return stored
+    })
+    mocks.request.mockImplementationOnce(async () => {
+      expect(mocks.read).toHaveBeenCalledTimes(1)
+      return permission.promise
+    })
+    render(<LinkCaptureSettings />)
+    await ready()
+    await user.click(toggle())
+    expect(toggle()).toBeDisabled()
+    stored.shortcut = { ...stored.shortcut, code: 'F8', key: 'F8' }
+    const changed = mocks.storage.addListener.mock.calls[0]?.[0] as (
+      changes: Record<string, unknown>,
+      area: string,
+    ) => void
+    act(() => {
+      changed({ [LINK_CAPTURE_SETTINGS_KEY]: { newValue: stored } }, 'local')
+    })
+    await screen.findByText('F8 (F8)')
+    await act(async () => permission.resolve(true))
+    await waitFor(() => expect(toggle()).toBeChecked())
+    expect(stored).toEqual({
+      ...DEFAULT_LINK_CAPTURE_SETTINGS,
+      enabled: true,
+      shortcut: {
+        ...DEFAULT_LINK_CAPTURE_SETTINGS.shortcut,
+        code: 'F8',
+        key: 'F8',
+      },
+    })
+    expect(screen.getByText('F8 (F8)')).toBeInTheDocument()
+  })
+
+  it('preserves the latest stored shortcut when turning OFF before a storage event', async () => {
+    const user = userEvent.setup()
+    let stored = {
+      ...structuredClone(DEFAULT_LINK_CAPTURE_SETTINGS),
+      enabled: true,
+    }
+    mocks.read.mockImplementation(async () => structuredClone(stored))
+    mocks.write.mockImplementation(async (value) => {
+      stored = structuredClone(value)
+      return stored
+    })
+    render(<LinkCaptureSettings />)
+    await ready()
+    stored.shortcut = { ...stored.shortcut, code: 'F8', key: 'F8' }
+    await user.click(toggle())
+    await waitFor(() => expect(toggle()).not.toBeChecked())
+    expect(stored.enabled).toBe(false)
+    expect(stored.shortcut.code).toBe('F8')
+    expect(mocks.request).not.toHaveBeenCalled()
+  })
+
+  it.each(['Save key', 'Reset key'])(
+    'preserves the latest stored enable preference on %s before a storage event',
+    async (action) => {
+      const user = userEvent.setup()
+      let stored = structuredClone(DEFAULT_LINK_CAPTURE_SETTINGS)
+      mocks.read.mockImplementation(async () => structuredClone(stored))
+      mocks.write.mockImplementation(async (value) => {
+        stored = structuredClone(value)
+        return stored
+      })
+      render(<LinkCaptureSettings />)
+      await ready()
+      if (action === 'Save key') {
+        await user.click(screen.getByRole('button', { name: 'Change key' }))
+        dispatchKey({ code: 'F8', key: 'F8' })
+      }
+      stored.enabled = true
+      await user.click(screen.getByRole('button', { name: action }))
+      await waitFor(() => expect(mocks.write).toHaveBeenCalled())
+      expect(stored.enabled).toBe(true)
+      expect(stored.shortcut.code).toBe(action === 'Save key' ? 'F8' : 'KeyZ')
+      expect(toggle()).toBeChecked()
+    },
+  )
+
+  it.each([false, true])(
+    'fails closed with load guidance when the latest settings cannot be read before toggling from %s',
+    async (enabled) => {
+      const user = userEvent.setup()
+      mocks.read.mockResolvedValue({
+        ...DEFAULT_LINK_CAPTURE_SETTINGS,
+        enabled,
+      })
+      render(<LinkCaptureSettings />)
+      await ready()
+      mocks.read.mockRejectedValue(new Error('private failure'))
+      await user.click(toggle())
+      expect(await screen.findByRole('alert')).toHaveTextContent('Reload')
+      expect(screen.getByRole('alert')).not.toHaveTextContent('private failure')
+      expect(toggle()).toBeDisabled()
+      expect(mocks.write).not.toHaveBeenCalled()
+    },
+  )
 
   it('records an arbitrary captured symbol code and offers explicit save and reset', async () => {
     const user = userEvent.setup()

@@ -19,6 +19,7 @@ const mock = vi.hoisted(() => ({
   removeMessage: vi.fn(),
   sendMessage: vi.fn(),
   readSettings: vi.fn(),
+  language: 'en',
 }))
 vi.mock('wxt/utils/define-content-script', () => ({
   defineContentScript: (definition: unknown) => definition,
@@ -34,7 +35,9 @@ vi.mock('wxt/browser', () => ({
       },
     },
     storage: {
-      local: { get: async () => ({ userSettings: { language: 'en' } }) },
+      local: {
+        get: async () => ({ userSettings: { language: mock.language } }),
+      },
       onChanged: {
         addListener: mock.storageListener,
         removeListener: mock.removeStorage,
@@ -48,6 +51,7 @@ vi.mock('@/lib/storage/link-capture-settings', () => ({
 }))
 
 import content from '@/entrypoints/content'
+import { linkCaptureMessageSchema } from '@/types/link-capture'
 
 const successResponse = {
   status: 'ok',
@@ -97,6 +101,18 @@ const pageLink = (url = 'https://example.com/article') => {
   document.body.append(element)
   return element
 }
+const batchAtTextLength = (total: number) => {
+  const count = 65
+  for (let index = 0; index < count; index += 1) {
+    const size = Math.floor(total / count) + (index < total % count ? 1 : 0)
+    const prefix = `https://example.com/${index}/`
+    pageLink(prefix + 'x'.repeat(size - prefix.length - 'Article'.length))
+  }
+  return Array.from(document.querySelectorAll('a'), (element) => ({
+    url: element.href,
+    title: element.textContent ?? '',
+  }))
+}
 const drag = () => {
   key('KeyZ')
   pointer('pointerdown', 0, 0)
@@ -117,6 +133,7 @@ describe('link capture content entrypoint', () => {
     vi.clearAllMocks()
     document.body.innerHTML = ''
     mock.settings.enabled = true
+    mock.language = 'en'
     mock.settings.shortcut.code = 'KeyZ'
     mock.readSettings
       .mockReset()
@@ -125,6 +142,7 @@ describe('link capture content entrypoint', () => {
   })
   afterEach(() => {
     controller()?.dispose()
+    vi.unstubAllGlobals()
   })
 
   it('keeps the live controller and its pending selection across worker reinjection', async () => {
@@ -239,6 +257,102 @@ describe('link capture content entrypoint', () => {
       document.dispatchEvent(new Event('compositionend'))
     }
   })
+
+  it('keeps a drag alive when pointerdown moves focus between page links', async () => {
+    const first = pageLink()
+    const second = pageLink('https://example.com/second')
+    await content.main({} as never)
+    first.focus()
+    key('KeyZ')
+    pointer('pointerdown', 0, 0)
+    second.focus()
+    pointer('pointermove', 100, 100)
+    pointer('pointerup', 100, 100)
+    await vi.waitFor(() => expect(mock.sendMessage).toHaveBeenCalledOnce())
+    expect(mock.sendMessage.mock.calls[0]?.[0].links).toHaveLength(2)
+  })
+
+  it.each([524287, 524288])(
+    'previews and saves a batch with %i total characters',
+    async (total) => {
+      batchAtTextLength(total)
+      await content.main({} as never)
+      drag()
+      await vi.waitFor(() => expect(mock.sendMessage).toHaveBeenCalledOnce())
+      const preview = mock.sendMessage.mock.calls[0]?.[0]
+      expect(preview.action).toBe('previewLinkCapture')
+      expect(linkCaptureMessageSchema.safeParse(preview).success).toBe(true)
+      expect(
+        preview.links.reduce(
+          (size: number, link: { url: string; title: string }) =>
+            size + link.url.length + link.title.length,
+          0,
+        ),
+      ).toBe(total)
+      const save = document
+        .querySelector('[data-tabbin-link-capture]')
+        ?.shadowRoot?.querySelector('button')
+      if (!save) {
+        throw new Error('Missing confirmation button')
+      }
+      dispatchTrusted(new MouseEvent('click', { bubbles: true }), save)
+      await vi.waitFor(() => expect(mock.sendMessage).toHaveBeenCalledTimes(2))
+      expect(mock.sendMessage.mock.calls[1]?.[0]).toMatchObject({
+        action: 'saveLinkCapture',
+        links: preview.links,
+      })
+    },
+  )
+
+  it.each([
+    ['en', 'Select fewer links', 'Cancel'],
+    ['ja', '選択するリンクを減らして', 'キャンセル'],
+  ])(
+    'rejects oversized batches locally in %s and lets a smaller selection save',
+    async (language, message, cancelLabel) => {
+      mock.language = language
+      const links = batchAtTextLength(524289)
+      expect(
+        linkCaptureMessageSchema.safeParse({
+          action: 'previewLinkCapture',
+          requestId: '00000000-0000-4000-8000-000000000000',
+          links,
+        }).success,
+      ).toBe(false)
+      await content.main({} as never)
+      drag()
+      await vi.waitFor(() =>
+        expect(
+          document
+            .querySelector('[data-tabbin-link-capture]')
+            ?.shadowRoot?.querySelector('.panel p')?.textContent,
+        ).toContain(message),
+      )
+      expect(mock.sendMessage).not.toHaveBeenCalled()
+      const shadow = document.querySelector(
+        '[data-tabbin-link-capture]',
+      )?.shadowRoot
+      const controls = [...(shadow?.querySelectorAll('button') ?? [])]
+      expect(controls.map((button) => button.textContent)).toEqual([
+        cancelLabel,
+      ])
+      const cancel = controls[0]
+      if (!cancel) {
+        throw new Error('Missing cancel button')
+      }
+      dispatchTrusted(new MouseEvent('click', { bubbles: true }), cancel)
+      for (const anchor of document.querySelectorAll('a')) {
+        anchor.remove()
+      }
+      pageLink('https://example.com/smaller')
+      drag()
+      await vi.waitFor(() => expect(mock.sendMessage).toHaveBeenCalledOnce())
+      expect(mock.sendMessage.mock.calls[0]?.[0]).toMatchObject({
+        action: 'saveLinkCapture',
+        links: [{ url: 'https://example.com/smaller', title: 'Article' }],
+      })
+    },
+  )
 
   it('ignores editor focus and provides keyboard-only saving for a focused anchor', async () => {
     const link = pageLink()
@@ -462,6 +576,32 @@ describe('link capture content entrypoint', () => {
     })
     drag()
     await vi.waitFor(() => expect(mock.sendMessage).toHaveBeenCalledTimes(2))
+  })
+
+  it('restores and saves when randomUUID is unavailable but getRandomValues is supported', async () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: crypto.getRandomValues.bind(crypto),
+    })
+    pageLink()
+    await content.main({} as never)
+    pageTransition('pagehide')
+    pageTransition('pageshow')
+    await vi.waitFor(() => expect(mock.readSettings).toHaveBeenCalledTimes(2))
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0)
+    })
+    expect(document.querySelector('[data-tabbin-link-capture]')).not.toBeNull()
+    expect(mock.sendMessage).toHaveBeenCalledOnce()
+    expect(
+      linkCaptureMessageSchema.safeParse(mock.sendMessage.mock.calls[0]?.[0])
+        .success,
+    ).toBe(true)
+    drag()
+    await vi.waitFor(() => expect(mock.sendMessage).toHaveBeenCalledTimes(2))
+    expect(
+      linkCaptureMessageSchema.safeParse(mock.sendMessage.mock.calls[1]?.[0])
+        .success,
+    ).toBe(true)
   })
 
   it('honors an OFF setting changed while its document was in BFCache', async () => {

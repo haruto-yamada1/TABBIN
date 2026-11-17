@@ -1,6 +1,9 @@
 import { browser } from 'wxt/browser'
 
-import { LINK_CAPTURE_SETTINGS_KEY } from '@/constants/linkCapture'
+import {
+  LINK_CAPTURE_MAX_BATCH_TEXT_LENGTH,
+  LINK_CAPTURE_SETTINGS_KEY,
+} from '@/constants/linkCapture'
 import { matchLinkCaptureShortcut } from '@/lib/link-capture/shortcut'
 import { readLinkCaptureSettings } from '@/lib/storage/link-capture-settings'
 import type { LinkCaptureSettings } from '@/lib/storage/link-capture-settings'
@@ -15,6 +18,7 @@ import type { CaptureCandidate, CaptureLink } from './geometry'
 import { captureMessages } from './messages'
 import type { CaptureMessages } from './messages'
 import { createCaptureOverlay } from './overlay'
+import { createCaptureRequestId } from './request-id'
 
 const STATE_KEY = '__tabbinLinkCapture'
 const DRAG_THRESHOLD = 6
@@ -90,7 +94,10 @@ class LinkCaptureController {
     window.addEventListener('pointermove', this.pointermove, options)
     window.addEventListener('pointerup', this.pointerup, options)
     window.addEventListener('pointercancel', this.cancelGesture, options)
-    window.addEventListener('blur', this.cancelGesture, options)
+    window.addEventListener('blur', this.cancelGesture, {
+      ...options,
+      capture: false,
+    })
     window.addEventListener('pagehide', this.pagehide, options)
     window.addEventListener('pageshow', this.pageshow, options)
     window.addEventListener('popstate', this.cancel, options)
@@ -164,7 +171,7 @@ class LinkCaptureController {
     const response: LinkCaptureResponse | undefined =
       await browser.runtime.sendMessage({
         action: 'previewLinkCapture',
-        requestId: crypto.randomUUID(),
+        requestId: createCaptureRequestId(),
         links: [],
       })
     return response?.status === 'ok'
@@ -430,12 +437,26 @@ class LinkCaptureController {
     }
   }
   private async submit(links: CaptureLink[]) {
-    this.pending = { requestId: crypto.randomUUID(), links, confirmed: false }
+    this.pending = {
+      requestId: createCaptureRequestId(),
+      links,
+      confirmed: false,
+    }
     await this.send(links.length > LARGE_BATCH_SIZE)
   }
   private async send(preview: boolean) {
     const batch = this.pending
     if (!batch || this.busy || this.disposed) {
+      return
+    }
+    const textLength = batch.links.reduce(
+      (size, link) => size + link.url.length + link.title.length,
+      0,
+    )
+    if (textLength > LINK_CAPTURE_MAX_BATCH_TEXT_LENGTH) {
+      this.overlay.showPanel(this.messages.selectionTooLarge, [
+        { label: this.messages.cancel, run: this.cancel },
+      ])
       return
     }
     this.busy = true

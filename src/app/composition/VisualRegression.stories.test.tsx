@@ -25,7 +25,7 @@ vi.mock('./testing/VisualRegression.fixture', () => ({
   visualStoryStorage: {},
 }))
 
-const { Import } = composeStories(visualStories)
+const { Import, Options } = composeStories(visualStories)
 
 describe('Import visual story readiness', () => {
   afterEach(() => {
@@ -80,5 +80,50 @@ describe('Import visual story readiness', () => {
 
     expect(await result).toBeUndefined()
     expect(canvasElement).toHaveAttribute('data-visual-ready', 'import')
+  })
+})
+
+describe('Options visual story readiness', () => {
+  afterEach(() => {
+    document.body.replaceChildren()
+  })
+
+  it('waits for the optional link capture control before marking the screen ready', async () => {
+    const messages = getMessages('en')
+    const canvasElement = document.createElement('div')
+    const heading = document.createElement('h1')
+    heading.textContent = messages['options.title']
+    const importButton = document.createElement('button')
+    importButton.textContent = messages['options.importExport.import']
+    const titleIndicator = document.createElement('input')
+    titleIndicator.type = 'checkbox'
+    titleIndicator.setAttribute(
+      'aria-label',
+      messages['options.savedTabTitle.enable'] ?? '',
+    )
+    const linkCapture = document.createElement('input')
+    linkCapture.type = 'checkbox'
+    linkCapture.setAttribute(
+      'aria-label',
+      messages['options.linkCapture.enable'] ?? '',
+    )
+    const firstCheck = Promise.withResolvers<undefined>()
+    linkCapture.disabled = true
+    const hasAttribute = linkCapture.hasAttribute.bind(linkCapture)
+    vi.spyOn(linkCapture, 'hasAttribute').mockImplementation((name) => {
+      if (name === 'disabled') {
+        firstCheck.resolve(undefined)
+      }
+      return hasAttribute(name)
+    })
+    canvasElement.append(heading, importButton, titleIndicator, linkCapture)
+    document.body.append(canvasElement)
+    assert(Options.play)
+    const result = Options.play({ canvasElement, globals: { locale: 'en' } })
+    await Promise.race([firstCheck.promise, result])
+    expect(canvasElement).not.toHaveAttribute('data-visual-ready')
+    linkCapture.disabled = false
+    await result
+    expect(canvasElement).toHaveAttribute('data-visual-ready', 'options')
   })
 })
