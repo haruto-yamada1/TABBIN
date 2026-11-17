@@ -28,6 +28,11 @@ export type FirefoxExtensionSession = {
   readonly origin: string
   readonly navigate: (relative: string) => Promise<void>
   readonly evaluate: (script: string, args?: unknown[]) => Promise<unknown>
+  readonly webdriver: (
+    route: string,
+    body?: unknown,
+    method?: string,
+  ) => Promise<unknown>
   readonly parsedJavaScript: () => Promise<string[]>
 }
 
@@ -299,6 +304,8 @@ export const withFirefoxExtension = async <T>(
         origin,
         version: browserVersion(created.capabilities),
         evaluate,
+        webdriver: async (route, body, method) =>
+          request(`/session/${id}${route}`, body, method),
         parsedJavaScript: async () =>
           readParsedJavaScript(evaluate, command, origin),
         navigate: async (relative) => {

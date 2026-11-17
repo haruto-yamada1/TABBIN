@@ -21,6 +21,11 @@ import {
   backgroundMessageSchema,
   messageActionSchema,
 } from '@/types/background'
+import {
+  emptyLinkCaptureResponse,
+  isLinkCaptureAction,
+  linkCaptureMessageSchema,
+} from '@/types/link-capture'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
@@ -29,6 +34,10 @@ import {
   isAutoDeletePeriod,
   updateTabTimestamps,
 } from './expired-tabs'
+import {
+  handleLinkCaptureMessage,
+  linkCaptureSenderOrigin,
+} from './link-capture'
 import { refreshSavedTabTitleIndicator } from './saved-tab-title-indicator'
 import {
   handleUrlDragStarted,
@@ -173,6 +182,24 @@ const isAiChatStreamRunMessage = (
 const setupMessageListener = (): void => {
   // eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (isLinkCaptureAction(message)) {
+      if (!linkCaptureSenderOrigin(sender, chrome.runtime.id)) {
+        sendResponse(emptyLinkCaptureResponse('forbidden'))
+        return false
+      }
+      const capture = linkCaptureMessageSchema.safeParse(message)
+      if (!capture.success) {
+        sendResponse(emptyLinkCaptureResponse('invalid_message'))
+        return false
+      }
+      void handleLinkCaptureMessage(capture.data, sender).then(
+        sendResponse,
+        () => {
+          sendResponse(emptyLinkCaptureResponse('error'))
+        },
+      )
+      return true
+    }
     if (!isTrustedExtensionPageSender(sender, chrome.runtime)) {
       logger.warn('background_message_rejected', {
         errorCode: 'UNTRUSTED_SENDER',

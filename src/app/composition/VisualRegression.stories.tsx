@@ -100,6 +100,16 @@ export const Options: Story = {
     await expect(
       canvas.queryByText(messages['options.savedTabTitle.loadError']),
     ).not.toBeInTheDocument()
+    const linkCapture = canvas.getByRole('checkbox', {
+      name: messages['options.linkCapture.enable'],
+    })
+    await waitFor(async () => {
+      await expect(linkCapture).toBeEnabled()
+    })
+    await expect(linkCapture).not.toBeChecked()
+    await expect(
+      canvas.queryByText(messages['options.linkCapture.loadError']),
+    ).not.toBeInTheDocument()
     markReady(canvasElement, 'options')
   },
   render: () => <OptionsRoute />,

@@ -205,6 +205,58 @@ describe('IndexedDB domain data-plane production composition', () => {
     expect(storage.set).not.toHaveBeenCalled()
   })
 
+  it('keeps captured URLs and existing metadata intact across database close and worker recreation', async () => {
+    const dataPlane = getBackgroundSavedTabsDataPlane()
+    const existingUrl = 'https://example.com/existing'
+    const freshUrl = 'https://example.com/new'
+    await dataPlane.saveTabs([{ title: 'User title', url: existingUrl }])
+    const initial = await dataPlane.readUndoSnapshot()
+    const existing = initial.savedTabs.urls[0]
+    assert.isDefined(existing)
+    await new IndexedDbPersistenceUnitOfWork(
+      connectionManager,
+      operationGate,
+    ).commit({
+      urls: { put: [{ ...existing, isFavorite: true }] },
+      memberships: {
+        put: initial.savedTabs.memberships.map((membership) => ({
+          ...membership,
+          notes: 'Keep my note',
+        })),
+      },
+    })
+    const protectedSnapshot = await dataPlane.readUndoSnapshot()
+    const links = [
+      { title: 'Page replacement must not win', url: existingUrl },
+      { title: 'Fresh link', url: freshUrl },
+    ]
+    await expect(
+      dataPlane.saveTabs(links, { preserveExisting: true }),
+    ).resolves.toEqual({ existingCount: 1, savedCount: 1 })
+    const committed = await dataPlane.readUndoSnapshot()
+    expect(
+      committed.savedTabs.urls.find(({ id }) => id === existing.id),
+    ).toEqual(protectedSnapshot.savedTabs.urls[0])
+    expect(
+      committed.savedTabs.memberships.filter(
+        ({ urlId }) => urlId === existing.id,
+      ),
+    ).toEqual(protectedSnapshot.savedTabs.memberships)
+
+    connectionManager.close()
+    resetBackgroundSavedTabsDataPlaneForTesting()
+    const restarted = getBackgroundSavedTabsDataPlane()
+    await expect(restarted.readUndoSnapshot()).resolves.toEqual(committed)
+    // A lost completion response may cause the same batch to be sent after worker wake.
+    await expect(
+      restarted.saveTabs(links, { preserveExisting: true }),
+    ).resolves.toEqual({ existingCount: 2, savedCount: 0 })
+    await expect(restarted.readUndoSnapshot()).resolves.toEqual(committed)
+    expect(
+      (await restarted.readInsightRecords()).map(({ url }) => url),
+    ).toEqual(expect.arrayContaining([existingUrl, freshUrl]))
+  })
+
   it('saves, deletes and restores native background data while leaving IndexedDB history and views intact', async () => {
     const storage = { get: vi.fn(async () => ({})), set: vi.fn(async () => {}) }
     mocked.getStorage.mockReturnValue(storage)

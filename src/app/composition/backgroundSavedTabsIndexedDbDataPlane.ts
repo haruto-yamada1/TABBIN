@@ -582,9 +582,30 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
       state.memberships = [...structuredClone(snapshot.savedTabs.memberships)]
       state.urls = [...structuredClone(snapshot.savedTabs.urls)]
     }),
-  saveTabs: async (tabs) =>
+  saveTabs: async (tabs, options = {}) =>
     session.run((state) => {
+      if (options.preserveExisting) {
+        const existingIdentities = new Set(
+          state.urls.map(({ normalizedUrl }) => normalizedUrl),
+        )
+        const distinctTabs = new Map<string, BackgroundSavedTabInput>()
+        for (const tab of tabs) {
+          const identity = validUrlIdentityKey(tab.url ?? '')
+          if (identity) {
+            distinctTabs.set(identity, tab)
+          }
+        }
+        const freshTabs = [...distinctTabs]
+          .filter(([identity]) => !existingIdentities.has(identity))
+          .map(([, tab]) => tab)
+        saveTabs(state, freshTabs, idGenerator, now())
+        return {
+          existingCount: distinctTabs.size - freshTabs.length,
+          savedCount: freshTabs.length,
+        }
+      }
       saveTabs(state, tabs, idGenerator, now())
+      return undefined
     }),
   updateTabTimestamps: async (timestamp) =>
     session.run((state) => {

@@ -1,7 +1,9 @@
+import { linkCaptureMessages } from './linkCaptureMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
 
 export const optionsMessages = {
   en: {
+    ...linkCaptureMessages.en,
     ...reviewReminderMessages.en,
     'background.saveTabs.filterErrorTitle': 'Tabs were not saved',
     'background.saveTabs.filterErrorMessage':
@@ -34,6 +36,7 @@ export const optionsMessages = {
       'Could not check the setting or site access. Reload the settings page and try again.',
   },
   ja: {
+    ...linkCaptureMessages.ja,
     ...reviewReminderMessages.ja,
     'background.saveTabs.filterErrorTitle': 'タブを保存できませんでした',
     'background.saveTabs.filterErrorMessage':

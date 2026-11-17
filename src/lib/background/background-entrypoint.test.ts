@@ -6,6 +6,7 @@ const mocked = vi.hoisted(() => ({
   setupExpiredTabsCheckAlarm: vi.fn(),
   registerReviewReminderListeners: vi.fn(),
   registerSavedTabTitleIndicator: vi.fn(),
+  registerLinkCaptureLifecycle: vi.fn(),
   reconcileReviewReminderAlarm: vi.fn(async () => {}),
   registerContextMenuClickListener: vi.fn(),
   registerContextMenuSettingsListener: vi.fn(),
@@ -42,6 +43,9 @@ vi.mock('@/lib/background/alarm-notification', () => ({
 vi.mock('@/lib/background/review-reminders', () => ({
   registerReviewReminderListeners: mocked.registerReviewReminderListeners,
   reconcileReviewReminderAlarm: mocked.reconcileReviewReminderAlarm,
+}))
+vi.mock('@/lib/background/link-capture-lifecycle', () => ({
+  registerLinkCaptureLifecycle: mocked.registerLinkCaptureLifecycle,
 }))
 vi.mock('@/lib/background/saved-tab-title-indicator', () => ({
   registerSavedTabTitleIndicator: mocked.registerSavedTabTitleIndicator,
@@ -271,6 +275,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     })
     expect(mocked.registerReviewReminderListeners).toHaveBeenCalledOnce()
     expect(mocked.registerSavedTabTitleIndicator).toHaveBeenCalledOnce()
+    expect(mocked.registerLinkCaptureLifecycle).toHaveBeenCalledOnce()
     expect(mocked.reconcileReviewReminderAlarm).not.toHaveBeenCalled()
     pending.resolve(undefined)
     await flushMicrotasks()
