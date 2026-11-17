@@ -613,7 +613,7 @@ describe('custom and domain deletion consistency', () => {
     }
   })
 
-  it('Undo reuses a URL saved again with a new ID without duplicating identity or overwriting its new metadata', async () => {
+  it('Undo reuses a URL saved again with a new ID and preserves current record and membership edits', async () => {
     const fixture = await createFixture()
     try {
       const undo = await fixture.useCases.getCustomProjectUndoSnapshot({
@@ -636,19 +636,42 @@ describe('custom and domain deletion consistency', () => {
         updatedAt: 5,
         url: 'https://example.com/a',
       }
-      await fixture.unitOfWork.commit({
-        urls: { put: [recaptured] },
-        memberships: {
-          put: [
-            {
-              addedAt: 4,
-              collectionId: 'first',
-              sortOrder: 4096,
-              updatedAt: 5,
-              urlId: 'recaptured',
-            },
-          ],
+      const currentMemberships = [
+        {
+          addedAt: 4,
+          addedAtProvenance: 'exact' as const,
+          categoryId: 'first:edited',
+          collectionId: 'first',
+          notes: 'Edited domain memo',
+          sortOrder: 4096,
+          updatedAt: 5,
+          urlId: 'recaptured',
         },
+        {
+          addedAt: 6,
+          addedAtProvenance: 'legacy-fallback' as const,
+          categoryId: 'source:edited',
+          collectionId: 'source',
+          notes: 'Edited project memo',
+          sortOrder: 6144,
+          updatedAt: 7,
+          urlId: 'recaptured',
+        },
+      ]
+      await fixture.unitOfWork.commit({
+        categories: {
+          put: ['first', 'source'].map((collectionId) => ({
+            collectionId,
+            createdAt: 4,
+            id: `${collectionId}:edited`,
+            keywords: [],
+            name: 'Edited',
+            sortOrder: 4096,
+            updatedAt: 5,
+          })),
+        },
+        urls: { put: [recaptured] },
+        memberships: { put: currentMemberships },
       })
       await fixture.useCases.restoreCustomProjectsSnapshot({
         payload: { ...undo, customProjects: undo.customProjects ?? [] },
@@ -674,6 +697,22 @@ describe('custom and domain deletion consistency', () => {
           .filter(({ urlId }) => urlId === 'recaptured')
           .map(({ collectionId }) => collectionId),
       ).toEqual(['first', 'other', 'source'])
+      expect(
+        restored.savedTabs.memberships.filter(
+          ({ collectionId, urlId }) =>
+            urlId === 'recaptured' && collectionId !== 'other',
+        ),
+      ).toEqual(currentMemberships)
+      expect(restored.savedTabs.memberships).toContainEqual({
+        addedAt: 3,
+        addedAtProvenance: 'exact',
+        categoryId: 'other:category',
+        collectionId: 'other',
+        notes: 'other-a',
+        sortOrder: 0,
+        updatedAt: 3,
+        urlId: 'recaptured',
+      })
     } finally {
       fixture.close()
     }

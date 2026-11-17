@@ -91,9 +91,10 @@ const mergeCollectionSnapshots = <
         item.collectionCategories,
         ({ id }) => id,
       ),
+      // Undo fills missing memberships without replacing edits to recaptured URLs.
       memberships: mergeSnapshotItems(
-        item.memberships,
         existing.memberships,
+        item.memberships,
         ({ urlId }) => urlId,
       ),
     }

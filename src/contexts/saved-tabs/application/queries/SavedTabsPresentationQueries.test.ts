@@ -14,7 +14,10 @@ import { createMockTabGroupRepository } from '@/contexts/saved-tabs/testing/crea
 
 import { createGetCustomProjectRawsQuery } from './GetCustomProjectRawsQuery'
 import { createGetCustomProjectsQuery } from './GetCustomProjectsQuery'
-import { createGetCustomProjectUndoSnapshotQuery } from './GetCustomProjectUndoSnapshotQuery'
+import {
+  createGetCustomProjectUndoSnapshotQuery,
+  selectCustomProjectUndoSnapshotTargets,
+} from './GetCustomProjectUndoSnapshotQuery'
 import { createGetSavedTabsPageDataQuery } from './GetSavedTabsPageDataQuery'
 import { createGetSavedTabsQuery } from './GetSavedTabsQuery'
 
@@ -370,5 +373,13 @@ describe('saved-tabs presentation queries', () => {
     expect(raw).toStrictEqual(project)
     expect(raw).not.toBe(project)
     expect(raw.memberships).not.toBe(project.memberships)
+  })
+
+  it('does not use a project-only snapshot to restore committed URL targets', () => {
+    expect(() =>
+      selectCustomProjectUndoSnapshotTargets({ customProjects: [project] }, [
+        { projectId: project.id, urls: ['https://example.com/a'] },
+      ]),
+    ).toThrow('URL Undo snapshot is missing')
   })
 })

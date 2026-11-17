@@ -186,4 +186,75 @@ describe('RestoreCustomProjectsSnapshotUseCase', () => {
     expect(restoreAllRaw).toHaveBeenCalledWith(raws)
     expect(saveOrder).toHaveBeenLastCalledWith(['project-1'])
   })
+
+  it('preserves current membership edits and restores only memberships absent from current collections', async () => {
+    const previousGroup = createTabGroup({
+      id: 'domain',
+      domain: 'example.com',
+      subCategories: ['Docs'],
+      memberships: [
+        { category: 'Docs', notes: 'Old domain memo', urlId: 'url-1' },
+      ],
+    })
+    const currentGroup = createTabGroup({
+      id: 'domain',
+      domain: 'example.com',
+      subCategories: ['Edited'],
+      memberships: [
+        { category: 'Edited', notes: 'Latest domain memo', urlId: 'url-1' },
+      ],
+    })
+    const currentProject = createCustomProject({
+      id: 'project-1',
+      categories: ['Edited'],
+      memberships: [
+        { category: 'Edited', notes: 'Latest project memo', urlId: 'url-1' },
+      ],
+    })
+    const absentProject = createCustomProject({
+      id: 'project-restored',
+      categories: ['Reading'],
+      memberships: [
+        {
+          category: 'Reading',
+          notes: 'Restore deleted membership',
+          urlId: 'url-1',
+        },
+      ],
+    })
+    const repositories = {
+      ...createSnapshotRepositories(),
+      tabGroupRepository: createMockTabGroupRepository({
+        savedTabs: [currentGroup],
+      }),
+    }
+    const saveAll = vi.fn(async (_projects: readonly CustomProject[]) => {})
+    const customProjectRepository = makeRepository({ saveAll })
+    customProjectRepository.findAll = vi.fn(async () => [currentProject])
+    const useCase = createRestoreCustomProjectsSnapshotUseCase({
+      ...repositories,
+      customProjectRepository,
+    })
+
+    await useCase({
+      payload: {
+        customProjects: [...projects, absentProject],
+        openedUrlsSnapshot: { savedTabs: [previousGroup] },
+      },
+    })
+
+    expect(
+      (await repositories.tabGroupRepository.findAll())[0]?.memberships,
+    ).toEqual(currentGroup.memberships)
+    expect(saveAll).toHaveBeenLastCalledWith([
+      expect.objectContaining({
+        id: 'project-1',
+        memberships: currentProject.memberships,
+      }),
+      expect.objectContaining({
+        id: 'project-restored',
+        memberships: absentProject.memberships,
+      }),
+    ])
+  })
 })

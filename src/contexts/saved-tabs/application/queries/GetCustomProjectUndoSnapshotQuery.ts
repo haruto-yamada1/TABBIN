@@ -117,6 +117,45 @@ const selectSavedUrlsSnapshot = (
   }
 }
 
+/** Limit a captured URL Undo to the operations that actually committed. */
+export const selectCustomProjectUndoSnapshotTargets = (
+  snapshot: CustomProjectUndoSnapshot,
+  targets: NonNullable<
+    NonNullable<Parameters<GetCustomProjectUndoSnapshotQuery>[0]>['targets']
+  >,
+): CustomProjectUndoSnapshot => {
+  if (!snapshot.openedUrlsSnapshot) {
+    throw new Error('URL Undo snapshot is missing')
+  }
+  const openedUrlsSnapshot = selectSavedUrlsSnapshot(
+    snapshot.openedUrlsSnapshot,
+    targets,
+  )
+  const selectedIds = new Set<string>(
+    (openedUrlsSnapshot.urlRecords ?? []).map(({ id }) => id),
+  )
+  return {
+    openedUrlsSnapshot,
+    customProjects: openedUrlsSnapshot.customProjects ?? [],
+    customProjectOrder: openedUrlsSnapshot.customProjectOrder ?? [],
+    ...(snapshot.customProjectsRaw
+      ? {
+          customProjectsRaw: selectMemberships(
+            snapshot.customProjectsRaw,
+            selectedIds,
+          ),
+        }
+      : {}),
+    ...(snapshot.urlRecordsRaw
+      ? {
+          urlRecordsRaw: snapshot.urlRecordsRaw.filter(({ id }) =>
+            selectedIds.has(id),
+          ),
+        }
+      : {}),
+  }
+}
+
 const readSavedUrlsUndoSnapshot = async (
   deps: GetCustomProjectUndoSnapshotQueryDeps,
   options: NonNullable<Parameters<GetCustomProjectUndoSnapshotQuery>[0]>,

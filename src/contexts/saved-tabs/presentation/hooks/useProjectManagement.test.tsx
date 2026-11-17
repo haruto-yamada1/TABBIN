@@ -1573,6 +1573,28 @@ describe('useProjectManagement', () => {
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('second project failed'))
 
+    projectManagementMocks.getCustomProjectUndoSnapshot.mockImplementationOnce(
+      async () => {
+        const raws = await projectManagementMocks.getCustomProjectRaws()
+        return {
+          customProjects: raws,
+          customProjectsRaw: raws,
+          openedUrlsSnapshot: {
+            customProjects: raws,
+            customProjectOrder: ['project-1', 'project-2'],
+            savedTabs: [],
+            parentCategories: [],
+            urlRecords: ['a', 'b'].map((id) => ({
+              id: `url-${id}`,
+              url: `https://example.com/${id}`,
+              title: id,
+              savedAt: 1,
+            })),
+          },
+        }
+      },
+    )
+
     await act(async () => {
       await expect(
         result.current.handleDeleteSelectedUrls([

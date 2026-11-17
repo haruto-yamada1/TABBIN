@@ -1,4 +1,5 @@
 import {
+  mkdirSync,
   readFileSync,
   readdirSync,
   statSync,
@@ -6,6 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { relative, resolve, sep } from 'node:path'
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
@@ -126,7 +128,10 @@ const getRestrictedProperties = (
   })
 }
 
-const collectSourceFiles = (dir: string): string[] => {
+const collectSourceFiles = (
+  dir: string,
+  allContextsRoot = resolve(repoRoot, 'src', 'contexts'),
+): string[] => {
   const result: string[] = []
   let entries: string[]
   try {
@@ -135,10 +140,7 @@ const collectSourceFiles = (dir: string): string[] => {
     return result
   }
   for (const entry of entries) {
-    if (
-      dir === resolve(repoRoot, 'src', 'contexts') &&
-      entry.startsWith('__oxlint-fixture-')
-    ) {
+    if (dir === allContextsRoot && entry.startsWith('__oxlint-fixture-')) {
       continue
     }
     const fullPath = resolve(dir, entry)
@@ -149,7 +151,7 @@ const collectSourceFiles = (dir: string): string[] => {
       continue
     }
     if (stats.isDirectory()) {
-      result.push(...collectSourceFiles(fullPath))
+      result.push(...collectSourceFiles(fullPath, allContextsRoot))
       continue
     }
     if (!stats.isFile()) {
@@ -208,18 +210,22 @@ const stripComments = (source: string): string =>
 
 describe('src/contexts/saved-tabs DDD layer guard', () => {
   it('excludes temporary Oxlint contexts while retaining real production sources', () => {
-    const allContexts = resolve(repoRoot, 'src', 'contexts')
-    const fixture = mkdtempSync(resolve(allContexts, '__oxlint-fixture-'))
+    const fixtureRoot = mkdtempSync(resolve(tmpdir(), 'tabbin-ddd-layer-'))
+    const allContexts = resolve(fixtureRoot, 'src', 'contexts')
+    const fixture = resolve(allContexts, '__oxlint-fixture-test')
     const file = resolve(fixture, 'MutatingPresentationService.ts')
+    const productionDirectory = resolve(allContexts, 'saved-tabs', 'domain')
+    const productionFile = resolve(productionDirectory, 'Url.ts')
     try {
+      mkdirSync(fixture, { recursive: true })
+      mkdirSync(productionDirectory, { recursive: true })
       writeFileSync(file, 'export const fixtureOnly = true')
-      const sources = collectSourceFiles(allContexts)
+      writeFileSync(productionFile, 'export const productionOnly = true')
+      const sources = collectSourceFiles(allContexts, allContexts)
       expect(sources).not.toContain(file)
-      expect(sources).toContain(
-        resolve(contextsRoot, 'domain/value-objects/Url.ts'),
-      )
+      expect(sources).toContain(productionFile)
     } finally {
-      rmSync(fixture, { recursive: true, force: true })
+      rmSync(fixtureRoot, { recursive: true, force: true })
     }
   })
 

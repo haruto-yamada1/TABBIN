@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { selectCustomProjectUndoSnapshotTargets } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
 import type { CustomProjectUndoSnapshot } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { toStorageCustomProject } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
@@ -247,6 +248,16 @@ const useProjectCrudHandlers = ({
     ],
   )
 
+  const refreshProjectsAfterDeletion = useCallback(async (): Promise<void> => {
+    try {
+      const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
+      setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
+    } catch (error) {
+      console.error('URL削除後の再読み込みエラー:', error)
+      toast.error(t('savedTabs.selection.refreshFailed'))
+    }
+  }, [refs.getCustomProjectRawsQueryRef, setCustomProjects, t])
+
   const handleDeleteUrlFromProject = useCallback(
     async (projectId: string, url: string): Promise<void> => {
       try {
@@ -259,8 +270,6 @@ const useProjectCrudHandlers = ({
           projectId,
           url,
         })
-        const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
-        setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
           getCustomProjectRawsQuery: refs.getCustomProjectRawsQueryRef.current,
           count: 1,
@@ -271,12 +280,14 @@ const useProjectCrudHandlers = ({
           t,
         })
         toast.success(t('savedTabs.tab.deleted'))
+        await refreshProjectsAfterDeletion()
       } catch (error) {
         console.error('URL削除エラー:', error)
         toast.error(t('savedTabs.tab.deleteError'))
       }
     },
     [
+      refreshProjectsAfterDeletion,
       refs.getCustomProjectUndoSnapshotQueryRef,
       refs.removeUrlFromCustomProjectUseCaseRef,
       refs.getCustomProjectRawsQueryRef,
@@ -298,8 +309,6 @@ const useProjectCrudHandlers = ({
           projectId,
           urls,
         })
-        const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
-        setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
         showCustomProjectDeleteUndoToast({
           getCustomProjectRawsQuery: refs.getCustomProjectRawsQueryRef.current,
           count: urls.length,
@@ -314,12 +323,14 @@ const useProjectCrudHandlers = ({
             count: String(urls.length),
           }),
         )
+        await refreshProjectsAfterDeletion()
       } catch (error) {
         console.error('URL一括削除エラー:', error)
         toast.error(t('savedTabs.tab.deleteError'))
       }
     },
     [
+      refreshProjectsAfterDeletion,
       refs.getCustomProjectUndoSnapshotQueryRef,
       refs.removeUrlsFromCustomProjectUseCaseRef,
       refs.getCustomProjectRawsQueryRef,
@@ -340,17 +351,9 @@ const useProjectCrudHandlers = ({
         urls.push(item.url)
         byProject.set(item.groupId, urls)
       }
-      const refreshProjects = async (): Promise<void> => {
-        try {
-          const updatedRaws = await refs.getCustomProjectRawsQueryRef.current()
-          setCustomProjects(updatedRaws.map(toRawStorageCustomProject))
-        } catch (error) {
-          console.error('選択URL削除後の再読み込みエラー:', error)
-          toast.error(t('savedTabs.selection.refreshFailed'))
-        }
-      }
       let undoSnapshot: CustomProjectUndoSnapshot | undefined
       let deletedCount = 0
+      const completedTargets: { projectId: string; urls: string[] }[] = []
       try {
         undoSnapshot = await refs.getCustomProjectUndoSnapshotQueryRef.current({
           includeSavedUrls: true,
@@ -366,12 +369,13 @@ const useProjectCrudHandlers = ({
             projectId,
             urls,
           })
+          completedTargets.push({ projectId, urls })
           deletedCount += urls.length
         }
       } catch (error) {
         // プロジェクトをまたぐ削除は 1 回ずつ commit される。先行分が
-        // 確定している場合は、失敗前に取得した snapshot で Undo と一覧を
-        // 復旧できるようにしてから、選択ストアへ失敗を伝える。
+        // 確定した対象だけを snapshot から選び、未削除の後続プロジェクトを
+        // Undo で巻き戻さないようにしてから、選択ストアへ失敗を伝える。
         console.error('選択URL削除エラー:', error)
         if (undoSnapshot && deletedCount > 0) {
           showCustomProjectDeleteUndoToast({
@@ -381,10 +385,13 @@ const useProjectCrudHandlers = ({
             restoreCustomProjectsSnapshotUseCase:
               refs.restoreCustomProjectsSnapshotUseCaseRef.current,
             setCustomProjects,
-            snapshot: undoSnapshot,
+            snapshot: selectCustomProjectUndoSnapshotTargets(
+              undoSnapshot,
+              completedTargets,
+            ),
             t,
           })
-          await refreshProjects()
+          await refreshProjectsAfterDeletion()
         }
         throw error
       }
@@ -398,9 +405,10 @@ const useProjectCrudHandlers = ({
         snapshot: undoSnapshot,
         t,
       })
-      await refreshProjects()
+      await refreshProjectsAfterDeletion()
     },
     [
+      refreshProjectsAfterDeletion,
       refs.getCustomProjectUndoSnapshotQueryRef,
       refs.removeUrlsFromCustomProjectUseCaseRef,
       refs.getCustomProjectRawsQueryRef,
