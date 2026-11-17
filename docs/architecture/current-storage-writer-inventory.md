@@ -23,6 +23,7 @@ writing the former Chrome Storage keys.
 - `userSettings`
 - `savedTabsSort:<scope>:<encoded-id>`
 - `savedTabsSearchHistory`
+- `linkCaptureSettings`
 - `academyProgressV1`
 - `reviewReminderSettings`
 - `reviewReminderNotification`
@@ -131,6 +132,8 @@ returns to the default order; preferences for absent IDs remain inert.
 
 | UI-SAVED-TAB-TITLE | savedTabTitleIndicatorEnabled | ui sync | options/background | setSavedTabTitleEnabled | `src/lib/storage/saved-tab-title-indicator.ts` | One boolean preference | One boolean preference | No | Single-key write | UI state | One boolean | Device-local; explicit user grant before enabling; permission revocation disables | Chrome onChanged | Chrome UI preference; excluded from userSettings, Backup V2 and recovery |
 
+| LINK-CAPTURE-SETTINGS | linkCaptureSettings | explicit mutation | options/background/content | writeLinkCaptureSettings | `src/lib/storage/link-capture-settings.ts` | One capture preference | One capture preference | No | Single-key write; settings UI blocks overlapping writes | UI state | One boolean and one shortcut; code/key labels bounded to 64 characters | Strict schema and collision validation; healthy missing read defaults OFF; explicit permission grant before enabling | Chrome onChanged | Chrome device-local opt-in preference; outside userSettings, Backup V2 and recovery |
+
 The three IndexedDB mutation files below are shared physical boundaries.
 Saved-tabs, AI-history, and analytics writer rows intentionally point to the
 same UnitOfWork; their compositions select the appropriate logical changes.
@@ -160,6 +163,7 @@ valid stored settings and cannot authorize mutations.
 - `src/lib/storage/settings.ts`
 - `src/lib/storage/review-reminders.ts`
 - `src/lib/storage/saved-tab-title-indicator.ts`
+- `src/lib/storage/link-capture-settings.ts`
 
 This appendix and writer table are checked by
 `tools/scripts/verify-storage-writer-inventory.ts`. The source detector covers

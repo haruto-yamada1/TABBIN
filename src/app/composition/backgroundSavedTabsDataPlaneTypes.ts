@@ -58,7 +58,16 @@ export type BackgroundSavedTabsDataPlane = {
   readonly restoreUndoSnapshot: (
     snapshot: PersistenceVersionedSavedTabsSnapshot,
   ) => Promise<void>
-  readonly saveTabs: (tabs: readonly BackgroundSavedTabInput[]) => Promise<void>
+  readonly saveTabs: (
+    tabs: readonly BackgroundSavedTabInput[],
+    options?: { readonly preserveExisting?: boolean },
+  ) => Promise<
+    | undefined
+    | {
+        readonly savedCount: number
+        readonly existingCount: number
+      }
+  >
   readonly updateTabTimestamps: (
     timestamp: number,
   ) => Promise<{ readonly success: boolean }>

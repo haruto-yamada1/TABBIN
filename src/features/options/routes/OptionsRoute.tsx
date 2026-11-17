@@ -27,7 +27,7 @@ import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
 import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
 import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
 import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
-import { SavedTabTitleSettings } from '@/features/options/SavedTabTitleSettings'
+import { PageAccessSettings } from '@/features/options/PageAccessSettings'
 import type { UserSettings } from '@/types/storage'
 
 import {
@@ -378,7 +378,7 @@ const useOptionsRouteView = () => {
           onBaseUrlChange={handleOllamaBaseUrlChange}
         />
 
-        <SavedTabTitleSettings />
+        <PageAccessSettings />
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
           <h2 className='mb-4 text-xl font-semibold text-foreground'>

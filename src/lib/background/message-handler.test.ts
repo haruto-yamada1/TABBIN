@@ -128,6 +128,40 @@ describe('setupMessageListener', () => {
     vi.clearAllMocks()
   })
 
+  it('validates bounded capture input from a top-frame content script without admitting privileged messages', () => {
+    const { listener } = setupListener()
+    const sender = {
+      id: 'test-extension-id',
+      frameId: 0,
+      url: 'https://example.com/',
+      tab: { id: 7, url: 'https://example.com/', incognito: false },
+    }
+    const sendResponse = vi.fn()
+    expect(
+      listener(
+        {
+          action: 'saveLinkCapture',
+          requestId: 'capture',
+          links: 'not-an-array',
+        },
+        sender,
+        sendResponse,
+      ),
+    ).toBe(false)
+    expect(sendResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'invalid_message' }),
+    )
+    sendResponse.mockClear()
+    expect(
+      listener(
+        { action: 'removeUrlFromStorage', url: 'https://example.com/' },
+        sender,
+        sendResponse,
+      ),
+    ).toBe(false)
+    expect(sendResponse).toHaveBeenCalledWith({ status: 'forbidden' })
+  })
+
   it.each(rejectedSenders)(
     'rejects every privileged message from an untrusted sender: %j',
     (sender) => {

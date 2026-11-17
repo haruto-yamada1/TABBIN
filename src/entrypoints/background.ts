@@ -17,6 +17,7 @@ import {
   registerContextMenuSettingsListener,
 } from '@/lib/background/context-menu'
 import { handleExtensionActionClick } from '@/lib/background/extension-actions'
+import { registerLinkCaptureLifecycle } from '@/lib/background/link-capture-lifecycle'
 import { setupMessageListener } from '@/lib/background/message-handler'
 import {
   reconcileReviewReminderAlarm,
@@ -34,6 +35,7 @@ export default defineBackground(() => {
   registerExpiredTabsAlarmListener()
   registerReviewReminderListeners()
   registerSavedTabTitleIndicator()
+  registerLinkCaptureLifecycle()
   registerContextMenuClickListener()
   registerContextMenuSettingsListener()
   // 拡張機能インストール・更新時の処理

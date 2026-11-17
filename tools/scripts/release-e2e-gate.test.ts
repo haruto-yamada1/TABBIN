@@ -189,6 +189,7 @@ describe('distribution release gate', () => {
     expect(result.status).toBe(0)
     expect(result.commands).toContain('e2e:release')
     expect(result.commands).toContain('test:firefox:indexeddb-smoke')
+    expect(result.commands).toContain('test:firefox:link-capture')
     expect(result.commands).toContain('test:production-artifact-upgrade')
     expect(
       result.commands.indexOf('test:production-artifact-upgrade'),
@@ -203,6 +204,7 @@ describe('distribution release gate', () => {
   it.each([
     'e2e:release',
     'test:firefox:indexeddb-smoke',
+    'test:firefox:link-capture',
     'test:production-artifact-upgrade',
   ])('fails closed when %s fails', (failure) => {
     const result = runRelease(failure)

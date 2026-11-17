@@ -110,6 +110,51 @@ const createDataPlane = (state = createState()) => {
 }
 
 describe('backgroundSavedTabsIndexedDbDataPlane', () => {
+  it('captures only fresh URLs atomically and preserves every existing field and membership', async () => {
+    const state = createState()
+    assert.isDefined(state.urls[0])
+    state.urls[0] = { ...state.urls[0], isFavorite: true }
+    const existing = structuredClone(state.urls[0])
+    const memberships = structuredClone(state.memberships)
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.saveTabs(
+        [
+          { title: 'Untrusted replacement', url: 'https://example.com/docs' },
+          { title: 'Docs new', url: 'https://example.com/new' },
+        ],
+        { preserveExisting: true },
+      ),
+    ).resolves.toEqual({ existingCount: 1, savedCount: 1 })
+
+    expect(state.urls.find(({ id }) => id === existing.id)).toEqual(existing)
+    expect(
+      state.memberships.filter(({ urlId }) => urlId === existing.id),
+    ).toEqual(memberships)
+    expect(state.memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          collectionId: 'domain-1',
+          urlId: 'url-new',
+          categoryId: 'category-1',
+        }),
+        expect.objectContaining({
+          collectionId: 'project-1',
+          urlId: 'url-new',
+        }),
+      ]),
+    )
+    const afterCapture = structuredClone(state)
+    await expect(
+      dataPlane.saveTabs(
+        [{ title: 'Different', url: 'https://example.com/new' }],
+        { preserveExisting: true },
+      ),
+    ).resolves.toEqual({ existingCount: 1, savedCount: 0 })
+    expect(state).toEqual(afterCapture)
+  })
+
   it('projects URL metrics and membership events without collapsing their timestamps', async () => {
     const state = createState()
     assert.isDefined(state.urls[0])
