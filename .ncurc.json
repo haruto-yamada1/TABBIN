@@ -1,3 +1,6 @@
 {
-  "cooldown": 7
+  "cooldown": 7,
+  "dep": ["prod", "dev", "optional"],
+  "enginesNode": true,
+  "format": ["group", "cooldown", "time", "ownerChanged"]
 }
