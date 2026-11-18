@@ -3,7 +3,7 @@ import { browser } from 'wxt/browser'
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { readLinkCaptureSettings } from '@/lib/storage/link-capture-settings'
 import { requireUserSettings } from '@/lib/storage/settings'
-import { isUrlExcludedByPatterns } from '@/lib/url-filter'
+import { toSavableLinkUrl } from '@/lib/url-filter'
 import {
   emptyLinkCaptureResponse,
   LINK_CAPTURE_CONFIRM_THRESHOLD,
@@ -110,19 +110,7 @@ export const linkCaptureSenderOrigin = (
 const allowedLink = (
   link: LinkCaptureLink,
   excludePatterns: readonly string[],
-): boolean => {
-  try {
-    const url = new URL(link.url)
-    return (
-      ['http:', 'https:'].includes(url.protocol) &&
-      !url.username &&
-      !url.password &&
-      !isUrlExcludedByPatterns(link.url, excludePatterns)
-    )
-  } catch {
-    return false
-  }
-}
+): boolean => toSavableLinkUrl(link.url, excludePatterns) !== null
 
 const selectLinks = (
   candidates: readonly LinkCaptureLink[],

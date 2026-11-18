@@ -1,5 +1,6 @@
 import { aiChatTrustMessages } from './aiChatTrustMessages'
 import { analyticsHealthMessages } from './analyticsHealthMessages'
+import { backgroundContextMenuMessages } from './backgroundContextMenuMessages'
 import { backupExportMessages } from './backupExportMessages'
 import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
@@ -300,21 +301,7 @@ const messages = {
     'background.aiChat.toolSummary.fetchedWithTotal':
       'Retrieved {{count}} items. Total items: {{total}}.',
     'background.aiChat.toolSummary.resultRetrieved': 'Retrieved the result.',
-    'background.contextMenu.openSavedTabs': 'Open saved tabs',
-    'background.contextMenu.saveAllTabs': 'Save all tabs in this window',
-    'background.contextMenu.saveAllWindowsTabs':
-      'Save all tabs across all windows',
-    'background.contextMenu.saveCurrentTab': 'Save current tab',
-    'background.contextMenu.saveSameDomainTabs':
-      'Save all tabs from the current domain',
-    'background.saveTabs.allWindowsSaved':
-      'Saved {{count}} tabs across all windows.',
-    'background.saveTabs.currentTabSaved': 'Saved the current tab.',
-    'background.saveTabs.notificationTitle': 'Tab saved',
-    'background.saveTabs.sameDomainSaved':
-      'Saved {{count}} tabs from {{domain}}.',
-    'background.saveTabs.windowTabsSaved':
-      'Saved {{count}} tabs. Closing the tabs now.',
+    ...backgroundContextMenuMessages.en,
     'changelog.heading': 'Release Notes',
     'common.cache': 'Cache',
     'common.cancel': 'Cancel',
@@ -1212,21 +1199,7 @@ const messages = {
     'background.aiChat.toolSummary.fetchedWithTotal':
       '{{count}} 件を取得しました。総件数は {{total}} 件です。',
     'background.aiChat.toolSummary.resultRetrieved': '結果を取得しました。',
-    'background.contextMenu.openSavedTabs': '保存したタブを開く',
-    'background.contextMenu.saveAllTabs': 'ウィンドウのすべてのタブを保存',
-    'background.contextMenu.saveAllWindowsTabs':
-      '他のウィンドウを含めすべてのタブを保存',
-    'background.contextMenu.saveCurrentTab': '現在のタブを保存',
-    'background.contextMenu.saveSameDomainTabs':
-      '現在開いているドメインのタブをすべて保存',
-    'background.saveTabs.allWindowsSaved':
-      'すべてのウィンドウから{{count}}個のタブを保存しました',
-    'background.saveTabs.currentTabSaved': '現在のタブを保存しました',
-    'background.saveTabs.notificationTitle': 'タブ保存',
-    'background.saveTabs.sameDomainSaved':
-      '{{domain}}の{{count}}個のタブを保存しました',
-    'background.saveTabs.windowTabsSaved':
-      '{{count}}個のタブが保存されました。タブを閉じます。',
+    ...backgroundContextMenuMessages.ja,
     'changelog.heading': 'リリースノート',
     'common.cache': 'キャッシュ',
     'common.cancel': 'キャンセル',

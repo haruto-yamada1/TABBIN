@@ -10,6 +10,7 @@ import type { ContextMenuId } from '@/types/background'
 import {
   handleSaveAllWindowsTabs,
   handleSaveCurrentTab,
+  handleSaveLink,
   handleSaveSameDomainTabs,
   handleSaveWindowTabs,
 } from './extension-actions'
@@ -28,12 +29,14 @@ type MenuItem = chrome.contextMenus.CreateProperties & { id: ContextMenuId }
 
 const getMenuItems = async (): Promise<MenuItem[]> => {
   const [
+    saveLinkToTabbin,
     openSavedTabs,
     saveCurrentTab,
     saveAllTabs,
     saveSameDomainTabs,
     saveAllWindowsTabs,
   ] = await Promise.all([
+    getBackgroundMessage('background.contextMenu.saveLinkToTabbin'),
     getBackgroundMessage('background.contextMenu.openSavedTabs'),
     getBackgroundMessage('background.contextMenu.saveCurrentTab'),
     getBackgroundMessage('background.contextMenu.saveAllTabs'),
@@ -41,6 +44,11 @@ const getMenuItems = async (): Promise<MenuItem[]> => {
     getBackgroundMessage('background.contextMenu.saveAllWindowsTabs'),
   ])
   return [
+    {
+      contexts: ['link'],
+      id: 'saveLinkToTabbin',
+      title: saveLinkToTabbin,
+    },
     {
       contexts: ['page'],
       id: 'openSavedTabs',
@@ -162,6 +170,10 @@ const dispatchMenuClick = async (
 ): Promise<void> => {
   try {
     switch (info.menuItemId) {
+      case 'saveLinkToTabbin': {
+        await handleSaveLink(info.linkUrl)
+        break
+      }
       case 'saveCurrentTab': {
         await handleSaveCurrentTab()
         break
