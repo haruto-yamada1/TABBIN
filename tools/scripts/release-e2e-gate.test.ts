@@ -27,7 +27,7 @@ const runRelease = (
 git() { return 0; }
 bun() {
   local step="$2"
-  if [ "$1" = 'audit' ]; then step='bun audit --audit-level=high'; fi
+  if [ "$1" = 'tools/scripts/run-security-audit.ts' ]; then step="$1"; fi
   printf '%s\n' "$step" >> "$COMMAND_LOG"
   if [ "$step" = "$FAIL_STEP" ]; then
     printf '%s\n' "$FAIL_REASON" >&2
@@ -97,7 +97,7 @@ describe('distribution release gate', () => {
     expect(result.commands).not.toContain('release:e2e')
   })
 
-  it('validates the backport deadline and RSA probe before the unfiltered High audit', () => {
+  it('validates the node-forge policy and RSA probe before the reviewed High audit', () => {
     const result = runRelease()
     expect(
       result.commands
@@ -108,7 +108,7 @@ describe('distribution release gate', () => {
       'security:audit',
       'verify:security-audit-policy',
       'verify:node-forge-backport',
-      'bun audit --audit-level=high',
+      'tools/scripts/run-security-audit.ts',
     ])
   })
 
@@ -144,7 +144,7 @@ describe('distribution release gate', () => {
   it.each([
     'verify:security-audit-policy',
     'verify:node-forge-backport',
-    'bun audit --audit-level=high',
+    'tools/scripts/run-security-audit.ts',
   ])(
     'blocks release ZIPs and preserves diagnostics when %s fails',
     (failure) => {
@@ -161,7 +161,7 @@ describe('distribution release gate', () => {
     'stops before the network audit when %s fails',
     (failure) => {
       expect(runRelease(failure).commands).not.toContain(
-        'bun audit --audit-level=high',
+        'tools/scripts/run-security-audit.ts',
       )
     },
   )
@@ -174,7 +174,7 @@ describe('distribution release gate', () => {
     'lockfile not found',
   ])('blocks release and retains audit diagnostics: %s', (diagnostic) => {
     const result = runRelease(
-      'bun audit --audit-level=high',
+      'tools/scripts/run-security-audit.ts',
       'release:zip',
       diagnostic,
     )

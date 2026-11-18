@@ -97,10 +97,17 @@ map と regular file (`100644`) の追加は一対一で検証し、孤立した
 `security:audit` は `tools/security-audit-policy.json` の公開版 policy と全 lock binding、
 実 RSA の正常署名・異常 ASN.1 拒否 probe、全依存の High / Critical audit を必須にする。
 旧 backport の source / digest / 期限 / 承認 anchor の保護は historical fixture でも検証する。
-元の期限を延長する承認記録や advisory ignore は追加しない。
+node-forge の元の期限を延長する承認記録や advisory ignore は追加しない。
 詳細は [公開版移行の検証条件](dependency-updates.md) を参照。
 
-追加 advisory exception は0件。個別 license 承認は以下の2パッケージのみ。
+picomatch の `GHSA-fc5q-39xc-vjpf` だけを2026-12-02 00:00 UTCまで受理する
+承認記録を `tools/scripts/dependency-audit.ts` に設ける。確認済み lockfile の SHA-256、
+manifest の production scope、package / advisory / severity / 影響範囲を固定し、
+変更・期限切れ・監査不能では停止する。対象を製品へ同梱することは認めない。
+CI の成功 summary は「脆弱性なし」とせず、適用した例外を audit log に残す。
+詳細と再評価条件は [release 手順](../release.md#picomatch-の期限付き例外) を参照。
+
+個別 license 承認は以下の2パッケージのみ。
 
 - `react-doctor`（開発用の直接依存）と
   `oxlint-plugin-react-doctor`（同ツールの付属ルール）。

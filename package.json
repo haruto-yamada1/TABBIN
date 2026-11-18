@@ -38,7 +38,7 @@
     "release:zip": "bun run release:check && bun run zip && bun run zip:firefox && bun run verify:third-party-license-zips && bun run academy:check .output/*-chrome.zip .output/*-firefox.zip && bun run release:provenance",
     "compile": "node node_modules/typescript/bin/tsc --noEmit",
     "secretlint": "secretlint \"**/*\"",
-    "security:audit": "bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun audit --audit-level=high",
+    "security:audit": "bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun tools/scripts/run-security-audit.ts",
     "deps:check": "ncu",
     "deps:update": "ncu --upgrade",
     "postinstall": "wxt prepare",

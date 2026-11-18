@@ -97,7 +97,12 @@ export function selectedLicense(value: string | null): string {
 
 export function assertRuntimePackage(name: string) {
   if (
-    ['react-doctor', 'oxlint-plugin-react-doctor', 'node-forge'].includes(name)
+    [
+      'react-doctor',
+      'oxlint-plugin-react-doctor',
+      'node-forge',
+      'picomatch',
+    ].includes(name)
   ) {
     throw new Error(`Development-only package bundled in runtime: ${name}`)
   }

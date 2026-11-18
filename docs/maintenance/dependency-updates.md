@@ -157,8 +157,9 @@ baseline test と build に不要だったため allowlist は空にした。
 ## Audit exception review (2026-08-23)
 
 Issue #827 で期限切れだった10件を全件再評価した。すべて解消可能になったため、
-`security:audit` から ignore を削除した。継続する temporary exception はなく、
-新しい期限は不要である。owner は dependency maintenance。
+`security:audit` から ignore を削除した。この2026-08-23の再評価時点では継続する
+temporary exception はなく、新しい期限は不要だった。owner は dependency maintenance。
+2026-11-18の picomatch の限定受理は、後掲の定期監査と [release 手順](../release.md#picomatch-の期限付き例外) に従う。
 
 lockfile は既存 parent range の範囲内で修正版へ進めた。package owner / repository、
 dependency 名、lifecycle script、`trustedDependencies` は変更せず、新しい transitive
@@ -244,7 +245,8 @@ schemaVersion 2 が active な公開版の source、owner、根拠、tracking Is
 `verify:node-forge-backport` のコマンド名は CI 互換のため維持し、公開版でも実 RSA の
 正常署名・改変メッセージ・OID のみ / OID + 空 NULL の受理と、余分な要素 / 非空 NULL
 の拒否を検証する。`security:audit` は policy / lock 照合 → この probe →
-`bun audit --audit-level=high` を実行し、監査 ignore は追加しない。
+`run-security-audit.ts` により全依存の生 JSON 応答を High / Critical で判定する。
+node-forge を対象とする監査例外は追加しない。
 Forge の dual license は同梱 LICENSE に基づき BSD-3-Clause を選択する。
 
 Bun の7日待機は通常どおり維持する。1.4.3 の npm 公開日時は
@@ -267,11 +269,13 @@ Issue #908 の `.github/workflows/security-audit.yml` は毎日 **03:23 UTC
 （12:23 JST）** に default branch の現在の lockfile を監査する。`workflow_dispatch`
 からも実行でき、workflow / 契約テストの変更 PR では同じ job を検証する。
 Node / Bun は repository pin、install は `--frozen-lockfile` を使い、
-`security:audit` の policy 検証 → backport probe → `bun audit --audit-level=high`
-をそのまま実行する。High / Critical、期限切れ・不正な例外記録、probe 失敗、
+`security:audit` の policy 検証 → backport probe → `run-security-audit.ts` を実行する。
+確認済みの picomatch advisory だけを2026-12-02 00:00 UTCまで受理し、適用時は
+警告を残す（[限定条件](../release.md#picomatch-の期限付き例外)）。ほかの High / Critical、
+期限切れ・不正な例外記録、依存構成の変更、probe 失敗、
 registry / network 等による監査不能はすべて失敗とし、ログ保存のために終了コードを
 握りつぶさない。setup failure も「監査未実行」として表示し、安全とは扱わない。
-ブラウザ設定・権限・データモデル、既存 CI / release gate は変更しない。
+ブラウザ設定・権限・データモデル、既存 CI / release gate の必須性は変更しない。
 
 通知は GitHub Actions の **failed workflow run notification** を使う。
 dependency maintenance 担当者は GitHub 個人設定の Notifications → Actions で
