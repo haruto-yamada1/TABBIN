@@ -72,7 +72,10 @@ const updateOpenPages = async (enabled: boolean): Promise<void> => {
 }
 
 const state = createLinkCaptureRegistration({
-  readEnabled: async () => (await readLinkCaptureSettings()).enabled,
+  readEnabled: async () => {
+    const settings = await readLinkCaptureSettings()
+    return settings.enabled || settings.clickEnabled
+  },
   hasPermissions: async () =>
     browser.permissions.contains({
       permissions: [...LINK_CAPTURE_PERMISSIONS],

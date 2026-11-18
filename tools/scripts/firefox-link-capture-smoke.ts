@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { withFirefoxExtension } from './firefoxExtensionSession'
 import type { FirefoxExtensionSession } from './firefoxExtensionSession'
 
-const fixture = `<!doctype html><title>Firefox capture fixture</title><style>body{margin:0;font:16px system-ui}#links{margin:80px 40px;display:grid;grid-template-columns:repeat(5,140px);gap:6px}a{height:24px}</style><div id="links">${Array.from({ length: 30 }, (_, i) => `<a href="/article/${i}">Article ${i}</a>`).join('')}</div>`
+const fixture = `<!doctype html><title>Firefox capture fixture</title><style>body{margin:0;font:16px system-ui}#links{margin:80px 40px;display:grid;grid-template-columns:repeat(5,140px);gap:6px}a{height:24px}</style><a id="click-save" href="/click-only" style="position:absolute;left:40px;top:20px"><span>Firefox click-only article</span></a><div id="links">${Array.from({ length: 30 }, (_, i) => `<a href="/article/${i}">Article ${i}</a>`).join('')}</div>`
 const waitFor = async (check: () => Promise<boolean>, label: string) => {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     // eslint-disable-next-line no-await-in-loop -- poll the actual native browser state
@@ -58,6 +58,55 @@ const permissionPrompt = async (
     await session.webdriver('/moz/context', { context: 'content' })
   }
 }
+const verifyClickOnlyCapture = async (
+  session: FirefoxExtensionSession,
+  sourceHandle: unknown,
+  extensionHandle: unknown,
+  before: unknown,
+) => {
+  await session.webdriver('/window', { handle: sourceHandle })
+  await session.webdriver('/actions', {
+    actions: [
+      {
+        type: 'key',
+        id: 'keyboard',
+        actions: [{ type: 'keyDown', value: 'z' }],
+      },
+    ],
+  })
+  await click(session, '#click-save span')
+  await session.webdriver('/actions', {
+    actions: [
+      {
+        type: 'key',
+        id: 'keyboard',
+        actions: [{ type: 'keyUp', value: 'z' }],
+      },
+    ],
+  })
+  await waitFor(
+    async () =>
+      (await session.evaluate(
+        'return document.querySelector("[data-tabbin-link-capture]")?.dataset.captureStatus?.includes("Saved: 1") ?? false',
+      )) === true,
+    'click-only saved without navigation',
+  )
+  await session.webdriver('/window', { handle: extensionHandle })
+  assert.deepEqual(
+    await session.evaluate(
+      'return browser.tabs.query({}).then(tabs=>tabs.map(({id,url})=>({id,url})).sort((a,b)=>a.id-b.id))',
+    ),
+    before,
+  )
+  const clickedRecord = await session.evaluate(
+    `return new Promise((resolve,reject)=>{const r=indexedDB.open('tabbin-persistence-v2');r.onsuccess=()=>{const db=r.result;const q=db.transaction('urls').objectStore('urls').getAll();q.onsuccess=()=>{db.close();resolve(q.result.find(value=>value.url.endsWith('/click-only')))};q.onerror=()=>reject(q.error)};r.onerror=()=>reject(r.error)})`,
+  )
+  assert.ok(clickedRecord && typeof clickedRecord === 'object')
+  assert.equal(
+    Reflect.get(clickedRecord, 'title'),
+    'Firefox click-only article',
+  )
+}
 const run = async () => {
   const server = createServer((_request, response) => {
     response.writeHead(200, { 'content-type': 'text/html' })
@@ -88,7 +137,7 @@ const run = async () => {
         await waitFor(
           async () =>
             (await session.evaluate(
-              'return Boolean(document.querySelector("#link-capture-enabled") && !document.querySelector("#link-capture-enabled").disabled)',
+              'return Boolean(document.querySelector("#link-click-capture-enabled") && !document.querySelector("#link-click-capture-enabled").disabled)',
             )) === true,
           'options ready',
         )
@@ -98,21 +147,21 @@ const run = async () => {
           ),
           false,
         )
-        await click(session, '#link-capture-enabled')
+        await click(session, '#link-click-capture-enabled')
         await permissionPrompt(session, false)
         await waitFor(
           async () =>
             (await session.evaluate(
-              'return document.querySelector("#link-capture-enabled").getAttribute("aria-checked")==="false"',
+              'return document.querySelector("#link-click-capture-enabled").getAttribute("aria-checked")==="false"',
             )) === true,
           'permission denied stays off',
         )
-        await click(session, '#link-capture-enabled')
+        await click(session, '#link-click-capture-enabled')
         await permissionPrompt(session, true)
         await waitFor(
           async () =>
             (await session.evaluate(
-              'return document.querySelector("#link-capture-enabled").getAttribute("aria-checked")==="true"',
+              'return document.querySelector("#link-click-capture-enabled").getAttribute("aria-checked")==="true"',
             )) === true,
           'permission granted enabled',
         )
@@ -138,6 +187,20 @@ const run = async () => {
         await session.webdriver('/window', { handle: extensionHandle })
         const before = await session.evaluate(
           'return browser.tabs.query({}).then(tabs=>tabs.map(({id,url})=>({id,url})).sort((a,b)=>a.id-b.id))',
+        )
+        await verifyClickOnlyCapture(
+          session,
+          sourceHandle,
+          extensionHandle,
+          before,
+        )
+        await click(session, '#link-capture-enabled')
+        await waitFor(
+          async () =>
+            (await session.evaluate(
+              'return document.querySelector("#link-capture-enabled").getAttribute("aria-checked")==="true"',
+            )) === true,
+          'rectangle enabled with shared click key',
         )
         await session.webdriver('/window', { handle: sourceHandle })
         await session.webdriver('/actions', {
@@ -202,7 +265,15 @@ const run = async () => {
         const saved = await session.evaluate(
           `return new Promise((resolve,reject)=>{const r=indexedDB.open('tabbin-persistence-v2');r.onsuccess=()=>{const db=r.result;const q=db.transaction('urls').objectStore('urls').getAll();q.onsuccess=()=>{db.close();resolve(q.result.length)};q.onerror=()=>reject(q.error)};r.onerror=()=>reject(r.error)})`,
         )
-        assert.equal(saved, 30)
+        assert.equal(saved, 31)
+        await click(session, '#link-capture-enabled')
+        await waitFor(
+          async () =>
+            (await session.evaluate(
+              'return document.querySelector("#link-capture-enabled").getAttribute("aria-checked")==="false" && document.querySelector("#link-click-capture-enabled").getAttribute("aria-checked")==="true"',
+            )) === true,
+          'click-only remains enabled after rectangle disabled',
+        )
         await session.webdriver('/window', { handle: sourceHandle })
         await session.evaluate(
           'document.body.dataset.restoreMarker="capture"; window.addEventListener("pageshow", event=>{document.body.dataset.persisted=String(event.persisted)})',
@@ -250,6 +321,9 @@ const run = async () => {
           permissionRevocationAfterBack: true,
           firefoxVersion: session.version,
           saved,
+          clickOnlySaved: true,
+          clickOnlyTitlePreserved: true,
+          sharedKeyRectangleSaved: 30,
           permissionDenied: true,
           permissionGranted: true,
           tabIdentityPreserved: true,

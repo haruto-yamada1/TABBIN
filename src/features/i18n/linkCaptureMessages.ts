@@ -1,5 +1,11 @@
 export const linkCaptureMessages = {
   en: {
+    'options.linkClickCapture.title': 'Link saving gesture',
+    'options.linkClickCapture.enable': 'Enable key + click saving',
+    'options.linkClickCapture.instructions':
+      'Hold the recorded key and left-click a link to save it without opening it. When the same key is used for link selection, dragging selects links and clicking saves one. Ctrl, Alt, Shift and Meta combinations are reserved for standard link actions and cannot be registered here.',
+    'options.linkClickCapture.reserved':
+      'This key conflicts with a browser, OS or standard link action. Choose a key without Ctrl, Alt, Shift or Meta.',
     'options.linkCapture.title': 'Select and save links',
     'options.linkCapture.enable': 'Enable link selection and saving',
     'options.linkCapture.description':
@@ -29,6 +35,13 @@ export const linkCaptureMessages = {
     'options.linkCapture.saved': 'Key saved.',
   },
   ja: {
+    'options.linkClickCapture.title': 'リンク保存操作',
+    'options.linkClickCapture.enable':
+      'キー＋クリックでのリンク保存を有効にする',
+    'options.linkClickCapture.instructions':
+      '登録キーを押しながらリンクを左クリックすると、リンク先を開かず保存します。一括選択と同じキーの場合、ドラッグは範囲選択、クリックは1件保存になります。Ctrl・Alt・Shift・Meta を含む組み合わせはリンクの標準操作と競合するため登録できません。',
+    'options.linkClickCapture.reserved':
+      'ブラウザ・OS またはリンクの標準操作と競合します。Ctrl・Alt・Shift・Meta を含まないキーを選んでください。',
     'options.linkCapture.title': 'リンクの一括選択・保存',
     'options.linkCapture.enable': 'リンクの選択と保存を有効にする',
     'options.linkCapture.description':

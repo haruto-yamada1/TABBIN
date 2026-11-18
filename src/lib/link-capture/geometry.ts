@@ -22,6 +22,15 @@ export const isCaptureEditable = (
     'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"],[role="searchbox"],[role="spinbutton"]',
   ) !== null
 
+const composedParent = (element: Element): Element | null => {
+  const parent = element.assignedSlot ?? element.parentElement
+  if (parent) {
+    return parent
+  }
+  const root = element.getRootNode()
+  return root instanceof ShadowRoot ? root.host : null
+}
+
 const visible = (
   element: HTMLElement,
   cache: WeakMap<HTMLElement, boolean>,
@@ -77,6 +86,32 @@ const captureLink = (element: HTMLAnchorElement): CaptureLink | undefined => {
   }
 }
 
+/** A trusted pointer click proves browser hit testing, including visible
+ * children overriding ancestor CSS or placed outside their anchor's box.
+ * Only semantic disabling is checked along the composed ancestor path. */
+export const readClickedCaptureLink = (
+  element: HTMLAnchorElement,
+): CaptureLink | undefined => {
+  if (!element.isConnected) {
+    return undefined
+  }
+  let current: Element | null = element
+  while (current) {
+    if (current.matches('[hidden],[inert],[aria-disabled="true"]')) {
+      return undefined
+    }
+    current = composedParent(current)
+  }
+  return captureLink(element)
+}
+
+const readCaptureCandidate = (
+  element: HTMLAnchorElement,
+): CaptureCandidate | undefined => {
+  const link = captureLink(element)
+  return link ? { element, link } : undefined
+}
+
 /** Rebuild only at gesture start or after page DOM changes. No page data leaves
  * this isolated world until the user explicitly completes a selection. */
 export const collectCaptureCandidates = (
@@ -87,9 +122,9 @@ export const collectCaptureCandidates = (
     if (!(element instanceof HTMLAnchorElement)) {
       continue
     }
-    const link = captureLink(element)
-    if (link) {
-      candidates.push({ element, link })
+    const candidate = readCaptureCandidate(element)
+    if (candidate) {
+      candidates.push(candidate)
     }
   }
   return candidates

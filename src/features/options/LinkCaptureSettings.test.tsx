@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -33,6 +34,12 @@ vi.mock('@/lib/storage/link-capture-settings', async (importOriginal) => ({
 }))
 vi.mock('@/lib/browser/chrome-storage', () => ({
   getChromeStorageOnChanged: () => mocks.storage,
+  getChromeStorageLocal: () => ({
+    get: async () => ({ [LINK_CAPTURE_SETTINGS_KEY]: await mocks.read() }),
+    set: async (values: Record<string, unknown>) => {
+      await mocks.write(values[LINK_CAPTURE_SETTINGS_KEY])
+    },
+  }),
 }))
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
@@ -68,6 +75,23 @@ describe('LinkCaptureSettings', () => {
       },
     })
     vi.stubGlobal('chrome', undefined)
+    let pending: Promise<unknown> = Promise.resolve()
+    vi.stubGlobal('navigator', {
+      locks: {
+        request: async (
+          _name: string,
+          _options: unknown,
+          operation: () => Promise<unknown>,
+        ) => {
+          const result = pending.then(operation, operation)
+          pending = result.then(
+            () => undefined,
+            () => undefined,
+          )
+          return result
+        },
+      },
+    })
     mocks.read.mockResolvedValue(structuredClone(DEFAULT_LINK_CAPTURE_SETTINGS))
     mocks.write.mockImplementation(async (value) => value)
     mocks.contains.mockResolvedValue(true)
@@ -347,5 +371,178 @@ describe('LinkCaptureSettings', () => {
     render(<LinkCaptureSettings />)
     expect(await screen.findByRole('alert')).toHaveTextContent('Reload')
     expect(toggle()).toBeDisabled()
+  })
+
+  it('click saving defaults OFF and enables independently of rectangle selection', async () => {
+    const user = userEvent.setup()
+    render(<LinkCaptureSettings mode='click' />)
+    const clickToggle = await screen.findByRole('checkbox', {
+      name: 'Enable key + click saving',
+    })
+    await waitFor(() => expect(clickToggle).toBeEnabled())
+    expect(clickToggle).not.toBeChecked()
+    await user.click(clickToggle)
+    await waitFor(() => expect(clickToggle).toBeChecked())
+    expect(mocks.write).toHaveBeenCalledWith({
+      ...DEFAULT_LINK_CAPTURE_SETTINGS,
+      clickEnabled: true,
+    })
+  })
+
+  it.each(['toggles', 'shortcuts'])(
+    'preserves simultaneous %s from the two gesture sections while the first storage write is pending',
+    async (operation) => {
+      const user = userEvent.setup()
+      const firstWrite = Promise.withResolvers<undefined>()
+      let stored = structuredClone(DEFAULT_LINK_CAPTURE_SETTINGS)
+      let writes = 0
+      mocks.read.mockImplementation(async () => structuredClone(stored))
+      mocks.write.mockImplementation(async (value) => {
+        writes += 1
+        if (writes === 1) {
+          await firstWrite.promise
+        }
+        stored = structuredClone(value)
+        return stored
+      })
+      render(
+        <>
+          <LinkCaptureSettings />
+          <LinkCaptureSettings mode='click' />
+        </>,
+      )
+      const rectangle = within(
+        screen.getByRole('region', { name: 'Select and save links' }),
+      )
+      const clickSection = within(
+        screen.getByRole('region', { name: 'Link saving gesture' }),
+      )
+      await waitFor(() =>
+        expect(clickSection.getByRole('checkbox')).toBeEnabled(),
+      )
+      if (operation === 'shortcuts') {
+        await user.click(rectangle.getByRole('button', { name: 'Change key' }))
+        dispatchKey({ code: 'F8', key: 'F8' })
+        await user.click(
+          clickSection.getByRole('button', { name: 'Change key' }),
+        )
+        dispatchKey({ code: 'KeyJ', key: 'j' })
+      }
+      const rectangleAction =
+        operation === 'toggles'
+          ? rectangle.getByRole('checkbox')
+          : rectangle.getByRole('button', { name: 'Save key' })
+      const clickAction =
+        operation === 'toggles'
+          ? clickSection.getByRole('checkbox')
+          : clickSection.getByRole('button', { name: 'Save key' })
+      await user.click(rectangleAction)
+      await waitFor(() => expect(mocks.write).toHaveBeenCalledTimes(1))
+      await user.click(clickAction)
+      await act(async () => firstWrite.resolve(undefined))
+      await waitFor(() => expect(mocks.write).toHaveBeenCalledTimes(2))
+      await waitFor(() =>
+        expect(
+          rectangle.getByRole('button', { name: 'Change key' }),
+        ).toBeEnabled(),
+      )
+      await waitFor(() =>
+        expect(
+          clickSection.getByRole('button', { name: 'Change key' }),
+        ).toBeEnabled(),
+      )
+      expect(stored).toMatchObject(
+        operation === 'toggles'
+          ? { enabled: true, clickEnabled: true }
+          : { shortcut: { code: 'F8' }, clickShortcut: { code: 'KeyJ' } },
+      )
+    },
+  )
+
+  it('records a click key independently and rejects modifiers used by native link actions', async () => {
+    const user = userEvent.setup()
+    render(<LinkCaptureSettings mode='click' />)
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Change key' })).toBeEnabled(),
+    )
+    await user.click(screen.getByRole('button', { name: 'Change key' }))
+    dispatchKey({ code: 'KeyJ', key: 'j', shiftKey: true })
+    expect(screen.getByRole('alert')).toHaveTextContent('standard link')
+    expect(
+      screen.queryByRole('button', { name: 'Save key' }),
+    ).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Change key' }))
+    dispatchKey({ code: 'Semicolon', key: 'ö' })
+    await user.click(screen.getByRole('button', { name: 'Save key' }))
+    await waitFor(() =>
+      expect(mocks.write).toHaveBeenCalledWith({
+        ...DEFAULT_LINK_CAPTURE_SETTINGS,
+        clickShortcut: {
+          ...DEFAULT_LINK_CAPTURE_SETTINGS.shortcut,
+          code: 'Semicolon',
+          key: 'ö',
+        },
+      }),
+    )
+  })
+
+  it('denies click access without changing rectangle preference, then reflects external changes', async () => {
+    const user = userEvent.setup()
+    let stored = {
+      ...structuredClone(DEFAULT_LINK_CAPTURE_SETTINGS),
+      enabled: true,
+    }
+    mocks.read.mockImplementation(async () => structuredClone(stored))
+    mocks.request.mockResolvedValue(false)
+    render(<LinkCaptureSettings mode='click' />)
+    const clickToggle = await screen.findByRole('checkbox', {
+      name: 'Enable key + click saving',
+    })
+    await waitFor(() => expect(clickToggle).toBeEnabled())
+    await user.click(clickToggle)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Site access was not granted',
+    )
+    expect(mocks.write).not.toHaveBeenCalled()
+    stored = {
+      ...stored,
+      clickEnabled: true,
+      clickShortcut: { ...stored.shortcut, code: 'F8', key: 'F8' },
+    }
+    const changed = mocks.storage.addListener.mock.calls[0]?.[0] as (
+      changes: Record<string, unknown>,
+      area: string,
+    ) => void
+    act(() =>
+      changed({ [LINK_CAPTURE_SETTINGS_KEY]: { newValue: stored } }, 'local'),
+    )
+    await waitFor(() => expect(clickToggle).toBeChecked())
+    expect(screen.getByText('F8 (F8)')).toBeInTheDocument()
+  })
+
+  it('keeps only the most recently started recorder active across both gestures', async () => {
+    const user = userEvent.setup()
+    render(
+      <>
+        <LinkCaptureSettings />
+        <LinkCaptureSettings mode='click' />
+      </>,
+    )
+    const rectangle = within(
+      screen.getByRole('region', { name: 'Select and save links' }),
+    )
+    const clickSection = within(
+      screen.getByRole('region', { name: 'Link saving gesture' }),
+    )
+    await waitFor(() =>
+      expect(
+        rectangle.getByRole('button', { name: 'Change key' }),
+      ).toBeEnabled(),
+    )
+    await user.click(rectangle.getByRole('button', { name: 'Change key' }))
+    await user.click(clickSection.getByRole('button', { name: 'Change key' }))
+    dispatchKey({ code: 'KeyJ', key: 'j' })
+    expect(screen.getAllByRole('button', { name: 'Save key' })).toHaveLength(1)
+    expect(clickSection.getByText('KeyJ (j)')).toBeInTheDocument()
   })
 })

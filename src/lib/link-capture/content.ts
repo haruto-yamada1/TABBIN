@@ -5,6 +5,7 @@ import {
   LINK_CAPTURE_SETTINGS_KEY,
 } from '@/constants/linkCapture'
 import { matchLinkCaptureShortcut } from '@/lib/link-capture/shortcut'
+import type { LinkCaptureShortcut } from '@/lib/link-capture/shortcut'
 import { readLinkCaptureSettings } from '@/lib/storage/link-capture-settings'
 import type { LinkCaptureSettings } from '@/lib/storage/link-capture-settings'
 import type { LinkCaptureResponse } from '@/types/link-capture'
@@ -12,6 +13,7 @@ import type { LinkCaptureResponse } from '@/types/link-capture'
 import {
   collectCaptureCandidates,
   isCaptureEditable,
+  readClickedCaptureLink,
   selectCaptureLinks,
 } from './geometry'
 import type { CaptureCandidate, CaptureLink } from './geometry'
@@ -26,6 +28,7 @@ const EDGE_DISTANCE = 36
 const EDGE_SCROLL_SPEED = 18
 const LARGE_BATCH_SIZE = 50
 const CLICK_SUPPRESSION_MS = 300
+const MAX_QUEUED_CLICKS = 1000
 
 type Gesture = {
   pageX: number
@@ -39,6 +42,15 @@ type PendingBatch = {
   requestId: string
   links: CaptureLink[]
   confirmed: boolean
+  mode: 'rectangle' | 'click'
+}
+type ClickGesture = {
+  anchor: HTMLAnchorElement
+  pointerId: number
+  pageX: number
+  pageY: number
+  moved: boolean
+  released: boolean
 }
 
 const interpolate = (template: string, values: Record<string, number>) =>
@@ -47,12 +59,32 @@ const interpolate = (template: string, values: Record<string, number>) =>
   )
 const modifierMatch = (
   event: Pick<KeyboardEvent, 'ctrlKey' | 'altKey' | 'shiftKey' | 'metaKey'>,
-  settings: LinkCaptureSettings,
+  shortcut: LinkCaptureShortcut,
 ) =>
-  event.ctrlKey === settings.shortcut.ctrlKey &&
-  event.altKey === settings.shortcut.altKey &&
-  event.shiftKey === settings.shortcut.shiftKey &&
-  event.metaKey === settings.shortcut.metaKey
+  event.ctrlKey === shortcut.ctrlKey &&
+  event.altKey === shortcut.altKey &&
+  event.shiftKey === shortcut.shiftKey &&
+  event.metaKey === shortcut.metaKey
+
+const eventAnchor = (event: Event): HTMLAnchorElement | undefined =>
+  event
+    .composedPath()
+    .find(
+      (target): target is HTMLAnchorElement =>
+        target instanceof HTMLAnchorElement && target.hasAttribute('href'),
+    )
+const editableFocus = (): boolean => {
+  let active = document.activeElement
+  while (active?.shadowRoot?.activeElement) {
+    if (isCaptureEditable(active)) {
+      return true
+    }
+    active = active.shadowRoot.activeElement
+  }
+  return isCaptureEditable(active)
+}
+const editableEvent = (event: Event): boolean =>
+  event.composedPath().some(isCaptureEditable) || editableFocus()
 
 class LinkCaptureController {
   private settings: LinkCaptureSettings | undefined
@@ -69,6 +101,9 @@ class LinkCaptureController {
   private candidatesDirty = true
   private gesture: Gesture | undefined
   private keyHeld = false
+  private clickKeyHeld = false
+  private clickGesture: ClickGesture | undefined
+  private readonly queuedClicks = new Map<string, CaptureLink>()
   private composing = false
   private frame = 0
   private lastSelection: ReturnType<typeof selectCaptureLinks> = {
@@ -81,6 +116,7 @@ class LinkCaptureController {
   private disposed = false
   private messages: CaptureMessages = captureMessages.en
   private suppressClickUntil = 0
+  private dragToSuppress: number | undefined
 
   async initialize() {
     await this.refresh()
@@ -133,7 +169,7 @@ class LinkCaptureController {
     try {
       const settings = await readLinkCaptureSettings()
       const values = await browser.storage.local.get('userSettings')
-      const allowed = !probe || (await this.verifyAvailability())
+      const allowed = !probe || (await this.verifyAvailability(settings))
       if (!this.isRefreshCurrent(revision)) {
         return
       }
@@ -141,22 +177,10 @@ class LinkCaptureController {
         this.dispose()
         return
       }
-      const userSettings: unknown = values.userSettings
-      const language =
-        typeof userSettings === 'object' &&
-        userSettings !== null &&
-        'language' in userSettings
-          ? userSettings.language
-          : 'system'
-      const locale =
-        language === 'system' ? browser.i18n.getUILanguage() : language
-      this.messages =
-        typeof locale === 'string' && locale.startsWith('ja')
-          ? captureMessages.ja
-          : captureMessages.en
+      this.messages = this.readMessages(values.userSettings)
       if (!this.disposed) {
         this.settings = settings
-        if (!settings.enabled) {
+        if (!settings.enabled && !settings.clickEnabled) {
           this.dispose()
         }
       }
@@ -167,10 +191,26 @@ class LinkCaptureController {
       }
     }
   }
-  private async verifyAvailability(): Promise<boolean> {
+  private readMessages(userSettings: unknown): CaptureMessages {
+    const language =
+      typeof userSettings === 'object' &&
+      userSettings !== null &&
+      'language' in userSettings
+        ? userSettings.language
+        : 'system'
+    const locale =
+      language === 'system' ? browser.i18n.getUILanguage() : language
+    return typeof locale === 'string' && locale.startsWith('ja')
+      ? captureMessages.ja
+      : captureMessages.en
+  }
+  private async verifyAvailability(
+    settings: LinkCaptureSettings,
+  ): Promise<boolean> {
     const response: LinkCaptureResponse | undefined =
       await browser.runtime.sendMessage({
         action: 'previewLinkCapture',
+        mode: settings.enabled ? 'rectangle' : 'click',
         requestId: createCaptureRequestId(),
         links: [],
       })
@@ -239,23 +279,39 @@ class LinkCaptureController {
     if (!this.canUseKeyboard(event) || !this.settings) {
       return
     }
-    if (this.keyHeld && !modifierMatch(event, this.settings)) {
+    if (this.keyHeld && !modifierMatch(event, this.settings.shortcut)) {
       this.cancelGesture()
     }
-    if (matchLinkCaptureShortcut(event, this.settings.shortcut)) {
+    if (
+      this.settings.enabled &&
+      matchLinkCaptureShortcut(event, this.settings.shortcut)
+    ) {
       this.keyHeld = true
     }
+    this.updateClickKey(event, this.settings)
     if (event.code === 'Enter' && this.keyHeld) {
       this.captureFocused(event)
     }
   }
+  private updateClickKey(event: KeyboardEvent, settings: LinkCaptureSettings) {
+    if (this.clickKeyHeld && !modifierMatch(event, settings.clickShortcut)) {
+      this.clickKeyHeld = false
+      this.clearClickGesture()
+    }
+    if (
+      settings.clickEnabled &&
+      matchLinkCaptureShortcut(event, settings.clickShortcut)
+    ) {
+      this.clickKeyHeld = true
+    }
+  }
   private canUseKeyboard(event: KeyboardEvent): boolean {
     return (
-      Boolean(this.settings?.enabled) &&
+      (this.settings?.enabled === true ||
+        this.settings?.clickEnabled === true) &&
       !this.composing &&
       !event.isComposing &&
-      !isCaptureEditable(event.composedPath()[0]) &&
-      !isCaptureEditable(document.activeElement)
+      !editableEvent(event)
     )
   }
   private captureFocused(event: KeyboardEvent) {
@@ -282,25 +338,46 @@ class LinkCaptureController {
     }
   }
   private readonly keyup = (event: KeyboardEvent) => {
+    if (!event.isTrusted || !this.settings) {
+      return
+    }
     if (
-      this.settings &&
-      (event.code === this.settings.shortcut.code ||
-        !modifierMatch(event, this.settings))
+      event.code === this.settings.shortcut.code ||
+      !modifierMatch(event, this.settings.shortcut)
     ) {
-      this.cancelGesture()
+      this.keyHeld = false
+      this.clearRectangleGesture()
+    }
+    if (
+      event.code === this.settings.clickShortcut.code ||
+      !modifierMatch(event, this.settings.clickShortcut)
+    ) {
+      this.clickKeyHeld = false
+      this.clearClickGesture()
     }
   }
   private readonly pointerdown = (event: PointerEvent) => {
+    if (event.isTrusted) {
+      // A fresh physical press is never the synthesized click ending a drag.
+      this.suppressClickUntil = 0
+      this.dragToSuppress = undefined
+    }
     if (
       !event.isTrusted ||
       event.button !== 0 ||
       !event.isPrimary ||
+      (event.pointerType && event.pointerType !== 'mouse')
+    ) {
+      return
+    }
+    this.startClickGesture(event)
+    if (
       !this.keyHeld ||
       !this.settings?.enabled ||
       this.busy ||
       this.pending ||
-      isCaptureEditable(event.composedPath()[0]) ||
-      !modifierMatch(event, this.settings)
+      editableEvent(event) ||
+      !modifierMatch(event, this.settings.shortcut)
     ) {
       return
     }
@@ -314,7 +391,24 @@ class LinkCaptureController {
     }
     this.candidatesDirty = true
   }
+  private startClickGesture(event: PointerEvent) {
+    this.clickGesture = undefined
+    if (this.canClick(event)) {
+      const anchor = eventAnchor(event)
+      if (anchor) {
+        this.clickGesture = {
+          anchor,
+          pageX: event.clientX + window.scrollX,
+          pageY: event.clientY + window.scrollY,
+          pointerId: event.pointerId,
+          moved: false,
+          released: false,
+        }
+      }
+    }
+  }
   private readonly pointermove = (event: PointerEvent) => {
+    this.moveClickGesture(event)
     const gesture = this.gesture
     if (!event.isTrusted || !gesture || event.pointerId !== gesture.pointerId) {
       return
@@ -341,6 +435,11 @@ class LinkCaptureController {
     this.schedule()
   }
   private readonly pointerup = (event: PointerEvent) => {
+    if (event.isTrusted && this.dragToSuppress === event.pointerId) {
+      this.suppressClickUntil = Date.now() + CLICK_SUPPRESSION_MS
+      this.dragToSuppress = undefined
+    }
+    this.releaseClickGesture(event)
     if (
       !event.isTrusted ||
       !this.gesture ||
@@ -349,6 +448,9 @@ class LinkCaptureController {
       return
     }
     const active = this.gesture.active
+    if (active) {
+      this.clickGesture = undefined
+    }
     if (!active) {
       this.gesture = undefined
       return
@@ -370,19 +472,110 @@ class LinkCaptureController {
     }
   }
   private readonly preventNativeDrag = (event: Event) => {
-    if (this.gesture?.active) {
+    if (this.gesture?.active || this.clickGesture?.moved) {
       event.preventDefault()
       event.stopImmediatePropagation()
     }
   }
   private readonly click = (event: MouseEvent) => {
     if (
-      Date.now() < this.suppressClickUntil &&
-      !event.composedPath().includes(this.overlay.host)
+      !event.isTrusted ||
+      event.button !== 0 ||
+      event.composedPath().includes(this.overlay.host)
     ) {
+      return
+    }
+    const gesture = this.clickGesture
+    this.clickGesture = undefined
+    if (event.detail > 0 && Date.now() < this.suppressClickUntil) {
       event.preventDefault()
       event.stopImmediatePropagation()
       this.suppressClickUntil = 0
+      return
+    }
+    if (
+      !gesture?.released ||
+      gesture.moved ||
+      !this.canClick(event) ||
+      eventAnchor(event) !== gesture.anchor
+    ) {
+      return
+    }
+    const link = readClickedCaptureLink(gesture.anchor)
+    if (!link) {
+      return
+    }
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    this.enqueueClick(link)
+  }
+  private canClick(event: MouseEvent): boolean {
+    return Boolean(
+      this.settings?.clickEnabled &&
+      this.clickKeyHeld &&
+      !this.composing &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.shiftKey &&
+      !event.metaKey &&
+      !editableEvent(event),
+    )
+  }
+  private moveClickGesture(event: PointerEvent) {
+    const gesture = this.clickGesture
+    if (!event.isTrusted || !gesture || gesture.pointerId !== event.pointerId) {
+      return
+    }
+    if ((event.buttons & 1) === 0) {
+      this.clickGesture = undefined
+      return
+    }
+    gesture.moved ||=
+      Math.hypot(
+        event.clientX + window.scrollX - gesture.pageX,
+        event.clientY + window.scrollY - gesture.pageY,
+      ) >= DRAG_THRESHOLD
+  }
+  private releaseClickGesture(event: PointerEvent) {
+    const gesture = this.clickGesture
+    if (!event.isTrusted || !gesture || gesture.pointerId !== event.pointerId) {
+      return
+    }
+    gesture.moved ||=
+      Math.hypot(
+        event.clientX + window.scrollX - gesture.pageX,
+        event.clientY + window.scrollY - gesture.pageY,
+      ) >= DRAG_THRESHOLD
+    if (gesture.moved) {
+      this.suppressClickUntil = Date.now() + CLICK_SUPPRESSION_MS
+    }
+    gesture.released =
+      event.button === 0 &&
+      this.canClick(event) &&
+      eventAnchor(event) === gesture.anchor
+  }
+  private enqueueClick(link: CaptureLink) {
+    if (
+      this.pending?.links.some(({ url }) => url === link.url) ||
+      this.queuedClicks.has(link.url)
+    ) {
+      return
+    }
+    if (this.queuedClicks.size >= MAX_QUEUED_CLICKS) {
+      this.overlay.showNotice(this.messages.queueFull)
+      return
+    }
+    this.queuedClicks.set(link.url, link)
+    this.drainClicks()
+  }
+  private drainClicks() {
+    if (this.pending || this.busy || this.disposed) {
+      return
+    }
+    const next = this.queuedClicks.values().next().value
+    if (next) {
+      this.queuedClicks.delete(next.url)
+      void this.submit([next], 'click')
     }
   }
   private readonly schedule = () => {
@@ -436,11 +629,15 @@ class LinkCaptureController {
       this.schedule()
     }
   }
-  private async submit(links: CaptureLink[]) {
+  private async submit(
+    links: CaptureLink[],
+    mode: 'rectangle' | 'click' = 'rectangle',
+  ) {
     this.pending = {
       requestId: createCaptureRequestId(),
       links,
       confirmed: false,
+      mode,
     }
     await this.send(links.length > LARGE_BATCH_SIZE)
   }
@@ -465,6 +662,7 @@ class LinkCaptureController {
       const response: LinkCaptureResponse | undefined =
         await browser.runtime.sendMessage({
           action: preview ? 'previewLinkCapture' : 'saveLinkCapture',
+          mode: batch.mode,
           requestId: batch.requestId,
           links: batch.links,
           confirmed: batch.confirmed,
@@ -479,6 +677,7 @@ class LinkCaptureController {
       }
     } finally {
       this.busy = false
+      this.drainClicks()
     }
   }
   private isCurrent(batch: PendingBatch): boolean {
@@ -554,18 +753,31 @@ class LinkCaptureController {
       ],
     )
   }
-  private readonly cancelGesture = () => {
+  private readonly clearRectangleGesture = () => {
     if (this.gesture?.active) {
+      this.dragToSuppress = this.gesture.pointerId
       this.suppressClickUntil = Date.now() + CLICK_SUPPRESSION_MS
     }
-    this.keyHeld = false
     this.gesture = undefined
     cancelAnimationFrame(this.frame)
     this.frame = 0
     this.overlay.clearSelection()
   }
+  private clearClickGesture() {
+    if (this.clickGesture?.moved) {
+      this.dragToSuppress = this.clickGesture.pointerId
+    }
+    this.clickGesture = undefined
+  }
+  private readonly cancelGesture = () => {
+    this.keyHeld = false
+    this.clickKeyHeld = false
+    this.clearClickGesture()
+    this.clearRectangleGesture()
+  }
   private readonly cancel = () => {
     this.pending = undefined
+    this.queuedClicks.clear()
     this.cancelGesture()
     this.overlay.dismiss()
   }

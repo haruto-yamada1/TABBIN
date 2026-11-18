@@ -5,5 +5,6 @@ export const PageAccessSettings = () => (
   <>
     <SavedTabTitleSettings />
     <LinkCaptureSettings />
+    <LinkCaptureSettings mode='click' />
   </>
 )

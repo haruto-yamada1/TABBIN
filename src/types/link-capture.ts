@@ -10,6 +10,7 @@ const MAX_LINK_TITLE_LENGTH = 512
 export const linkCaptureMessageSchema = z
   .strictObject({
     action: z.enum(['previewLinkCapture', 'saveLinkCapture']),
+    mode: z.enum(['rectangle', 'click']).optional(),
     requestId: z.uuid(),
     links: z
       .array(
@@ -22,7 +23,8 @@ export const linkCaptureMessageSchema = z
     confirmed: z.boolean().optional(),
   })
   .refine(
-    ({ links }) =>
+    ({ links, mode }) =>
+      (mode !== 'click' || links.length <= 1) &&
       links.reduce(
         (size, link) => size + link.url.length + link.title.length,
         0,

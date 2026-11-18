@@ -127,6 +127,19 @@ export const createCaptureOverlay = (pageDocument: Document) => {
     dismiss,
     clearSelection,
     showPanel,
+    showNotice: (text: string) => {
+      if (!panel) {
+        return
+      }
+      let notice = panel.querySelector('.notice')
+      if (!notice) {
+        notice = pageDocument.createElement('p')
+        notice.className = 'notice'
+        notice.setAttribute('role', 'alert')
+        panel.append(notice)
+      }
+      notice.textContent = text
+    },
     selection: (
       rectangle: CaptureRectangle,
       result: ReturnType<typeof selectCaptureLinks>,

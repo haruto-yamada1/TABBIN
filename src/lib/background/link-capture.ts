@@ -18,7 +18,7 @@ const MAX_CACHED_CAPTURE_RESPONSES = 64
 
 type LinkCaptureHandlerDeps = {
   readonly extensionId: () => string
-  readonly readEnabled: () => Promise<boolean>
+  readonly readEnabled: (mode: 'rectangle' | 'click') => Promise<boolean>
   readonly hasPermission: (origin: string) => Promise<boolean>
   readonly readExcludePatterns: () => Promise<readonly string[]>
   readonly readSavedUrls: () => Promise<readonly string[]>
@@ -161,7 +161,10 @@ export const createLinkCaptureHandler = (deps: LinkCaptureHandlerDeps) => {
     const { origin, scope } = trustedSender
     let counts = emptyLinkCaptureResponse('error')
     try {
-      if (!(await deps.readEnabled()) || !(await deps.hasPermission(origin))) {
+      if (
+        !(await deps.readEnabled(message.mode ?? 'rectangle')) ||
+        !(await deps.hasPermission(origin))
+      ) {
         return emptyLinkCaptureResponse('forbidden')
       }
       const excludePatterns = await deps.readExcludePatterns()
@@ -233,7 +236,10 @@ export const createLinkCaptureHandler = (deps: LinkCaptureHandlerDeps) => {
 
 export const handleLinkCaptureMessage = createLinkCaptureHandler({
   extensionId: () => browser.runtime.id,
-  readEnabled: async () => (await readLinkCaptureSettings()).enabled,
+  readEnabled: async (mode) => {
+    const settings = await readLinkCaptureSettings()
+    return mode === 'click' ? settings.clickEnabled : settings.enabled
+  },
   hasPermission: async (origin) => {
     // Firefox match patterns cannot include ports. This feature requires the
     // broad HTTP(S) host grant, so a portless host query retains that policy.

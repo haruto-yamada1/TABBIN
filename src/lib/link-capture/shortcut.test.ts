@@ -5,6 +5,7 @@ import {
   matchLinkCaptureShortcut,
   recordLinkCaptureShortcut,
   validateLinkCaptureShortcut,
+  validateLinkClickShortcut,
 } from './shortcut'
 import type { LinkCaptureShortcut } from './shortcut'
 
@@ -22,6 +23,31 @@ const key = (
   ...modifiers,
 })
 describe('link capture physical-key shortcuts', () => {
+  it.each([key(), key('Semicolon', 'ö'), key('F8', 'F8')])(
+    'accepts free physical click bindings without standard link modifiers: %j',
+    (shortcut) => expect(validateLinkClickShortcut(shortcut)).toBeNull(),
+  )
+
+  it.each([
+    key('KeyZ', 'z', { ctrlKey: true }),
+    key('KeyZ', 'Z', { shiftKey: true }),
+    key('KeyZ', 'z', { altKey: true }),
+    key('KeyZ', 'z', { metaKey: true }),
+    key('KeyZ', 'z', { ctrlKey: true, altKey: true }),
+    key('ShiftLeft', 'Shift', { shiftKey: true }),
+    key('ControlLeft', 'Control'),
+  ])(
+    'reserves all modified link clicks for native browser behavior: %j',
+    (shortcut) => {
+      expect(validateLinkClickShortcut(shortcut)).toBe('reserved')
+    },
+  )
+
+  it('shares uncaptured and browser-reserved validation with rectangle shortcuts', () => {
+    expect(validateLinkClickShortcut(key('', 'z'))).toBe('unavailable')
+    expect(validateLinkClickShortcut(key('F5', 'F5'))).toBe('reserved')
+  })
+
   it.each([
     key(),
     key('KeyZ', 'Z', { shiftKey: true }),

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  enabled: vi.fn(async () => ({ enabled: true })),
+  enabled: vi.fn(async () => ({ enabled: true, clickEnabled: false })),
   contains: vi.fn(async () => true),
   getScripts: vi.fn<() => Promise<chrome.scripting.RegisteredContentScript[]>>(
     async () => [],
@@ -42,7 +42,7 @@ vi.mock('@/lib/storage/link-capture-settings', () => ({
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
-  mocks.enabled.mockResolvedValue({ enabled: true })
+  mocks.enabled.mockResolvedValue({ enabled: true, clickEnabled: false })
   mocks.contains.mockResolvedValue(true)
   mocks.getScripts.mockResolvedValue([])
 })
@@ -111,9 +111,25 @@ describe('link capture browser lifecycle', () => {
     changed({ unrelated: {} }, 'local')
     changed({ linkCaptureSettings: {} }, 'sync')
     expect(mocks.enabled).toHaveBeenCalledTimes(1)
-    mocks.enabled.mockResolvedValue({ enabled: false })
+    mocks.enabled.mockResolvedValue({ enabled: false, clickEnabled: false })
     changed({ linkCaptureSettings: { newValue: { enabled: false } } }, 'local')
     await vi.waitFor(() => expect(mocks.send).toHaveBeenCalledTimes(2))
     expect(mocks.register).not.toHaveBeenCalled()
+  })
+
+  it('keeps shared registration when only click capture is enabled and disposes after both are disabled', async () => {
+    mocks.enabled.mockResolvedValue({ enabled: false, clickEnabled: true })
+    const { registerLinkCaptureLifecycle } =
+      await import('./link-capture-lifecycle')
+    registerLinkCaptureLifecycle()
+    await vi.waitFor(() => expect(mocks.execute).toHaveBeenCalledTimes(2))
+    expect(mocks.register).toHaveBeenCalledTimes(1)
+    expect(mocks.send).not.toHaveBeenCalled()
+    mocks.enabled.mockResolvedValue({ enabled: false, clickEnabled: false })
+    api.storage.onChanged.addListener.mock.calls[0]?.[0](
+      { linkCaptureSettings: {} },
+      'local',
+    )
+    await vi.waitFor(() => expect(mocks.send).toHaveBeenCalledTimes(2))
   })
 })

@@ -9,8 +9,9 @@ import { getChromeStorageOnChanged } from '@/lib/browser/chrome-storage'
 import { getSavedTabTitlePermissions } from '@/lib/browser/saved-tab-title-permissions'
 import {
   DEFAULT_LINK_CAPTURE_SETTINGS,
+  LinkCaptureSettingsReadError,
   readLinkCaptureSettings,
-  writeLinkCaptureSettings,
+  updateLinkCaptureSettings,
 } from '@/lib/storage/link-capture-settings'
 import type { LinkCaptureSettings } from '@/lib/storage/link-capture-settings'
 
@@ -19,7 +20,10 @@ const access = {
   origins: [...LINK_CAPTURE_ORIGINS],
 }
 
-export const useLinkCaptureSetting = () => {
+export const useLinkCaptureSetting = (
+  mode: 'rectangle' | 'click' = 'rectangle',
+) => {
+  const clickMode = mode === 'click'
   const permissions = useMemo(() => getSavedTabTitlePermissions(), [])
   const [settings, setSettings] = useState(DEFAULT_LINK_CAPTURE_SETTINGS)
   const [loaded, setLoaded] = useState(false)
@@ -82,23 +86,20 @@ export const useLinkCaptureSetting = () => {
     setPending(true)
     setError(null)
     try {
-      let current: LinkCaptureSettings
-      try {
-        current = await readLinkCaptureSettings()
-      } catch {
-        if (version === revision.current) {
-          setLoaded(false)
-          setError('loadError')
-        }
-        return false
-      }
-      const value = await writeLinkCaptureSettings({ ...current, ...change })
+      const value = await updateLinkCaptureSettings(change)
       if (version === revision.current) {
         setSettings(value)
       }
       return true
-    } catch {
-      setError('storageError')
+    } catch (error_) {
+      if (error_ instanceof LinkCaptureSettingsReadError) {
+        if (version === revision.current) {
+          setLoaded(false)
+          setError('loadError')
+        }
+      } else {
+        setError('storageError')
+      }
       return false
     } finally {
       setPending(false)
@@ -106,8 +107,12 @@ export const useLinkCaptureSetting = () => {
   }, [])
   const save = useCallback(
     async (next: Pick<LinkCaptureSettings, 'shortcut'>) =>
-      update({ shortcut: next.shortcut }),
-    [update],
+      update(
+        clickMode
+          ? { clickShortcut: next.shortcut }
+          : { shortcut: next.shortcut },
+      ),
+    [clickMode, update],
   )
   const toggle = useCallback(
     async (enabled: boolean) => {
@@ -127,18 +132,19 @@ export const useLinkCaptureSetting = () => {
           }
           setGranted(true)
         }
-        await update({ enabled })
+        await update(clickMode ? { clickEnabled: enabled } : { enabled })
       } catch {
         setError('permissionError')
       } finally {
         setPending(false)
       }
     },
-    [permissions, update],
+    [clickMode, permissions, update],
   )
   return {
     settings,
-    enabled: settings.enabled && granted,
+    enabled: (clickMode ? settings.clickEnabled : settings.enabled) && granted,
+    shortcut: clickMode ? settings.clickShortcut : settings.shortcut,
     disabled: !permissions || !loaded || pending,
     error,
     toggle,

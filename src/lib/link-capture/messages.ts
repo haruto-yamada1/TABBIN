@@ -4,6 +4,8 @@ export const captureMessages = {
     overflow: 'TABBIN · Select at most 1,000 links',
     selectionTooLarge:
       'The selected links contain too much text. Select fewer links and try again.',
+    queueFull:
+      'Too many clicks are waiting. This link was not queued. Wait for pending saves or retry, then click it again.',
     saving: 'Saving links…',
     confirmation: 'Save selected links?',
     preview: 'New: {new} · Already saved: {existing} · Excluded: {excluded}',
@@ -22,6 +24,8 @@ export const captureMessages = {
     overflow: 'TABBIN · 1,000件以内で選択してください',
     selectionTooLarge:
       '選択したリンクの文字数が多すぎます。選択するリンクを減らして、もう一度お試しください。',
+    queueFull:
+      '保存待ちのリンクが多すぎるため、このリンクは追加できませんでした。保存の完了または再試行後に、もう一度クリックしてください。',
     saving: 'リンクを保存中…',
     confirmation: '選択したリンクを保存しますか？',
     preview: '新規: {new}件 · 保存済み: {existing}件 · 除外: {excluded}件',

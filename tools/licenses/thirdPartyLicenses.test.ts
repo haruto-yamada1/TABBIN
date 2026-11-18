@@ -351,14 +351,14 @@ describe('third-party release notices', () => {
     )
   })
 
-  it.each(['react-doctor', 'oxlint-plugin-react-doctor', 'node-forge'])(
-    'rejects development-only %s in the runtime graph',
-    async (name) => {
-      await expect(build([await pkg(name)])).rejects.toThrow(
-        /development-only/i,
-      )
-    },
-  )
+  it.each([
+    'react-doctor',
+    'oxlint-plugin-react-doctor',
+    'node-forge',
+    'picomatch',
+  ])('rejects development-only %s in the runtime graph', async (name) => {
+    await expect(build([await pkg(name)])).rejects.toThrow(/development-only/i)
+  })
 
   it('rejects traversal and symlinked files escaping a package or legal source root', async () => {
     const module = await pkg('fixture')
