@@ -155,6 +155,24 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     expect(state).toEqual(afterCapture)
   })
 
+  it('updates an existing URL without replacing its title when preserved', async () => {
+    const state = createState()
+    assert.isDefined(state.urls[0])
+    const originalFirstSavedAt = state.urls[0].firstSavedAt
+    const { dataPlane } = createDataPlane(state)
+
+    await dataPlane.saveTabs(
+      [{ title: 'example.com/docs', url: 'https://example.com/docs' }],
+      { preserveExistingTitle: true },
+    )
+
+    const saved = state.urls.find(({ id }) => id === 'url-1')
+    expect(saved?.title).toBe('Docs')
+    expect(saved?.firstSavedAt).toBe(originalFirstSavedAt)
+    expect(saved?.lastSavedAt).toBe(10)
+    expect(saved?.lastSavedAtProvenance).toBe('exact')
+  })
+
   it('projects URL metrics and membership events without collapsing their timestamps', async () => {
     const state = createState()
     assert.isDefined(state.urls[0])

@@ -60,7 +60,10 @@ export type BackgroundSavedTabsDataPlane = {
   ) => Promise<void>
   readonly saveTabs: (
     tabs: readonly BackgroundSavedTabInput[],
-    options?: { readonly preserveExisting?: boolean },
+    options?: {
+      readonly preserveExisting?: boolean
+      readonly preserveExistingTitle?: boolean
+    },
   ) => Promise<
     | undefined
     | {

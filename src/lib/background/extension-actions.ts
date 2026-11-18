@@ -10,7 +10,11 @@ import {
 } from '@/lib/browser/normalize-saved-tab-titles'
 import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { UserSettingsReadError } from '@/lib/storage/settings'
-import { isValidUrl, normalizeUrlCandidate } from '@/lib/url-filter'
+import {
+  isValidUrl,
+  normalizeUrlCandidate,
+  toSavableLinkUrl,
+} from '@/lib/url-filter'
 import type { UserSettings } from '@/types/storage'
 
 import { getBackgroundLanguage } from './i18n'
@@ -204,6 +208,67 @@ export const handleExtensionActionClick = async (): Promise<void> => {
       error instanceof Error ? error.message : error,
     )
   }
+}
+/**
+ * リンク先の初期タイトルは、未訪問ページへアクセスせずURLから生成する。
+ */
+const deriveLinkTitle = (url: string): string => {
+  const parsedUrl = new URL(url)
+  const path = parsedUrl.pathname === '/' ? '' : parsedUrl.pathname
+  return `${parsedUrl.host}${path}${parsedUrl.search}`
+}
+
+const showLinkNotification = async (
+  titleKey: string,
+  messageKey: string,
+): Promise<void> => {
+  const [title, message] = await Promise.all([
+    getBackgroundText(titleKey),
+    getBackgroundText(messageKey),
+  ])
+  await showNotification(title, message)
+}
+
+/**
+ * 右クリックされたリンク先だけを保存する。ページは開かず、タブも閉じない。
+ */
+export const handleSaveLink = async (
+  linkUrl: string | undefined,
+): Promise<
+  {
+    url: string
+    title: string
+  }[]
+> => {
+  const settings = await requireOperationalUserSettings()
+  const url = toSavableLinkUrl(linkUrl, settings.excludePatterns)
+  if (!url) {
+    await showLinkNotification(
+      'background.saveTabs.linkNotSavableTitle',
+      'background.saveTabs.linkNotSavable',
+    )
+    return []
+  }
+
+  const title = deriveLinkTitle(url)
+  try {
+    // Duplicate saves refresh the existing record; its edited title wins.
+    await getBackgroundSavedTabsDataPlane().saveTabs([{ title, url }], {
+      preserveExistingTitle: true,
+    })
+  } catch (error) {
+    await showLinkNotification(
+      'background.saveTabs.linkSaveFailedTitle',
+      'background.saveTabs.linkSaveFailed',
+    )
+    throw error
+  }
+
+  await showLinkNotification(
+    'background.saveTabs.linkSavedTitle',
+    'background.saveTabs.linkSaved',
+  )
+  return [{ title, url }]
 }
 /**
  * 現在のタブのみを保存

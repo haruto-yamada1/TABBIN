@@ -5,6 +5,7 @@ import type * as ContextMenuModule from './context-menu'
 const mocked = vi.hoisted(() => ({
   getBackgroundMessage: vi.fn(async (key: string) => key),
   handleSaveCurrentTab: vi.fn(),
+  handleSaveLink: vi.fn(),
   handleSaveWindowTabs: vi.fn(),
   handleSaveSameDomainTabs: vi.fn(),
   handleSaveAllWindowsTabs: vi.fn(),
@@ -14,6 +15,7 @@ const mocked = vi.hoisted(() => ({
 vi.mock('./i18n', () => ({ getBackgroundMessage: mocked.getBackgroundMessage }))
 vi.mock('./extension-actions', () => ({
   handleSaveCurrentTab: mocked.handleSaveCurrentTab,
+  handleSaveLink: mocked.handleSaveLink,
   handleSaveWindowTabs: mocked.handleSaveWindowTabs,
   handleSaveSameDomainTabs: mocked.handleSaveSameDomainTabs,
   handleSaveAllWindowsTabs: mocked.handleSaveAllWindowsTabs,
@@ -32,6 +34,7 @@ type SettingsListener = (
   area: string,
 ) => void
 const ids = [
+  'saveLinkToTabbin',
   'openSavedTabs',
   'sepOpenSavedTabs',
   'saveCurrentTab',
@@ -133,6 +136,7 @@ beforeEach(async () => {
   mocked.getBackgroundMessage.mockImplementation(async (key: string) => key)
   for (const action of [
     mocked.handleSaveCurrentTab,
+    mocked.handleSaveLink,
     mocked.handleSaveWindowTabs,
     mocked.handleSaveSameDomainTabs,
     mocked.handleSaveAllWindowsTabs,
@@ -203,6 +207,42 @@ describe('synchronous context menu subscriptions', () => {
     },
   )
 
+  it('saveLinkToTabbin は linkUrl だけを渡し pageUrl と混同しない', async () => {
+    const harness = createChromeHarness()
+    subject.registerContextMenuClickListener()
+    const [listener] = harness.listeners
+    assert.isDefined(listener)
+
+    await listener({
+      linkUrl: 'https://example.test/link',
+      menuItemId: 'saveLinkToTabbin',
+      pageUrl: 'https://example.test/page',
+    } as chrome.contextMenus.OnClickData)
+
+    expect(mocked.handleSaveLink).toHaveBeenCalledExactlyOnceWith(
+      'https://example.test/link',
+    )
+    expect(mocked.handleSaveCurrentTab).not.toHaveBeenCalled()
+  })
+
+  it.each([undefined, '', ['java', 'script:alert(1)'].join('')])(
+    'saveLinkToTabbin は linkUrl (%s) を検証側へそのまま渡す',
+    async (linkUrl) => {
+      const harness = createChromeHarness()
+      subject.registerContextMenuClickListener()
+      const [listener] = harness.listeners
+      assert.isDefined(listener)
+
+      await listener({
+        linkUrl,
+        menuItemId: 'saveLinkToTabbin',
+        pageUrl: 'https://example.test/page',
+      } as chrome.contextMenus.OnClickData)
+
+      expect(mocked.handleSaveLink).toHaveBeenCalledExactlyOnceWith(linkUrl)
+    },
+  )
+
   it.each(['sepOpenSavedTabs', 'unknown-menu-id', 42])(
     '%s を安全に無視する',
     async (menuItemId) => {
@@ -212,6 +252,7 @@ describe('synchronous context menu subscriptions', () => {
       assert.isDefined(listener)
       await listener({ menuItemId } as chrome.contextMenus.OnClickData)
       expect(mocked.handleSaveCurrentTab).not.toHaveBeenCalled()
+      expect(mocked.handleSaveLink).not.toHaveBeenCalled()
       expect(mocked.handleSaveWindowTabs).not.toHaveBeenCalled()
       expect(mocked.handleSaveSameDomainTabs).not.toHaveBeenCalled()
       expect(mocked.handleSaveAllWindowsTabs).not.toHaveBeenCalled()
@@ -255,7 +296,7 @@ describe('synchronous context menu subscriptions', () => {
 })
 
 describe('recoverable context menu reconciliation', () => {
-  it('同じ6項目を順序・翻訳・separatorを保って作成し、次回は削除や作成をしない', async () => {
+  it('同じ7項目を順序・翻訳・separatorを保って作成し、次回は削除や作成をしない', async () => {
     const harness = createChromeHarness()
     await subject.reconcileContextMenus()
     expect([...harness.menus.keys()]).toEqual(ids)
@@ -265,14 +306,18 @@ describe('recoverable context menu reconciliation', () => {
       contexts: ['page'],
       type: 'separator',
     })
+    expect(harness.menus.get('saveLinkToTabbin')).toMatchObject({
+      title: 'background.contextMenu.saveLinkToTabbin',
+      contexts: ['link'],
+    })
     expect(harness.menus.get('saveCurrentTab')).toMatchObject({
       title: 'background.contextMenu.saveCurrentTab',
       contexts: ['page'],
     })
     await subject.reconcileContextMenus()
     expect(harness.removeAll).not.toHaveBeenCalled()
-    expect(harness.create).toHaveBeenCalledTimes(6)
-    expect(harness.update).toHaveBeenCalledTimes(12)
+    expect(harness.create).toHaveBeenCalledTimes(7)
+    expect(harness.update).toHaveBeenCalledTimes(14)
   })
 
   it('install/update reset で旧定義を消し、並行 reconcile を直列化する', async () => {
@@ -285,7 +330,7 @@ describe('recoverable context menu reconciliation', () => {
     ])
     expect([...harness.menus.keys()]).toEqual(ids)
     expect(harness.removeAll).toHaveBeenCalledOnce()
-    expect(harness.create).toHaveBeenCalledTimes(12)
+    expect(harness.create).toHaveBeenCalledTimes(14)
   })
 
   it.each([
@@ -367,8 +412,8 @@ describe('recoverable context menu reconciliation', () => {
     expect(harness.menus.get('saveCurrentTab')?.title).toBe(
       'ja:background.contextMenu.saveCurrentTab',
     )
-    expect(harness.update).toHaveBeenCalledTimes(6)
-    expect(harness.menus.size).toBe(6)
+    expect(harness.update).toHaveBeenCalledTimes(7)
+    expect(harness.menus.size).toBe(7)
     expect(mocked.logger.error).toHaveBeenCalledExactlyOnceWith(
       'background_context_menu_reconciliation_failed',
       expect.objectContaining({
@@ -377,7 +422,7 @@ describe('recoverable context menu reconciliation', () => {
       }),
     )
     await subject.reconcileContextMenus()
-    expect(harness.menus.size).toBe(6)
+    expect(harness.menus.size).toBe(7)
     expect(harness.menus.get('openSavedTabs')?.title).toBe(
       'ja:background.contextMenu.openSavedTabs',
     )
@@ -399,7 +444,7 @@ describe('recoverable context menu reconciliation', () => {
     expect([...harness.menus.keys()]).toEqual(
       ids.filter((id) => !failedIds.has(id)),
     )
-    expect(harness.update).toHaveBeenCalledTimes(6)
+    expect(harness.update).toHaveBeenCalledTimes(7)
     expect(mocked.logger.error).toHaveBeenCalledExactlyOnceWith(
       'background_context_menu_reconciliation_failed',
       expect.objectContaining({
@@ -409,7 +454,7 @@ describe('recoverable context menu reconciliation', () => {
     )
     harness.create.mockImplementation(create)
     await subject.reconcileContextMenus()
-    expect(harness.menus.size).toBe(6)
+    expect(harness.menus.size).toBe(7)
   })
 
   it('前項目の browser callback 完了まで次項目を開始せず挿入順を保つ', async () => {
@@ -482,7 +527,7 @@ describe('recoverable context menu reconciliation', () => {
     listener({ other: { newValue: true } }, 'local')
     await Promise.resolve()
     expect(harness.update).not.toHaveBeenCalled()
-    expect(harness.create).toHaveBeenCalledTimes(6)
+    expect(harness.create).toHaveBeenCalledTimes(7)
     expect(harness.removeAll).not.toHaveBeenCalled()
   })
 })

@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
 
+import { UserSettingsReadError } from '@/lib/storage/settings'
 import type * as UserSettingsModule from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
 
 import type * as TabUtilsModule from './utils'
 
 const mocked = vi.hoisted(() => ({
+  dataPlaneSaveTabs: vi.fn(),
   saveTabsWithAutoCategory: vi.fn(),
   saveUrlsToCustomProjects: vi.fn(),
   getUserSettings: vi.fn(),
@@ -19,7 +21,8 @@ vi.mock('@/lib/browser/prove-unmarked-tab-title', () => ({
 }))
 vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
   getBackgroundSavedTabsDataPlane: () => ({
-    saveTabs: async (tabs: chrome.tabs.Tab[]) => {
+    saveTabs: async (tabs: chrome.tabs.Tab[], options?: unknown) => {
+      await mocked.dataPlaneSaveTabs(tabs, options)
       await mocked.saveTabsWithAutoCategory(tabs)
       const settings = await mocked.getUserSettings()
       const excludePatterns = settings.excludePatterns ?? []
@@ -73,6 +76,7 @@ import {
   handleExtensionActionClick,
   handleSaveAllWindowsTabs,
   handleSaveCurrentTab,
+  handleSaveLink,
   handleSaveSameDomainTabs,
   handleSaveWindowTabs,
 } from './extension-actions'
@@ -156,6 +160,99 @@ describe('extension-actions モジュール', () => {
     )
     mocked.showNotification.mockResolvedValue(undefined)
     mocked.proveCapturedTitleUnowned.mockResolvedValue(false)
+    mocked.dataPlaneSaveTabs.mockResolvedValue(undefined)
+  })
+
+  describe('リンク先の保存', () => {
+    it('リンク先を1回だけ保存し、タブを閉じずに成功通知する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      const url = 'https://example.test/docs/start?x=1#part'
+
+      await expect(handleSaveLink(url)).resolves.toEqual([
+        { title: 'example.test/docs/start?x=1', url },
+      ])
+
+      expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith(
+        [{ title: 'example.test/docs/start?x=1', url }],
+        { preserveExistingTitle: true },
+      )
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+      expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンク保存',
+        'リンク先をTABBINに保存しました',
+      )
+    })
+
+    it.each([
+      undefined,
+      '',
+      'not a url',
+      ['java', 'script:alert(1)'].join(''),
+      'data:text/html,<h1>x</h1>',
+      'file:///tmp/example.txt',
+      'https://user:password@example.test/private',
+    ])(
+      '保存できないリンク (%s) は保存もタブ操作もせず通知する',
+      async (url) => {
+        const chromeTabs = createChromeTabsHarness()
+
+        await expect(handleSaveLink(url)).resolves.toEqual([])
+
+        expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+        expect(chromeTabs.remove).not.toHaveBeenCalled()
+        expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+        expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+          'リンクを保存できません',
+          'このリンクは保存できません。URLまたは除外パターンを確認してください。',
+        )
+      },
+    )
+
+    it('除外パターンに一致するリンクは保存しない', async () => {
+      createChromeTabsHarness()
+
+      await expect(
+        handleSaveLink('https://ignore.example/article'),
+      ).resolves.toEqual([])
+
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンクを保存できません',
+        'このリンクは保存できません。URLまたは除外パターンを確認してください。',
+      )
+    })
+
+    it('保存失敗時はタブを閉じず、失敗を通知して reject する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      const error = new Error('private persistence detail')
+      mocked.dataPlaneSaveTabs.mockRejectedValueOnce(error)
+
+      await expect(handleSaveLink('https://example.test/a')).rejects.toThrow(
+        error,
+      )
+
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+      expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンク保存に失敗しました',
+        'リンク先は保存されていません。保存状態を確認して、もう一度お試しください。',
+      )
+    })
+
+    it('設定を読めない場合は保存せず安全に中止する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      mocked.getUserSettings.mockRejectedValueOnce(
+        new UserSettingsReadError('unavailable'),
+      )
+
+      await expect(handleSaveLink('https://example.test/a')).rejects.toThrow(
+        UserSettingsReadError,
+      )
+
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+    })
   })
 
   it('all windows: prepares readonly feedback while saving, then opens the saved page', async () => {

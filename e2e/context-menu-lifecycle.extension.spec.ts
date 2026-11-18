@@ -9,6 +9,7 @@ test('context menus survive an MV3 worker wake and recover a missing action with
 }) => {
   await page.goto(getExtensionUrl(extensionId, 'app.html#/saved-tabs'))
   const ids = [
+    'saveLinkToTabbin',
     'openSavedTabs',
     'sepOpenSavedTabs',
     'saveCurrentTab',

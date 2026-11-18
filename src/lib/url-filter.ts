@@ -66,6 +66,32 @@ const isUrlExcludedByPatterns = (
   return normalizedPatterns.some((pattern) => normalizedUrl.includes(pattern))
 }
 
+const toSavableLinkUrl = (
+  url: string | null | undefined,
+  excludePatterns: readonly unknown[] | undefined,
+): string | null => {
+  const normalizedUrl = normalizeUrlCandidate(url)
+  if (!normalizedUrl) {
+    return null
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedUrl)
+    if (
+      !NAVIGABLE_PROTOCOLS.has(parsedUrl.protocol) ||
+      parsedUrl.username ||
+      parsedUrl.password ||
+      isUrlExcludedByPatterns(normalizedUrl, excludePatterns)
+    ) {
+      return null
+    }
+    // Exact URL identity compares the trimmed source string, not href.
+    return normalizedUrl
+  } catch {
+    return null
+  }
+}
+
 const isSavableUrl = (
   url: string | null | undefined,
   excludePatterns: readonly unknown[] | undefined,
@@ -103,4 +129,5 @@ export {
   isValidUrl,
   normalizeUrlCandidate,
   toSafeSavedUrlHref,
+  toSavableLinkUrl,
 }

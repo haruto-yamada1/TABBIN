@@ -300,6 +300,7 @@ export type ContextMenuId =
   | 'sepOpenSavedTabs'
   | 'saveCurrentTab'
   | 'saveAllTabs'
+  | 'saveLinkToTabbin'
   | 'saveSameDomainTabs'
   | 'saveAllWindowsTabs'
 

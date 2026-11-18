@@ -318,12 +318,18 @@ const ensureUncategorizedCollection = (
   return collection
 }
 
+type SaveTabsContext = {
+  readonly idGenerator: () => string
+  readonly preserveExistingTitle: boolean
+  readonly timestamp: number
+}
+
 const ensureUrl = (
   state: IndexedDbSavedTabsMutableState,
   input: Required<BackgroundSavedTabInput>,
-  idGenerator: () => string,
-  timestamp: number,
+  options: SaveTabsContext,
 ): PersistenceV2Url => {
+  const { idGenerator, preserveExistingTitle, timestamp } = options
   const normalizedUrl = validUrlIdentityKey(input.url)
   if (!normalizedUrl) {
     throw new TypeError('A valid normalized URL is required.')
@@ -334,7 +340,9 @@ const ensureUrl = (
       ...existing,
       lastSavedAt: timestamp,
       lastSavedAtProvenance: 'exact',
-      title: input.title || existing.title,
+      title: preserveExistingTitle
+        ? existing.title
+        : input.title || existing.title,
       updatedAt: timestamp,
       url: normalizedUrl,
     }
@@ -423,9 +431,9 @@ const upsertMembership = (
 const saveTabs = (
   state: IndexedDbSavedTabsMutableState,
   tabs: readonly BackgroundSavedTabInput[],
-  idGenerator: () => string,
-  timestamp: number,
+  options: SaveTabsContext,
 ): void => {
+  const { idGenerator, timestamp } = options
   const uniqueTabs = new Map<string, Required<BackgroundSavedTabInput>>()
   for (const tab of tabs) {
     const url = validUrlIdentityKey(tab.url ?? '')
@@ -449,7 +457,7 @@ const saveTabs = (
     )
 
   for (const input of uniqueTabs.values()) {
-    const url = ensureUrl(state, input, idGenerator, timestamp)
+    const url = ensureUrl(state, input, options)
     const domainCollection = ensureDomainCollection(
       state,
       toHostname(url.url),
@@ -598,13 +606,21 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
         const freshTabs = [...distinctTabs]
           .filter(([identity]) => !existingIdentities.has(identity))
           .map(([, tab]) => tab)
-        saveTabs(state, freshTabs, idGenerator, now())
+        saveTabs(state, freshTabs, {
+          idGenerator,
+          preserveExistingTitle: false,
+          timestamp: now(),
+        })
         return {
           existingCount: distinctTabs.size - freshTabs.length,
           savedCount: freshTabs.length,
         }
       }
-      saveTabs(state, tabs, idGenerator, now())
+      saveTabs(state, tabs, {
+        idGenerator,
+        preserveExistingTitle: options.preserveExistingTitle === true,
+        timestamp: now(),
+      })
       return undefined
     }),
   updateTabTimestamps: async (timestamp) =>
