@@ -22,15 +22,13 @@ export const isCaptureEditable = (
     'input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"],[role="searchbox"],[role="spinbutton"]',
   ) !== null
 
-const composedParent = (element: HTMLElement): HTMLElement | null => {
+const composedParent = (element: Element): Element | null => {
   const parent = element.assignedSlot ?? element.parentElement
-  if (parent instanceof HTMLElement) {
+  if (parent) {
     return parent
   }
   const root = element.getRootNode()
-  return root instanceof ShadowRoot && root.host instanceof HTMLElement
-    ? root.host
-    : null
+  return root instanceof ShadowRoot ? root.host : null
 }
 
 const visible = (
@@ -97,7 +95,7 @@ export const readClickedCaptureLink = (
   if (!element.isConnected) {
     return undefined
   }
-  let current: HTMLElement | null = element
+  let current: Element | null = element
   while (current) {
     if (current.matches('[hidden],[inert],[aria-disabled="true"]')) {
       return undefined

@@ -310,6 +310,52 @@ test.describe('key plus click saving with optional access', () => {
       'data-disabled-click-default-prevented',
       'false',
     )
+    await source.evaluate(() => {
+      const container = document.createElement('div')
+      container.setAttribute('aria-disabled', 'true')
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('width', '240')
+      svg.setAttribute('height', '60')
+      const foreign = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'foreignObject',
+      )
+      foreign.setAttribute('width', '240')
+      foreign.setAttribute('height', '60')
+      const link = document.createElement('a')
+      link.id = 'disabled-svg-link'
+      link.href = 'disabled-svg'
+      link.textContent = 'Disabled SVG link'
+      link.addEventListener('click', (event) => {
+        document.body.dataset.svgClickDefaultPrevented = String(
+          event.defaultPrevented,
+        )
+        event.preventDefault()
+      })
+      foreign.append(link)
+      svg.append(foreign)
+      container.append(svg)
+      document.body.append(container)
+    })
+    // Use physical input: locator.click() refuses aria-disabled ancestors,
+    // while this regression checks how the extension handles that input.
+    const svgLink = source.locator('#disabled-svg-link')
+    await svgLink.scrollIntoViewIfNeeded()
+    await expect(svgLink).toBeVisible()
+    const bounds = await svgLink.evaluate((element) => {
+      const { x, y, width, height } = element.getBoundingClientRect()
+      return { x, y, width, height }
+    })
+    await source.keyboard.down('z')
+    await source.mouse.click(
+      bounds.x + bounds.width / 2,
+      bounds.y + bounds.height / 2,
+    )
+    await source.keyboard.up('z')
+    await expect(source.locator('body')).toHaveAttribute(
+      'data-svg-click-default-prevented',
+      'false',
+    )
     const saved = await readPersistenceV2SavedTabsSnapshot(page)
     expect(saved.urls).toHaveLength(4)
     expect(saved.urls).toEqual(

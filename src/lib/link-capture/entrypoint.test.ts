@@ -351,6 +351,42 @@ describe('link capture content entrypoint', () => {
     )
   })
 
+  it.each([false, true])(
+    'checks disabled HTML ancestors across SVG foreignObject, shadow=%s',
+    async (shadow) => {
+      mock.readSettings.mockResolvedValue({
+        ...mock.settings,
+        enabled: false,
+        clickEnabled: true,
+      })
+      const wrapper = document.createElement('div')
+      wrapper.setAttribute('aria-disabled', 'true')
+      document.body.append(wrapper)
+      const host = document.createElement('div')
+      wrapper.append(host)
+      const parent = shadow ? host.attachShadow({ mode: 'open' }) : host
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      const foreign = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'foreignObject',
+      )
+      parent.append(svg)
+      svg.append(foreign)
+      const link = pageLink()
+      foreign.append(link)
+      let intercepted: boolean | undefined
+      link.addEventListener('click', (event) => {
+        intercepted = event.defaultPrevented
+        event.preventDefault()
+      })
+      await content.main({} as never)
+      key('KeyZ')
+      clickLink(link)
+      expect(intercepted).toBe(false)
+      expect(mock.sendMessage).not.toHaveBeenCalled()
+    },
+  )
+
   it('queues distinct rapid clicks and suppresses duplicate pending URLs', async () => {
     mock.readSettings.mockResolvedValue({
       ...mock.settings,
