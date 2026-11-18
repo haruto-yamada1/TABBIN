@@ -11,7 +11,7 @@ import {
 
 const production = vi.hoisted(() => ({
   contains: vi.fn(async () => true),
-  settings: vi.fn(async () => ({ enabled: true })),
+  settings: vi.fn(async () => ({ enabled: true, clickEnabled: false })),
   userSettings: vi.fn(async () => ({ excludePatterns: [] })),
   records: vi.fn(async () => [{ url: 'https://example.com/already-saved' }]),
   save: vi.fn(
@@ -41,6 +41,7 @@ vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   production.save.mockResolvedValue({ savedCount: 1, existingCount: 0 })
+  production.settings.mockResolvedValue({ enabled: true, clickEnabled: false })
 })
 
 const sender = {
@@ -62,7 +63,7 @@ const setup = () => {
   const deps = {
     extensionId: () => 'extension',
     hasPermission: vi.fn(async () => true),
-    readEnabled: vi.fn(async () => true),
+    readEnabled: vi.fn(async (_mode: 'rectangle' | 'click') => true),
     readExcludePatterns: vi.fn(async () => ['excluded']),
     readSavedUrls: vi.fn(async (): Promise<readonly string[]> => []),
     saveLinks: vi.fn(
@@ -89,6 +90,14 @@ describe('link capture message boundary', () => {
     { links: [{ title: 1, url: 'https://example.com/' }] },
     { requestId: 'not-a-token' },
     { confirmed: 'true' },
+    { mode: 'page' },
+    {
+      mode: 'click',
+      links: [
+        { title: '', url: 'https://example.com/a' },
+        { title: '', url: 'https://example.com/b' },
+      ],
+    },
     { extra: 'page text' },
     {
       links: Array.from({ length: 1000 }, () => ({
@@ -112,6 +121,18 @@ describe('link capture message boundary', () => {
       { status: 'ok', saved: 0 },
     )
     expect(deps.saveLinks).not.toHaveBeenCalled()
+  })
+
+  it('accepts an explicit capture mode while preserving legacy rectangle messages', () => {
+    expect(
+      linkCaptureMessageSchema.safeParse({ ...message(), mode: 'click' })
+        .success,
+    ).toBe(true)
+    expect(
+      linkCaptureMessageSchema.safeParse({ ...message(), mode: 'rectangle' })
+        .success,
+    ).toBe(true)
+    expect(linkCaptureMessageSchema.safeParse(message()).success).toBe(true)
   })
 
   it.each([
@@ -162,6 +183,54 @@ describe('link capture message boundary', () => {
 })
 
 describe('save-only link capture', () => {
+  it('authorizes the selected operation independently before saving', async () => {
+    const { deps, handle } = setup()
+    await handle({ ...message(), mode: 'click' } as LinkCaptureMessage, sender)
+    expect(deps.readEnabled).toHaveBeenLastCalledWith('click')
+    await handle(
+      message({ requestId: '00000000-0000-4000-8000-000000000002' }),
+      sender,
+    )
+    expect(deps.readEnabled).toHaveBeenLastCalledWith('rectangle')
+  })
+
+  it('does not inherit rectangle opt-in for click messages or click opt-in for rectangle messages', async () => {
+    const { deps, handle } = setup()
+    deps.readEnabled.mockImplementation(async (mode) => mode === 'click')
+    await expect(handle(message(), sender)).resolves.toMatchObject({
+      status: 'forbidden',
+    })
+    await expect(
+      handle(message({ mode: 'click' }), sender),
+    ).resolves.toMatchObject({ status: 'ok', saved: 1 })
+    expect(deps.saveLinks).toHaveBeenCalledTimes(1)
+  })
+
+  it('routes production click policy to clickEnabled while rectangle capture remains OFF', async () => {
+    production.settings.mockResolvedValue({
+      enabled: false,
+      clickEnabled: true,
+    })
+    await expect(
+      handleLinkCaptureMessage(
+        message({
+          mode: 'click',
+          requestId: '00000000-0000-4000-8000-000000000998',
+        }),
+        sender,
+      ),
+    ).resolves.toMatchObject({ status: 'ok', saved: 1 })
+    await expect(
+      handleLinkCaptureMessage(
+        message({
+          requestId: '00000000-0000-4000-8000-000000000997',
+        }),
+        sender,
+      ),
+    ).resolves.toMatchObject({ status: 'forbidden', saved: 0 })
+    expect(production.save).toHaveBeenCalledTimes(1)
+  })
+
   it('uses a portless host permission pattern so Firefox can save links on nondefault-port pages', async () => {
     const portSender = {
       ...sender,

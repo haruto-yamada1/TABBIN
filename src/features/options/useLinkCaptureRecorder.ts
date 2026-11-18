@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 
-import { recordLinkCaptureShortcut } from '@/lib/link-capture/shortcut'
+import {
+  recordLinkCaptureShortcut,
+  validateLinkCaptureShortcut,
+} from '@/lib/link-capture/shortcut'
 import type {
   LinkCaptureShortcut,
   ShortcutError,
 } from '@/lib/link-capture/shortcut'
 
 const RECORDING_TIMEOUT_MS = 10000
-export const useLinkCaptureRecorder = () => {
+export const useLinkCaptureRecorder = (
+  validate = validateLinkCaptureShortcut,
+) => {
   const [recording, setRecording] = useState(false)
   const [candidate, setCandidate] = useState<LinkCaptureShortcut | null>(null)
   const [error, setError] = useState<ShortcutError | null>(null)
@@ -31,7 +36,12 @@ export const useLinkCaptureRecorder = () => {
       if ('error' in result) {
         setError(result.error)
       } else {
-        setCandidate(result.shortcut)
+        const validationError = validate(result.shortcut)
+        if (validationError) {
+          setError(validationError)
+        } else {
+          setCandidate(result.shortcut)
+        }
       }
       setRecording(false)
     }
@@ -43,7 +53,12 @@ export const useLinkCaptureRecorder = () => {
       if ('error' in result) {
         setError(result.error)
       } else {
-        setCandidate(result.shortcut)
+        const validationError = validate(result.shortcut)
+        if (validationError) {
+          setError(validationError)
+        } else {
+          setCandidate(result.shortcut)
+        }
       }
       setRecording(false)
     }
@@ -62,15 +77,17 @@ export const useLinkCaptureRecorder = () => {
     window.addEventListener('keydown', capture, true)
     window.addEventListener('keyup', release, true)
     window.addEventListener('blur', cancel)
+    document.addEventListener('pointerdown', cancel, true)
     document.addEventListener('visibilitychange', visibility)
     return () => {
       window.clearTimeout(timer)
       window.removeEventListener('keydown', capture, true)
       window.removeEventListener('keyup', release, true)
       window.removeEventListener('blur', cancel)
+      document.removeEventListener('pointerdown', cancel, true)
       document.removeEventListener('visibilitychange', visibility)
     }
-  }, [recording])
+  }, [recording, validate])
   return {
     recording,
     candidate,

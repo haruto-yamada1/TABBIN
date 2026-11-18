@@ -125,6 +125,19 @@ export const validateLinkCaptureShortcut = (
   return null
 }
 
+/** Modified link clicks belong to the browser (tabs, windows, or downloads). */
+export const validateLinkClickShortcut = (
+  shortcut: LinkCaptureShortcut,
+): ShortcutError | null =>
+  validateLinkCaptureShortcut(shortcut) ??
+  (shortcut.ctrlKey ||
+  shortcut.altKey ||
+  shortcut.shiftKey ||
+  shortcut.metaKey ||
+  /^(Control|Alt|Shift|Meta)/.test(shortcut.code)
+    ? 'reserved'
+    : null)
+
 export const recordLinkCaptureShortcut = (
   event: ShortcutEvent,
 ): { shortcut: LinkCaptureShortcut } | { error: ShortcutError } => {

@@ -4,18 +4,33 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
-import { formatLinkCaptureShortcut } from '@/lib/link-capture/shortcut'
+import {
+  formatLinkCaptureShortcut,
+  validateLinkCaptureShortcut,
+  validateLinkClickShortcut,
+} from '@/lib/link-capture/shortcut'
 import { DEFAULT_LINK_CAPTURE_SETTINGS } from '@/lib/storage/link-capture-settings'
 
 import { useLinkCaptureRecorder } from './useLinkCaptureRecorder'
 import { useLinkCaptureSetting } from './useLinkCaptureSetting'
 
-export const LinkCaptureSettings = () => {
+export const LinkCaptureSettings = ({
+  mode = 'rectangle',
+}: {
+  mode?: 'rectangle' | 'click'
+}) => {
+  const clickMode = mode === 'click'
+  const id = clickMode ? 'link-click-capture' : 'link-capture'
   const { t } = useI18n()
-  const setting = useLinkCaptureSetting()
-  const recorder = useLinkCaptureRecorder()
+  const setting = useLinkCaptureSetting(mode)
+  const recorder = useLinkCaptureRecorder(
+    clickMode ? validateLinkClickShortcut : validateLinkCaptureShortcut,
+  )
   const error = recorder.error ?? setting.error
-  const label = (key: string) => t(`options.linkCapture.${key}`)
+  const label = (key: string) =>
+    t(
+      `options.${clickMode && ['title', 'enable', 'instructions', 'reserved'].includes(key) ? 'linkClickCapture' : 'linkCapture'}.${key}`,
+    )
   const saveCandidate = useCallback(async () => {
     if (
       recorder.candidate &&
@@ -31,12 +46,14 @@ export const LinkCaptureSettings = () => {
     if (
       await setting.save({
         ...setting.settings,
-        shortcut: DEFAULT_LINK_CAPTURE_SETTINGS.shortcut,
+        shortcut: clickMode
+          ? DEFAULT_LINK_CAPTURE_SETTINGS.clickShortcut
+          : DEFAULT_LINK_CAPTURE_SETTINGS.shortcut,
       })
     ) {
       recorder.cancel()
     }
-  }, [recorder, setting])
+  }, [clickMode, recorder, setting])
   const handleCheckedChange = useCallback(
     (checked: boolean | 'indeterminate') => {
       void setting.toggle(checked === true)
@@ -52,22 +69,28 @@ export const LinkCaptureSettings = () => {
   const handleStart = recorder.start
   const handleCancel = recorder.cancel
   return (
-    <section className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
-      <h2 className='mb-4 text-xl font-semibold text-foreground'>
+    <section
+      aria-labelledby={`${id}-title`}
+      className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'
+    >
+      <h2
+        id={`${id}-title`}
+        className='mb-4 text-xl font-semibold text-foreground'
+      >
         {label('title')}
       </h2>
       <div className='flex items-center gap-x-2'>
         <Checkbox
-          id='link-capture-enabled'
+          id={`${id}-enabled`}
           checked={setting.enabled}
           disabled={setting.disabled || recorder.recording}
-          aria-describedby='link-capture-description'
+          aria-describedby={`${id}-description`}
           onCheckedChange={handleCheckedChange}
         />
-        <Label htmlFor='link-capture-enabled'>{label('enable')}</Label>
+        <Label htmlFor={`${id}-enabled`}>{label('enable')}</Label>
       </div>
       <p
-        id='link-capture-description'
+        id={`${id}-description`}
         className='mt-2 text-sm text-muted-foreground'
       >
         {label('description')}
@@ -80,9 +103,7 @@ export const LinkCaptureSettings = () => {
         aria-live='polite'
         className='my-3 block rounded border border-border px-3 py-2 font-mono text-sm text-foreground'
       >
-        {formatLinkCaptureShortcut(
-          recorder.candidate ?? setting.settings.shortcut,
-        )}
+        {formatLinkCaptureShortcut(recorder.candidate ?? setting.shortcut)}
       </output>
       {recorder.recording && (
         <output className='mb-3 block text-sm text-muted-foreground'>
