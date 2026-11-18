@@ -47,6 +47,51 @@ const readTabs = async (worker: Worker) =>
       .toSorted((left, right) => (left.id ?? 0) - (right.id ?? 0)),
   )
 
+const startTabEventRecorder = async (worker: Worker) =>
+  worker.evaluate((marker) => {
+    const recorder: {
+      events: {
+        tabId: number | undefined
+        type: 'created' | 'removed'
+        url: string | undefined
+      }[]
+      marker: string
+    } = { events: [], marker }
+    chrome.tabs.onCreated.addListener((tab) => {
+      recorder.events.push({
+        tabId: tab.id,
+        type: 'created',
+        url: tab.url ?? tab.pendingUrl,
+      })
+    })
+    chrome.tabs.onRemoved.addListener((tabId) => {
+      recorder.events.push({ tabId, type: 'removed', url: undefined })
+    })
+    ;(
+      globalThis as { __ctxLinkTabRecorder?: typeof recorder }
+    ).__ctxLinkTabRecorder = recorder
+  }, pathToken)
+
+const readTabEvents = async (worker: Worker) =>
+  worker.evaluate((marker) => {
+    const recorder = (
+      globalThis as {
+        __ctxLinkTabRecorder?: {
+          events: {
+            tabId: number | undefined
+            type: 'created' | 'removed'
+            url: string | undefined
+          }[]
+          marker: string
+        }
+      }
+    ).__ctxLinkTabRecorder
+    if (recorder?.marker !== marker) {
+      throw new TypeError('tab event recorder unavailable')
+    }
+    return recorder.events
+  }, pathToken)
+
 const dispatchSaveLink = async (
   worker: Worker,
   info: { linkUrl: string; pageUrl: string },
@@ -98,6 +143,7 @@ test('link context menu saves only the target URL and restores it after reload',
     await page.goto(pageUrl)
     await expect(page.locator('#target')).toBeVisible()
     const tabsBefore = await readTabs(serviceWorker)
+    await startTabEventRecorder(serviceWorker)
 
     await dispatchSaveLink(serviceWorker, { linkUrl, pageUrl })
 
@@ -116,19 +162,21 @@ test('link context menu saves only the target URL and restores it after reload',
       url: linkUrl,
     })
     expect(snapshot.urls.some(({ url }) => url === pageUrl)).toBe(false)
+    expect(await readTabEvents(serviceWorker)).toEqual([])
     expect(await readTabs(serviceWorker)).toEqual(tabsBefore)
 
     await page.goto(getExtensionUrl(extensionId, 'app.html#/saved-tabs'))
     await page.reload()
     const search = page.getByRole('textbox', { name: 'Search', exact: true })
-    await search.fill(pathToken)
     const restored = page.getByRole('link', {
       name: expectedTitle,
       exact: true,
     })
+    await search.fill('no-such-link-1030')
+    await expect(restored).toHaveCount(0)
+    await search.fill(pathToken)
     await expect(restored).toBeVisible()
 
-    await restored.click()
     await expect
       .poll(async () =>
         serviceWorker.evaluate(
@@ -139,7 +187,32 @@ test('link context menu saves only the target URL and restores it after reload',
           linkUrl,
         ),
       )
-      .toBe(true)
+      .toBe(false)
+    const tabIdsBeforeRestore = (await readTabs(serviceWorker)).map(
+      ({ id }) => id,
+    )
+    await restored.click()
+    await expect
+      .poll(async () =>
+        serviceWorker.evaluate(
+          async ({
+            existingTabIds,
+            url,
+          }: {
+            existingTabIds: (number | undefined)[]
+            url: string
+          }) => {
+            const tabs = await chrome.tabs.query({})
+            return tabs.filter(
+              (tab) =>
+                !existingTabIds.includes(tab.id) &&
+                (tab.url ?? tab.pendingUrl) === url,
+            ).length
+          },
+          { existingTabIds: tabIdsBeforeRestore, url: linkUrl },
+        ),
+      )
+      .toBe(1)
   } finally {
     await fixture.close()
   }

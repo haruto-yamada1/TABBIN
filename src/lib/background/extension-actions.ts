@@ -222,11 +222,11 @@ const showLinkNotification = async (
   titleKey: string,
   messageKey: string,
 ): Promise<void> => {
-  const [title, message] = await Promise.all([
-    getBackgroundText(titleKey),
-    getBackgroundText(messageKey),
-  ])
-  await showNotification(title, message)
+  const language = await getBackgroundLanguage({ repairStoredSettings: false })
+  await showNotification(
+    getMessage(language, titleKey),
+    getMessage(language, messageKey),
+  )
 }
 
 /**

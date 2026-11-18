@@ -173,6 +173,20 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     expect(saved?.lastSavedAtProvenance).toBe('exact')
   })
 
+  it('updates an existing URL title on the normal save path', async () => {
+    const state = createState()
+    assert.isDefined(state.urls[0])
+    const { dataPlane } = createDataPlane(state)
+
+    await dataPlane.saveTabs([
+      { title: 'Updated by normal save', url: 'https://example.com/docs' },
+    ])
+
+    expect(state.urls.find(({ id }) => id === 'url-1')?.title).toBe(
+      'Updated by normal save',
+    )
+  })
+
   it('projects URL metrics and membership events without collapsing their timestamps', async () => {
     const state = createState()
     assert.isDefined(state.urls[0])

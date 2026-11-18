@@ -15,7 +15,7 @@ export const backgroundContextMenuMessages = {
       'This link cannot be saved. Check the URL or your exclusion patterns.',
     'background.saveTabs.linkNotSavableTitle': 'Link not saved',
     'background.saveTabs.linkSaveFailed':
-      'The link was not saved. Check your saved tabs and try again.',
+      'Saving the link did not complete. Try again.',
     'background.saveTabs.linkSaveFailedTitle': 'Could not save the link',
     'background.saveTabs.linkSaved': 'Saved the link to TABBIN.',
     'background.saveTabs.linkSavedTitle': 'Link saved',
@@ -41,7 +41,7 @@ export const backgroundContextMenuMessages = {
       'このリンクは保存できません。URLまたは除外パターンを確認してください。',
     'background.saveTabs.linkNotSavableTitle': 'リンクを保存できません',
     'background.saveTabs.linkSaveFailed':
-      'リンク先は保存されていません。保存状態を確認して、もう一度お試しください。',
+      '今回のリンク保存を完了できませんでした。もう一度お試しください。',
     'background.saveTabs.linkSaveFailedTitle': 'リンク保存に失敗しました',
     'background.saveTabs.linkSaved': 'リンク先をTABBINに保存しました',
     'background.saveTabs.linkSavedTitle': 'リンク保存',

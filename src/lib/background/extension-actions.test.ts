@@ -236,7 +236,22 @@ describe('extension-actions モジュール', () => {
       expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
       expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
         'リンク保存に失敗しました',
-        'リンク先は保存されていません。保存状態を確認して、もう一度お試しください。',
+        '今回のリンク保存を完了できませんでした。もう一度お試しください。',
+      )
+    })
+
+    it('通知の言語判定に失敗しても見出しと本文を同じ言語で表示する', async () => {
+      createChromeTabsHarness()
+      mocked.getUserSettings
+        .mockResolvedValue(buildSettings({ language: 'en' }))
+        .mockResolvedValueOnce(buildSettings({ language: 'en' }))
+        .mockRejectedValueOnce(new UserSettingsReadError('unavailable'))
+
+      await expect(handleSaveLink('not a url')).resolves.toEqual([])
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンクを保存できません',
+        'このリンクは保存できません。URLまたは除外パターンを確認してください。',
       )
     })
 
