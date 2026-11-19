@@ -81,8 +81,10 @@ export type AiChatConversation = {
 export type AiChatHistoryItem = {
   id: string
   isActive: boolean
+  messages: AiChatConversationMessage[]
   preview: string
   title: string
+  updatedAt: number
 }
 
 export type InterestEvidenceEntry = {

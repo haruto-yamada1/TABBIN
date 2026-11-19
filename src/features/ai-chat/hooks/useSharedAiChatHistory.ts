@@ -377,8 +377,10 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
   const historyItems = conversations.map((conversation) => ({
     id: conversation.id,
     isActive: conversation.id === currentConversationId,
+    messages: conversation.messages,
     preview: getConversationPreview(conversation, historyStartPrompt),
     title: conversation.title,
+    updatedAt: conversation.updatedAt,
   }))
 
   return {

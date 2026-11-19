@@ -640,14 +640,30 @@ describe('SavedTabsChatWidget', () => {
           {
             id: 'conversation-1',
             isActive: true,
+            messages: [
+              {
+                content: 'First conversation',
+                id: 'message-1',
+                role: 'user',
+              },
+            ],
             preview: 'First conversation',
             title: 'First conversation',
+            updatedAt: 1,
           },
           {
             id: 'conversation-2',
             isActive: false,
+            messages: [
+              {
+                content: 'Another conversation',
+                id: 'message-2',
+                role: 'user',
+              },
+            ],
             preview: 'Another conversation',
             title: 'Another conversation',
+            updatedAt: 2,
           },
         ]}
         historyVariant='dropdown'
@@ -711,14 +727,30 @@ describe('SavedTabsChatWidget', () => {
           {
             id: 'conversation-1',
             isActive: true,
+            messages: [
+              {
+                content: 'First conversation',
+                id: 'message-1',
+                role: 'user',
+              },
+            ],
             preview: 'First conversation',
             title: 'First conversation',
+            updatedAt: 1,
           },
           {
             id: 'conversation-2',
             isActive: false,
+            messages: [
+              {
+                content: 'Another conversation',
+                id: 'message-2',
+                role: 'user',
+              },
+            ],
             preview: 'Another conversation',
             title: 'Another conversation',
+            updatedAt: 2,
           },
         ]}
         historyVariant='dropdown'
