@@ -1,14 +1,20 @@
 import { Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ConversationHistoryErrorNotice } from '@/features/ai-chat/components/ConversationHistoryErrorNotice'
+import { ConversationHistorySearchInput } from '@/features/ai-chat/components/ConversationHistorySearchInput'
+import { ConversationHistorySearchResults } from '@/features/ai-chat/components/ConversationHistorySearchResults'
 import { ConversationPreviewTooltip } from '@/features/ai-chat/components/ConversationPreviewTooltip'
 import { DeleteConversationDialog } from '@/features/ai-chat/components/DeleteConversationDialog'
 import { SavedTabsChatWidget } from '@/features/ai-chat/components/SavedTabsChatWidget'
 import { useSharedAiChatHistory } from '@/features/ai-chat/hooks/useSharedAiChatHistory'
+import {
+  isConversationSearchActive,
+  searchConversations,
+} from '@/features/ai-chat/lib/conversation-search'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import type { TranslateFn } from '@/features/i18n/context/I18nProvider'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -107,6 +113,12 @@ export const AiChatRoute = () => {
   )
   const [pendingDeleteHistoryItem, setPendingDeleteHistoryItem] =
     useState<AiChatHistoryItem | null>(null)
+  const [historySearchQuery, setHistorySearchQuery] = useState('')
+  const searchResults = useMemo(
+    () => searchConversations(historyItems, historySearchQuery),
+    [historyItems, historySearchQuery],
+  )
+  const isSearchingHistory = isConversationSearchActive(historySearchQuery)
 
   useEffect(() => {
     const handleResize = () => {
@@ -185,22 +197,39 @@ export const AiChatRoute = () => {
                 </p>
               </div>
               <div className='rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground'>
-                {historyItems.length}
+                {isSearchingHistory
+                  ? searchResults.length
+                  : historyItems.length}
               </div>
             </div>
 
+            <ConversationHistorySearchInput
+              className='px-4 pb-3'
+              onChange={setHistorySearchQuery}
+              value={historySearchQuery}
+            />
+
             <ScrollArea className='min-h-0 flex-1'>
-              <div className='space-y-1.5 px-3 pb-3'>
-                {historyItems.map((historyItem) => (
-                  <HistoryItemCard
-                    historyItem={historyItem}
-                    key={historyItem.id}
-                    onDelete={handleDeleteHistoryItem}
-                    onSelect={handleSelectHistoryItem}
-                    t={t}
-                  />
-                ))}
-              </div>
+              {isSearchingHistory ? (
+                <ConversationHistorySearchResults
+                  className='px-3 pb-3'
+                  onSelectResult={handleSelectHistoryItem}
+                  results={searchResults}
+                  variant='sidebar'
+                />
+              ) : (
+                <div className='space-y-1.5 px-3 pb-3'>
+                  {historyItems.map((historyItem) => (
+                    <HistoryItemCard
+                      historyItem={historyItem}
+                      key={historyItem.id}
+                      onDelete={handleDeleteHistoryItem}
+                      onSelect={handleSelectHistoryItem}
+                      t={t}
+                    />
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </div>
         </aside>

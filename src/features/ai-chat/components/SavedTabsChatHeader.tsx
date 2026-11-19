@@ -1,5 +1,5 @@
 import { Check, Copy, History, Plus, Settings2, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import {
   PromptInputSelect,
@@ -21,10 +21,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { ConversationHistorySearchInput } from '@/features/ai-chat/components/ConversationHistorySearchInput'
+import { ConversationHistorySearchResults } from '@/features/ai-chat/components/ConversationHistorySearchResults'
 import { DeleteConversationDialog } from '@/features/ai-chat/components/DeleteConversationDialog'
 import { SYSTEM_PROMPT_SELECTOR_EMPTY_VALUE } from '@/features/ai-chat/components/savedTabsChat/prompts'
 import { SavedTabsChatHeaderTooltipButton } from '@/features/ai-chat/components/SavedTabsChatHeaderTooltipButton'
 import { SavedTabsChatHistoryItemCard } from '@/features/ai-chat/components/SavedTabsChatHistoryItemCard'
+import {
+  isConversationSearchActive,
+  searchConversations,
+} from '@/features/ai-chat/lib/conversation-search'
 import type { AiChatHistoryItem } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
@@ -148,8 +154,21 @@ const ChatHistoryDropdown = ({
 }) => {
   const { t } = useI18n()
   const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [pendingDeleteHistoryItem, setPendingDeleteHistoryItem] =
     useState<AiChatHistoryItem | null>(null)
+  const searchResults = useMemo(
+    () => searchConversations(historyItems, searchQuery),
+    [historyItems, searchQuery],
+  )
+  const isSearchingHistory = isConversationSearchActive(searchQuery)
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsOpen(open)
+    if (!open) {
+      setSearchQuery('')
+    }
+  }, [])
 
   const handleDialogOpenChange = useCallback((open: boolean) => {
     if (!open) {
@@ -168,10 +187,67 @@ const ChatHistoryDropdown = ({
   const handleCancelDelete = useCallback(() => {
     setPendingDeleteHistoryItem(null)
   }, [])
+  const handleSelectSearchResult = useCallback(
+    (conversationId: string) => {
+      onSelectHistoryItem?.(conversationId)
+      setIsOpen(false)
+      setSearchQuery('')
+    },
+    [onSelectHistoryItem],
+  )
+  const handleEscapeKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (searchQuery.length === 0) {
+        return
+      }
+
+      event.preventDefault()
+      setSearchQuery('')
+    },
+    [searchQuery.length],
+  )
+
+  const renderHistoryContent = () => {
+    if (isSearchingHistory) {
+      return (
+        <ConversationHistorySearchResults
+          className='px-1 pb-1'
+          onSelectResult={handleSelectSearchResult}
+          results={searchResults}
+          variant='popover'
+        />
+      )
+    }
+
+    if (historyItems.length > 0) {
+      return historyItems.map((historyItem) => (
+        <SavedTabsChatHistoryItemCard
+          historyItem={historyItem}
+          isActive={historyItem.isActive}
+          setIsOpen={setIsOpen}
+          setPendingDeleteHistoryItem={setPendingDeleteHistoryItem}
+          t={t}
+          {...(onDeleteHistoryItem !== undefined
+            ? { onDeleteHistoryItem }
+            : {})}
+          {...(onSelectHistoryItem !== undefined
+            ? { onSelectHistoryItem }
+            : {})}
+          key={historyItem.id}
+        />
+      ))
+    }
+
+    return (
+      <div className='rounded-xl px-3 py-4 text-sm text-muted-foreground'>
+        {t('aiChat.history.empty')}
+      </div>
+    )
+  }
 
   return (
     <>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover open={isOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             type='button'
@@ -185,6 +261,7 @@ const ChatHistoryDropdown = ({
         <PopoverContent
           align='start'
           className='w-72 gap-y-2 p-2'
+          onEscapeKeyDown={handleEscapeKeyDown}
           side='bottom'
         >
           <div className='px-2 py-1'>
@@ -194,29 +271,14 @@ const ChatHistoryDropdown = ({
             </p>
           </div>
 
+          <ConversationHistorySearchInput
+            className='px-1'
+            onChange={setSearchQuery}
+            value={searchQuery}
+          />
+
           <div className='max-h-80 gap-y-1 overflow-y-auto'>
-            {historyItems.length > 0 ? (
-              historyItems.map((historyItem) => (
-                <SavedTabsChatHistoryItemCard
-                  historyItem={historyItem}
-                  isActive={historyItem.isActive}
-                  setIsOpen={setIsOpen}
-                  setPendingDeleteHistoryItem={setPendingDeleteHistoryItem}
-                  t={t}
-                  {...(onDeleteHistoryItem !== undefined
-                    ? { onDeleteHistoryItem }
-                    : {})}
-                  {...(onSelectHistoryItem !== undefined
-                    ? { onSelectHistoryItem }
-                    : {})}
-                  key={historyItem.id}
-                />
-              ))
-            ) : (
-              <div className='rounded-xl px-3 py-4 text-sm text-muted-foreground'>
-                {t('aiChat.history.empty')}
-              </div>
-            )}
+            {renderHistoryContent()}
           </div>
         </PopoverContent>
       </Popover>

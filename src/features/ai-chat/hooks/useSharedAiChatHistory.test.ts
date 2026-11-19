@@ -376,6 +376,18 @@ describe('useSharedAiChatHistory', () => {
       'conversation-1',
       'conversation-2',
     ])
+    expect(result.current.historyItems[0]).toMatchObject({
+      id: 'conversation-1',
+      messages: [
+        {
+          content: 'あとで読み返したいタブを整理して',
+          id: 'message-4',
+          role: 'user',
+        },
+      ],
+      title: 'あとで読み返したいタブを整理して',
+      updatedAt: expect.any(Number),
+    })
   })
 
   it('同じ更新時刻の会話は作成時刻とIDで安定して並べる', async () => {
