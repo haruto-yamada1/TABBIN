@@ -78,6 +78,14 @@ const normalizeSearchText = (value: string): NormalizedText => {
   const ends: number[] = []
   let previousWasWhitespace = false
 
+  const pushCodeUnits = (character: string, start: number, end: number) => {
+    for (const unit of character.split('')) {
+      characters.push(unit)
+      starts.push(start)
+      ends.push(end)
+    }
+  }
+
   for (let index = 0; index < rawCharacters.length; index += 1) {
     const character = rawCharacters[index] ?? ''
 
@@ -85,15 +93,12 @@ const normalizeSearchText = (value: string): NormalizedText => {
       if (previousWasWhitespace) {
         continue
       }
-      characters.push(' ')
+      pushCodeUnits(' ', rawStarts[index] ?? 0, rawEnds[index] ?? 0)
       previousWasWhitespace = true
     } else {
-      characters.push(character)
+      pushCodeUnits(character, rawStarts[index] ?? 0, rawEnds[index] ?? 0)
       previousWasWhitespace = false
     }
-
-    starts.push(rawStarts[index] ?? 0)
-    ends.push(rawEnds[index] ?? 0)
   }
 
   return {

@@ -185,6 +185,26 @@ describe('conversation-search', () => {
     expect(searchConversations(conversations, 'かいわ')).toStrictEqual([])
   })
 
+  it('絵文字（サロゲートペア）の後ろの一致でも原文の範囲を正しく抜粋する', () => {
+    const conversations = [
+      createConversation({
+        id: 'conversation-1',
+        messages: [
+          createMessage({
+            content: '😀🙂needle の後ろにある検索語',
+            id: 'message-1',
+          }),
+        ],
+      }),
+    ]
+
+    const excerpt = searchConversations(conversations, 'needle')[0]?.excerpts[0]
+
+    expect(excerpt).toBeDefined()
+    expect(getMatchText(excerpt ?? { segments: [] })).toBe('needle')
+    expect(getExcerptText(excerpt ?? { segments: [] })).toContain('😀🙂needle')
+  })
+
   it('一致箇所の前後を抜粋し、長文は省略記号で切り詰める', () => {
     const conversations = [
       createConversation({

@@ -261,6 +261,32 @@ describe('SavedTabsChatHeader', () => {
     expect(screen.getByTestId('conversation-row-conversation-1')).toBeTruthy()
   })
 
+  it('clears the dropdown search with Escape while a search result has focus', async () => {
+    const user = userEvent.setup()
+    const props = createProps()
+
+    render(<SavedTabsChatHeader {...props} historyVariant='dropdown' />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Recent conversations' }),
+    )
+    const search = screen.getByRole('searchbox', {
+      name: 'Search conversation history',
+    })
+
+    await user.type(search, 'Ollama')
+
+    const result = screen.getByRole('button', {
+      name: 'Open conversation Second conversation',
+    })
+    result.focus()
+    await user.keyboard('{Escape}')
+
+    expect(search).toHaveValue('')
+    expect(screen.getByTestId('conversation-row-conversation-1')).toBeTruthy()
+    expect(screen.queryByTestId('conversation-search-results')).toBeNull()
+  })
+
   it('forwards system prompt selection and reflects copied/disabled state', async () => {
     const props = createProps()
 

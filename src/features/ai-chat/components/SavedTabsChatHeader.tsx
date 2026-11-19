@@ -197,9 +197,12 @@ const ChatHistoryDropdown = ({
   )
   const handleEscapeKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (searchQuery.length > 0) {
-        event.preventDefault()
+      if (searchQuery.length === 0) {
+        return
       }
+
+      event.preventDefault()
+      setSearchQuery('')
     },
     [searchQuery.length],
   )
