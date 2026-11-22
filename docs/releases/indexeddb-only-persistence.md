@@ -1,8 +1,8 @@
-# IndexedDB への保存先一本化（次回リリースの互換性変更）
+# IndexedDB への保存先一本化（2.0.18 以降の互換性変更）
 
 Issue [#861](https://github.com/haruto-yamada1/TABBIN/issues/861) の変更を含む
-リリースでは、保存タブ、Custom Project、カテゴリ、AI 会話履歴、Analytics Views を
-IndexedDB から読み書きします。
+2.0.18 以降のリリースでは、保存タブ、Custom Project、カテゴリ、AI 会話履歴、
+Analytics Views を IndexedDB から読み書きします。
 
 すでに IndexedDB に移行済みのデータとユーザー設定は保持されます。Backup V2 の
 import/export、DB schema upgrade、整合性検査、import 前の recovery snapshot と復元も
@@ -22,10 +22,11 @@ IndexedDB にデータがない場合、保存一覧は空の状態で起動し�
 
 ## English
 
-The release containing Issue #861 uses IndexedDB for saved tabs, projects,
-categories, AI conversation history, and analytics views. Existing IndexedDB
-records and user settings are preserved, along with Backup V2 import/export,
-database schema upgrades, integrity checks, and pre-import recovery snapshots.
+The release containing Issue #861 (2.0.18 and later) uses IndexedDB for saved
+tabs, projects, categories, AI conversation history, and analytics views.
+Existing IndexedDB records and user settings are preserved, along with Backup V2
+import/export, database schema upgrades, integrity checks, and pre-import
+recovery snapshots.
 
 Users who have not yet migrated from an older version lose automatic migration
 of on-device Chrome Storage domain data. That old data is neither restored into
