@@ -33,17 +33,24 @@ bun run release:check
 
 このコマンドは以下の流れで実行されます：
 
-1. `bun run security:audit` — node-forge backport の再評価期限と実 RSA probe を検証し、全依存の High / Critical を監査
-2. `bun run quality:check` — フォーマット、lint、テスト、重複チェックなど
-3. `bun run build` — Chrome 拡張機能のビルド
-4. `bun run build:firefox` — Firefox 拡張機能のビルド
-5. `bun run verify:production-logging` — production build から console / debugger が除去済みであること
-6. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
-7. `bun run verify:persistence-release-compatibility` — 生成された artifact の Persistence v2 compatibility metadata を検証
-8. `bun run verify:production-network-policy` — 生成された manifest の host / CSP / permission 契約を検証
-9. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証
-10. `bun run verify:firefox-source` — production source に `chrome-extension://` literal や Chrome 専用 API 呼び出しが混入していないことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
-11. `bun run release:e2e` — Chrome の主要ユーザーフロー、Firefox の IndexedDB smoke、公開済み Chrome artifact からの更新検証を実行
+1. `git diff --exit-code` — tracked file に未 stage の変更がないこと（clean checkout の確認）
+2. `bun run verify:firefox-smoke-environment` — Firefox と geckodriver の実行環境を確認
+3. `bun run verify:dependency-licenses` — 依存ライセンスのレビュー記録と manifest を検証
+4. `bun run security:audit` — node-forge backport の再評価期限と実 RSA probe を検証し、全依存の High / Critical を監査
+5. `bun run academy:check` — Academy の catalog・scenario・日英表示・実 JSX target・素材を検証
+6. `bun run quality:check` — フォーマット、lint、テスト、重複チェックなど
+7. `bun run build` — Chrome 拡張機能のビルド
+8. `bun run build:firefox` — Firefox 拡張機能のビルド
+9. `bun run verify:third-party-licenses` — 両 build に third-party ライセンス表示と対応 source が含まれることを検証
+10. `bun run verify:production-logging` — production build から console / debugger が除去済みであること
+11. `bun run verify:app-version` — 生成された manifest version が package.json と一致することを確認
+12. `bun run verify:persistence-release-compatibility` — 生成された artifact の Persistence v2 compatibility metadata を検証
+13. `bun run verify:production-network-policy` — 生成された manifest の host / CSP / permission 契約を検証
+14. `bun run verify:firefox-artifact` — Firefox artifact が Firefox shipping contract (manifest_v2, CSP, browser_specific_settings, required artifacts) を満たすことを検証
+15. `bun run academy:check .output/chrome-mv3 .output/firefox-mv2` — 生成された両 artifact の Academy 素材と target を検証
+16. `bun run verify:firefox-source` — production source に `chrome-extension://` literal や Chrome 専用 API 呼び出しが混入していないことを検証。詳細は [Firefox extension smoke test](testing/firefox-smoke.md) を参照
+17. `bun run release:e2e` — Chrome の主要ユーザーフロー、Academy E2E、Firefox の IndexedDB smoke と link capture、公開済み Chrome artifact からの更新検証を実行
+18. `git diff --exit-code` — build が tracked file を変更していないこと（clean checkout の再確認）
 
 ### リリース直前の依存脆弱性監査
 
@@ -91,13 +98,15 @@ risk acceptance です。上流は脆弱性評価に異議を唱えているも�
 
 ### 配布前の E2E
 
-`release:e2e` は次を順に実行し、どちらかが失敗すれば `release:check` と
+`release:e2e` は次を順に実行し、いずれかが失敗すれば `release:check` と
 `release:zip` を失敗させます。ブラウザや geckodriver が不足していても成功扱いにしません。
 
 | コマンド                                   | 検証する導線                                                                                                                                                                      |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bun run e2e:release`                      | Chrome 拡張の toolbar 保存 → reload → 検索 → 開く → 既定の保存データ削除が reload 後も維持されること。既存の Backup V2 Export → データを空にする → 実 Import UI → reload 後の復元 |
+| `bun run academy:e2e`                      | Chromium で Academy 全章の日英表示、動画、操作練習、axe、キーボード、中断 / 再開 / 復習を検証                                                                                     |
 | `bun run test:firefox:indexeddb-smoke`     | Firefox の native IndexedDB fresh / restart / read / write / recovery / Backup V2。旧 storage metadata に依存しないこと                                                           |
+| `bun run test:firefox:link-capture`        | Firefox native のリンクキャプチャ。権限ダイアログの拒否 / 許可、キー＋クリック保存、矩形選択、元タブの維持を検証                                                                  |
 | `bun run test:production-artifact-upgrade` | Chrome Web Store の公開済み CRX → 現行 build の更新。同じ profile での IndexedDB / 設定 / お気に入り / メモ / AI 履歴 / Backup V2 の保持と再起動                                  |
 
 Chrome は `playwright.release.config.ts` で `@release-saved-tabs` と
@@ -174,7 +183,9 @@ bun run release:zip
 1. `bun run release:check` — 上記の事前チェック
 2. `bun run zip` — Chrome 用 ZIP 生成
 3. `bun run zip:firefox` — Firefox 用 ZIP 生成
-4. `bun run release:provenance` — ビルドメタデータと SBOM の生成
+4. `bun run verify:third-party-license-zips` — Chrome / Firefox / source ZIP にライセンス表示と対応 source が含まれることを検証
+5. `bun run academy:check .output/*-chrome.zip .output/*-firefox.zip` — ZIP 内の Academy 素材と target を検証
+6. `bun run release:provenance` — ビルドメタデータと SBOM の生成
 
 ## Provenance / SBOM
 
