@@ -116,10 +116,10 @@ describe('distribution release gate', () => {
     const result = runRelease(
       'verify:dependency-licenses',
       'release:zip',
-      'LICENSE changed or review expired',
+      'LICENSE changed or review invalid',
     )
     expect(result.status).toBe(23)
-    expect(result.stderr).toContain('LICENSE changed or review expired')
+    expect(result.stderr).toContain('LICENSE changed or review invalid')
     expect(result.commands).not.toContain('security:audit')
     expect(result.commands).not.toContain('build')
     expect(result.commands).not.toContain('zip')

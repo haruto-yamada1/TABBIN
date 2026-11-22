@@ -19,7 +19,7 @@ import {
   verifyDependencyLicensePolicy,
 } from './dependency-license-policy'
 
-const now = new Date('2026-10-22T00:00:00Z')
+const now = new Date('2026-11-23T00:00:00Z')
 const license = readFileSync('node_modules/react-doctor/LICENSE', 'utf8')
 const names = ['react-doctor', 'oxlint-plugin-react-doctor']
 const integrity = (value: string) =>
@@ -146,8 +146,8 @@ describe('reviewed development license distributions', () => {
     ).toThrow(/license review/)
   })
 
-  it.each(['2026-10-20T23:59:59Z', '2026-11-20T00:00:00Z', 'invalid'])(
-    'rejects a not-yet-approved, expired or invalid date %s',
+  it.each(['2026-11-21T23:59:59Z', 'invalid'])(
+    'rejects a not-yet-approved or invalid date %s',
     (date) =>
       expect(() =>
         verifyDependencyLicensePolicy(
@@ -158,6 +158,28 @@ describe('reviewed development license distributions', () => {
         ),
       ).toThrow(/license review/),
   )
+
+  it('accepts the review date boundary', () => {
+    expect(() =>
+      verifyDependencyLicensePolicy(
+        manifest,
+        snapshot(),
+        contents(),
+        new Date('2026-11-22T00:00:00Z'),
+      ),
+    ).not.toThrow()
+  })
+
+  it('keeps the license review valid after the previous expiry date', () => {
+    expect(() =>
+      verifyDependencyLicensePolicy(
+        manifest,
+        snapshot(),
+        contents(),
+        new Date('2099-01-01T00:00:00Z'),
+      ),
+    ).not.toThrow()
+  })
 
   it.each([
     'latest',

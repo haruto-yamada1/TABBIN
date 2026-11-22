@@ -68,7 +68,7 @@ const reviewDoctor = async (
     doctorRequest(metadata),
     {},
     contents,
-    new Date('2026-10-22T00:00:00Z'),
+    new Date('2026-11-23T00:00:00Z'),
   )
 
 describe('reviewed React Doctor npm identities', () => {
@@ -118,7 +118,7 @@ describe('reviewed React Doctor npm identities', () => {
         Object.fromEntries(
           versions.map((version) => [`${name}@${version}`, doctorLicense]),
         ),
-        new Date('2026-10-22T00:00:00Z'),
+        new Date('2026-11-23T00:00:00Z'),
       )
       expect(result).toEqual({
         dependencies: [],
@@ -157,7 +157,7 @@ describe('reviewed React Doctor npm identities', () => {
       doctorRequest({ ...metadata(), name }),
       {},
       { [`${name}@${version}`]: doctorLicense },
-      new Date('2026-10-22T00:00:00Z'),
+      new Date('2026-11-23T00:00:00Z'),
     )
     expect(result).toEqual({
       dependencies: [`${name}@${version}`],
@@ -205,7 +205,7 @@ describe('reviewed React Doctor npm identities', () => {
         request,
         {},
         { 'react-doctor@0.9.17': doctorLicense },
-        new Date('2026-10-22T00:00:00Z'),
+        new Date('2026-11-23T00:00:00Z'),
       ),
     ).toEqual({ dependencies: [], findings: [] })
     expect(request).toHaveBeenCalledTimes(2)
@@ -242,7 +242,7 @@ describe('reviewed React Doctor npm identities', () => {
         'react-doctor@0.9.17': doctorLicense,
         'react-doctor@0.9.18': `${doctorLicense}\n`,
       },
-      new Date('2026-10-22T00:00:00Z'),
+      new Date('2026-11-23T00:00:00Z'),
     )
     expect(result.findings).toEqual([
       'license: react-doctor@0.9.18: SEE LICENSE IN LICENSE',
@@ -356,7 +356,7 @@ describe('Bun dependency changes', () => {
       request,
       {},
       { [id]: doctorLicense },
-      new Date('2026-10-22T00:00:00Z'),
+      new Date('2026-11-23T00:00:00Z'),
     )
     expect(result.dependencies).toEqual([id])
     expect(result.findings).toEqual(['high: GHSA-doctor'])
