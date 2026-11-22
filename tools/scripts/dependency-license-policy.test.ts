@@ -146,8 +146,8 @@ describe('reviewed development license distributions', () => {
     ).toThrow(/license review/)
   })
 
-  it.each(['2026-11-21T23:59:59Z', '2026-12-22T00:00:00Z', 'invalid'])(
-    'rejects a not-yet-approved, expired or invalid date %s',
+  it.each(['2026-11-21T23:59:59Z', 'invalid'])(
+    'rejects a not-yet-approved or invalid date %s',
     (date) =>
       expect(() =>
         verifyDependencyLicensePolicy(
@@ -158,6 +158,28 @@ describe('reviewed development license distributions', () => {
         ),
       ).toThrow(/license review/),
   )
+
+  it('accepts the review date boundary', () => {
+    expect(() =>
+      verifyDependencyLicensePolicy(
+        manifest,
+        snapshot(),
+        contents(),
+        new Date('2026-11-22T00:00:00Z'),
+      ),
+    ).not.toThrow()
+  })
+
+  it('keeps the license review valid after the previous expiry date', () => {
+    expect(() =>
+      verifyDependencyLicensePolicy(
+        manifest,
+        snapshot(),
+        contents(),
+        new Date('2099-01-01T00:00:00Z'),
+      ),
+    ).not.toThrow()
+  })
 
   it.each([
     'latest',

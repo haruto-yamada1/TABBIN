@@ -117,12 +117,13 @@ CI の成功 summary は「脆弱性なし」とせず、適用した例外を a
   承認の対象にしない。元の追加条件に従い、これらの用途には権利者の書面許可が必要。
 - [PR #978](https://github.com/haruto-yamada1/TABBIN/pull/978) の修正依頼に伴い
   ユーザーが用途限定の例外を承認。owner: dependency maintenance / @haruto-yamada1。
-  再承認日2026-11-22 UTC、期限2026-12-22 00:00 UTC（30日）。
+  再承認日2026-11-22 UTC。LICENSE 本文の SHA-256 と用途を固定できるため期限は
+  設けず、LICENSE 本文または用途が変わった場合に再評価する恒久承認とする。
 - `dependency-license-policy.ts` では package 名・用途・承認済み LICENSE の
-  SHA-256 と期限を管理する。version / integrity を例外定義に固定せず、現在の
+  SHA-256 と承認日を管理する。version / integrity を例外定義に固定せず、現在の
   `bun.lock` と exact-version npm metadata を照合する。同じ LICENSE の版更新では
   例外の手直しは不要。全 nested resolution と全 installed copies を検証し、
-  LICENSE 不明・変更、registry identity / integrity 不一致、非 npm source、期限切れ、
+  LICENSE 不明・変更、registry identity / integrity 不一致、非 npm source、
   各 workspace の本番依存宣言（npm alias を含む）を拒否する。
   未変更の対象パッケージも差分 CLI で再検査し、Advisory API による
   High / Critical / unknown の検査を省略しない。
@@ -139,11 +140,13 @@ CI の成功 summary は「脆弱性なし」とせず、適用した例外を a
   実行を行わない別 job へ分離する。古い head の結果は投稿せず、fork の read-only token
   で投稿できなくても scan の品質判定は変えない。
   `release:check` も同じ承認条件を検査する。LICENSE が変わる更新は原文と用途を
-  再評価し、期限は自動延長しない。
+  再評価する。
 
 今後の個別承認も exact package/version、GHSA または license、依存経路、根拠、担当、
-30日以内の期限を記録して個別 PR で評価する。
-期限切れなら再評価し、package 全体・全 GHSA の恒久 allow や check の無効化は使わない。
+30日以内の期限を記録して個別 PR で評価する。ただし、ライセンス例外は承認済み
+LICENSE の SHA-256 と用途を固定できる場合に限り、期限を設けない恒久承認とできる。
+脆弱性の例外は期限切れなら再評価し、package 全体・全 GHSA の恒久 allow や
+check の無効化は使わない。
 
 ## 配布物の原文・著作権表示と対応ソース
 
