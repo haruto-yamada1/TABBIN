@@ -9,8 +9,8 @@ import { z } from 'zod'
 // User-approved ordinary TABBIN product-code diagnostics only. The approved
 // LICENSE bytes, purpose and review interval survive same-license upgrades.
 export const reviewedLicensePolicy = {
-  reviewedAt: '2026-10-21',
-  expiresAt: '2026-11-20',
+  reviewedAt: '2026-11-22',
+  expiresAt: '2026-12-22',
   owner: 'dependency maintenance / @haruto-yamada1',
   purpose: 'Ordinary TABBIN product code quality checks only',
   trackingPullRequest: 'https://github.com/haruto-yamada1/TABBIN/pull/978',

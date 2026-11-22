@@ -117,7 +117,7 @@ CI の成功 summary は「脆弱性なし」とせず、適用した例外を a
   承認の対象にしない。元の追加条件に従い、これらの用途には権利者の書面許可が必要。
 - [PR #978](https://github.com/haruto-yamada1/TABBIN/pull/978) の修正依頼に伴い
   ユーザーが用途限定の例外を承認。owner: dependency maintenance / @haruto-yamada1。
-  承認日2026-10-21 UTC、期限2026-11-20 00:00 UTC（30日）。
+  再承認日2026-11-22 UTC、期限2026-12-22 00:00 UTC（30日）。
 - `dependency-license-policy.ts` では package 名・用途・承認済み LICENSE の
   SHA-256 と期限を管理する。version / integrity を例外定義に固定せず、現在の
   `bun.lock` と exact-version npm metadata を照合する。同じ LICENSE の版更新では

@@ -19,7 +19,7 @@ import {
   verifyDependencyLicensePolicy,
 } from './dependency-license-policy'
 
-const now = new Date('2026-10-22T00:00:00Z')
+const now = new Date('2026-11-23T00:00:00Z')
 const license = readFileSync('node_modules/react-doctor/LICENSE', 'utf8')
 const names = ['react-doctor', 'oxlint-plugin-react-doctor']
 const integrity = (value: string) =>
@@ -146,7 +146,7 @@ describe('reviewed development license distributions', () => {
     ).toThrow(/license review/)
   })
 
-  it.each(['2026-10-20T23:59:59Z', '2026-11-20T00:00:00Z', 'invalid'])(
+  it.each(['2026-11-21T23:59:59Z', '2026-12-22T00:00:00Z', 'invalid'])(
     'rejects a not-yet-approved, expired or invalid date %s',
     (date) =>
       expect(() =>
