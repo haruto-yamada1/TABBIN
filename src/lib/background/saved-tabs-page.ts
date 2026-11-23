@@ -3,6 +3,8 @@ import { browser } from 'wxt/browser'
 /** 保存画面の識別とタブの再利用を管理する。 */
 let openingSavedTabsPage: Promise<number | null> | null = null
 let savedTabsPageId: number | null = null
+let duplicateCleanupRequested = false
+let duplicateCleanupDeferred = false
 
 const isSavedTabsPageUrl = (value?: string): boolean => {
   if (!value) {
@@ -100,12 +102,24 @@ const closeDuplicateTabs = async (
   )
 }
 
+const reuseCachedSavedTabsPage = async (id: number): Promise<boolean> => {
+  if (!(await activateAndPinTabIfNeeded(id))) {
+    return false
+  }
+  if (duplicateCleanupRequested && duplicateCleanupDeferred) {
+    const candidates = (await browser.tabs.query({})).filter(isSavedTabsPage)
+    await closeDuplicateTabs(candidates, id)
+    duplicateCleanupDeferred = false
+  }
+  return true
+}
+
 const findOrCreateSavedTabsPage = async (): Promise<number | null> => {
   try {
     if (savedTabsPageId !== null) {
       const cachedId = savedTabsPageId
       savedTabsPageId = null
-      if (await activateAndPinTabIfNeeded(cachedId)) {
+      if (await reuseCachedSavedTabsPage(cachedId)) {
         savedTabsPageId = cachedId
         return cachedId
       }
@@ -114,13 +128,18 @@ const findOrCreateSavedTabsPage = async (): Promise<number | null> => {
     for (const candidate of candidates) {
       const id = candidate.id
       // eslint-disable-next-line eslint/no-await-in-loop -- Only activate one validated candidate; parallel activation would touch every tab.
-      if (isValidTabId(id) && (await activateAndPinTabIfNeeded(id))) {
-        savedTabsPageId = id
+      if (!isValidTabId(id) || !(await activateAndPinTabIfNeeded(id))) {
+        continue
+      }
+      savedTabsPageId = id
+      duplicateCleanupDeferred = !duplicateCleanupRequested
+      if (duplicateCleanupRequested) {
         // eslint-disable-next-line eslint/no-await-in-loop -- Finish cleanup for the selected main tab before returning its ID.
         await closeDuplicateTabs(candidates, id)
-        return id
       }
+      return id
     }
+    duplicateCleanupDeferred = false
     const created = await browser.tabs.create({
       url: browser.runtime.getURL('/saved-tabs.html'),
       // Firefox can report about:blank until the requested page commits.
@@ -139,9 +158,13 @@ const findOrCreateSavedTabsPage = async (): Promise<number | null> => {
 }
 
 /** 全呼び出し元が同じ確定済みID、または失敗時のnullを受け取る。 */
-const openSavedTabsPage = async (): Promise<number | null> => {
+const openSavedTabsPage = async ({
+  closeDuplicates = true,
+}: { readonly closeDuplicates?: boolean } = {}): Promise<number | null> => {
+  duplicateCleanupRequested ||= closeDuplicates
   openingSavedTabsPage ??= findOrCreateSavedTabsPage().finally(() => {
     openingSavedTabsPage = null
+    duplicateCleanupRequested = false
   })
   return openingSavedTabsPage
 }
@@ -150,6 +173,8 @@ const openSavedTabsPage = async (): Promise<number | null> => {
 const resetSavedTabsPageId = (): void => {
   savedTabsPageId = null
   openingSavedTabsPage = null
+  duplicateCleanupRequested = false
+  duplicateCleanupDeferred = false
 }
 
 export { openSavedTabsPage, resetSavedTabsPageId }

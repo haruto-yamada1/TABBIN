@@ -247,7 +247,7 @@ export const handleLinkCaptureMessage = createLinkCaptureHandler({
     const result = await getBackgroundSavedTabsDataPlane().saveTabs(links, {
       preserveExisting: true,
     })
-    if (!result) {
+    if (!result || !('savedCount' in result)) {
       throw new Error('Capture requires atomic saved-link counts.')
     }
     return result

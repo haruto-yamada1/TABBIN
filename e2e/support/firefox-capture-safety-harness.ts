@@ -1,5 +1,8 @@
 /* eslint-disable no-restricted-imports -- native Firefox regression exercises the production capture and persistence boundaries */
+import { browser } from 'wxt/browser'
+
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
+import { TabFilteringError } from '@/lib/background/capture-plan'
 import {
   handleExtensionActionClick,
   handleSaveAllWindowsTabs,
@@ -7,7 +10,6 @@ import {
   handleSaveSameDomainTabs,
   handleSaveWindowTabs,
 } from '@/lib/background/extension-actions'
-import { TabFilteringError } from '@/lib/background/utils'
 import { getChromeStorageLocal } from '@/lib/browser/chrome-storage'
 import { defaultSettings, UserSettingsReadError } from '@/lib/storage/settings'
 
@@ -96,11 +98,6 @@ const matchesFailure = (error: unknown, failure: Failure): boolean => {
   return error === persistenceFailure
 }
 
-const nativeTabSnapshot = async () =>
-  (await browser.tabs.query({}))
-    .map(({ id, url, pinned, windowId }) => ({ id, url, pinned, windowId }))
-    .toSorted((left, right) => (left.id ?? 0) - (right.id ?? 0))
-
 /** Every override is scoped to this harness and restored even on assertion failure. */
 export const replaceMethod = (target: object, key: string, value: unknown) => {
   const previous = Object.getOwnPropertyDescriptor(target, key)
@@ -128,10 +125,16 @@ export const runFirefoxCaptureSafetySmoke =
     const previous: { readonly userSettings?: unknown } = await local.get([
       'userSettings',
     ])
+    const queryTabs = browser.tabs.query.bind(browser.tabs)
+    const getWindows = browser.windows.getAll.bind(browser.windows)
+    const nativeTabSnapshot = async () =>
+      (await queryTabs({}))
+        .map(({ id, url, pinned, windowId }) => ({ id, url, pinned, windowId }))
+        .toSorted((left, right) => (left.id ?? 0) - (right.id ?? 0))
     const previousTabs = await nativeTabSnapshot()
-    const previouslyActive = (
-      await browser.tabs.query({ active: true })
-    ).flatMap(({ id }) => (id === undefined ? [] : [id]))
+    const previouslyActive = (await queryTabs({ active: true })).flatMap(
+      ({ id }) => (id === undefined ? [] : [id]),
+    )
     const ownedIds = new Set<number>()
     const dataPlane = getBackgroundSavedTabsDataPlane()
     const persistedBefore = await dataPlane.readUndoSnapshot()
@@ -156,20 +159,19 @@ export const runFirefoxCaptureSafetySmoke =
           })
         })
     try {
-      // Production handlers use Promise APIs. Delegate to Firefox's native
-      // Promise namespace; only returned fixture tab copies carry injected faults.
+      // Inject only into capture queries. Snapshots still observe every native tab.
       restorers.push(
         replaceMethod(
-          chrome.tabs,
+          browser.tabs,
           'query',
           async (query: chrome.tabs.QueryInfo) =>
-            inspectTabs(await browser.tabs.query(query)),
+            inspectTabs(await queryTabs(query)),
         ),
         replaceMethod(
-          chrome.windows,
+          browser.windows,
           'getAll',
           async (query: chrome.windows.QueryOptions) =>
-            (await browser.windows.getAll(query)).map((window) => ({
+            (await getWindows(query)).map((window) => ({
               ...window,
               tabs: inspectTabs(window.tabs ?? []),
             })),
@@ -326,7 +328,7 @@ export const runFirefoxCaptureSafetySmoke =
       } else {
         await local.set({ userSettings: previous.userSettings })
       }
-      const remaining = (await browser.tabs.query({})).flatMap(({ id }) =>
+      const remaining = (await queryTabs({})).flatMap(({ id }) =>
         id !== undefined && ownedIds.has(id) ? [id] : [],
       )
       if (remaining.length > 0) {

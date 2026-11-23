@@ -242,6 +242,41 @@ describe('saved-tabs-page', () => {
     expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
   })
 
+  it('保存操作だけで開く場合は重複する Saved Tabs ページを閉じない', async () => {
+    const main = tab({ id: 61, url: savedUrl, pinned: true })
+    const duplicate = tab({ id: 62, url: savedUrl, pinned: true })
+    const harness = createChromeHarness([main, duplicate])
+
+    await expect(openSavedTabsPage({ closeDuplicates: false })).resolves.toBe(
+      61,
+    )
+    expect(harness.remove).not.toHaveBeenCalled()
+  })
+
+  it('保存と同時の明示的なオープンでも一度だけ重複を整理する', async () => {
+    const main = tab({ id: 61, url: savedUrl, pinned: true })
+    const duplicate = tab({ id: 62, url: savedUrl })
+    const harness = createChromeHarness([main, duplicate])
+    const opened = await Promise.all([
+      openSavedTabsPage({ closeDuplicates: false }),
+      openSavedTabsPage(),
+    ])
+
+    expect(opened).toEqual([61, 61])
+    expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
+  })
+
+  it('保存操作の後でも明示的に開けば重複を整理する', async () => {
+    const main = tab({ id: 61, url: savedUrl, pinned: true })
+    const duplicate = tab({ id: 62, url: savedUrl })
+    const harness = createChromeHarness([main, duplicate])
+
+    await openSavedTabsPage({ closeDuplicates: false })
+    expect(harness.remove).not.toHaveBeenCalled()
+    await expect(openSavedTabsPage()).resolves.toBe(61)
+    expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
+  })
+
   it.each([
     tab({ id: 62, url: 'https://example.test/saved-tabs.html' }),
     tab({ id: 62, url: savedUrl, pendingUrl: 'https://example.test/' }),

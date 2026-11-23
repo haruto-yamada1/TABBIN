@@ -432,7 +432,7 @@ const saveTabs = (
   state: IndexedDbSavedTabsMutableState,
   tabs: readonly BackgroundSavedTabInput[],
   options: SaveTabsContext,
-): void => {
+): string[] => {
   const { idGenerator, timestamp } = options
   const uniqueTabs = new Map<string, Required<BackgroundSavedTabInput>>()
   for (const tab of tabs) {
@@ -442,7 +442,7 @@ const saveTabs = (
     }
   }
   if (uniqueTabs.size === 0) {
-    return
+    return []
   }
   const uncategorized = ensureUncategorizedCollection(state, timestamp)
   const customCollections = state.collections
@@ -491,6 +491,7 @@ const saveTabs = (
         : collection,
     )
   }
+  return [...uniqueTabs.keys()]
 }
 
 const removeExpiredUrls = (
@@ -606,22 +607,22 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
         const freshTabs = [...distinctTabs]
           .filter(([identity]) => !existingIdentities.has(identity))
           .map(([, tab]) => tab)
-        saveTabs(state, freshTabs, {
+        const savedUrls = saveTabs(state, freshTabs, {
           idGenerator,
           preserveExistingTitle: false,
           timestamp: now(),
         })
         return {
           existingCount: distinctTabs.size - freshTabs.length,
-          savedCount: freshTabs.length,
+          savedCount: savedUrls.length,
         }
       }
-      saveTabs(state, tabs, {
+      const savedUrls = saveTabs(state, tabs, {
         idGenerator,
         preserveExistingTitle: options.preserveExistingTitle === true,
         timestamp: now(),
       })
-      return undefined
+      return { savedUrls }
     }),
   updateTabTimestamps: async (timestamp) =>
     session.run((state) => {

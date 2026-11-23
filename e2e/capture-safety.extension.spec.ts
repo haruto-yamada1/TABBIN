@@ -214,3 +214,99 @@ for (const clickBehavior of behaviors) {
     })
   }
 }
+
+test('capture safety: a toolbar save uses one policy until it completes', async ({
+  extensionContext,
+  extensionId,
+  serviceWorker,
+}) => {
+  const origin = 'https://capture-snapshot.example.test'
+  const excludedPrefix = `${origin}/excluded-`
+  const initialSettings = {
+    ...defaultUserSettings,
+    clickBehavior: 'saveWindowTabs',
+  }
+  await extensionContext.route(`${origin}/**`, async (route) => {
+    await route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><title>Capture snapshot fixture</title>',
+    })
+  })
+  await seedStorage(
+    serviceWorker,
+    createBaseSeed({ userSettings: initialSettings }),
+  )
+
+  const current = await extensionContext.newPage()
+  const currentUrl = `${excludedPrefix}current`
+  await current.goto(currentUrl)
+  await current.bringToFront()
+  const updateSettingsOnRead = await serviceWorker.evaluateHandle(
+    (userSettings) => {
+      const originalGet = chrome.storage.local.get
+      let updated = false
+      Object.defineProperty(chrome.storage.local, 'get', {
+        configurable: true,
+        value: (...args: unknown[]): unknown => {
+          const result: unknown = Reflect.apply(
+            originalGet,
+            chrome.storage.local,
+            args,
+          )
+          const [keys] = args
+          if (
+            !updated &&
+            args.length === 1 &&
+            Array.isArray(keys) &&
+            keys.length === 1 &&
+            keys[0] === 'userSettings'
+          ) {
+            updated = true
+            // The current action has started reading policy. Commit a newer
+            // policy before delivering its original snapshot to the caller.
+            return Promise.resolve(result).then(async (snapshot) => {
+              await chrome.storage.local.set({ userSettings })
+              return snapshot
+            })
+          }
+          return result
+        },
+      })
+      return () => {
+        Object.defineProperty(chrome.storage.local, 'get', {
+          value: originalGet,
+        })
+      }
+    },
+    {
+      ...initialSettings,
+      excludePatterns: [...initialSettings.excludePatterns, excludedPrefix],
+    },
+  )
+  const savedUrls = async () =>
+    (await readPersistenceV2SavedTabsSnapshot(serviceWorker)).urls.map(
+      ({ url }) => url,
+    )
+  try {
+    await triggerToolbarAction(extensionContext, current, extensionId)
+    await expect.poll(savedUrls).toContain(currentUrl)
+    await expect.poll(() => current.isClosed()).toBe(true)
+  } finally {
+    await updateSettingsOnRead.evaluate((restore) => restore())
+    await updateSettingsOnRead.dispose()
+  }
+
+  const excluded = await extensionContext.newPage()
+  await excluded.goto(`${excludedPrefix}next`)
+  const next = await extensionContext.newPage()
+  const nextUrl = `${origin}/next`
+  await next.goto(nextUrl)
+  await next.bringToFront()
+  await triggerToolbarAction(extensionContext, next, extensionId)
+  await expect.poll(() => next.isClosed()).toBe(true)
+  expect(excluded.isClosed()).toBe(false)
+  expect(await savedUrls()).toEqual(
+    expect.arrayContaining([currentUrl, nextUrl]),
+  )
+  expect(await savedUrls()).not.toContain(excluded.url())
+})

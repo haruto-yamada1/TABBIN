@@ -14,7 +14,7 @@ for (const pathname of [
   'saved-tabs.html',
   'app.html#/saved-tabs?mode=custom',
 ]) {
-  test(`toolbar reuses ${pathname} and leaves navigated and same-name web tabs alone`, async ({
+  test(`toolbar reuses ${pathname} and preserves duplicate, navigated, and same-name tabs`, async ({
     extensionContext,
     extensionId,
     serviceWorker,
@@ -132,7 +132,7 @@ for (const pathname of [
     }, routeUrl)
 
     await saveAndOpen('navigation')
-    await expect.poll(() => duplicate.isClosed()).toBe(true)
+    expect(duplicate.isClosed()).toBe(false)
     expect(otherWebPage.isClosed()).toBe(false)
     expect(
       await serviceWorker.evaluate(
@@ -161,6 +161,9 @@ for (const pathname of [
       main: { id: validId, url: routeUrl, pinned: true },
     })
     await expect(valid).toHaveURL(routeUrl)
+    await expect(duplicate).toHaveURL(
+      getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+    )
     await expect(otherWebPage).toHaveURL(
       `${fixtureOrigin}/app.html#/saved-tabs?mode=custom`,
     )

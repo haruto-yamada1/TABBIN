@@ -1,93 +1,32 @@
-/**
- * 拡張機能アクション管理モジュール
- */
+import { browser } from 'wxt/browser'
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
-import { getMessage } from '@/features/i18n/lib/language'
+import {
+  getBrowserUiLocale,
+  getMessage,
+  resolveLanguage,
+} from '@/features/i18n/lib/language'
+import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
 import {
   NativeSavedTabTitleCaptureError,
   normalizeSavedTabTitles,
 } from '@/lib/browser/normalize-saved-tab-titles'
-import { redactUrlForLog } from '@/lib/logging/redact-url'
 import { UserSettingsReadError } from '@/lib/storage/settings'
-import {
-  isValidUrl,
-  normalizeUrlCandidate,
-  toSavableLinkUrl,
-} from '@/lib/url-filter'
-import type { UserSettings } from '@/types/storage'
+import { toSavableLinkUrl } from '@/lib/url-filter'
 
+import type { CapturePlan, CaptureScope } from './capture-plan'
+import { createCapturePlan, TabFilteringError } from './capture-plan'
 import { getBackgroundLanguage } from './i18n'
+import { showNotification } from './notification'
 import { openSavedTabsPage } from './saved-tabs-page'
 import { requireOperationalUserSettings } from './settings-policy'
-import {
-  filterTabsByUserSettings,
-  showNotification,
-  TabFilteringError,
-} from './utils'
 
-const resolveClickBehavior = (
-  value: UserSettings['clickBehavior'] | undefined,
-): UserSettings['clickBehavior'] => value ?? 'saveWindowTabs'
-
-const getBackgroundText = async (
-  key: string,
-  fallback?: string,
-  values?: Record<string, string>,
-) => {
-  const language = await getBackgroundLanguage({ repairStoredSettings: false })
-
-  return getMessage(language, key, fallback, values)
-}
-
-// Empty targets resolve to []; failures stay observable to every caller.
-const runTabCapture = async <Result>(
-  capture: () => Promise<Result>,
-): Promise<Result> => {
-  try {
-    return await capture()
-  } catch (error) {
-    // These boundaries already explain how to recover; do not notify twice.
-    if (
-      !(error instanceof UserSettingsReadError) &&
-      !(error instanceof NativeSavedTabTitleCaptureError)
-    ) {
-      const prefix =
-        error instanceof TabFilteringError
-          ? 'background.saveTabs.filterError'
-          : 'background.saveTabs.captureError'
-      const language = await getBackgroundLanguage({
-        repairStoredSettings: false,
-      })
-      await showNotification(
-        getMessage(language, `${prefix}Title`),
-        getMessage(language, `${prefix}Message`),
-      )
-    }
-    throw error
-  }
-}
-
-const isWindowsGetAll = (
-  value: unknown,
-): value is (options: {
-  populate: true
-}) => Promise<{ tabs?: chrome.tabs.Tab[] }[]> => typeof value === 'function'
+type CaptureAction = Exclude<CaptureScope, 'selectedTabs'>
+type CaptureResult = { url: string; title: string }[]
 
 const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
-  const windowsValue: unknown = Reflect.get(chrome, 'windows')
-  if (typeof windowsValue !== 'object' || windowsValue === null) {
-    return chrome.tabs.query({})
-  }
-  const getAllValue: unknown = Reflect.get(windowsValue, 'getAll')
-  if (!isWindowsGetAll(getAllValue)) {
-    return chrome.tabs.query({})
-  }
-
   try {
-    const windows = await getAllValue({
-      populate: true,
-    })
+    const windows = await browser.windows.getAll({ populate: true })
     const tabs = windows.flatMap((window) => window.tabs ?? [])
     if (tabs.length > 0) {
       return tabs
@@ -99,109 +38,179 @@ const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
     )
   }
 
-  return chrome.tabs.query({})
+  return browser.tabs.query({})
 }
 
-const toResultItems = (
-  tabs: Pick<chrome.tabs.Tab, 'title' | 'url'>[],
-): {
-  url: string
-  title: string
-}[] =>
-  tabs.reduce<{ title: string; url: string }[]>((items, tab) => {
-    const normalizedUrl = normalizeUrlCandidate(tab.url)
-    if (normalizedUrl) {
-      items.push({
-        url: normalizedUrl,
-        title: tab.title ?? '',
+const queryCaptureTabs = async (
+  action: CaptureAction,
+): Promise<chrome.tabs.Tab[]> =>
+  action === 'saveAllWindowsTabs'
+    ? getAllTabsAcrossWindows()
+    : browser.tabs.query({
+        currentWindow: true,
+        ...(action === 'saveCurrentTab' ? { active: true } : {}),
       })
-    }
-    return items
-  }, [])
 
-const saveTabsInBothModes = async (
-  tabs: chrome.tabs.Tab[],
-): Promise<chrome.tabs.Tab[]> => {
-  if (tabs.length === 0) {
-    return tabs
+const queryToolbarTabs = async (clickedTab?: chrome.tabs.Tab) => {
+  const [allTabs, currentWindow] = await Promise.all([
+    getAllTabsAcrossWindows(),
+    clickedTab ? undefined : browser.tabs.query({ currentWindow: true }),
+  ])
+  return (scope: CaptureAction): chrome.tabs.Tab[] => {
+    if (scope === 'saveAllWindowsTabs') {
+      return allTabs
+    }
+    const tabs =
+      currentWindow ??
+      allTabs.filter(({ windowId }) => windowId === clickedTab?.windowId)
+    return scope === 'saveCurrentTab'
+      ? tabs.filter(({ id, active }) =>
+          clickedTab ? id === clickedTab.id : active,
+        )
+      : tabs
   }
-  let normalizedTabs: chrome.tabs.Tab[]
+}
+
+const resolveCaptureLanguage = (
+  setting: LanguageSetting | undefined,
+): AppLanguage => {
+  if (setting && setting !== 'system') {
+    return setting
+  }
   try {
-    normalizedTabs = await normalizeSavedTabTitles(tabs)
+    return resolveLanguage('system', getBrowserUiLocale('ja'))
+  } catch {
+    return 'ja'
+  }
+}
+
+const captureMessages: Record<CaptureAction, string> = {
+  saveCurrentTab: 'background.saveTabs.currentTabSaved',
+  saveSameDomainTabs: 'background.saveTabs.sameDomainSaved',
+  saveWindowTabs: 'background.saveTabs.windowTabsSaved',
+  saveAllWindowsTabs: 'background.saveTabs.allWindowsSaved',
+}
+
+const saveCaptureTabs = async (plan: CapturePlan) => {
+  const tabs = await normalizeSavedTabTitles([...plan.includedTabs])
+  const receipt = await getBackgroundSavedTabsDataPlane().saveTabs(
+    tabs.map(({ title, ...tab }) => ({
+      ...tab,
+      ...(title !== undefined ? { title } : {}),
+    })),
+  )
+  const savedUrls = new Set(
+    receipt && 'savedUrls' in receipt ? receipt.savedUrls : [],
+  )
+  return tabs.filter(({ url }) => savedUrls.has(url))
+}
+
+const closeCaptureTabs = async (
+  plan: CapturePlan,
+  savedTabs: Awaited<ReturnType<typeof saveCaptureTabs>>,
+  savedTabsPageId: number | undefined,
+): Promise<void> => {
+  const closeTargetIds = new Set(plan.closeTargetIds)
+  await Promise.all(
+    savedTabs.map(async ({ id, url }) => {
+      if (
+        id === undefined ||
+        id === savedTabsPageId ||
+        !closeTargetIds.delete(id)
+      ) {
+        return
+      }
+      // A source tab can disappear, navigate, or be pinned while saving.
+      const current = await browser.tabs.get(id).catch(() => undefined)
+      if (
+        current?.id !== id ||
+        current.pinned ||
+        current.url !== url ||
+        (current.pendingUrl !== undefined && current.pendingUrl !== url)
+      ) {
+        return
+      }
+      try {
+        await browser.tabs.remove(id)
+      } catch (error) {
+        console.error('タブを閉じる際にエラー:', error)
+      }
+    }),
+  )
+}
+
+const runTabCapture = async (
+  action?: CaptureAction,
+  clickedTab?: chrome.tabs.Tab,
+): Promise<CaptureResult> => {
+  let language: AppLanguage = 'ja'
+  try {
+    // A toolbar click can select any scope. Start its browser snapshot before
+    // waiting for storage so tabs created during that read stay out of capture.
+    const pendingTabs = action
+      ? queryCaptureTabs(action).then((tabs) => () => tabs)
+      : queryToolbarTabs(clickedTab)
+    const [settings, tabs] = await Promise.allSettled([
+      requireOperationalUserSettings(),
+      pendingTabs,
+    ])
+    if (settings.status === 'rejected') {
+      throw settings.reason
+    }
+    language = resolveCaptureLanguage(settings.value.language)
+    if (tabs.status === 'rejected') {
+      throw tabs.reason
+    }
+    const scope = action ?? settings.value.clickBehavior
+    const plan = createCapturePlan(scope, tabs.value(scope), settings.value)
+    if (plan.includedTabs.length === 0) {
+      return []
+    }
+
+    const savedTabs = await saveCaptureTabs(plan)
+    if (savedTabs.length === 0) {
+      return []
+    }
+    const savedTabsPageId =
+      scope === 'saveAllWindowsTabs' || scope === 'saveWindowTabs'
+        ? await openSavedTabsPage({ closeDuplicates: false })
+        : undefined
+    await showNotification(
+      getMessage(language, 'background.saveTabs.notificationTitle'),
+      getMessage(language, captureMessages[scope], undefined, {
+        count: String(savedTabs.length),
+        domain: plan.hostname ?? '',
+      }),
+    )
+    if (savedTabsPageId !== null) {
+      await closeCaptureTabs(plan, savedTabs, savedTabsPageId)
+    }
+    return savedTabs.map(({ title, url }) => ({
+      title: title ?? '',
+      url: url.trim(),
+    }))
   } catch (error) {
-    if (error instanceof NativeSavedTabTitleCaptureError) {
-      const language = await getBackgroundLanguage({
-        repairStoredSettings: false,
-      })
+    if (!(error instanceof UserSettingsReadError)) {
+      let prefix = 'background.saveTabs.captureError'
+      if (error instanceof TabFilteringError) {
+        prefix = 'background.saveTabs.filterError'
+      } else if (error instanceof NativeSavedTabTitleCaptureError) {
+        prefix = 'background.saveTabs.titleCaptureError'
+      }
       await showNotification(
-        getMessage(language, 'background.saveTabs.titleCaptureErrorTitle'),
-        getMessage(language, 'background.saveTabs.titleCaptureErrorMessage'),
+        getMessage(language, `${prefix}Title`),
+        getMessage(language, `${prefix}Message`),
       )
     }
     throw error
   }
-  await getBackgroundSavedTabsDataPlane().saveTabs(
-    normalizedTabs.map(({ title, url, ...tabMetadata }) => ({
-      ...tabMetadata,
-      ...(url !== undefined ? { url } : {}),
-      ...(title !== undefined ? { title } : {}),
-    })),
-  )
-  return normalizedTabs
 }
 
-const notifyAndCloseTabs = async (
-  notificationTitle: string,
-  notificationMessage: string,
-  tabIdsToClose: number[],
+export const handleExtensionActionClick = async (
+  tab?: chrome.tabs.Tab,
 ): Promise<void> => {
-  await showNotification(notificationTitle, notificationMessage)
-  if (tabIdsToClose.length > 0) {
-    await chrome.tabs
-      .remove(tabIdsToClose)
-      .then(() => {
-        console.log(`${tabIdsToClose.length}個のタブを一括で閉じました`)
-      })
-      .catch((error: unknown) => {
-        console.error('タブを閉じる際にエラー:', error)
-      })
-  }
-}
-
-/**
- * ブラウザアクション（拡張機能アイコン）クリック時の処理
- */
-export const handleExtensionActionClick = async (): Promise<void> => {
-  console.log('拡張機能アイコンがクリックされました')
   try {
-    // ユーザー設定を取得
-    const settings = await requireOperationalUserSettings()
-
-    // クリック挙動を取得（デフォルトはウィンドウのタブ保存）
-    const clickBehavior = resolveClickBehavior(settings.clickBehavior)
-    console.log(`選択されたクリック挙動: ${clickBehavior}`)
-
-    // 選択された挙動に基づいて処理を実行
-    // eslint-disable-next-line typescript/switch-exhaustiveness-check
-    switch (clickBehavior) {
-      case 'saveCurrentTab': {
-        await handleSaveCurrentTab()
-        break
-      }
-      case 'saveSameDomainTabs': {
-        await handleSaveSameDomainTabs()
-        break
-      }
-      case 'saveAllWindowsTabs': {
-        await handleSaveAllWindowsTabs()
-        break
-      }
-      default: {
-        // 既存の処理: 現在のウィンドウのタブをすべて保存（saveWindowTabsを含む）
-        await handleSaveWindowTabs()
-        break
-      }
-    }
+    await runTabCapture(undefined, tab)
   } catch (error: unknown) {
     console.error(
       'エラーが発生しました:',
@@ -209,6 +218,7 @@ export const handleExtensionActionClick = async (): Promise<void> => {
     )
   }
 }
+
 /**
  * リンク先の初期タイトルは、未訪問ページへアクセスせずURLから生成する。
  */
@@ -270,265 +280,14 @@ export const handleSaveLink = async (
   )
   return [{ title, url }]
 }
-/**
- * 現在のタブのみを保存
- */
-export const handleSaveCurrentTab = async (): Promise<
-  {
-    url: string
-    title: string
-  }[]
-> =>
-  runTabCapture(async () => {
-    // 現在アクティブなタブのみを保存
-    const activeTabs = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    })
+export const handleSaveCurrentTab = async (): Promise<CaptureResult> =>
+  runTabCapture('saveCurrentTab')
 
-    // タブをフィルタリング（固定タブを除外）
-    const filteredTabs = await filterTabsByUserSettings(activeTabs)
-    const activeTab = filteredTabs[0]
-    if (!activeTab) {
-      console.log(
-        '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
-      )
-      return []
-    }
-    console.log(`現在のタブを保存: ${redactUrlForLog(activeTab.url)}`)
+export const handleSaveSameDomainTabs = async (): Promise<CaptureResult> =>
+  runTabCapture('saveSameDomainTabs')
 
-    // タブを保存
-    const [savedTabs, notificationTitle, notificationMessage] =
-      await Promise.all([
-        saveTabsInBothModes([activeTab]),
-        getBackgroundText('background.saveTabs.notificationTitle'),
-        getBackgroundText('background.saveTabs.currentTabSaved'),
-      ])
+export const handleSaveAllWindowsTabs = async (): Promise<CaptureResult> =>
+  runTabCapture('saveAllWindowsTabs')
 
-    await showNotification(notificationTitle, notificationMessage)
-    if (activeTab.id) {
-      await chrome.tabs
-        .remove(activeTab.id)
-        .then(() => {
-          console.log(`タブ ${String(activeTab.id)} を閉じました`)
-        })
-        .catch((error: unknown) => {
-          console.error('タブを閉じる際にエラー:', error)
-        })
-    }
-    return toResultItems(savedTabs)
-  })
-/**
- * 現在のドメインのタブをすべて保存
- */
-export const handleSaveSameDomainTabs = async (): Promise<
-  {
-    url: string
-    title: string
-  }[]
-> =>
-  runTabCapture(async () => {
-    const currentTabs = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    })
-    const currentTab = currentTabs[0]
-    if (!currentTab?.url || !isValidUrl(currentTab.url)) {
-      return []
-    }
-    // 現在のタブからドメインを取得
-    const url = new URL(currentTab.url)
-    const currentDomain = url.hostname
-    console.log(`現在のドメイン: ${currentDomain}`)
-
-    // 現在のウィンドウの同じドメインのタブをすべて取得
-    const tabs = await chrome.tabs.query({
-      currentWindow: true,
-    })
-    const sameDomainTabs = tabs.filter((tab) => {
-      if (!tab.url) {
-        return false
-      }
-      try {
-        const tabUrl = new URL(tab.url)
-        return tabUrl.hostname === currentDomain
-      } catch {
-        return false
-      }
-    })
-
-    // タブをフィルタリング（固定タブを除外）
-    const filteredTabs = await filterTabsByUserSettings(sameDomainTabs)
-    if (filteredTabs.length === 0) {
-      console.log(
-        '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
-      )
-      return []
-    }
-    console.log(`同じドメインのタブ数: ${filteredTabs.length}`)
-
-    // タブを保存
-    const settings = await requireOperationalUserSettings()
-    const [savedTabs, notificationTitle, notificationMessage] =
-      await Promise.all([
-        saveTabsInBothModes(filteredTabs),
-        getBackgroundText('background.saveTabs.notificationTitle'),
-        getBackgroundText('background.saveTabs.sameDomainSaved', undefined, {
-          count: String(filteredTabs.length),
-          domain: currentDomain,
-        }),
-      ])
-
-    // 保存したタブを閉じる（一括処理）
-    const tabIdsToClose = filteredTabs.reduce<number[]>((ids, tab) => {
-      if (
-        tab.id &&
-        !settings.excludePatterns.some((pattern) => tab.url?.includes(pattern))
-      ) {
-        ids.push(tab.id)
-      }
-      return ids
-    }, [])
-    await notifyAndCloseTabs(
-      notificationTitle,
-      notificationMessage,
-      tabIdsToClose,
-    )
-    return toResultItems(savedTabs)
-  })
-/**
- * すべてのウィンドウのタブを保存
- */
-export const handleSaveAllWindowsTabs = async (): Promise<
-  {
-    url: string
-    title: string
-  }[]
-> =>
-  runTabCapture(async () => {
-    // すべてのウィンドウのタブを取得
-    const allTabs = await getAllTabsAcrossWindows()
-    console.log(`取得したすべてのタブ数: ${allTabs.length}`)
-
-    // タブをフィルタリング（固定タブと除外パターンを除外）
-    const filteredTabs = await filterTabsByUserSettings(allTabs)
-    if (filteredTabs.length === 0) {
-      console.log(
-        '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
-      )
-      return []
-    }
-    console.log(`保存対象タブ数: ${filteredTabs.length}`)
-
-    // 文言の読み取りは並行できるが、重複タブを整理する画面表示は保存成功後だけ。
-    const [
-      { savedTabs, savedTabsTabId },
-      notificationTitle,
-      notificationMessage,
-    ] = await Promise.all([
-      saveTabsInBothModes(filteredTabs).then(async (savedTabs) => ({
-        savedTabs,
-        savedTabsTabId: await openSavedTabsPage(),
-      })),
-      getBackgroundText('background.saveTabs.notificationTitle'),
-      getBackgroundText('background.saveTabs.allWindowsSaved', undefined, {
-        count: String(filteredTabs.length),
-      }),
-    ])
-
-    // 保存画面を確認できない場合は、保存済みでもタブを閉じずに残す。
-    if (savedTabsTabId === null) {
-      await showNotification(notificationTitle, notificationMessage)
-      return toResultItems(savedTabs)
-    }
-
-    // タブを閉じる（一括処理）
-    const tabIdsToClose = filteredTabs.reduce<number[]>((ids, tab) => {
-      if (tab.id && tab.id !== savedTabsTabId) {
-        ids.push(tab.id)
-      }
-      return ids
-    }, [])
-    await notifyAndCloseTabs(
-      notificationTitle,
-      notificationMessage,
-      tabIdsToClose,
-    )
-    return toResultItems(savedTabs)
-  })
-/**
- * 現在のウィンドウのタブをすべて保存（デフォルト）
- */
-export const handleSaveWindowTabs = async (): Promise<
-  {
-    url: string
-    title: string
-  }[]
-> =>
-  runTabCapture(async () => {
-    const allTabs = await chrome.tabs.query({
-      currentWindow: true,
-    })
-    console.log(`取得したタブ: ${allTabs.length}個`)
-
-    // タブをフィルタリング（固定タブと除外パターンを除外）
-    const filteredTabs = await filterTabsByUserSettings(allTabs)
-    if (filteredTabs.length === 0) {
-      console.log(
-        '保存対象のタブがありません（全て固定タブか除外パターンに一致）',
-      )
-      return []
-    }
-    console.log(`保存対象タブ: ${filteredTabs.length}個`)
-
-    // タブを保存して自動カテゴライズする
-    const settings = await requireOperationalUserSettings()
-    const savedTabs = await saveTabsInBothModes(filteredTabs)
-    console.log('タブの保存と自動カテゴライズが完了しました')
-    const [savedTabsTabId, notificationTitle, notificationMessage] =
-      await Promise.all([
-        openSavedTabsPage(),
-        getBackgroundText('background.saveTabs.notificationTitle'),
-        getBackgroundText('background.saveTabs.windowTabsSaved', undefined, {
-          count: String(filteredTabs.length),
-        }),
-      ])
-    await showNotification(notificationTitle, notificationMessage)
-
-    if (savedTabsTabId === null) {
-      return toResultItems(savedTabs)
-    }
-
-    // 閉じるタブを収集
-    const tabIdsToClose: number[] = []
-    for (const tab of filteredTabs) {
-      const tabUrl = tab.url
-      if (
-        tab.id &&
-        tab.id !== savedTabsTabId &&
-        tabUrl &&
-        !settings.excludePatterns.some(
-          (pattern) => tabUrl.split(pattern).length > 1,
-        )
-      ) {
-        tabIdsToClose.push(tab.id)
-      }
-    }
-
-    // タブを閉じる（一括処理）
-    if (tabIdsToClose.length > 0) {
-      console.log(`${tabIdsToClose.length}個のタブを閉じます:`, tabIdsToClose)
-      try {
-        await chrome.tabs.remove(tabIdsToClose)
-        console.log(`${tabIdsToClose.length}個のタブを一括で閉じました`)
-      } catch (error: unknown) {
-        console.error(
-          'タブを閉じる際にエラーが発生しました:',
-          error instanceof Error ? error.message : error,
-        )
-      }
-    } else {
-      console.log('閉じるべきタブはありません')
-    }
-    return toResultItems(savedTabs)
-  })
+export const handleSaveWindowTabs = async (): Promise<CaptureResult> =>
+  runTabCapture('saveWindowTabs')

@@ -257,6 +257,67 @@ describe('IndexedDB domain data-plane production composition', () => {
     ).toEqual(expect.arrayContaining([existingUrl, freshUrl]))
   })
 
+  it('returns distinct exact saved URLs only after the IndexedDB commit', async () => {
+    const dataPlane = getBackgroundSavedTabsDataPlane()
+    const existingUrl = 'https://example.com/docs'
+    const freshUrl = 'https://example.com:443/docs'
+    await dataPlane.saveTabs([{ title: 'Existing', url: existingUrl }])
+    const writeStarted = Promise.withResolvers<undefined>()
+    const allowWrite = Promise.withResolvers<undefined>()
+    const write = operationGate.runIndexedDbWrite
+    vi.spyOn(operationGate, 'runIndexedDbWrite').mockImplementationOnce(
+      async (operation) => {
+        writeStarted.resolve(undefined)
+        await allowWrite.promise
+        return write(operation)
+      },
+    )
+    const onReceipt = vi.fn()
+    const saving = dataPlane.saveTabs([
+      { title: 'Updated', url: existingUrl },
+      { title: 'Fresh', url: freshUrl },
+      { title: 'Skipped', url: 'not a URL' },
+      { title: 'Fresh duplicate', url: freshUrl },
+      { title: 'Missing URL' },
+    ])
+    const receipt = saving.then(onReceipt)
+    await writeStarted.promise
+    try {
+      expect(onReceipt).not.toHaveBeenCalled()
+      await expect(dataPlane.readInsightRecords()).resolves.toMatchObject([
+        { title: 'Existing', url: existingUrl },
+      ])
+    } finally {
+      allowWrite.resolve(undefined)
+    }
+    await receipt
+    expect(onReceipt).toHaveBeenCalledExactlyOnceWith({
+      savedUrls: [existingUrl, freshUrl],
+    })
+    await expect(dataPlane.readInsightRecords()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: 'Updated', url: existingUrl }),
+        expect.objectContaining({ title: 'Fresh duplicate', url: freshUrl }),
+      ]),
+    )
+    await expect(dataPlane.saveTabs([{ url: 'not a URL' }])).resolves.toEqual({
+      savedUrls: [],
+    })
+  })
+
+  it('rejects without returning a save receipt when the write fails', async () => {
+    const dataPlane = getBackgroundSavedTabsDataPlane()
+    const failure = new Error('save commit failed')
+    vi.spyOn(operationGate, 'runIndexedDbWrite').mockRejectedValueOnce(failure)
+
+    await expect(
+      dataPlane.saveTabs([
+        { title: 'Unsaved', url: 'https://example.com/docs' },
+      ]),
+    ).rejects.toBe(failure)
+    await expect(dataPlane.readInsightRecords()).resolves.toEqual([])
+  })
+
   it('saves, deletes and restores native background data while leaving IndexedDB history and views intact', async () => {
     const storage = { get: vi.fn(async () => ({})), set: vi.fn(async () => {}) }
     mocked.getStorage.mockReturnValue(storage)

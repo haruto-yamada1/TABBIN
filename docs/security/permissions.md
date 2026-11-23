@@ -48,7 +48,7 @@ Primary usage sites:
 - `src/lib/background/extension-actions.ts` — opens saved URLs/tabs and queries
   the active tab.
 - `src/lib/background/url-storage.ts` — records tab timestamps for expiration.
-- `src/lib/background/utils.ts` — tab lookup helpers (same-window, same-domain).
+- `src/lib/background/capture-plan.ts` — capture selection and source-tab closure policy.
 - `src/lib/background/saved-tabs-page.ts` — opens the saved-tabs page.
 - `src/entrypoints/background.ts` — wires tab-created and tab-activated handlers
   for timestamp tracking.
