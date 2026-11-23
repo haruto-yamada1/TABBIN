@@ -56,6 +56,16 @@ describe('search history suggestions', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('renders suggestions above the sticky content headers', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const input = screen.getByRole('textbox', {
+      name: 'savedTabs.searchPlaceholder',
+    })
+    await user.click(input)
+    expect(screen.getByTestId('search-history-panel')).toHaveClass('z-60')
+  })
+
   it('deletes only the selected entry without applying it', async () => {
     const user = userEvent.setup()
     const onRemove = vi.fn(async () => {})
