@@ -23,6 +23,10 @@ type RowProps = {
   readonly onEscape: (event: React.KeyboardEvent<HTMLButtonElement>) => void
 }
 
+// 本文側の sticky ヘッダーが z-50 のため、候補パネルはそれより前面に出す。
+// 同じ z-index だと DOM 順で後ろのヘッダーが候補パネルを覆う。
+const SUGGESTION_PANEL_Z_INDEX_CLASS = 'z-60'
+
 const preventFocusLoss = (event: React.MouseEvent) => {
   event.preventDefault()
 }
@@ -201,7 +205,10 @@ export const SearchHistoryInput = ({
         </Button>
       )}
       {open && (matches.length > 0 || historyError) && (
-        <div className='absolute top-full z-50 mt-1 w-full rounded-md border bg-popover p-1 text-popover-foreground shadow-md'>
+        <div
+          data-testid='search-history-panel'
+          className={`absolute top-full ${SUGGESTION_PANEL_Z_INDEX_CLASS} mt-1 w-full rounded-md border bg-popover p-1 text-popover-foreground shadow-md`}
+        >
           <ul
             aria-label={t('savedTabs.searchHistory')}
             className='max-h-72 overflow-y-auto'
