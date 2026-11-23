@@ -8,6 +8,7 @@
 Issue #940 の Dependency Review は `.github/workflows/dependency-review.yml` で
 `develop` / `main` 向けの全 PR に実行する。結果は check と job summary で確認する。
 Renovate の依存更新 PR も同じ検査を受け、automerge は引き続き禁止する。
+必須チェックの設定、確認、復旧は [Required status checks の運用](required-status-checks.md) を参照する。
 
 ## Policy
 
