@@ -18,6 +18,7 @@ import type {
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
+import { SearchNoResultsNotice } from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
 import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
@@ -156,6 +157,8 @@ type DomainModeContainerProps = {
   uncategorizedForDisplay: TabGroup[]
   handleUncategorizedDragEnd: (event: DragEndEvent) => void
   hasContentTabGroupsCount: number
+  /** 検索解除操作 (issue #890)。検索 0 件時の案内から呼ばれる。 */
+  onClearSearch?: () => void
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
   /**
    * 「今開いているタブ」行。コンテンツ最上部に表示する。空または未指定の
@@ -180,6 +183,42 @@ type DomainModeContainerProps = {
 
 const getVisibleGroupUrls = (group: TabGroup): string[] =>
   (group.urls ?? []).map((item) => item.url)
+
+type SearchNoResults = {
+  query: string
+  handleClearSearch: () => void
+}
+
+/**
+ * 検索で 0 件になった場合だけ「保存データなし」と区別した案内を出す
+ * ための判定 (issue #890)。保存データ自体がない場合や、「今開いている
+ * タブ」に一致がある場合は従来表示のままにするため undefined を返す。
+ */
+const resolveSearchNoResults = ({
+  hasContentTabGroupsCount,
+  onClearSearch,
+  openTabsRows,
+  searchQuery,
+  tabGroupsCount,
+}: {
+  hasContentTabGroupsCount: number
+  onClearSearch: (() => void) | undefined
+  openTabsRows: readonly OpenTabsRow[] | undefined
+  searchQuery: string
+  tabGroupsCount: number
+}): SearchNoResults | undefined => {
+  const query = searchQuery.trim()
+  if (
+    onClearSearch === undefined ||
+    query.length === 0 ||
+    hasContentTabGroupsCount > 0 ||
+    tabGroupsCount === 0 ||
+    (openTabsRows?.length ?? 0) > 0
+  ) {
+    return undefined
+  }
+  return { handleClearSearch: onClearSearch, query }
+}
 const deleteVisibleUrlsForGroups = async (
   groups: TabGroup[],
   handleDeleteUrls: (groupId: string, urls: string[]) => Promise<void>,
@@ -230,6 +269,12 @@ type UncategorizedDomainSectionProps = {
   handleDeleteCategory?: (groupId: string, categoryName: string) => void
   searchQuery: string
   hasContentCount: number
+  /**
+   * 検索中かつ保存データがあるのに表示が 0 件のとき、空表示の代わりに
+   * 検索語と解除操作を示すための情報 (issue #890)。未指定または条件を
+   * 満たさないときは従来の「保存タブなし」表示を使う。
+   */
+  searchNoResults: SearchNoResults | undefined
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
 }
 
@@ -263,6 +308,7 @@ const UncategorizedDomainSection = ({
   handleDeleteCategory,
   searchQuery,
   hasContentCount,
+  searchNoResults,
   reorderTabGroupUrlsUseCase,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
@@ -421,16 +467,22 @@ const UncategorizedDomainSection = ({
         </DndKitContext>
       )}
 
-      {hasContentCount === 0 && (
-        <div className='flex min-h-[200px] flex-col items-center justify-center gap-4'>
-          <div className='text-2xl text-foreground'>
-            {t('savedTabs.emptyTitle')}
+      {hasContentCount === 0 &&
+        (searchNoResults ? (
+          <SearchNoResultsNotice
+            query={searchNoResults.query}
+            onClearSearch={searchNoResults.handleClearSearch}
+          />
+        ) : (
+          <div className='flex min-h-[200px] flex-col items-center justify-center gap-4'>
+            <div className='text-2xl text-foreground'>
+              {t('savedTabs.emptyTitle')}
+            </div>
+            <div className='text-muted-foreground'>
+              {t('savedTabs.emptyDescription')}
+            </div>
           </div>
-          <div className='text-muted-foreground'>
-            {t('savedTabs.emptyDescription')}
-          </div>
-        </div>
-      )}
+        ))}
     </div>
   )
 }
@@ -461,6 +513,7 @@ export const DomainModeContainer = ({
   uncategorizedForDisplay,
   handleUncategorizedDragEnd,
   hasContentTabGroupsCount,
+  onClearSearch,
   reorderTabGroupUrlsUseCase,
   openTabsRows,
   renameParentCategoryUseCase,
@@ -501,6 +554,13 @@ export const DomainModeContainer = ({
     [handleMoveDomainToCategory, tabGroups],
   )
   const displayedUncategorizedDomainCount = uncategorizedForDisplay.length
+  const searchNoResults = resolveSearchNoResults({
+    hasContentTabGroupsCount,
+    onClearSearch,
+    openTabsRows,
+    searchQuery,
+    tabGroupsCount: tabGroups.length,
+  })
   const uncategorizedTargetName = t('savedTabs.uncategorizedDomainsTitle')
   const uncategorizedUrlsToOpen = useMemo(
     () => uncategorizedForDisplay.flatMap((group) => group.urls ?? []),
@@ -667,6 +727,7 @@ export const DomainModeContainer = ({
         handleDeleteCategory={handleDeleteCategory}
         searchQuery={searchQuery}
         hasContentCount={hasContentTabGroupsCount}
+        searchNoResults={searchNoResults}
         reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
       />
     </>

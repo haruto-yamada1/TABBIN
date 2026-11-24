@@ -2,6 +2,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
+import { SearchNoResultsNotice } from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
 import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { useCustomOpenTabsRows } from '@/contexts/saved-tabs/presentation/controllers/useCustomOpenTabsRows'
@@ -69,6 +70,10 @@ type CustomModeContainerProps = {
   getProjectUrlsUseCase: GetProjectUrlsUseCase
   /** 検索入力中は行の部分的なすり抜けを避けるためセクションを出さない。 */
   searchQuery: string
+  /** 検索解除操作 (issue #890)。検索 0 件時の案内から呼ばれる。 */
+  onClearSearch?: () => void
+  /** 検索フィルタ前のプロジェクト総数。0 件表示の切り分けに使う。 */
+  totalProjectsCount?: number
 }
 
 export const CustomModeContainer = ({
@@ -96,6 +101,8 @@ export const CustomModeContainer = ({
   handleRenameCategory,
   getProjectUrlsUseCase,
   searchQuery,
+  onClearSearch,
+  totalProjectsCount,
 }: CustomModeContainerProps) => {
   const openTabsRows = useCustomOpenTabsRows({
     enabled: settings.showOpenTabs !== false,
@@ -105,6 +112,24 @@ export const CustomModeContainer = ({
   })
   if (isLoading) {
     return <LoadingState />
+  }
+
+  // 検索で 0 件になった場合は「プロジェクトなし」と区別した案内を出す
+  // (issue #890)。プロジェクト自体がない場合は従来の空表示を使う。
+  const trimmedSearchQuery = searchQuery.trim()
+  if (
+    onClearSearch !== undefined &&
+    trimmedSearchQuery.length > 0 &&
+    projects.length === 0 &&
+    (totalProjectsCount ?? 0) > 0 &&
+    openTabsRows.length === 0
+  ) {
+    return (
+      <SearchNoResultsNotice
+        query={trimmedSearchQuery}
+        onClearSearch={onClearSearch}
+      />
+    )
   }
 
   const hasSelectableTabs =

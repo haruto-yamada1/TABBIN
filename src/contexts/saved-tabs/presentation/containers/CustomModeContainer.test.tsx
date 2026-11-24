@@ -134,6 +134,34 @@ describe('CustomModeContainer', () => {
     expect(screen.queryByText('custom-project-section')).toBeNull()
   })
 
+  it('検索で 0 件のときはプロジェクトなしと区別した案内を表示する', () => {
+    renderContainer({
+      ...baseProps,
+      getProjectUrlsUseCase: vi.fn(async () => []),
+      projects: [],
+      searchQuery: 'nomatch',
+      onClearSearch: vi.fn(),
+      totalProjectsCount: 2,
+    })
+
+    expect(screen.getByTestId('search-no-results')).toBeTruthy()
+    expect(screen.queryByText('custom-project-section')).toBeNull()
+  })
+
+  it('プロジェクト自体がないときは検索 0 件の案内を出さない', () => {
+    renderContainer({
+      ...baseProps,
+      getProjectUrlsUseCase: vi.fn(async () => []),
+      projects: [],
+      searchQuery: 'nomatch',
+      onClearSearch: vi.fn(),
+      totalProjectsCount: 0,
+    })
+
+    expect(screen.queryByTestId('search-no-results')).toBeNull()
+    expect(screen.getByText('custom-project-section')).toBeTruthy()
+  })
+
   it('renders the custom project section when loaded and no url is open', async () => {
     const getProjectUrlsUseCase: GetProjectUrlsUseCase = async () => []
     renderContainer({

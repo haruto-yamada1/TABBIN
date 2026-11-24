@@ -830,6 +830,9 @@ const messages = {
     'savedTabs.scrollControls.previousProject': 'Scroll to previous project',
     'savedTabs.scrollControls.top': 'Scroll to top',
     'savedTabs.searchClear': 'Clear search',
+    'savedTabs.searchNoResultsDescription':
+      'No results match your search for "{{query}}".',
+    'savedTabs.searchNoResultsTitle': 'No matching results',
     'savedTabs.searchPlaceholder': 'Search',
     'savedTabs.sort.asc': 'Saved date ascending',
     'savedTabs.sort.default': 'Default',
@@ -1726,6 +1729,9 @@ const messages = {
     'savedTabs.scrollControls.previousProject': '上のプロジェクトへ移動',
     'savedTabs.scrollControls.top': '最上部へ移動',
     'savedTabs.searchClear': '検索をクリア',
+    'savedTabs.searchNoResultsDescription':
+      '「{{query}}」に一致する結果はありません。',
+    'savedTabs.searchNoResultsTitle': '一致する結果がありません',
     'savedTabs.searchPlaceholder': '検索',
     'savedTabs.sort.asc': '保存日時の昇順',
     'savedTabs.sort.default': 'デフォルト',

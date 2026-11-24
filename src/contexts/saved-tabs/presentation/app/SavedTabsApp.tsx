@@ -94,6 +94,10 @@ const useSavedTabsAppView = ({
   })
   const searchQuery = domainController.searchQuery
   const setSearchQuery = domainController.setSearchQuery
+  // 検索 0 件時の案内から検索を解除する操作 (issue #890)。
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('')
+  }, [setSearchQuery])
 
   // 未分類ドメインの並び替えモード状態管理
   const [isUncategorizedReorderMode, setIsUncategorizedReorderMode] =
@@ -492,6 +496,7 @@ const useSavedTabsAppView = ({
         uncategorizedForDisplay={uncategorizedForDisplay}
         handleUncategorizedDragEnd={handleUncategorizedDragEnd}
         hasContentTabGroupsCount={hasContentTabGroups.length}
+        onClearSearch={handleClearSearch}
         reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
         openTabsRows={openTabsRows}
         renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}
@@ -524,6 +529,8 @@ const useSavedTabsAppView = ({
         handleRenameCategory={handleRenameCategory}
         getProjectUrlsUseCase={savedTabsUseCases.getProjectUrls}
         searchQuery={searchQuery}
+        onClearSearch={handleClearSearch}
+        totalProjectsCount={customProjects.length}
       />
     )
   return (
