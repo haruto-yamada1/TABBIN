@@ -20,6 +20,8 @@ const pullRequestTemplatePath = path.join(
 
 const PRIVATE_ADVISORY_URL =
   'https://github.com/haruto-yamada1/TABBIN/security/advisories/new'
+const SECURITY_POLICY_URL =
+  'https://github.com/haruto-yamada1/TABBIN/security/policy'
 
 const readIfPresent = (filePath: string): string =>
   existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''
@@ -76,6 +78,7 @@ describe('security reporting contract', () => {
   })
 
   it('links the policy from the pull request template', () => {
-    expect(pullRequestTemplate).toContain('SECURITY.md')
+    expect(pullRequestTemplate).toContain(SECURITY_POLICY_URL)
+    expect(pullRequestTemplate).not.toContain('](SECURITY.md)')
   })
 })
