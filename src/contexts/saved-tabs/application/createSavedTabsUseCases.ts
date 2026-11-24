@@ -22,7 +22,10 @@ import { createDeleteSelectedSavedUrlsUseCase } from './use-cases/DeleteSelected
 import { createDeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import { createDeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
 import { createFindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUseCase'
-import { createGetProjectUrlsUseCase } from './use-cases/GetProjectUrlsUseCase'
+import {
+  createGetProjectSearchUrlsUseCase,
+  createGetProjectUrlsUseCase,
+} from './use-cases/GetProjectUrlsUseCase'
 import { createLoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWithUrlsUseCase'
 import { createLoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
 import { createMoveDomainBetweenCategoriesUseCase } from './use-cases/MoveDomainBetweenCategoriesUseCase'
@@ -155,6 +158,9 @@ export const createSavedTabsUseCases = (
   findUrlRecordByUrl: createFindUrlRecordByUrlUseCase({
     urlRecordRepository: deps.urlRecordRepository,
   }),
+  getProjectSearchUrls: createGetProjectSearchUrlsUseCase(
+    deps.urlRecordRepository,
+  ),
   getProjectUrls: createGetProjectUrlsUseCase({
     customProjectRepository: deps.customProjectRepository,
     urlRecordRepository: deps.urlRecordRepository,

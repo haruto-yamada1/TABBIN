@@ -25,8 +25,19 @@ if lifecycle.count(marker) != 1:
     raise RuntimeError("Native smoke lifecycle boundary changed")
 prefix = lifecycle.split(marker)[0]
 prefix = replace_once(prefix, "path.resolve(import.meta.dirname, '../..')", json.dumps(str(repo)))
-prefix = replace_once(prefix, "'./stagedOpeningMeasurementContract'", json.dumps(str(repo / "tools/scripts/stagedOpeningMeasurementContract.ts")))
-prefix = replace_once(prefix, "delete manifest.background", "// Keep the production background for actual search UI.")
+for module in (
+    "firefoxAcademyUiSmoke",
+    "firefoxSmokeEnvironment",
+    "stagedOpeningMeasurementContract",
+):
+    path = repo / "tools/scripts" / f"{module}.ts"
+    prefix = replace_once(prefix, f"'./{module}'", json.dumps(str(path)))
+prefix = replace_once(
+    prefix,
+    "const firefoxArtifactDir = path.join(repoRoot, '.output', 'firefox-mv2')",
+    "const firefoxArtifactDir = process.env.SEARCH_FIREFOX_ARTIFACT ?? "
+    "path.join(repoRoot, '.output', 'firefox-mv2')",
+)
 
 helper = (repo / "e2e/helpers/search-performance.ts").read_text()
 helper = helper.replace("'@/", "'" + str(repo / "src") + "/")

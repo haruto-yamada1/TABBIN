@@ -3,14 +3,6 @@ import Fuse from 'fuse.js'
 import type { ProjectUrlEntry } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
-type ProjectUrlItem = ProjectUrlEntry
-
-type FilterCustomProjectsByQueryParams = {
-  customProjects: CustomProject[]
-  searchQuery: string
-  loadProjectUrls: (project: CustomProject) => Promise<ProjectUrlEntry[]>
-}
-
 const projectFuseOptions = {
   keys: ['name'],
   threshold: 0.4,
@@ -48,62 +40,69 @@ const mapMatchedUrlsToProject = (
   }
 }
 
-export const filterCustomProjectsByQuery = async ({
-  customProjects,
-  searchQuery,
-  loadProjectUrls,
-}: FilterCustomProjectsByQueryParams): Promise<CustomProject[]> => {
-  const normalizedQuery = searchQuery.trim()
-  if (!normalizedQuery) {
-    return customProjects
-  }
+export const createCustomProjectSearch = (
+  customProjects: CustomProject[],
+  loadProjectUrls: (
+    projects: CustomProject[],
+  ) => Promise<ReadonlyMap<string, ProjectUrlEntry[]>>,
+) => {
+  let projectIndex: Fuse<CustomProject> | undefined
+  let projectUrls: ReturnType<typeof loadProjectUrls> | undefined
+  const urlIndexes = new Map<string, Fuse<ProjectUrlEntry>>()
 
-  const matchedProjects = new Fuse(customProjects, projectFuseOptions)
-    .search(normalizedQuery)
-    .map((result) => result.item)
-  const matchedProjectSet = new Set(matchedProjects)
-
-  const urlMatchedProjects = await Promise.all(
-    customProjects.flatMap((project) =>
-      matchedProjectSet.has(project)
-        ? []
-        : [
-            (async () => {
-              const projectUrls = await loadProjectUrls(project)
-              const searchableUrls = Array.isArray(projectUrls)
-                ? projectUrls
-                : []
-              const seenUrls = new Set<string>()
-              const matchedUrls = new Fuse(
-                searchableUrls,
-                projectUrlFuseOptions,
-              )
-                .search(normalizedQuery)
-                .reduce<ProjectUrlItem[]>((items, result) => {
-                  if (!seenUrls.has(result.item.url)) {
-                    seenUrls.add(result.item.url)
-                    items.push(result.item)
-                  }
-                  return items
-                }, [])
-
-              if (matchedUrls.length === 0) {
-                return null
-              }
-
-              return mapMatchedUrlsToProject(project, matchedUrls)
-            })(),
-          ],
-    ),
-  )
-
-  const uniqueProjects = new Map<string, CustomProject>()
-  for (const project of [...matchedProjects, ...urlMatchedProjects]) {
-    if (!project) {
-      continue
+  return async (
+    searchQuery: string,
+    signal?: AbortSignal,
+  ): Promise<CustomProject[]> => {
+    const query = searchQuery.trim()
+    if (!query) {
+      return customProjects
     }
-    uniqueProjects.set(project.id, project)
-  }
 
-  return [...uniqueProjects.values()]
+    projectIndex ??= new Fuse(customProjects, projectFuseOptions)
+    const nameMatches = projectIndex.search(query).map(({ item }) => item)
+    const matchedByName = new Set(nameMatches)
+    const projectsToSearch = customProjects.filter(
+      (project) => !matchedByName.has(project),
+    )
+    if (projectsToSearch.length === 0) {
+      return nameMatches
+    }
+
+    projectUrls ??= loadProjectUrls(customProjects).catch((error: unknown) => {
+      projectUrls = undefined
+      throw error
+    })
+    const urlsByProject = await projectUrls
+    if (signal?.aborted) {
+      return []
+    }
+
+    const matches = new Map(nameMatches.map((project) => [project.id, project]))
+    for (const project of projectsToSearch) {
+      const urls = urlsByProject.get(project.id)
+      if (!urls?.length) {
+        continue
+      }
+      let index = urlIndexes.get(project.id)
+      if (!index) {
+        index = new Fuse(urls, projectUrlFuseOptions)
+        urlIndexes.set(project.id, index)
+      }
+
+      const urlsById = new Map<string, ProjectUrlEntry>()
+      for (const { item } of index.search(query)) {
+        if (!urlsById.has(item.id)) {
+          urlsById.set(item.id, item)
+        }
+      }
+      if (urlsById.size > 0) {
+        matches.set(
+          project.id,
+          mapMatchedUrlsToProject(project, [...urlsById.values()]),
+        )
+      }
+    }
+    return [...matches.values()]
+  }
 }
