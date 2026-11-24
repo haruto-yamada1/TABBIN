@@ -333,20 +333,23 @@ describe('settings safety at background operation boundaries', () => {
         // 対象が 0 件でも、対処できる除外理由がある場合は理由を通知する
         // (issue #892)。タブ自体がない場合と、同ドメイン判定ができない
         // 不正な URL の場合は従来どおり通知しない。
-        if (
+        const expectsSilence =
           reason === 'no source tabs' ||
           (reason === 'malformed source URL' &&
             behavior === 'saveSameDomainTabs')
-        ) {
-          expect(mocked.showNotification).not.toHaveBeenCalled()
-        } else {
-          expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
-            'No tabs saved',
-            reason === 'pinned source'
-              ? 'All of the target tabs are pinned. Pinned tabs are skipped while the setting to exclude pinned tabs is on.'
-              : 'None of the target tabs can be saved. Check the URLs or your exclusion patterns.',
-          )
-        }
+        const expectedNotificationCalls = expectsSilence
+          ? []
+          : [
+              [
+                'No tabs saved',
+                reason === 'pinned source'
+                  ? 'All of the target tabs are pinned. Pinned tabs are skipped while the setting to exclude pinned tabs is on.'
+                  : 'None of the target tabs can be saved. Check the URLs or your exclusion patterns.',
+              ],
+            ]
+        expect(mocked.showNotification.mock.calls).toEqual(
+          expectedNotificationCalls,
+        )
       },
     )
   })
