@@ -218,7 +218,7 @@ export const runFirefoxAcademyUiSmoke = async (
   assert.equal(narrowDarkReducedMotion, true)
   await navigate('/options')
   await evaluate(`
-    const link = await waitFor(() => byText('a', 'TABBIN Academyを開く'))
+    const link = await waitFor(() => byText('a', '(preview)TABBIN Academy'))
     link.focus()
   `)
   await press('\uE007')

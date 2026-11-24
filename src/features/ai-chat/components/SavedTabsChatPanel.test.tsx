@@ -136,7 +136,7 @@ describe('SavedTabsChatPanel', () => {
     ).toBeNull()
   })
 
-  it('composes the page shell with Header, intro, data scope, and Composer', () => {
+  it('composes the page shell with Header, intro, and Composer', () => {
     render(<SavedTabsChatPanel {...createProps()} />)
 
     expect(screen.getByLabelText('AI chat page')).toBeTruthy()
@@ -145,7 +145,6 @@ describe('SavedTabsChatPanel', () => {
       'Saved tabs assistant',
     )
     expect(screen.getByTestId('ai-chat-intro')).toBeTruthy()
-    expect(screen.getByTestId('ai-chat-data-scope')).toBeTruthy()
     expect(screen.getByTestId('ai-chat-bottom-dock')).toContainElement(
       screen.getByTestId('panel-composer'),
     )
@@ -192,7 +191,6 @@ describe('SavedTabsChatPanel', () => {
     )
 
     expect(screen.getByTestId('empty-state-root')).toBeTruthy()
-    expect(screen.queryByTestId('ai-chat-data-scope')).toBeNull()
 
     rerender(
       <SavedTabsChatPanel
