@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser'
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
+import type { BackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlaneTypes'
 import {
   getBrowserUiLocale,
   getMessage,
@@ -156,6 +157,68 @@ const notifyNoneSaved = async (
   )
 }
 
+/**
+ * 保存完了通知の本文を組み立てる (issue #892 / #923)。
+ * 全件が再保存で保存先も変わらない場合はその旨を本文にし、それ以外は
+ * 保存件数の本文に再保存（更新／保存先変更）とスキップの内訳を添える。
+ */
+const buildCaptureSavedMessage = ({
+  hostname,
+  language,
+  outcome,
+  scope,
+  skipped,
+}: {
+  hostname: string | undefined
+  language: AppLanguage
+  outcome: CaptureSaveOutcome
+  scope: CaptureAction
+  skipped: ReturnType<typeof summarizeSkippedTabs>
+}): string => {
+  const total = outcome.savedTabs.length
+  const resavedCount = outcome.resavedRefreshedCount + outcome.resavedMovedCount
+  const lines: string[] = []
+  if (resavedCount === total && outcome.resavedMovedCount === 0) {
+    lines.push(
+      getMessage(language, 'background.saveTabs.allResaved', undefined, {
+        count: String(total),
+      }),
+    )
+  } else {
+    lines.push(
+      getMessage(language, captureMessages[scope], undefined, {
+        count: String(total),
+        domain: hostname ?? '',
+      }),
+    )
+    if (outcome.resavedRefreshedCount > 0) {
+      lines.push(
+        getMessage(language, 'background.saveTabs.resavedSummary', undefined, {
+          count: String(outcome.resavedRefreshedCount),
+        }),
+      )
+    }
+  }
+  if (outcome.resavedMovedCount > 0) {
+    lines.push(
+      getMessage(
+        language,
+        'background.saveTabs.resavedMovedSummary',
+        undefined,
+        { count: String(outcome.resavedMovedCount) },
+      ),
+    )
+  }
+  if (skipped) {
+    lines.push(
+      getMessage(language, 'background.saveTabs.skippedSummary', undefined, {
+        count: String(skipped.count),
+      }),
+    )
+  }
+  return lines.join('\n')
+}
+
 const notifyCaptureError = async (
   language: AppLanguage,
   error: unknown,
@@ -172,7 +235,21 @@ const notifyCaptureError = async (
   )
 }
 
-const saveCaptureTabs = async (plan: CapturePlan) => {
+type CaptureSavedTab = CapturePlan['includedTabs'][number]
+
+type CaptureSaveOutcome = {
+  savedTabs: CaptureSavedTab[]
+  /** 既存 URL の再保存で保存先が変わらなかった件数 (issue #923)。 */
+  resavedRefreshedCount: number
+  /** 既存 URL の再保存で保存先プロジェクトが変わった件数 (issue #923)。 */
+  resavedMovedCount: number
+  /** savedUrls に含まれず保存されなかった対象タブの件数 (issue #892)。 */
+  unsavedCount: number
+}
+
+const saveCaptureTabs = async (
+  plan: CapturePlan,
+): Promise<CaptureSaveOutcome> => {
   const tabs = await normalizeSavedTabTitles([...plan.includedTabs])
   const receipt = await getBackgroundSavedTabsDataPlane().saveTabs(
     tabs.map(({ title, ...tab }) => ({
@@ -185,6 +262,12 @@ const saveCaptureTabs = async (plan: CapturePlan) => {
   )
   const savedTabs = tabs.filter(({ url }) => savedUrls.has(url))
   return {
+    resavedMovedCount:
+      receipt && 'resavedMovedCount' in receipt ? receipt.resavedMovedCount : 0,
+    resavedRefreshedCount:
+      receipt && 'resavedRefreshedCount' in receipt
+        ? receipt.resavedRefreshedCount
+        : 0,
     savedTabs,
     // savedUrls に含まれなかった対象タブ（無効URLなど）をタブ単位で数える。
     // savedTabs と同じ基準で、同一URLの複数タブも1タブずつ数える。
@@ -211,7 +294,7 @@ const includeUnsavedTabsInSkipped = (
 
 const closeCaptureTabs = async (
   plan: CapturePlan,
-  savedTabs: Awaited<ReturnType<typeof saveCaptureTabs>>['savedTabs'],
+  savedTabs: CaptureSavedTab[],
   savedTabsPageId: number | undefined,
 ): Promise<void> => {
   const closeTargetIds = new Set(plan.closeTargetIds)
@@ -275,7 +358,8 @@ const runTabCapture = async (
       return []
     }
 
-    const { savedTabs, unsavedCount } = await saveCaptureTabs(plan)
+    const outcome = await saveCaptureTabs(plan)
+    const savedTabs = outcome.savedTabs
     if (savedTabs.length === 0) {
       await notifyNoneSaved(language, 'background.saveTabs.noneSavedUrlPolicy')
       return []
@@ -284,21 +368,19 @@ const runTabCapture = async (
       scope === 'saveAllWindowsTabs' || scope === 'saveWindowTabs'
         ? await openSavedTabsPage({ closeDuplicates: false })
         : undefined
-    const savedMessage = getMessage(
-      language,
-      captureMessages[scope],
-      undefined,
-      {
-        count: String(savedTabs.length),
-        domain: plan.hostname ?? '',
-      },
+    const effectiveSkipped = includeUnsavedTabsInSkipped(
+      skipped,
+      outcome.unsavedCount,
     )
-    const effectiveSkipped = includeUnsavedTabsInSkipped(skipped, unsavedCount)
     await showNotification(
       getMessage(language, 'background.saveTabs.notificationTitle'),
-      effectiveSkipped
-        ? `${savedMessage}\n${getMessage(language, 'background.saveTabs.skippedSummary', undefined, { count: String(effectiveSkipped.count) })}`
-        : savedMessage,
+      buildCaptureSavedMessage({
+        hostname: plan.hostname,
+        language,
+        outcome,
+        scope,
+        skipped: effectiveSkipped,
+      }),
     )
     if (savedTabsPageId !== null) {
       await closeCaptureTabs(plan, savedTabs, savedTabsPageId)
@@ -370,11 +452,15 @@ export const handleSaveLink = async (
   }
 
   const title = deriveLinkTitle(url)
+  let receipt: Awaited<ReturnType<BackgroundSavedTabsDataPlane['saveTabs']>>
   try {
     // Duplicate saves refresh the existing record; its edited title wins.
-    await getBackgroundSavedTabsDataPlane().saveTabs([{ title, url }], {
-      preserveExistingTitle: true,
-    })
+    receipt = await getBackgroundSavedTabsDataPlane().saveTabs(
+      [{ title, url }],
+      {
+        preserveExistingTitle: true,
+      },
+    )
   } catch (error) {
     await showLinkNotification(
       'background.saveTabs.linkSaveFailedTitle',
@@ -383,9 +469,18 @@ export const handleSaveLink = async (
     throw error
   }
 
+  // 再保存時は「保存済み」であることを明示する (issue #923)。
+  const isResave =
+    receipt !== undefined &&
+    'resavedRefreshedCount' in receipt &&
+    receipt.resavedRefreshedCount + receipt.resavedMovedCount > 0
   await showLinkNotification(
-    'background.saveTabs.linkSavedTitle',
-    'background.saveTabs.linkSaved',
+    isResave
+      ? 'background.saveTabs.linkAlreadySavedTitle'
+      : 'background.saveTabs.linkSavedTitle',
+    isResave
+      ? 'background.saveTabs.linkAlreadySaved'
+      : 'background.saveTabs.linkSaved',
   )
   return [{ title, url }]
 }

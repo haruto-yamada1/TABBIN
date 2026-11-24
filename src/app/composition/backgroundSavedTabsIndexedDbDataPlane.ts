@@ -428,11 +428,19 @@ const upsertMembership = (
   })
 }
 
+type SaveTabsOutcome = {
+  readonly savedUrls: string[]
+  /** 既存 URL のうち、保存先が変わらず記録を更新した件数 (issue #923)。 */
+  readonly resavedRefreshedCount: number
+  /** 既存 URL のうち、保存先プロジェクトが変わった件数 (issue #923)。 */
+  readonly resavedMovedCount: number
+}
+
 const saveTabs = (
   state: IndexedDbSavedTabsMutableState,
   tabs: readonly BackgroundSavedTabInput[],
   options: SaveTabsContext,
-): string[] => {
+): SaveTabsOutcome => {
   const { idGenerator, timestamp } = options
   const uniqueTabs = new Map<string, Required<BackgroundSavedTabInput>>()
   for (const tab of tabs) {
@@ -442,8 +450,13 @@ const saveTabs = (
     }
   }
   if (uniqueTabs.size === 0) {
-    return []
+    return { resavedMovedCount: 0, resavedRefreshedCount: 0, savedUrls: [] }
   }
+  const existingUrlIdentities = new Set(
+    state.urls.map(({ normalizedUrl }) => normalizedUrl),
+  )
+  let resavedRefreshedCount = 0
+  let resavedMovedCount = 0
   const uncategorized = ensureUncategorizedCollection(state, timestamp)
   const customCollections = state.collections
     .filter(
@@ -457,6 +470,7 @@ const saveTabs = (
     )
 
   for (const input of uniqueTabs.values()) {
+    const isExisting = existingUrlIdentities.has(input.url)
     const url = ensureUrl(state, input, options)
     const domainCollection = ensureDomainCollection(
       state,
@@ -476,6 +490,18 @@ const saveTabs = (
       timestamp,
     })
 
+    // 再保存時の保存先変化を判定するため、付け替え前のプロジェクトを控える。
+    const previousProjectId = isExisting
+      ? state.memberships.find(({ collectionId, urlId }) => {
+          if (urlId !== url.id) {
+            return false
+          }
+          const collection = state.collections.find(
+            ({ id }) => id === collectionId,
+          )
+          return collection?.definition.type === 'custom'
+        })?.collectionId
+      : undefined
     state.memberships = state.memberships.filter(({ collectionId, urlId }) => {
       const collection = state.collections.find(({ id }) => id === collectionId)
       return urlId !== url.id || collection?.definition.type !== 'custom'
@@ -490,8 +516,19 @@ const saveTabs = (
         ? { ...collection, updatedAt: timestamp }
         : collection,
     )
+    if (isExisting) {
+      if (previousProjectId === project.id) {
+        resavedRefreshedCount += 1
+      } else {
+        resavedMovedCount += 1
+      }
+    }
   }
-  return [...uniqueTabs.keys()]
+  return {
+    resavedMovedCount,
+    resavedRefreshedCount,
+    savedUrls: [...uniqueTabs.keys()],
+  }
 }
 
 const removeExpiredUrls = (
@@ -607,22 +644,26 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
         const freshTabs = [...distinctTabs]
           .filter(([identity]) => !existingIdentities.has(identity))
           .map(([, tab]) => tab)
-        const savedUrls = saveTabs(state, freshTabs, {
+        const outcome = saveTabs(state, freshTabs, {
           idGenerator,
           preserveExistingTitle: false,
           timestamp: now(),
         })
         return {
           existingCount: distinctTabs.size - freshTabs.length,
-          savedCount: savedUrls.length,
+          savedCount: outcome.savedUrls.length,
         }
       }
-      const savedUrls = saveTabs(state, tabs, {
+      const outcome = saveTabs(state, tabs, {
         idGenerator,
         preserveExistingTitle: options.preserveExistingTitle === true,
         timestamp: now(),
       })
-      return { savedUrls }
+      return {
+        resavedMovedCount: outcome.resavedMovedCount,
+        resavedRefreshedCount: outcome.resavedRefreshedCount,
+        savedUrls: outcome.savedUrls,
+      }
     }),
   updateTabTimestamps: async (timestamp) =>
     session.run((state) => {

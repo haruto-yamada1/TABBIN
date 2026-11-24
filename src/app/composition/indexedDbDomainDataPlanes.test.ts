@@ -301,7 +301,11 @@ describe('IndexedDB domain data-plane production composition', () => {
       'URL written',
       'transaction complete',
     ])
-    expect(receipt).toEqual({ savedUrls: [existingUrl, freshUrl] })
+    expect(receipt).toEqual({
+      resavedMovedCount: 0,
+      resavedRefreshedCount: 1,
+      savedUrls: [existingUrl, freshUrl],
+    })
     await expect(dataPlane.readInsightRecords()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: 'Updated', url: existingUrl }),
@@ -309,6 +313,8 @@ describe('IndexedDB domain data-plane production composition', () => {
       ]),
     )
     await expect(dataPlane.saveTabs([{ url: 'not a URL' }])).resolves.toEqual({
+      resavedMovedCount: 0,
+      resavedRefreshedCount: 0,
       savedUrls: [],
     })
   })

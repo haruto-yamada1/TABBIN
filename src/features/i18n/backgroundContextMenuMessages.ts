@@ -31,6 +31,15 @@ export const backgroundContextMenuMessages = {
       'Saved {{count}} tabs from {{domain}}.',
     'background.saveTabs.skippedSummary':
       'Skipped {{count}} tabs that cannot be saved.',
+    'background.saveTabs.allResaved':
+      '{{count}} tabs were already saved. Refreshed their saved dates.',
+    'background.saveTabs.resavedSummary':
+      '{{count}} were already saved and refreshed.',
+    'background.saveTabs.resavedMovedSummary':
+      '{{count}} were already saved; updated their project assignment.',
+    'background.saveTabs.linkAlreadySaved':
+      'This link is already saved. Refreshed its saved date.',
+    'background.saveTabs.linkAlreadySavedTitle': 'Already saved',
     'background.saveTabs.windowTabsSaved':
       'Saved {{count}} tabs. Closing the tabs now.',
   },
@@ -66,6 +75,15 @@ export const backgroundContextMenuMessages = {
       '{{domain}}の{{count}}個のタブを保存しました',
     'background.saveTabs.skippedSummary':
       '保存できない{{count}}個のタブをスキップしました。',
+    'background.saveTabs.allResaved':
+      'すでに保存済みの{{count}}個のタブです。保存日時を更新しました。',
+    'background.saveTabs.resavedSummary':
+      'うち{{count}}個は保存済みのため保存日時を更新しました。',
+    'background.saveTabs.resavedMovedSummary':
+      'うち{{count}}個は保存済みのため、振り分け先を更新しました。',
+    'background.saveTabs.linkAlreadySaved':
+      'このリンクはすでに保存済みです。保存日時を更新しました。',
+    'background.saveTabs.linkAlreadySavedTitle': '保存済み',
     'background.saveTabs.windowTabsSaved':
       '{{count}}個のタブが保存されました。タブを閉じます。',
   },

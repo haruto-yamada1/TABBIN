@@ -187,6 +187,65 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     )
   })
 
+  it('reports a re-save with an unchanged destination as refreshed and never duplicates the record (#923)', async () => {
+    const state = createState()
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.saveTabs([{ title: 'Docs', url: 'https://example.com/docs' }]),
+    ).resolves.toEqual({
+      resavedMovedCount: 0,
+      resavedRefreshedCount: 1,
+      savedUrls: ['https://example.com/docs'],
+    })
+    expect(state.urls).toHaveLength(1)
+    expect(
+      state.memberships.filter(
+        ({ collectionId, urlId }) =>
+          urlId === 'url-1' && collectionId === 'project-1',
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('reports a re-save whose matching project changed as moved (#923)', async () => {
+    const state = createState()
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.saveTabs([
+        { title: 'Unrelated title', url: 'https://example.com/docs' },
+      ]),
+    ).resolves.toEqual({
+      resavedMovedCount: 1,
+      resavedRefreshedCount: 0,
+      savedUrls: ['https://example.com/docs'],
+    })
+    expect(state.urls).toHaveLength(1)
+    expect(
+      state.memberships.some(
+        ({ collectionId, urlId }) =>
+          urlId === 'url-1' && collectionId === 'project-1',
+      ),
+    ).toBe(false)
+  })
+
+  it('counts new and re-saved URLs separately (#923)', async () => {
+    const state = createState()
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.saveTabs([
+        { title: 'Docs', url: 'https://example.com/docs' },
+        { title: 'Fresh', url: 'https://example.com/fresh' },
+      ]),
+    ).resolves.toEqual({
+      resavedMovedCount: 0,
+      resavedRefreshedCount: 1,
+      savedUrls: ['https://example.com/docs', 'https://example.com/fresh'],
+    })
+    expect(state.urls).toHaveLength(2)
+  })
+
   it('projects URL metrics and membership events without collapsing their timestamps', async () => {
     const state = createState()
     assert.isDefined(state.urls[0])

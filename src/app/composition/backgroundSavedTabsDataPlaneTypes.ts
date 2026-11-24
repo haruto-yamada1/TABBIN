@@ -66,7 +66,13 @@ export type BackgroundSavedTabsDataPlane = {
     },
   ) => Promise<
     | undefined
-    | { readonly savedUrls: readonly string[] }
+    | {
+        readonly savedUrls: readonly string[]
+        /** 既存 URL の再保存で保存先が変わらなかった件数 (issue #923)。 */
+        readonly resavedRefreshedCount: number
+        /** 既存 URL の再保存で保存先プロジェクトが変わった件数 (issue #923)。 */
+        readonly resavedMovedCount: number
+      }
     | {
         readonly savedCount: number
         readonly existingCount: number
