@@ -91,7 +91,7 @@ const createRun = async () => {
         id: 'dljblklbpmoocinnlcejeokopmfoldaj',
         installType: 'normal',
         name: 'TABBIN',
-        version: '2.0.19',
+        version: '2.0.20',
         manifestVersion: 3,
       }),
     ),
@@ -110,7 +110,7 @@ describe('Native recording evidence gate', () => {
     )
     await expect(verifyFinalizedRecording(runDir)).resolves.toMatchObject({
       after: { snapshot: after.snapshot },
-      installation: { version: '2.0.19' },
+      installation: { version: '2.0.20' },
       clips: expect.arrayContaining([
         expect.objectContaining({ stage: 'save' }),
       ]),
@@ -303,7 +303,7 @@ describe('Native recording evidence gate', () => {
           id: 'dljblklbpmoocinnlcejeokopmfoldaj',
           installType: 'normal',
           name: 'TABBIN',
-          version: '2.0.19',
+          version: '2.0.20',
           manifestVersion: 3,
           ...update,
         }),

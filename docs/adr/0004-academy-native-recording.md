@@ -39,7 +39,7 @@ membership、実 Saved Tabs DOM、アクティブな Domain 画面1タブへの�
 ## 実測と OS の境界
 
 2026-11-07 の macOS 27.2、Playwright 同梱の Google Chrome for Testing で、公開
-ストア版 TABBIN 2.0.19（公式 ID、`installType: normal`）の導入と、3 hostname・
+ストア版 TABBIN 2.0.20（公式 ID、`installType: normal`）の導入と、3 hostname・
 6 URL の実保存、元タブの終了、Domain 表示を確認した。ストアの「Chrome に切り替え」
 バナーはそのまま表示される。この環境で導入できたことを、他の Chromium build でも
 導入可能である保証にはしない。
