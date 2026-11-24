@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 const projectRoot = path.resolve(import.meta.dirname, '..', '..')
 const readmePath = path.join(projectRoot, 'README.md')
 const privacyPath = path.join(projectRoot, 'PRIVACY.md')
+const securityPath = path.join(projectRoot, 'SECURITY.md')
 const docsRoot = path.join(projectRoot, 'docs')
 
 const EXPECTED_ISSUES_URL = 'https://github.com/haruto-yamada1/TABBIN/issues'
@@ -53,11 +54,12 @@ const toRelativePath = (target: string): string | null => {
 const markdownFiles = [
   readmePath,
   privacyPath,
+  securityPath,
   ...collectMarkdownFiles(docsRoot),
 ]
 
 describe('documentation links', () => {
-  it('resolves every relative link in README, PRIVACY, and docs', () => {
+  it('resolves every relative link in README, PRIVACY, SECURITY, and docs', () => {
     const missing: { file: string; target: string }[] = []
 
     for (const file of markdownFiles) {
