@@ -66,6 +66,7 @@ export type BackgroundSavedTabsDataPlane = {
     },
   ) => Promise<
     | undefined
+    | { readonly savedUrls: readonly string[] }
     | {
         readonly savedCount: number
         readonly existingCount: number

@@ -1,9 +1,10 @@
-import { IDBFactory } from 'fake-indexeddb'
+import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
+import { PERSISTENCE_STORE_NAMES } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/persistenceDatabaseSchema'
 
 import {
   getAiConversationHistoryDataPlane,
@@ -255,6 +256,74 @@ describe('IndexedDB domain data-plane production composition', () => {
     expect(
       (await restarted.readInsightRecords()).map(({ url }) => url),
     ).toEqual(expect.arrayContaining([existingUrl, freshUrl]))
+  })
+
+  it('returns distinct exact saved URLs only after the IndexedDB commit', async () => {
+    const dataPlane = getBackgroundSavedTabsDataPlane()
+    const existingUrl = 'https://example.com/docs'
+    const freshUrl = 'https://example.com:443/docs'
+    await dataPlane.saveTabs([{ title: 'Existing', url: existingUrl }])
+    await expect(dataPlane.readInsightRecords()).resolves.toMatchObject([
+      { title: 'Existing', url: existingUrl },
+    ])
+
+    const events: string[] = []
+    const observedTransactions = new WeakSet<IDBTransaction>()
+    const put = IDBObjectStore.prototype.put
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(
+      function observeUrlWrite(this: IDBObjectStore, ...args) {
+        const request = put.apply(this, args)
+        if (this.name === PERSISTENCE_STORE_NAMES.urls) {
+          request.addEventListener('success', () => {
+            events.push('URL written')
+          })
+          const { transaction } = this
+          if (!observedTransactions.has(transaction)) {
+            observedTransactions.add(transaction)
+            transaction.addEventListener('complete', () => {
+              events.push('transaction complete')
+            })
+          }
+        }
+        return request
+      },
+    )
+
+    const receipt = await dataPlane.saveTabs([
+      { title: 'Updated', url: existingUrl },
+      { title: 'Fresh', url: freshUrl },
+      { title: 'Skipped', url: 'not a URL' },
+      { title: 'Fresh duplicate', url: freshUrl },
+      { title: 'Missing URL' },
+    ])
+    expect(events).toEqual([
+      'URL written',
+      'URL written',
+      'transaction complete',
+    ])
+    expect(receipt).toEqual({ savedUrls: [existingUrl, freshUrl] })
+    await expect(dataPlane.readInsightRecords()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: 'Updated', url: existingUrl }),
+        expect.objectContaining({ title: 'Fresh duplicate', url: freshUrl }),
+      ]),
+    )
+    await expect(dataPlane.saveTabs([{ url: 'not a URL' }])).resolves.toEqual({
+      savedUrls: [],
+    })
+  })
+
+  it('rejects without returning a save receipt when the write fails', async () => {
+    const dataPlane = getBackgroundSavedTabsDataPlane()
+    const failure = new Error('save commit failed')
+    vi.spyOn(operationGate, 'runIndexedDbWrite').mockRejectedValueOnce(failure)
+
+    await expect(
+      dataPlane.saveTabs([
+        { title: 'Unsaved', url: 'https://example.com/docs' },
+      ]),
+    ).rejects.toBe(failure)
+    await expect(dataPlane.readInsightRecords()).resolves.toEqual([])
   })
 
   it('saves, deletes and restores native background data while leaving IndexedDB history and views intact', async () => {

@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { UserSettingsReadError } from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
 
+vi.mock('wxt/browser', () => ({
+  get browser() {
+    return globalThis.chrome
+  },
+}))
+
 const mocked = vi.hoisted(() => ({
   saveTabs: vi.fn(),
   removeUrl: vi.fn(),
@@ -27,6 +33,7 @@ vi.mock('./saved-tabs-page', () => ({
   openSavedTabsPage: mocked.openSavedTabsPage,
 }))
 
+import { TabFilteringError } from './capture-plan'
 import { checkAndRemoveExpiredTabs, updateTabTimestamps } from './expired-tabs'
 import {
   handleExtensionActionClick,
@@ -40,7 +47,6 @@ import {
   handleUrlDragStarted,
   handleUrlDropped,
 } from './url-storage'
-import { TabFilteringError } from './utils'
 
 const sourceUrl = 'https://example.test/article'
 const source = {
@@ -48,6 +54,7 @@ const source = {
   url: sourceUrl,
   title: 'Article',
   pinned: false,
+  active: true,
 } as chrome.tabs.Tab
 
 const mutations = [
@@ -97,6 +104,7 @@ describe('settings safety at background operation boundaries', () => {
   let remove: ReturnType<typeof vi.fn>
   let query: ReturnType<typeof vi.fn>
   let getAllWindows: ReturnType<typeof vi.fn>
+  let liveTabs: chrome.tabs.Tab[]
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -107,11 +115,19 @@ describe('settings safety at background operation boundaries', () => {
     remove = vi.fn(async () => undefined)
     query = vi.fn(async () => [source])
     getAllWindows = vi.fn(async () => [{ tabs: [source] }])
+    liveTabs = [source]
     vi.stubGlobal('browser', undefined)
     vi.stubGlobal('chrome', {
       storage: { local: { get, set } },
       tabs: {
         query,
+        get: async (id: number) => {
+          const tab = liveTabs.find((candidate) => candidate.id === id)
+          if (!tab) {
+            throw new Error('Tab not found')
+          }
+          return tab
+        },
         remove,
       },
       windows: {
@@ -119,7 +135,9 @@ describe('settings safety at background operation boundaries', () => {
       },
       i18n: { getUILanguage: () => 'en' },
     })
-    mocked.saveTabs.mockResolvedValue(undefined)
+    mocked.saveTabs.mockImplementation(async (tabs: { url: string }[]) => ({
+      savedUrls: tabs.map(({ url }) => url),
+    }))
     mocked.removeExpiredUrls.mockResolvedValue({
       sourceCount: 0,
       removedCount: 0,
@@ -146,6 +164,7 @@ describe('settings safety at background operation boundaries', () => {
   }
 
   const setCaptureTabs = (tabs: chrome.tabs.Tab[]) => {
+    liveTabs = tabs
     query.mockResolvedValue(tabs)
     getAllWindows.mockResolvedValue([{ tabs }])
   }
@@ -217,11 +236,6 @@ describe('settings safety at background operation boundaries', () => {
               excludePatterns: ['private exclusion', 42],
             },
           })
-          if (!direct) {
-            get.mockResolvedValueOnce({
-              userSettings: { clickBehavior: behavior, language },
-            })
-          }
 
           await expectCaptureFailure(capture, direct, {
             name: UserSettingsReadError.name,
@@ -244,14 +258,9 @@ describe('settings safety at background operation boundaries', () => {
 
       it.each(captureEntries)(
         '$name: unavailable settings stay observable and preserve source tabs',
-        async ({ behavior, capture, direct }) => {
+        async ({ capture, direct }) => {
           vi.spyOn(chrome.i18n, 'getUILanguage').mockReturnValue(language)
           get.mockRejectedValue(new Error('private storage payload'))
-          if (!direct) {
-            get.mockResolvedValueOnce({
-              userSettings: { clickBehavior: behavior, language },
-            })
-          }
 
           await expectCaptureFailure(capture, direct, {
             name: UserSettingsReadError.name,
@@ -327,7 +336,7 @@ describe('settings safety at background operation boundaries', () => {
   })
 
   it.each(captureEntries)(
-    '$name: explicitly disabled pinned exclusion still saves and closes pinned tabs',
+    '$name: explicitly disabled pinned exclusion saves pinned tabs and leaves them open',
     async ({ behavior, capture }) => {
       configureCapture(behavior, { excludePinnedTabs: false })
       const pinnedTab = { ...source, pinned: true }
@@ -336,9 +345,7 @@ describe('settings safety at background operation boundaries', () => {
       await capture()
 
       expect(mocked.saveTabs).toHaveBeenCalledExactlyOnceWith([pinnedTab])
-      expect(remove).toHaveBeenCalledExactlyOnceWith(
-        behavior === 'saveCurrentTab' ? source.id : [source.id],
-      )
+      expect(remove).not.toHaveBeenCalled()
     },
   )
 
@@ -361,19 +368,16 @@ describe('settings safety at background operation boundaries', () => {
       await capture()
 
       expect(mocked.saveTabs).toHaveBeenCalledExactlyOnceWith([source])
-      expect(remove).toHaveBeenCalledExactlyOnceWith([source.id])
+      expect(remove).toHaveBeenCalledExactlyOnceWith(source.id)
     },
   )
 
   it('all-windows capture opens the saved page only after persistence fulfills', async () => {
-    let finishSave: (() => void) | undefined
-    const saving = new Promise<void>((resolve) => {
-      finishSave = resolve
-    })
+    const saving = Promise.withResolvers<{ savedUrls: string[] }>()
     const saveStarted = new Promise<void>((resolve) => {
       mocked.saveTabs.mockImplementationOnce(async () => {
         resolve()
-        await saving
+        return saving.promise
       })
     })
 
@@ -384,14 +388,73 @@ describe('settings safety at background operation boundaries', () => {
       expect(remove).not.toHaveBeenCalled()
       expect(mocked.showNotification).not.toHaveBeenCalled()
     } finally {
-      finishSave?.()
+      saving.resolve({ savedUrls: [sourceUrl] })
     }
     await expect(operation).resolves.toStrictEqual([
       { title: source.title, url: source.url },
     ])
-    expect(mocked.openSavedTabsPage).toHaveBeenCalledOnce()
-    expect(remove).toHaveBeenCalledWith([source.id])
+    expect(mocked.openSavedTabsPage).toHaveBeenCalledExactlyOnceWith({
+      closeDuplicates: false,
+    })
+    expect(remove).toHaveBeenCalledWith(source.id)
   })
+
+  it('preserves new, navigated, and newly pinned tabs when other sources disappear during saving', async () => {
+    const removed = { ...source, id: 13 }
+    const navigated = { ...source, id: 14 }
+    const pinned = { ...source, id: 15 }
+    const pending = { ...source, id: 16 }
+    const added = { ...source, id: 17 }
+    const loading = { ...source, id: 18 }
+    setCaptureTabs([source, removed, navigated, pinned, pending, loading])
+    const saving = Promise.withResolvers<{ savedUrls: string[] }>()
+    const started = Promise.withResolvers<undefined>()
+    mocked.saveTabs.mockImplementationOnce(async () => {
+      started.resolve(undefined)
+      return saving.promise
+    })
+
+    const operation = handleSaveAllWindowsTabs()
+    await started.promise
+    // The open tabs change while the saved URL receipt is still pending.
+    liveTabs = [
+      source,
+      { ...navigated, url: 'https://example.test/unsaved' },
+      { ...pinned, pinned: true },
+      { ...pending, pendingUrl: 'https://example.test/pending' },
+      { ...loading, status: 'loading' },
+      added,
+    ]
+    saving.resolve({ savedUrls: [sourceUrl] })
+    await operation
+
+    expect(remove).toHaveBeenCalledExactlyOnceWith(source.id)
+  })
+
+  it.each([
+    ['window', handleSaveWindowTabs],
+    ['all windows', handleSaveAllWindowsTabs],
+    ['toolbar', handleExtensionActionClick],
+  ] as const)(
+    '%s: freezes source candidates while the settings read is pending',
+    async (_name, capture) => {
+      const settings = Promise.withResolvers<{
+        userSettings: { clickBehavior: 'saveAllWindowsTabs' }
+      }>()
+      get.mockReturnValueOnce(settings.promise)
+
+      const operation = capture()
+      await vi.waitFor(() => expect(get).toHaveBeenCalledOnce())
+      setCaptureTabs([source, { ...source, id: 13 }])
+      settings.resolve({
+        userSettings: { clickBehavior: 'saveAllWindowsTabs' },
+      })
+      await operation
+
+      expect(mocked.saveTabs).toHaveBeenCalledExactlyOnceWith([source])
+      expect(remove).toHaveBeenCalledExactlyOnceWith(source.id)
+    },
+  )
 
   it.each(failures)(
     '%s: every capture entry preserves source tabs',
@@ -450,16 +513,63 @@ describe('settings safety at background operation boundaries', () => {
     ['window', handleSaveWindowTabs],
     ['domain', handleSaveSameDomainTabs],
   ])(
-    '%s: a later policy read failure stops saving and preserves tabs',
+    '%s: the first policy still applies when a subsequent read would fail',
     async (_name, capture) => {
       get
         .mockResolvedValueOnce({})
         .mockRejectedValue(new Error('storage failed'))
-      await Promise.allSettled([capture()])
-      expect(mocked.saveTabs).not.toHaveBeenCalled()
-      expect(remove).not.toHaveBeenCalled()
+      await expect(capture()).resolves.toEqual([
+        { url: sourceUrl, title: source.title },
+      ])
+      expect(get).toHaveBeenCalledOnce()
+      expect(mocked.saveTabs).toHaveBeenCalledWith([source])
+      expect(remove).toHaveBeenCalled()
     },
   )
+
+  it.each(captureEntries)(
+    '$name: an updated policy only applies to the next capture',
+    async ({ behavior, capture }) => {
+      const nextSettings = {
+        userSettings: { clickBehavior: behavior, excludePatterns: ['article'] },
+      }
+      get
+        .mockResolvedValueOnce({ userSettings: { clickBehavior: behavior } })
+        .mockResolvedValue(nextSettings)
+
+      await capture()
+      expect(mocked.saveTabs).toHaveBeenCalledExactlyOnceWith([source])
+      expect(remove).toHaveBeenCalledOnce()
+
+      await capture()
+      expect(mocked.saveTabs).toHaveBeenCalledOnce()
+      expect(remove).toHaveBeenCalledOnce()
+      expect(get).toHaveBeenCalledTimes(2)
+    },
+  )
+
+  it('all windows: closes only exact URLs confirmed by the persistence receipt', async () => {
+    const unsaved = { ...source, id: 13, url: `${sourceUrl}#other` }
+    const savedDuplicate = { ...source, id: 14 }
+    const extensionPage = {
+      ...source,
+      id: 15,
+      url: 'moz-extension://tabbin/saved-tabs.html',
+    }
+    setCaptureTabs([source, unsaved, savedDuplicate, extensionPage])
+    mocked.saveTabs.mockResolvedValueOnce({ savedUrls: [sourceUrl] })
+
+    await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
+      { url: sourceUrl, title: source.title },
+      { url: sourceUrl, title: source.title },
+    ])
+    expect(mocked.saveTabs).toHaveBeenCalledExactlyOnceWith([
+      source,
+      unsaved,
+      savedDuplicate,
+    ])
+    expect(remove.mock.calls.flat()).toEqual([source.id, savedDuplicate.id])
+  })
 
   it('first use without a saved value still allows the existing capture defaults', async () => {
     await handleSaveCurrentTab()

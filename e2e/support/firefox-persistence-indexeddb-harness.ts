@@ -186,7 +186,7 @@ const seedDomain = async (
   await waitForIndexedDbTransaction(transaction)
 }
 
-const fresh = async () => {
+const fresh = async (captureOrigin: string) => {
   const runtime = createPersistenceBootstrapRuntime()
   const emptyProjection = await withoutStorageAccess(async () => {
     await runtime.bootstrap.ready()
@@ -219,7 +219,7 @@ const fresh = async () => {
   const result = {
     academy: await runAcademyPersistenceSmoke('fresh'),
     settingsSafety: await runFirefoxSettingsSafetySmoke(),
-    captureSafety: await runFirefoxCaptureSafetySmoke(),
+    captureSafety: await runFirefoxCaptureSafetySmoke(captureOrigin),
     urlOpening: await runFirefoxUrlOpeningSmoke(),
     urlDragIdentity: await runFirefoxUrlDragIdentitySmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
@@ -340,6 +340,7 @@ export type FirefoxPersistenceSmokePhase =
 
 export const runFirefoxPersistenceSmoke = async (
   phase: FirefoxPersistenceSmokePhase,
+  captureOrigin?: string,
 ) => {
   if (phase === 'drag-background') {
     return { urlDragBackground: await runFirefoxUrlDragBackgroundSmoke() }
@@ -347,7 +348,13 @@ export const runFirefoxPersistenceSmoke = async (
   if (phase === 'alarm') {
     return { expiredTabsAlarm: await runFirefoxExpiredTabsAlarmSmoke() }
   }
-  return phase === 'fresh' ? fresh() : verifyAfterRestart()
+  if (phase === 'fresh') {
+    if (!captureOrigin) {
+      throw new Error('Firefox capture fixture origin is missing.')
+    }
+    return fresh(captureOrigin)
+  }
+  return verifyAfterRestart()
 }
 
 Object.assign(globalThis, {

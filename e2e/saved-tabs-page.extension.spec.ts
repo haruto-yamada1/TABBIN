@@ -14,7 +14,7 @@ for (const pathname of [
   'saved-tabs.html',
   'app.html#/saved-tabs?mode=custom',
 ]) {
-  test(`toolbar reuses ${pathname} and leaves navigated and same-name web tabs alone`, async ({
+  test(`toolbar reuses ${pathname} and preserves duplicate, navigated, and same-name tabs`, async ({
     extensionContext,
     extensionId,
     serviceWorker,
@@ -87,12 +87,14 @@ for (const pathname of [
       await closed
     }
     await saveAndOpen('reuse')
-    expect(
-      await serviceWorker.evaluate(async (id) => {
-        const current = await chrome.tabs.get(id)
-        return { id: current.id, pinned: current.pinned, url: current.url }
-      }, initial),
-    ).toEqual({ id: initial, pinned: true, url: routeUrl })
+    await expect
+      .poll(async () =>
+        serviceWorker.evaluate(async (id) => {
+          const current = await chrome.tabs.get(id)
+          return { id: current.id, pinned: current.pinned, url: current.url }
+        }, initial),
+      )
+      .toEqual({ id: initial, pinned: true, url: routeUrl })
 
     // Keep the cached ID alive, but navigate it to a same-name HTTPS page.
     const navigatedUrl = `${fixtureOrigin}/saved-tabs.html`
@@ -120,8 +122,6 @@ for (const pathname of [
     const valid = await extensionContext.newPage()
     await valid.goto(requestedUrl)
     await expect(valid).toHaveURL(routeUrl)
-    const duplicate = await extensionContext.newPage()
-    await duplicate.goto(getExtensionUrl(extensionId, 'saved-tabs.html'))
     const validId = await serviceWorker.evaluate(async (url) => {
       const tabs = await chrome.tabs.query({})
       const current = tabs.find((tab) => tab.url === url)
@@ -130,37 +130,44 @@ for (const pathname of [
       }
       return current.id
     }, routeUrl)
+    const duplicate = await extensionContext.newPage()
+    await duplicate.goto(getExtensionUrl(extensionId, 'saved-tabs.html'))
 
     await saveAndOpen('navigation')
-    await expect.poll(() => duplicate.isClosed()).toBe(true)
+    expect(duplicate.isClosed()).toBe(false)
     expect(otherWebPage.isClosed()).toBe(false)
-    expect(
-      await serviceWorker.evaluate(
-        async ({ initialId, mainId }) => {
-          const navigated = await chrome.tabs.get(initialId)
-          const main = await chrome.tabs.get(mainId)
-          return {
-            navigated: {
-              id: navigated.id,
-              url: navigated.url,
-              pinned: navigated.pinned,
-              active: navigated.active,
-            },
-            main: { id: main.id, url: main.url, pinned: main.pinned },
-          }
+    await expect
+      .poll(async () =>
+        serviceWorker.evaluate(
+          async ({ initialId, mainId }) => {
+            const navigated = await chrome.tabs.get(initialId)
+            const main = await chrome.tabs.get(mainId)
+            return {
+              navigated: {
+                id: navigated.id,
+                url: navigated.url,
+                pinned: navigated.pinned,
+                active: navigated.active,
+              },
+              main: { id: main.id, url: main.url, pinned: main.pinned },
+            }
+          },
+          { initialId: initial, mainId: validId },
+        ),
+      )
+      .toEqual({
+        navigated: {
+          id: initial,
+          url: navigatedUrl,
+          pinned: false,
+          active: false,
         },
-        { initialId: initial, mainId: validId },
-      ),
-    ).toEqual({
-      navigated: {
-        id: initial,
-        url: navigatedUrl,
-        pinned: false,
-        active: false,
-      },
-      main: { id: validId, url: routeUrl, pinned: true },
-    })
+        main: { id: validId, url: routeUrl, pinned: true },
+      })
     await expect(valid).toHaveURL(routeUrl)
+    await expect(duplicate).toHaveURL(
+      getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+    )
     await expect(otherWebPage).toHaveURL(
       `${fixtureOrigin}/app.html#/saved-tabs?mode=custom`,
     )
