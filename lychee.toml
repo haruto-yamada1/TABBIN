@@ -1,0 +1,68 @@
+# Lychee link checker configuration for issue #1089.
+# Shared by the strict pull-request check (offline, internal links only)
+# and the weekly report-only check (external URLs included) in
+# .github/workflows/link-check.yml.
+#
+# Exclusion policy:
+# - Every entry below names the reason it exists and must be re-reviewed
+#   by the review-by date in its comment. Remove entries that are no
+#   longer needed instead of extending the date silently.
+# - Placeholder and loopback URLs are never sent to external services.
+# - Private, link-local and loopback addresses are excluded as a class
+#   (exclude_all_private), so private or token-bearing intranet URLs in
+#   documentation are not probed either. No credentials or tokens are
+#   configured here, and none may be added.
+# - The known-broken README support URL tracked by issue #1022
+#   (a placeholder GitHub account in the Issues URL) is
+#   intentionally NOT excluded: the weekly check must keep
+#   detecting it until #1022 fixes the link itself.
+
+# Deterministic, CI-friendly output.
+format = "detailed"
+no_progress = true
+
+# Short retries and a bounded timeout keep a single slow or refusing
+# host from stalling a run; the weekly job is report-only on top of
+# this, and the pull-request job is offline, so a transient external
+# refusal can never fail an unrelated pull request.
+timeout = 20
+max_retries = 2
+retry_wait_time = 2
+max_concurrency = 8
+
+# 429 is a transient rate limit, not a broken link.
+accept = ["200..=299", "429"]
+
+# Resolve relative links against the containing file (lychee default)
+# and verify that fragment anchors such as `#section` exist in the
+# target document. Text fragments (`#:~:text=`) are browser-specific
+# and are not checked.
+include_fragments = "anchor-only"
+
+# Mail addresses are not verified and mailto: links are accepted as
+# syntactically valid links instead of being probed.
+include_mail = false
+
+# Links inside code spans and code blocks are examples, not links to
+# follow; this also keeps sample URLs from being sent anywhere.
+include_verbatim = false
+
+# Never probe private, link-local or loopback addresses.
+exclude_all_private = true
+
+exclude = [
+  # Reason: the documented local Ollama endpoint (README) is a
+  # loopback service on the reader's own machine, never a public
+  # link. Review by: 2027-05-24.
+  "^https?://(localhost|127\\.0\\.0\\.1)([:/]|$)",
+  # Reason: RFC 2606 / RFC 6761 placeholder domains used for examples
+  # in documentation; they exist to be unfetchable. Review by:
+  # 2027-05-24.
+  "^https?://([^/]+\\.)?example\\.(com|org|net)([/:?#]|$)",
+  "^https?://([^/]+\\.)?example\\.invalid([/:?#]|$)",
+  # Reason: non-HTTP link schemes are validated syntactically by
+  # lychee; there is nothing to fetch and no external service to
+  # contact. Review by: 2027-05-24.
+  "^mailto:",
+  "^tel:",
+]
