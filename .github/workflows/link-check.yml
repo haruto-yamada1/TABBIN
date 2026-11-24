@@ -1,0 +1,112 @@
+name: Link Check
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'lychee.toml'
+      - '.github/workflows/link-check.yml'
+      - 'tools/scripts/link-check-workflow.test.ts'
+  schedule:
+    # Weekly on Monday at 12:41 JST; avoid the busiest start of the UTC hour.
+    - cron: '41 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: link-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  internal-links:
+    name: Internal Link Check (strict, offline)
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      # Offline mode never contacts external sites, so a transient
+      # external refusal cannot fail an unrelated pull request. Local
+      # relative links and fragment anchors are still checked strictly
+      # and any missing file or anchor fails this job.
+      - name: Check internal links with lychee
+        id: lychee
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --config lychee.toml
+            --offline
+            --root-dir ${{ github.workspace }}
+            './*.md'
+            './docs/**/*.md'
+            './.github/**/*.md'
+          fail: true
+          format: markdown
+          output: lychee/out.md
+          jobSummary: true
+      - name: Retain link check report
+        if: ${{ !cancelled() && steps.lychee.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: link-check-pr-report
+          path: lychee/out.md
+          if-no-files-found: error
+          retention-days: 14
+
+  external-links:
+    name: External Link Check (weekly, report only)
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      # Report only: fail is false, so broken or refusing external
+      # sites are recorded in the summary and artifact without
+      # failing the run. The known-broken README URL tracked by
+      # #1022 is not excluded in lychee.toml and must appear here
+      # until that issue fixes it.
+      - name: Check all links with lychee
+        id: lychee
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --config lychee.toml
+            --cache
+            --max-cache-age 3d
+            --root-dir ${{ github.workspace }}
+            './*.md'
+            './docs/**/*.md'
+            './.github/**/*.md'
+          fail: false
+          format: markdown
+          output: lychee/out.md
+          jobSummary: true
+      - name: Report external link outcome
+        id: report
+        if: ${{ !cancelled() }}
+        env:
+          LYCHEE_EXIT_CODE: ${{ steps.lychee.outputs.exit_code }}
+        shell: bash
+        run: |
+          {
+            echo '### External link check (report only)'
+            if [ "$LYCHEE_EXIT_CODE" = "0" ]; then
+              echo 'No broken links were found. Counts and per-link results are in the lychee report artifact.'
+            else
+              echo "Lychee exited with code $LYCHEE_EXIT_CODE. Broken or refusing links, their failure kinds, and any lychee.toml exclusion reasons are listed in the lychee report artifact; this weekly job does not fail on external results."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain link check report
+        if: ${{ !cancelled() && steps.lychee.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: link-check-weekly-report
+          path: lychee/out.md
+          if-no-files-found: error
+          retention-days: 30
