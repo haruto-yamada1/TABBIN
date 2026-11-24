@@ -10,6 +10,7 @@ _散らかりがちなタブを保存・整理し、必要なときにすぐ戻�
 
 [🚀 Chrome ウェブストアでインストール](https://chromewebstore.google.com/detail/tabbin/dljblklbpmoocinnlcejeokopmfoldaj) ・
 [プライバシーとデータの扱い](PRIVACY.md) ・
+[セキュリティポリシー](SECURITY.md) ・
 [サポート / Issues](https://github.com/haruto-yamada1/TABBIN/issues)
 
 ## 📋 概要
@@ -139,9 +140,10 @@ bun run release:zip     # release:check → Chrome / Firefox の ZIP 生成
 ## 📞 サポート
 
 - 不具合報告・機能要望: [GitHub Issues](https://github.com/haruto-yamada1/TABBIN/issues)
+- セキュリティ上の脆弱性: [SECURITY.md](SECURITY.md) の手順で非公開報告（公開 Issue には書かないでください）
 - その他のお問い合わせ: [お問い合わせフォーム](https://forms.gle/c9gBiF2TmgXaeU7J6)
 
-Issue を作成する前に、既存の Issue に同じ問題がないか確認してください。保存データの扱いについては [PRIVACY.md](PRIVACY.md) を参照してください。
+Issue を作成する前に、既存の Issue に同じ問題がないか確認してください。セキュリティ上の問題は、公開 Issue ではなく [SECURITY.md](SECURITY.md) の非公開報告を使ってください。保存データの扱いについては [PRIVACY.md](PRIVACY.md) を参照してください。
 
 ## English
 
@@ -149,6 +151,7 @@ TABBIN is a local-first browser extension that saves, organizes, and restores ta
 
 - Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/tabbin/dljblklbpmoocinnlcejeokopmfoldaj).
 - Data handling: [PRIVACY.md](PRIVACY.md).
+- Security: report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 - Support: [GitHub Issues](https://github.com/haruto-yamada1/TABBIN/issues) or the [contact form](https://forms.gle/c9gBiF2TmgXaeU7J6).
 
 Firefox builds are not published on AMO yet. See [Build the Firefox version](#firefox-版をビルドする) for the developer preview steps.
