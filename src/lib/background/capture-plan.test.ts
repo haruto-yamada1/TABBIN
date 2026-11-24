@@ -98,7 +98,9 @@ describe('capture plan', () => {
       tab(-1, 'https://example.test/unknown-id'),
     ]
     const standard = createCapturePlan('selectedTabs', targets, settings)
-    const saveOnly = createCapturePlan('selectedTabs', targets, settings, false)
+    const saveOnly = createCapturePlan('selectedTabs', targets, settings, {
+      closeAfterSave: false,
+    })
 
     expect(standard.includedTabs).toHaveLength(3)
     expect(standard.includedTabIds).toEqual([1, 2])

@@ -13,6 +13,9 @@ vi.mock('wxt/browser', () => ({
 
 const root = 'chrome-extension://tabbin/'
 const savedUrl = `${root}saved-tabs.html`
+const appSavedUrl = `${root}app.html#/saved-tabs`
+const firefoxRoot = 'moz-extension://firefox-uuid/'
+const firefoxSavedUrl = `${firefoxRoot}saved-tabs.html`
 const tab = (partial: Partial<chrome.tabs.Tab>): chrome.tabs.Tab =>
   ({ pinned: false, ...partial }) as chrome.tabs.Tab
 
@@ -49,11 +52,29 @@ const createChromeHarness = (initialTabs: chrome.tabs.Tab[] = []) => {
     },
   )
   const getURL = vi.fn((path: string) => `${root}${path.replace(/^\//, '')}`)
+  const onUpdated = {
+    addListener: vi.fn<typeof chrome.tabs.onUpdated.addListener>(),
+    removeListener: vi.fn<typeof chrome.tabs.onUpdated.removeListener>(),
+  }
+  const onRemoved = {
+    addListener: vi.fn<typeof chrome.tabs.onRemoved.addListener>(),
+    removeListener: vi.fn<typeof chrome.tabs.onRemoved.removeListener>(),
+  }
   vi.stubGlobal('chrome', {
     runtime: { getURL },
-    tabs: { get, create, query, remove, update },
+    tabs: { get, create, query, remove, update, onUpdated, onRemoved },
   })
-  return { tabs, get, create, query, remove, update, getURL }
+  return {
+    tabs,
+    get,
+    create,
+    query,
+    remove,
+    update,
+    getURL,
+    onUpdated,
+    onRemoved,
+  }
 }
 
 describe('saved-tabs-page', () => {
@@ -112,7 +133,10 @@ describe('saved-tabs-page', () => {
   ])('正規でないURLは再利用・操作・削除しない: %s', async (url) => {
     const harness = createChromeHarness([tab({ id: 51, url })])
     await expect(openSavedTabsPage()).resolves.toBe(900)
-    expect(harness.create).toHaveBeenCalledWith({ url: savedUrl, pinned: true })
+    expect(harness.create).toHaveBeenCalledWith({
+      url: appSavedUrl,
+      pinned: true,
+    })
     expect(harness.update.mock.calls.every(([id]) => id === 900)).toBe(true)
     expect(harness.remove).not.toHaveBeenCalled()
   })
@@ -190,9 +214,9 @@ describe('saved-tabs-page', () => {
     expect(harness.remove).not.toHaveBeenCalled()
   })
 
-  it('キャッシュが正規のpendingUrlなら再検索せず再利用する', async () => {
+  it('保存操作ではキャッシュの正規のpendingUrlを再検索せず再利用する', async () => {
     const harness = createChromeHarness()
-    await openSavedTabsPage()
+    await openSavedTabsPage({ closeDuplicates: false })
     const cached = harness.tabs[0]
     assert.isDefined(cached)
     Object.assign(cached, {
@@ -200,15 +224,39 @@ describe('saved-tabs-page', () => {
       pendingUrl: savedUrl,
       pinned: true,
     })
-    await expect(openSavedTabsPage()).resolves.toBe(900)
+    await expect(openSavedTabsPage({ closeDuplicates: false })).resolves.toBe(
+      900,
+    )
     expect(harness.query).toHaveBeenCalledTimes(1)
+  })
+
+  it('読み込み中の保存画面が確定するまで待ち、同じタブを再利用する', async () => {
+    const tabbin = tab({ id: 61, url: firefoxSavedUrl, status: 'loading' })
+    const harness = createChromeHarness([tabbin])
+    harness.getURL.mockImplementation(
+      (name) => `${firefoxRoot}${name.replace(/^\//, '')}`,
+    )
+    const opened = openSavedTabsPage({ closeDuplicates: false })
+    await vi.waitFor(() =>
+      expect(harness.onUpdated.addListener).toHaveBeenCalledOnce(),
+    )
+    const listener = harness.onUpdated.addListener.mock.lastCall?.[0]
+    assert.isDefined(listener)
+    tabbin.status = 'complete'
+    listener(61, { status: 'complete' }, tabbin)
+
+    await expect(opened).resolves.toBe(61)
+    expect(harness.create).not.toHaveBeenCalled()
+    expect(harness.update).toHaveBeenCalledWith(61, { pinned: true })
   })
 
   it('キャッシュ取得が失敗しても再検索する', async () => {
     const harness = createChromeHarness()
-    await openSavedTabsPage()
+    await openSavedTabsPage({ closeDuplicates: false })
     harness.get.mockRejectedValueOnce(new Error('missing'))
-    await expect(openSavedTabsPage()).resolves.toBe(900)
+    await expect(openSavedTabsPage({ closeDuplicates: false })).resolves.toBe(
+      900,
+    )
     expect(harness.query).toHaveBeenCalledTimes(2)
   })
 
@@ -238,7 +286,7 @@ describe('saved-tabs-page', () => {
     const duplicate = tab({ id: 62, url: `${root}app.html#/saved-tabs` })
     const harness = createChromeHarness([main, main, duplicate, duplicate])
     await expect(openSavedTabsPage()).resolves.toBe(61)
-    expect(harness.get).toHaveBeenCalledWith(62)
+    expect(harness.get.mock.calls.filter(([id]) => id === 62)).toEqual([[62]])
     expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
   })
 
@@ -277,6 +325,130 @@ describe('saved-tabs-page', () => {
     expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
   })
 
+  it('キャッシュ後に開いた重複を保存時に保持し、明示的に開く際に整理する', async () => {
+    const main = tab({ id: 61, url: savedUrl, pinned: true })
+    const harness = createChromeHarness([main])
+    await openSavedTabsPage()
+    harness.tabs.push(tab({ id: 62, url: savedUrl }))
+
+    await expect(openSavedTabsPage({ closeDuplicates: false })).resolves.toBe(
+      61,
+    )
+    expect(harness.remove).not.toHaveBeenCalled()
+    await expect(openSavedTabsPage()).resolves.toBe(61)
+    expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
+  })
+
+  it.each(['pendingUrl', 'loading'] as const)(
+    '%s: 重複確認中に主タブが遷移した場合は最後の保存画面を閉じずnullを返す',
+    async (navigation) => {
+      const url = navigation === 'loading' ? firefoxSavedUrl : savedUrl
+      const main = tab({ id: 61, url, pinned: true })
+      const duplicate = tab({ id: 62, url })
+      const harness = createChromeHarness([main, duplicate])
+      if (navigation === 'loading') {
+        harness.getURL.mockImplementation(
+          (name) => `${firefoxRoot}${name.replace(/^\//, '')}`,
+        )
+      }
+      await openSavedTabsPage({ closeDuplicates: false })
+      const originalGet = harness.get.getMockImplementation()
+      assert.isDefined(originalGet)
+      harness.get.mockImplementation(async (id) => {
+        if (id === duplicate.id) {
+          if (navigation === 'loading') {
+            main.status = 'loading'
+          } else {
+            main.pendingUrl = 'https://example.test/'
+          }
+        }
+        return originalGet(id)
+      })
+
+      await expect(openSavedTabsPage()).resolves.toBeNull()
+      expect(harness.remove).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['pendingUrl', 'loading'] as const)(
+    '%s: 主タブの再確認中に重複タブが遷移した場合も閉じない',
+    async (navigation) => {
+      const url = navigation === 'loading' ? firefoxSavedUrl : savedUrl
+      const main = tab({ id: 61, url, pinned: true })
+      const duplicate = tab({ id: 62, url })
+      const harness = createChromeHarness([main, duplicate])
+      if (navigation === 'loading') {
+        harness.getURL.mockImplementation(
+          (name) => `${firefoxRoot}${name.replace(/^\//, '')}`,
+        )
+      }
+      const originalGet = harness.get.getMockImplementation()
+      assert.isDefined(originalGet)
+      let checkedDuplicate = false
+      harness.get.mockImplementation(async (id) => {
+        if (id === duplicate.id) {
+          checkedDuplicate = true
+        }
+        if (checkedDuplicate && id === main.id) {
+          if (navigation === 'loading') {
+            duplicate.status = 'loading'
+          } else {
+            duplicate.pendingUrl = 'https://example.test/'
+          }
+        }
+        return originalGet(id)
+      })
+
+      await expect(openSavedTabsPage()).resolves.toBe(61)
+      expect(harness.remove).not.toHaveBeenCalled()
+    },
+  )
+
+  it('重複削除中に主タブが遷移した場合は共同の呼び出しへnullを返す', async () => {
+    const main = tab({ id: 61, url: savedUrl, pinned: true })
+    const duplicate = tab({ id: 62, url: savedUrl })
+    const harness = createChromeHarness([main, duplicate])
+    harness.remove.mockImplementationOnce(async () => {
+      main.pendingUrl = 'https://example.test/'
+    })
+
+    await expect(
+      Promise.all([
+        openSavedTabsPage({ closeDuplicates: false }),
+        openSavedTabsPage(),
+      ]),
+    ).resolves.toEqual([null, null])
+    expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
+  })
+
+  it('新規作成中に明示的なオープンが合流した場合も重複を整理する', async () => {
+    const harness = createChromeHarness()
+    const creating = Promise.withResolvers<chrome.tabs.Tab>()
+    harness.create.mockReturnValueOnce(creating.promise)
+    const capture = openSavedTabsPage({ closeDuplicates: false })
+    await vi.waitFor(() => expect(harness.create).toHaveBeenCalledOnce())
+    const explicit = openSavedTabsPage()
+    const created = tab({ id: 900, url: savedUrl, pinned: true })
+    harness.tabs.push(tab({ id: 62, url: savedUrl }), created)
+    creating.resolve(created)
+
+    await expect(Promise.all([capture, explicit])).resolves.toEqual([900, 900])
+    expect(harness.create).toHaveBeenCalledOnce()
+    expect(harness.remove).toHaveBeenCalledExactlyOnceWith(62)
+  })
+
+  it('重複検索が失敗しても有効なキャッシュを再確認して返す', async () => {
+    const main = tab({ id: 61, url: savedUrl, pinned: true })
+    const harness = createChromeHarness([main])
+    await openSavedTabsPage()
+    harness.query.mockClear()
+    harness.query.mockRejectedValueOnce(new Error('search failed'))
+
+    await expect(openSavedTabsPage()).resolves.toBe(61)
+    expect(harness.query).toHaveBeenCalledOnce()
+    expect(harness.remove).not.toHaveBeenCalled()
+  })
+
   it.each([
     tab({ id: 62, url: 'https://example.test/saved-tabs.html' }),
     tab({ id: 62, url: savedUrl, pendingUrl: 'https://example.test/' }),
@@ -303,11 +475,12 @@ describe('saved-tabs-page', () => {
     const harness = createChromeHarness([
       tab({ id: 61, url: savedUrl, pinned: true }),
     ])
-    harness.query.mockResolvedValueOnce([
+    harness.query.mockResolvedValue([
       ...harness.tabs,
       tab({ id: 62, url: savedUrl }),
     ])
     await expect(openSavedTabsPage()).resolves.toBe(61)
+    expect(harness.get).toHaveBeenCalledWith(62)
     expect(harness.remove).not.toHaveBeenCalled()
   })
 
@@ -385,21 +558,51 @@ describe('saved-tabs-page', () => {
     },
   )
 
-  it('Firefoxの新規タブが一時about:blankでも作成確定IDを共有する', async () => {
+  it('Firefoxの新規タブが一時about:blankの場合は保存画面の確定を待つ', async () => {
     const harness = createChromeHarness()
-    harness.create.mockResolvedValueOnce(tab({ id: 901, url: 'about:blank' }))
-    await expect(
-      Promise.all([
-        openSavedTabsPage(),
-        openSavedTabsPage(),
-        openSavedTabsPage(),
-      ]),
-    ).resolves.toEqual([901, 901, 901])
+    harness.getURL.mockImplementation(
+      (name) => `moz-extension://firefox-uuid/${name.replace(/^\//, '')}`,
+    )
+    const provisional = tab({ id: 901, url: 'about:blank' })
+    harness.create.mockImplementationOnce(async () => {
+      harness.tabs.push(provisional)
+      return provisional
+    })
+    const initialLookup = Promise.withResolvers<chrome.tabs.Tab | undefined>()
+    harness.get.mockReturnValueOnce(initialLookup.promise)
+    const capture = openSavedTabsPage({ closeDuplicates: false })
+    const settled = vi.fn()
+    void capture.then(settled)
+    await vi.waitFor(() =>
+      expect(harness.onUpdated.addListener).toHaveBeenCalledOnce(),
+    )
+    const listener = harness.onUpdated.addListener.mock.lastCall?.[0]
+    assert.isDefined(listener)
+    expect(settled).not.toHaveBeenCalled()
+
+    const explicit = openSavedTabsPage()
+    harness.tabs.push(tab({ id: 902, url: firefoxSavedUrl }))
+    provisional.url = firefoxSavedUrl
+    provisional.status = 'loading'
+    listener(901, { url: firefoxSavedUrl, status: 'loading' }, provisional)
+    expect(harness.onUpdated.removeListener).not.toHaveBeenCalled()
+    provisional.status = 'complete'
+    listener(901, { status: 'complete' }, provisional)
+
+    await expect(Promise.all([capture, explicit])).resolves.toEqual([901, 901])
+    // The event can resolve the open before the competing lookup returns.
+    initialLookup.resolve(undefined)
+    await initialLookup.promise
+    await Promise.resolve()
     expect(harness.create).toHaveBeenCalledExactlyOnceWith({
-      url: savedUrl,
+      url: `${firefoxRoot}app.html#/saved-tabs`,
       pinned: true,
     })
-    expect(harness.get).not.toHaveBeenCalled()
+    expect(harness.onUpdated.removeListener).toHaveBeenCalledExactlyOnceWith(
+      listener,
+    )
+    expect(harness.onRemoved.removeListener).toHaveBeenCalledOnce()
+    expect(harness.remove).toHaveBeenCalledExactlyOnceWith(902)
     expect(harness.update).not.toHaveBeenCalled()
   })
 

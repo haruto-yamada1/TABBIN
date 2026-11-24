@@ -24,7 +24,21 @@ import { requireOperationalUserSettings } from './settings-policy'
 type CaptureAction = Exclude<CaptureScope, 'selectedTabs'>
 type CaptureResult = { url: string; title: string }[]
 
+// Start the browser request now and observe failures even if the selected
+// scope does not need this result.
+const beginTabQuery = (request: Promise<chrome.tabs.Tab[]>) => {
+  const outcome = Promise.allSettled([request])
+  return async (): Promise<chrome.tabs.Tab[]> => {
+    const [result] = await outcome
+    if (result.status === 'rejected') {
+      throw result.reason
+    }
+    return result.value
+  }
+}
+
 const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
+  const readFallback = beginTabQuery(browser.tabs.query({}))
   try {
     const windows = await browser.windows.getAll({ populate: true })
     const tabs = windows.flatMap((window) => window.tabs ?? [])
@@ -38,7 +52,7 @@ const getAllTabsAcrossWindows = async (): Promise<chrome.tabs.Tab[]> => {
     )
   }
 
-  return browser.tabs.query({})
+  return readFallback()
 }
 
 const queryCaptureTabs = async (
@@ -51,18 +65,18 @@ const queryCaptureTabs = async (
         ...(action === 'saveCurrentTab' ? { active: true } : {}),
       })
 
-const queryToolbarTabs = async (clickedTab?: chrome.tabs.Tab) => {
-  const [allTabs, currentWindow] = await Promise.all([
-    getAllTabsAcrossWindows(),
-    clickedTab ? undefined : browser.tabs.query({ currentWindow: true }),
-  ])
-  return (scope: CaptureAction): chrome.tabs.Tab[] => {
+const queryToolbarTabs = (clickedTab?: chrome.tabs.Tab) => {
+  const readAllTabs = beginTabQuery(getAllTabsAcrossWindows())
+  const readWindowTabs = beginTabQuery(
+    browser.tabs.query(
+      clickedTab ? { windowId: clickedTab.windowId } : { currentWindow: true },
+    ),
+  )
+  return async (scope: CaptureAction): Promise<chrome.tabs.Tab[]> => {
     if (scope === 'saveAllWindowsTabs') {
-      return allTabs
+      return readAllTabs()
     }
-    const tabs =
-      currentWindow ??
-      allTabs.filter(({ windowId }) => windowId === clickedTab?.windowId)
+    const tabs = await readWindowTabs()
     return scope === 'saveCurrentTab'
       ? tabs.filter(({ id, active }) =>
           clickedTab ? id === clickedTab.id : active,
@@ -125,6 +139,7 @@ const closeCaptureTabs = async (
       if (
         current?.id !== id ||
         current.pinned ||
+        current.status === 'loading' ||
         current.url !== url ||
         (current.pendingUrl !== undefined && current.pendingUrl !== url)
       ) {
@@ -147,22 +162,18 @@ const runTabCapture = async (
   try {
     // A toolbar click can select any scope. Start its browser snapshot before
     // waiting for storage so tabs created during that read stay out of capture.
-    const pendingTabs = action
-      ? queryCaptureTabs(action).then((tabs) => () => tabs)
+    const readTabs = action
+      ? beginTabQuery(queryCaptureTabs(action))
       : queryToolbarTabs(clickedTab)
-    const [settings, tabs] = await Promise.allSettled([
-      requireOperationalUserSettings(),
-      pendingTabs,
-    ])
-    if (settings.status === 'rejected') {
-      throw settings.reason
-    }
-    language = resolveCaptureLanguage(settings.value.language)
-    if (tabs.status === 'rejected') {
-      throw tabs.reason
-    }
-    const scope = action ?? settings.value.clickBehavior
-    const plan = createCapturePlan(scope, tabs.value(scope), settings.value)
+    const settings = await requireOperationalUserSettings()
+    language = resolveCaptureLanguage(settings.language)
+    const scope = action ?? settings.clickBehavior
+    const plan = createCapturePlan(
+      scope,
+      await readTabs(scope),
+      settings,
+      clickedTab ? { sameDomainAnchor: clickedTab } : undefined,
+    )
     if (plan.includedTabs.length === 0) {
       return []
     }

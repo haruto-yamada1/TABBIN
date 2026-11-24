@@ -121,14 +121,16 @@ const readRequired = (relativePath: string): string => {
 }
 
 describe('Firefox IndexedDB persistence smoke contract', () => {
-  it('requires native capture failure evidence before accepting a fresh Firefox result', () => {
+  it('requires native capture success, navigation and failure evidence', () => {
     const harness = readRequired(requiredFiles.harness)
     const runner = readRequired(requiredFiles.runner)
     expect(harness).toContain(
-      'captureSafety: await runFirefoxCaptureSafetySmoke()',
+      'captureSafety: await runFirefoxCaptureSafetySmoke(captureOrigin)',
     )
     expect(runner).toContain('assert.deepEqual(result.captureSafety, {')
     for (const fact of [
+      'completedTabClosed: true',
+      'loadingTabPreserved: true',
       'directFailures: 16',
       'toolbarFailures: 16',
       'fixtureTabs: 3',
@@ -170,7 +172,7 @@ describe('Firefox IndexedDB persistence smoke contract', () => {
     expect(readRequired(requiredFiles.environment)).toContain(
       'GECKODRIVER_PATH',
     )
-    expect(runner).toContain("runHarnessPhase(session, 'fresh')")
+    expect(runner).toMatch(/runHarnessPhase\(\s*session,\s*'fresh',/u)
     expect(runner).toContain("runHarnessPhase(session, 'verify')")
     expect(runner).toContain('deleteSession')
   })

@@ -1,10 +1,15 @@
 import { browser } from 'wxt/browser'
 
+import {
+  getAppEntryHref,
+  getSavedTabsEntryRoute,
+} from '@/features/navigation/lib/pageNavigation'
+
 /** 保存画面の識別とタブの再利用を管理する。 */
 let openingSavedTabsPage: Promise<number | null> | null = null
 let savedTabsPageId: number | null = null
 let duplicateCleanupRequested = false
-let duplicateCleanupDeferred = false
+const NEW_PAGE_TIMEOUT_MS = 10_000
 
 const isSavedTabsPageUrl = (value?: string): boolean => {
   if (!value) {
@@ -39,29 +44,109 @@ const isSavedTabsPageUrl = (value?: string): boolean => {
   }
 }
 
-const isSavedTabsPage = (tab: chrome.tabs.Tab): boolean =>
-  // A pending navigation away makes the current URL unsafe to reuse or close.
+const hasSavedTabsPageRoute = (tab: chrome.tabs.Tab): boolean =>
   isSavedTabsPageUrl(tab.pendingUrl ?? tab.url)
 
-const getSavedTabsPage = async (
-  tabId: number,
-): Promise<chrome.tabs.Tab | null> => {
+// Firefox can keep the previous URL during loading without a pendingUrl.
+const hasUnconfirmedFirefoxNavigation = (tab: chrome.tabs.Tab): boolean =>
+  tab.status === 'loading' &&
+  tab.pendingUrl === undefined &&
+  browser.runtime.getURL('/').startsWith('moz-extension:')
+
+const isSavedTabsPage = (tab: chrome.tabs.Tab): boolean =>
+  hasSavedTabsPageRoute(tab) && !hasUnconfirmedFirefoxNavigation(tab)
+
+const getTab = async (tabId: number): Promise<chrome.tabs.Tab | null> => {
   try {
     const tab = await browser.tabs.get(tabId)
-    return tab.id === tabId && isSavedTabsPage(tab) ? tab : null
+    return tab.id === tabId ? tab : null
   } catch {
     return null
   }
 }
 
+const getSavedTabsPage = async (
+  tabId: number,
+): Promise<chrome.tabs.Tab | null> => {
+  const tab = await getTab(tabId)
+  return tab && isSavedTabsPage(tab) ? tab : null
+}
+
+const isProvisionalTab = (tab: chrome.tabs.Tab | null): boolean =>
+  tab !== null &&
+  tab.pendingUrl === undefined &&
+  (tab.url === undefined ||
+    tab.url === 'about:blank' ||
+    (hasUnconfirmedFirefoxNavigation(tab) && hasSavedTabsPageRoute(tab)))
+
+/** Firefox may return about:blank before the requested extension page commits. */
+const waitForSavedTabsPage = async (tabId: number): Promise<boolean> =>
+  new Promise<boolean>((resolve) => {
+    let settled = false
+    const finish = (confirmed: boolean) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      clearTimeout(timer)
+      browser.tabs.onUpdated.removeListener(onUpdated)
+      browser.tabs.onRemoved.removeListener(onRemoved)
+      resolve(confirmed)
+    }
+    const inspect = (tab: chrome.tabs.Tab | null) => {
+      if (tab && isSavedTabsPage(tab)) {
+        finish(true)
+      } else if (!isProvisionalTab(tab)) {
+        finish(false)
+      }
+    }
+    const onUpdated: Parameters<
+      typeof browser.tabs.onUpdated.addListener
+    >[0] = (id, _change, tab) => {
+      if (id === tabId) {
+        inspect(tab)
+      }
+    }
+    const onRemoved = (id: number) => {
+      if (id === tabId) {
+        finish(false)
+      }
+    }
+    const timer = setTimeout(() => {
+      finish(false)
+    }, NEW_PAGE_TIMEOUT_MS)
+    try {
+      browser.tabs.onUpdated.addListener(onUpdated)
+      browser.tabs.onRemoved.addListener(onRemoved)
+      // Read after subscribing so a commit between create() and subscription
+      // is still observed.
+      void getTab(tabId).then(inspect)
+    } catch {
+      finish(false)
+    }
+  })
+
+const getReadyExistingPage = async (
+  tabId: number,
+): Promise<chrome.tabs.Tab | null> => {
+  const tab = await getTab(tabId)
+  if (!tab || !hasSavedTabsPageRoute(tab)) {
+    return null
+  }
+  if (hasUnconfirmedFirefoxNavigation(tab)) {
+    return (await waitForSavedTabsPage(tabId)) ? getSavedTabsPage(tabId) : null
+  }
+  return tab
+}
+
 const activateAndPinTabIfNeeded = async (tabId: number): Promise<boolean> => {
-  const tab = await getSavedTabsPage(tabId)
+  const tab = await getReadyExistingPage(tabId)
   if (!tab) {
     return false
   }
   await browser.tabs.update(tabId, { active: true })
   if (!tab.pinned) {
-    const current = await getSavedTabsPage(tabId)
+    const current = await getReadyExistingPage(tabId)
     if (!current) {
       return false
     }
@@ -79,82 +164,107 @@ const activateAndPinTabIfNeeded = async (tabId: number): Promise<boolean> => {
 const isValidTabId = (id: number | undefined): id is number =>
   id !== undefined && Number.isInteger(id) && id >= 0
 
-const closeDuplicateTabs = async (
-  candidates: chrome.tabs.Tab[],
-  mainTabId: number,
-): Promise<void> => {
-  const duplicateIds = new Set(
-    candidates
-      .map((tab) => tab.id)
-      .filter((id) => isValidTabId(id) && id !== mainTabId),
-  )
-  await Promise.all(
-    [...duplicateIds].map(async (id) => {
-      if (!isValidTabId(id) || !(await getSavedTabsPage(id))) {
-        return
-      }
-      try {
-        await browser.tabs.remove(id)
-      } catch (error) {
-        console.error('重複タブを閉じる際にエラー:', error)
-      }
-    }),
-  )
-}
+const querySavedTabsPages = async (): Promise<chrome.tabs.Tab[]> =>
+  (await browser.tabs.query({})).filter(isSavedTabsPage)
 
-const reuseCachedSavedTabsPage = async (id: number): Promise<boolean> => {
-  if (!(await activateAndPinTabIfNeeded(id))) {
-    return false
+const closeDuplicateTabs = async (mainTabId: number): Promise<void> => {
+  try {
+    const candidates = await querySavedTabsPages()
+    const duplicateIds = new Set(
+      candidates
+        .map((tab) => tab.id)
+        .filter((id): id is number => isValidTabId(id) && id !== mainTabId),
+    )
+    const checked = await Promise.all(
+      [...duplicateIds].map(async (id) =>
+        (await getSavedTabsPage(id)) && (await getSavedTabsPage(mainTabId))
+          ? id
+          : undefined,
+      ),
+    )
+    const verifiedIds = checked.filter(isValidTabId)
+    if (verifiedIds.length === 0) {
+      return
+    }
+
+    // Either tab can navigate during the individual checks. Confirm both
+    // identities in one browser snapshot immediately before removing tabs.
+    const currentIds = new Set(
+      (await querySavedTabsPages()).map((tab) => tab.id),
+    )
+    if (!currentIds.has(mainTabId)) {
+      return
+    }
+    await Promise.all(
+      verifiedIds
+        .filter((id) => currentIds.has(id))
+        .map(async (id) => {
+          try {
+            await browser.tabs.remove(id)
+          } catch (error) {
+            console.error('重複タブを閉じる際にエラー:', error)
+          }
+        }),
+    )
+  } catch (error) {
+    console.error('重複タブを検索する際にエラー:', error)
   }
-  if (duplicateCleanupRequested && duplicateCleanupDeferred) {
-    const candidates = (await browser.tabs.query({})).filter(isSavedTabsPage)
-    await closeDuplicateTabs(candidates, id)
-    duplicateCleanupDeferred = false
-  }
-  return true
 }
 
 const findOrCreateSavedTabsPage = async (): Promise<number | null> => {
-  try {
-    if (savedTabsPageId !== null) {
-      const cachedId = savedTabsPageId
-      savedTabsPageId = null
-      if (await reuseCachedSavedTabsPage(cachedId)) {
-        savedTabsPageId = cachedId
-        return cachedId
-      }
-    }
-    const candidates = (await browser.tabs.query({})).filter(isSavedTabsPage)
-    for (const candidate of candidates) {
-      const id = candidate.id
-      // eslint-disable-next-line eslint/no-await-in-loop -- Only activate one validated candidate; parallel activation would touch every tab.
-      if (!isValidTabId(id) || !(await activateAndPinTabIfNeeded(id))) {
-        continue
-      }
-      savedTabsPageId = id
-      duplicateCleanupDeferred = !duplicateCleanupRequested
-      if (duplicateCleanupRequested) {
-        // eslint-disable-next-line eslint/no-await-in-loop -- Finish cleanup for the selected main tab before returning its ID.
-        await closeDuplicateTabs(candidates, id)
-      }
+  const cachedId = savedTabsPageId
+  savedTabsPageId = null
+  if (cachedId !== null && (await activateAndPinTabIfNeeded(cachedId))) {
+    return cachedId
+  }
+  const candidates = (await browser.tabs.query({})).filter(
+    hasSavedTabsPageRoute,
+  )
+  for (const { id } of candidates) {
+    // eslint-disable-next-line eslint/no-await-in-loop -- Only activate one validated candidate; parallel activation would touch every tab.
+    if (isValidTabId(id) && (await activateAndPinTabIfNeeded(id))) {
       return id
     }
-    duplicateCleanupDeferred = false
-    const created = await browser.tabs.create({
-      url: browser.runtime.getURL('/saved-tabs.html'),
-      // Firefox can report about:blank until the requested page commits.
-      // Set the initial pin state at creation, without updating a provisional tab.
-      pinned: true,
-    })
-    if (isValidTabId(created.id)) {
-      savedTabsPageId = created.id
-      return created.id
+  }
+
+  const created = await browser.tabs.create({
+    url: new URL(
+      getAppEntryHref(getSavedTabsEntryRoute()),
+      browser.runtime.getURL('/'),
+    ).href,
+    pinned: true,
+  })
+  if (!isValidTabId(created.id)) {
+    return null
+  }
+  if (isProvisionalTab(created) && !(await waitForSavedTabsPage(created.id))) {
+    return null
+  }
+  return created.id
+}
+
+const openSharedSavedTabsPage = async (): Promise<number | null> => {
+  try {
+    const id = await findOrCreateSavedTabsPage()
+    if (id === null || !(await getSavedTabsPage(id))) {
+      return null
     }
+    // An explicit open can join while locating or creating the main tab.
+    if (duplicateCleanupRequested) {
+      await closeDuplicateTabs(id)
+      if (!(await getSavedTabsPage(id))) {
+        return null
+      }
+    }
+    savedTabsPageId = id
+    return id
   } catch (error) {
     console.error('saved-tabsページを開く際にエラーが発生しました:', error)
+    return null
+  } finally {
+    openingSavedTabsPage = null
+    duplicateCleanupRequested = false
   }
-  savedTabsPageId = null
-  return null
 }
 
 /** 全呼び出し元が同じ確定済みID、または失敗時のnullを受け取る。 */
@@ -162,10 +272,7 @@ const openSavedTabsPage = async ({
   closeDuplicates = true,
 }: { readonly closeDuplicates?: boolean } = {}): Promise<number | null> => {
   duplicateCleanupRequested ||= closeDuplicates
-  openingSavedTabsPage ??= findOrCreateSavedTabsPage().finally(() => {
-    openingSavedTabsPage = null
-    duplicateCleanupRequested = false
-  })
+  openingSavedTabsPage ??= openSharedSavedTabsPage()
   return openingSavedTabsPage
 }
 
@@ -174,7 +281,6 @@ const resetSavedTabsPageId = (): void => {
   savedTabsPageId = null
   openingSavedTabsPage = null
   duplicateCleanupRequested = false
-  duplicateCleanupDeferred = false
 }
 
 export { openSavedTabsPage, resetSavedTabsPageId }

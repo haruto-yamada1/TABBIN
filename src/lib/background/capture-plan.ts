@@ -8,6 +8,11 @@ type CapturePolicy = {
   readonly excludePatterns: readonly string[]
 }
 
+type CapturePlanOptions = {
+  readonly closeAfterSave?: boolean
+  readonly sameDomainAnchor?: Pick<chrome.tabs.Tab, 'url'>
+}
+
 type CapturedTab = Readonly<chrome.tabs.Tab & { url: string }>
 type ExclusionReason =
   | 'outside-scope'
@@ -87,22 +92,38 @@ const getExclusionReason = (
   return urlAllowed ? undefined : 'url-policy'
 }
 
+const isInCaptureScope = (
+  scope: CaptureScope,
+  index: number,
+  url: string | undefined,
+  hostname: string | undefined,
+): boolean => {
+  if (scope === 'saveCurrentTab') {
+    return index === 0
+  }
+  if (scope === 'saveSameDomainTabs') {
+    return hostname !== undefined && getHostname(url) === hostname
+  }
+  return true
+}
+
 /**
  * The caller supplies a single browser snapshot for the requested scope.
  * Selected-tab capture supplies only its highlighted tabs. Save-only capture
- * can use the same scope and set closeAfterSave to false.
+ * can use the same scope and set closeAfterSave to false. The toolbar supplies
+ * the clicked tab as its domain anchor even if another tab becomes active.
  */
 export const createCapturePlan = (
   scope: CaptureScope,
   tabs: readonly chrome.tabs.Tab[],
   settings: CapturePolicy,
-  closeAfterSave = true,
+  { closeAfterSave = true, sameDomainAnchor }: CapturePlanOptions = {},
 ): CapturePlan => {
   try {
     const settingsPolicy = snapshotCapturePolicy(settings)
     const hostname =
       scope === 'saveSameDomainTabs'
-        ? getHostname(tabs.find((tab) => tab.active)?.url)
+        ? getHostname((sameDomainAnchor ?? tabs.find((tab) => tab.active))?.url)
         : undefined
     const savableUrls = new Set(
       filterItemsBySavableUrl([...tabs], settingsPolicy.excludePatterns),
@@ -111,13 +132,9 @@ export const createCapturePlan = (
     const excludedReasons: CapturePlan['excludedReasons'][number][] = []
 
     for (const [index, tab] of tabs.entries()) {
-      const inScope =
-        (scope !== 'saveCurrentTab' || index === 0) &&
-        (scope !== 'saveSameDomainTabs' ||
-          (hostname !== undefined && getHostname(tab.url) === hostname))
       const reason = getExclusionReason(
         tab,
-        inScope,
+        isInCaptureScope(scope, index, tab.url, hostname),
         settingsPolicy.excludePinnedTabs,
         savableUrls.has(tab),
       )

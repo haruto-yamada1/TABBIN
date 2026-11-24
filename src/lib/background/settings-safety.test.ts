@@ -405,7 +405,8 @@ describe('settings safety at background operation boundaries', () => {
     const pinned = { ...source, id: 15 }
     const pending = { ...source, id: 16 }
     const added = { ...source, id: 17 }
-    setCaptureTabs([source, removed, navigated, pinned, pending])
+    const loading = { ...source, id: 18 }
+    setCaptureTabs([source, removed, navigated, pinned, pending, loading])
     const saving = Promise.withResolvers<{ savedUrls: string[] }>()
     const started = Promise.withResolvers<undefined>()
     mocked.saveTabs.mockImplementationOnce(async () => {
@@ -421,6 +422,7 @@ describe('settings safety at background operation boundaries', () => {
       { ...navigated, url: 'https://example.test/unsaved' },
       { ...pinned, pinned: true },
       { ...pending, pendingUrl: 'https://example.test/pending' },
+      { ...loading, status: 'loading' },
       added,
     ]
     saving.resolve({ savedUrls: [sourceUrl] })

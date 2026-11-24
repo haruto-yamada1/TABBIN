@@ -52,36 +52,41 @@ type SendTabMessage = (
 ) => Promise<unknown>
 
 type TabsHarness = {
-  query: ReturnType<typeof vi.fn>
+  query: ReturnType<
+    typeof vi.fn<(options: chrome.tabs.QueryInfo) => Promise<chrome.tabs.Tab[]>>
+  >
+  setTabs: (tabs: chrome.tabs.Tab[]) => void
   remove: ReturnType<typeof vi.fn>
   getAllWindows: ReturnType<typeof vi.fn>
   sendMessage: ReturnType<typeof vi.fn<SendTabMessage>>
 }
 const createChromeTabsHarness = (): TabsHarness => {
-  const query = vi.fn()
-
+  const liveTabs = new Map<number, chrome.tabs.Tab>()
+  const query = vi.fn(async (_options: chrome.tabs.QueryInfo) => [
+    ...liveTabs.values(),
+  ])
+  const getAllWindows = vi.fn(
+    async (): Promise<{ tabs?: chrome.tabs.Tab[] }[]> => [
+      { tabs: [...liveTabs.values()] },
+    ],
+  )
+  const setTabs = (tabs: chrome.tabs.Tab[]) => {
+    liveTabs.clear()
+    for (const tab of tabs) {
+      if (tab.id !== undefined) {
+        liveTabs.set(tab.id, tab)
+      }
+    }
+  }
   const remove = vi.fn(async () => undefined)
-
   const get = vi.fn(async (id: number) => {
-    const queried = query.mock.results.at(-1)?.value as
-      | Promise<chrome.tabs.Tab[]>
-      | undefined
-    const windows = getAllWindows.mock.results.at(-1)?.value as
-      | Promise<{ tabs?: chrome.tabs.Tab[] }[]>
-      | undefined
-    const tabs = queried
-      ? await queried
-      : (await windows)?.flatMap((window) => window.tabs ?? [])
-    const found = tabs?.find((tab) => tab.id === id)
+    const found = liveTabs.get(id)
     if (!found) {
       throw new Error('Tab not found')
     }
     return found
   })
 
-  const getAllWindows = vi.fn<() => Promise<{ tabs?: chrome.tabs.Tab[] }[]>>(
-    async () => [],
-  )
   const sendMessage = vi.fn<SendTabMessage>(async () => undefined)
   ;(
     globalThis as {
@@ -100,6 +105,7 @@ const createChromeTabsHarness = (): TabsHarness => {
   } as unknown as typeof chrome
   return {
     query,
+    setTabs,
     remove,
     getAllWindows,
     sendMessage,
@@ -269,8 +275,7 @@ describe('extension-actions モジュール', () => {
         async (failure) => {
           const chromeTabs = createChromeTabsHarness()
           const source = tab({ id: 10, url: 'https://example.test/article' })
-          chromeTabs.query.mockResolvedValue([source])
-          chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+          chromeTabs.setTabs([source])
           const error = new Error('private failure detail')
           if (failure === 'query') {
             chromeTabs.getAllWindows.mockRejectedValueOnce(error)
@@ -295,8 +300,7 @@ describe('extension-actions モジュール', () => {
       it('保存が完了するまで成功通知もタブ閉鎖もしない', async () => {
         const chromeTabs = createChromeTabsHarness()
         const source = tab({ id: 10, url: 'https://example.test/article' })
-        chromeTabs.query.mockResolvedValue([source])
-        chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+        chromeTabs.setTabs([source])
         const completion = Promise.withResolvers<{ savedUrls: string[] }>()
         mocked.dataPlaneSaveTabs.mockReturnValueOnce(completion.promise)
         const saving = save()
@@ -325,8 +329,7 @@ describe('extension-actions モジュール', () => {
         url: 'https://example.test/article',
         title: 'Article',
       })
-      chromeTabs.query.mockResolvedValue([source])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+      chromeTabs.setTabs([source])
       mocked.openSavedTabsPage.mockResolvedValueOnce(null)
 
       await expect(save()).resolves.toEqual([
@@ -355,8 +358,7 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      chromeTabs.query.mockResolvedValue([markedTab])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [markedTab] }])
+      chromeTabs.setTabs([markedTab])
       chromeTabs.sendMessage.mockResolvedValue({
         baseTitle: '✓ Site-owned title',
         displayTitle: markedTab.title,
@@ -381,7 +383,7 @@ describe('extension-actions モジュール', () => {
 
   it('保存対象から除外されたタブのタイトルは問い合わせない', async () => {
     const chromeTabs = createChromeTabsHarness()
-    chromeTabs.query.mockResolvedValue([
+    chromeTabs.setTabs([
       { ...tab({ id: 10, url: 'https://example.test' }), incognito: false },
     ])
     mocked.getUserSettings.mockResolvedValueOnce(
@@ -411,8 +413,7 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      chromeTabs.query.mockResolvedValue([marked])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [marked] }])
+      chromeTabs.setTabs([marked])
       chromeTabs.sendMessage.mockRejectedValue(new Error('closed private URL'))
       await save().catch(() => undefined)
       expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
@@ -441,8 +442,7 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      chromeTabs.query.mockResolvedValue([marked])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [marked] }])
+      chromeTabs.setTabs([marked])
       chromeTabs.sendMessage.mockResolvedValue({
         baseTitle: 'New document',
         displayTitle: '✓ New document',
@@ -478,8 +478,7 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      tabs.query.mockResolvedValue([marked])
-      tabs.getAllWindows.mockResolvedValue([{ tabs: [marked] }])
+      tabs.setTabs([marked])
       tabs.sendMessage.mockRejectedValue(
         new Error('private browser diagnostic'),
       )
@@ -520,7 +519,7 @@ describe('extension-actions モジュール', () => {
         incognito: false,
       },
     ]
-    tabs.query.mockResolvedValue(captures)
+    tabs.setTabs(captures)
     tabs.sendMessage.mockImplementation(async (id: number) =>
       id === 10
         ? {
@@ -549,32 +548,107 @@ describe('extension-actions モジュール', () => {
   })
 
   it.each(['empty', 'unavailable'] as const)(
-    'all windows falls back to tabs.query when windows are %s',
+    'all windows keeps the initial candidate boundary when windows are %s',
     async (state) => {
       const chromeTabs = createChromeTabsHarness()
       const source = tab({ id: 10, url: 'https://example.test/article' })
-      if (state === 'unavailable') {
-        chromeTabs.getAllWindows.mockRejectedValueOnce(
-          new Error('windows unavailable'),
-        )
-      }
-      chromeTabs.query.mockResolvedValueOnce([source])
-
-      await expect(handleSaveAllWindowsTabs()).resolves.toEqual([
-        { url: source.url, title: '' },
+      const primary = Promise.withResolvers<{ tabs?: chrome.tabs.Tab[] }[]>()
+      chromeTabs.setTabs([source])
+      chromeTabs.getAllWindows.mockReturnValueOnce(primary.promise)
+      const operation = handleSaveAllWindowsTabs()
+      chromeTabs.setTabs([
+        source,
+        tab({ id: 11, url: 'https://example.test/added-later' }),
       ])
+      if (state === 'empty') {
+        primary.resolve([])
+      } else {
+        primary.reject(new Error('windows unavailable'))
+      }
+
+      await expect(operation).resolves.toEqual([{ url: source.url, title: '' }])
       expect(chromeTabs.query).toHaveBeenCalledExactlyOnceWith({})
       expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10)
     },
   )
+
+  it.each(['saveAllWindowsTabs', 'saveWindowTabs'] as const)(
+    'toolbar %s uses its snapshots even if the other scope fails',
+    async (clickBehavior) => {
+      const chromeTabs = createChromeTabsHarness()
+      const source = tab({ id: 10, url: 'https://example.test/article' })
+      const otherWindow = tab({ id: 11, url: 'https://other.test/article' })
+      const allWindows = clickBehavior === 'saveAllWindowsTabs'
+      chromeTabs.setTabs([source, otherWindow])
+      chromeTabs.query.mockImplementation(async ({ currentWindow }) => {
+        if (Boolean(currentWindow) === allWindows) {
+          throw new Error('Unneeded scope failed')
+        }
+        return allWindows ? [source, otherWindow] : [source]
+      })
+      if (!allWindows) {
+        chromeTabs.getAllWindows.mockRejectedValueOnce(
+          new Error('All windows unavailable'),
+        )
+      }
+      mocked.getUserSettings.mockResolvedValue(buildSettings({ clickBehavior }))
+
+      await handleExtensionActionClick()
+
+      expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith(
+        allWindows ? [source, otherWindow] : [source],
+      )
+      expect(chromeTabs.remove.mock.calls.flat()).toEqual(
+        allWindows ? [10, 11] : [10],
+      )
+    },
+  )
+
+  it('toolbar same-domain capture uses the clicked URL when activation changes', async () => {
+    const chromeTabs = createChromeTabsHarness()
+    const source = {
+      ...tab({ id: 10, url: 'https://a.example/article', active: false }),
+      windowId: 1,
+    }
+    const other = {
+      ...tab({ id: 11, url: 'https://b.example/article', active: true }),
+      windowId: 1,
+    }
+    chromeTabs.setTabs([source, other])
+    mocked.getUserSettings.mockResolvedValue(
+      buildSettings({ clickBehavior: 'saveSameDomainTabs' }),
+    )
+
+    await handleExtensionActionClick({ ...source, active: true })
+
+    expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith([source])
+    expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10)
+  })
+
+  it('toolbar window capture can finish before the all-windows query settles', async () => {
+    const chromeTabs = createChromeTabsHarness()
+    const source = tab({ id: 10, url: 'https://example.test/article' })
+    const windows = Promise.withResolvers<{ tabs?: chrome.tabs.Tab[] }[]>()
+    chromeTabs.setTabs([source])
+    chromeTabs.getAllWindows.mockReturnValueOnce(windows.promise)
+
+    const operation = handleExtensionActionClick()
+    try {
+      await vi.waitFor(() =>
+        expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10),
+      )
+    } finally {
+      windows.resolve([{ tabs: [source] }])
+      await operation
+    }
+  })
 
   it.each([handleSaveWindowTabs, handleSaveAllWindowsTabs])(
     '%p preserves saved source tabs until a Saved Tabs page is confirmed',
     async (save) => {
       const chromeTabs = createChromeTabsHarness()
       const source = tab({ id: 10, url: 'https://example.test/article' })
-      chromeTabs.query.mockResolvedValue([source])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [source] }])
+      chromeTabs.setTabs([source])
       mocked.openSavedTabsPage.mockResolvedValueOnce(null)
       await expect(save()).resolves.toEqual([{ title: '', url: source.url }])
       expect(chromeTabs.remove).not.toHaveBeenCalled()
@@ -587,17 +661,18 @@ describe('extension-actions モジュール', () => {
       ...tab({ id: 10, url: 'https://example.test/article' }),
       windowId: 1,
     }
-    chromeTabs.getAllWindows.mockResolvedValue([
-      { tabs: [source] },
-      { tabs: [{ ...source, id: 11, windowId: 2 }] },
-    ])
+    const otherWindow = { ...source, id: 11, windowId: 2 }
+    chromeTabs.setTabs([source, otherWindow])
+    chromeTabs.query.mockImplementation(async ({ windowId }) =>
+      windowId === 1 ? [source] : [source, otherWindow],
+    )
     chromeTabs.remove.mockRejectedValueOnce(new Error('Source tab closed'))
     mocked.getUserSettings.mockResolvedValue(
       buildSettings({ clickBehavior: 'saveWindowTabs' }),
     )
     await handleExtensionActionClick(source)
     expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith([source])
-    expect(chromeTabs.query).not.toHaveBeenCalled()
+    expect(chromeTabs.query).toHaveBeenCalledWith({ windowId: 1 })
     expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10)
     expect(console.error).toHaveBeenCalledWith(
       'タブを閉じる際にエラー:',

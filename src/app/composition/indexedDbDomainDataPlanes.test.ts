@@ -1,9 +1,10 @@
-import { IDBFactory } from 'fake-indexeddb'
+import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
+import { PERSISTENCE_STORE_NAMES } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/persistenceDatabaseSchema'
 
 import {
   getAiConversationHistoryDataPlane,
@@ -262,38 +263,45 @@ describe('IndexedDB domain data-plane production composition', () => {
     const existingUrl = 'https://example.com/docs'
     const freshUrl = 'https://example.com:443/docs'
     await dataPlane.saveTabs([{ title: 'Existing', url: existingUrl }])
-    const writeStarted = Promise.withResolvers<undefined>()
-    const allowWrite = Promise.withResolvers<undefined>()
-    const write = operationGate.runIndexedDbWrite
-    vi.spyOn(operationGate, 'runIndexedDbWrite').mockImplementationOnce(
-      async (operation) => {
-        writeStarted.resolve(undefined)
-        await allowWrite.promise
-        return write(operation)
+    await expect(dataPlane.readInsightRecords()).resolves.toMatchObject([
+      { title: 'Existing', url: existingUrl },
+    ])
+
+    const events: string[] = []
+    const observedTransactions = new WeakSet<IDBTransaction>()
+    const put = IDBObjectStore.prototype.put
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(
+      function observeUrlWrite(this: IDBObjectStore, ...args) {
+        const request = put.apply(this, args)
+        if (this.name === PERSISTENCE_STORE_NAMES.urls) {
+          request.addEventListener('success', () => {
+            events.push('URL written')
+          })
+          const { transaction } = this
+          if (!observedTransactions.has(transaction)) {
+            observedTransactions.add(transaction)
+            transaction.addEventListener('complete', () => {
+              events.push('transaction complete')
+            })
+          }
+        }
+        return request
       },
     )
-    const onReceipt = vi.fn()
-    const saving = dataPlane.saveTabs([
+
+    const receipt = await dataPlane.saveTabs([
       { title: 'Updated', url: existingUrl },
       { title: 'Fresh', url: freshUrl },
       { title: 'Skipped', url: 'not a URL' },
       { title: 'Fresh duplicate', url: freshUrl },
       { title: 'Missing URL' },
     ])
-    const receipt = saving.then(onReceipt)
-    await writeStarted.promise
-    try {
-      expect(onReceipt).not.toHaveBeenCalled()
-      await expect(dataPlane.readInsightRecords()).resolves.toMatchObject([
-        { title: 'Existing', url: existingUrl },
-      ])
-    } finally {
-      allowWrite.resolve(undefined)
-    }
-    await receipt
-    expect(onReceipt).toHaveBeenCalledExactlyOnceWith({
-      savedUrls: [existingUrl, freshUrl],
-    })
+    expect(events).toEqual([
+      'URL written',
+      'URL written',
+      'transaction complete',
+    ])
+    expect(receipt).toEqual({ savedUrls: [existingUrl, freshUrl] })
     await expect(dataPlane.readInsightRecords()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ title: 'Updated', url: existingUrl }),

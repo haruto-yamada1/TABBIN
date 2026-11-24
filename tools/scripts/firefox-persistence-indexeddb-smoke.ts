@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
+import { createServer } from 'node:http'
+import type { Server } from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -118,26 +119,19 @@ const delay = async (milliseconds: number): Promise<void> =>
     setTimeout(resolve, milliseconds)
   })
 
-const reservePort = async (): Promise<number> => {
-  const server = createServer()
+const listenOnLoopback = async (server: Server): Promise<number> => {
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(0, '127.0.0.1', resolve)
   })
   const address = server.address()
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error)
-        return
-      }
-      resolve()
-    })
-  })
-  if (!address || typeof address === 'string') {
-    throw new Error('Could not reserve a local geckodriver port.')
-  }
+  assert.ok(address && typeof address !== 'string')
   return address.port
+}
+
+const reservePort = async (): Promise<number> => {
+  await using server = createServer()
+  return await listenOnLoopback(server)
 }
 
 const webdriverRequest = async <Value>(
@@ -392,6 +386,7 @@ const resolveExtensionUuid = async (profileDir: string): Promise<string> => {
 const runHarnessPhase = async <Result = SmokeResult>(
   session: WebDriverSession,
   phase: 'fresh' | 'verify' | 'alarm' | 'drag-background',
+  captureOrigin?: string,
 ): Promise<Result> => {
   const uuid = await resolveExtensionUuid(session.profileDir)
   await sessionCommand(session, '/url', {
@@ -401,9 +396,10 @@ const runHarnessPhase = async <Result = SmokeResult>(
     script: WEBDRIVER_SCRIPT_TIMEOUT_MS,
   })
   const execution = await sessionCommand<unknown>(session, '/execute/async', {
-    args: [phase],
+    args: [phase, captureOrigin ?? null],
     script: `
       const phase = arguments[0]
+      const captureOrigin = arguments[1]
       const done = arguments[arguments.length - 1]
       const run = () => {
         const api = globalThis.__tabbinFirefoxPersistenceSmoke
@@ -411,7 +407,7 @@ const runHarnessPhase = async <Result = SmokeResult>(
           done({ ok: false, error: { name: 'HarnessMissingError', message: 'IndexedDB harness global is missing.' } })
           return
         }
-        api.runFirefoxPersistenceSmoke(phase).then(
+        api.runFirefoxPersistenceSmoke(phase, captureOrigin).then(
           (value) => done({ ok: true, value }),
           (error) => done({ ok: false, error: { name: error?.name, message: error?.message, stack: error?.stack } }),
         )
@@ -460,9 +456,11 @@ const assertFreshResult = (result: SmokeResult): JsonRecord => {
     restored: true,
   })
   assert.deepEqual(result.captureSafety, {
+    completedTabClosed: true,
     directFailures: 16,
     toolbarFailures: 16,
     fixtureTabs: 3,
+    loadingTabPreserved: true,
     tabsUnchanged: true,
     persistenceUnchanged: true,
     settingsUnchanged: true,
@@ -732,7 +730,22 @@ const run = async (): Promise<void> => {
     await waitForDriver(baseUrl, () => driverFailure)
     session = await createSession(baseUrl, profileDir, executables.firefoxPath)
     await installAddon(session, xpiPath)
-    const fresh = await runHarnessPhase(session, 'fresh')
+    const captureFixture = createServer((request, response) => {
+      // Hold the response until the harness removes the navigating tab.
+      if (request.url !== '/capture-loading') {
+        response.writeHead(200, { 'Content-Type': 'text/html' })
+        response.end('<!doctype html><title>Firefox capture fixture</title>')
+      }
+    })
+    const capturePort = await listenOnLoopback(captureFixture)
+    const fresh = await runHarnessPhase(
+      session,
+      'fresh',
+      `http://127.0.0.1:${capturePort}`,
+    ).finally(() => {
+      captureFixture.close()
+      captureFixture.closeAllConnections()
+    })
     const obsoleteStorageBefore = assertFreshResult(fresh)
     const firefoxVersion = session.version
     const openingMeasurements =

@@ -24,6 +24,7 @@ const ROUTE_TIMEOUT_MS = 10_000
 export const waitForRoute = async (
   id: number,
   expectedUrl: string,
+  { requireComplete = false }: { readonly requireComplete?: boolean } = {},
 ): Promise<void> =>
   new Promise((resolve, reject) => {
     const cleanup = () => {
@@ -41,8 +42,12 @@ export const waitForRoute = async (
         ),
       )
     }, ROUTE_TIMEOUT_MS)
-    const inspect = (tab: Pick<chrome.tabs.Tab, 'id' | 'url'>) => {
-      if (tab.id === id && tab.url?.startsWith(expectedUrl)) {
+    const inspect = (tab: Pick<chrome.tabs.Tab, 'id' | 'url' | 'status'>) => {
+      if (
+        tab.id === id &&
+        tab.url?.startsWith(expectedUrl) &&
+        (!requireComplete || tab.status === 'complete')
+      ) {
         cleanup()
         resolve()
       }
@@ -101,12 +106,12 @@ export const runFirefoxSavedTabsPageSmoke =
             stage = 'create main'
             const mainId = await create(chrome.runtime.getURL(requestedPath))
             const route = chrome.runtime.getURL('app.html#/saved-tabs')
-            await waitForRoute(mainId, route)
+            await waitForRoute(mainId, route, { requireComplete: true })
             stage = 'create duplicate'
             const duplicateId = await create(
               chrome.runtime.getURL(requestedPath),
             )
-            await waitForRoute(duplicateId, route)
+            await waitForRoute(duplicateId, route, { requireComplete: true })
             stage = 'open concurrent'
             const concurrentIds = await Promise.all([
               openSavedTabsPage(),
