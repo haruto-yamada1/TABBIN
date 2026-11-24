@@ -5,6 +5,7 @@ import type {
   SortOrder,
   SortScope,
 } from '@/contexts/saved-tabs/application/ports/SavedTabsSortPreferencesPort'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 export type SortPreferenceKey = { scope: SortScope; id: string }
 
@@ -51,8 +52,8 @@ export const createSortPreferenceStore = (
       return () => {}
     }
     const readRevision = ++revision
-    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-    void port.read(key.scope, key.id).then(
+    void handlePromiseSettlement(
+      port.read(key.scope, key.id),
       (order) => {
         if (disposed || revision !== readRevision) {
           return
@@ -90,8 +91,8 @@ export const createSortPreferenceStore = (
     writing = true
     const writeRevision = ++revision
     update({ sortOrder: order, isPending: true })
-    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-    void port.write(key.scope, key.id, order).then(
+    void handlePromiseSettlement(
+      port.write(key.scope, key.id, order),
       () => {
         writing = false
         if (revision === writeRevision) {

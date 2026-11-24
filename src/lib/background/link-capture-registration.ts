@@ -1,3 +1,5 @@
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
+
 export type LinkCaptureRegistrationDeps = {
   readEnabled: () => Promise<boolean>
   hasPermissions: () => Promise<boolean>
@@ -29,8 +31,7 @@ export const createLinkCaptureRegistration = (
   }
   return {
     reconcile: async (): Promise<void> => {
-      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-      pending = pending.then(reconcile, reconcile)
+      pending = handlePromiseSettlement(pending, reconcile, reconcile)
       return pending
     },
   }

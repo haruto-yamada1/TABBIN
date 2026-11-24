@@ -9,6 +9,7 @@ import {
   AcademyPersistenceError,
   createChromeAcademyProgressRepository,
 } from '@/features/academy/infrastructure/ChromeAcademyProgressRepository'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 const chromeStorage = vi.hoisted(() => ({
   getLocal: vi.fn<() => unknown>(() => null),
@@ -60,8 +61,8 @@ const createSerialLock = () => {
   let tail = Promise.resolve()
   return async <T>(operation: () => Promise<T>): Promise<T> => {
     const result = tail.then(operation)
-    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-    tail = result.then(
+    tail = handlePromiseSettlement(
+      result,
       () => undefined,
       () => undefined,
     )

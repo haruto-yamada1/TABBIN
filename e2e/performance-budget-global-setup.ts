@@ -2,8 +2,8 @@ import { execFileSync } from 'node:child_process'
 
 import setupRenderingBuild from './rendering-global-setup'
 
-export default async function setupBudgetBuild() {
-  await setupRenderingBuild()
+export default function setupBudgetBuild() {
+  setupRenderingBuild()
   execFileSync(
     'bun',
     [

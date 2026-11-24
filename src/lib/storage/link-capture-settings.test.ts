@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LINK_CAPTURE_SETTINGS_KEY } from '@/constants/linkCapture'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import {
   DEFAULT_LINK_CAPTURE_SETTINGS,
@@ -21,10 +22,9 @@ const coordinateUpdates = () => {
       _options: unknown,
       operation: () => Promise<unknown>,
     ) => {
-      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-      const result = pending.then(operation, operation)
-      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-      pending = result.then(
+      const result = pending.then(operation)
+      pending = handlePromiseSettlement(
+        result,
         () => undefined,
         () => undefined,
       )

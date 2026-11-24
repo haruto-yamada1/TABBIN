@@ -459,13 +459,11 @@ describe('Oxlint production API restrictions', () => {
     ).toEqual([])
   })
 
-  it('errors on unused directives and accepts a directive suppressing a violation', () => {
+  it('errors on an unused disable directive in a temporary fixture', () => {
     const { diagnostics, status } = lintFixtures({
       'src/lib/fixture/adapter.ts': [
         '// oxlint-disable-next-line eslint/no-restricted-globals -- No restricted API below.',
         'export const value = true',
-        '// oxlint-disable-next-line eslint/no-restricted-globals -- Intentional fixture exception.',
-        'alert("message")',
       ].join('\n'),
     })
     expect(status).toBe(1)

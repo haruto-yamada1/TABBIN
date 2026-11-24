@@ -27,6 +27,7 @@ import {
   isLinkCaptureAction,
   linkCaptureMessageSchema,
 } from '@/types/link-capture'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
@@ -193,8 +194,8 @@ const setupMessageListener = (): void => {
         sendResponse(emptyLinkCaptureResponse('invalid_message'))
         return false
       }
-      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-      void handleLinkCaptureMessage(capture.data, sender).then(
+      void handlePromiseSettlement(
+        handleLinkCaptureMessage(capture.data, sender),
         sendResponse,
         () => {
           sendResponse(emptyLinkCaptureResponse('error'))
@@ -236,8 +237,8 @@ const setupMessageListener = (): void => {
     })
     switch (typedMessage.action) {
       case 'refreshNativeSavedTabTitles': {
-        // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-        void refreshSavedTabTitleIndicator().then(
+        void handlePromiseSettlement(
+          refreshSavedTabTitleIndicator(),
           () => {
             sendResponse({ status: 'ok' })
           },

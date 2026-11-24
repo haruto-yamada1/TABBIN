@@ -14,6 +14,7 @@ import {
   NATIVE_SAVED_TAB_TITLE_ACTION,
 } from '@/lib/browser/saved-tab-title'
 import { readSavedTabTitleEnabled } from '@/lib/storage/saved-tab-title-indicator'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { createSavedTabTitleState } from './saved-tab-title-state'
 
@@ -64,8 +65,11 @@ export const registerSavedTabTitleIndicator = (): void => {
     state.removed(id)
   })
   browser.tabs.onActivated.addListener(({ tabId }) => {
-    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-    void browser.tabs.get(tabId).then(state.update, () => {})
+    void handlePromiseSettlement(
+      browser.tabs.get(tabId),
+      state.update,
+      () => {},
+    )
   })
   browser.permissions.onAdded.addListener(() => {
     void state.refresh()

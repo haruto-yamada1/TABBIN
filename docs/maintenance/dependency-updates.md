@@ -111,9 +111,9 @@ breaking change に伴う application migration と実動作確認は人間ま�
   `vitest/no-conditional-in-test` はテスト本体で期待値やアサーションが飛ばされる問題を検出する。
   `vitest/require-awaited-expect-poll` は Vitest の poll を対象とし、Playwright の poll は
   既存の Playwright ルールで確認する。
-- lint の抑制は検出対象を狭く指定し、理由を書く。特に `promise/prefer-catch` の例外では
-  元の Promise の拒否だけを扱う必要がある。`then(success, failure)` を
-  `then(success).catch(failure)` に変えると `success` の例外まで `failure` に渡る。
+- Promise の結果を処理するときは、失敗を扱う範囲を明示する。成功後の処理が投げた例外を
+  元のリクエストの失敗と区別する場合は、元の Promise の `await` を `try` に入れ、
+  成功後の処理はその外で実行する。
 
 ### Local refresh (2026-10-29)
 

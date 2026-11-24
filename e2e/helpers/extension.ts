@@ -1,5 +1,4 @@
 /* eslint-disable */
-/* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises */
 import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -69,9 +68,11 @@ export const test = base.extend<ExtensionFixtures>({
   },
   page: async ({ extensionContext }, runFixture) => {
     const page = await extensionContext.newPage()
-    await runFixture(page).finally(async () => {
+    try {
+      await runFixture(page)
+    } finally {
       await page.close()
-    })
+    }
   },
   serviceWorker: async ({ extensionContext }, runFixture) => {
     let [serviceWorker] = extensionContext.serviceWorkers()

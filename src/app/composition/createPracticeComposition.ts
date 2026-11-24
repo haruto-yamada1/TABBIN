@@ -74,6 +74,14 @@ const createSession = (seed: PracticeSeed): PracticeSession => {
   }
 }
 
+const waitForPracticeWork = async (work: Promise<unknown>): Promise<void> => {
+  try {
+    await work
+  } catch {
+    // The operation's caller still receives the rejection through its own promise.
+  }
+}
+
 /**
  * The only dependencies are memory and the existing saved-tabs domain/use cases.
  * There is deliberately no production factory or browser-global fallback.
@@ -227,11 +235,7 @@ export const createPracticeComposition = (
       }
       return result
     })
-    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-    source.queue = work.then(
-      () => undefined,
-      () => undefined,
-    )
+    source.queue = waitForPracticeWork(work)
     return work
   }
   // A typed real use-case object supplies the operation table. Only dispatch is
@@ -363,11 +367,7 @@ export const createPracticeComposition = (
         searchHistory = []
         const session = current
         const delivery = publishChanges(session)
-        // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-        session.queue = delivery.then(
-          () => undefined,
-          () => undefined,
-        )
+        session.queue = waitForPracticeWork(delivery)
         await delivery
       }
     },
@@ -395,11 +395,7 @@ export const createPracticeComposition = (
       // Callers await delivery, including lifecycle cancellation and listener
       // failures. Reset never launches an unobserved publication promise.
       const delivery = publishChanges(session)
-      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-      session.queue = delivery.then(
-        () => undefined,
-        () => undefined,
-      )
+      session.queue = waitForPracticeWork(delivery)
       await delivery
     },
     dispose: () => {

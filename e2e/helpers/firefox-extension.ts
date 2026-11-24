@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-misused-promises, playwright/no-skipped-test -- Firefox startup smoke is gated by FIREFOX_EXTENSION_SMOKE=1 */
+/* eslint-disable playwright/no-skipped-test -- Firefox startup smoke is gated by FIREFOX_EXTENSION_SMOKE=1 */
 import { existsSync } from 'node:fs'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
@@ -208,9 +208,11 @@ export const test = base.extend<FirefoxExtensionSmokeFixtures>({
   },
   firefoxExtensionPage: async ({ firefoxExtensionContext }, runFixture) => {
     const page = await firefoxExtensionContext.newPage()
-    await runFixture(page).finally(async () => {
+    try {
+      await runFixture(page)
+    } finally {
       await page.close()
-    })
+    }
   },
   firefoxExtensionUuid: async (
     { firefoxExtensionProfile, firefoxExtensionContext },

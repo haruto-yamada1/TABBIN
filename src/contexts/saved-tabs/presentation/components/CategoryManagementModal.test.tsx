@@ -1,4 +1,3 @@
-/* eslint-disable typescript/only-throw-error -- mock interface で sync callback を使う test idiom */
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
@@ -809,10 +808,9 @@ describe('CategoryManagementModal', () => {
 
   it('リネーム保存で non-Error を投げた場合も stack なしでハンドリングする', async () => {
     const user = userEvent.setup()
-    const renameParentCategory = vi.fn(async () => {
-      // eslint-disable-next-line eslint/no-throw-literal
-      throw 'string-error'
-    }) as unknown as RenameParentCategoryUseCase
+    const renameParentCategory = vi
+      .fn<RenameParentCategoryUseCase>()
+      .mockRejectedValue('string-error')
     const { deps, useCases } = setupMocks({
       useCases: { renameParentCategory },
     })

@@ -12,6 +12,7 @@ import type {
   AiChatHistoryItem,
 } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 type ConversationHistoryState = {
   activeConversationId: string
@@ -128,8 +129,8 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
       newConversationTitle,
       interruptedResponseMessage,
     )
-    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-    void loadHistory.then(
+    void handlePromiseSettlement(
+      loadHistory,
       (nextState) => {
         if (!isCurrentLoad) {
           return
@@ -166,8 +167,8 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
     ).then(async () => saveConversationHistory(state))
     saveQueueRef.current = queuedSave
     setHistoryError((current) => (current === 'save' ? null : current))
-    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-    void queuedSave.then(
+    void handlePromiseSettlement(
+      queuedSave,
       () => {
         if (isMountedRef.current && saveQueueRef.current === queuedSave) {
           setHistoryError((current) => (current === 'save' ? null : current))

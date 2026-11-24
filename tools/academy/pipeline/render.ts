@@ -113,25 +113,29 @@ export const runMediaCommand = async (
       reject(error instanceof Error ? error : new Error(String(error)))
     })
     child.once('close', (code, signal) => {
-      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
-      void (stderr ? appendFile(logFile, stderr) : Promise.resolve()).then(
-        () => {
-          clearTimeout(timer)
-          if (timedOut || code !== 0) {
-            reject(
-              new Error(
-                `${binary} failed: ${timedOut ? 'timeout' : String(code ?? signal)}. See render.log.`,
-              ),
-            )
-          } else {
-            resolve(stdout)
-          }
-        },
-        (error: unknown) => {
+      const stderrWrite = stderr
+        ? appendFile(logFile, stderr)
+        : Promise.resolve()
+      const finish = async (): Promise<void> => {
+        try {
+          await stderrWrite
+        } catch (error) {
           clearTimeout(timer)
           reject(error instanceof Error ? error : new Error(String(error)))
-        },
-      )
+          return
+        }
+        clearTimeout(timer)
+        if (timedOut || code !== 0) {
+          reject(
+            new Error(
+              `${binary} failed: ${timedOut ? 'timeout' : String(code ?? signal)}. See render.log.`,
+            ),
+          )
+        } else {
+          resolve(stdout)
+        }
+      }
+      void finish()
     })
   })
 }
