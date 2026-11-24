@@ -11,6 +11,7 @@ import type {
   AiChatStreamErrorMessage,
   AlarmStatusResponse,
   BackgroundMessage,
+  CheckExpiredTabsMessage,
   OllamaErrorDetails,
   OllamaModelListResponse,
   StatusResponse,
@@ -280,17 +281,7 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'checkExpiredTabs': {
-        handleCheckExpiredTabsMessage(
-          {
-            ...(typedMessage.updateTimestamps !== undefined
-              ? { updateTimestamps: typedMessage.updateTimestamps }
-              : {}),
-            ...(typedMessage.period !== undefined
-              ? { period: typedMessage.period }
-              : {}),
-          },
-          sendResponse,
-        )
+        handleCheckExpiredTabsMessage(typedMessage, sendResponse)
         return true
       }
       case 'updateTabTimestamps': {
@@ -500,10 +491,7 @@ const handleCalculateTimeRemainingMessage = (
  * 期限切れタブチェックメッセージの処理
  */
 const handleCheckExpiredTabsMessage = (
-  message: {
-    updateTimestamps?: boolean
-    period?: string
-  },
+  message: CheckExpiredTabsMessage,
   sendResponse: (response: StatusResponse) => void,
 ): void => {
   logger.info('background_expired_tabs_check_requested', {
@@ -513,13 +501,12 @@ const handleCheckExpiredTabsMessage = (
   // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
     logger.debug('background_tab_timestamp_update_started')
-    // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)
       .then((_result) => {
         logger.debug('background_tab_timestamp_update_completed')
 
-        // 設定を再読み込みし、チェック実行
-        checkAndRemoveExpiredTabs()
+        // A check already in progress may have read the prior timestamps.
+        checkAndRemoveExpiredTabs({ afterCurrent: true })
           .then(() => {
             logger.debug('background_expired_tabs_check_completed')
             sendResponse({
@@ -543,8 +530,7 @@ const handleCheckExpiredTabsMessage = (
         })
       })
   } else {
-    // 単純化 - 常に強制リロードする
-    checkAndRemoveExpiredTabs()
+    checkAndRemoveExpiredTabs({ afterCurrent: message.forceReload === true })
       .then(() => {
         logger.debug('background_expired_tabs_check_completed')
         sendResponse({
@@ -572,6 +558,9 @@ const handleUpdateTabTimestampsMessage = (
   logger.debug('background_tab_timestamp_force_update_started')
   updateTabTimestamps(message.period)
     .then((result) => {
+      if (result.success) {
+        void checkAndRemoveExpiredTabs({ afterCurrent: true })
+      }
       sendResponse({
         result,
         status: 'completed',

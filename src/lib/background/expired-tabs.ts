@@ -79,7 +79,7 @@ export const getExpirationPeriodMs = (
   }
 }
 
-export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
+const scanExpiredTabs = async (): Promise<void> => {
   try {
     logger.debug('background_expired_tabs_check_started')
     const settings = await requireOperationalUserSettings()
@@ -120,6 +120,20 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
   }
 }
 
+let checkInFlight: Promise<void> | undefined
+
+export const checkAndRemoveExpiredTabs = async ({
+  afterCurrent = false,
+}: { readonly afterCurrent?: boolean } = {}): Promise<void> => {
+  if (afterCurrent) {
+    await checkInFlight
+  }
+  checkInFlight ??= scanExpiredTabs().finally(() => {
+    checkInFlight = undefined
+  })
+  return checkInFlight
+}
+
 export const updateTabTimestamps = async (
   period?: string,
 ): Promise<{ readonly success: boolean; readonly timestamp: number }> => {
@@ -140,7 +154,6 @@ export const updateTabTimestamps = async (
       return { success: false, timestamp: 0 }
     }
     logger.info('background_tab_timestamp_update_completed')
-    void checkAndRemoveExpiredTabs()
     return { success: true, timestamp }
   } catch (error) {
     logger.error('background_tab_timestamp_update_failed', error)

@@ -1041,6 +1041,19 @@ describe('setupMessageListener', () => {
       })
     })
 
+    const reloadResponse = vi.fn()
+    listener(
+      { action: 'checkExpiredTabs', forceReload: true },
+      trustedSender,
+      reloadResponse,
+    )
+    await vi.waitFor(() => {
+      expect(reloadResponse).toHaveBeenCalledWith({ status: 'completed' })
+      expect(mocked.checkAndRemoveExpiredTabs).toHaveBeenLastCalledWith({
+        afterCurrent: true,
+      })
+    })
+
     const checkWithoutPeriodResponse = vi.fn()
     mocked.updateTabTimestamps.mockResolvedValueOnce('updated')
     mocked.checkAndRemoveExpiredTabs.mockResolvedValueOnce(undefined)

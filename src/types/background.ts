@@ -81,6 +81,7 @@ export const backgroundMessageSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('checkExpiredTabs'),
+    forceReload: z.boolean().optional(),
     period: z.string().optional(),
     updateTimestamps: z.boolean().optional(),
   }),

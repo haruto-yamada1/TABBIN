@@ -16,6 +16,7 @@ import type { UserSettings } from '@/types/storage'
 const EXPIRATION_ALARM = 'checkExpiredTabs'
 const SENTINEL_ALARM = 'firefox-expiration-smoke-sentinel'
 const EXPIRING_URL_ID = 'firefox-alarm-expired'
+const DAY_MS = 86_400_000
 const STORAGE_KEYS = [
   'userSettings',
   'reviewReminderSettings',
@@ -54,6 +55,24 @@ const restoreAlarm = async (
         : { periodInMinutes: alarm.periodInMinutes }),
     })
   }
+}
+
+const waitForExpirationSchedule = async (enabled: boolean): Promise<void> => {
+  const deadline = Date.now() + 5_000
+  while (Date.now() < deadline) {
+    // eslint-disable-next-line no-await-in-loop -- Wait for background storage reconciliation.
+    const alarm = await browser.alarms.get(EXPIRATION_ALARM)
+    if (enabled ? alarm?.periodInMinutes === 0.5 : !alarm) {
+      return
+    }
+    // eslint-disable-next-line no-await-in-loop -- Yield before polling the native schedule again.
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50)
+    })
+  }
+  throw new Error(
+    `Native Firefox expiration alarm failed to become ${enabled ? 'periodic' : 'absent'} after a settings change.`,
+  )
 }
 
 const waitForExpiration = async (
@@ -103,19 +122,19 @@ export const runFirefoxExpiredTabsAlarmSmoke =
     const previousAlarm = await browser.alarms.get(EXPIRATION_ALARM)
     const previousSentinel = await browser.alarms.get(SENTINEL_ALARM)
     const now = Date.now()
-    const old = now - 2 * 86_400_000
+    const cutoff = now - DAY_MS
     const fresh = createUrlFixture(
       'firefox-alarm-fresh',
       'https://firefox-alarm.example/fresh',
       'Fresh Firefox saved URL',
-      now,
+      cutoff + 60_000,
     )
     const favorite = {
       ...createUrlFixture(
         'firefox-alarm-favorite',
         'https://firefox-alarm.example/favorite',
         'Favorite Firefox saved URL',
-        old,
+        cutoff - 1_000,
       ),
       isFavorite: true,
     }
@@ -139,15 +158,19 @@ export const runFirefoxExpiredTabsAlarmSmoke =
             EXPIRING_URL_ID,
             'https://firefox-alarm.example/expired',
             'Expired Firefox saved URL',
-            old,
+            cutoff - 1_000,
           ),
           fresh,
           favorite,
         ],
       },
     }
-    const settings: UserSettings = {
+    const disabledSettings: UserSettings = {
       ...verifiedSettings,
+      autoDeletePeriod: 'never',
+    }
+    const settings: UserSettings = {
+      ...disabledSettings,
       autoDeletePeriod: '1day',
     }
     const notification = {
@@ -165,29 +188,31 @@ export const runFirefoxExpiredTabsAlarmSmoke =
       // The real listener reads only the default database. Replace its saved-tab
       // slice temporarily and restore it before this dedicated profile is closed.
       await local.set({
-        userSettings: { ...verifiedSettings, autoDeletePeriod: 'never' },
-      })
-      await dataPlane.restoreUndoSnapshot(fixture)
-      await local.set({
-        userSettings: settings,
+        userSettings: disabledSettings,
         reviewReminderNotification: notification,
       })
+      await waitForExpirationSchedule(false)
       await browser.alarms.create(SENTINEL_ALARM, {
         when: now + 3_600_000,
       })
       const alarmsBefore = await otherAlarms()
       const notificationsBefore = await browser.notifications.getAll()
+      await local.set({ userSettings: settings })
+      await waitForExpirationSchedule(true)
       const storageBefore = await local.get(STORAGE_KEYS)
+      await dataPlane.restoreUndoSnapshot(fixture)
       browser.alarms.onAlarm.addListener(observeAlarm)
       await browser.alarms.create(EXPIRATION_ALARM, {
         when: Date.now() + 1_000,
-        periodInMinutes: 0.5,
       })
       const after = await waitForExpiration(
         dataPlane.readUndoSnapshot,
         () => alarmFired,
       )
+      await waitForExpirationSchedule(true)
       const storageAfter = await local.get(STORAGE_KEYS)
+      await local.set({ userSettings: disabledSettings })
+      await waitForExpirationSchedule(false)
       result = {
         alarmFired,
         expiredRemoved:
@@ -208,15 +233,17 @@ export const runFirefoxExpiredTabsAlarmSmoke =
           sameValue(
             await browser.notifications.getAll(),
             notificationsBefore,
-          ) && sameValue(storageAfter.reviewReminderNotification, notification),
+          ) &&
+          sameValue(
+            (await local.get(STORAGE_KEYS)).reviewReminderNotification,
+            notification,
+          ),
         settingsUnchanged: sameValue(storageAfter, storageBefore),
       }
     } finally {
       browser.alarms.onAlarm.removeListener(observeAlarm)
       // Disable deletion before restoring the old profile rows and schedule.
-      await local.set({
-        userSettings: { ...verifiedSettings, autoDeletePeriod: 'never' },
-      })
+      await local.set({ userSettings: disabledSettings })
       await browser.alarms.clear(EXPIRATION_ALARM)
       await dataPlane.restoreUndoSnapshot(previousSnapshot)
       await local.remove(['userSettings', 'reviewReminderNotification'])
