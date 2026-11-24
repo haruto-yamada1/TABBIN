@@ -1,5 +1,5 @@
 await import('@tabbin/legacy-tooling/eslint-react')
-await import('@secretlint/secretlint-rule-preset-recommend')
+await import('secretlint')
 
 const { parseSync } = await import('@swc/core')
 parseSync('export type ToolingDependencyProbe = string', {

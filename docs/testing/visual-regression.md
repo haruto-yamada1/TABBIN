@@ -42,7 +42,7 @@ OS やフォント描画が異なる macOS の画像を Linux 基準として co
 ```sh
 docker run --rm --platform linux/amd64 --ipc=host \
   -v "$PWD:/work" -v /work/node_modules -w /work \
-  mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea \
+  mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579 \
   bash -lc 'npm install --global bun@1.3.14 && bun install --frozen-lockfile && bun run test:visual:update && bun run test:visual --repeat-each=3'
 ```
 

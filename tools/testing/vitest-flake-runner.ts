@@ -55,7 +55,11 @@ export default class FlakeRunner extends TestRunner {
     })
   }
 
-  onAfterRetryTask(test: RunnerTestCase): void {
+  override async onAfterRetryTask(
+    test: RunnerTestCase,
+    options: TestTryOptions,
+  ): Promise<void> {
+    await super.onAfterRetryTask(test, options)
     const pending = this.pending.get(test)
     if (!pending) {
       return
