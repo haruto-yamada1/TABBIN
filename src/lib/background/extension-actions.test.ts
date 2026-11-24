@@ -396,6 +396,64 @@ describe('extension-actions モジュール', () => {
     expect(chromeTabs.sendMessage).not.toHaveBeenCalled()
   })
 
+  describe('保存結果の通知 (#892)', () => {
+    it('対象タブがすべてピン留めで除外された場合は理由を通知する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([
+        tab({ id: 10, pinned: true, url: 'https://example.test/a' }),
+      ])
+
+      await expect(handleSaveWindowTabs()).resolves.toEqual([])
+
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブは保存されませんでした',
+        '対象のタブはすべてピン留めされています。ピン留めタブを除外する設定が有効なため、保存されませんでした。',
+      )
+    })
+
+    it('対象タブがすべて除外パターンに一致する場合は理由を通知する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([tab({ id: 10, url: 'https://ignore.example/a' })])
+
+      await expect(handleSaveWindowTabs()).resolves.toEqual([])
+
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブは保存されませんでした',
+        '対象のタブは保存できません。URLまたは除外パターンを確認してください。',
+      )
+    })
+
+    it('一部スキップした場合は成功通知にスキップ件数を添える', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([
+        tab({ id: 10, title: 'A', url: 'https://example.test/a' }),
+        tab({ id: 11, pinned: true, url: 'https://example.test/b' }),
+      ])
+
+      await handleSaveWindowTabs()
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブ保存',
+        '1個のタブが保存されました。タブを閉じます。\n保存できない1個のタブをスキップしました。',
+      )
+    })
+
+    it('保存対象があったのに1件も保存されなかった場合は失敗を通知する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([tab({ id: 10, url: 'https://example.test/a' })])
+      mocked.dataPlaneSaveTabs.mockResolvedValueOnce({ savedUrls: [] })
+
+      await expect(handleSaveWindowTabs()).resolves.toEqual([])
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブは保存されませんでした',
+        '対象のタブは保存できません。URLまたは除外パターンを確認してください。',
+      )
+    })
+  })
+
   it.each([
     ['current', handleSaveCurrentTab],
     ['window', handleSaveWindowTabs],
