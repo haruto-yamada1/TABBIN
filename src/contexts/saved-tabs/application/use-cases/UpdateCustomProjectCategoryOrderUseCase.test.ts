@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { describe, expect, it, vi } from 'vitest'
 
 import type { CustomProjectsCommandService } from '@/contexts/saved-tabs/application/ports/CustomProjectsCommandService'
 

@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createSavedTabsPresentationPortsStub,
@@ -204,7 +204,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -711,11 +711,9 @@ describe('CustomProjectCategory', () => {
     const emptyState = screen.getByTestId('empty-state')
     expect(emptyState).toBeTruthy()
     expect(
-      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('border-primary'),
     ).toBe(true)
     expect(
-      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('bg-primary/10'),
     ).toBe(true)
   })

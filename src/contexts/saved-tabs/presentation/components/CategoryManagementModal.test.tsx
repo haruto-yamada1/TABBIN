@@ -1,4 +1,3 @@
-/* eslint-disable typescript/no-misused-promises, typescript/unbound-method, typescript/only-throw-error -- mock interface で sync callback を使う test idiom */
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
@@ -15,7 +14,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
@@ -174,7 +173,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -809,10 +808,9 @@ describe('CategoryManagementModal', () => {
 
   it('リネーム保存で non-Error を投げた場合も stack なしでハンドリングする', async () => {
     const user = userEvent.setup()
-    const renameParentCategory = vi.fn(async () => {
-      // eslint-disable-next-line eslint/no-throw-literal
-      throw 'string-error'
-    }) as unknown as RenameParentCategoryUseCase
+    const renameParentCategory = vi
+      .fn<RenameParentCategoryUseCase>()
+      .mockRejectedValue('string-error')
     const { deps, useCases } = setupMocks({
       useCases: { renameParentCategory },
     })
@@ -840,7 +838,6 @@ describe('CategoryManagementModal', () => {
       expect(
         (console.error as unknown as ReturnType<typeof vi.fn>).mock.calls.some(
           ([message, payload]) =>
-            // eslint-disable-line
             message === 'Modal - カテゴリ名の更新に失敗:' &&
             payload &&
             typeof payload === 'object' &&
@@ -973,7 +970,6 @@ describe('CategoryManagementModal', () => {
         mockStateRef.current.parentCategories =
           mockStateRef.current.parentCategories.filter((c) => !idSet.has(c.id))
         const removed = mockStateRef.current.parentCategories.find(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (c) => c.id === (command.categoryId as unknown as string),
         )
         await deferredRemove.promise
@@ -1319,7 +1315,6 @@ describe('CategoryManagementModal', () => {
       const originalFind = Array.prototype.find
       using findSpy = vi.spyOn(Array.prototype, 'find')
       findSpy.mockImplementation((predicate, thisArg) => {
-        // eslint-disable-line
         const context = findSpy.mock.contexts[
           findSpy.mock.calls.length - 1
         ] as unknown[]

@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { SavedTabsSearchHistoryPort } from '@/contexts/saved-tabs/application/ports/SavedTabsSearchHistoryPort'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { useSearchHistory } from './useSearchHistory'
 
@@ -17,7 +18,7 @@ const delayedSchedule =
     new Promise<string[]>((resolve, reject) => {
       const timer = setTimeout(() => {
         signal.removeEventListener('abort', cancel)
-        void record(query).then(resolve, reject)
+        void handlePromiseSettlement(record(query), resolve, reject)
       }, 1200)
       const cancel = () => {
         clearTimeout(timer)

@@ -1,10 +1,13 @@
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { accessSync, constants } from 'node:fs'
 
 import { evaluateDependencyAudit } from './dependency-audit'
 
 try {
-  // Raw registry JSON retains every advisory, including the accepted finding.
+  accessSync('package.json', constants.R_OK)
+  accessSync('bun.lock', constants.R_OK)
+
+  // Preserve all registry severities and apply the blocking threshold locally.
   // No CLI ignores, severity filtering, retries, or cached success are used.
   const audit = spawnSync('bun', ['audit', '--json'], {
     encoding: 'utf8',
@@ -22,21 +25,11 @@ try {
   const result = evaluateDependencyAudit({
     stdout: audit.stdout,
     status: audit.status,
-    packageInput: JSON.parse(readFileSync('package.json', 'utf8')),
-    lockContent: readFileSync('bun.lock', 'utf8'),
-    now: new Date(),
   })
   // JSON escapes untrusted titles, so registry strings cannot inject workflow commands.
   console.log(JSON.stringify(result, null, 2))
-  if (result.accepted.length) {
-    console.warn(
-      '[security:audit] Reviewed temporary exception applied; the advisory remains present. See accepted entries and expiry above.',
-    )
-  }
   if (result.blocking.length) {
-    console.error(
-      '[security:audit] Unaccepted High/Critical advisories block this gate.',
-    )
+    console.error('[security:audit] High/Critical advisories block this gate.')
     process.exitCode = 1
   }
 } catch (error) {

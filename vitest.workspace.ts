@@ -1,4 +1,3 @@
-/* eslint-disable import/no-default-export */
 import path from 'node:path'
 
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'

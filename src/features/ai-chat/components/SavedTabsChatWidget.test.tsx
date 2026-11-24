@@ -1,4 +1,3 @@
-/* eslint-disable typescript/no-misused-promises, typescript/unbound-method, typescript/only-throw-error -- mock interface で sync callback を使う test idiom */
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
@@ -15,7 +14,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getAiChatToolDefinitions } from '@/constants/aiChatTools'
 import type { UserSettings } from '@/types/storage'
@@ -26,7 +25,7 @@ const mocked = vi.hoisted(() => ({
   conversationScrollButtonVisible: false,
   getUserSettings: vi.fn(),
   language: 'en' as 'en' | 'ja',
-  platformOs: 'mac',
+  platformOs: 'mac' as chrome.runtime.PlatformInfo['os'],
   saveUserSettings: vi.fn(),
   sendRuntimeMessage: vi.fn(),
   toastError: vi.fn(),
@@ -95,7 +94,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -148,7 +147,7 @@ const createChromeMock = () =>
         (callback: (info: chrome.runtime.PlatformInfo) => void) => {
           callback({
             arch: 'x86-64',
-            os: mocked.platformOs as chrome.runtime.PlatformOs,
+            os: mocked.platformOs,
           })
         },
       ),
@@ -934,7 +933,6 @@ describe('SavedTabsChatWidget', () => {
       onMessage: {
         removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1242,7 +1240,6 @@ describe('SavedTabsChatWidget', () => {
 
     expect(saveButton.hasAttribute('disabled')).toBe(false)
 
-    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const nameInput = screen.getByLabelText('Prompt name') as HTMLInputElement
 
     expect(nameInput.maxLength).toBe(25)
@@ -1289,7 +1286,6 @@ describe('SavedTabsChatWidget', () => {
     mocked.getUserSettings.mockResolvedValue({
       ...buildConfiguredSettings(),
       aiSystemPrompts: [
-        // eslint-disable-next-line typescript/non-nullable-type-assertion-style
         buildConfiguredSettings().aiSystemPrompts?.[0] as NonNullable<
           UserSettings['aiSystemPrompts']
         >[number],
@@ -1368,7 +1364,6 @@ describe('SavedTabsChatWidget', () => {
       onMessage: {
         removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1570,7 +1565,6 @@ describe('SavedTabsChatWidget', () => {
       onMessage: {
         removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1731,7 +1725,6 @@ describe('SavedTabsChatWidget', () => {
       onMessage: {
         removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1833,7 +1826,6 @@ describe('SavedTabsChatWidget', () => {
       onMessage: {
         removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -1979,7 +1971,6 @@ describe('SavedTabsChatWidget', () => {
       })
     })
 
-    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
     const submitButton = screen.getByRole('button', { name: 'Submit' })
 
@@ -2136,7 +2127,6 @@ describe('SavedTabsChatWidget', () => {
       onMessage: {
         removeListener: vi.fn(),
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           handlePortMessage = listener
         }),
       },
@@ -2289,7 +2279,6 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     // eslint-disable-next-line testing-library/prefer-user-event
@@ -2322,7 +2311,6 @@ describe('SavedTabsChatWidget', () => {
       }),
     )
 
-    // eslint-disable-next-line typescript/no-unnecessary-type-assertion
     const textarea = screen.getByLabelText('Ask AI') as HTMLTextAreaElement
 
     // eslint-disable-next-line testing-library/prefer-user-event

@@ -7,6 +7,7 @@ import {
 } from 'react'
 
 import type { SavedTabsSearchHistoryPort } from '@/contexts/saved-tabs/application/ports/SavedTabsSearchHistoryPort'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 const createHistoryStore = (port: SavedTabsSearchHistoryPort | undefined) => {
   let snapshot: { entries: string[]; error: boolean; ready: boolean } = {
@@ -30,7 +31,8 @@ const createHistoryStore = (port: SavedTabsSearchHistoryPort | undefined) => {
       return
     }
     const current = ++revision
-    void port.read().then(
+    void handlePromiseSettlement(
+      port.read(),
       (entries) => {
         if (active && current === revision) {
           update({ entries, error: false, ready: true })

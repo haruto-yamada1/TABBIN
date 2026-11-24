@@ -39,17 +39,21 @@ export const createGetProjectUrlsUseCase = (
       if (!record) {
         return null
       }
-      const category = membership.categoryId
-        ? categoryNameById.get(membership.categoryId)
-        : undefined
+      const categoryId = membership.categoryId ?? ''
+      const category =
+        categoryId === '' ? undefined : categoryNameById.get(categoryId)
       const entry: ProjectUrlEntry = {
-        ...(category ? { category } : {}),
-        ...(record.favIconUrl ? { favIconUrl: record.favIconUrl } : {}),
+        ...(category !== undefined && category !== '' ? { category } : {}),
+        ...(record.favIconUrl !== undefined && record.favIconUrl !== ''
+          ? { favIconUrl: record.favIconUrl }
+          : {}),
         ...(record.isFavorite !== undefined
           ? { isFavorite: record.isFavorite }
           : {}),
         id: record.id,
-        ...(membership.notes ? { notes: membership.notes } : {}),
+        ...(membership.notes !== undefined && membership.notes !== ''
+          ? { notes: membership.notes }
+          : {}),
         savedAt: record.savedAt,
         title: record.title,
         url: record.url,

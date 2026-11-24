@@ -599,7 +599,10 @@ const assertUrlOpeningResult = (
       `${name} must report the requested URLs.`,
     )
     assert.deepEqual(scenario.failureReasons, [])
-    assert.deepEqual(scenario.removedIds.toSorted(), ids.toSorted())
+    assert.deepEqual(
+      scenario.removedIds.toSorted((left, right) => left.localeCompare(right)),
+      ids.toSorted((left, right) => left.localeCompare(right)),
+    )
     assert.equal(scenario.createdTabCount, ids.length)
     for (const id of ids) {
       assert.equal(scenario.remainingIds.includes(id), false)

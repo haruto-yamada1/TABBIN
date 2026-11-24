@@ -121,11 +121,8 @@ export const CustomModeContainer = ({
           mode='custom'
           rows={openTabsRows}
           settings={settings}
-          // eslint-disable-next-line typescript/no-misused-promises
           handleOpenAllTabs={handleOpenAllUrls}
-          // eslint-disable-next-line typescript/no-misused-promises
           handleOpenTab={handleOpenUrl}
-          // eslint-disable-next-line typescript/no-misused-promises
           handleDeleteUrl={handleDeleteUrl}
           handleDeleteUrls={handleDeleteUrlsFromProject}
           {...(handleDeleteSelectedUrls !== undefined

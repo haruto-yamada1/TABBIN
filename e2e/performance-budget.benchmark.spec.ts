@@ -1,4 +1,3 @@
-/* eslint-disable no-await-in-loop -- workloads must finish sequentially */
 import { execFileSync } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 

@@ -1,3 +1,5 @@
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
+
 export type LinkCaptureRegistrationDeps = {
   readEnabled: () => Promise<boolean>
   hasPermissions: () => Promise<boolean>
@@ -29,7 +31,7 @@ export const createLinkCaptureRegistration = (
   }
   return {
     reconcile: async (): Promise<void> => {
-      pending = pending.then(reconcile, reconcile)
+      pending = handlePromiseSettlement(pending, reconcile, reconcile)
       return pending
     },
   }

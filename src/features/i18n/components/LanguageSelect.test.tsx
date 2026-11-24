@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { describe, expect, it, vi } from 'vitest'
 
 import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'
 import { defaultSettings } from '@/lib/storage/settings'

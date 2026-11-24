@@ -42,10 +42,7 @@ const run = (report: string, status: number, stderr = '') => {
     const args = path.join(directory, 'args')
     const result = spawnSync(
       bun,
-      [
-        '--eval',
-        `const RealDate = Date; globalThis.Date = class extends RealDate { constructor(value = '2026-11-18T00:00:00Z') { super(value) } }; await import(${JSON.stringify(path.join(root, 'tools/scripts/run-security-audit.ts'))})`,
-      ],
+      [path.join(root, 'tools/scripts/run-security-audit.ts')],
       {
         cwd: directory,
         env: {
@@ -66,28 +63,15 @@ const run = (report: string, status: number, stderr = '') => {
 }
 
 describe('security audit CLI', () => {
-  it('runs a full registry audit and reports the accepted finding without claiming clean', () => {
+  it('blocks the formerly exempt picomatch finding in a full registry audit', () => {
     const result = run(JSON.stringify({ picomatch: [advisory] }), 1)
-    expect(result.status).toBe(0)
-    expect(result.args).toBe('audit --json')
-    expect(JSON.parse(result.stdout).accepted).toEqual([
-      expect.objectContaining({ advisory: advisory.url }),
-    ])
-    expect(result.stdout).toContain(advisory.title)
-    expect(result.stderr).toContain('Reviewed temporary exception')
-    expect(result.stdout).not.toContain('No vulnerabilities')
-  })
-
-  it('preserves unaccepted advisory failure alongside the reviewed finding', () => {
-    const result = run(
-      JSON.stringify({
-        picomatch: [advisory, { ...advisory, severity: 'critical' }],
-      }),
-      1,
-    )
     expect(result.status).toBe(1)
-    expect(JSON.parse(result.stdout).blocking).toHaveLength(1)
-    expect(result.stderr).toContain('Unaccepted High/Critical')
+    expect(result.args).toBe('audit --json')
+    expect(JSON.parse(result.stdout).accepted).toEqual([])
+    expect(JSON.parse(result.stdout).blocking).toEqual([
+      expect.objectContaining({ url: advisory.url }),
+    ])
+    expect(result.stderr).toContain('High/Critical advisories block this gate')
   })
 
   it.each([
@@ -121,7 +105,7 @@ describe('security audit CLI', () => {
       }),
       1,
     )
-    expect(result.status).toBe(0)
+    expect(result.status).toBe(1)
     expect(result.stdout).not.toMatch(/^::error::/m)
     expect(JSON.parse(result.stdout).advisories[0].title).toContain(
       '\n::error::',

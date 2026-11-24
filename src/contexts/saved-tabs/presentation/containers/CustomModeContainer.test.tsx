@@ -79,7 +79,6 @@ const renderContainer = (
   return render(
     <SavedTabsUseCasesProvider
       value={{
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         deps: {
           ...createSavedTabsPresentationPortsStub(),
           openSavedTabsPort: port as never,

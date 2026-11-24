@@ -2,8 +2,6 @@ import { readFileSync } from 'node:fs'
 
 import { assert, describe, expect, it } from 'vitest'
 
-import { evaluateDependencyAudit } from './scripts/dependency-audit'
-
 type RenovatePackageRule = {
   automerge?: boolean
   dependencyDashboardApproval?: boolean
@@ -183,35 +181,10 @@ describe('Renovate dependency update policy', () => {
     expect(ciWorkflow).toContain('run: bun run security:audit')
   })
 
-  it('documents the reviewed advisory and enforces its exact deadline', () => {
-    const packageInput: unknown = JSON.parse(readRepositoryFile('package.json'))
-    const policy = readRepositoryFile('docs/maintenance/dependency-updates.md')
+  it('records the picomatch advisory withdrawal in the release policy', () => {
     const releasePolicy = readRepositoryFile('docs/release.md')
-    const input = {
-      packageInput,
-      lockContent: readRepositoryFile('bun.lock'),
-      stdout: JSON.stringify({
-        picomatch: [
-          {
-            id: 1247710,
-            url: 'https://github.com/advisories/GHSA-fc5q-39xc-vjpf',
-            title: 'reviewed advisory',
-            severity: 'high',
-            vulnerable_versions: '<=4.0.7',
-          },
-        ],
-      }),
-      status: 1,
-      now: new Date('2026-11-18T00:00:00Z'),
-    }
-    const accepted = evaluateDependencyAudit(input).accepted[0]
-    assert.isDefined(accepted)
-    expect(policy).toContain('picomatch')
     expect(releasePolicy).toContain('GHSA-fc5q-39xc-vjpf')
-    expect(releasePolicy).toContain(accepted.expiresAt.slice(0, 10))
-    expect(() =>
-      evaluateDependencyAudit({ ...input, now: new Date(accepted.expiresAt) }),
-    ).toThrow(/expired/)
+    expect(releasePolicy).toContain('2026-11-18 15:38 UTC')
   })
 
   it('requires each ignored advisory to own its expiry date', () => {

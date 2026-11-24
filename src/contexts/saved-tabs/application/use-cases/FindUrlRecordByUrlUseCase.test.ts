@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'

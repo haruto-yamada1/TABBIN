@@ -28,7 +28,7 @@ const hasCommandOutput = (
 ): error is { stderr?: unknown; stdout?: unknown; status?: unknown } =>
   typeof error === 'object' && error !== null
 
-const createFixture = (source: string, relativeSourcePath = 'src/index.ts') => {
+const createFixture = (files: Record<string, string>) => {
   const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'tabbin-oxlint-'))
   fixtureDirectories.push(fixtureRoot)
 
@@ -40,9 +40,12 @@ const createFixture = (source: string, relativeSourcePath = 'src/index.ts') => {
     'dir',
   )
 
-  const sourcePath = path.join(fixtureRoot, relativeSourcePath)
-  mkdirSync(path.dirname(sourcePath), { recursive: true })
-  writeFileSync(sourcePath, source)
+  const sourcePaths = Object.entries(files).map(([relativePath, source]) => {
+    const sourcePath = path.join(fixtureRoot, relativePath)
+    mkdirSync(path.dirname(sourcePath), { recursive: true })
+    writeFileSync(sourcePath, source)
+    return sourcePath
+  })
   writeFileSync(
     path.join(fixtureRoot, 'tsconfig.json'),
     JSON.stringify({
@@ -52,23 +55,20 @@ const createFixture = (source: string, relativeSourcePath = 'src/index.ts') => {
         strict: true,
         target: 'ES2024',
       },
-      include: ['src/**/*.ts'],
+      include: ['src/**/*.ts', 'src/**/*.tsx'],
     }),
   )
 
   return {
     configPath,
     rootPath: fixtureRoot,
-    sourcePath,
+    sourcePaths,
     tsconfigPath: path.join(fixtureRoot, 'tsconfig.json'),
   }
 }
 
-const runOxlint = (
-  source: string,
-  relativeSourcePath?: string,
-): CommandResult => {
-  const fixture = createFixture(source, relativeSourcePath)
+const runOxlintOnFiles = (files: Record<string, string>): CommandResult => {
+  const fixture = createFixture(files)
 
   try {
     execFileSync(
@@ -80,7 +80,9 @@ const runOxlint = (
         fixture.tsconfigPath,
         '--format',
         'json',
-        fixture.sourcePath,
+        '--threads',
+        '1',
+        ...fixture.sourcePaths,
       ],
       { cwd: fixture.rootPath, encoding: 'utf8', stdio: 'pipe' },
     )
@@ -97,6 +99,9 @@ const runOxlint = (
   }
 }
 
+const runOxlint = (source: string, relativeSourcePath = 'src/index.ts') =>
+  runOxlintOnFiles({ [relativeSourcePath]: source })
+
 afterEach(() => {
   for (const fixtureDirectory of fixtureDirectories.splice(0)) {
     rmSync(fixtureDirectory, { recursive: true, force: true })
@@ -107,17 +112,13 @@ describe('oxlint configuration', () => {
   it('keeps context layer fixture sources outside the production checkout', () => {
     const relativeSourcePath =
       'src/contexts/saved-tabs/domain/services/IsolatedDomainService.ts'
-    const fixture = createFixture(
-      'export const value = 1\n',
-      relativeSourcePath,
-    )
+    const fixture = createFixture({
+      [relativeSourcePath]: 'export const value = 1\n',
+    })
+    const sourcePath = path.join(fixture.rootPath, relativeSourcePath)
 
-    expect(
-      path.relative(projectRoot, fixture.sourcePath).split(path.sep)[0],
-    ).toBe('..')
-    expect(fixture.sourcePath).toBe(
-      path.join(path.dirname(fixture.tsconfigPath), relativeSourcePath),
-    )
+    expect(path.relative(projectRoot, sourcePath).split(path.sep)[0]).toBe('..')
+    expect(fixture.sourcePaths).toEqual([sourcePath])
   })
 
   it('disallows type assertions except as const', () => {
@@ -198,14 +199,14 @@ export const tab: SavedTab = { title: 'test' }
         'src/contexts/*/domain/**/*.{ts,tsx}',
         'src/contexts/*/application/**/*.{ts,tsx}',
       ],
-      rules: {
+      rules: expect.objectContaining({
         'eslint/no-param-reassign': [
           'error',
           {
             props: true,
           },
         ],
-      },
+      }),
     })
   })
 
@@ -351,4 +352,146 @@ export const UnsafeDialogStory = {
     expect(result.output).not.toContain('eslint/no-restricted-globals')
     expect(result.output).not.toContain('eslint/no-restricted-properties')
   })
+})
+
+type Diagnostic = {
+  code?: string
+  filename: string
+  labels: { span: { line: number } }[]
+  message: string
+  severity: string
+}
+
+const sharedRestrictions = [
+  ['alert("message")', 'globals'],
+  ['confirm("message")', 'globals'],
+  ['prompt("message")', 'globals'],
+  ['new DOMParser()', 'globals'],
+  ['window.alert("message")', 'properties'],
+  ['window.confirm("message")', 'properties'],
+  ['window.prompt("message")', 'properties'],
+  ['globalThis.alert("message")', 'properties'],
+  ['globalThis.confirm("message")', 'properties'],
+  ['globalThis.prompt("message")', 'properties'],
+  ['document.body.innerHTML', 'properties'],
+  ['document.body.outerHTML', 'properties'],
+  ['document.body.insertAdjacentHTML', 'properties'],
+  ['document.write', 'properties'],
+] as const
+const storageRestrictions = [
+  ['chrome', 'globals'],
+  ['chrome.tabs', 'properties'],
+  ['localStorage', 'globals'],
+  ['window.indexedDB', 'properties'],
+] as const
+const coreRestrictions = [
+  ['fetch("/example")', 'globals'],
+  ['Date.now()', 'properties'],
+] as const
+const restrictions = [
+  ...sharedRestrictions,
+  ...storageRestrictions,
+  ...coreRestrictions,
+]
+const restrictedSource = restrictions
+  .map(([expression]) => expression)
+  .join('\n')
+
+const lintFixtures = (files: Record<string, string>) => {
+  const { output, status } = runOxlintOnFiles(files)
+  const diagnostics = output
+    ? (JSON.parse(output) as { diagnostics: Diagnostic[] }).diagnostics
+    : []
+  return { diagnostics, status }
+}
+
+describe('Oxlint production API restrictions', () => {
+  const layers = [
+    [
+      'src/contexts/fixture/domain/rules.ts',
+      [...storageRestrictions, ...coreRestrictions],
+    ],
+    [
+      'src/contexts/fixture/application/use-case.ts',
+      [...storageRestrictions, ...coreRestrictions],
+    ],
+    ['src/contexts/fixture/presentation/view.tsx', storageRestrictions],
+    ['src/features/fixture/model.ts', storageRestrictions],
+    ['src/components/fixture/View.tsx', storageRestrictions],
+    ['src/contexts/fixture/infrastructure/adapter.ts', []],
+    ['src/lib/fixture/adapter.ts', []],
+    ['src/entrypoints/fixture.ts', []],
+  ] as const
+
+  it('applies shared and layer-specific restrictions while allowing storage adapters', () => {
+    const files = Object.fromEntries(
+      layers.map(([file]) => [file, restrictedSource]),
+    )
+    const { status, diagnostics } = lintFixtures(files)
+    expect(status).toBe(1)
+
+    for (const [file, layerRestrictions] of layers) {
+      const expected = new Set([...sharedRestrictions, ...layerRestrictions])
+      for (const [index, restriction] of restrictions.entries()) {
+        const [expression, rule] = restriction
+        const detected = diagnostics.some(
+          ({ code, filename, labels }) =>
+            (filename === file || filename.endsWith(`/${file}`)) &&
+            code === `eslint(no-restricted-${rule})` &&
+            labels[0]?.span.line === index + 1,
+        )
+        expect({ detected, file, expression }).toEqual({
+          detected: expected.has(restriction),
+          file,
+          expression,
+        })
+      }
+    }
+  })
+
+  it('preserves the browser API exceptions for tests and stories', () => {
+    const { diagnostics } = lintFixtures({
+      'src/features/fixture/model.test.ts': restrictedSource,
+      'src/features/fixture/View.stories.tsx': restrictedSource,
+    })
+    expect(
+      diagnostics.filter(({ code }) => code?.includes('no-restricted-')),
+    ).toEqual([])
+  })
+
+  it('errors on an unused disable directive in a temporary fixture', () => {
+    const { diagnostics, status } = lintFixtures({
+      'src/lib/fixture/adapter.ts': [
+        '// oxlint-disable-next-line eslint/no-restricted-globals -- No restricted API below.',
+        'export const value = true',
+      ].join('\n'),
+    })
+    expect(status).toBe(1)
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        message: expect.stringMatching(
+          /unused (?:oxlint-)?disable directive/iu,
+        ),
+        severity: 'error',
+      }),
+    ])
+    expect(diagnostics[0]?.labels[0]?.span.line).toBe(1)
+  })
+})
+
+it('reports an unawaited Vitest poll and accepts an awaited poll', () => {
+  const { diagnostics, status } = lintFixtures({
+    'src/utils/poll.test.ts': [
+      'import { expect, it } from "vitest"',
+      'it("checks both forms", async () => {',
+      '  expect.poll(() => true).toBe(true)',
+      '  await expect.poll(() => true).toBe(true)',
+      '})',
+    ].join('\n'),
+  })
+  expect(status).toBe(1)
+  const pollDiagnostics = diagnostics.filter(
+    ({ code }) => code === 'vitest(require-awaited-expect-poll)',
+  )
+  expect(pollDiagnostics.map(({ labels }) => labels[0]?.span.line)).toEqual([3])
 })

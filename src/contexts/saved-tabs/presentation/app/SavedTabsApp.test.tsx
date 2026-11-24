@@ -1,10 +1,9 @@
-/* eslint-disable max-lines-per-function, typescript/consistent-type-imports, typescript/no-misused-promises, typescript/require-await -- vi.importActual の typeof import および mock interface の sync 実装 */
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SavedTabsUiFixtureApi } from '@/app/composition/testing/SavedTabsAppFixtures'
 import {
@@ -12,6 +11,8 @@ import {
   toAppParentCategoryFixture,
   toAppCustomProjectFixture,
 } from '@/app/composition/testing/SavedTabsAppFixtures'
+import type * as savedTabsFixturesModule from '@/app/composition/testing/SavedTabsAppFixtures'
+import type * as savedTabsUseCasesModule from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import type { SavedTabsTabGroupDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { createSavedTabsTabGroupDto as createCurrentTabGroup } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationFixtures'
 import {
@@ -19,6 +20,7 @@ import {
   createSavedTabsUseCasesStub,
 } from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
 import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
+import type * as savedTabsControllerModule from '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController'
 import { toSavedTabsTabGroupViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
@@ -28,6 +30,9 @@ import type {
   SavedTabsUrlRecordDto as UrlRecord,
   SavedTabsUserSettingsDto as UserSettingsDto,
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
+import type * as i18nMessages from '@/features/i18n/messages'
+
+import type * as savedTabsAppModule from './SavedTabsApp'
 
 const repositoryFixtures = vi.hoisted(() => ({
   current: {} as SavedTabsUiFixtureApi,
@@ -224,10 +229,9 @@ vi.mock('@/components/ui/sonner', () => ({
 }))
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
-  const { getMessages } = await vi.importActual<
-    // eslint-disable-next-line typescript/consistent-type-imports
-    typeof import('@/features/i18n/messages')
-  >('@/features/i18n/messages')
+  const { getMessages } = await vi.importActual<typeof i18nMessages>(
+    '@/features/i18n/messages',
+  )
 
   return {
     useI18n: () => ({
@@ -238,7 +242,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -343,16 +347,16 @@ vi.mock('./SavedTabsApp', async () => {
   // UI tests inject current domain repositories. Native persistence is verified
   // separately by savedTabsFlowRegression.test.ts using real IndexedDB stores.
   const actual =
-    await vi.importActual<typeof import('./SavedTabsApp')>('./SavedTabsApp')
-  const controllerMod = await vi.importActual<
-    typeof import('@/contexts/saved-tabs/presentation/controllers/useSavedTabsController')
-  >('@/contexts/saved-tabs/presentation/controllers/useSavedTabsController')
-  const compositionMod = await vi.importActual<
-    typeof import('@/contexts/saved-tabs/application/createSavedTabsUseCases')
-  >('@/contexts/saved-tabs/application/createSavedTabsUseCases')
-  const depsMod = await vi.importActual<
-    typeof import('@/app/composition/testing/SavedTabsAppFixtures')
-  >('@/app/composition/testing/SavedTabsAppFixtures')
+    await vi.importActual<typeof savedTabsAppModule>('./SavedTabsApp')
+  const controllerMod = await vi.importActual<typeof savedTabsControllerModule>(
+    '@/contexts/saved-tabs/presentation/controllers/useSavedTabsController',
+  )
+  const compositionMod = await vi.importActual<typeof savedTabsUseCasesModule>(
+    '@/contexts/saved-tabs/application/createSavedTabsUseCases',
+  )
+  const depsMod = await vi.importActual<typeof savedTabsFixturesModule>(
+    '@/app/composition/testing/SavedTabsAppFixtures',
+  )
 
   const TestSavedTabsApp = (
     props: React.ComponentProps<typeof actual.SavedTabsApp>,
@@ -436,7 +440,6 @@ const _legacyRemoveUrlsFromAll = vi.fn(async (): Promise<void> => undefined)
 const createRepositoryReadMock = (
   values: Record<string, unknown>,
 ): ReturnType<typeof vi.fn> =>
-  // eslint-disable-next-line typescript/require-await -- mock interface 同期実装
   vi.fn(async (key: string | string[]) => {
     const keys = Array.isArray(key) ? key : [key]
     const result: Record<string, unknown> = {}
@@ -536,52 +539,52 @@ const buildTestStorageSnapshot = () => {
   }
 }
 
+beforeEach(() => {
+  vi.clearAllMocks()
+  mocked.settings.enableCategories = true
+  mocked.settings.openUrlInBackground = false
+  mocked.settings.removeTabAfterOpen = false
+  mocked.settings.openAllInNewWindow = false
+  mocked.categoryState.categories = []
+  mocked.categoryState.categoryOrder = []
+  mocked.categoryState.isCategoryReorderMode = false
+  mocked.categoryState.tempCategoryOrder = []
+  mocked.projectState.viewMode = 'custom'
+  mocked.projectState.viewModeRef = { current: 'custom' }
+  mocked.tabDataState.tabGroups = []
+  mocked.tabDataState.tabGroupsWithUrls = []
+  mocked.tabDataState.isLoading = false
+  const testSnapshot = buildTestStorageSnapshot()
+  const fixtureApi = repositoryFixtures
+  fixtureApi.current = {
+    repositories: {
+      data: {
+        read: vi.fn(async () => testSnapshot),
+        write: vi.fn(),
+      },
+      changes: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      },
+    },
+    tabs: {
+      create: vi.fn(),
+    },
+    windows: {
+      create: vi.fn(),
+    },
+    runtime: {
+      getURL: vi.fn(),
+    },
+  } as SavedTabsUiFixtureApi
+})
+
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
+
 describe('SavedTabsApp custom search', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mocked.settings.enableCategories = true
-    mocked.settings.openUrlInBackground = false
-    mocked.settings.removeTabAfterOpen = false
-    mocked.settings.openAllInNewWindow = false
-    mocked.categoryState.categories = []
-    mocked.categoryState.categoryOrder = []
-    mocked.categoryState.isCategoryReorderMode = false
-    mocked.categoryState.tempCategoryOrder = []
-    mocked.projectState.viewMode = 'custom'
-    mocked.projectState.viewModeRef = { current: 'custom' }
-    mocked.tabDataState.tabGroups = []
-    mocked.tabDataState.tabGroupsWithUrls = []
-    mocked.tabDataState.isLoading = false
-    const testSnapshot = buildTestStorageSnapshot()
-    const fixtureApi = repositoryFixtures
-    fixtureApi.current = {
-      repositories: {
-        data: {
-          read: vi.fn(async () => testSnapshot),
-          write: vi.fn(),
-        },
-        changes: {
-          addListener: vi.fn(),
-          removeListener: vi.fn(),
-        },
-      },
-      tabs: {
-        create: vi.fn(),
-      },
-      windows: {
-        create: vi.fn(),
-      },
-      runtime: {
-        getURL: vi.fn(),
-      },
-    } as SavedTabsUiFixtureApi
-  })
-
-  afterEach(() => {
-    cleanup()
-    vi.restoreAllMocks()
-  })
-
   it('一覧の全URL購読はdomainモードで表示設定がONの間だけ行う', async () => {
     const listeners = new Set<() => void>()
     const openSavedTabsPort = {
@@ -1380,7 +1383,6 @@ describe('SavedTabsApp custom search', () => {
     } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
-      // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         enableCategories: false,
@@ -1870,7 +1872,9 @@ describe('SavedTabsApp custom search', () => {
     expect(removeUrlsFromTabGroup).not.toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalledWith('削除に失敗しました')
   })
+})
 
+describe('SavedTabsApp domain actions and storage synchronization', () => {
   it('未分類ドラッグは既に並び替え中なら一時順序だけを更新する', async () => {
     const firstGroup: TabGroup = {
       domain: 'first.example.com',
@@ -3281,7 +3285,9 @@ describe('SavedTabsApp custom search', () => {
 
     expect(mocked.customModeContainerSpy).toHaveBeenCalled()
   })
+})
 
+describe('SavedTabsApp opening and removing tabs', () => {
   it('すべて開くは設定更新後に新規ウィンドウへまとめて開く', async () => {
     const group: TabGroup = {
       domain: 'example.com',
@@ -3325,7 +3331,6 @@ describe('SavedTabsApp custom search', () => {
     } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
-      // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         openAllInNewWindow: true,
@@ -4020,7 +4025,6 @@ describe('SavedTabsApp custom search', () => {
     } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
-      // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         removeTabAfterOpen: false,

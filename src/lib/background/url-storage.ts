@@ -1,6 +1,7 @@
 /** URL・ストレージ操作モジュール */
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import type { DraggedUrlInfo } from '@/types/background'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { requireOperationalUserSettings } from './settings-policy'
 
@@ -11,8 +12,9 @@ const DRAG_INFO_TIMEOUT_MS = 10_000
 const enqueueStorageMutation = async <Result>(
   mutation: () => Promise<Result>,
 ): Promise<Result> => {
-  const nextTask = savedTabsStorageMutationQueue.then(mutation, mutation)
-  savedTabsStorageMutationQueue = nextTask.then(
+  const nextTask = savedTabsStorageMutationQueue.then(mutation)
+  savedTabsStorageMutationQueue = handlePromiseSettlement(
+    nextTask,
     () => undefined,
     () => undefined,
   )

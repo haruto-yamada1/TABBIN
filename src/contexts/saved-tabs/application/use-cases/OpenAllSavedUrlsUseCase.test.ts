@@ -14,6 +14,7 @@ import {
   createCustomProject,
   createTabGroup,
 } from '@/contexts/saved-tabs/testing/createCurrentCollectionFixtures'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { createOpenAllSavedUrlsUseCase } from './OpenAllSavedUrlsUseCase'
 
@@ -622,7 +623,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       urls,
     })
     const completion = vi.fn()
-    void resultPromise.then(completion, completion)
+    void handlePromiseSettlement(resultPromise, completion, completion)
     await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(2))
     expect(completion).not.toHaveBeenCalled()
     await expect(repos.urlRecordRepository.findAll()).resolves.toStrictEqual(

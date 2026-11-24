@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as messagesModule from '@/features/i18n/messages'
 
@@ -53,7 +53,6 @@ describe('language helpers', () => {
 
   it('日本語に未翻訳のキーがあれば英語へフォールバックする', () => {
     vi.spyOn(messagesModule, 'getMessages').mockImplementation((language) => {
-      // eslint-disable-line
       if (language === 'ja') {
         return {} as ReturnType<typeof messagesModule.getMessages>
       }

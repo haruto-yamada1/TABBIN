@@ -27,6 +27,7 @@ import {
   isLinkCaptureAction,
   linkCaptureMessageSchema,
 } from '@/types/link-capture'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
@@ -193,7 +194,8 @@ const setupMessageListener = (): void => {
         sendResponse(emptyLinkCaptureResponse('invalid_message'))
         return false
       }
-      void handleLinkCaptureMessage(capture.data, sender).then(
+      void handlePromiseSettlement(
+        handleLinkCaptureMessage(capture.data, sender),
         sendResponse,
         () => {
           sendResponse(emptyLinkCaptureResponse('error'))
@@ -235,7 +237,8 @@ const setupMessageListener = (): void => {
     })
     switch (typedMessage.action) {
       case 'refreshNativeSavedTabTitles': {
-        void refreshSavedTabTitleIndicator().then(
+        void handlePromiseSettlement(
+          refreshSavedTabTitleIndicator(),
           () => {
             sendResponse({ status: 'ok' })
           },

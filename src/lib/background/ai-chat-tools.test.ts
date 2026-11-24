@@ -1,4 +1,4 @@
-import { assert, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import { AI_CHAT_TOOL_NAMES } from '@/constants/aiChatTools'

@@ -101,12 +101,9 @@ map と regular file (`100644`) の追加は一対一で検証し、孤立した
 node-forge の元の期限を延長する承認記録や advisory ignore は追加しない。
 詳細は [公開版移行の検証条件](dependency-updates.md) を参照。
 
-picomatch の `GHSA-fc5q-39xc-vjpf` だけを2026-12-02 00:00 UTCまで受理する
-承認記録を `tools/scripts/dependency-audit.ts` に設ける。確認済み lockfile の SHA-256、
-manifest の production scope、package / advisory / severity / 影響範囲を固定し、
-変更・期限切れ・監査不能では停止する。対象を製品へ同梱することは認めない。
-CI の成功 summary は「脆弱性なし」とせず、適用した例外を audit log に残す。
-詳細と再評価条件は [release 手順](../release.md#picomatch-の期限付き例外) を参照。
+picomatch の `GHSA-fc5q-39xc-vjpf` は正式な撤回を受けて期限付き例外を廃止した。
+全 High / Critical をブロックし、製品への picomatch 同梱は artifact 検証で拒否する。
+[release 手順](../release.md#picomatch-の期限付き例外) を参照。
 
 個別 license 承認は以下の2パッケージのみ。
 

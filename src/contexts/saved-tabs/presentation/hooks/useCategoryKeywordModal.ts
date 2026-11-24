@@ -154,7 +154,6 @@ const renameCategoryInTab = (
  * @returns サブカテゴリ・キーワード・リネーム・削除・親カテゴリ関連の状態と操作
  */
 export const useCategoryKeywordModal = ({
-  // eslint-disable-line eslint/max-lines-per-function
   group,
   isOpen,
   onSave,
@@ -508,8 +507,7 @@ export const useCategoryKeywordModal = ({
     }
     try {
       const categoryToDelete = activeCategory
-      // eslint-disable-next-line typescript/no-confusing-void-expression
-      await onDeleteCategory(group.id, categoryToDelete) // eslint-disable-line typescript/await-thenable
+      await onDeleteCategory(group.id, categoryToDelete)
       if (group.subCategories && group.subCategories.length > 1) {
         const nextCategory = group.subCategories.find(
           (cat: string) => cat !== categoryToDelete,

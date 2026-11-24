@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { describe, expect, it, vi } from 'vitest'
 
 import { redirectToApp, syncDocumentTitle } from './main'
 

@@ -487,7 +487,6 @@ export const AnalyticsSidebar = ({
             >
               <Button
                 className='w-full cursor-pointer rounded-xl'
-                // eslint-disable-next-line typescript/no-misused-promises
                 onClick={onSaveView}
                 type='button'
               >

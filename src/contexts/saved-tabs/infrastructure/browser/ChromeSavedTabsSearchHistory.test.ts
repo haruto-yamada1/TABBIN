@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ChromeOnChangedListener } from '@/lib/browser/chrome-storage'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { createChromeSavedTabsSearchHistory } from './ChromeSavedTabsSearchHistory'
 
@@ -16,7 +17,8 @@ describe('search history storage', () => {
     }
     const runExclusive = async <T>(operation: () => Promise<T>): Promise<T> => {
       const result = pending.then(operation)
-      pending = result.then(
+      pending = handlePromiseSettlement(
+        result,
         () => undefined,
         () => undefined,
       )

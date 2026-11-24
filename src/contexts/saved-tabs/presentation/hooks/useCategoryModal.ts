@@ -169,7 +169,6 @@ export const useCategoryModal = ({
   deleteParentCategoryUseCase,
   assignDomainToCategoryUseCase,
 }: UseCategoryModalParams) => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   // --- 新規カテゴリ名状態 ---
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -249,8 +248,7 @@ export const useCategoryModal = ({
       const categoryDomainNames =
         category === 'uncategorized'
           ? null
-          : // eslint-disable-next-line unicorn/no-useless-collection-argument
-            new Set(category.collections.map(({ domain }) => domain))
+          : new Set(category.collections.map(({ domain }) => domain))
       for (const group of tabGroups) {
         if (category === 'uncategorized') {
           newSelectedDomains[group.id] = !domainCategories[group.id]

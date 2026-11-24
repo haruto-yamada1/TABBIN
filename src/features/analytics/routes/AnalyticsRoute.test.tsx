@@ -1,4 +1,3 @@
-/* eslint-disable typescript/no-misused-promises, typescript/unbound-method, typescript/only-throw-error -- mock interface で sync callback を使う test idiom */
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 // eslint-disable-next-line eslint/no-unused-vars
@@ -19,7 +18,7 @@ import userEvent from '@testing-library/user-event'
 import { Children, isValidElement } from 'react'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AiChartSpec, AiSavedUrlRecord } from '@/features/ai-chat/types'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
@@ -388,7 +387,6 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       </button>
       <button
         onClick={() =>
-          // eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
@@ -454,7 +452,6 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       </button>
       <button
         onClick={() =>
-          // eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
@@ -490,7 +487,6 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       </button>
       <button
         onClick={() =>
-          // eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [],
@@ -506,7 +502,6 @@ vi.mock('@/features/ai-chat/components/LazySavedTabsChatWidget', () => ({
       </button>
       <button
         onClick={() =>
-          // eslint-disable-next-line typescript/no-confusing-void-expression
           emitAnalyticsMessages(onMessagesChange, [
             {
               charts: [
@@ -1268,7 +1263,6 @@ describe('AnalyticsRoute', () => {
     ).toBeNull()
     expect(getAnalyticsDateLocale('ja')).toBe('ja-JP')
     expect(getAnalyticsDateLocale('en')).toBe('en-US')
-    // eslint-disable-next-line typescript/no-confusing-void-expression
     expect(noop()).toBeUndefined()
     expect(runConfirmedDelete(null, deleteRecord)).toBe(false)
     expect(runConfirmedDelete(records[0], deleteRecord)).toBe(true)

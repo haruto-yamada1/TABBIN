@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { polyfillConnectMock, polyfillSendMessageMock } = vi.hoisted(() => ({
   polyfillConnectMock: vi.fn(),

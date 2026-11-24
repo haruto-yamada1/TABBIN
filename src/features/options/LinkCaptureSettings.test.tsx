@@ -15,6 +15,7 @@ import { LINK_CAPTURE_SETTINGS_KEY } from '@/constants/linkCapture'
 import { getMessages } from '@/features/i18n/messages'
 import type * as LinkCaptureStorage from '@/lib/storage/link-capture-settings'
 import { DEFAULT_LINK_CAPTURE_SETTINGS } from '@/lib/storage/link-capture-settings'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { LinkCaptureSettings } from './LinkCaptureSettings'
 
@@ -83,8 +84,9 @@ describe('LinkCaptureSettings', () => {
           _options: unknown,
           operation: () => Promise<unknown>,
         ) => {
-          const result = pending.then(operation, operation)
-          pending = result.then(
+          const result = pending.then(operation)
+          pending = handlePromiseSettlement(
+            result,
             () => undefined,
             () => undefined,
           )

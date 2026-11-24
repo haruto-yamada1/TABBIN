@@ -55,7 +55,6 @@ type SavedTabsChatControllerOptions = {
   onToggleHistory?: () => void
 }
 
-// eslint-disable-next-line eslint/max-statements
 const useSavedTabsChatController = ({
   conversationId,
   defaultOpen = false,

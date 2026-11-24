@@ -9,7 +9,10 @@ import type { BrowserContext } from '@playwright/test'
 import { z } from 'zod'
 
 import { fingerprintArtifact } from './artifactSizeReport'
-import { withFirefoxExtension } from './firefoxExtensionSession'
+import {
+  navigateAfterFirefoxInstall,
+  withFirefoxExtension,
+} from './firefoxExtensionSession'
 import {
   initialLoadReadyScript,
   isInitialLoadReady,
@@ -121,7 +124,7 @@ export const measureInitialLoads = async () => {
         browser === 'chrome'
           ? await measureChrome(directory, route, ready)
           : await withFirefoxExtension(directory, async (session) => {
-              await session.navigate(route)
+              await navigateAfterFirefoxInstall(session, route)
               let previous = ''
               let settledAt = Date.now()
               const files = await pollSnapshot(async () => {

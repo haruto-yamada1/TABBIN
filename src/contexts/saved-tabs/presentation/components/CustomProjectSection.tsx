@@ -149,7 +149,6 @@ const resolveActiveDragData = (
 ): ActiveDragData | null =>
   parseActiveDragData(current) ?? fallback ?? lastKnownActiveDragData
 
-// eslint-disable-next-line eslint/complexity
 const buildDragDebugPayload = (
   activeId: string,
   activeData: ActiveDragData | null,
@@ -299,7 +298,6 @@ const applyProjectDragStartState = ({
   }
 }
 
-// eslint-disable-next-line eslint/complexity
 const handleDragEndByType = ({
   activeId,
   activeData,
@@ -408,7 +406,6 @@ const CreateProjectDialogContent = ({
 )
 
 const useCustomProjectSectionView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   projects,
   handleOpenUrl,
   handleDeleteUrl,
@@ -676,7 +673,6 @@ const useCustomProjectSectionView = ({
   )
 
   // URLドラッグに関わるシーケンス制御
-  // eslint-disable-next-line eslint/complexity
   const handleUrlDragSequence = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event

@@ -1,4 +1,4 @@
-import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
@@ -227,7 +227,6 @@ const triggerInstalled = async (
   reason: 'install' | 'update' | 'chrome_update',
 ): Promise<void> => {
   await Promise.all(
-    // eslint-disable-next-line typescript/await-thenable
     harness.onInstalledListeners.map(async (listener) =>
       listener({
         reason,
@@ -236,7 +235,6 @@ const triggerInstalled = async (
   )
 }
 const triggerStartup = async (harness: ChromeHarness): Promise<void> => {
-  // eslint-disable-next-line typescript/await-thenable
   await Promise.all(
     harness.onStartupListeners.map(async (listener) => listener()),
   )

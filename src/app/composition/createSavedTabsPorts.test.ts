@@ -52,7 +52,6 @@ describe('createSavedTabsPorts (app/composition)', () => {
 
   describe('chrome.tabs が利用可能な環境', () => {
     it('browserTabPort.open が chrome.tabs.create を呼び結果の url を返す', async () => {
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
       const create = vi.fn(async ({ url }: { url: string }) => ({ url }))
       setChromeApi({ tabs: { create } })
 
@@ -68,7 +67,6 @@ describe('createSavedTabsPorts (app/composition)', () => {
     })
 
     it('chrome.tabs.create の戻り値に url が無い場合は引数の url をそのまま返す', async () => {
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
       const create = vi.fn(async () => ({}))
       setChromeApi({ tabs: { create } })
 
@@ -99,7 +97,6 @@ describe('createSavedTabsPorts (app/composition)', () => {
 
   describe('options.resolveActive', () => {
     it('resolveActive=true の関数を渡すと browserTabPort が active: true で開く', async () => {
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
       const create = vi.fn(async ({ url }: { url: string }) => ({ url }))
       setChromeApi({ tabs: { create } })
 
@@ -115,7 +112,6 @@ describe('createSavedTabsPorts (app/composition)', () => {
     })
 
     it('resolveActive=false の関数を渡すと browserTabPort が active: false で開く', async () => {
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
       const create = vi.fn(async ({ url }: { url: string }) => ({ url }))
       setChromeApi({ tabs: { create } })
 
@@ -131,7 +127,6 @@ describe('createSavedTabsPorts (app/composition)', () => {
     })
 
     it('resolveActive は open ごとに呼ばれ、最新の戻り値を反映する', async () => {
-      // eslint-disable-next-line typescript/require-await -- mock 用に同期的な async を意図
       const create = vi.fn(async ({ url }: { url: string }) => ({ url }))
       setChromeApi({ tabs: { create } })
       let active = false

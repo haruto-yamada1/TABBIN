@@ -61,7 +61,6 @@ export const ProjectCardCategoryList = () => {
             handleOpenUrl={handlers.handleOpenUrl}
             // eslint-disable-next-line react/jsx-handler-names
             handleDeleteUrl={handlers.handleDeleteUrl}
-            // eslint-disable-next-line react/jsx-handler-names
             {...(handlers.handleDeleteUrlsFromProject !== undefined
               ? {
                   handleDeleteUrlsFromProject:
@@ -74,12 +73,10 @@ export const ProjectCardCategoryList = () => {
             handleSetUrlCategory={handlers.handleSetUrlCategory}
             // eslint-disable-next-line react/jsx-handler-names
             handleAddCategory={handlers.handleAddCategory}
-            // eslint-disable-next-line react/jsx-handler-names
             {...(handlers.handleRenameCategory !== undefined
               ? { handleRenameCategory: handlers.handleRenameCategory }
               : {})}
             settings={settings}
-            // eslint-disable-next-line react/jsx-handler-names
             {...(handlers.handleOpenAllUrls !== undefined
               ? { handleOpenAllUrls: handlers.handleOpenAllUrls }
               : {})}

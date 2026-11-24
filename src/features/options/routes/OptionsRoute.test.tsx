@@ -9,7 +9,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import { Children, isValidElement } from 'react'
 import type { ReactNode } from 'react'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserSettings } from '@/types/storage'
 
@@ -118,7 +118,6 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
-    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       checked={Boolean(checked)}
       disabled={disabled}

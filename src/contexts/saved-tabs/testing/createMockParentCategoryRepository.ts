@@ -6,8 +6,6 @@
  * のキャストをここに閉じ込めて共有する。
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-assignment, typescript/no-unsafe-type-assertion -- branded ↔ plain 変換キャストの集約点 */
-
 import { vi } from 'vitest'
 
 import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'

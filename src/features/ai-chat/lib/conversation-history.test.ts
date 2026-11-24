@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocked = vi.hoisted(() => ({ read: vi.fn(), replace: vi.fn() }))
 

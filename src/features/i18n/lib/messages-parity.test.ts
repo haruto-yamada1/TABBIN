@@ -1,4 +1,4 @@
-import { assert, describe, expect, it } from 'vitest' // eslint-disable-line
+import { assert, describe, expect, it } from 'vitest'
 
 import { getMessages } from '@/features/i18n/messages'
 

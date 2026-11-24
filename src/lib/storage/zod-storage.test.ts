@@ -1,5 +1,4 @@
-/* eslint-disable max-lines-per-function */
-import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import {

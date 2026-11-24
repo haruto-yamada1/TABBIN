@@ -461,10 +461,9 @@ describe('Backup V2 with production settings storage', () => {
           userSettings: false,
         },
       })
-      const result = await importing.then(
-        (value) => ({ value }),
-        (error: unknown) => ({ error }),
-      )
+      const result = await importing
+        .then((value) => ({ value }))
+        .catch((error: unknown) => ({ error }))
       const expectedErrors = {
         'replacement failure': 'PERSISTENCE_REPLACEMENT_FAILED',
         'readback failure': 'READBACK_FAILED',

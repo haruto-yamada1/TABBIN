@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { logger } from '@/lib/logging/logger'
 import { backgroundMessageSchema } from '@/types/background'
@@ -82,7 +82,7 @@ describe('setupMessageListener', () => {
       }
     ).chrome = {
       alarms: {
-        get: vi.fn((_name, callback) => callback?.(null)), // eslint-disable-line
+        get: vi.fn((_name, callback) => callback?.(null)),
       },
       runtime: {
         getURL: (path: string) =>
@@ -90,20 +90,18 @@ describe('setupMessageListener', () => {
         id: 'test-extension-id',
         onConnect: {
           addListener: vi.fn((callback) => {
-            // eslint-disable-line
             portListener = callback
           }),
         },
         onMessage: {
           addListener: vi.fn((callback) => {
-            // eslint-disable-line
             listener = callback
           }),
         },
       },
       storage: {
         local: {
-          get: vi.fn((_keys, callback) => callback?.({ userSettings: {} })), // eslint-disable-line
+          get: vi.fn((_keys, callback) => callback?.({ userSettings: {} })),
         },
       },
     } as unknown as typeof chrome
@@ -913,14 +911,21 @@ describe('setupMessageListener', () => {
       timeRemaining: null,
     })
 
-    const nonErrorCases: [thrown: unknown, expectedError: string][] = [
+    const hostileThrownValue = Object.defineProperty({}, 'toString', {
+      get: () => {
+        throw new Error('hostile toString getter')
+      },
+    })
+    const nonErrorCases: [thrown: unknown, expectedError?: string][] = [
       [42, '42'],
       [{ reason: 'boom' }, '[object Object]'],
       [Symbol('boom'), 'Symbol(boom)'],
+      [null],
+      [undefined],
+      [hostileThrownValue],
     ]
     for (const [thrown, expectedError] of nonErrorCases) {
       mocked.getExpirationPeriodMs.mockImplementation(() => {
-        // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- JavaScript permits arbitrary thrown values; this verifies the runtime boundary.
         throw thrown
       })
       const nonErrorResponse = vi.fn()
@@ -933,56 +938,15 @@ describe('setupMessageListener', () => {
         trustedSender,
         nonErrorResponse,
       )
-      expect(nonErrorResponse).toHaveBeenCalledWith({
-        error: expectedError,
-        timeRemaining: null,
-      })
+      expect(nonErrorResponse.mock.calls).toStrictEqual([
+        [
+          {
+            timeRemaining: null,
+            ...(expectedError === undefined ? {} : { error: expectedError }),
+          },
+        ],
+      ])
     }
-
-    for (const thrown of [null, undefined]) {
-      mocked.getExpirationPeriodMs.mockImplementation(() => {
-        // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- JavaScript permits nullish thrown values; this verifies omission semantics.
-        throw thrown
-      })
-      const nullishResponse = vi.fn()
-      listener(
-        {
-          action: 'calculateTimeRemaining',
-          autoDeletePeriod: '1day',
-          savedAt: 10,
-        },
-        trustedSender,
-        nullishResponse,
-      )
-      expect(nullishResponse).toHaveBeenCalledWith({
-        timeRemaining: null,
-      })
-      expect(nullishResponse.mock.calls[0]?.[0]).not.toHaveProperty('error')
-    }
-
-    const hostileThrownValue = Object.defineProperty({}, 'toString', {
-      get: () => {
-        throw new Error('hostile toString getter')
-      },
-    })
-    mocked.getExpirationPeriodMs.mockImplementation(() => {
-      // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- Exercises an untrusted runtime value whose coercion accessor throws.
-      throw hostileThrownValue
-    })
-    const hostileResponse = vi.fn()
-    listener(
-      {
-        action: 'calculateTimeRemaining',
-        autoDeletePeriod: '1day',
-        savedAt: 10,
-      },
-      trustedSender,
-      hostileResponse,
-    )
-    expect(hostileResponse).toHaveBeenCalledWith({
-      timeRemaining: null,
-    })
-    expect(hostileResponse.mock.calls[0]?.[0]).not.toHaveProperty('error')
   })
 
   it('期限切れチェックと時刻更新の success/error を返す', async () => {
@@ -1162,7 +1126,6 @@ describe('setupMessageListener', () => {
     ).chrome = {
       alarms: {
         get: vi.fn((name, callback) =>
-          // eslint-disable-line
           callback?.({
             name,
             scheduledTime: 123,
@@ -1175,7 +1138,6 @@ describe('setupMessageListener', () => {
         id: 'test-extension-id',
         onMessage: {
           addListener: vi.fn((callback) => {
-            // eslint-disable-line
             listener = callback
           }),
         },
@@ -1345,7 +1307,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1708,7 +1669,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1749,7 +1709,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1785,7 +1744,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },

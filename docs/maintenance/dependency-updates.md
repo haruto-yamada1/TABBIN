@@ -96,6 +96,25 @@ breaking change に伴う application migration と実動作確認は人間ま�
 [Motion upgrade guide](https://motion.dev/docs/upgrade-guide)、
 [@streamdown/code 2 release](https://github.com/vercel/streamdown/releases/tag/%40streamdown%2Fcode%402.0.0)。
 
+### Oxlint と型解析
+
+- Oxlint と `oxlint-tsgolint` は npm の peer range と7日の待機期間を確認して同時に更新する。
+  `bunx oxlint --print-config` でカテゴリが有効にするルールと明示的な `off`、
+  override の順序を確認する。実ファイルへの適用は [DDD ガードの fixture](../architecture/ddd.md#oxlint-と-dependency-cruiser-による機械的ガード) で確認する。
+- React Compiler の診断には `react-hooks-compiler/*` を使う。重複する Oxlint ネイティブの
+  `react/*` は無効にする。切り替え時は既存コードと違反 fixture の両方で診断と実行時間を比較する。
+- `strict-boolean-expressions` と `strict-void-return` は DDD の domain / application の
+  本番コードで適用する。空文字列、欠損値、`false` の扱いを明示して既存の挙動を保つ。
+  一部の値オブジェクト・ユーティリティ・定数の単体テストでは `no-unsafe-*` と
+  `vitest/no-conditional-in-test` を追加で適用する。
+- `vitest/no-conditional-tests` はテストの宣言自体が実行条件で変わる問題を、
+  `vitest/no-conditional-in-test` はテスト本体で期待値やアサーションが飛ばされる問題を検出する。
+  `vitest/require-awaited-expect-poll` は Vitest の poll を対象とし、Playwright の poll は
+  既存の Playwright ルールで確認する。
+- Promise の結果を処理するときは、失敗を扱う範囲を明示する。成功後の処理が投げた例外を
+  元のリクエストの失敗と区別する場合は、元の Promise の `await` を `try` に入れ、
+  成功後の処理はその外で実行する。
+
 ### Local refresh (2026-10-29)
 
 - `deps:check` / `deps:update` の7日 cooldown を適用し、React 19.3.1、
@@ -159,7 +178,7 @@ baseline test と build に不要だったため allowlist は空にした。
 Issue #827 で期限切れだった10件を全件再評価した。すべて解消可能になったため、
 `security:audit` から ignore を削除した。この2026-08-23の再評価時点では継続する
 temporary exception はなく、新しい期限は不要だった。owner は dependency maintenance。
-2026-11-18の picomatch の限定受理は、後掲の定期監査と [release 手順](../release.md#picomatch-の期限付き例外) に従う。
+picomatch の限定受理は advisory の撤回に伴って廃止した。 [release 手順](../release.md#picomatch-の期限付き例外) を参照。
 
 lockfile は既存 parent range の範囲内で修正版へ進めた。package owner / repository、
 dependency 名、lifecycle script、`trustedDependencies` は変更せず、新しい transitive
@@ -270,9 +289,7 @@ Issue #908 の `.github/workflows/security-audit.yml` は毎日 **03:23 UTC
 からも実行でき、workflow / 契約テストの変更 PR では同じ job を検証する。
 Node / Bun は repository pin、install は `--frozen-lockfile` を使い、
 `security:audit` の policy 検証 → backport probe → `run-security-audit.ts` を実行する。
-確認済みの picomatch advisory だけを2026-12-02 00:00 UTCまで受理し、適用時は
-警告を残す（[限定条件](../release.md#picomatch-の期限付き例外)）。ほかの High / Critical、
-期限切れ・不正な例外記録、依存構成の変更、probe 失敗、
+すべての High / Critical、policy 検証や probe の失敗、
 registry / network 等による監査不能はすべて失敗とし、ログ保存のために終了コードを
 握りつぶさない。setup failure も「監査未実行」として表示し、安全とは扱わない。
 ブラウザ設定・権限・データモデル、既存 CI / release gate の必須性は変更しない。

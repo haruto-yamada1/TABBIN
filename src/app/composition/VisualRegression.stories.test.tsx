@@ -69,10 +69,7 @@ describe('Import visual story readiness', () => {
     const result = Import.play({
       canvasElement,
       globals: { locale: 'en' },
-    }).then(
-      () => undefined,
-      (error: unknown) => error,
-    )
+    }).catch((error: unknown) => error)
     await firstVisibilityCheck.promise
     expect(canvasElement).not.toHaveAttribute('data-visual-ready')
 
