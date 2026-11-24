@@ -61,6 +61,47 @@ describe('expired-tabs route-aware background bridge', () => {
     expect(mocked.removeExpiredUrls).not.toHaveBeenCalled()
   })
 
+  it('同時に要求された期限チェックは設定読み込みとDBスキャンを共有する', async () => {
+    mocked.getUserSettings.mockResolvedValue({ autoDeletePeriod: '30sec' })
+
+    await Promise.all([
+      checkAndRemoveExpiredTabs(),
+      checkAndRemoveExpiredTabs(),
+    ])
+
+    expect(mocked.getUserSettings).toHaveBeenCalledOnce()
+    expect(mocked.removeExpiredUrls).toHaveBeenCalledOnce()
+  })
+
+  it('時刻更新後の要求は先行スキャンを待ち、新しい現在時刻で期限を判定する', async () => {
+    vi.useFakeTimers()
+    const now = Date.now()
+    mocked.getUserSettings.mockResolvedValue({ autoDeletePeriod: '30sec' })
+    const pending = Promise.withResolvers<{
+      removedCount: number
+      sourceCount: number
+    }>()
+    mocked.removeExpiredUrls.mockReturnValueOnce(pending.promise)
+
+    const firstCheck = checkAndRemoveExpiredTabs()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(mocked.removeExpiredUrls).toHaveBeenCalledOnce()
+    vi.setSystemTime(now + 3_600_000)
+    await updateTabTimestamps('30sec')
+    const nextCheck = checkAndRemoveExpiredTabs({ afterCurrent: true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(mocked.removeExpiredUrls).toHaveBeenCalledOnce()
+
+    pending.resolve({ removedCount: 0, sourceCount: 1 })
+    await Promise.all([firstCheck, nextCheck])
+    expect(mocked.removeExpiredUrls).toHaveBeenCalledTimes(2)
+    expect(mocked.removeExpiredUrls).toHaveBeenLastCalledWith(
+      Date.now() - 30_000,
+      Date.now(),
+      expect.anything(),
+    )
+  })
+
   it('不正なauto delete期間はwarningしてdata planeを呼ばない', async () => {
     mocked.getUserSettings.mockResolvedValue({ autoDeletePeriod: 'invalid' })
 

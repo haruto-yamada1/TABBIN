@@ -3,6 +3,7 @@ import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
   checkAndRemoveExpiredTabs: vi.fn(async () => {}),
+  requireUserSettings: vi.fn(),
   logger: { error: vi.fn(), warn: vi.fn() },
 }))
 vi.mock('./expired-tabs', () => ({
@@ -14,16 +15,26 @@ vi.mock('@/app/composition/persistenceBootstrap', () => ({
   }),
 }))
 vi.mock('@/lib/logging/logger', () => ({ logger: mocked.logger }))
+vi.mock('@/lib/storage/settings', () => ({
+  requireUserSettings: mocked.requireUserSettings,
+}))
 vi.mock('wxt/browser', () => ({
   get browser() {
     return globalThis.chrome
   },
 }))
 
-type AlarmListener = (alarm: { name: string }) => void
+type AlarmListener = (alarm: TestAlarm) => void
+type StorageListener = (changes: Record<string, unknown>, area: string) => void
+type TestAlarm = {
+  name: string
+  periodInMinutes?: number
+  scheduledTime?: number
+}
+
 const createAlarmChromeMock = (
   options: {
-    existingAlarm?: { name: string; periodInMinutes?: number } | null
+    existingAlarm?: TestAlarm
     alarmsAvailable?: boolean
     createThrows?: Error
     getThrows?: Error
@@ -32,16 +43,28 @@ const createAlarmChromeMock = (
   } = {},
 ) => {
   const listeners: AlarmListener[] = []
-  const alarmsCreate = vi.fn(async () => {
-    if (options.createThrows) {
-      throw options.createThrows
-    }
-  })
+  const storageListeners: StorageListener[] = []
+  let alarm = options.existingAlarm && {
+    scheduledTime: Date.now() + 30_000,
+    ...options.existingAlarm,
+  }
+  const alarmsCreate = vi.fn(
+    async (name: string, info: { periodInMinutes: number }) => {
+      if (options.createThrows) {
+        throw options.createThrows
+      }
+      alarm = {
+        name,
+        periodInMinutes: info.periodInMinutes,
+        scheduledTime: Date.now() + info.periodInMinutes * 60_000,
+      }
+    },
+  )
   const alarmsGet = vi.fn(async () => {
     if (options.getThrows) {
       throw options.getThrows
     }
-    return options.existingAlarm ?? undefined
+    return alarm
   })
   const notificationsCreate = vi.fn(() => {
     if (options.notificationThrows) {
@@ -50,7 +73,10 @@ const createAlarmChromeMock = (
     return 'notification-id'
   })
   const getURL = vi.fn((path: string) => `chrome-extension://tabbin/${path}`)
-  const alarmsClear = vi.fn()
+  const alarmsClear = vi.fn(async (_name: string) => {
+    alarm = undefined
+    return true
+  })
   const addListener = vi.fn((listener: AlarmListener) => {
     if (options.listenerThrows) {
       throw options.listenerThrows
@@ -60,6 +86,14 @@ const createAlarmChromeMock = (
   vi.stubGlobal('chrome', {
     runtime: { getURL },
     notifications: { create: notificationsCreate },
+    storage: {
+      onChanged: {
+        addListener: (listener: StorageListener) =>
+          storageListeners.push(listener),
+        hasListener: (listener: StorageListener) =>
+          storageListeners.includes(listener),
+      },
+    },
     ...(options.alarmsAvailable === false
       ? {}
       : {
@@ -75,9 +109,12 @@ const createAlarmChromeMock = (
           },
         }),
   })
-  const fire = (name = 'checkExpiredTabs') => {
+  const fire = (
+    name = 'checkExpiredTabs',
+    info: Omit<TestAlarm, 'name'> = { periodInMinutes: 0.5 },
+  ) => {
     assert.lengthOf(listeners, 1)
-    listeners[0]?.({ name })
+    listeners[0]?.({ name, scheduledTime: Date.now(), ...info })
   }
   return {
     listeners,
@@ -88,6 +125,15 @@ const createAlarmChromeMock = (
     notificationsCreate,
     getURL,
     fire,
+    changeSettings: (period: string) => {
+      mocked.requireUserSettings.mockResolvedValue({ autoDeletePeriod: period })
+      for (const listener of storageListeners) {
+        listener(
+          { userSettings: { newValue: { autoDeletePeriod: period } } },
+          'local',
+        )
+      }
+    },
   }
 }
 const loadAlarm = async () => {
@@ -103,6 +149,7 @@ describe('alarm-notification モジュール', () => {
     vi.resetAllMocks()
     mocked.ready.mockResolvedValue(undefined)
     mocked.checkAndRemoveExpiredTabs.mockResolvedValue(undefined)
+    mocked.requireUserSettings.mockResolvedValue({ autoDeletePeriod: '1day' })
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.useFakeTimers()
   })
@@ -184,6 +231,21 @@ describe('alarm-notification モジュール', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it('起動処理中に期限 Alarm がチェックを済ませた場合は再走査しない', async () => {
+    const harness = createAlarmChromeMock({
+      existingAlarm: { name: 'checkExpiredTabs', periodInMinutes: 0.5 },
+    })
+    const { registerExpiredTabsAlarmListener, setupExpiredTabsCheckAlarm } =
+      await loadAlarm()
+    registerExpiredTabsAlarmListener()
+    harness.fire()
+    await flush()
+    expect(harness.alarmsGet).not.toHaveBeenCalled()
+    await setupExpiredTabsCheckAlarm()
+    await vi.advanceTimersByTimeAsync(100)
+    expect(mocked.checkAndRemoveExpiredTabs).toHaveBeenCalledOnce()
+  })
+
   it('bootstrap失敗を診断し、次のAlarmで再試行する', async () => {
     const error = new Error('bootstrap failed')
     mocked.ready.mockRejectedValueOnce(error)
@@ -256,6 +318,143 @@ describe('alarm-notification モジュール', () => {
     expect(mocked.checkAndRemoveExpiredTabs).toHaveBeenCalledOnce()
   })
 
+  it('never の起動は古い期限 Alarm を解除し、初回スキャンを予約しない', async () => {
+    mocked.requireUserSettings.mockResolvedValue({ autoDeletePeriod: 'never' })
+    const harness = createAlarmChromeMock({
+      existingAlarm: { name: 'checkExpiredTabs', periodInMinutes: 0.5 },
+    })
+    const { setupExpiredTabsCheckAlarm } = await loadAlarm()
+    await setupExpiredTabsCheckAlarm()
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(harness.alarmsClear).toHaveBeenCalledExactlyOnceWith(
+      'checkExpiredTabs',
+    )
+    expect(harness.alarmsCreate).not.toHaveBeenCalled()
+    expect(mocked.ready).not.toHaveBeenCalled()
+    expect(mocked.checkAndRemoveExpiredTabs).not.toHaveBeenCalled()
+  })
+
+  it('never → 1day → 30sec → never で期限 Alarm だけを更新する', async () => {
+    mocked.requireUserSettings.mockResolvedValue({})
+    const harness = createAlarmChromeMock()
+    const { registerExpiredTabsAlarmListener, setupExpiredTabsCheckAlarm } =
+      await loadAlarm()
+    registerExpiredTabsAlarmListener()
+    await setupExpiredTabsCheckAlarm()
+    expect(harness.alarmsCreate).not.toHaveBeenCalled()
+
+    harness.changeSettings('1day')
+    await flush()
+    expect(harness.alarmsCreate).toHaveBeenCalledExactlyOnceWith(
+      'checkExpiredTabs',
+      { periodInMinutes: 0.5 },
+    )
+    harness.changeSettings('30sec')
+    await flush()
+    expect(harness.alarmsCreate).toHaveBeenCalledOnce()
+    expect(harness.alarmsClear).not.toHaveBeenCalled()
+
+    harness.changeSettings('never')
+    await flush()
+    expect(harness.alarmsClear).toHaveBeenCalledExactlyOnceWith(
+      'checkExpiredTabs',
+    )
+    expect(mocked.checkAndRemoveExpiredTabs).not.toHaveBeenCalled()
+  })
+
+  it('作成中に無効化された場合は古い作成が終わってから解除する', async () => {
+    mocked.requireUserSettings.mockResolvedValue({ autoDeletePeriod: 'never' })
+    const harness = createAlarmChromeMock()
+    const create = harness.alarmsCreate.getMockImplementation()
+    const pending = Promise.withResolvers<undefined>()
+    harness.alarmsCreate.mockImplementationOnce(async (name, info) => {
+      await pending.promise
+      await create?.(name, info)
+    })
+    const { registerExpiredTabsAlarmListener, setupExpiredTabsCheckAlarm } =
+      await loadAlarm()
+    registerExpiredTabsAlarmListener()
+    await setupExpiredTabsCheckAlarm()
+
+    harness.changeSettings('1day')
+    await flush()
+    expect(harness.alarmsCreate).toHaveBeenCalledOnce()
+    harness.changeSettings('never')
+    await flush()
+    expect(harness.alarmsClear).not.toHaveBeenCalled()
+
+    pending.resolve(undefined)
+    await flush()
+    expect(harness.alarmsClear).toHaveBeenCalledExactlyOnceWith(
+      'checkExpiredTabs',
+    )
+    expect(await harness.alarmsGet()).toBeUndefined()
+  })
+
+  it('設定読み込みに失敗しても Alarm を書き換えず、次の設定イベントで復旧する', async () => {
+    const error = new Error('settings unavailable')
+    mocked.requireUserSettings.mockRejectedValueOnce(error)
+    const harness = createAlarmChromeMock({
+      existingAlarm: { name: 'checkExpiredTabs', periodInMinutes: 0.5 },
+    })
+    const { registerExpiredTabsAlarmListener, setupExpiredTabsCheckAlarm } =
+      await loadAlarm()
+    registerExpiredTabsAlarmListener()
+    await setupExpiredTabsCheckAlarm()
+    expect(harness.alarmsGet).not.toHaveBeenCalled()
+    expect(mocked.logger.error).toHaveBeenCalledWith(
+      'background_expired_tabs_alarm_schedule_failed',
+      error,
+    )
+
+    harness.changeSettings('never')
+    await flush()
+    expect(harness.alarmsClear).toHaveBeenCalledExactlyOnceWith(
+      'checkExpiredTabs',
+    )
+  })
+
+  it('無効化時の解除失敗は、残っていた周期 Alarm の発火から再試行する', async () => {
+    mocked.requireUserSettings.mockResolvedValue({ autoDeletePeriod: 'never' })
+    const harness = createAlarmChromeMock({
+      existingAlarm: { name: 'checkExpiredTabs', periodInMinutes: 0.5 },
+    })
+    const error = new Error('clear failed')
+    harness.alarmsClear.mockRejectedValueOnce(error)
+    const { registerExpiredTabsAlarmListener, setupExpiredTabsCheckAlarm } =
+      await loadAlarm()
+    registerExpiredTabsAlarmListener()
+    await setupExpiredTabsCheckAlarm()
+    expect(mocked.logger.error).toHaveBeenCalledWith(
+      'background_expired_tabs_alarm_schedule_failed',
+      error,
+    )
+    harness.fire()
+    await flush()
+    expect(harness.alarmsClear).toHaveBeenCalledTimes(2)
+    expect(await harness.alarmsGet()).toBeUndefined()
+  })
+
+  it('時計が戻って次回予定が遠のいた Alarm を起動時に復元する', async () => {
+    const now = Date.now()
+    const harness = createAlarmChromeMock({
+      existingAlarm: {
+        name: 'checkExpiredTabs',
+        periodInMinutes: 0.5,
+        scheduledTime: now + 30_000,
+      },
+    })
+    vi.setSystemTime(now - 3_600_000)
+    const { setupExpiredTabsCheckAlarm } = await loadAlarm()
+    await setupExpiredTabsCheckAlarm()
+    expect(harness.alarmsCreate).toHaveBeenCalledExactlyOnceWith(
+      'checkExpiredTabs',
+      { periodInMinutes: 0.5 },
+    )
+    await vi.advanceTimersByTimeAsync(100)
+    expect(mocked.checkAndRemoveExpiredTabs).toHaveBeenCalledOnce()
+  })
+
   it('有効な既存Alarmを消さず、worker停止後の次回wakeを維持する', async () => {
     const harness = createAlarmChromeMock({
       existingAlarm: { name: 'checkExpiredTabs', periodInMinutes: 0.5 },
@@ -265,6 +464,19 @@ describe('alarm-notification モジュール', () => {
     expect(harness.alarmsClear).not.toHaveBeenCalled()
     expect(harness.alarmsCreate).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(100)
+    expect(mocked.checkAndRemoveExpiredTabs).toHaveBeenCalledOnce()
+  })
+
+  it('一回限りの期限 Alarm が消えたとき、起動済みの background でも周期を復元する', async () => {
+    const harness = createAlarmChromeMock()
+    const { registerExpiredTabsAlarmListener } = await loadAlarm()
+    registerExpiredTabsAlarmListener()
+    harness.fire('checkExpiredTabs', {})
+    await flush()
+    expect(harness.alarmsCreate).toHaveBeenCalledExactlyOnceWith(
+      'checkExpiredTabs',
+      { periodInMinutes: 0.5 },
+    )
     expect(mocked.checkAndRemoveExpiredTabs).toHaveBeenCalledOnce()
   })
 
