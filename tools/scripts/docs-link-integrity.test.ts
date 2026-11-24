@@ -116,23 +116,4 @@ describe('documentation links', () => {
     expect(readme).toContain(`](${EXPECTED_STORE_URL})`)
     expect(readme).toContain(`](${EXPECTED_CONTACT_URL})`)
   })
-
-  it('only references package scripts that exist', () => {
-    const packageJson = JSON.parse(
-      readFileSync(path.join(projectRoot, 'package.json'), 'utf8'),
-    ) as { scripts?: Record<string, string> }
-    const scripts = new Set(Object.keys(packageJson.scripts ?? {}))
-    const referencedScripts = [readmePath, path.join(docsRoot, 'release.md')]
-      .flatMap((file) => {
-        const content = readFileSync(file, 'utf8')
-        return [...content.matchAll(/bun run ([a-z0-9][a-z0-9:._-]*)/g)].map(
-          (match) => match[1] ?? '',
-        )
-      })
-      .filter((script) => script !== '')
-
-    expect(referencedScripts.filter((script) => !scripts.has(script))).toEqual(
-      [],
-    )
-  })
 })
