@@ -24,7 +24,14 @@ const COMMAND_FENCE_LANGUAGES = new Set([
   'zsh',
 ])
 
-const COMMAND_PATTERN = /\b(bun|npm)[ \t]+run[ \t]+([^\s`'"|);&*[\]<>]+)/gu
+const SCRIPT_NAME_SOURCE = '[A-Za-z0-9][A-Za-z0-9:._-]*'
+
+// A quoted script name is only read when the whole quoted value is a fixed
+// name. Values such as "$SCRIPT" stay dynamic and are skipped.
+const COMMAND_PATTERN = new RegExp(
+  `\\b(bun|npm)[ \\t]+run[ \\t]+(?:(['"])(${SCRIPT_NAME_SOURCE})\\2|([^\\s\`'"|);&*\\[\\]<>]+))`,
+  'gu',
+)
 const SCRIPT_TOKEN_PATTERN = /^[A-Za-z0-9][A-Za-z0-9:._-]*/u
 
 type PackageManager = 'bun' | 'npm'
@@ -209,6 +216,11 @@ const extractCodeSegments = (markdown: string): CodeSegment[] => {
   return [...segments, ...collectInlineSegments(masked)]
 }
 
+// A backslash inside a shell comment does not continue the physical line, so
+// the trailing backslash is only meaningful after comments are removed.
+const endsWithLineContinuation = (text: string): boolean =>
+  /\\[ \t]*$/u.test(stripShellComment(text))
+
 const toLogicalLines = (
   segment: CodeSegment,
 ): { readonly line: number; readonly text: string }[] => {
@@ -229,7 +241,7 @@ const toLogicalLines = (
     let text = lines[index] ?? ''
     let consumed = 1
 
-    while (/\\[ \t]*$/u.test(text) && index + consumed < lines.length) {
+    while (endsWithLineContinuation(text) && index + consumed < lines.length) {
       text = `${text.replace(/\\[ \t]*$/u, '')} ${lines[index + consumed] ?? ''}`
       consumed += 1
     }
@@ -254,7 +266,8 @@ const extractPackageScriptReferences = (
           return []
         }
 
-        const script = SCRIPT_TOKEN_PATTERN.exec(match[2] ?? '')?.[0]
+        const script =
+          match[3] ?? SCRIPT_TOKEN_PATTERN.exec(match[4] ?? '')?.[0]
         if (script === undefined) {
           return []
         }
@@ -387,6 +400,37 @@ describe('documentation package script references', () => {
         { line: 3, packageManager: 'npm', script: 'missing:script' },
       ],
     )
+  })
+
+  it('reads fixed script names wrapped in shell quotes', () => {
+    const markdown = [
+      '```bash',
+      'bun run "missing:script"',
+      "npm run 'also:missing'",
+      'bun run "$SCRIPT"',
+      `npm run "\${SCRIPT:-build}"`,
+      '```',
+    ].join('\n')
+
+    expect(extractPackageScriptReferences(markdown)).toEqual([
+      { line: 2, packageManager: 'bun', script: 'missing:script' },
+      { line: 3, packageManager: 'npm', script: 'also:missing' },
+    ])
+  })
+
+  it('ends shell comments at the physical line', () => {
+    const markdown = [
+      '```bash',
+      '# example \\',
+      'bun run missing:script',
+      'bun run build \\',
+      '  # trailing comment',
+      '```',
+    ].join('\n')
+
+    expect(findMissingReferences(markdown, new Set(['build']))).toEqual([
+      { line: 3, packageManager: 'bun', script: 'missing:script' },
+    ])
   })
 
   it('validates every reference in maintained documentation', () => {
