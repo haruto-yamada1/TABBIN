@@ -16,11 +16,6 @@ const messages = {
   en: {
     ...aiChatTrustMessages.en,
     ...navigationMessages.en,
-    'options.academy.title': 'Learn with TABBIN Academy',
-    'options.academy.description':
-      'Review saving, organizing, restoring and backing up tabs at your own pace.',
-    'options.academy.open': 'Open TABBIN Academy',
-
     ...backupExportMessages.en,
     ...backupImportMessages.en,
     ...dndMessages.en,
@@ -50,8 +45,6 @@ const messages = {
     'aiChat.copyConversation': 'Copy conversation',
     'aiChat.copyConversationError': 'Could not copy the conversation',
     'aiChat.copyConversationSuccess': 'Copied the conversation',
-    'aiChat.dataScope':
-      'AI answers use your saved URLs, titles, categories, projects, attachments, and the selected local Ollama model.',
     'aiChat.deleteConversationAria': 'Delete {{title}}',
     'aiChat.deleteDescription': 'This action cannot be undone.',
     'aiChat.deleteTitle': 'Delete this conversation?',
@@ -926,11 +919,6 @@ const messages = {
   ja: {
     ...aiChatTrustMessages.ja,
     ...navigationMessages.ja,
-    'options.academy.title': 'TABBIN Academyで使い方を学ぶ',
-    'options.academy.description':
-      '保存・整理・復元・バックアップを、自分のペースでいつでも復習できます。',
-    'options.academy.open': 'TABBIN Academyを開く',
-
     ...backupExportMessages.ja,
     ...backupImportMessages.ja,
     ...dndMessages.ja,
@@ -962,8 +950,6 @@ const messages = {
     'aiChat.copyConversation': '会話をコピー',
     'aiChat.copyConversationError': '会話をコピーできませんでした',
     'aiChat.copyConversationSuccess': '会話をコピーしました',
-    'aiChat.dataScope':
-      'AIの回答には、保存済みURL、タイトル、カテゴリ、プロジェクト、添付ファイル、選択中のローカル Ollama モデルを使用します。',
     'aiChat.deleteConversationAria': '{{title}}を削除',
     'aiChat.deleteDescription': '削除すると元に戻せません。',
     'aiChat.deleteTitle': 'この会話を削除しますか？',

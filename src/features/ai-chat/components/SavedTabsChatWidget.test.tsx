@@ -454,9 +454,6 @@ describe('SavedTabsChatWidget', () => {
     expect(
       within(intro).getByText('Show me the tabs I added this month'),
     ).toBeTruthy()
-    expect(screen.getByTestId('ai-chat-data-scope').textContent).toBe(
-      'AI answers use your saved URLs, titles, categories, projects, attachments, and the selected local Ollama model.',
-    )
   })
 
   it('anchors the input area as a bottom dock', async () => {

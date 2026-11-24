@@ -1,10 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { z } from 'zod'
 
-import {
-  getAppEntryHref,
-  getAppRoute,
-} from '@/features/navigation/lib/pageNavigation'
 import { getExtensionUrl } from '@/lib/browser/runtime'
 import type { UserSettings } from '@/types/storage'
 
@@ -67,6 +63,3 @@ const parseClickBehavior = (value: string): UserSettings['clickBehavior'] =>
   clickBehaviorSchema.parse(value)
 
 export { parseClickBehavior }
-
-export const getOptionsAcademyHref = () =>
-  getAppEntryHref(getAppRoute('academy'))
