@@ -13,7 +13,7 @@ import {
 import os from 'node:os'
 import path from 'node:path'
 
-import { firefox } from '@playwright/test'
+import { expect, firefox } from '@playwright/test'
 import { zipSync } from 'fflate'
 import type { Zippable } from 'fflate'
 
@@ -352,4 +352,26 @@ export const withFirefoxExtension = async <T>(
     throw new Error('Firefox run did not complete.')
   }
   return completion.value
+}
+
+export const navigateAfterFirefoxInstall = async (
+  session: Pick<FirefoxExtensionSession, 'navigate' | 'evaluate'>,
+  route: string,
+): Promise<void> => {
+  // Start on a static asset so the installer cannot close the measuring tab
+  // as a duplicate Saved Tabs page. It sets this flag after that cleanup.
+  await session.navigate('icon/128.png')
+  await expect
+    .poll(
+      async () =>
+        session.evaluate(
+          'return browser.storage.local.get("changelogShown").then(value => value.changelogShown === true)',
+        ),
+      {
+        message: 'Firefox add-on installation did not complete',
+        timeout: 5_000,
+      },
+    )
+    .toBe(true)
+  await session.navigate(route)
 }

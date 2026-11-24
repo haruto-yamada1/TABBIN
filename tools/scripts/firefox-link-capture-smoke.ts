@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { setTimeout as delay } from 'node:timers/promises'
 
-import { withFirefoxExtension } from './firefoxExtensionSession'
+import {
+  navigateAfterFirefoxInstall,
+  withFirefoxExtension,
+} from './firefoxExtensionSession'
 import type { FirefoxExtensionSession } from './firefoxExtensionSession'
 
 const fixture = `<!doctype html><title>Firefox capture fixture</title><style>body{margin:0;font:16px system-ui}#links{margin:80px 40px;display:grid;grid-template-columns:repeat(5,140px);gap:6px}a{height:24px}</style><a id="click-save" href="/click-only" style="position:absolute;left:40px;top:20px"><span>Firefox click-only article</span></a><div id="links">${Array.from({ length: 30 }, (_, i) => `<a href="/article/${i}">Article ${i}</a>`).join('')}</div>`
@@ -122,15 +125,7 @@ const run = async () => {
     const result = await withFirefoxExtension(
       '.output/firefox-mv2',
       async (session) => {
-        await session.navigate('icon/128.png')
-        await waitFor(
-          async () =>
-            (await session.evaluate(
-              'return browser.storage.local.get("changelogShown").then(value=>value.changelogShown===true)',
-            )) === true,
-          'installation complete',
-        )
-        await session.navigate('app.html#/options')
+        await navigateAfterFirefoxInstall(session, 'app.html#/options')
         await session.evaluate(
           'return browser.tabs.getCurrent().then(tab=>browser.tabs.update(tab.id,{active:true}))',
         )
