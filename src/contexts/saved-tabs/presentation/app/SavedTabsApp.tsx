@@ -113,6 +113,7 @@ const useSavedTabsAppView = ({
     moveDomainBetweenCategoriesUseCase:
       savedTabsUseCases.moveDomainBetweenCategories,
     reorderDomainsInCategoryUseCase: savedTabsUseCases.reorderDomainsInCategory,
+    deleteParentCategoryUseCase: savedTabsUseCases.deleteParentCategory,
   })
   const tabDataState = useTabData({
     loadTabGroupsWithUrlsUseCase: savedTabsUseCases.loadTabGroupsWithUrls,
@@ -158,6 +159,7 @@ const useSavedTabsAppView = ({
     isCategoryReorderMode,
     tempCategoryOrder,
     handleDeleteCategory,
+    handleDeleteEmptyCategory,
     handleCategoryDragEnd,
     handleConfirmCategoryReorder,
     handleCancelCategoryReorder,
@@ -502,6 +504,7 @@ const useSavedTabsAppView = ({
         handleUncategorizedDragEnd={handleUncategorizedDragEnd}
         hasContentTabGroupsCount={hasContentTabGroups.length}
         onClearSearch={handleClearSearch}
+        onDeleteEmptyCategory={handleDeleteEmptyCategory}
         reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
         openTabsRows={openTabsRows}
         renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}

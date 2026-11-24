@@ -146,6 +146,7 @@ const mocked = vi.hoisted(() => {
     isCategoryReorderMode: false,
     tempCategoryOrder: [] as string[],
     handleDeleteCategory: vi.fn(),
+    handleDeleteEmptyCategory: vi.fn(),
     handleCategoryDragEnd: vi.fn(),
     handleConfirmCategoryReorder: vi.fn(),
     handleCancelCategoryReorder: vi.fn(),
