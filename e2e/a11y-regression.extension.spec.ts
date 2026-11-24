@@ -354,13 +354,10 @@ test.describe('a11y regression accessibility', () => {
     await page.keyboard.press('Enter')
     const dialog = page.getByRole('alertdialog')
     await expect(dialog).toBeVisible()
-    // ダイアログ表示中はフォーカスがページ本体から移っていること。
+    // ダイアログ表示中はフォーカスが背後のボタンではなくダイアログ内に
+    // 移っていること。
     expect(
-      await page.evaluate(
-        () =>
-          document.activeElement !== null &&
-          document.activeElement !== document.body,
-      ),
+      await dialog.evaluate((node) => node.contains(document.activeElement)),
     ).toBe(true)
 
     await page.keyboard.press('Escape')
