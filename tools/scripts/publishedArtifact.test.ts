@@ -290,7 +290,7 @@ describe('published artifact verification', () => {
       ).rejects.toThrow(/download failed.*404/iu)
 
       const otherVersion = createCrx(
-        createArtifactZip({ manifestVersion: '2.0.20' }),
+        createArtifactZip({ manifestVersion: '2.0.21' }),
       )
       await expect(
         resolvePublishedArtifact({
