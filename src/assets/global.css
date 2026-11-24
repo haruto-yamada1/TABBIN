@@ -152,6 +152,15 @@
   }
 }
 
+@media (forced-colors: active) {
+  /* Tailwind's focus ring is a box-shadow, which forced-colors mode strips,
+     leaving keyboard focus invisible. Restore a system-color outline. */
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
