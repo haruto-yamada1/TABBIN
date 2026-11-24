@@ -319,7 +319,7 @@ describe('settings safety at background operation boundaries', () => {
     { reason: 'malformed source URL', tabs: [{ ...source, url: 'not a URL' }] },
   ])('ordinary empty capture: $reason', ({ reason, tabs }) => {
     it.each(captureEntries)(
-      '$name: resolves without saving, closing, opening a page, or notifying',
+      '$name: resolves without saving, closing, or opening a page',
       async ({ behavior, capture, direct }) => {
         configureCapture(behavior, {
           excludePatterns: reason === 'excluded source' ? ['example.test'] : [],
@@ -330,7 +330,23 @@ describe('settings safety at background operation boundaries', () => {
         await expect(capture()).resolves.toStrictEqual(direct ? [] : undefined)
 
         expectNoCaptureEffects()
-        expect(mocked.showNotification).not.toHaveBeenCalled()
+        // 対象が 0 件でも、対処できる除外理由がある場合は理由を通知する
+        // (issue #892)。タブ自体がない場合と、同ドメイン判定ができない
+        // 不正な URL の場合は従来どおり通知しない。
+        if (
+          reason === 'no source tabs' ||
+          (reason === 'malformed source URL' &&
+            behavior === 'saveSameDomainTabs')
+        ) {
+          expect(mocked.showNotification).not.toHaveBeenCalled()
+        } else {
+          expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+            'No tabs saved',
+            reason === 'pinned source'
+              ? 'All of the target tabs are pinned. Pinned tabs are skipped while the setting to exclude pinned tabs is on.'
+              : 'None of the target tabs can be saved. Check the URLs or your exclusion patterns.',
+          )
+        }
       },
     )
   })
