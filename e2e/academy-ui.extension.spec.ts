@@ -196,7 +196,8 @@ test('Academy direct links, navigation and review preserve saved data and real t
   })
   await page.goto(`${app}#/options`)
   await page
-    .getByRole('link', { name: 'Open TABBIN Academy', exact: true })
+    .getByRole('link', { name: '(preview)TABBIN Academy', exact: true })
+    .first()
     .click()
   await expect(
     page.getByRole('heading', { name: '(preview)TABBIN Academy', exact: true }),
