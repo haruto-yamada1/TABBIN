@@ -3,7 +3,10 @@ import type { GetProjectUrlsUseCase } from '@/contexts/saved-tabs/application/us
 import { CustomProjectSection } from '@/contexts/saved-tabs/presentation/components/CustomProjectSection'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
 import { SearchNoResultsNotice } from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
-import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
+import {
+  SavedTabsSelectionProvider,
+  useSavedTabsMarkdownCopyHandler,
+} from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { useCustomOpenTabsRows } from '@/contexts/saved-tabs/presentation/controllers/useCustomOpenTabsRows'
 import type {
@@ -111,6 +114,7 @@ export const CustomModeContainer = ({
   totalProjectsCount,
   isSearchFilterSettled,
 }: CustomModeContainerProps) => {
+  const handleCopyMarkdown = useSavedTabsMarkdownCopyHandler()
   const openTabsRows = useCustomOpenTabsRows({
     enabled: settings.showOpenTabs !== false,
     getProjectUrlsUseCase,
@@ -215,6 +219,7 @@ export const CustomModeContainer = ({
       hasSelectableTabs={hasSelectableTabs}
       onOpen={handleOpenAllUrls}
       onDelete={handleDeleteSelectedUrls}
+      onCopyMarkdown={handleCopyMarkdown}
     >
       {content}
     </SavedTabsSelectionProvider>

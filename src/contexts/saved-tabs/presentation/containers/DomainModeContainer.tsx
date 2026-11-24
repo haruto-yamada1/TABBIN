@@ -20,7 +20,10 @@ import type {
 import { EmptyCategoriesCleanup } from '@/contexts/saved-tabs/presentation/components/EmptyCategoriesCleanup'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
 import { SearchNoResultsNotice } from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
-import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
+import {
+  SavedTabsSelectionProvider,
+  useSavedTabsMarkdownCopyHandler,
+} from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
 import {
@@ -573,6 +576,7 @@ export const DomainModeContainer = ({
   const hasSelectableTabs =
     hasContentTabGroupsCount > 0 || (openTabsRows?.length ?? 0) > 0
   const accessibility = useDndAccessibility()
+  const handleCopyMarkdown = useSavedTabsMarkdownCopyHandler()
   const handleDeleteGroupsForCategory = useCallback(
     (ids: string[]) => {
       void handleDeleteGroups?.(ids)
@@ -789,6 +793,7 @@ export const DomainModeContainer = ({
       hasSelectableTabs={hasSelectableTabs}
       onOpen={handleOpenAllTabs}
       onDelete={handleDeleteSelectedUrls}
+      onCopyMarkdown={handleCopyMarkdown}
     >
       {content}
     </SavedTabsSelectionProvider>

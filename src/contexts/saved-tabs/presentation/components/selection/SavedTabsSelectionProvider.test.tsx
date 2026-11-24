@@ -96,6 +96,15 @@ const setup = ({
   hasSelectableTabs = true,
   onOpen = vi.fn(async () => {}),
   onDelete = vi.fn(async (_items: SavedTabSelectionItem[]) => {}),
+  onCopyMarkdown,
+}: {
+  rows?: SavedTabSelectionItem[]
+  scopeKey?: string
+  confirmDeleteAll?: boolean
+  hasSelectableTabs?: boolean
+  onOpen?: (items: SavedTabSelectionItem[]) => Promise<void>
+  onDelete?: (items: SavedTabSelectionItem[]) => Promise<void>
+  onCopyMarkdown?: (items: SavedTabSelectionItem[]) => Promise<void>
 } = {}) => {
   const ui = (nextRows = rows, nextScopeKey = scopeKey) => (
     <SavedTabsSelectionProvider
@@ -104,6 +113,7 @@ const setup = ({
       hasSelectableTabs={hasSelectableTabs}
       onOpen={onOpen}
       onDelete={onDelete}
+      {...(onCopyMarkdown !== undefined ? { onCopyMarkdown } : {})}
     >
       <StatefulRows rows={nextRows} />
     </SavedTabsSelectionProvider>
@@ -162,6 +172,46 @@ describe('saved tab selection', () => {
 
     expect(
       screen.queryByRole('button', { name: 'Select tabs' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('copies the selected items as Markdown and keeps the selection', async () => {
+    const onCopyMarkdown = vi.fn(async () => {})
+    setup({ onCopyMarkdown })
+    await enterSelection()
+    await user.click(checkbox('Alpha'))
+    await user.click(checkbox('Beta'))
+
+    await user.click(screen.getByRole('button', { name: 'Copy as Markdown' }))
+
+    expect(onCopyMarkdown).toHaveBeenCalledExactlyOnceWith([alpha, beta])
+    expect(screen.getByText('2 tabs selected')).toBeInTheDocument()
+  })
+
+  it('reports a copy failure and keeps the selection unchanged', async () => {
+    const onCopyMarkdown = vi.fn(async () => {
+      throw new Error('clipboard denied')
+    })
+    setup({ onCopyMarkdown })
+    await enterSelection()
+    await user.click(checkbox('Alpha'))
+
+    await user.click(screen.getByRole('button', { name: 'Copy as Markdown' }))
+
+    expect(
+      await screen.findByText(
+        'Could not copy to the clipboard. Your selection is unchanged.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByText('1 tab selected')).toBeInTheDocument()
+  })
+
+  it('does not show the copy button without a copy handler', async () => {
+    setup({})
+    await enterSelection()
+
+    expect(
+      screen.queryByRole('button', { name: 'Copy as Markdown' }),
     ).not.toBeInTheDocument()
   })
 

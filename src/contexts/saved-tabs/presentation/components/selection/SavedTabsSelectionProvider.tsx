@@ -10,10 +10,12 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ActionConfirmDialog } from '@/contexts/saved-tabs/presentation/components/shared/ActionConfirmDialog'
+import { buildMarkdownLinkList } from '@/contexts/saved-tabs/presentation/lib/markdown-link-list'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import type {
@@ -38,6 +40,8 @@ type SavedTabsSelectionProviderProps = {
   hasSelectableTabs: boolean
   onOpen: (items: SavedTabSelectionItem[]) => Promise<void>
   onDelete: (items: SavedTabSelectionItem[]) => Promise<void>
+  /** 選択中アイテムの Markdown コピー (issue #930)。未指定ならボタンを出さない。 */
+  onCopyMarkdown?: (items: SavedTabSelectionItem[]) => Promise<void>
 }
 
 type SelectionSnapshot = ReturnType<SavedTabSelectionStore['getSnapshot']>
@@ -141,6 +145,9 @@ const SelectionToolbar = ({
   const handleDelete = useCallback(() => {
     store.request('delete', callbacks)
   }, [callbacks, store])
+  const handleCopy = useCallback(() => {
+    store.request('copy', callbacks)
+  }, [callbacks, store])
   const handleSelectAll = store.selectAll
   const handleClear = store.clear
   const handleExit = store.exit
@@ -185,6 +192,20 @@ const SelectionToolbar = ({
             >
               {t('savedTabs.selection.clear')}
             </Button>
+            {callbacks.onCopyMarkdown !== undefined && (
+              <Button
+                size='sm'
+                variant='outline'
+                disabled={empty}
+                onClick={handleCopy}
+              >
+                {t(
+                  state.busy === 'copy'
+                    ? 'savedTabs.selection.copying'
+                    : 'savedTabs.selection.copyMarkdown',
+                )}
+              </Button>
+            )}
             <Button size='sm' disabled={empty} onClick={handleOpen}>
               {t(
                 state.busy === 'open'
@@ -311,6 +332,30 @@ const SelectionCheckbox = ({
       className='mx-2 shrink-0'
       onClick={handleClick}
     />
+  )
+}
+
+/**
+ * 選択中アイテムを Markdown リストとしてクリップボードへコピーする
+ * ハンドラ (issue #930)。成功時は toast で件数を知らせる。失敗時は
+ * throw し、選択ストア側のエラー表示 (copyError) に委ねる。
+ */
+export const useSavedTabsMarkdownCopyHandler = () => {
+  const { t } = useI18n()
+  return useCallback(
+    async (items: readonly SavedTabSelectionItem[]): Promise<void> => {
+      await navigator.clipboard.writeText(buildMarkdownLinkList(items))
+      toast.success(
+        t(
+          items.length === 1
+            ? 'savedTabs.selection.copySuccess.one'
+            : 'savedTabs.selection.copySuccess.other',
+          undefined,
+          { count: String(items.length) },
+        ),
+      )
+    },
+    [t],
   )
 }
 
