@@ -117,7 +117,7 @@ export const FlowCanvas: Story = {
         defaultEdges={edges}
         defaultNodes={nodes}
         edgeTypes={{ animated: Edge.Animated }}
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: '20%' }}
         nodeTypes={{ 'flow-card': FlowCard }}
       >
         <Controls />
