@@ -121,6 +121,7 @@ TABBIN is a local-first browser extension. Report vulnerabilities privately thro
 [GitHub private vulnerability reporting](https://github.com/haruto-yamada1/TABBIN/security/advisories/new).
 Do not post reproduction steps, secrets, or real user data in a public issue, pull
 request, or the contact form. Supported versions are the latest Chrome Web Store
-release and the latest `develop` build; older releases, Firefox builds without a
-published release, and modified builds are not supported. Response times in this
-document are targets, not guarantees. The full policy is written in Japanese above.
+release and the latest `develop` build. Firefox is supported as a source-built
+developer preview until an AMO release exists. Older releases and modified builds
+are not supported. Response times in this document are targets, not guarantees.
+The full policy is written in Japanese above.
