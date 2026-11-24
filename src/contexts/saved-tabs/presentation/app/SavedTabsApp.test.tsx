@@ -713,6 +713,7 @@ describe('SavedTabsApp custom search', () => {
         deleteTabGroup: vi.fn(),
         deleteTabGroups: vi.fn(),
         findUrlRecordByUrl: vi.fn(),
+        getProjectSearchUrls: vi.fn(),
         getProjectUrls: vi.fn(),
         getSavedTabsPageData: vi.fn(),
         getSavedTabs: vi.fn(),
@@ -796,6 +797,7 @@ describe('SavedTabsApp custom search', () => {
         prepareTabGroupDeletion: vi.fn(),
         prepareTabGroupsDeletion: vi.fn(),
         findUrlRecordByUrl: vi.fn(),
+        getProjectSearchUrls: vi.fn(),
         getProjectUrls: vi.fn(),
         getSavedTabsPageData: vi.fn(),
         getSavedTabs: vi.fn(),
@@ -1153,6 +1155,34 @@ describe('SavedTabsApp custom search', () => {
     expect(screen.getByText('project:Videos')).toBeTruthy()
     expect(screen.queryByText('project:Reading List')).toBeNull()
     expect(screen.queryByText('project:Work')).toBeNull()
+  })
+
+  it('refreshes URL search results after a storage sync hint without a new project projection', async () => {
+    const user = userEvent.setup()
+    const initialSnapshot = buildTestStorageSnapshot()
+    const read = vi.mocked(repositoryFixtures.current.repositories.data.read)
+    render(<SavedTabsApp />)
+
+    await user.type(screen.getByLabelText('search'), 'Meeting notes')
+    await expect(
+      screen.findByText('url:Meeting notes:https://example.com/video'),
+    ).resolves.toBeTruthy()
+
+    read.mockResolvedValue({
+      ...initialSnapshot,
+      urls: initialSnapshot.urls.map((url) =>
+        url.id === 'url-3' ? { ...url, title: 'Meeting notes updated' } : url,
+      ),
+    })
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    expect(
+      await screen.findByText(
+        'url:Meeting notes updated:https://example.com/video',
+      ),
+    ).toBeTruthy()
+    expect(screen.getByLabelText('search')).toHaveValue('Meeting notes')
   })
 
   it('initialViewMode が custom のときは初回描画で URL を domain に戻さない', () => {

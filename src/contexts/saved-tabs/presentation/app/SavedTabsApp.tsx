@@ -304,11 +304,13 @@ const useSavedTabsAppView = ({
   console.log('- categorized:', categorized)
   console.log('- uncategorized:', uncategorized)
 
+  const [customSearchRevision, setCustomSearchRevision] = useState(0)
   const customProjectsForHeader = customProjects
   const filteredCustomProjects = useFilteredCustomProjects(
     savedTabsUseCases,
     customProjects,
     viewMode === 'custom' ? searchQuery : '',
+    customSearchRevision,
   )
 
   // 表示判定・表示用整形は `createCategorizedDisplayState` へ移設（issue #504）。
@@ -364,6 +366,8 @@ const useSavedTabsAppView = ({
     deps.storageChangePort,
     async (changes) => {
       if (changes.some((change) => change.key === 'urls')) {
+        // URL metadata can change without changing any project membership.
+        setCustomSearchRevision((revision) => revision + 1)
         const pageData = await savedTabsUseCases.getSavedTabsPageData()
         await refreshTabGroupsWithUrls(
           pageData.tabGroups.map(toSavedTabsTabGroupViewModel),

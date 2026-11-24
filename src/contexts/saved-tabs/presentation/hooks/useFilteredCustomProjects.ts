@@ -1,56 +1,71 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
-import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
+import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedTabsUseCases'
+import { createCustomProjectSearch } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
 import { toCustomProjectFromViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
+import { logger } from '@/lib/logging/logger'
 
-/**
- * 現在の検索語・プロジェクト・URL reader に対応する完了済み結果だけを公開する。
- * 空検索は元の配列を即座に返し、URL の読み取りを行わない。
- */
+const SEARCH_DEBOUNCE_MS = 32
+
 export const useFilteredCustomProjects = (
-  savedTabsUseCases: Pick<SavedTabsUseCases, 'getProjectUrls'>,
+  savedTabsUseCases: Pick<SavedTabsUseCases, 'getProjectSearchUrls'>,
   customProjects: CustomProject[],
   searchQuery: string,
+  storageRevision = 0,
 ): CustomProject[] => {
-  const loadProjectUrls = useCallback(
-    async (project: CustomProject) =>
-      savedTabsUseCases.getProjectUrls(toCustomProjectFromViewModel(project)),
-    [savedTabsUseCases],
+  const query = searchQuery.trim()
+  const isSearching = query !== ''
+  // Storage sync and local writes replace the displayed project array. Keep
+  // just one index for that projection while searching in Custom mode.
+  const { search, source } = useMemo(
+    () => ({
+      search: isSearching
+        ? createCustomProjectSearch(customProjects, async (projects) =>
+            savedTabsUseCases.getProjectSearchUrls(
+              projects.map(toCustomProjectFromViewModel),
+            ),
+          )
+        : null,
+      source: { storageRevision },
+    }),
+    [customProjects, isSearching, savedTabsUseCases, storageRevision],
   )
-
-  // A new token also distinguishes A → empty → A, so switching modes never
-  // exposes a previous generation while fresh URL reads are pending.
-  const input = useMemo(
-    () => ({ customProjects, loadProjectUrls, searchQuery }),
-    [customProjects, loadProjectUrls, searchQuery],
-  )
+  // A → B → A gets a new request. This token cannot retain a retired index.
+  const request = useMemo(() => ({ source, query }), [source, query])
   const [filtered, setFiltered] = useState<{
-    input: typeof input
+    request: typeof request
     projects: CustomProject[]
   } | null>(null)
 
   useEffect(() => {
-    let isCancelled = false
-
-    const syncFilteredCustomProjects = async () => {
-      const nextProjects = await filterCustomProjectsByQuery(input)
-
-      if (!isCancelled) {
-        setFiltered({ input, projects: nextProjects })
+    if (!search) {
+      return undefined
+    }
+    const controller = new AbortController()
+    const runSearch = async () => {
+      try {
+        const projects = await search(query, controller.signal)
+        if (!controller.signal.aborted) {
+          setFiltered({ request, projects })
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          logger.error('saved_tabs_custom_search_failed', {})
+        }
       }
     }
-
-    void syncFilteredCustomProjects()
-
+    const timer = setTimeout(() => {
+      void runSearch()
+    }, SEARCH_DEBOUNCE_MS)
     return () => {
-      isCancelled = true
+      clearTimeout(timer)
+      controller.abort()
     }
-  }, [input])
+  }, [search, query, request])
 
-  if (!searchQuery.trim()) {
+  if (!isSearching) {
     return customProjects
   }
-  return filtered?.input === input ? filtered.projects : []
+  return filtered?.request === request ? filtered.projects : []
 }
