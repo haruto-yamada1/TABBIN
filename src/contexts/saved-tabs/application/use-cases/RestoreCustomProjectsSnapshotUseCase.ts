@@ -191,7 +191,7 @@ const remapDomainCollections = (
       memberships: group.memberships.map((membership) => ({
         ...membership,
         collectionId: existing.id,
-        ...(membership.categoryId
+        ...(membership.categoryId !== undefined && membership.categoryId !== ''
           ? {
               categoryId:
                 categoryIds.get(membership.categoryId) ?? membership.categoryId,

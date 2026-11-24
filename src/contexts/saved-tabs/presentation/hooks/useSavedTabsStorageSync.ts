@@ -67,6 +67,7 @@ export const useSavedTabsStorageSync = (
       if (!draining) {
         draining = true
         const previous = inFlightDrainRef.current
+        // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
         const current = previous ? previous.then(drain, drain) : drain()
         inFlightDrainRef.current = current
         const finish = () => {
@@ -74,6 +75,7 @@ export const useSavedTabsStorageSync = (
             inFlightDrainRef.current = undefined
           }
         }
+        // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
         void current.then(finish, finish)
       }
     }

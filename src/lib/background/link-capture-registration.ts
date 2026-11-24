@@ -29,6 +29,7 @@ export const createLinkCaptureRegistration = (
   }
   return {
     reconcile: async (): Promise<void> => {
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       pending = pending.then(reconcile, reconcile)
       return pending
     },

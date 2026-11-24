@@ -95,17 +95,16 @@ export const createAssignDomainToCategoryUseCase = (
     // entity 化された `DomainName`（hostname 形式に正規化済み）ではなく
     // storage に書かれている生の domain 文字列を使う。
     const rawDomain = tabGroup
-      ? // eslint-disable-next-line typescript/no-unsafe-type-assertion
-        ((await deps.tabGroupRepository.findRawDomainById(tabGroupId)) ??
+      ? ((await deps.tabGroupRepository.findRawDomainById(tabGroupId)) ??
         tabGroupDomainName(tabGroup))
       : null
 
-    const targetDomain = rawDomain
+    const targetDomain = rawDomain === '' ? null : rawDomain
 
     // 1) ドメイン-親カテゴリマッピング更新
     let nextMappings: { domain: string; categoryId: string }[]
     const currentMappings = await deps.domainCategoryMappingRepository.findAll()
-    if (targetDomain) {
+    if (targetDomain !== null) {
       const withoutDomain = currentMappings.filter(
         (mapping) => mapping.domain !== targetDomain,
       )
@@ -133,7 +132,7 @@ export const createAssignDomainToCategoryUseCase = (
     const tabGroupDomainId = createTabGroupId(command.domainId)
     const updatedCategories = all.map((category) => {
       if (targetCategoryId && category.id === targetCategoryId) {
-        if (!targetDomain) {
+        if (targetDomain === null) {
           return category
         }
         const hasCollection = category.collections.some(
@@ -158,7 +157,7 @@ export const createAssignDomainToCategoryUseCase = (
         }
       }
       // 他のカテゴリからは除く
-      if (!targetDomain) {
+      if (targetDomain === null) {
         return {
           ...category,
           collections: category.collections.filter(
@@ -181,7 +180,7 @@ export const createAssignDomainToCategoryUseCase = (
       // no-op
     }
 
-    if (!targetCategoryId && !targetDomain) {
+    if (!targetCategoryId && targetDomain === null) {
       throw new SavedTabsDomainError(
         'AssignDomainToCategory: 対象 TabGroup が見つかりません',
         'TAB_GROUP_NOT_FOUND',

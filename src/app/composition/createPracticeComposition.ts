@@ -227,6 +227,7 @@ export const createPracticeComposition = (
       }
       return result
     })
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     source.queue = work.then(
       () => undefined,
       () => undefined,
@@ -362,6 +363,7 @@ export const createPracticeComposition = (
         searchHistory = []
         const session = current
         const delivery = publishChanges(session)
+        // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
         session.queue = delivery.then(
           () => undefined,
           () => undefined,
@@ -393,6 +395,7 @@ export const createPracticeComposition = (
       // Callers await delivery, including lifecycle cancellation and listener
       // failures. Reset never launches an unobserved publication promise.
       const delivery = publishChanges(session)
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       session.queue = delivery.then(
         () => undefined,
         () => undefined,

@@ -60,6 +60,7 @@ const createSerialLock = () => {
   let tail = Promise.resolve()
   return async <T>(operation: () => Promise<T>): Promise<T> => {
     const result = tail.then(operation)
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     tail = result.then(
       () => undefined,
       () => undefined,

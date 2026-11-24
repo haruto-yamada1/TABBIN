@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type * as React from 'react'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/browser/chrome-storage', () => ({
   getChromeStorageLocal: vi.fn(),
@@ -236,7 +236,7 @@ describe('ThemeProvider', () => {
     expect(
       storageOnChangedMock.removeListener.mock.calls
         .slice(removeCallsBeforeUnmount)
-        .map((call) => call[0]), // eslint-disable-line
+        .map((call) => call[0]),
     ).toStrictEqual(expect.arrayContaining(subscribedListeners))
   })
 

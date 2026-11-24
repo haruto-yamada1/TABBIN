@@ -181,7 +181,6 @@ export const sendRuntimeMessage = async (
   return sendWithChromeRuntime(chromeRuntime, message)
 }
 
-// eslint-disable-next-line eslint/complexity
 export const connectRuntimePort = async (
   name: string,
 ): Promise<RuntimePort | null> => {

@@ -16,6 +16,7 @@ describe('search history storage', () => {
     }
     const runExclusive = async <T>(operation: () => Promise<T>): Promise<T> => {
       const result = pending.then(operation)
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       pending = result.then(
         () => undefined,
         () => undefined,

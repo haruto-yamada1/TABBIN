@@ -44,7 +44,6 @@ const createOpenUrlsFake = () => {
 const withProvider = (fakePort: unknown, ui: React.ReactNode) => (
   <SavedTabsUseCasesProvider
     value={{
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       deps: {
         ...createSavedTabsPresentationPortsStub(),
         openSavedTabsPort: fakePort as never,

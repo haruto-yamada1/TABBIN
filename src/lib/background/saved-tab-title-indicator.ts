@@ -64,6 +64,7 @@ export const registerSavedTabTitleIndicator = (): void => {
     state.removed(id)
   })
   browser.tabs.onActivated.addListener(({ tabId }) => {
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void browser.tabs.get(tabId).then(state.update, () => {})
   })
   browser.permissions.onAdded.addListener(() => {

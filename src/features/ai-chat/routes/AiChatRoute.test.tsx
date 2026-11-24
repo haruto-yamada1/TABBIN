@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocked = vi.hoisted(() => ({
   createConversation: vi.fn(),
@@ -229,7 +229,6 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
 
     await user.click(
-      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       screen
         .getAllByRole('button', { name: /別の会話/ })
         .find((button) => button.className.includes('flex-col')) as HTMLElement,
@@ -284,7 +283,6 @@ describe('AiChatRoute', () => {
     expect(screen.getByTestId('conversation-row-conversation-1')).toBeTruthy()
   })
 
-  // eslint-disable-next-line eslint/complexity
   it('履歴項目の本文ボタンは縦積みレイアウトで削除ボタンを押し出さない', () => {
     render(createElement(AiChatRoute))
 

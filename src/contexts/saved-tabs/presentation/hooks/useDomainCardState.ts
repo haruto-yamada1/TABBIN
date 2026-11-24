@@ -234,7 +234,6 @@ const useDomainCardCollapse = (isReorderMode: boolean) => {
  * @param params フックの引数
  * @returns 折りたたみ・ソート・カテゴリ並び替え・キーワードモーダル・親カテゴリ関連の状態と操作
  */
-// eslint-disable-next-line eslint/max-lines-per-function, eslint/complexity
 export const useDomainCardState = ({
   group,
   handleDeleteUrls,
@@ -407,7 +406,6 @@ export const useDomainCardState = ({
 
   // --- タブ変更の監視 ---
   const prevUrlsRef = useRef<TabGroup['urls']>([])
-  // eslint-disable-next-line eslint/complexity
   useEffect(() => {
     const prevUrls = prevUrlsRef.current
     const currentUrls = group.urls

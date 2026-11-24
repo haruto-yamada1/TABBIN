@@ -84,7 +84,6 @@ export const useTabGroupDeletionHandlers = ({
         // customProjects 側なので、削除本体 (`deleteTabGroup`) 完了後に
         // 実行しても整合性は保たれる。
         await savedTabsUseCases.prepareTabGroupDeletion({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
           tabGroupId: id,
         })
         // 削除判断・未参照 UrlRecord 掃除・savedTabs の書き戻しは
@@ -92,7 +91,6 @@ export const useTabGroupDeletionHandlers = ({
         // グループを SavedTabsDomainError で通知するため、UI 側は
         // 事前に savedTabs から対象グループの存在を保証しておく。
         await savedTabsUseCases.deleteTabGroup({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupId: id,
         })
         // グループに属するすべてのURLをカスタムプロジェクトからも削除
@@ -125,7 +123,6 @@ export const useTabGroupDeletionHandlers = ({
         // 共通 mapper (issue #511) で widening する。
         const updatedDomainCategories =
           await savedTabsUseCases.removeDomainsFromParentCategories({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
             domainIds: [id],
           })
         setCategories(updatedDomainCategories.map(toStorageParentCategory))
@@ -165,7 +162,6 @@ export const useTabGroupDeletionHandlers = ({
   )
 
   const handleDeleteGroups = useCallback(
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps.* 配下は composition 安定参照
     async (ids: string[]) => {
       if (ids.length === 0) {
         return
@@ -209,14 +205,12 @@ export const useTabGroupDeletionHandlers = ({
         // customProjects 側なので、削除本体完了後に実行しても整合性は
         // 保たれる。
         await savedTabsUseCases.prepareTabGroupsDeletion({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
           tabGroupIds: ids,
         })
         // 複数 TabGroup 削除本体は DeleteTabGroupsUseCase 経由に置き換える。
         // 未参照になった UrlRecord の掃除と savedTabs の書き戻しは
         // use-case が一括で行う。
         await savedTabsUseCases.deleteTabGroups({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupIds: ids,
         })
         // customProject 側の URL ID 同期削除は他 storage key を触る
@@ -246,7 +240,6 @@ export const useTabGroupDeletionHandlers = ({
         // 必要なので、共通 mapper (issue #511) で widening する。
         const updatedDomainCategories =
           await savedTabsUseCases.removeDomainsFromParentCategories({
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion, typescript/no-unsafe-type-assertion -- domain TabGroupId と storage 側の branded 差異 (issue #511)
             domainIds: ids,
           })
         setCategories(updatedDomainCategories.map(toStorageParentCategory))
@@ -302,7 +295,6 @@ export const useTabGroupDeletionHandlers = ({
         // customProject 側の URL 同期削除は他 storage key を触るため
         // issue 範囲外として従来通り UI 側で実行する。
         await savedTabsUseCases.deleteSavedUrl({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupId: groupId,
           url,
         })
@@ -350,7 +342,6 @@ export const useTabGroupDeletionHandlers = ({
         })
         // 複数 URL 削除は DeleteSavedUrlsUseCase 経由に置き換える。
         await savedTabsUseCases.deleteSavedUrls({
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion, @typescript-eslint/no-unsafe-type-assertion
           tabGroupId: groupId,
           urls,
         })

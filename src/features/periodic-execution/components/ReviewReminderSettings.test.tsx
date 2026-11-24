@@ -335,9 +335,7 @@ describe('ReviewReminderSettings', () => {
     await waitForSettings()
     const form = screen.getByRole('form', { name: 'Review reminders' })
     act(() => {
-      // eslint-disable-next-line testing-library/prefer-user-event -- exercise same-turn native submissions
       fireEvent.submit(form)
-      // eslint-disable-next-line testing-library/prefer-user-event -- exercise same-turn native submissions
       fireEvent.submit(form)
     })
     expect(settingsMocks.save).toHaveBeenCalledTimes(1)

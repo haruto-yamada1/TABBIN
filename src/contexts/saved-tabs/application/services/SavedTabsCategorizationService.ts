@@ -98,7 +98,7 @@ const matchesParentCategoryQuery = (
   normalizedQuery: string,
 ): boolean => {
   const groupId = tabGroupCollectionGroupId(group)
-  if (groupId) {
+  if (typeof groupId === 'string' && groupId.length > 0) {
     const parentCategory = categoryLookup.byId.get(groupId)
     if (parentCategory) {
       return parentCategory.name.toLowerCase().includes(normalizedQuery)
@@ -137,8 +137,9 @@ const filterGroupByQuery = (
     const matchesSubCategory = item.subCategory
       ?.toLowerCase()
       .includes(normalizedQuery)
-    // eslint-disable-next-line typescript/prefer-nullish-coalescing -- boolean values; false should not fall through
-    return matchesBasicFields || matchesSubCategory || parentCategoryMatched
+    return (
+      matchesBasicFields || matchesSubCategory === true || parentCategoryMatched
+    )
   })
   if (filteredUrls.length === currentUrls.length) {
     return group
@@ -267,7 +268,7 @@ export const organizeTabGroupsWithCategories = ({
     .filter(hasDisplayableUrls)
   for (const group of groupsToOrganize) {
     const categoryId = resolveCategoryId(group, categoryLookup)
-    if (!categoryId) {
+    if (categoryId === undefined || categoryId === '') {
       uncategorizedGroups.push(group)
       continue
     }

@@ -95,7 +95,6 @@ const resolveNextActiveConversationId = ({
 }
 
 const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const newConversationTitle = t('aiChat.newConversation')
   const historyStartPrompt = t('aiChat.history.startPrompt')
@@ -129,6 +128,7 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
       newConversationTitle,
       interruptedResponseMessage,
     )
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void loadHistory.then(
       (nextState) => {
         if (!isCurrentLoad) {
@@ -166,6 +166,7 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
     ).then(async () => saveConversationHistory(state))
     saveQueueRef.current = queuedSave
     setHistoryError((current) => (current === 'save' ? null : current))
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void queuedSave.then(
       () => {
         if (isMountedRef.current && saveQueueRef.current === queuedSave) {

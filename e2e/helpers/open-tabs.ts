@@ -354,14 +354,12 @@ export const verifyOpenTabs = async ({
   const secondRow = row(page, 'Other saved article', mode)
   const hashRow = row(page, 'Article section', mode)
   await expectOpenState(firstRow, true)
-  {
-    // 保存カード/project 行に加え、「今開いているタブ」セクションにも同じ URL の行が出る
-    await expect(
-      page.locator('[data-testid="open-tabs-section"] li').filter({
-        has: page.getByRole('link', { name: 'Saved article', exact: true }),
-      }),
-    ).toBeVisible()
-  }
+  // 保存カード/project 行に加え、「今開いているタブ」セクションにも同じ URL の行が出る
+  await expect(
+    page.locator('[data-testid="open-tabs-section"] li').filter({
+      has: page.getByRole('link', { name: 'Saved article', exact: true }),
+    }),
+  ).toBeVisible()
   await expectOpenState(secondRow, false)
   await expectOpenState(hashRow, false)
   await expectHoverTooltip(page, dragHandle(firstRow))

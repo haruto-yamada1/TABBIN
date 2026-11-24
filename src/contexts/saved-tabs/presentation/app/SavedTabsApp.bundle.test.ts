@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 const readSavedTabsAppSource = (fileName: string): string =>
   readFileSync(resolve(__dirname, fileName), 'utf8')

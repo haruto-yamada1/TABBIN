@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   toCustomProjectFromViewModel,
@@ -79,7 +79,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -185,7 +185,7 @@ describe('useProjectManagement', () => {
 
   beforeEach(() => {
     for (const mock of Object.values(projectManagementMocks)) {
-      mock.mockReset() // eslint-disable-line
+      mock.mockReset()
     }
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -254,7 +254,6 @@ describe('useProjectManagement', () => {
     // `mockImplementationOnce` で一時的に上書きできる。
     projectManagementMocks.getCustomProjectOrder.mockImplementation(
       () =>
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         customProjectRepository.findOrder() as unknown as ReturnType<
           typeof projectManagementMocks.getCustomProjectOrder
         >,
@@ -263,16 +262,11 @@ describe('useProjectManagement', () => {
     // `customProjectRepository.saveOrder` を widening として委譲する。
     projectManagementMocks.saveCustomProjectOrder.mockImplementation(
       async (command: { newOrder: readonly string[] }) =>
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        customProjectRepository.saveOrder(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-          command.newOrder,
-        ),
+        customProjectRepository.saveOrder(command.newOrder),
     )
     // `getCustomProjectRaws` は `customProjectRepository.findAllRaw` を
     // widening として委譲する。
     projectManagementMocks.getCustomProjectRaws.mockImplementation(async () =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       (
         customProjectRepository.findAllRaw as () => Promise<
           readonly CustomProjectRawSnapshot[]
@@ -322,12 +316,8 @@ describe('useProjectManagement', () => {
         ) {
           await customProjectRepository.restoreAllRaw(payload.customProjectsRaw)
         } else if (payload.customProjects) {
-          await customProjectRepository.saveAll(
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-            payload.customProjects,
-          )
+          await customProjectRepository.saveAll(payload.customProjects)
         }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         const order = (payload.customProjectOrder ??
           []) as unknown as readonly string[]
         await projectManagementMocks.saveCustomProjectOrder({ newOrder: order })

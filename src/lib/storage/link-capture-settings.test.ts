@@ -21,7 +21,9 @@ const coordinateUpdates = () => {
       _options: unknown,
       operation: () => Promise<unknown>,
     ) => {
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       const result = pending.then(operation, operation)
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       pending = result.then(
         () => undefined,
         () => undefined,

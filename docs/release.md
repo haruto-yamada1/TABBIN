@@ -62,12 +62,10 @@ bun run release:check
   patch map / 本文の digest を照合し、再評価記録が承認履歴と一致することを検証します。
   不正・欠落・期限切れ・日付だけの延長は理由とともに失敗します。
 - `verify:node-forge-backport` が実 RSA 署名の正常系と不正 ASN.1 の拒否を検証します。
-- `run-security-audit.ts` が `bun audit --json` の全依存の応答を検証し、High / Critical を
-  判定します。以下の明示的な期限付き例外以外は配布を止めます。監査自体を無効化したり、
-  package 全体・severity 全体を除外したりしません。
+- `run-security-audit.ts` が `bun audit --json` の全依存の応答を検証し、High / Critical が
+  1件でもあれば配布を止めます。
 
-監査結果と個別判定はログに残します。期限付き例外が適用された成功は「脆弱性なし」を
-意味せず、対象 advisory・受理状態・再評価期限を警告として表示します。
+監査結果と個別判定はログに残します。
 監査サービスの障害、通信・認証エラー、lockfile の欠落、Bun の起動失敗も
 **audit unavailable としてリリース失敗**です。warn-only、skip、過去の結果への
 fallback はありません。表示された失敗段階と Bun の診断を確認し、復旧・修正後に
@@ -75,23 +73,11 @@ fallback はありません。表示された失敗段階と Bun の診断を確
 
 #### picomatch の期限付き例外
 
-`GHSA-fc5q-39xc-vjpf` のみ、2026-11-18 に確認した開発ツールの依存として
-2026-12-02 00:00 UTC（09:00 JST）まで受理します。承認記録は
-`tools/scripts/dependency-audit.ts` にあり、package 名、advisory、`high`、影響範囲
-`<=4.0.7`、確認済み `bun.lock` 全体の SHA-256 と manifest の production scope を
-固定します。picomatch は WXT・Vite・Vitest 等の推移依存で、既存の通常依存からは
-到達せず、製品の module inventory にも含まれません。
-
-同じ package の別 advisory、Critical への変更、lockfile / production scope の変更、
-期限切れ・不正 clock は例外を適用しません。実際の製品 module inventory へ
-picomatch が混入した場合も build / artifact 検証を失敗させます。
-更新・取り下げで advisory が消滅した場合は、例外を使わず通常の判定で通過します。
-再評価・延長は新しい security review が必要で、自動更新しません。
-
-この期限付き受理は、確認時点で修正版が存在しない状況で CI / release の gate を継続するための
-risk acceptance です。上流は脆弱性評価に異議を唱えているものの、監査データベースの
-[指摘](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)が撤回されたとは扱いません。
-[PR #1080](https://github.com/haruto-yamada1/TABBIN/pull/1080) に判断と検証を記録します。
+[GitHub Advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) は 2026-11-18 15:38 UTC に
+正式に撤回されました。更新済み lockfile をレジストリで監査し、指摘が返らないことを確認して、
+[PR #1080](https://github.com/haruto-yamada1/TABBIN/pull/1080) の期限付き例外を廃止しました。
+同じ advisory が再度返った場合も High / Critical は配布を止めます。製品への picomatch 混入は
+build / artifact 検証で拒否します。
 
 期限付き backport の管理と Renovate での修正手順は
 [依存更新ポリシー](maintenance/dependency-updates.md#vulnerability-response)を参照してください。

@@ -1,4 +1,4 @@
-import { assert, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, describe, expect, it, vi } from 'vitest'
 
 import { toSavedTabsDisplayTabGroupDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
 import { createParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'

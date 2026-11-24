@@ -17,6 +17,7 @@ const delayedSchedule =
     new Promise<string[]>((resolve, reject) => {
       const timer = setTimeout(() => {
         signal.removeEventListener('abort', cancel)
+        // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
         void record(query).then(resolve, reject)
       }, 1200)
       const cancel = () => {

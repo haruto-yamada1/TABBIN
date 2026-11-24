@@ -269,7 +269,6 @@ const getAiChartOptionalProps = (message: ChatMessage) =>
   message.charts !== undefined ? { charts: message.charts } : {}
 
 const renderChatConversationMessage = ({
-  // eslint-disable-line eslint/complexity
   message,
   platform,
   t,

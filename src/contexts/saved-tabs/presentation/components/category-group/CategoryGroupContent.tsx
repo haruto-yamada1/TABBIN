@@ -61,11 +61,10 @@ export const CategoryGroupContent = () => {
               group={group}
               // eslint-disable-next-line react/jsx-handler-names
               handleOpenAllTabs={handlers.handleOpenAllTabs}
-              // eslint-disable-next-line react/jsx-handler-names, typescript/no-misused-promises
+              // eslint-disable-next-line react/jsx-handler-names
               handleDeleteGroup={reorder.handleDeleteSingleDomain}
               // eslint-disable-next-line react/jsx-handler-names
               handleDeleteUrl={handlers.handleDeleteUrl}
-              // eslint-disable-next-line react/jsx-handler-names
               {...(handlers.handleDeleteUrls !== undefined
                 ? { handleDeleteUrls: handlers.handleDeleteUrls }
                 : {})}
@@ -73,7 +72,6 @@ export const CategoryGroupContent = () => {
               handleOpenTab={handlers.handleOpenTab}
               // eslint-disable-next-line react/jsx-handler-names
               handleUpdateUrls={handlers.handleUpdateUrls}
-              // eslint-disable-next-line react/jsx-handler-names
               {...(handlers.handleDeleteCategory !== undefined
                 ? { handleDeleteCategory: handlers.handleDeleteCategory }
                 : {})}

@@ -425,7 +425,6 @@ const AddDomainSection = ({
   )
 }
 
-// eslint-disable-next-line eslint/complexity
 const useCategoryManagementModalView = ({
   isOpen,
   onClose,
@@ -440,7 +439,6 @@ const useCategoryManagementModalView = ({
   // its writes through the dedicated use-cases (rename / add / remove
   // domain / delete category). The reference is kept so the dep type stays
   // stable across components.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { categoryAssignmentPort: _categoryAssignmentPort } = deps
   const { t } = useI18n()
   const {
@@ -489,10 +487,7 @@ const useCategoryManagementModalView = ({
         setSavedTabGroups(
           pageData.tabGroups.map(toSavedTabsDisplayTabGroupViewModel),
         )
-        setParentCategories(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- domain.ParentCategory (branded) を storage 層 ParentCategory へ投影
-          [...pageData.parentCategories],
-        )
+        setParentCategories([...pageData.parentCategories])
       } catch (error) {
         console.error('利用可能なドメインの取得に失敗しました:', error)
       }

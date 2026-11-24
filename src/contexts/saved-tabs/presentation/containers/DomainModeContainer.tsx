@@ -234,7 +234,6 @@ type UncategorizedDomainSectionProps = {
 }
 
 const UncategorizedDomainSection = ({
-  // eslint-disable-line eslint/max-lines-per-function
   state: {
     shouldShowSectionHeader,
     hasVisibleCategoryGroups,
@@ -396,7 +395,6 @@ const UncategorizedDomainSection = ({
                   handleOpenAllTabs={handleOpenAllTabs}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleDeleteGroup={handleDeleteGroup}
-                  // eslint-disable-next-line typescript/no-misused-promises
                   {...(handleDeleteGroups !== undefined
                     ? { handleDeleteGroups: handleDeleteGroupsForCard }
                     : {})}
@@ -407,9 +405,7 @@ const UncategorizedDomainSection = ({
                     : {})}
                   // eslint-disable-next-line typescript/no-misused-promises
                   handleOpenTab={handleOpenTab}
-                  // eslint-disable-next-line typescript/no-misused-promises
                   handleUpdateUrls={handleUpdateUrls}
-                  // eslint-disable-next-line typescript/no-misused-promises
                   {...(handleDeleteCategory !== undefined
                     ? { handleDeleteCategory }
                     : {})}
@@ -571,11 +567,8 @@ export const DomainModeContainer = ({
             mode='domain'
             rows={openTabsRows}
             settings={settings}
-            // eslint-disable-next-line typescript/no-misused-promises
             handleOpenAllTabs={handleOpenAllTabs}
-            // eslint-disable-next-line typescript/no-misused-promises
             handleOpenTab={handleOpenTab}
-            // eslint-disable-next-line typescript/no-misused-promises
             handleDeleteUrl={handleDeleteUrl}
             {...(handleDeleteUrls !== undefined ? { handleDeleteUrls } : {})}
             {...(handleDeleteSelectedUrls !== undefined
@@ -616,7 +609,6 @@ export const DomainModeContainer = ({
                     handleOpenAllTabs={handleOpenAllTabs}
                     // eslint-disable-next-line typescript/no-misused-promises
                     handleDeleteGroup={handleDeleteGroup}
-                    // eslint-disable-next-line typescript/no-misused-promises
                     {...(handleDeleteGroups !== undefined
                       ? { handleDeleteGroups: handleDeleteGroupsForCategory }
                       : {})}
@@ -627,9 +619,7 @@ export const DomainModeContainer = ({
                       : {})}
                     // eslint-disable-next-line typescript/no-misused-promises
                     handleOpenTab={handleOpenTab}
-                    // eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateUrls={handleUpdateUrls}
-                    // eslint-disable-next-line typescript/no-misused-promises
                     handleUpdateDomainsOrder={handleUpdateDomainsOrder}
                     handleMoveDomainToCategory={
                       handleMoveDomainToCategoryWithTabGroups

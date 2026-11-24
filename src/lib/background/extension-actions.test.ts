@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { UserSettingsReadError } from '@/lib/storage/settings'
 import type * as UserSettingsModule from '@/lib/storage/settings'

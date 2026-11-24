@@ -118,7 +118,6 @@ describe('ReorderTabGroupUrlsUseCase', () => {
   it('指定した URL 順に urlIds を並び替える', async () => {
     const useCase = createReorderTabGroupUrlsUseCase(deps)
     await useCase({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       tabGroupId: 'group-1' as never,
       newUrlOrder: ['https://c.example.com', 'https://a.example.com'],
     })
@@ -134,7 +133,6 @@ describe('ReorderTabGroupUrlsUseCase', () => {
   it('newUrlOrder に含まれない urlId は末尾に残る', async () => {
     const useCase = createReorderTabGroupUrlsUseCase(deps)
     await useCase({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       tabGroupId: 'group-1' as never,
       newUrlOrder: ['https://c.example.com'],
     })
@@ -150,7 +148,6 @@ describe('ReorderTabGroupUrlsUseCase', () => {
   it('newUrlOrder に存在しない URL は無視される', async () => {
     const useCase = createReorderTabGroupUrlsUseCase(deps)
     await useCase({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       tabGroupId: 'group-1' as never,
       newUrlOrder: ['https://c.example.com', 'https://unknown.example.com'],
     })
@@ -167,7 +164,6 @@ describe('ReorderTabGroupUrlsUseCase', () => {
     const useCase = createReorderTabGroupUrlsUseCase(deps)
     await expect(
       useCase({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
         tabGroupId: 'missing' as never,
         newUrlOrder: ['https://a.example.com'],
       }),
@@ -177,7 +173,6 @@ describe('ReorderTabGroupUrlsUseCase', () => {
   it('newUrlOrder が空なら urlIds はそのまま', async () => {
     const useCase = createReorderTabGroupUrlsUseCase(deps)
     await useCase({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       tabGroupId: 'group-1' as never,
       newUrlOrder: [],
     })
@@ -193,7 +188,6 @@ describe('ReorderTabGroupUrlsUseCase', () => {
   it('他の TabGroup は変更されない', async () => {
     const useCase = createReorderTabGroupUrlsUseCase(deps)
     await useCase({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       tabGroupId: 'group-1' as never,
       newUrlOrder: ['https://c.example.com'],
     })

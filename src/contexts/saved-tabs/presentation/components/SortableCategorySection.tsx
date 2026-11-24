@@ -157,7 +157,6 @@ type SortableCategorySectionViewProps = SortableCategorySectionProps & {
 }
 
 const useSortableCategorySectionView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   id,
   handleOpenAllTabs,
   handleDeleteAllTabs, // 削除ハンドラを追加

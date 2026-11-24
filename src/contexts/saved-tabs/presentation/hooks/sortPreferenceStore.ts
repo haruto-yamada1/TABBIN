@@ -51,6 +51,7 @@ export const createSortPreferenceStore = (
       return () => {}
     }
     const readRevision = ++revision
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void port.read(key.scope, key.id).then(
       (order) => {
         if (disposed || revision !== readRevision) {
@@ -89,6 +90,7 @@ export const createSortPreferenceStore = (
     writing = true
     const writeRevision = ++revision
     update({ sortOrder: order, isPending: true })
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void port.write(key.scope, key.id, order).then(
       () => {
         writing = false

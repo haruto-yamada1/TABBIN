@@ -461,6 +461,7 @@ describe('Backup V2 with production settings storage', () => {
           userSettings: false,
         },
       })
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       const result = await importing.then(
         (value) => ({ value }),
         (error: unknown) => ({ error }),

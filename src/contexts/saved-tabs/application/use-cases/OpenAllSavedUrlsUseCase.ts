@@ -119,7 +119,7 @@ const openRequestedUrls = async (
   }
   report()
 
-  if (command.mode === 'newWindow' && !options.signal?.aborted) {
+  if (command.mode === 'newWindow' && options.signal?.aborted !== true) {
     const batch = command.urls.slice(0, MAX_CONCURRENT_URL_OPENS)
     next = batch.length
     try {
@@ -178,7 +178,7 @@ const openRequestedUrls = async (
     }
   }
   const worker = async (): Promise<void> => {
-    if (next >= command.urls.length || options.signal?.aborted) {
+    if (next >= command.urls.length || options.signal?.aborted === true) {
       return
     }
     await openOne(next++)

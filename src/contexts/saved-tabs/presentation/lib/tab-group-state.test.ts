@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 import { buildPresentationCategoryLookup } from '@/contexts/saved-tabs/application/services/SavedTabsCategorizationService'
 import type { SavedTabsParentCategoryDto as ParentCategoryDto } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
@@ -141,10 +141,7 @@ describe('tab-group-state.removeUrlIdsFromSavedTabs', () => {
 
   it('urlIds を持たないグループはそのまま維持する', () => {
     const result = removeUrlIdsFromSavedTabs(
-      [
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        { domain: 'a.example.com', id: 'g1' } as never,
-      ],
+      [{ domain: 'a.example.com', id: 'g1' } as never],
       new Set(['u1']),
     )
     expect(result.hasChanges).toBe(false)

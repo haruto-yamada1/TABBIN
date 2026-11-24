@@ -251,7 +251,6 @@ export const parseStoredUserSettings = (
   }
   const filtered: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(data)) {
-    // eslint-disable-next-line typescript/no-unnecessary-condition -- .catch(undefined) が undefined を含むため実行時に必要
     if (value !== undefined) {
       filtered[key] = value
     }

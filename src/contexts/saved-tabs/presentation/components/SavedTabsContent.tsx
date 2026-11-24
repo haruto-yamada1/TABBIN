@@ -24,7 +24,6 @@ import { CategorySection } from './TimeRemaining'
 const BULK_OPEN_THRESHOLD = 10
 
 // 並び替え可能なカテゴリセクションコンポーネント
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const SortableCategorySection = ({
   id,
   handleOpenAllTabs,

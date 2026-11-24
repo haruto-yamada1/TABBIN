@@ -11,7 +11,9 @@ const DRAG_INFO_TIMEOUT_MS = 10_000
 const enqueueStorageMutation = async <Result>(
   mutation: () => Promise<Result>,
 ): Promise<Result> => {
+  // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
   const nextTask = savedTabsStorageMutationQueue.then(mutation, mutation)
+  // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
   savedTabsStorageMutationQueue = nextTask.then(
     () => undefined,
     () => undefined,

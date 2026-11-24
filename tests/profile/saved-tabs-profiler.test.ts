@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type MockStore = Record<string, unknown>
 
@@ -55,7 +55,6 @@ const createChromeMock = () => {
     return structuredClone(value) as T
   }
 
-  // eslint-disable-next-line typescript/require-await
   const get = async (keys?: string | string[] | Record<string, unknown>) => {
     if (keys === undefined) {
       return clone(store)
@@ -80,7 +79,6 @@ const createChromeMock = () => {
     }
     return result
   }
-  // eslint-disable-next-line typescript/require-await
   const set = async (next: Record<string, unknown>) => {
     const changes: Record<string, chrome.storage.StorageChange> = {}
 
@@ -114,19 +112,17 @@ const createChromeMock = () => {
           }
         },
       },
-      // eslint-disable-next-line typescript/require-await
     },
     tabs: {
-      // eslint-disable-next-line typescript/require-await
       create: vi.fn(async () => ({ id: 1 })),
     },
     windows: {
-      create: vi.fn(async () => ({ id: 1 })), // eslint-disable-line typescript/require-await
+      create: vi.fn(async () => ({ id: 1 })),
     },
     runtime: {
       getManifest: () => ({ version: 'test' }),
       getURL: (path: string) => `chrome-extension://mock/${path}`,
-      sendMessage: vi.fn(async () => ({})), // eslint-disable-line typescript/require-await
+      sendMessage: vi.fn(async () => ({})),
     },
   } as unknown as typeof chrome
 }

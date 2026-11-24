@@ -121,7 +121,6 @@ const groupRowsByGroupId = (
  * セクション自体は並び替え対象外 (親カテゴリ DnD に参加しない)。
  */
 export const OpenTabsSection = ({
-  // eslint-disable-next-line eslint/max-lines-per-function
   mode = 'domain',
   rows,
   settings,

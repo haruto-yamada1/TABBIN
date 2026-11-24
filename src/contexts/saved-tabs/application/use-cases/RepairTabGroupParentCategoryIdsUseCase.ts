@@ -109,7 +109,7 @@ export const createRepairTabGroupParentCategoryIdsUseCase = (
 
     const { byDomainId, byDomainName } = buildCategoryLookups(parentCategories)
     const updatedTabGroups = tabGroups.map((group: TabGroup): TabGroup => {
-      if (tabGroupCollectionGroupId(group)) {
+      if ((tabGroupCollectionGroupId(group) ?? '') !== '') {
         return group
       }
       const categoryById = byDomainId.get(group.id)

@@ -162,7 +162,7 @@ const readSavedUrlsUndoSnapshot = async (
 ): Promise<
   Pick<CustomProjectUndoSnapshot, 'openedUrlsSnapshot' | 'urlRecordsRaw'>
 > => {
-  if (!options.includeSavedUrls) {
+  if (options.includeSavedUrls !== true) {
     return {}
   }
   const fullSnapshot = await createBuildSavedTabsSnapshotUseCase(deps)({})

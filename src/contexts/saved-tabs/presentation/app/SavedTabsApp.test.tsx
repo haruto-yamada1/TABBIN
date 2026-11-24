@@ -1,10 +1,10 @@
-/* eslint-disable max-lines-per-function, typescript/consistent-type-imports, typescript/no-misused-promises, typescript/require-await -- vi.importActual の typeof import および mock interface の sync 実装 */
+/* eslint-disable max-lines-per-function, typescript/consistent-type-imports -- vi.importActual の typeof import および mock interface の sync 実装 */
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SavedTabsUiFixtureApi } from '@/app/composition/testing/SavedTabsAppFixtures'
 import {
@@ -238,7 +238,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -436,7 +436,6 @@ const _legacyRemoveUrlsFromAll = vi.fn(async (): Promise<void> => undefined)
 const createRepositoryReadMock = (
   values: Record<string, unknown>,
 ): ReturnType<typeof vi.fn> =>
-  // eslint-disable-next-line typescript/require-await -- mock interface 同期実装
   vi.fn(async (key: string | string[]) => {
     const keys = Array.isArray(key) ? key : [key]
     const result: Record<string, unknown> = {}
@@ -1380,7 +1379,6 @@ describe('SavedTabsApp custom search', () => {
     } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
-      // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         enableCategories: false,
@@ -3325,7 +3323,6 @@ describe('SavedTabsApp custom search', () => {
     } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
-      // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         openAllInNewWindow: true,
@@ -4020,7 +4017,6 @@ describe('SavedTabsApp custom search', () => {
     } as SavedTabsUiFixtureApi
 
     vi.mocked(syncStorageChanges).mockImplementationOnce(async (options) => {
-      // eslint-disable-line
       options.setSettings({
         ...mocked.settings,
         removeTabAfterOpen: false,

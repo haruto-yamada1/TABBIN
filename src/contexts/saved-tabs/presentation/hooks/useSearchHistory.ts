@@ -30,6 +30,7 @@ const createHistoryStore = (port: SavedTabsSearchHistoryPort | undefined) => {
       return
     }
     const current = ++revision
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void port.read().then(
       (entries) => {
         if (active && current === revision) {

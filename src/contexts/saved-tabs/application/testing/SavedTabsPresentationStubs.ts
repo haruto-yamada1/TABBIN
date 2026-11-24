@@ -4,7 +4,6 @@ import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/SavedT
 export const createSavedTabsUseCasesStub = (
   overrides: Partial<SavedTabsUseCases> = {},
 ): SavedTabsUseCases =>
-  // eslint-disable-next-line typescript/no-unsafe-type-assertion -- test-only fail-fast proxy implements the full public boundary lazily
   new Proxy(overrides, {
     get(target, property, receiver) {
       if (Reflect.has(target, property)) {

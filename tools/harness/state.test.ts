@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function, typescript/no-misused-promises */
 import { execFileSync } from 'node:child_process'
 import {
   existsSync,
@@ -11,7 +10,7 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, test } from 'vitest' // eslint-disable-line
+import { describe, expect, test } from 'vitest'
 
 import {
   buildHarnessAudit,

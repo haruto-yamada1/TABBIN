@@ -232,7 +232,7 @@ export const normalizeUserSettings = (
   hasLegacyKeys: boolean
   excludePatternsChanged: boolean
 } => {
-  if (isStrippableSettings(stored) && stored.userSettings) {
+  if (isStrippableSettings(stored) && Boolean(stored.userSettings)) {
     const raw = stored.userSettings
     const sanitizedStoredSettings = parseStoredUserSettings(
       stripLegacyUserSettings(raw),

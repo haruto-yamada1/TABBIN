@@ -1,4 +1,4 @@
-/* eslint-disable import/no-default-export, typescript/require-await -- Playwright globalSetup contract requires default exported async function */
+/* eslint-disable typescript/require-await -- Playwright globalSetup contract requires default exported async function */
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 

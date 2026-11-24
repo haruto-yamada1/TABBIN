@@ -7,7 +7,6 @@ import {
   saveUserSettings,
   UserSettingsReadError,
 } from '@/lib/storage/settings'
-/* eslint-disable no-restricted-imports -- browser-only smoke exercises the real Firefox Promise storage boundary */
 import type { UserSettings } from '@/types/storage'
 
 export type FirefoxSettingsSafetySmokeResult = {

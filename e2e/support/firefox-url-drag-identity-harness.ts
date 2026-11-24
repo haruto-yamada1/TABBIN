@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-imports -- native Firefox exercises the production drag handlers and IndexedDB composition */
 import { browser } from 'wxt/browser'
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'

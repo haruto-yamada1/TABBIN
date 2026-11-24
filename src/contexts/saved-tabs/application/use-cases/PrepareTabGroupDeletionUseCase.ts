@@ -40,7 +40,7 @@ const ensureDomainNameInParentCategory = async (
   parentCategoryRepository: ParentCategoryRepository,
 ): Promise<void> => {
   const parentCategoryId = tabGroupCollectionGroupId(group)
-  if (!parentCategoryId) {
+  if (parentCategoryId === undefined || parentCategoryId === '') {
     return
   }
   const fromRepo = await parentCategoryRepository.findAll()
@@ -75,7 +75,7 @@ const updateDomainCategoryMappingIfNeeded = async (
   domainCategoryMappingRepository: DomainCategoryMappingRepository,
 ): Promise<void> => {
   const parentCategoryId = tabGroupCollectionGroupId(group)
-  if (!parentCategoryId) {
+  if (parentCategoryId === undefined || parentCategoryId === '') {
     return
   }
   const currentMappings = await domainCategoryMappingRepository.findAll()

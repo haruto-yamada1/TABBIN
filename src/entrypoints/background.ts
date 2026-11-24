@@ -30,7 +30,6 @@ import { logger } from '@/lib/logging/logger'
 const MANIFEST_V2 = 2
 
 export default defineBackground(() => {
-  // eslint-disable-line import/no-default-export
   // MV3 wake events must be registered before the first asynchronous bootstrap.
   registerExpiredTabsAlarmListener()
   registerReviewReminderListeners()

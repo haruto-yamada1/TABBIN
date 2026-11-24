@@ -671,7 +671,6 @@ const withUncategorizedLabel = (
   uncategorizedLabel: string,
 ): string[] => (labels.length > 0 ? labels : [uncategorizedLabel])
 
-// eslint-disable-next-line eslint/complexity
 const getLabelsForGroup = (
   record: AiSavedUrlRecord,
   groupBy: AnalyticsGroupBy,

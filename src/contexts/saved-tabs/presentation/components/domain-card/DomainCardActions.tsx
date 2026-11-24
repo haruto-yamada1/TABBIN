@@ -28,7 +28,6 @@ const BULK_OPEN_THRESHOLD = 10
  * 子カテゴリ管理、すべて開く、すべて削除、キーワードモーダルを含む
  */
 export const DomainCardActions = () => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const {
     state,

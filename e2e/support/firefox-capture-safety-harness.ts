@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-imports -- native Firefox regression exercises the production capture and persistence boundaries */
 import { browser } from 'wxt/browser'
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'

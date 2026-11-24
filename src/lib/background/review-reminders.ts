@@ -37,6 +37,7 @@ const withBrowserOperation = async <T>(
   operation: () => Promise<T>,
 ): Promise<T> => {
   const result = browserOperations.then(operation)
+  // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
   browserOperations = result.then(
     () => {},
     () => {},

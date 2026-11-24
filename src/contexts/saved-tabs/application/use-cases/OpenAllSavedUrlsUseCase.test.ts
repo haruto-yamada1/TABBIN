@@ -622,6 +622,7 @@ describe('OpenAllSavedUrlsUseCase', () => {
       urls,
     })
     const completion = vi.fn()
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void resultPromise.then(completion, completion)
     await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(2))
     expect(completion).not.toHaveBeenCalled()

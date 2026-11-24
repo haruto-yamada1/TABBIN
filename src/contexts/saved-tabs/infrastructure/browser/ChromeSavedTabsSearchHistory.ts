@@ -101,6 +101,7 @@ const abortableRead = async <T>(
       )
     }
     signal.addEventListener('abort', cancel, { once: true })
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void operation.then(
       (value) => {
         signal.removeEventListener('abort', cancel)

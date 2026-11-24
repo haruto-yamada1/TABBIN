@@ -9,7 +9,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ImportExportSettings } from './ImportExportSettings'
 import { inspectBackupV2 } from './lib/import-export/v2/BackupV2Inspector'

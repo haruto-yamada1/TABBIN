@@ -113,6 +113,7 @@ export const runMediaCommand = async (
       reject(error instanceof Error ? error : new Error(String(error)))
     })
     child.once('close', (code, signal) => {
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       void (stderr ? appendFile(logFile, stderr) : Promise.resolve()).then(
         () => {
           clearTimeout(timer)

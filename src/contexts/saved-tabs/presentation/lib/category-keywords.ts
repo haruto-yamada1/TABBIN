@@ -18,9 +18,7 @@ export const handleSaveKeywords = async (
   keywords: string[],
 ) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await useCases.setCategoryKeywords({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       tabGroupId: groupId,
       categoryName,
       keywords,

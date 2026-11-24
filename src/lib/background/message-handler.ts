@@ -193,6 +193,7 @@ const setupMessageListener = (): void => {
         sendResponse(emptyLinkCaptureResponse('invalid_message'))
         return false
       }
+      // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
       void handleLinkCaptureMessage(capture.data, sender).then(
         sendResponse,
         () => {
@@ -235,6 +236,7 @@ const setupMessageListener = (): void => {
     })
     switch (typedMessage.action) {
       case 'refreshNativeSavedTabTitles': {
+        // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
         void refreshSavedTabTitleIndicator().then(
           () => {
             sendResponse({ status: 'ok' })

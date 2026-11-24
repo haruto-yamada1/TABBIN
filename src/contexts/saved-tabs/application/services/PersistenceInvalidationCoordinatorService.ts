@@ -211,6 +211,7 @@ export class PersistenceInvalidationCoordinatorService<
       this.eventDrainPromise = undefined
       this.scheduleEventDrain()
     }
+    // oxlint-disable-next-line promise/prefer-catch -- Handle only the original promise rejection.
     void scheduled.then(finish, finish)
   }
 

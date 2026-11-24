@@ -1,4 +1,3 @@
-/* eslint-disable import/no-default-export -- Playwright globalSetup contract */
 import { execFileSync } from 'node:child_process'
 
 import setupRenderingBuild from './rendering-global-setup'
