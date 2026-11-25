@@ -10,7 +10,6 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
 
 concurrency:
   # A unique group also avoids replacing pending pushes when cancellation is off.
