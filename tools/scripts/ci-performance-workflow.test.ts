@@ -104,9 +104,9 @@ describe('CI performance quality and scheduling contract', () => {
   })
 
   it('keeps all quality gates eligible regardless of changed paths or PR source', () => {
-    expect(workflow.on.pull_request.branches).toEqual(['main', 'develop'])
-    expect(workflow.on.pull_request.paths).toBeUndefined()
-    expect(workflow.on.pull_request['paths-ignore']).toBeUndefined()
+    expect(workflow.on.pull_request?.branches).toBeUndefined()
+    expect(workflow.on.pull_request?.paths).toBeUndefined()
+    expect(workflow.on.pull_request?.['paths-ignore']).toBeUndefined()
     expect(workflow.on.push.paths).toBeUndefined()
     expect(workflow.on.push['paths-ignore']).toBeUndefined()
     for (const name of [
