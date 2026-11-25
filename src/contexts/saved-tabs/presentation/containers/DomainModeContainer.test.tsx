@@ -310,6 +310,46 @@ describe('DomainModeContainer', () => {
     ).toBeTruthy()
   })
 
+  it('検索で 0 件のときは保存データなしと区別し、検索語と解除操作を表示する', async () => {
+    const user = userEvent.setup()
+    const onClearSearch = vi.fn()
+    const props = createProps()
+
+    render(
+      <DomainModeContainer
+        {...props}
+        tabGroups={uncategorizedGroups}
+        searchQuery='nomatch'
+        onClearSearch={onClearSearch}
+      />,
+    )
+
+    expect(screen.getByTestId('search-no-results')).toBeTruthy()
+    expect(screen.getByText('一致する結果がありません')).toBeTruthy()
+    expect(
+      screen.getByText('「nomatch」に一致する結果はありません。'),
+    ).toBeTruthy()
+    expect(screen.queryByText('保存されたタブはありません')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: '検索をクリア' }))
+    expect(onClearSearch).toHaveBeenCalledTimes(1)
+  })
+
+  it('検索 0 件でも解除操作がなければ従来の空表示を使う', () => {
+    const props = createProps()
+
+    render(
+      <DomainModeContainer
+        {...props}
+        tabGroups={uncategorizedGroups}
+        searchQuery='nomatch'
+      />,
+    )
+
+    expect(screen.queryByTestId('search-no-results')).toBeNull()
+    expect(screen.getByText('保存されたタブはありません')).toBeTruthy()
+  })
+
   it('renders a spinner-only loading state', () => {
     const props = createProps()
 

@@ -8,12 +8,33 @@ import { logger } from '@/lib/logging/logger'
 
 const SEARCH_DEBOUNCE_MS = 32
 
+export type FilteredCustomProjects = {
+  /** 現在の入力に対応する絞り込み結果。未確定の間は空配列。 */
+  projects: CustomProject[]
+  /**
+   * 現在の検索語に対する絞り込みが確定しているか。
+   * 未確定の間は結果が 0 件でも「該当なし」と判断してはならない。
+   */
+  isSettled: boolean
+}
+
+const UNSETTLED_PROJECTS: FilteredCustomProjects = {
+  projects: [],
+  isSettled: false,
+}
+
+/**
+ * 現在の検索語・プロジェクト・storage revision に対応する完了済み結果だけを公開する。
+ * 空検索は元の配列を即座に返し、索引の読み取りを行わない。
+ * 絞り込みが未確定の間は `isSettled: false` を返し、呼び出し側が
+ * 一時的な空配列を確定した 0 件と誤認しないようにする。
+ */
 export const useFilteredCustomProjects = (
   savedTabsUseCases: Pick<SavedTabsUseCases, 'getProjectSearchUrls'>,
   customProjects: CustomProject[],
   searchQuery: string,
   storageRevision = 0,
-): CustomProject[] => {
+): FilteredCustomProjects => {
   const query = searchQuery.trim()
   const isSearching = query !== ''
   // Storage sync and local writes replace the displayed project array. Keep
@@ -65,7 +86,9 @@ export const useFilteredCustomProjects = (
   }, [search, query, request])
 
   if (!isSearching) {
-    return customProjects
+    return { projects: customProjects, isSettled: true }
   }
-  return filtered?.request === request ? filtered.projects : []
+  return filtered?.request === request
+    ? { projects: filtered.projects, isSettled: true }
+    : UNSETTLED_PROJECTS
 }

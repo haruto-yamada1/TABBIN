@@ -55,14 +55,22 @@ describe('useFilteredCustomProjects current results', () => {
     )
     rerender({ query: 'beta' })
     expect(readers.getProjectSearchUrls).not.toHaveBeenCalled()
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
 
     await runSearch()
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['beta'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'beta',
+    ])
+    expect(result.current.isSettled).toBe(true)
     rerender({ query: 'alpha' })
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
     await runSearch()
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['alpha'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'alpha',
+    ])
+    expect(result.current.isSettled).toBe(true)
     expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(1)
   })
 
@@ -82,14 +90,19 @@ describe('useFilteredCustomProjects current results', () => {
     )
     await runSearch()
     rerender({ query: '' })
-    expect(result.current).toBe(projects)
+    expect(result.current.projects).toBe(projects)
+    expect(result.current.isSettled).toBe(true)
     rerender({ query: 'alpha' })
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
     await runSearch()
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(true)
     await act(async () => {
       first.resolve(new Map([['project', urls]]))
     })
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(true)
     expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(2)
   })
 
@@ -122,13 +135,23 @@ describe('useFilteredCustomProjects current results', () => {
       { initialProps: { source: projects, query: 'beta' } },
     )
     await runSearch()
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['beta'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'beta',
+    ])
+    expect(result.current.isSettled).toBe(true)
     rerender({ source: [renamed, added], query: 'beta' })
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
     await runSearch()
-    expect(result.current.map(({ id }) => id)).toEqual(['added', 'project'])
-    expect(result.current[1]?.urls?.map((url) => url.id)).toEqual(['new'])
-    expect(result.current[1]?.name).toBe('資料庫更新')
+    expect(result.current.projects.map(({ id }) => id)).toEqual([
+      'added',
+      'project',
+    ])
+    expect(result.current.projects[1]?.urls?.map((url) => url.id)).toEqual([
+      'new',
+    ])
+    expect(result.current.projects[1]?.name).toBe('資料庫更新')
+    expect(result.current.isSettled).toBe(true)
     expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(2)
   })
 
@@ -143,11 +166,42 @@ describe('useFilteredCustomProjects current results', () => {
     )
     await runSearch()
     rerender({ query: 'beta' })
+    expect(result.current.isSettled).toBe(false)
     await runSearch()
     await act(async () => {
       pending.resolve(new Map([['project', urls]]))
     })
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['beta'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'beta',
+    ])
+    expect(result.current.isSettled).toBe(true)
     expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not settle a matching search until its delayed read completes', async () => {
+    const pending = Promise.withResolvers<Map<string, ProjectUrlEntry[]>>()
+    const readers = buildReaders(
+      vi.fn<GetProjectSearchUrlsUseCase>().mockReturnValue(pending.promise),
+    )
+    const { result } = renderHook(() =>
+      useFilteredCustomProjects(readers, projects, 'alpha'),
+    )
+
+    // 絞り込み保留中は未確定であり、0 件と誤認させない。
+    expect(result.current.isSettled).toBe(false)
+    expect(result.current.projects).toEqual([])
+
+    await runSearch()
+    expect(result.current.isSettled).toBe(false)
+    expect(result.current.projects).toEqual([])
+
+    await act(async () => {
+      pending.resolve(new Map([['project', urls]]))
+    })
+
+    expect(result.current.isSettled).toBe(true)
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'alpha',
+    ])
   })
 })
