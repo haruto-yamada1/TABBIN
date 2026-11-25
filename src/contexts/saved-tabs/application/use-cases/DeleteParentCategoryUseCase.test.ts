@@ -113,3 +113,85 @@ describe('createDeleteParentCategoryUseCase', () => {
     expect(saveAllSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('createDeleteParentCategoryUseCase requireEmpty (issue #898)', () => {
+  it('割り当てのないカテゴリは削除できる', async () => {
+    const repo = createInMemoryRepository([
+      createParentCategory({
+        collections: [],
+        id: 'cat-empty',
+        name: 'Empty',
+      }),
+      createParentCategory({
+        collections: [{ domain: 'example.com', id: 'tab-1' }],
+        id: 'cat-1',
+        name: 'Docs',
+      }),
+    ])
+    const useCase = createDeleteParentCategoryUseCase(createDeps(repo))
+    const result = await useCase({
+      categoryId: createParentCategoryId('cat-empty'),
+      requireEmpty: true,
+    })
+    expect(result.all.map((c) => c.id)).toStrictEqual(['cat-1'])
+    expect(result.removedCategory.id).toBe('cat-empty')
+  })
+
+  it('割り当ての有るカテゴリは削除を拒否し saveAll を呼ばない', async () => {
+    const repo = createInMemoryRepository([
+      createParentCategory({
+        collections: [{ domain: 'example.com', id: 'tab-1' }],
+        id: 'cat-1',
+        name: 'Docs',
+      }),
+    ])
+    const saveAllSpy = vi.fn(repo.saveAll.bind(repo))
+    const spyingRepo: ParentCategoryRepository = {
+      ...repo,
+      saveAll: saveAllSpy,
+    }
+    const useCase = createDeleteParentCategoryUseCase(createDeps(spyingRepo))
+    await expect(
+      useCase({
+        categoryId: createParentCategoryId('cat-1'),
+        requireEmpty: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'PARENT_CATEGORY_NOT_EMPTY',
+    })
+    expect(saveAllSpy).not.toHaveBeenCalled()
+  })
+
+  it('保存直前の再読込で割り当てが増えていた場合は削除を拒否する', async () => {
+    const empty = createParentCategory({
+      collections: [],
+      id: 'cat-empty',
+      name: 'Empty',
+    })
+    const assigned = createParentCategory({
+      collections: [{ domain: 'example.com', id: 'tab-1' }],
+      id: 'cat-empty',
+      name: 'Empty',
+    })
+    let findAllCalls = 0
+    const repo: ParentCategoryRepository = {
+      findAll: async () => {
+        findAllCalls += 1
+        return findAllCalls === 1 ? [empty] : [assigned]
+      },
+      findById: async (id) => (id === 'cat-empty' ? empty : null),
+      removeByIds: async () => {},
+      saveAll: vi.fn(),
+    }
+    const useCase = createDeleteParentCategoryUseCase(createDeps(repo))
+    await expect(
+      useCase({
+        categoryId: createParentCategoryId('cat-empty'),
+        requireEmpty: true,
+      }),
+    ).rejects.toMatchObject({
+      code: 'PARENT_CATEGORY_NOT_EMPTY',
+    })
+    expect(repo.saveAll).not.toHaveBeenCalled()
+  })
+})

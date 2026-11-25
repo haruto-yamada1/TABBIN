@@ -9,6 +9,7 @@ import type { MoveDomainBetweenCategoriesUseCase } from '@/contexts/saved-tabs/a
 import type { RemoveSubCategoryFromTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderDomainsInCategoryUseCase'
 import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
+import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import {
   toSavedTabsTabGroupViewModel,
   toTabGroupFromViewModel,
@@ -233,12 +234,19 @@ const useCategoryManagement = (
    * 空の親カテゴリを削除する (issue #898)。整理候補として提示された
    * ドメイン未割り当てのカテゴリだけが対象で、保存した URL は
    * 削除されない。結果は toast で知らせる。
+   *
+   * 候補表示から削除までの間にドメインが割り当てられた場合は
+   * use-case 側で拒否される (`requireEmpty`)。その場合は削除せず、
+   * 割り当てが増えた旨を伝える。
    */
   const handleDeleteEmptyCategory = useCallback(
     async (categoryId: string): Promise<void> => {
       const target = categories.find((category) => category.id === categoryId)
       try {
-        const { all } = await deleteParentCategoryUseCase({ categoryId })
+        const { all } = await deleteParentCategoryUseCase({
+          categoryId,
+          requireEmpty: true,
+        })
         setCategoriesWithOrder([...all])
         toast.success(
           t('savedTabs.categoryModal.deleted', undefined, {
@@ -247,6 +255,13 @@ const useCategoryManagement = (
         )
       } catch (error) {
         console.error('空カテゴリの削除に失敗しました:', error)
+        if (
+          error instanceof SavedTabsDomainError &&
+          error.code === 'PARENT_CATEGORY_NOT_EMPTY'
+        ) {
+          toast.error(t('savedTabs.emptyCategoriesDeleteNotEmpty'))
+          return
+        }
         toast.error(t('savedTabs.categoryModal.deleteError'))
       }
     },

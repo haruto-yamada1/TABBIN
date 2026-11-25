@@ -837,6 +837,8 @@ const messages = {
       'Delete "{{name}}"? It has no domains assigned, and no saved URLs will be deleted.',
     'savedTabs.emptyCategoriesDescription':
       'These categories have no domains assigned. Deleting a category does not delete any saved URLs.',
+    'savedTabs.emptyCategoriesDeleteNotEmpty':
+      'This category now has assigned domains, so it was not deleted.',
     'savedTabs.emptyCategoriesTitle': 'Empty categories',
     'savedTabs.searchPlaceholder': 'Search',
     'savedTabs.sort.asc': 'Saved date ascending',
@@ -1741,6 +1743,8 @@ const messages = {
       '「{{name}}」を削除しますか？割り当てられたドメインはなく、保存したURLは削除されません。',
     'savedTabs.emptyCategoriesDescription':
       'ドメインが割り当てられていないカテゴリです。カテゴリを削除しても、保存したURLは削除されません。',
+    'savedTabs.emptyCategoriesDeleteNotEmpty':
+      'ドメインが割り当てられたため削除できませんでした。',
     'savedTabs.emptyCategoriesTitle': '空のカテゴリ',
     'savedTabs.searchPlaceholder': '検索',
     'savedTabs.sort.asc': '保存日時の昇順',
