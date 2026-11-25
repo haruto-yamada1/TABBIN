@@ -99,7 +99,7 @@ Firefox の公開済み artifact が用意できた時点で、同じ pin 形式
 - 通常 PR CI: unit test のみ。`quality:check` から browser 更新 smoke は起動しない
 - 手動: `bun run build && bun run test:production-artifact-upgrade`
 
-2026-11-13 のローカル実測（Chrome 2.0.19 → 2.0.19、macOS）:
+2026-11-13 のローカル実測（Chrome 2.0.20 → 2.0.20、macOS）:
 
 - download / checksum / 展開: 約 0.5 秒
 - browser 起動・更新・再起動・Backup V2 export: 約 5.9 秒

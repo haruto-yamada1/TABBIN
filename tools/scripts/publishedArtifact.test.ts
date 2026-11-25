@@ -19,7 +19,7 @@ import type { PublishedArtifactManifest } from './publishedArtifact.ts'
 const repositoryRoot = path.resolve(import.meta.dirname, '../..')
 const persistedRelease = {
   databaseVersion: 1,
-  minimumCompatibleAppVersion: '2.0.19',
+  minimumCompatibleAppVersion: '2.0.20',
   persistenceGeneration: 2,
   rollbackCompatibility: {
     databaseDowngradeCompatible: true,
@@ -32,7 +32,7 @@ const sha256 = (bytes: Uint8Array): string =>
   createHash('sha256').update(bytes).digest('hex')
 
 const createArtifactZip = ({
-  manifestVersion = '2.0.19',
+  manifestVersion = '2.0.20',
   persistenceRelease = persistedRelease,
 }: {
   readonly manifestVersion?: string
@@ -63,7 +63,7 @@ const createCrx = (zip: Uint8Array, version: 2 | 3 = 3): Uint8Array => {
 
 const publishedChrome = (sha256Value: string) => ({
   status: 'published' as const,
-  version: '2.0.19',
+  version: '2.0.20',
   extensionId: 'dljblklbpmoocinnlcejeokopmfoldaj',
   prodversion: '140.0',
   sha256: sha256Value,
@@ -188,7 +188,7 @@ describe('published artifact verification', () => {
       extractZipToDirectory({
         bytes: zipSync({
           'assets/app.js': strToU8('console.log(1)'),
-          'manifest.json': strToU8('{"version":"2.0.19"}'),
+          'manifest.json': strToU8('{"version":"2.0.20"}'),
         }),
         directory,
       })
@@ -226,10 +226,10 @@ describe('published artifact verification', () => {
 
       expect(result).toMatchObject({
         browser: 'chrome',
-        label: 'chrome-web-store@2.0.19',
+        label: 'chrome-web-store@2.0.20',
         sha256: sha256(bytes),
         status: 'published',
-        version: '2.0.19',
+        version: '2.0.20',
       })
       if (result.status !== 'published') {
         throw new Error('Expected a published artifact')
@@ -238,7 +238,7 @@ describe('published artifact verification', () => {
         JSON.parse(
           readFileSync(path.join(result.directory, 'manifest.json'), 'utf8'),
         ),
-      ).toEqual({ version: '2.0.19' })
+      ).toEqual({ version: '2.0.20' })
     } finally {
       rmSync(temporaryRoot, { force: true, recursive: true })
     }
@@ -290,7 +290,7 @@ describe('published artifact verification', () => {
       ).rejects.toThrow(/download failed.*404/iu)
 
       const otherVersion = createCrx(
-        createArtifactZip({ manifestVersion: '2.0.20' }),
+        createArtifactZip({ manifestVersion: '2.0.21' }),
       )
       await expect(
         resolvePublishedArtifact({
@@ -303,7 +303,7 @@ describe('published artifact verification', () => {
 
       const missingMetadata = createCrx(
         zipSync({
-          'manifest.json': strToU8('{"version":"2.0.19"}'),
+          'manifest.json': strToU8('{"version":"2.0.20"}'),
         }),
       )
       await expect(

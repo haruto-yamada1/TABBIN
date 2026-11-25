@@ -24,7 +24,7 @@
   "nativeInput": {
     "issue": 998,
     "source": "chrome-web-store",
-    "extensionVersion": "2.0.19",
+    "extensionVersion": "2.0.20",
     "stage": "save",
     "sha256": "75d0931210d23b3167725c6a7fa868978526f0600ca6fbadea658740e5bcb580",
     "originalRunUnchanged": true

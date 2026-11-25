@@ -93,7 +93,7 @@ const createLifecycle = async () => {
     metadata: {
       id: storeId,
       name: 'TABBIN',
-      version: '2.0.19',
+      version: '2.0.20',
       manifest_version: 3,
     },
     installType: 'normal',
@@ -390,7 +390,7 @@ describe('RecordingSession observable lifecycle', () => {
       source: 'chrome-web-store',
       id: storeId,
       installType: 'normal',
-      version: '2.0.19',
+      version: '2.0.20',
       initialStoredSettings: scene.state.storedSettings,
     })
     expect(await scene.readResult()).toMatchObject({
