@@ -23,7 +23,7 @@ export const backgroundContextMenuMessages = {
     'background.saveTabs.noneSavedExtensionPage':
       'Extension pages cannot be saved.',
     'background.saveTabs.noneSavedPinned':
-      'All of the target tabs are pinned. Pinned tabs are skipped while the setting to exclude pinned tabs is on.',
+      'Pinned tabs were not saved because the setting to exclude pinned tabs is on.',
     'background.saveTabs.noneSavedTitle': 'No tabs saved',
     'background.saveTabs.noneSavedUrlPolicy':
       'None of the target tabs can be saved. Check the URLs or your exclusion patterns.',
@@ -58,7 +58,7 @@ export const backgroundContextMenuMessages = {
     'background.saveTabs.noneSavedExtensionPage':
       '拡張機能のページは保存できません。',
     'background.saveTabs.noneSavedPinned':
-      '対象のタブはすべてピン留めされています。ピン留めタブを除外する設定が有効なため、保存されませんでした。',
+      'ピン留めタブを除外する設定が有効なため、対象のピン留めタブは保存されませんでした。',
     'background.saveTabs.noneSavedTitle': 'タブは保存されませんでした',
     'background.saveTabs.noneSavedUrlPolicy':
       '対象のタブは保存できません。URLまたは除外パターンを確認してください。',
