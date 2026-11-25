@@ -343,7 +343,7 @@ describe('settings safety at background operation boundaries', () => {
               [
                 'No tabs saved',
                 reason === 'pinned source'
-                  ? 'All of the target tabs are pinned. Pinned tabs are skipped while the setting to exclude pinned tabs is on.'
+                  ? 'Pinned tabs were not saved because the setting to exclude pinned tabs is on.'
                   : 'None of the target tabs can be saved. Check the URLs or your exclusion patterns.',
               ],
             ]
