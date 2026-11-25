@@ -74,6 +74,12 @@ type CustomModeContainerProps = {
   onClearSearch?: () => void
   /** 検索フィルタ前のプロジェクト総数。0 件表示の切り分けに使う。 */
   totalProjectsCount?: number
+  /**
+   * 現在の検索語に対する絞り込みが確定しているか。
+   * `false` の間は一時的な 0 件を確定結果と誤認しないため案内を出さない。
+   * 未指定 (直接描画など) は確定済みとして扱う。
+   */
+  isSearchFilterSettled?: boolean
 }
 
 export const CustomModeContainer = ({
@@ -103,6 +109,7 @@ export const CustomModeContainer = ({
   searchQuery,
   onClearSearch,
   totalProjectsCount,
+  isSearchFilterSettled,
 }: CustomModeContainerProps) => {
   const openTabsRows = useCustomOpenTabsRows({
     enabled: settings.showOpenTabs !== false,
@@ -116,9 +123,11 @@ export const CustomModeContainer = ({
 
   // 検索で 0 件になった場合は「プロジェクトなし」と区別した案内を出す
   // (issue #890)。プロジェクト自体がない場合は従来の空表示を使う。
+  // 絞り込みが未確定の間は一時的な 0 件を確定結果と誤認しない。
   const trimmedSearchQuery = searchQuery.trim()
   if (
     onClearSearch !== undefined &&
+    (isSearchFilterSettled ?? true) &&
     trimmedSearchQuery.length > 0 &&
     projects.length === 0 &&
     (totalProjectsCount ?? 0) > 0 &&

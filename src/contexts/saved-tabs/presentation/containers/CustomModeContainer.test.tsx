@@ -148,6 +148,21 @@ describe('CustomModeContainer', () => {
     expect(screen.queryByText('custom-project-section')).toBeNull()
   })
 
+  it('検索の絞り込みが確定するまでは検索 0 件の案内を出さない', () => {
+    renderContainer({
+      ...baseProps,
+      getProjectUrlsUseCase: vi.fn(async () => []),
+      projects: [],
+      searchQuery: 'alpha',
+      onClearSearch: vi.fn(),
+      totalProjectsCount: 2,
+      isSearchFilterSettled: false,
+    })
+
+    expect(screen.queryByTestId('search-no-results')).toBeNull()
+    expect(screen.getByText('custom-project-section')).toBeTruthy()
+  })
+
   it('プロジェクト自体がないときは検索 0 件の案内を出さない', () => {
     renderContainer({
       ...baseProps,

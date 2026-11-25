@@ -309,11 +309,12 @@ const useSavedTabsAppView = ({
   console.log('- uncategorized:', uncategorized)
 
   const customProjectsForHeader = customProjects
-  const filteredCustomProjects = useFilteredCustomProjects(
+  const filteredCustomProjectsResult = useFilteredCustomProjects(
     savedTabsUseCases,
     customProjects,
     viewMode === 'custom' ? searchQuery : '',
   )
+  const filteredCustomProjects = filteredCustomProjectsResult.projects
 
   // 表示判定・表示用整形は `createCategorizedDisplayState` へ移設（issue #504）。
   // domain / chrome API / storage に依存しない pure 関数として
@@ -531,6 +532,7 @@ const useSavedTabsAppView = ({
         searchQuery={searchQuery}
         onClearSearch={handleClearSearch}
         totalProjectsCount={customProjects.length}
+        isSearchFilterSettled={filteredCustomProjectsResult.isSettled}
       />
     )
   return (

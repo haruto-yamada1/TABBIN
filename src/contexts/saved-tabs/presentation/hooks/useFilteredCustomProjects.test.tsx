@@ -41,23 +41,30 @@ describe('useFilteredCustomProjects current results', () => {
       ({ query }) => useFilteredCustomProjects(useCases, projects, query),
       { initialProps: { query: 'alpha' } },
     )
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
     await act(async () => {
       first.resolve(urls)
       await first.promise
     })
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['alpha'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'alpha',
+    ])
+    expect(result.current.isSettled).toBe(true)
 
     rerender({ query: '' })
-    expect(result.current).toBe(projects)
+    expect(result.current.projects).toBe(projects)
+    expect(result.current.isSettled).toBe(true)
     rerender({ query: 'alpha' })
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
     expect(getProjectUrls).toHaveBeenCalledTimes(2)
     await act(async () => {
       reentry.resolve(urls.filter((url) => url.id === 'beta'))
       await reentry.promise
     })
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(true)
   })
 
   it('hides results when the project source or URL reader changes', async () => {
@@ -79,17 +86,22 @@ describe('useFilteredCustomProjects current results', () => {
     await act(async () => {
       await Promise.resolve()
     })
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['alpha'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'alpha',
+    ])
+    expect(result.current.isSettled).toBe(true)
     rerender({
       source: projects.map((project) => ({ ...project, updatedAt: 2 })),
       readers: replacement,
     })
-    expect(result.current).toEqual([])
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
     await act(async () => {
       pending.resolve(urls)
       await pending.promise
     })
-    expect(result.current[0]?.updatedAt).toBe(2)
+    expect(result.current.projects[0]?.updatedAt).toBe(2)
+    expect(result.current.isSettled).toBe(true)
   })
 
   it('keeps the latest query after an older read completes', async () => {
@@ -110,11 +122,41 @@ describe('useFilteredCustomProjects current results', () => {
       newer.resolve(urls)
       await newer.promise
     })
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['beta'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'beta',
+    ])
     await act(async () => {
       older.resolve(urls)
       await older.promise
     })
-    expect(result.current[0]?.urls?.map((url) => url.id)).toEqual(['beta'])
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'beta',
+    ])
+  })
+
+  it('does not settle a matching search until its delayed read completes', async () => {
+    const pending = Promise.withResolvers<ProjectUrlEntry[]>()
+    const useCases = {
+      getProjectUrls: vi
+        .fn<GetProjectUrlsUseCase>()
+        .mockReturnValue(pending.promise),
+    }
+    const { result } = renderHook(() =>
+      useFilteredCustomProjects(useCases, projects, 'alpha'),
+    )
+
+    // 絞り込み保留中は未確定であり、0 件と誤認させない。
+    expect(result.current.isSettled).toBe(false)
+    expect(result.current.projects).toEqual([])
+
+    await act(async () => {
+      pending.resolve(urls)
+      await pending.promise
+    })
+
+    expect(result.current.isSettled).toBe(true)
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'alpha',
+    ])
   })
 })
