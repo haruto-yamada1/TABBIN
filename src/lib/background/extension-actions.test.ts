@@ -408,7 +408,7 @@ describe('extension-actions モジュール', () => {
       expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
       expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
         'タブは保存されませんでした',
-        '対象のタブはすべてピン留めされています。ピン留めタブを除外する設定が有効なため、保存されませんでした。',
+        'ピン留めタブを除外する設定が有効なため、対象のピン留めタブは保存されませんでした。',
       )
     })
 
@@ -437,6 +437,47 @@ describe('extension-actions モジュール', () => {
       expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
         'タブ保存',
         '1個のタブが保存されました。タブを閉じます。\n保存できない1個のタブをスキップしました。',
+      )
+    })
+
+    it('保存結果に含まれなかったタブは成功通知のスキップ件数に含める', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([
+        tab({ id: 10, title: 'A', url: 'https://example.test/a' }),
+        tab({ id: 11, title: 'B', url: 'https://example.test/b' }),
+      ])
+      mocked.dataPlaneSaveTabs.mockResolvedValueOnce({
+        savedUrls: ['https://example.test/a'],
+      })
+
+      await expect(handleSaveWindowTabs()).resolves.toEqual([
+        { title: 'A', url: 'https://example.test/a' },
+      ])
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブ保存',
+        '1個のタブが保存されました。タブを閉じます。\n保存できない1個のタブをスキップしました。',
+      )
+    })
+
+    it('保存結果から漏れた同一URLの複数タブはタブ単位でスキップ件数に数える', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([
+        tab({ id: 10, title: 'A', url: 'https://example.test/a' }),
+        tab({ id: 11, title: 'B', url: 'https://example.test/x' }),
+        tab({ id: 12, title: 'C', url: 'https://example.test/x' }),
+      ])
+      mocked.dataPlaneSaveTabs.mockResolvedValueOnce({
+        savedUrls: ['https://example.test/a'],
+      })
+
+      await expect(handleSaveWindowTabs()).resolves.toEqual([
+        { title: 'A', url: 'https://example.test/a' },
+      ])
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブ保存',
+        '1個のタブが保存されました。タブを閉じます。\n保存できない2個のタブをスキップしました。',
       )
     })
 
