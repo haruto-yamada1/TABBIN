@@ -20,8 +20,17 @@ export const backgroundContextMenuMessages = {
     'background.saveTabs.linkSaved': 'Saved the link to TABBIN.',
     'background.saveTabs.linkSavedTitle': 'Link saved',
     'background.saveTabs.notificationTitle': 'Tab saved',
+    'background.saveTabs.noneSavedExtensionPage':
+      'Extension pages cannot be saved.',
+    'background.saveTabs.noneSavedPinned':
+      'Pinned tabs were not saved because the setting to exclude pinned tabs is on.',
+    'background.saveTabs.noneSavedTitle': 'No tabs saved',
+    'background.saveTabs.noneSavedUrlPolicy':
+      'None of the target tabs can be saved. Check the URLs or your exclusion patterns.',
     'background.saveTabs.sameDomainSaved':
       'Saved {{count}} tabs from {{domain}}.',
+    'background.saveTabs.skippedSummary':
+      'Skipped {{count}} tabs that cannot be saved.',
     'background.saveTabs.windowTabsSaved':
       'Saved {{count}} tabs. Closing the tabs now.',
   },
@@ -46,8 +55,17 @@ export const backgroundContextMenuMessages = {
     'background.saveTabs.linkSaved': 'リンク先をTABBINに保存しました',
     'background.saveTabs.linkSavedTitle': 'リンク保存',
     'background.saveTabs.notificationTitle': 'タブ保存',
+    'background.saveTabs.noneSavedExtensionPage':
+      '拡張機能のページは保存できません。',
+    'background.saveTabs.noneSavedPinned':
+      'ピン留めタブを除外する設定が有効なため、対象のピン留めタブは保存されませんでした。',
+    'background.saveTabs.noneSavedTitle': 'タブは保存されませんでした',
+    'background.saveTabs.noneSavedUrlPolicy':
+      '対象のタブは保存できません。URLまたは除外パターンを確認してください。',
     'background.saveTabs.sameDomainSaved':
       '{{domain}}の{{count}}個のタブを保存しました',
+    'background.saveTabs.skippedSummary':
+      '保存できない{{count}}個のタブをスキップしました。',
     'background.saveTabs.windowTabsSaved':
       '{{count}}個のタブが保存されました。タブを閉じます。',
   },

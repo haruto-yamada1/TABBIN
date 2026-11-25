@@ -105,6 +105,73 @@ const captureMessages: Record<CaptureAction, string> = {
   saveAllWindowsTabs: 'background.saveTabs.allWindowsSaved',
 }
 
+const noneSavedMessageKeys = {
+  'extension-page': 'background.saveTabs.noneSavedExtensionPage',
+  pinned: 'background.saveTabs.noneSavedPinned',
+  'url-policy': 'background.saveTabs.noneSavedUrlPolicy',
+} as const
+
+type SkippedReason = keyof typeof noneSavedMessageKeys
+
+const skippedReasonPriority: readonly SkippedReason[] = [
+  'url-policy',
+  'pinned',
+  'extension-page',
+]
+
+/**
+ * 保存対象から外れたタブのうち、ユーザーが対処できる理由（ピン留め・
+ * 拡張機能ページ・URLポリシー）だけを集計する。スコープ外は仕様どおりの
+ * 除外なので通知には含めない。
+ */
+const summarizeSkippedTabs = (
+  plan: CapturePlan,
+): { count: number; primaryReason: SkippedReason } | undefined => {
+  const counts = new Map<SkippedReason, number>()
+  for (const { reason } of plan.excludedReasons) {
+    if (reason === 'outside-scope') {
+      continue
+    }
+    counts.set(reason, (counts.get(reason) ?? 0) + 1)
+  }
+  const count = [...counts.values()].reduce((sum, value) => sum + value, 0)
+  if (count === 0) {
+    return undefined
+  }
+  const primaryReason = skippedReasonPriority.reduce<SkippedReason>(
+    (best, reason) =>
+      (counts.get(reason) ?? 0) > (counts.get(best) ?? 0) ? reason : best,
+    'extension-page',
+  )
+  return { count, primaryReason }
+}
+
+const notifyNoneSaved = async (
+  language: AppLanguage,
+  messageKey: string,
+): Promise<void> => {
+  await showNotification(
+    getMessage(language, 'background.saveTabs.noneSavedTitle'),
+    getMessage(language, messageKey),
+  )
+}
+
+const notifyCaptureError = async (
+  language: AppLanguage,
+  error: unknown,
+): Promise<void> => {
+  let prefix = 'background.saveTabs.captureError'
+  if (error instanceof TabFilteringError) {
+    prefix = 'background.saveTabs.filterError'
+  } else if (error instanceof NativeSavedTabTitleCaptureError) {
+    prefix = 'background.saveTabs.titleCaptureError'
+  }
+  await showNotification(
+    getMessage(language, `${prefix}Title`),
+    getMessage(language, `${prefix}Message`),
+  )
+}
+
 const saveCaptureTabs = async (plan: CapturePlan) => {
   const tabs = await normalizeSavedTabTitles([...plan.includedTabs])
   const receipt = await getBackgroundSavedTabsDataPlane().saveTabs(
@@ -116,12 +183,35 @@ const saveCaptureTabs = async (plan: CapturePlan) => {
   const savedUrls = new Set(
     receipt && 'savedUrls' in receipt ? receipt.savedUrls : [],
   )
-  return tabs.filter(({ url }) => savedUrls.has(url))
+  const savedTabs = tabs.filter(({ url }) => savedUrls.has(url))
+  return {
+    savedTabs,
+    // savedUrls に含まれなかった対象タブ（無効URLなど）をタブ単位で数える。
+    // savedTabs と同じ基準で、同一URLの複数タブも1タブずつ数える。
+    unsavedCount: tabs.length - savedTabs.length,
+  }
+}
+
+/**
+ * 保存時にデータプレーンから漏れたタブ（無効URLなど）を、成功通知の
+ * スキップ件数に含める。保存結果に現れないタブを通知から消さないため。
+ */
+const includeUnsavedTabsInSkipped = (
+  skipped: ReturnType<typeof summarizeSkippedTabs>,
+  unsavedCount: number,
+): ReturnType<typeof summarizeSkippedTabs> => {
+  if (unsavedCount === 0) {
+    return skipped
+  }
+  return {
+    count: (skipped?.count ?? 0) + unsavedCount,
+    primaryReason: skipped?.primaryReason ?? 'url-policy',
+  }
 }
 
 const closeCaptureTabs = async (
   plan: CapturePlan,
-  savedTabs: Awaited<ReturnType<typeof saveCaptureTabs>>,
+  savedTabs: Awaited<ReturnType<typeof saveCaptureTabs>>['savedTabs'],
   savedTabsPageId: number | undefined,
 ): Promise<void> => {
   const closeTargetIds = new Set(plan.closeTargetIds)
@@ -174,24 +264,41 @@ const runTabCapture = async (
       settings,
       clickedTab ? { sameDomainAnchor: clickedTab } : undefined,
     )
+    const skipped = summarizeSkippedTabs(plan)
     if (plan.includedTabs.length === 0) {
+      if (skipped) {
+        await notifyNoneSaved(
+          language,
+          noneSavedMessageKeys[skipped.primaryReason],
+        )
+      }
       return []
     }
 
-    const savedTabs = await saveCaptureTabs(plan)
+    const { savedTabs, unsavedCount } = await saveCaptureTabs(plan)
     if (savedTabs.length === 0) {
+      await notifyNoneSaved(language, 'background.saveTabs.noneSavedUrlPolicy')
       return []
     }
     const savedTabsPageId =
       scope === 'saveAllWindowsTabs' || scope === 'saveWindowTabs'
         ? await openSavedTabsPage({ closeDuplicates: false })
         : undefined
-    await showNotification(
-      getMessage(language, 'background.saveTabs.notificationTitle'),
-      getMessage(language, captureMessages[scope], undefined, {
+    const savedMessage = getMessage(
+      language,
+      captureMessages[scope],
+      undefined,
+      {
         count: String(savedTabs.length),
         domain: plan.hostname ?? '',
-      }),
+      },
+    )
+    const effectiveSkipped = includeUnsavedTabsInSkipped(skipped, unsavedCount)
+    await showNotification(
+      getMessage(language, 'background.saveTabs.notificationTitle'),
+      effectiveSkipped
+        ? `${savedMessage}\n${getMessage(language, 'background.saveTabs.skippedSummary', undefined, { count: String(effectiveSkipped.count) })}`
+        : savedMessage,
     )
     if (savedTabsPageId !== null) {
       await closeCaptureTabs(plan, savedTabs, savedTabsPageId)
@@ -202,16 +309,7 @@ const runTabCapture = async (
     }))
   } catch (error) {
     if (!(error instanceof UserSettingsReadError)) {
-      let prefix = 'background.saveTabs.captureError'
-      if (error instanceof TabFilteringError) {
-        prefix = 'background.saveTabs.filterError'
-      } else if (error instanceof NativeSavedTabTitleCaptureError) {
-        prefix = 'background.saveTabs.titleCaptureError'
-      }
-      await showNotification(
-        getMessage(language, `${prefix}Title`),
-        getMessage(language, `${prefix}Message`),
-      )
+      await notifyCaptureError(language, error)
     }
     throw error
   }
