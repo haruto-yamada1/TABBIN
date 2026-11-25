@@ -183,12 +183,35 @@ const saveCaptureTabs = async (plan: CapturePlan) => {
   const savedUrls = new Set(
     receipt && 'savedUrls' in receipt ? receipt.savedUrls : [],
   )
-  return tabs.filter(({ url }) => savedUrls.has(url))
+  const savedTabs = tabs.filter(({ url }) => savedUrls.has(url))
+  return {
+    savedTabs,
+    // savedUrls に含まれなかった対象タブ（無効URLなど）をタブ単位で数える。
+    // savedTabs と同じ基準で、同一URLの複数タブも1タブずつ数える。
+    unsavedCount: tabs.length - savedTabs.length,
+  }
+}
+
+/**
+ * 保存時にデータプレーンから漏れたタブ（無効URLなど）を、成功通知の
+ * スキップ件数に含める。保存結果に現れないタブを通知から消さないため。
+ */
+const includeUnsavedTabsInSkipped = (
+  skipped: ReturnType<typeof summarizeSkippedTabs>,
+  unsavedCount: number,
+): ReturnType<typeof summarizeSkippedTabs> => {
+  if (unsavedCount === 0) {
+    return skipped
+  }
+  return {
+    count: (skipped?.count ?? 0) + unsavedCount,
+    primaryReason: skipped?.primaryReason ?? 'url-policy',
+  }
 }
 
 const closeCaptureTabs = async (
   plan: CapturePlan,
-  savedTabs: Awaited<ReturnType<typeof saveCaptureTabs>>,
+  savedTabs: Awaited<ReturnType<typeof saveCaptureTabs>>['savedTabs'],
   savedTabsPageId: number | undefined,
 ): Promise<void> => {
   const closeTargetIds = new Set(plan.closeTargetIds)
@@ -252,7 +275,7 @@ const runTabCapture = async (
       return []
     }
 
-    const savedTabs = await saveCaptureTabs(plan)
+    const { savedTabs, unsavedCount } = await saveCaptureTabs(plan)
     if (savedTabs.length === 0) {
       await notifyNoneSaved(language, 'background.saveTabs.noneSavedUrlPolicy')
       return []
@@ -270,10 +293,11 @@ const runTabCapture = async (
         domain: plan.hostname ?? '',
       },
     )
+    const effectiveSkipped = includeUnsavedTabsInSkipped(skipped, unsavedCount)
     await showNotification(
       getMessage(language, 'background.saveTabs.notificationTitle'),
-      skipped
-        ? `${savedMessage}\n${getMessage(language, 'background.saveTabs.skippedSummary', undefined, { count: String(skipped.count) })}`
+      effectiveSkipped
+        ? `${savedMessage}\n${getMessage(language, 'background.saveTabs.skippedSummary', undefined, { count: String(effectiveSkipped.count) })}`
         : savedMessage,
     )
     if (savedTabsPageId !== null) {
