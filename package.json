@@ -275,7 +275,7 @@
     "postcss": "8.5.33",
     "rollup": "4.62.2",
     "shell-quote": "1.11.0",
-    "smol-toml": "1.7.1",
+    "smol-toml": "1.9.0",
     "source-map-js": "1.2.2",
     "tmp": "0.2.7"
   },
