@@ -149,8 +149,9 @@ describe('Dependency Review workflow permissions and policy', () => {
   })
 
   it('runs on every PR with read-only permissions and no lifecycle execution', () => {
-    expect(workflow.on.pull_request.branches).toEqual(['develop', 'main'])
-    expect(workflow.on.pull_request.paths).toBeUndefined()
+    expect(workflow.on).toHaveProperty('pull_request')
+    expect(workflow.on.pull_request?.branches).toBeUndefined()
+    expect(workflow.on.pull_request?.paths).toBeUndefined()
     expect(workflow.on.pull_request_target).toBeUndefined()
     expect(workflow.permissions).toEqual({ contents: 'read' })
     expect(workflow.jobs.review.permissions).toBeUndefined()
