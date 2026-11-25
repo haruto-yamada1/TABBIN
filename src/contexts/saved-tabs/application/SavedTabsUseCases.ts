@@ -19,7 +19,10 @@ import type { DeleteSelectedSavedUrlsUseCase } from './use-cases/DeleteSelectedS
 import type { DeleteTabGroupsUseCase } from './use-cases/DeleteTabGroupsUseCase'
 import type { DeleteTabGroupUseCase } from './use-cases/DeleteTabGroupUseCase'
 import type { FindUrlRecordByUrlUseCase } from './use-cases/FindUrlRecordByUrlUseCase'
-import type { GetProjectUrlsUseCase } from './use-cases/GetProjectUrlsUseCase'
+import type {
+  GetProjectSearchUrlsUseCase,
+  GetProjectUrlsUseCase,
+} from './use-cases/GetProjectUrlsUseCase'
 import type { LoadTabGroupsWithUrlsUseCase } from './use-cases/LoadTabGroupsWithUrlsUseCase'
 import type { LoadTabGroupUrlsUseCase } from './use-cases/LoadTabGroupUrlsUseCase'
 import type { MoveDomainBetweenCategoriesUseCase } from './use-cases/MoveDomainBetweenCategoriesUseCase'
@@ -275,6 +278,7 @@ export type SavedTabsUseCases = {
    * 1 つの use-case に統合。
    */
   readonly restoreCustomProjectsSnapshot: RestoreCustomProjectsSnapshotUseCase
+  readonly getProjectSearchUrls: GetProjectSearchUrlsUseCase
   readonly getProjectUrls: GetProjectUrlsUseCase
   readonly getSavedTabsPageData: GetSavedTabsPageDataQuery
   /**

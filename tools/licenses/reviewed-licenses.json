@@ -1,20 +1,20 @@
 [
   {
     "name": "@ai-sdk/provider-utils",
-    "version": "5.0.65",
+    "version": "5.0.81",
     "license": "Apache-2.0",
-    "sourceUrl": "https://raw.githubusercontent.com/vercel/ai/e6230e43ba9def164550eea562c457e23be9efa6/LICENSE",
-    "packageIntegrity": "sha512-LCugcsP8oWmdeI3BASf4Fuo1wiC6Qx0YrefFssl7n12s+LV4DNi5RdwWQrtrB4oek3GGNQRN/h/NSwVZM2eHKw==",
+    "sourceUrl": "https://raw.githubusercontent.com/vercel/ai/8bc7652cdb13fc84722666eb93f45acd0d131eee/LICENSE",
+    "packageIntegrity": "sha512-pfvvdQ3d1WxdBuug/mnGEP6E48cPokwD8dMBnsFeeAUp0/rb/H2aj0f3mwOiY62gu/Cu5GO44e+SE5nDHyBWMA==",
     "files": [
       {
-        "path": "ai-sdk-provider-utils-5.0.65/LICENSE",
+        "path": "ai-sdk-provider-utils-5.0.81/LICENSE",
         "sha256": "b4f9adb7c568904834d0dd6cc98d16c390d21ca32fc17ae7a267715269bd5529",
         "originalPath": "LICENSE",
-        "sourceUrl": "https://raw.githubusercontent.com/vercel/ai/e6230e43ba9def164550eea562c457e23be9efa6/LICENSE"
+        "sourceUrl": "https://raw.githubusercontent.com/vercel/ai/8bc7652cdb13fc84722666eb93f45acd0d131eee/LICENSE"
       }
     ],
     "provenanceNote": "Official npm provenance identifies the pinned upstream commit. Original repository-root copyright and Apache-2.0 application notice from that commit. The published package contains only the vendored zod3-to-json-schema MIT license and omits its own Apache notice. Preserve the nested MIT text; complete the original Apache header with the separately verified canonical Apache 2.0 terms.",
-    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@ai-sdk%2fprovider-utils@5.0.65"
+    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@ai-sdk%2fprovider-utils@5.0.81"
   },
   {
     "name": "@workflow/serde",
@@ -183,19 +183,19 @@
   },
   {
     "name": "wxt",
-    "version": "0.21.4",
+    "version": "0.21.5",
     "license": "MIT",
-    "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/9cb69c8695e22ad781216e20f58658352321c7b6/LICENSE",
-    "packageIntegrity": "sha512-iyVMTXb37BQAbsPHCuPzrK3ZxnO9pZmvbKl7VJWIHe3RG40On2NyP2FOjArtOITO96plEYnh3o+iUlRp9qE90w==",
+    "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/24ee2417d3a9c85ceb2b1cdf76184f6c6cb3e2af/LICENSE",
+    "packageIntegrity": "sha512-naPKDK3LlU0M2LFJO3udw8ZEAB7DVQCGo26wllvSJQRVd3VaL9kiChjP8zWiVqm851uYkQ5pVI51hA5wjssO4g==",
     "files": [
       {
-        "path": "wxt-0.21.4/LICENSE",
+        "path": "wxt-0.21.5/LICENSE",
         "sha256": "7b0b00fcdbc6a036078aad84d0bc0fae240ac67144b86c911149c2daa37c9f85",
         "originalPath": "LICENSE",
-        "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/9cb69c8695e22ad781216e20f58658352321c7b6/LICENSE"
+        "sourceUrl": "https://raw.githubusercontent.com/wxt-dev/wxt/24ee2417d3a9c85ceb2b1cdf76184f6c6cb3e2af/LICENSE"
       }
     ],
     "provenanceNote": "Official npm provenance identifies the pinned upstream commit; the published package omits its root LICENSE.",
-    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/wxt@0.21.4"
+    "provenanceUrl": "https://registry.npmjs.org/-/npm/v1/attestations/wxt@0.21.5"
   }
 ]

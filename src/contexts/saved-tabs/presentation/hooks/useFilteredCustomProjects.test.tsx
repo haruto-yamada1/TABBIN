@@ -1,8 +1,8 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type {
-  GetProjectUrlsUseCase,
+  GetProjectSearchUrlsUseCase,
   ProjectUrlEntry,
 } from '@/contexts/saved-tabs/application/use-cases/GetProjectUrlsUseCase'
 import type { SavedTabsCustomProjectDto } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
@@ -26,132 +26,177 @@ const urls: ProjectUrlEntry[] = ['alpha', 'beta'].map((id) => ({
   savedAt: 1,
 }))
 
-afterEach(cleanup)
+beforeEach(() => vi.useFakeTimers())
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
+
+const runSearch = async () => {
+  await act(async () => {
+    await vi.runAllTimersAsync()
+  })
+}
+
+const buildReaders = (
+  read = vi
+    .fn<GetProjectSearchUrlsUseCase>()
+    .mockResolvedValue(new Map([['project', urls]])),
+) => ({
+  getProjectSearchUrls: read,
+})
 
 describe('useFilteredCustomProjects current results', () => {
-  it('clears a prior query generation on leaving and reentering the same query', async () => {
-    const first = Promise.withResolvers<ProjectUrlEntry[]>()
-    const reentry = Promise.withResolvers<ProjectUrlEntry[]>()
-    const getProjectUrls = vi
-      .fn<GetProjectUrlsUseCase>()
-      .mockReturnValueOnce(first.promise)
-      .mockReturnValueOnce(reentry.promise)
-    const useCases = { getProjectUrls }
+  it('debounces rapid input and reuses one read for the current project list', async () => {
+    const readers = buildReaders()
     const { result, rerender } = renderHook(
-      ({ query }) => useFilteredCustomProjects(useCases, projects, query),
+      ({ query }) => useFilteredCustomProjects(readers, projects, query),
       { initialProps: { query: 'alpha' } },
     )
+    rerender({ query: 'beta' })
+    expect(readers.getProjectSearchUrls).not.toHaveBeenCalled()
     expect(result.current.projects).toEqual([])
     expect(result.current.isSettled).toBe(false)
-    await act(async () => {
-      first.resolve(urls)
-      await first.promise
-    })
+
+    await runSearch()
+    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
+      'beta',
+    ])
+    expect(result.current.isSettled).toBe(true)
+    rerender({ query: 'alpha' })
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(false)
+    await runSearch()
     expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
       'alpha',
     ])
     expect(result.current.isSettled).toBe(true)
+    expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(1)
+  })
 
+  it('discards a pending read when the search is cleared and reentered', async () => {
+    const first = Promise.withResolvers<Map<string, ProjectUrlEntry[]>>()
+    const readers = buildReaders(
+      vi
+        .fn()
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValue(
+          new Map([['project', urls.filter(({ id }) => id === 'beta')]]),
+        ),
+    )
+    const { result, rerender } = renderHook(
+      ({ query }) => useFilteredCustomProjects(readers, projects, query),
+      { initialProps: { query: 'alpha' } },
+    )
+    await runSearch()
     rerender({ query: '' })
     expect(result.current.projects).toBe(projects)
     expect(result.current.isSettled).toBe(true)
     rerender({ query: 'alpha' })
     expect(result.current.projects).toEqual([])
     expect(result.current.isSettled).toBe(false)
-    expect(getProjectUrls).toHaveBeenCalledTimes(2)
+    await runSearch()
+    expect(result.current.projects).toEqual([])
+    expect(result.current.isSettled).toBe(true)
     await act(async () => {
-      reentry.resolve(urls.filter((url) => url.id === 'beta'))
-      await reentry.promise
+      first.resolve(new Map([['project', urls]]))
     })
     expect(result.current.projects).toEqual([])
     expect(result.current.isSettled).toBe(true)
+    expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(2)
   })
 
-  it('hides results when the project source or URL reader changes', async () => {
-    const pending = Promise.withResolvers<ProjectUrlEntry[]>()
-    const getProjectUrls = vi
-      .fn<GetProjectUrlsUseCase>()
-      .mockResolvedValue(urls)
-    const useCases = { getProjectUrls }
-    const replacement = {
-      getProjectUrls: vi
-        .fn<GetProjectUrlsUseCase>()
-        .mockReturnValue(pending.promise),
+  it('updates name matches, additions and changed URL memberships from a new projection', async () => {
+    const original = projects[0]
+    if (!original) {
+      throw new Error('Missing search project')
     }
-    const { result, rerender } = renderHook(
-      ({ source, readers }) =>
-        useFilteredCustomProjects(readers, source, 'alpha'),
-      { initialProps: { source: projects, readers: useCases } },
+    const added = { ...original, id: 'added', name: 'beta' }
+    const renamed = {
+      ...original,
+      name: '資料庫更新',
+      updatedAt: 2,
+      memberships: [{ urlId: 'new' }],
+    }
+    const updatedUrl = {
+      id: 'new',
+      title: 'beta',
+      url: 'https://search.example/new',
+      savedAt: 2,
+    }
+    const readers = buildReaders(
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Map([['project', urls]]))
+        .mockResolvedValueOnce(new Map([['project', [updatedUrl]]])),
     )
-    await act(async () => {
-      await Promise.resolve()
-    })
+    const { result, rerender } = renderHook(
+      ({ source, query }) => useFilteredCustomProjects(readers, source, query),
+      { initialProps: { source: projects, query: 'beta' } },
+    )
+    await runSearch()
     expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
-      'alpha',
+      'beta',
     ])
     expect(result.current.isSettled).toBe(true)
-    rerender({
-      source: projects.map((project) => ({ ...project, updatedAt: 2 })),
-      readers: replacement,
-    })
+    rerender({ source: [renamed, added], query: 'beta' })
     expect(result.current.projects).toEqual([])
     expect(result.current.isSettled).toBe(false)
-    await act(async () => {
-      pending.resolve(urls)
-      await pending.promise
-    })
-    expect(result.current.projects[0]?.updatedAt).toBe(2)
+    await runSearch()
+    expect(result.current.projects.map(({ id }) => id)).toEqual([
+      'added',
+      'project',
+    ])
+    expect(result.current.projects[1]?.urls?.map((url) => url.id)).toEqual([
+      'new',
+    ])
+    expect(result.current.projects[1]?.name).toBe('資料庫更新')
     expect(result.current.isSettled).toBe(true)
+    expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(2)
   })
 
-  it('keeps the latest query after an older read completes', async () => {
-    const older = Promise.withResolvers<ProjectUrlEntry[]>()
-    const newer = Promise.withResolvers<ProjectUrlEntry[]>()
-    const useCases = {
-      getProjectUrls: vi
-        .fn<GetProjectUrlsUseCase>()
-        .mockReturnValueOnce(older.promise)
-        .mockReturnValueOnce(newer.promise),
-    }
+  it('accepts only the latest query when both searches await the same read', async () => {
+    const pending = Promise.withResolvers<Map<string, ProjectUrlEntry[]>>()
+    const readers = buildReaders(
+      vi.fn<GetProjectSearchUrlsUseCase>().mockReturnValue(pending.promise),
+    )
     const { result, rerender } = renderHook(
-      ({ query }) => useFilteredCustomProjects(useCases, projects, query),
+      ({ query }) => useFilteredCustomProjects(readers, projects, query),
       { initialProps: { query: 'alpha' } },
     )
+    await runSearch()
     rerender({ query: 'beta' })
+    expect(result.current.isSettled).toBe(false)
+    await runSearch()
     await act(async () => {
-      newer.resolve(urls)
-      await newer.promise
+      pending.resolve(new Map([['project', urls]]))
     })
     expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
       'beta',
     ])
-    await act(async () => {
-      older.resolve(urls)
-      await older.promise
-    })
-    expect(result.current.projects[0]?.urls?.map((url) => url.id)).toEqual([
-      'beta',
-    ])
+    expect(result.current.isSettled).toBe(true)
+    expect(readers.getProjectSearchUrls).toHaveBeenCalledTimes(1)
   })
 
   it('does not settle a matching search until its delayed read completes', async () => {
-    const pending = Promise.withResolvers<ProjectUrlEntry[]>()
-    const useCases = {
-      getProjectUrls: vi
-        .fn<GetProjectUrlsUseCase>()
-        .mockReturnValue(pending.promise),
-    }
+    const pending = Promise.withResolvers<Map<string, ProjectUrlEntry[]>>()
+    const readers = buildReaders(
+      vi.fn<GetProjectSearchUrlsUseCase>().mockReturnValue(pending.promise),
+    )
     const { result } = renderHook(() =>
-      useFilteredCustomProjects(useCases, projects, 'alpha'),
+      useFilteredCustomProjects(readers, projects, 'alpha'),
     )
 
     // 絞り込み保留中は未確定であり、0 件と誤認させない。
     expect(result.current.isSettled).toBe(false)
     expect(result.current.projects).toEqual([])
 
+    await runSearch()
+    expect(result.current.isSettled).toBe(false)
+    expect(result.current.projects).toEqual([])
+
     await act(async () => {
-      pending.resolve(urls)
-      await pending.promise
+      pending.resolve(new Map([['project', urls]]))
     })
 
     expect(result.current.isSettled).toBe(true)

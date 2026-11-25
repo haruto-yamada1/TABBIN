@@ -4,7 +4,7 @@
   "environment": {
     "os": "macOS 27.2 (26B123)",
     "browser": "Google Chrome for Testing 156.0.8078.4",
-    "extensionVersion": "2.0.19",
+    "extensionVersion": "2.0.20",
     "source": "chrome-web-store",
     "installType": "normal",
     "guiAutomation": "CUA macOS",

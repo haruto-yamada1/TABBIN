@@ -308,11 +308,13 @@ const useSavedTabsAppView = ({
   console.log('- categorized:', categorized)
   console.log('- uncategorized:', uncategorized)
 
+  const [customSearchRevision, setCustomSearchRevision] = useState(0)
   const customProjectsForHeader = customProjects
   const filteredCustomProjectsResult = useFilteredCustomProjects(
     savedTabsUseCases,
     customProjects,
     viewMode === 'custom' ? searchQuery : '',
+    customSearchRevision,
   )
   const filteredCustomProjects = filteredCustomProjectsResult.projects
 
@@ -369,6 +371,8 @@ const useSavedTabsAppView = ({
     deps.storageChangePort,
     async (changes) => {
       if (changes.some((change) => change.key === 'urls')) {
+        // URL metadata can change without changing any project membership.
+        setCustomSearchRevision((revision) => revision + 1)
         const pageData = await savedTabsUseCases.getSavedTabsPageData()
         await refreshTabGroupsWithUrls(
           pageData.tabGroups.map(toSavedTabsTabGroupViewModel),

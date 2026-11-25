@@ -4,7 +4,7 @@ import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entitie
 import { createIndexedDbSavedTabsUseCases } from '@/contexts/saved-tabs/infrastructure/composition/createIndexedDbSavedTabsUseCases'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
-import { filterCustomProjectsByQuery } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
+import { createCustomProjectSearch } from '@/contexts/saved-tabs/presentation/lib/custom-project-search'
 import {
   toCustomProjectFromViewModel,
   toSavedTabsCustomProjectViewModel,
@@ -263,12 +263,14 @@ const createSavedTabsReadBrowserHarness = (databaseName: string) => {
         projectQueryMs.push(performance.now() - projectStart)
         assertEquivalent(projectUrls, expected.projectUrls)
       }
-      const search = await filterCustomProjectsByQuery({
-        customProjects: [toSavedTabsCustomProjectViewModel(project)],
-        loadProjectUrls: async (viewModel) =>
-          useCases.getProjectUrls(toCustomProjectFromViewModel(viewModel)),
-        searchQuery: searchMarker,
-      })
+      const filterProjects = createCustomProjectSearch(
+        [toSavedTabsCustomProjectViewModel(project)],
+        async (projects) =>
+          useCases.getProjectSearchUrls(
+            projects.map(toCustomProjectFromViewModel),
+          ),
+      )
+      const search = await filterProjects(searchMarker)
       assertEquivalent(
         search.flatMap((match) =>
           (match.memberships ?? []).map(({ urlId }) => urlId),

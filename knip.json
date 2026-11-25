@@ -36,7 +36,7 @@
     }
   },
   "include": ["dependencies", "unlisted", "binaries"],
-  "ignoreBinaries": ["codex", "headroom"],
+  "ignoreBinaries": ["codex", "headroom", "start"],
   "ignore": [
     ".worktrees/**",
     ".output/**",
@@ -54,8 +54,7 @@
     "@storybook/addon-onboarding",
     "autoprefixer",
     "path",
-    "postcss",
-    "@secretlint/secretlint-rule-preset-recommend"
+    "postcss"
   ],
   "lefthook": true,
   "playwright": true,

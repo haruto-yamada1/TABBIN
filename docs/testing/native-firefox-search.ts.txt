@@ -4,16 +4,31 @@ const { createSearchFixture, installInputProbe } = await import(
 const { seedSavedTabsFixture } = await import(
   path.join(repoRoot, 'e2e/helpers/extension.ts')
 )
+const executables = resolveFirefoxSmokeEnvironment()
 const root = await mkdtemp('/private/tmp/issue-900-native-')
 const profile = path.join(root, 'profile')
 await mkdir(profile)
-const addon = await createSmokeAddon(root)
+if (process.platform === 'darwin') {
+  await Promise.all(
+    ['Library/Application Support', 'Documents', 'Downloads'].map(
+      (directory) => mkdir(path.join(root, directory), { recursive: true }),
+    ),
+  )
+}
+const addon = await createSmokeAddon(root, true)
 const port = await reservePort()
 const baseUrl = `http://127.0.0.1:${port}`
 const driver = spawn(
-  process.env.GECKODRIVER_PATH ?? 'geckodriver',
+  executables.geckodriverPath,
   ['--port', String(port), '--allow-system-access'],
-  { stdio: 'ignore' },
+  {
+    stdio: 'inherit',
+    env: createFirefoxSmokeProcessEnvironment({
+      environment: process.env,
+      platform: process.platform,
+      appDataDirectory: root,
+    }),
+  },
 )
 let session
 let driverFailure
@@ -22,7 +37,7 @@ driver.once('error', (error) => {
 })
 try {
   await waitForDriver(baseUrl, () => driverFailure)
-  session = await createSession(baseUrl, profile)
+  session = await createSession(baseUrl, profile, executables.firefoxPath)
   await installAddon(session, addon)
   const uuid = await resolveExtensionUuid(profile)
   const app = `moz-extension://${uuid}/app.html`
@@ -158,7 +173,7 @@ try {
       await input('渓')
       await poll(rows, [url(1)])
       const report = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         browser: 'firefox',
         browserVersion: session.version,
         mode,
@@ -172,7 +187,7 @@ try {
         scenario:
           'Warm one-character Japanese title replacement via native WebDriver key actions; alternating distinct one-row results',
         methodology:
-          'Shared Playwright fixture data and browser probe; trusted Meta+A then one Japanese key. Page performance.now; double rAF paint opportunities and exact result URL set. Same page-local readonly transaction probe. Different input transport and query length from Chromium; compare before/after within each browser.',
+          'Shared Playwright fixture data and browser probe; trusted Meta+A then one Japanese key. Page performance.now; double rAF paint opportunities and exact result URL set. Same page-local readonly transaction, snapshot and cloned URL-row probes. Different input transport and query length from Chromium; compare before/after within each browser.',
         milliseconds: Object.fromEntries(
           [
             'nextPaintOpportunityMs',
@@ -183,6 +198,12 @@ try {
         ),
         readonlyIndexedDbTransactions: summary(
           samples.map((s) => s.readonlyTransactions),
+        ),
+        savedTabsSnapshotTransactions: summary(
+          samples.map((sample) => sample.savedTabsSnapshotTransactions),
+        ),
+        indexedDbUrlRowsRead: summary(
+          samples.map((sample) => sample.indexedDbUrlRowsRead),
         ),
         observedBodyMutationRecords: summary(
           samples.map((s) => s.observedBodyMutations),

@@ -19,7 +19,7 @@ const validPin = {
   schemaVersion: 1,
   chrome: {
     status: 'published',
-    version: '2.0.19',
+    version: '2.0.20',
     extensionId: 'dljblklbpmoocinnlcejeokopmfoldaj',
     prodversion: '140.0',
     sha256: 'a'.repeat(64),
@@ -64,7 +64,7 @@ describe('production artifact upgrade CLI', () => {
       mkdirSync(currentDirectory)
       writeFileSync(
         path.join(currentDirectory, 'manifest.json'),
-        JSON.stringify({ version: '2.0.19' }),
+        JSON.stringify({ version: '2.0.20' }),
       )
       const result = runCli([
         '--pin',
