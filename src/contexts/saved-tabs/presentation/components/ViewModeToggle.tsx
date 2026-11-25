@@ -76,6 +76,8 @@ export const ViewModeToggle = ({
         <div>
           <Select value={currentMode} onValueChange={onChange}>
             <SelectTrigger
+              data-tour='academy-view-mode'
+              data-mode={currentMode}
               aria-label={t('savedTabs.viewMode.tooltip')}
               className='flex h-9 items-center gap-2'
             >

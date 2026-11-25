@@ -183,6 +183,8 @@ export const CategoryGroupRoot = ({
         className={`m-0 min-w-0 border-0 p-0 ${feedback.className}`}
         data-drop-state={feedback.state}
         data-saved-tabs-scroll-target='parent'
+        data-tour='academy-parent-group'
+        data-parent-id={category.id}
         aria-label={t('savedTabs.categoryGroupAria', undefined, {
           name: category.name,
         })}

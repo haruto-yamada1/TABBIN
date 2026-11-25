@@ -28,7 +28,6 @@ const BULK_OPEN_THRESHOLD = 10
  * 子カテゴリ管理、すべて開く、すべて削除、キーワードモーダルを含む
  */
 export const DomainCardActions = () => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const {
     state,
@@ -170,6 +169,7 @@ export const DomainCardActions = () => {
         {/* 子カテゴリ管理 */}
         <CardActionButton
           icon={Settings}
+          dataTour='academy-child-categories'
           label={t('savedTabs.manageSubcategories')}
           accessibleLabel={manageSubcategoriesLabel}
           tooltip={manageSubcategoriesLabel}
@@ -179,6 +179,7 @@ export const DomainCardActions = () => {
         {/* すべて開く */}
         <CardActionButton
           icon={ExternalLink}
+          dataTour='academy-restore-tabs'
           label={t('savedTabs.openAll')}
           accessibleLabel={openAllTabsLabel}
           tooltip={openAllTabsLabel}

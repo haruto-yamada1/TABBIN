@@ -40,7 +40,7 @@ export const createSavedTabSelectionStore = () => {
   }
   const listeners = new Set<() => void>()
   const rows = new Map<
-    string,
+    symbol,
     { item: SavedTabSelectionItem; element: HTMLElement }
   >()
   let anchor: string | null = null
@@ -54,8 +54,9 @@ export const createSavedTabSelectionStore = () => {
     }
   }
 
-  const visibleRows = () =>
-    Array.from(rows.values())
+  const visibleRows = () => {
+    const seen = new Set<string>()
+    return Array.from(rows.values())
       .filter(({ element }) => element.isConnected)
       .toSorted((left, right) => {
         if (left.element === right.element) {
@@ -66,6 +67,15 @@ export const createSavedTabSelectionStore = () => {
           ? -1
           : 1
       })
+      .filter(({ item }) => {
+        const key = savedTabSelectionKey(item)
+        if (seen.has(key)) {
+          return false
+        }
+        seen.add(key)
+        return true
+      })
+  }
 
   const canChange = () =>
     snapshot.active && !snapshot.busy && !snapshot.confirmation
@@ -177,13 +187,12 @@ export const createSavedTabSelectionStore = () => {
       update({ selected, message: null })
     },
     register: (item: SavedTabSelectionItem, element: HTMLElement) => {
-      const key = savedTabSelectionKey(item)
-      rows.set(key, { item, element })
+      const registration = Symbol('saved-tab-row')
+      rows.set(registration, { item, element })
       return () => {
-        if (rows.get(key)?.element !== element) {
+        if (!rows.delete(registration)) {
           return
         }
-        rows.delete(key)
         // A collapse can detach thousands of rows in one commit. Prune once.
         if (pruneScheduled) {
           return
@@ -191,12 +200,15 @@ export const createSavedTabSelectionStore = () => {
         pruneScheduled = true
         queueMicrotask(() => {
           pruneScheduled = false
+          const registeredKeys = new Set(
+            Array.from(rows.values(), ({ item }) => savedTabSelectionKey(item)),
+          )
           const selected = new Set(
             Array.from(snapshot.selected).filter((selectedKey) =>
-              rows.has(selectedKey),
+              registeredKeys.has(selectedKey),
             ),
           )
-          if (anchor && !rows.has(anchor)) {
+          if (anchor && !registeredKeys.has(anchor)) {
             anchor = null
           }
           if (selected.size !== snapshot.selected.size) {

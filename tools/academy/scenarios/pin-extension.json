@@ -1,0 +1,94 @@
+{
+  "id": "pin-extension",
+  "lessonId": "pin-extension",
+  "version": 1,
+  "prerequisites": [997, 998],
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "browserVersion": "156.0.8078.4",
+  "demoSeed": "academy-997-v1",
+  "actions": [
+    {
+      "type": "assert-urls",
+      "count": 6
+    },
+    {
+      "type": "assert-domains",
+      "hostnames": [
+        "study.filming.test",
+        "notes.filming.test",
+        "garden.filming.test"
+      ]
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "study.filming.test",
+      "holdSeconds": 1
+    }
+  ],
+  "assertions": {
+    "urls": 6,
+    "domains": 3
+  },
+  "segments": [
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "拡張機能を固定する",
+        "en": "Pin the extension"
+      },
+      "detail": {
+        "ja": "Chrome / Chromium 実録画・ナレーションなし",
+        "en": "Real Chrome / Chromium capture · no narration"
+      }
+    },
+    {
+      "kind": "native",
+      "stage": "pin",
+      "start": 0,
+      "seconds": 14,
+      "zoom": 1,
+      "sourceCrop": {
+        "x": 1540,
+        "y": 0,
+        "width": 1200,
+        "height": 900
+      }
+    },
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "いつでも一時停止して復習",
+        "en": "Pause and review anytime"
+      },
+      "detail": {
+        "ja": "日英字幕・テキスト手順を利用できます",
+        "en": "Japanese / English captions and text instructions available"
+      }
+    }
+  ],
+  "captions": [
+    {
+      "start": 3,
+      "end": 10,
+      "ja": "Chrome / Chromium の拡張機能メニューで TABBIN のピンを押します",
+      "en": "Use the TABBIN pin in the Chrome / Chromium extensions menu"
+    },
+    {
+      "start": 10,
+      "end": 17,
+      "ja": "固定するとツールバーへ常時表示。同じピンで解除でき、拡張機能は残ります",
+      "en": "Pinning keeps the icon on the toolbar. Use the same pin to unpin without uninstalling"
+    }
+  ],
+  "output": {
+    "filename": "pin-extension.mp4",
+    "fps": 30,
+    "maxBytes": 20000000
+  },
+  "captionMode": "tracks"
+}

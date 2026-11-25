@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as LoggingModule from '@/lib/logging/logger'
 
 import { getOrCreateRoot, renderToRoot } from './render-root'
+import { RenderErrorBoundary } from './RenderErrorBoundary'
 
 vi.unmock('react-dom/client')
 
@@ -82,6 +83,25 @@ describe('root render recovery', () => {
       { event: 'react_render_caught', context: { errorName: 'Error' } },
       { event: 'react_render_caught', context: { errorName: 'Error' } },
     ])
+  })
+
+  it('honors an explicit null fallback without replacing a sibling feature', async () => {
+    const BrokenGuide = () => {
+      throw new Error('guide render failed')
+    }
+    await act(async () =>
+      renderToRoot(
+        createContainer(),
+        <>
+          <RenderErrorBoundary fallback={null}>
+            <BrokenGuide />
+          </RenderErrorBoundary>
+          <p>Saved tabs remain visible</p>
+        </>,
+      ),
+    )
+    expect(screen.getByText('Saved tabs remain visible')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('has no export action without a safe export callback', async () => {

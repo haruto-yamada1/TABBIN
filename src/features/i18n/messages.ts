@@ -1,8 +1,11 @@
+import { aiChatTrustMessages } from './aiChatTrustMessages'
 import { analyticsHealthMessages } from './analyticsHealthMessages'
+import { backgroundContextMenuMessages } from './backgroundContextMenuMessages'
 import { backupExportMessages } from './backupExportMessages'
 import { backupImportMessages } from './backupImportMessages'
 import { dndMessages } from './dndMessages'
 import { favoriteMessages } from './favoriteMessages'
+import { navigationMessages } from './navigationMessages'
 import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
 import { searchHistoryMessages } from './searchHistoryMessages'
@@ -11,6 +14,8 @@ import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 
 const messages = {
   en: {
+    ...aiChatTrustMessages.en,
+    ...navigationMessages.en,
     ...backupExportMessages.en,
     ...backupImportMessages.en,
     ...dndMessages.en,
@@ -40,15 +45,22 @@ const messages = {
     'aiChat.copyConversation': 'Copy conversation',
     'aiChat.copyConversationError': 'Could not copy the conversation',
     'aiChat.copyConversationSuccess': 'Copied the conversation',
-    'aiChat.dataScope':
-      'AI answers use your saved URLs, titles, categories, projects, attachments, and the selected local Ollama model.',
     'aiChat.deleteConversationAria': 'Delete {{title}}',
     'aiChat.deleteDescription': 'This action cannot be undone.',
     'aiChat.deleteTitle': 'Delete this conversation?',
     'aiChat.emptySelectModel': 'Select a model',
+    'aiChat.history.clearSearch': 'Clear search',
     'aiChat.history.empty': 'No saved conversations yet',
+    'aiChat.history.messageMatches': 'Matched messages: {{count}}',
+    'aiChat.history.openSearchResultAria': 'Open conversation {{title}}',
     'aiChat.history.resumeHint': 'Resume from a saved conversation',
+    'aiChat.history.roleAssistant': 'AI',
+    'aiChat.history.roleUser': 'You',
+    'aiChat.history.searchAria': 'Search conversation history',
+    'aiChat.history.searchEmpty': 'No conversations match your search',
+    'aiChat.history.searchPlaceholder': 'Search past conversations',
     'aiChat.history.startPrompt': 'Start a new conversation',
+    'aiChat.history.titleMatched': 'Matched title',
     'aiChat.historyHint': 'Click to continue',
     'aiChat.historyLoadError':
       'Conversation history could not be loaded. Reload the page and try again.',
@@ -185,6 +197,8 @@ const messages = {
     'aiChat.systemPrompt.placeholder': 'Prompt',
     'aiChat.systemPrompt.save': 'Save',
     'aiChat.systemPrompt.saveError': 'Could not save the system prompts',
+    'aiChat.systemPrompt.reloadRequired':
+      'Saved prompts were reloaded. Review them before saving again.',
     'aiChat.systemPrompt.saving': 'Saving...',
     'aiChat.systemPrompt.select': 'Select a system prompt',
     'aiChat.systemPrompt.settingsTooltip': 'System prompt settings',
@@ -289,21 +303,7 @@ const messages = {
     'background.aiChat.toolSummary.fetchedWithTotal':
       'Retrieved {{count}} items. Total items: {{total}}.',
     'background.aiChat.toolSummary.resultRetrieved': 'Retrieved the result.',
-    'background.contextMenu.openSavedTabs': 'Open saved tabs',
-    'background.contextMenu.saveAllTabs': 'Save all tabs in this window',
-    'background.contextMenu.saveAllWindowsTabs':
-      'Save all tabs across all windows',
-    'background.contextMenu.saveCurrentTab': 'Save current tab',
-    'background.contextMenu.saveSameDomainTabs':
-      'Save all tabs from the current domain',
-    'background.saveTabs.allWindowsSaved':
-      'Saved {{count}} tabs across all windows.',
-    'background.saveTabs.currentTabSaved': 'Saved the current tab.',
-    'background.saveTabs.notificationTitle': 'Tab saved',
-    'background.saveTabs.sameDomainSaved':
-      'Saved {{count}} tabs from {{domain}}.',
-    'background.saveTabs.windowTabsSaved':
-      'Saved {{count}} tabs. Closing the tabs now.',
+    ...backgroundContextMenuMessages.en,
     'changelog.heading': 'Release Notes',
     'common.cache': 'Cache',
     'common.cancel': 'Cancel',
@@ -357,13 +357,6 @@ const messages = {
     'common.uploadFiles': 'Upload files',
     'common.usedSources.one': 'Used {{count}} source',
     'common.usedSources.other': 'Used {{count}} sources',
-    'htmlTitle.aiChat': 'AI Chat - TABBIN',
-    'htmlTitle.analytics': 'Analytics - TABBIN',
-    'htmlTitle.app': 'TABBIN',
-    'htmlTitle.changelog': 'Release Notes - TABBIN',
-    'htmlTitle.options': 'Options - TABBIN',
-    'htmlTitle.periodicExecution': 'Scheduled tasks - TABBIN',
-    'htmlTitle.savedTabs': 'Saved tabs - TABBIN',
     'language.english': 'English',
     'language.japanese': 'Japanese',
     'language.label': 'Display language',
@@ -586,6 +579,9 @@ const messages = {
     'options.previewFontSizeCustomization': 'Font size',
     'options.releaseNotes': 'Release Notes',
     'options.showRelativeSavedTime': 'Show relative saved time',
+    'options.showOpenTabs': 'Show currently open tabs',
+    'options.showOpenTabsDescription':
+      'Show saved tabs that are currently open at the top of Domain mode and Custom mode.',
     'options.showSavedTime': 'Show saved time',
     'options.showSavedTimeDescription':
       'When enabled, the saved date is shown in the saved tabs list.',
@@ -737,6 +733,9 @@ const messages = {
     'savedTabs.openAllConfirmDescriptionWithName':
       'Open {{count}} tabs for "{{name}}". Continue?',
     'savedTabs.openAllConfirmTitle': 'Open all tabs?',
+    'savedTabs.openTabs.deleteAllWarning':
+      'Remove all currently open tabs from the saved list. This action cannot be undone.',
+    'savedTabs.openTabs.title': 'Currently open tabs',
     'savedTabs.project.deleteAllItemName': 'tabs in this project',
     'savedTabs.project.deleteAllWarning':
       'Delete all tabs in this project. This action cannot be undone.',
@@ -904,14 +903,6 @@ const messages = {
     'savedTabs.viewMode.placeholder': 'View mode',
     'savedTabs.viewMode.selectPlaceholder': 'Select domain or custom mode',
     'savedTabs.viewMode.tooltip': 'Switch view mode',
-    'sidebar.analytics': 'Analytics',
-    'sidebar.chat': 'Chat',
-    'sidebar.collapse': 'Collapse sidebar',
-    'sidebar.open': 'Open sidebar',
-    'sidebar.options': 'Options',
-    'sidebar.periodicExecution': 'Scheduled tasks',
-    'sidebar.resize': 'Resize sidebar width',
-    'sidebar.tabList': 'Saved tabs',
     'theme.dark': 'Dark mode',
     'theme.light': 'Light mode',
     'theme.system': 'System setting',
@@ -926,6 +917,8 @@ const messages = {
     'tool.status.outputError': 'Error',
   },
   ja: {
+    ...aiChatTrustMessages.ja,
+    ...navigationMessages.ja,
     ...backupExportMessages.ja,
     ...backupImportMessages.ja,
     ...dndMessages.ja,
@@ -957,15 +950,22 @@ const messages = {
     'aiChat.copyConversation': '会話をコピー',
     'aiChat.copyConversationError': '会話をコピーできませんでした',
     'aiChat.copyConversationSuccess': '会話をコピーしました',
-    'aiChat.dataScope':
-      'AIの回答には、保存済みURL、タイトル、カテゴリ、プロジェクト、添付ファイル、選択中のローカル Ollama モデルを使用します。',
     'aiChat.deleteConversationAria': '{{title}}を削除',
     'aiChat.deleteDescription': '削除すると元に戻せません。',
     'aiChat.deleteTitle': 'この会話を削除しますか？',
     'aiChat.emptySelectModel': 'モデルを選択してください',
+    'aiChat.history.clearSearch': '検索をクリア',
     'aiChat.history.empty': 'まだ保存された会話はありません',
+    'aiChat.history.messageMatches': '一致したメッセージ: {{count}} 件',
+    'aiChat.history.openSearchResultAria': '{{title}} の会話を開く',
     'aiChat.history.resumeHint': '保存済みの会話から再開できます',
+    'aiChat.history.roleAssistant': 'AI',
+    'aiChat.history.roleUser': 'あなた',
+    'aiChat.history.searchAria': '会話履歴を検索',
+    'aiChat.history.searchEmpty': '検索に一致する会話はありません',
+    'aiChat.history.searchPlaceholder': '過去の会話を検索',
     'aiChat.history.startPrompt': '新しい会話を始めてください',
+    'aiChat.history.titleMatched': 'タイトルに一致',
     'aiChat.historyHint': 'クリックして続きを開く',
     'aiChat.historyLoadError':
       '会話履歴を読み込めませんでした。ページを再読み込みして、もう一度お試しください。',
@@ -1097,6 +1097,8 @@ const messages = {
     'aiChat.systemPrompt.placeholder': 'プロンプト',
     'aiChat.systemPrompt.save': '保存',
     'aiChat.systemPrompt.saveError': 'システムプロンプトを保存できませんでした',
+    'aiChat.systemPrompt.reloadRequired':
+      '保存済みのプロンプトを読み直しました。内容を確認してから再度保存してください。',
     'aiChat.systemPrompt.saving': '保存中...',
     'aiChat.systemPrompt.select': 'システムプロンプトを選択',
     'aiChat.systemPrompt.settingsTooltip': 'システムプロンプト設定',
@@ -1201,21 +1203,7 @@ const messages = {
     'background.aiChat.toolSummary.fetchedWithTotal':
       '{{count}} 件を取得しました。総件数は {{total}} 件です。',
     'background.aiChat.toolSummary.resultRetrieved': '結果を取得しました。',
-    'background.contextMenu.openSavedTabs': '保存したタブを開く',
-    'background.contextMenu.saveAllTabs': 'ウィンドウのすべてのタブを保存',
-    'background.contextMenu.saveAllWindowsTabs':
-      '他のウィンドウを含めすべてのタブを保存',
-    'background.contextMenu.saveCurrentTab': '現在のタブを保存',
-    'background.contextMenu.saveSameDomainTabs':
-      '現在開いているドメインのタブをすべて保存',
-    'background.saveTabs.allWindowsSaved':
-      'すべてのウィンドウから{{count}}個のタブを保存しました',
-    'background.saveTabs.currentTabSaved': '現在のタブを保存しました',
-    'background.saveTabs.notificationTitle': 'タブ保存',
-    'background.saveTabs.sameDomainSaved':
-      '{{domain}}の{{count}}個のタブを保存しました',
-    'background.saveTabs.windowTabsSaved':
-      '{{count}}個のタブが保存されました。タブを閉じます。',
+    ...backgroundContextMenuMessages.ja,
     'changelog.heading': 'リリースノート',
     'common.cache': 'キャッシュ',
     'common.cancel': 'キャンセル',
@@ -1269,13 +1257,6 @@ const messages = {
     'common.uploadFiles': 'ファイルをアップロード',
     'common.usedSources.one': '使用したソース {{count}} 件',
     'common.usedSources.other': '使用したソース {{count}} 件',
-    'htmlTitle.aiChat': 'AIチャット - TABBIN',
-    'htmlTitle.analytics': '分析 - TABBIN',
-    'htmlTitle.app': 'TABBIN',
-    'htmlTitle.changelog': 'リリースノート - TABBIN',
-    'htmlTitle.options': 'オプション - TABBIN',
-    'htmlTitle.periodicExecution': '定期実行 - TABBIN',
-    'htmlTitle.savedTabs': '保存したタブ - TABBIN',
     'language.english': 'English',
     'language.japanese': '日本語',
     'language.label': '表示言語',
@@ -1497,6 +1478,9 @@ const messages = {
     'options.previewFontSizeCustomization': 'フォントサイズ',
     'options.releaseNotes': 'リリースノート',
     'options.showRelativeSavedTime': '保存日時を相対表示する',
+    'options.showOpenTabs': '今開いているタブを表示する',
+    'options.showOpenTabsDescription':
+      '保存済みタブのうち、今開いているものをドメインモードとカスタムモードの上部に表示します。',
     'options.showSavedTime': '保存日時を表示する',
     'options.showSavedTimeDescription':
       'オンにすると、保存タブ一覧に保存された日時が表示されます。',
@@ -1645,6 +1629,9 @@ const messages = {
     'savedTabs.openAllConfirmDescriptionWithName':
       '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
     'savedTabs.openAllConfirmTitle': 'タブをすべて開きますか？',
+    'savedTabs.openTabs.deleteAllWarning':
+      '保存リストから今開いているタブをすべて削除します。この操作は取り消せません。',
+    'savedTabs.openTabs.title': '今開いているタブ',
     'savedTabs.project.deleteAllItemName': 'このプロジェクトのタブ',
     'savedTabs.project.deleteAllWarning':
       'このプロジェクト内のすべてのタブを削除します。この操作は元に戻せません。',
@@ -1814,14 +1801,6 @@ const messages = {
     'savedTabs.viewMode.selectPlaceholder':
       'ドメインまたはカスタムモードを選択',
     'savedTabs.viewMode.tooltip': '表示モード切り替え',
-    'sidebar.analytics': '分析',
-    'sidebar.chat': 'チャット',
-    'sidebar.collapse': 'サイドバーを小さくする',
-    'sidebar.open': 'サイドバーを開く',
-    'sidebar.options': 'オプション',
-    'sidebar.periodicExecution': '定期実行',
-    'sidebar.resize': 'サイドバーの幅を調整',
-    'sidebar.tabList': 'タブ一覧',
     'theme.dark': 'ダークモード',
     'theme.light': 'ライトモード',
     'theme.system': 'システム設定',

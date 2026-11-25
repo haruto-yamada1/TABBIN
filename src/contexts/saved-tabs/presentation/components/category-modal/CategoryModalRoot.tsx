@@ -83,7 +83,10 @@ export const CategoryModalRoot = ({
   return (
     <CategoryModalContext value={contextValue}>
       <Dialog open onOpenChange={handleOpenChange}>
-        <DialogContent className='flex max-h-[90vh] flex-col overflow-hidden sm:max-w-[500px]'>
+        <DialogContent
+          data-tour='academy-parent-dialog'
+          className='flex max-h-[90vh] flex-col overflow-hidden has-[[data-academy-tour-ui]]:overflow-visible sm:max-w-[500px]'
+        >
           <DialogHeader>
             <DialogTitle>{t('savedTabs.categoryModal.title')}</DialogTitle>
           </DialogHeader>

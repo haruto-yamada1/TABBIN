@@ -1,16 +1,19 @@
-import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
+  registerExpiredTabsAlarmListener: vi.fn(),
   setupExpiredTabsCheckAlarm: vi.fn(),
   registerReviewReminderListeners: vi.fn(),
   registerSavedTabTitleIndicator: vi.fn(),
+  registerLinkCaptureLifecycle: vi.fn(),
   reconcileReviewReminderAlarm: vi.fn(async () => {}),
-  createContextMenus: vi.fn(),
+  registerContextMenuClickListener: vi.fn(),
+  registerContextMenuSettingsListener: vi.fn(),
+  reconcileContextMenus: vi.fn(async () => {}),
   handleExtensionActionClick: vi.fn(),
   setupMessageListener: vi.fn(),
   openSavedTabsPage: vi.fn(),
-  handleTabCreated: vi.fn(),
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -34,17 +37,24 @@ vi.mock('wxt/utils/define-background', () => ({
   },
 }))
 vi.mock('@/lib/background/alarm-notification', () => ({
+  registerExpiredTabsAlarmListener: mocked.registerExpiredTabsAlarmListener,
   setupExpiredTabsCheckAlarm: mocked.setupExpiredTabsCheckAlarm,
 }))
 vi.mock('@/lib/background/review-reminders', () => ({
   registerReviewReminderListeners: mocked.registerReviewReminderListeners,
   reconcileReviewReminderAlarm: mocked.reconcileReviewReminderAlarm,
 }))
+vi.mock('@/lib/background/link-capture-lifecycle', () => ({
+  registerLinkCaptureLifecycle: mocked.registerLinkCaptureLifecycle,
+}))
 vi.mock('@/lib/background/saved-tab-title-indicator', () => ({
   registerSavedTabTitleIndicator: mocked.registerSavedTabTitleIndicator,
 }))
 vi.mock('@/lib/background/context-menu', () => ({
-  createContextMenus: mocked.createContextMenus,
+  registerContextMenuClickListener: mocked.registerContextMenuClickListener,
+  registerContextMenuSettingsListener:
+    mocked.registerContextMenuSettingsListener,
+  reconcileContextMenus: mocked.reconcileContextMenus,
 }))
 vi.mock('@/lib/background/extension-actions', () => ({
   handleExtensionActionClick: mocked.handleExtensionActionClick,
@@ -54,9 +64,6 @@ vi.mock('@/lib/background/message-handler', () => ({
 }))
 vi.mock('@/lib/background/saved-tabs-page', () => ({
   openSavedTabsPage: mocked.openSavedTabsPage,
-}))
-vi.mock('@/lib/background/url-storage', () => ({
-  handleTabCreated: mocked.handleTabCreated,
 }))
 vi.mock('@/lib/logging/logger', () => ({
   logger: mocked.logger,
@@ -198,7 +205,7 @@ const loadBackground = async (
   }
   mocked.openSavedTabsPage.mockResolvedValue(123)
   mocked.ready.mockResolvedValue(undefined)
-  mocked.createContextMenus.mockImplementation(() => {})
+  mocked.reconcileContextMenus.mockResolvedValue(undefined)
   mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {})
   mocked.setupMessageListener.mockImplementation(() => {})
   options.setupMocks?.()
@@ -220,7 +227,6 @@ const triggerInstalled = async (
   reason: 'install' | 'update' | 'chrome_update',
 ): Promise<void> => {
   await Promise.all(
-    // eslint-disable-next-line typescript/await-thenable
     harness.onInstalledListeners.map(async (listener) =>
       listener({
         reason,
@@ -229,7 +235,6 @@ const triggerInstalled = async (
   )
 }
 const triggerStartup = async (harness: ChromeHarness): Promise<void> => {
-  // eslint-disable-next-line typescript/await-thenable
   await Promise.all(
     harness.onStartupListeners.map(async (listener) => listener()),
   )
@@ -241,6 +246,23 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 describe('バックグラウンドのライフサイクル時の自動オープン挙動', () => {
+  it('DB準備中も期限Alarm listenerを同期登録し、scheduleはready後に開始する', async () => {
+    const pending = Promise.withResolvers<undefined>()
+    await loadBackground({
+      clearAfterImport: false,
+      setupMocks: () => mocked.ready.mockReturnValue(pending.promise),
+    })
+    expect(mocked.registerExpiredTabsAlarmListener).toHaveBeenCalledOnce()
+    expect(
+      mocked.registerExpiredTabsAlarmListener.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
+    expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
+    pending.resolve(undefined)
+    await flushMicrotasks()
+    expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
+    expect(mocked.registerExpiredTabsAlarmListener).toHaveBeenCalledOnce()
+  })
+
   it('reminder listenersを同期登録し、persistence readiness後にscheduleを照合する', async () => {
     const pending = Promise.withResolvers<undefined>()
     await loadBackground({
@@ -251,6 +273,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     })
     expect(mocked.registerReviewReminderListeners).toHaveBeenCalledOnce()
     expect(mocked.registerSavedTabTitleIndicator).toHaveBeenCalledOnce()
+    expect(mocked.registerLinkCaptureLifecycle).toHaveBeenCalledOnce()
     expect(mocked.reconcileReviewReminderAlarm).not.toHaveBeenCalled()
     pending.resolve(undefined)
     await flushMicrotasks()
@@ -281,9 +304,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       mocked.handleExtensionActionClick,
     )
     expect(mocked.setupMessageListener).toHaveBeenCalledOnce()
-    expect(harness.tabsOnCreatedAddListener).toHaveBeenCalledWith(
-      mocked.handleTabCreated,
-    )
+    expect(harness.tabsOnCreatedAddListener).not.toHaveBeenCalled()
   })
 
   it('インストール時に helper 経由で saved-tabs を開いてピン留めする', async () => {
@@ -295,9 +316,7 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     expect(harness.actionAddListener).toHaveBeenCalledWith(
       mocked.handleExtensionActionClick,
     )
-    expect(harness.tabsOnCreatedAddListener).toHaveBeenCalledWith(
-      mocked.handleTabCreated,
-    )
+    expect(harness.tabsOnCreatedAddListener).not.toHaveBeenCalled()
     expect(mocked.setupMessageListener).toHaveBeenCalledTimes(1)
     expect(mocked.ready).toHaveBeenCalledOnce()
     await triggerInstalled(harness, 'install')
@@ -410,22 +429,44 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       expect.any(Error),
     )
     expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
+    expect(mocked.registerExpiredTabsAlarmListener).toHaveBeenCalledOnce()
   })
 
-  it('バックグラウンドセットアップ中のコンテキストメニュー初期化エラーを処理する', async () => {
+  it('DB とメニュー構築が pending でも click/settings を同期登録する', async () => {
+    const pending = Promise.withResolvers<undefined>()
     await loadBackground({
       clearAfterImport: false,
       setupMocks: () => {
-        mocked.createContextMenus.mockImplementation(() => {
-          throw new Error('context menu failed')
-        })
+        mocked.ready.mockReturnValue(pending.promise)
+        mocked.reconcileContextMenus.mockReturnValue(pending.promise)
       },
     })
-    expect(mocked.logger.error).toHaveBeenCalledWith(
-      'background_context_menu_initialization_failed',
-      expect.any(Error),
+    expect(mocked.registerContextMenuClickListener).toHaveBeenCalledOnce()
+    expect(mocked.registerContextMenuSettingsListener).toHaveBeenCalledOnce()
+    expect(
+      mocked.registerContextMenuClickListener.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
+    expect(
+      mocked.registerContextMenuClickListener.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      mocked.reconcileContextMenus.mock.invocationCallOrder[0] ?? 0,
     )
+    pending.resolve(undefined)
+    await flushMicrotasks()
   })
+
+  it.each(['install', 'update'] as const)(
+    '%s のみ旧メニュー定義を reset する',
+    async (reason) => {
+      const harness = await loadBackground({ clearAfterImport: false })
+      expect(mocked.reconcileContextMenus).toHaveBeenCalledExactlyOnceWith()
+      await triggerInstalled(harness, reason)
+      expect(mocked.reconcileContextMenus).toHaveBeenLastCalledWith({
+        reset: true,
+      })
+      expect(mocked.reconcileContextMenus).toHaveBeenCalledTimes(2)
+    },
+  )
 
   it('バックグラウンド初期化 IIFE のエラーを処理する', async () => {
     await loadBackground({

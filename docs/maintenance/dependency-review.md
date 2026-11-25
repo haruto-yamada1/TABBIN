@@ -8,6 +8,7 @@
 Issue #940 の Dependency Review は `.github/workflows/dependency-review.yml` で
 `develop` / `main` 向けの全 PR に実行する。結果は check と job summary で確認する。
 Renovate の依存更新 PR も同じ検査を受け、automerge は引き続き禁止する。
+必須チェックの設定、確認、復旧は [Required status checks の運用](required-status-checks.md) を参照する。
 
 ## Policy
 
@@ -78,38 +79,33 @@ SBOM は release artifact の在庫と provenance で、advisory の合否を代
 監査不能時の failure policy と再評価期限は [release 手順](../release.md) に従う。
 Renovate、SBOM と PR 差分検査の責務は維持する。
 
-既存の `node-forge` は Git snapshot と Bun patch で修正しており、npm version
-照合の例外である。`node-forge@github:digitalbazaar/forge#ceba344` の初回リリースも
-`dependency-patch-policy.ts` に記録した完全な source pin / 全解決先 / integrity /
-patch digest / map に一致する場合だけ認める。base に導入済みの patch の変更や削除は
-失敗させる。install 後に再確認期限と実 RSA probe を同じ job で検証する。
-lockfile の patch map は path のみを持つため、workflow が base/head の `patches/`
-全体を Git snapshot から検証する。同じ path の本文・mode 変更、削除、rename、
-未知の追加は拒否する。node-forge patch の変更は引き続き許可しない。
-この gate は依存 install より前に実行し、Bun の組み込み JSON5 parser と Node の
-組み込み機能だけを使う。`--ignore-scripts` でも patch は適用されるため、検査前に
-patch 済みの JSON5 / zod などを import しない。
+`node-forge` は Issue #1067 で公開版 `1.4.3` へ移行した。npm advisory / license
+照合の対象となり、同梱 LICENSE から BSD-3-Clause を選択する。
+旧 Git snapshot の node-forge patch を削除できるのは、Git base tree の source / 全解決 / integrity /
+patch digest / map が承認済み backport と完全一致し、head の直接依存・override・全解決が
+固定した公開版 / integrity となり、旧 patch file / map / source が残らない場合だけ。
+Bun scanner は base commit SHA から取得した bytes を使用し、公開版を advisory / license
+スキャンへ必ず含める。日付更新やファイル削除だけで検査を回避しない。
 
-レビュー済みの新規追加だけは `tools/scripts/dependency-patch-policy.ts` に対象
-package/version、npm integrity、patch path と SHA-256 を記録して許可できる。
-現在の登録は上記 node-forge backport と Stryker Vitest runner 10.0.0 の
-upstream #6247 互換修正。
-map 追加と regular file (`100644`) 追加は一対一で照合し、本文・対象解決・integrity の
-不一致、同一versionの別integrity、孤立した file/map を拒否する。登録済み patch が
-base に入った後の編集も許可しない。登録の変更は個別 PR の security review 対象。
+workflow は install 前に base/head の `patches/` 全体を Git snapshot で検証する。
+上記の検証済み移行以外の本文・mode 変更、削除、rename、未知追加は拒否する。
+Bun の組み込み JSON5 parser と Node 組み込み機能だけを使い、検査前に patch 済みの
+JSON5 / zod などを import しない。Stryker Vitest runner 10.0.0 の upstream #6247
+互換 patch は継続し、対象 package/version、npm integrity、path と SHA-256 を照合する。
+map と regular file (`100644`) の追加は一対一で検証し、孤立した file/map を拒否する。
+登録済み patch の通常編集・削除と登録の変更は個別 security review の対象。
 
-Bun scanner も同じ判定と実際の patch bytes を使う。レビュー済み patch を新たに
-適用した依存は、base に同じ version が存在しても advisory/license を再スキャンする。
-これは patch 内容の承認であり、advisory / license の例外ではない。
-`security:audit` の正常署名・異常 ASN.1 拒否 probe は必須で、GHSA 全体の allow は追加しない。
-owner: dependency maintenance / @haruto-yamada1。再評価記録は
-`tools/security-audit-policy.json`（2026-11-10 00:00 UTC）、承認履歴は
-`tools/scripts/security-audit-review-approvals.ts` で管理する。
-`security:audit` は最新承認との一致に加え、patch bytes と全 node-forge lock binding を
-release gate でも検証する。期限更新は新しい追跡 Issue を持つ承認レコードの追記が必要。
-正式版に切り替える際は [既存 backport の検証条件](dependency-updates.md) を満たすこと。
+`security:audit` は `tools/security-audit-policy.json` の公開版 policy と全 lock binding、
+実 RSA の正常署名・異常 ASN.1 拒否 probe、全依存の High / Critical audit を必須にする。
+旧 backport の source / digest / 期限 / 承認 anchor の保護は historical fixture でも検証する。
+node-forge の元の期限を延長する承認記録や advisory ignore は追加しない。
+詳細は [公開版移行の検証条件](dependency-updates.md) を参照。
 
-追加 advisory exception は0件。個別 license 承認は以下の2パッケージのみ。
+picomatch の `GHSA-fc5q-39xc-vjpf` は正式な撤回を受けて期限付き例外を廃止した。
+全 High / Critical をブロックし、製品への picomatch 同梱は artifact 検証で拒否する。
+[release 手順](../release.md#picomatch-の期限付き例外) を参照。
+
+個別 license 承認は以下の2パッケージのみ。
 
 - `react-doctor`（開発用の直接依存）と
   `oxlint-plugin-react-doctor`（同ツールの付属ルール）。
@@ -119,12 +115,13 @@ release gate でも検証する。期限更新は新しい追跡 Issue を持つ
   承認の対象にしない。元の追加条件に従い、これらの用途には権利者の書面許可が必要。
 - [PR #978](https://github.com/haruto-yamada1/TABBIN/pull/978) の修正依頼に伴い
   ユーザーが用途限定の例外を承認。owner: dependency maintenance / @haruto-yamada1。
-  承認日2026-10-21 UTC、期限2026-11-20 00:00 UTC（30日）。
+  再承認日2026-11-22 UTC。LICENSE 本文の SHA-256 と用途を固定できるため期限は
+  設けず、LICENSE 本文または用途が変わった場合に再評価する恒久承認とする。
 - `dependency-license-policy.ts` では package 名・用途・承認済み LICENSE の
-  SHA-256 と期限を管理する。version / integrity を例外定義に固定せず、現在の
+  SHA-256 と承認日を管理する。version / integrity を例外定義に固定せず、現在の
   `bun.lock` と exact-version npm metadata を照合する。同じ LICENSE の版更新では
   例外の手直しは不要。全 nested resolution と全 installed copies を検証し、
-  LICENSE 不明・変更、registry identity / integrity 不一致、非 npm source、期限切れ、
+  LICENSE 不明・変更、registry identity / integrity 不一致、非 npm source、
   各 workspace の本番依存宣言（npm alias を含む）を拒否する。
   未変更の対象パッケージも差分 CLI で再検査し、Advisory API による
   High / Critical / unknown の検査を省略しない。
@@ -141,11 +138,13 @@ release gate でも検証する。期限更新は新しい追跡 Issue を持つ
   実行を行わない別 job へ分離する。古い head の結果は投稿せず、fork の read-only token
   で投稿できなくても scan の品質判定は変えない。
   `release:check` も同じ承認条件を検査する。LICENSE が変わる更新は原文と用途を
-  再評価し、期限は自動延長しない。
+  再評価する。
 
 今後の個別承認も exact package/version、GHSA または license、依存経路、根拠、担当、
-30日以内の期限を記録して個別 PR で評価する。
-期限切れなら再評価し、package 全体・全 GHSA の恒久 allow や check の無効化は使わない。
+30日以内の期限を記録して個別 PR で評価する。ただし、ライセンス例外は承認済み
+LICENSE の SHA-256 と用途を固定できる場合に限り、期限を設けない恒久承認とできる。
+脆弱性の例外は期限切れなら再評価し、package 全体・全 GHSA の恒久 allow や
+check の無効化は使わない。
 
 ## 配布物の原文・著作権表示と対応ソース
 
@@ -181,7 +180,10 @@ source ZIP には workspace の `tools/legacy-tooling` と `patches/`、検証 C
 bun run test:node -- tools/scripts/dependency-review
 bun run ci:lint
 bun run ci:security
-BASE_LOCK=/absolute/path/base-bun.lock bun tools/scripts/run-dependency-review.ts
+dependency_base_sha="$(git rev-parse origin/develop)"
+git show "$dependency_base_sha:bun.lock" > /tmp/tabbin-base-bun.lock
+BASE_LOCK=/tmp/tabbin-base-bun.lock BASE_SHA="$dependency_base_sha" \
+  bun tools/scripts/run-dependency-review.ts
 ```
 
 危険な追加推移依存、High / Critical、未知 severity、未知 license、複数 version、

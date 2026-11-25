@@ -2,6 +2,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { PROMPT_INJECTION_ATTACKS } from '@/features/ai-chat/lib/promptInjection.fixture'
 import { getMessages } from '@/features/i18n/messages'
 import type { AiChatToolTrace } from '@/types/ai-chat-protocol'
 
@@ -164,6 +165,37 @@ describe('SavedTabsActionProposals', () => {
     await user.click(screen.getByRole('button', { name: 'Undo this action' }))
     expect(mocks.undo).toHaveBeenCalledExactlyOnceWith('undo-1')
     expect(screen.getByText('Action undone.')).toBeTruthy()
+  })
+
+  it('treats instruction-like saved titles as inert data and never auto-approves', async () => {
+    mocks.preview.mockResolvedValue({
+      expiresAt: Date.now() + 60_000,
+      id: 'prompt-injection-preview',
+      proposal,
+      revision: 3,
+      targets: [
+        {
+          after: 'Deleted',
+          before: 'Research / Articles; attacker.invalid',
+          id: 'url-1',
+          title: PROMPT_INJECTION_ATTACKS.skipApproval,
+          url: 'https://attacker.invalid/ignore-instructions',
+        },
+      ],
+    })
+    const user = userEvent.setup()
+    render(<SavedTabsActionProposals toolTraces={[trace]} />)
+
+    expect(mocks.preview).not.toHaveBeenCalled()
+    expect(mocks.execute).not.toHaveBeenCalled()
+    await user.click(
+      screen.getByRole('button', { name: 'Review proposed action' }),
+    )
+    expect(screen.getByText(PROMPT_INJECTION_ATTACKS.skipApproval)).toBeTruthy()
+    expect(mocks.execute).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('button', { name: 'Approve and apply' }),
+    ).toBeEnabled()
   })
 
   it('cancels without writing and prepares a fresh preview on the next review', async () => {

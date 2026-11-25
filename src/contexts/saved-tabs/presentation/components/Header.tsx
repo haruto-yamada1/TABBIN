@@ -55,7 +55,6 @@ type HeaderProps = {
 }
 
 export const Header = ({
-  // eslint-disable-line eslint/max-lines-per-function
   tabGroups,
   filteredTabGroups,
   currentMode,
@@ -110,6 +109,8 @@ export const Header = ({
                 variant='outline'
                 size='sm'
                 onClick={handleOpenModal}
+                data-tour='academy-parent-categories'
+                aria-label={t('savedTabs.manageParentCategories')}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />
@@ -130,6 +131,7 @@ export const Header = ({
                 variant='outline'
                 size='sm'
                 onClick={handleOpenCustomProjectModal}
+                aria-label={t('savedTabs.addProject')}
                 className='flex h-9 cursor-pointer items-center gap-2'
               >
                 <Plus size={16} />

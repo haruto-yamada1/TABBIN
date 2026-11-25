@@ -95,7 +95,6 @@ export const useCustomModeController = (
         // `CustomProject` へ投影するため disable が必要。`urls` 要素
         // shape の差分は mapper (`toCustomProjectFromViewModel`) 経由で
         // 吸収する構造的キャスト。
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- VM → storage CustomProject 投影 (urls shape 差)
         projects: projectsForView.map((vm) => ({
           categories: [...vm.categories],
           categoryOrder: [...vm.categoryOrder],

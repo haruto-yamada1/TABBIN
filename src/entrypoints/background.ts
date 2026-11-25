@@ -6,10 +6,18 @@
 import { defineBackground } from 'wxt/utils/define-background'
 
 import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
-import { setupExpiredTabsCheckAlarm } from '@/lib/background/alarm-notification'
+import {
+  registerExpiredTabsAlarmListener,
+  setupExpiredTabsCheckAlarm,
+} from '@/lib/background/alarm-notification'
 // 分離したモジュールをインポート
-import { createContextMenus } from '@/lib/background/context-menu'
+import {
+  reconcileContextMenus,
+  registerContextMenuClickListener,
+  registerContextMenuSettingsListener,
+} from '@/lib/background/context-menu'
 import { handleExtensionActionClick } from '@/lib/background/extension-actions'
+import { registerLinkCaptureLifecycle } from '@/lib/background/link-capture-lifecycle'
 import { setupMessageListener } from '@/lib/background/message-handler'
 import {
   reconcileReviewReminderAlarm,
@@ -17,19 +25,26 @@ import {
 } from '@/lib/background/review-reminders'
 import { registerSavedTabTitleIndicator } from '@/lib/background/saved-tab-title-indicator'
 import { openSavedTabsPage } from '@/lib/background/saved-tabs-page'
-import { handleTabCreated } from '@/lib/background/url-storage'
 import { logger } from '@/lib/logging/logger'
 
 const MANIFEST_V2 = 2
 
 export default defineBackground(() => {
-  // eslint-disable-line import/no-default-export
   // MV3 wake events must be registered before the first asynchronous bootstrap.
+  registerExpiredTabsAlarmListener()
   registerReviewReminderListeners()
   registerSavedTabTitleIndicator()
+  registerLinkCaptureLifecycle()
+  registerContextMenuClickListener()
+  registerContextMenuSettingsListener()
   // 拡張機能インストール・更新時の処理
   // eslint-disable-next-line typescript/no-misused-promises
   chrome.runtime.onInstalled.addListener(async (details) => {
+    if (details.reason === 'install' || details.reason === 'update') {
+      // A definition change may remove old IDs. Ordinary worker wakes never
+      // remove menus, which persist in Chrome but not Firefox's persistent MV2.
+      void reconcileContextMenus({ reset: true })
+    }
     const manifestVersion = chrome.runtime.getManifest().version
 
     try {
@@ -82,14 +97,7 @@ export default defineBackground(() => {
     }
   })
 
-  // 初期化時にコンテキストメニューとハンドラーを設定
-  try {
-    // コンテキストメニューを作成
-    createContextMenus()
-    logger.debug('background_context_menu_initialized')
-  } catch (error) {
-    logger.error('background_context_menu_initialization_failed', error)
-  }
+  void reconcileContextMenus()
   // IndexedDBのschemaとintegrityを確認してから定期処理を開始する。
   void (async () => {
     try {
@@ -105,7 +113,7 @@ export default defineBackground(() => {
       }
 
       // 期限切れタブのチェック用アラームを設定
-      setupExpiredTabsCheckAlarm()
+      await setupExpiredTabsCheckAlarm()
       await reconcileReviewReminderAlarm()
     } catch (error) {
       logger.error('background_initialization_failed', error)
@@ -123,7 +131,6 @@ export default defineBackground(() => {
   // メッセージリスナーを設定
   setupMessageListener()
 
-  // 新しいタブが作成されたときの処理
-  // eslint-disable-next-line typescript/no-misused-promises
-  chrome.tabs.onCreated.addListener(handleTabCreated)
+  // Native tab events cannot prove which drag or link activation opened a URL.
+  // Saved URL removal requires an explicit open use-case or confirmed DOM drop.
 })

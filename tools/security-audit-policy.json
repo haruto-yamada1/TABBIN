@@ -1,15 +1,15 @@
 {
-  "schemaVersion": 1,
-  "nodeForgeBackport": {
-    "advisory": "GHSA-86w9-cpqp-85rv",
-    "source": "github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65",
-    "patch": "patches/node-forge-null-parameters.patch",
+  "schemaVersion": 2,
+  "nodeForgeRelease": {
+    "source": "npm:node-forge@1.4.3",
+    "version": "1.4.3",
+    "integrity": "sha512-P6wzfh6t70avmV8FrVEAd/36sOPJQ+hkaJVX1Laap9J/77m7M0eyozDvc8SwnDf4P7MP94gwbAAo0rg3YVXT+g==",
     "dependencyPath": "web-ext -> @devicefarmer/adbkit -> node-forge (development tooling)",
     "owner": "dependency maintenance / @haruto-yamada1",
-    "rationale": "The fixed Git snapshot and NULL-parameter patch reject malformed RSA DigestInfo; security:audit verifies valid signatures and rejection with real RSA keys. Git snapshots are outside npm advisory version matching.",
-    "upstreamStatus": "Upstream PR https://github.com/digitalbazaar/forge/pull/1152 is included in the pinned snapshot; replace it and remove the patch only after a published version passes the existing RSA probe.",
-    "trackingIssue": "https://github.com/haruto-yamada1/TABBIN/issues/924",
-    "reviewedAt": "2026-10-11",
-    "expiresAt": "2026-11-10"
+    "rationale": "Published node-forge 1.4.3 includes the upstream RSA DigestInfo fixes and subsequent security fixes, replacing the expired Git backport and NULL-parameter patch. The existing real-key RSA probe remains mandatory and Bun audits the npm version without advisory ignores.",
+    "upstreamEvidence": "https://github.com/digitalbazaar/forge/blob/v1.4.3/CHANGELOG.md",
+    "verification": "bun run verify:node-forge-backport",
+    "trackingIssue": "https://github.com/haruto-yamada1/TABBIN/issues/1067",
+    "reviewedAt": "2026-11-10"
   }
 }

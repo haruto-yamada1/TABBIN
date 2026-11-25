@@ -489,7 +489,10 @@ const findMembershipIssues = (
         }),
       )
     }
-    if (membership.categoryId) {
+    if (
+      typeof membership.categoryId === 'string' &&
+      membership.categoryId.length > 0
+    ) {
       const category = categoryById.get(membership.categoryId)
       if (!category) {
         issues.push(
@@ -582,7 +585,11 @@ const findCollectionIssues = (
     }
   }
   for (const collection of snapshot.collections) {
-    if (collection.groupId && !groupIds.has(collection.groupId)) {
+    if (
+      typeof collection.groupId === 'string' &&
+      collection.groupId.length > 0 &&
+      !groupIds.has(collection.groupId)
+    ) {
       issues.push(
         createIssue('GROUP_MISSING', {
           collectionId: collection.id,

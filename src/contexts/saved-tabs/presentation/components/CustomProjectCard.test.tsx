@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
@@ -37,6 +37,7 @@ import { CustomProjectCard } from './CustomProjectCard'
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',

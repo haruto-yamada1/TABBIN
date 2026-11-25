@@ -11,6 +11,7 @@ import type {
   AiChatStreamErrorMessage,
   AlarmStatusResponse,
   BackgroundMessage,
+  CheckExpiredTabsMessage,
   OllamaErrorDetails,
   OllamaModelListResponse,
   StatusResponse,
@@ -21,6 +22,12 @@ import {
   backgroundMessageSchema,
   messageActionSchema,
 } from '@/types/background'
+import {
+  emptyLinkCaptureResponse,
+  isLinkCaptureAction,
+  linkCaptureMessageSchema,
+} from '@/types/link-capture'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
 import {
@@ -29,6 +36,10 @@ import {
   isAutoDeletePeriod,
   updateTabTimestamps,
 } from './expired-tabs'
+import {
+  handleLinkCaptureMessage,
+  linkCaptureSenderOrigin,
+} from './link-capture'
 import { refreshSavedTabTitleIndicator } from './saved-tab-title-indicator'
 import {
   handleUrlDragStarted,
@@ -173,6 +184,25 @@ const isAiChatStreamRunMessage = (
 const setupMessageListener = (): void => {
   // eslint-disable-next-line eslint/complexity
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (isLinkCaptureAction(message)) {
+      if (!linkCaptureSenderOrigin(sender, chrome.runtime.id)) {
+        sendResponse(emptyLinkCaptureResponse('forbidden'))
+        return false
+      }
+      const capture = linkCaptureMessageSchema.safeParse(message)
+      if (!capture.success) {
+        sendResponse(emptyLinkCaptureResponse('invalid_message'))
+        return false
+      }
+      void handlePromiseSettlement(
+        handleLinkCaptureMessage(capture.data, sender),
+        sendResponse,
+        () => {
+          sendResponse(emptyLinkCaptureResponse('error'))
+        },
+      )
+      return true
+    }
     if (!isTrustedExtensionPageSender(sender, chrome.runtime)) {
       logger.warn('background_message_rejected', {
         errorCode: 'UNTRUSTED_SENDER',
@@ -207,7 +237,8 @@ const setupMessageListener = (): void => {
     })
     switch (typedMessage.action) {
       case 'refreshNativeSavedTabTitles': {
-        void refreshSavedTabTitleIndicator().then(
+        void handlePromiseSettlement(
+          refreshSavedTabTitleIndicator(),
           () => {
             sendResponse({ status: 'ok' })
           },
@@ -218,13 +249,16 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'urlDragStarted': {
-        handleUrlDragStartedMessage(typedMessage.url, sendResponse)
+        handleUrlDragStartedMessage(typedMessage, sendResponse, sender.tab?.id)
         return true
       }
       case 'urlDropped': {
         handleUrlDroppedMessage(
           {
             url: typedMessage.url,
+            urlRecordId: typedMessage.urlRecordId,
+            dragId: typedMessage.dragId,
+            sourceTabId: sender.tab?.id,
             ...(typedMessage.fromExternal !== undefined
               ? { fromExternal: typedMessage.fromExternal }
               : {}),
@@ -234,7 +268,11 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'removeUrlFromStorage': {
-        handleRemoveUrlMessage(typedMessage.url, sendResponse)
+        handleRemoveUrlMessage(
+          typedMessage.url,
+          sendResponse,
+          typedMessage.urlRecordId,
+        )
         return true
       }
       case 'removeUrlRecordsFromStorage': {
@@ -246,17 +284,7 @@ const setupMessageListener = (): void => {
         return true
       }
       case 'checkExpiredTabs': {
-        handleCheckExpiredTabsMessage(
-          {
-            ...(typedMessage.updateTimestamps !== undefined
-              ? { updateTimestamps: typedMessage.updateTimestamps }
-              : {}),
-            ...(typedMessage.period !== undefined
-              ? { period: typedMessage.period }
-              : {}),
-          },
-          sendResponse,
-        )
+        handleCheckExpiredTabsMessage(typedMessage, sendResponse)
         return true
       }
       case 'updateTabTimestamps': {
@@ -316,13 +344,17 @@ const setupMessageListener = (): void => {
  * URLドラッグ開始メッセージの処理
  */
 const handleUrlDragStartedMessage = (
-  url: string,
+  message: Extract<BackgroundMessage, { action: 'urlDragStarted' }>,
   sendResponse: (response: StatusResponse) => void,
+  sourceTabId?: number,
 ): void => {
-  handleUrlDragStarted(url)
-  sendResponse({
-    status: 'ok',
-  })
+  handleUrlDragStarted(
+    message.url,
+    message.urlRecordId,
+    sourceTabId,
+    message.dragId,
+  )
+  sendResponse({ status: 'ok' })
 }
 /**
  * URLドロップメッセージの処理
@@ -331,6 +363,9 @@ const handleUrlDroppedMessage = (
   message: {
     url: string
     fromExternal?: boolean
+    urlRecordId?: string | undefined
+    sourceTabId?: number | undefined
+    dragId?: string | undefined
   },
   sendResponse: (response: StatusResponse) => void,
 ): void => {
@@ -338,7 +373,11 @@ const handleUrlDroppedMessage = (
 
   // FromExternal フラグが true の場合のみ処理（外部ドラッグの場合のみ）
   if (message.fromExternal === true) {
-    handleUrlDropped(message.url, message.fromExternal)
+    handleUrlDropped(message.url, message.fromExternal, {
+      urlRecordId: message.urlRecordId,
+      sourceTabId: message.sourceTabId,
+      dragId: message.dragId,
+    })
       .then((status) => {
         sendResponse({
           status,
@@ -352,6 +391,11 @@ const handleUrlDroppedMessage = (
         })
       })
   } else {
+    void handleUrlDropped(message.url, false, {
+      urlRecordId: message.urlRecordId,
+      sourceTabId: message.sourceTabId,
+      dragId: message.dragId,
+    })
     logger.debug('background_url_drop_internal_skipped')
     sendResponse({
       status: 'internal_operation',
@@ -364,11 +408,13 @@ const handleUrlDroppedMessage = (
 const handleRemoveUrlMessage = (
   url: string,
   sendResponse: (response: StatusResponse) => void,
+  urlRecordId?: string,
 ): void => {
-  removeUrlFromStorage(url)
-    .then(() => {
+  removeUrlFromStorage(url, urlRecordId)
+    .then((removedCount) => {
       sendResponse({
-        status: 'removed',
+        removedCount,
+        status: removedCount > 0 ? 'removed' : 'skipped',
       })
     })
     .catch((error: unknown) => {
@@ -448,10 +494,7 @@ const handleCalculateTimeRemainingMessage = (
  * 期限切れタブチェックメッセージの処理
  */
 const handleCheckExpiredTabsMessage = (
-  message: {
-    updateTimestamps?: boolean
-    period?: string
-  },
+  message: CheckExpiredTabsMessage,
   sendResponse: (response: StatusResponse) => void,
 ): void => {
   logger.info('background_expired_tabs_check_requested', {
@@ -461,13 +504,12 @@ const handleCheckExpiredTabsMessage = (
   // UpdateTimestampsフラグがあり、periodも指定されている場合は時刻を更新
   if (message.updateTimestamps) {
     logger.debug('background_tab_timestamp_update_started')
-    // 処理の簡略化 - まずタイムスタンプを更新し、待機せずにチェック実行
     updateTabTimestamps(message.period)
       .then((_result) => {
         logger.debug('background_tab_timestamp_update_completed')
 
-        // 設定を再読み込みし、チェック実行
-        checkAndRemoveExpiredTabs()
+        // A check already in progress may have read the prior timestamps.
+        checkAndRemoveExpiredTabs({ afterCurrent: true })
           .then(() => {
             logger.debug('background_expired_tabs_check_completed')
             sendResponse({
@@ -491,8 +533,7 @@ const handleCheckExpiredTabsMessage = (
         })
       })
   } else {
-    // 単純化 - 常に強制リロードする
-    checkAndRemoveExpiredTabs()
+    checkAndRemoveExpiredTabs({ afterCurrent: message.forceReload === true })
       .then(() => {
         logger.debug('background_expired_tabs_check_completed')
         sendResponse({
@@ -520,6 +561,9 @@ const handleUpdateTabTimestampsMessage = (
   logger.debug('background_tab_timestamp_force_update_started')
   updateTabTimestamps(message.period)
     .then((result) => {
+      if (result.success) {
+        void checkAndRemoveExpiredTabs({ afterCurrent: true })
+      }
       sendResponse({
         result,
         status: 'completed',

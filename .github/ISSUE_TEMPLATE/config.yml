@@ -1,1 +1,5 @@
 blank_issues_enabled: false
+contact_links:
+  - name: 🔒 セキュリティ上の脆弱性を非公開で報告
+    url: https://github.com/haruto-yamada1/TABBIN/security/advisories/new
+    about: 再現手順や影響を含む詳細は公開 Issue に書かず、GitHub の非公開 Security Advisory から報告してください。通常の不具合は Bug Report を使ってください。

@@ -111,6 +111,7 @@ export const KeywordModalRoot = ({
     <KeywordModalContext value={contextValue}>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
+          data-tour='academy-child-dialog'
           className='max-h-[90vh] overflow-y-auto'
           onClick={handleContentClick}
           onPointerDown={handleContentPointerDown}

@@ -41,7 +41,10 @@ Current production call sites are:
 - `src/lib/background/ai-chat.ts` imports `ai-sdk-ollama`. It sends the user's
   prompt, chat history, attachments, system instructions, and locally derived
   saved-tab context to the configured local Ollama origin. The base URL comes
-  from the shared production policy.
+  from the shared production policy. Saved-tab data is framed as untrusted
+  input in
+  [`ai-chat-trust-boundary.md`](ai-chat-trust-boundary.md); URLs found in that
+  data are never fetched.
 - `src/components/ai-elements/prompt-input.tsx` calls `fetch` only for a
   `blob:` URL created from a user-selected local file. This converts local Blob
   data to a data URL and is not outbound traffic.

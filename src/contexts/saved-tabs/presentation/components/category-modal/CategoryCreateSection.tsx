@@ -19,6 +19,7 @@ export const CategoryCreateSection = () => {
       </Label>
       <Input
         id='newCategory'
+        data-tour='academy-parent-create'
         value={create.newCategoryName}
         onChange={create.handleCategoryNameChange}
         onKeyDown={create.handleKeyDown}

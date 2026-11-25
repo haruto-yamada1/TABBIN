@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 import {
   filterItemsBySavableUrl,
@@ -7,6 +7,7 @@ import {
   isValidUrl,
   normalizeUrlCandidate,
   toSafeSavedUrlHref,
+  toSavableLinkUrl,
 } from './url-filter'
 
 const unsafeUrl = ['java', 'script:alert(1)'].join('')
@@ -74,5 +75,27 @@ describe('url-filter', () => {
     expect(toSafeSavedUrlHref('file:///tmp/example.txt')).toBeNull()
     expect(toSafeSavedUrlHref('not a url')).toBeNull()
     expect(toSafeSavedUrlHref(undefined)).toBeNull()
+  })
+
+  it('リンク保存はhttp/httpsかつ認証情報なしのURLだけを原文のまま許可する', () => {
+    expect(toSavableLinkUrl(' https://example.com/path ', [])).toBe(
+      'https://example.com/path',
+    )
+    expect(toSavableLinkUrl('http://example.com', [])).toBe(
+      'http://example.com',
+    )
+    expect(toSavableLinkUrl(unsafeUrl, [])).toBeNull()
+    expect(
+      toSavableLinkUrl('data:text/html,<script>alert(1)</script>', []),
+    ).toBeNull()
+    expect(toSavableLinkUrl('file:///tmp/example.txt', [])).toBeNull()
+    expect(
+      toSavableLinkUrl('https://user:password@example.com/', []),
+    ).toBeNull()
+    expect(
+      toSavableLinkUrl('https://example.com/private', ['private']),
+    ).toBeNull()
+    expect(toSavableLinkUrl('not a url', [])).toBeNull()
+    expect(toSavableLinkUrl(undefined, [])).toBeNull()
   })
 })

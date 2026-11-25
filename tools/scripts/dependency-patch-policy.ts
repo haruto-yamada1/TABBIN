@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 
+import { verifyNodeForgeReleaseBinding } from './node-forge-release-policy'
+
 export const reviewedNodeForgeBackport = {
   dependency: 'node-forge@github:digitalbazaar/forge#ceba344',
   path: 'patches/node-forge-null-parameters.patch',
@@ -15,7 +17,8 @@ export const reviewedNodeForgeBackport = {
 } as const
 
 // Reviewed Git backport and upstream #6247 compatibility addition. These
-// fingerprints authorize exact additions, never patch edits/deletions or skips.
+// fingerprints authorize exact additions, never patch edits or skips. Only the
+// validated node-forge registry transition below permits a patch retirement.
 export const reviewedPatchAdditions = [
   reviewedNodeForgeBackport,
   {
@@ -158,10 +161,22 @@ function usesReviewedNodeForgeBackport(
   )
 }
 
+export function isReviewedNodeForgeRetirement(
+  base: PatchSnapshot,
+  head: PatchSnapshot,
+): boolean {
+  const forge = reviewedNodeForgeBackport
+  return (
+    base.patchedDependencies?.[forge.dependency] === forge.path &&
+    !Object.hasOwn(head.patchedDependencies ?? {}, forge.dependency)
+  )
+}
+
 export function verifyReviewedPatchAdditions(
   base: PatchSnapshot,
   head: PatchSnapshot,
   contents: PatchContents,
+  baseContents: PatchContents = {},
 ): string[] {
   const before = readPatchMap(base.patchedDependencies)
   const after = readPatchMap(head.patchedDependencies)
@@ -171,12 +186,21 @@ export function verifyReviewedPatchAdditions(
   ) {
     rejectPatchChange()
   }
+  const forge = reviewedNodeForgeBackport
+  const retiringForge = isReviewedNodeForgeRetirement(base, head)
+  if (retiringForge) {
+    verifyReviewedPatchBinding(base, forge, baseContents)
+    verifyNodeForgeReleaseBinding(head)
+  }
   const added: string[] = []
   for (const dependency of new Set([
     ...Object.keys(before),
     ...Object.keys(after),
   ])) {
     if (before[dependency] !== after[dependency]) {
+      if (retiringForge && dependency === forge.dependency) {
+        continue
+      }
       const reviewed = reviewedPatchAdditions.find(
         (item) => item.dependency === dependency,
       )

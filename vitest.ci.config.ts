@@ -97,6 +97,8 @@ export default defineConfig({
       },
       exclude: [
         '**/.worktrees/**',
+        // Browser fixtures are E2E-only even when imported by filming tool tests.
+        'e2e/**',
         '.storybook/**',
         '**/*.stories.ts',
         '**/*.stories.tsx',

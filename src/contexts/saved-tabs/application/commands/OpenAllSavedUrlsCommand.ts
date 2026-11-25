@@ -30,7 +30,7 @@ export type OpenAllSavedUrlsCommand = {
   readonly mode: OpenAllSavedUrlsMode
   /**
    * 開いたあとに保存タブから削除するかの設定値。
-   * presentation 層がユーザーの preferences から取得して注入する。
+   * presentation 層の opt-out 値。削除には repository で再取得した設定も ON が必要。
    */
   readonly removeTabAfterOpen: boolean
 }

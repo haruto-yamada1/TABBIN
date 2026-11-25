@@ -21,6 +21,7 @@ import {
   saveReviewReminderAlarmTimeZone,
   saveReviewReminderNotification,
 } from '@/lib/storage/review-reminders'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 const REVIEW_ALARM_NAME = 'reviewSavedTabs'
 const REVIEW_NOTIFICATION_ID = 'tabbin-review-reminder'
@@ -37,7 +38,8 @@ const withBrowserOperation = async <T>(
   operation: () => Promise<T>,
 ): Promise<T> => {
   const result = browserOperations.then(operation)
-  browserOperations = result.then(
+  browserOperations = handlePromiseSettlement(
+    result,
     () => {},
     () => {},
   )

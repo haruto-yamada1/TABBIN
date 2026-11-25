@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getMessages } from '@/features/i18n/messages'
 import { defaultReviewReminderSettings } from '@/features/review-reminders/lib/reviewReminderSettings'
@@ -28,6 +28,7 @@ const mocked = vi.hoisted(() => ({
     openAllInNewWindow: false,
     openUrlInBackground: true,
     removeTabAfterExternalDrop: true,
+    protectFavoriteFromAutoRemoval: true,
     removeTabAfterOpen: true,
     showRelativeSavedTime: false,
     showSavedTime: false,
@@ -257,6 +258,7 @@ describe('PeriodicExecutionRoute', () => {
       openAllInNewWindow: false,
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: true,
       showRelativeSavedTime: false,
       showSavedTime: false,

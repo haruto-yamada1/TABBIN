@@ -2,6 +2,7 @@ import type {
   PersistenceChangePort,
   PersistenceChangeScope,
 } from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 export type RevisionedPersistenceProjection = {
   readonly revision: number
@@ -211,7 +212,7 @@ export class PersistenceInvalidationCoordinatorService<
       this.eventDrainPromise = undefined
       this.scheduleEventDrain()
     }
-    void scheduled.then(finish, finish)
+    void handlePromiseSettlement(scheduled, finish, finish)
   }
 
   private readonly drainPendingEvents = async (): Promise<void> => {

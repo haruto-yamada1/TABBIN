@@ -101,3 +101,19 @@ export const resolveFirefoxSmokeEnvironment = (
   }
   return { geckodriverPath, firefoxPath }
 }
+
+export const createFirefoxSmokeProcessEnvironment = ({
+  environment,
+  platform,
+  appDataDirectory,
+}: {
+  environment: Readonly<Record<string, string | undefined>>
+  platform: NodeJS.Platform
+  appDataDirectory: string
+}): Record<string, string | undefined> => ({
+  ...environment,
+  // macOS 27 protects the real Firefox app-data root even with -profile.
+  // Keep this test process in its own empty Cocoa app-data root instead.
+  // https://github.com/microsoft/playwright/issues/42768
+  ...(platform === 'darwin' ? { CFFIXED_USER_HOME: appDataDirectory } : {}),
+})

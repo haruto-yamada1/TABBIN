@@ -9,7 +9,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import { Children, isValidElement } from 'react'
 import type { ReactNode } from 'react'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserSettings } from '@/types/storage'
 
@@ -23,6 +23,9 @@ import {
 const optionsRouteMocks = vi.hoisted(() => ({
   handleColorChange: vi.fn(),
   handleResetColors: vi.fn(),
+  loadError: null as 'invalid' | 'unavailable' | null,
+  retryLoadSettings: vi.fn(),
+  resetInvalidSettings: vi.fn(),
   settings: undefined as UserSettings | undefined,
   updateSetting: vi.fn(),
 }))
@@ -115,7 +118,6 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
-    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       checked={Boolean(checked)}
       disabled={disabled}
@@ -139,6 +141,9 @@ vi.mock('@/features/options/hooks/useSettings', () => ({
     excludePatternInput: '',
     handleExcludePatternInputChange: vi.fn(),
     isLoading: false,
+    loadError: optionsRouteMocks.loadError,
+    retryLoadSettings: optionsRouteMocks.retryLoadSettings,
+    resetInvalidSettings: optionsRouteMocks.resetInvalidSettings,
     removeExcludePattern: vi.fn(),
     setSettings: vi.fn(),
     settings: optionsRouteMocks.settings,
@@ -160,6 +165,7 @@ const createSettings = (
   fontSizePercent: 100,
   openAllInNewWindow: false,
   openUrlInBackground: true,
+  protectFavoriteFromAutoRemoval: true,
   removeTabAfterExternalDrop: true,
   removeTabAfterOpen: true,
   showRelativeSavedTime: false,
@@ -168,6 +174,81 @@ const createSettings = (
 })
 
 describe('OptionsRoute', () => {
+  it('読込失敗では編集を止め再試行導線だけを表示する', async () => {
+    optionsRouteMocks.settings = createSettings()
+    optionsRouteMocks.loadError = 'unavailable'
+    render(<OptionsRoute />)
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'options.settingsRead.unavailable',
+    )
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole('button', { name: 'options.settingsRead.retry' }),
+    )
+    expect(optionsRouteMocks.retryLoadSettings).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('button', { name: 'options.settingsRead.reset' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('不正設定に限り明示リセットを表示する', async () => {
+    optionsRouteMocks.settings = createSettings()
+    optionsRouteMocks.loadError = 'invalid'
+    render(<OptionsRoute />)
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole('button', { name: 'options.settingsRead.reset' }),
+    )
+    expect(optionsRouteMocks.resetInvalidSettings).toHaveBeenCalledTimes(1)
+  })
+
+  it('今開いているタブの表示は未設定ならONで表示する', () => {
+    optionsRouteMocks.settings = createSettings()
+    render(<OptionsRoute />)
+    expect(
+      screen.getByRole('checkbox', { name: 'options.showOpenTabs' }),
+    ).toBeChecked()
+  })
+
+  it.each([false, true])(
+    '今開いているタブの表示設定%sを切り替える',
+    async (showOpenTabs) => {
+      optionsRouteMocks.settings = createSettings({ showOpenTabs })
+      const user = userEvent.setup()
+      render(<OptionsRoute />)
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'options.showOpenTabs',
+      })
+      expect(checkbox).toHaveProperty('checked', showOpenTabs)
+      await user.click(checkbox)
+      expect(optionsRouteMocks.updateSetting).toHaveBeenCalledExactlyOnceWith(
+        'showOpenTabs',
+        !showOpenTabs,
+      )
+    },
+  )
+
+  it.each([false, true])(
+    'お気に入り自動削除保護の設定%sを切り替える',
+    async (protectFavoriteFromAutoRemoval) => {
+      optionsRouteMocks.settings = createSettings({
+        protectFavoriteFromAutoRemoval,
+      })
+      const user = userEvent.setup()
+      render(<OptionsRoute />)
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'options.autoDelete.protectFavorites',
+      })
+      expect(checkbox).toHaveProperty('checked', protectFavoriteFromAutoRemoval)
+      await user.click(checkbox)
+      expect(optionsRouteMocks.updateSetting).toHaveBeenCalledExactlyOnceWith(
+        'protectFavoriteFromAutoRemoval',
+        !protectFavoriteFromAutoRemoval,
+      )
+    },
+  )
+
   it.each([false, true])('親OFFなら子の値%sを保って無効化する', (child) => {
     optionsRouteMocks.settings = createSettings({
       showSavedTime: false,
@@ -239,6 +320,7 @@ describe('OptionsRoute', () => {
   })
 
   beforeEach(() => {
+    optionsRouteMocks.loadError = null
     vi.clearAllMocks()
     optionsRouteMocks.settings = createSettings()
     optionsRouteMocks.updateSetting.mockResolvedValue(true)

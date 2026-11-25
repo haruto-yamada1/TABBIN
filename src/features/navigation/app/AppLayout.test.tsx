@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/features/navigation/components/ExtensionPageShell', () => ({
   ExtensionPageShell: ({ children }: { children: React.ReactNode }) => (

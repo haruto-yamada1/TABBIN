@@ -207,22 +207,6 @@ const renderChatPromptIntro = ({
   )
 }
 
-const renderChatDataScopeNotice = ({
-  isVisible,
-  t,
-}: {
-  isVisible: boolean
-  t: TranslateFn
-}) =>
-  isVisible ? (
-    <p
-      className='text-[11px] leading-4 text-muted-foreground'
-      data-testid='ai-chat-data-scope'
-    >
-      {t('aiChat.dataScope')}
-    </p>
-  ) : null
-
 const renderChatMessageAttachments = ({
   attachments,
 }: {
@@ -269,7 +253,6 @@ const getAiChartOptionalProps = (message: ChatMessage) =>
   message.charts !== undefined ? { charts: message.charts } : {}
 
 const renderChatConversationMessage = ({
-  // eslint-disable-line eslint/complexity
   message,
   platform,
   t,
@@ -540,10 +523,6 @@ const SavedTabsChatPanel = ({
     messages.length === 0 && isConfigured
       ? renderChatPromptIntro({ isCompactLayout, onSelectSuggestion, t })
       : null
-  const chatDataScopeNotice = renderChatDataScopeNotice({
-    isVisible: isConfigured,
-    t,
-  })
   const cardClassName =
     mode === 'page'
       ? 'flex h-full min-h-0 flex-1 flex-col rounded-[1.5rem] border-border shadow-lg'
@@ -597,7 +576,6 @@ const SavedTabsChatPanel = ({
             ollamaError={chatOllamaError}
             platform={platform}
           />
-          {chatDataScopeNotice}
           <SavedTabsChatComposer
             input={input}
             modelOptions={modelOptions}

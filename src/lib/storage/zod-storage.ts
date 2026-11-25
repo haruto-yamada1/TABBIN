@@ -139,11 +139,13 @@ export const UserSettingsSchema = z.object({
   language: z.enum(['system', 'ja', 'en']).optional(),
   removeTabAfterOpen: z.boolean(),
   removeTabAfterExternalDrop: z.boolean(),
+  protectFavoriteFromAutoRemoval: z.boolean(),
   excludePatterns: z.array(z.string()),
   enableCategories: z.boolean(),
   autoDeletePeriod: autoDeletePeriodField,
   showRelativeSavedTime: z.boolean(),
   showSavedTime: z.boolean(),
+  showOpenTabs: z.boolean().optional(),
   clickBehavior: z.enum([
     'saveCurrentTab',
     'saveWindowTabs',
@@ -163,6 +165,9 @@ export const UserSettingsSchema = z.object({
   activeAiSystemPromptId: z.string().optional(),
 })
 
+/** Strict policy read: older absent fields are valid, malformed present fields are not. */
+export const strictStoredUserSettingsSchema = UserSettingsSchema.partial()
+
 /**
  * `chrome.storage.local` / import から読み込んだ unknown 値を安全に検証する
  * stored variant。全 field を optional + `.catch(undefined)` とし、
@@ -176,6 +181,7 @@ export const storedUserSettingsSchema = z.object({
   language: z.enum(['system', 'ja', 'en']).optional().catch(undefined),
   removeTabAfterOpen: z.boolean().optional().catch(undefined),
   removeTabAfterExternalDrop: z.boolean().optional().catch(undefined),
+  protectFavoriteFromAutoRemoval: z.boolean().optional().catch(undefined),
   excludePatterns: z
     .preprocess(
       (val) =>
@@ -189,6 +195,7 @@ export const storedUserSettingsSchema = z.object({
   autoDeletePeriod: autoDeletePeriodField.catch(undefined),
   showRelativeSavedTime: z.boolean().optional().catch(undefined),
   showSavedTime: z.boolean().optional().catch(undefined),
+  showOpenTabs: z.boolean().optional().catch(undefined),
   clickBehavior: z
     .enum([
       'saveCurrentTab',
@@ -244,7 +251,6 @@ export const parseStoredUserSettings = (
   }
   const filtered: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(data)) {
-    // eslint-disable-next-line typescript/no-unnecessary-condition -- .catch(undefined) が undefined を含むため実行時に必要
     if (value !== undefined) {
       filtered[key] = value
     }

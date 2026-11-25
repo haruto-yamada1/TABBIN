@@ -1,65 +1,38 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { UserSettingsReadError } from '@/lib/storage/settings'
+import type * as UserSettingsModule from '@/lib/storage/settings'
 import type { UserSettings } from '@/types/storage'
 
 const mocked = vi.hoisted(() => ({
-  saveTabsWithAutoCategory: vi.fn(),
-  saveUrlsToCustomProjects: vi.fn(),
+  dataPlaneSaveTabs: vi.fn(),
   getUserSettings: vi.fn(),
   openSavedTabsPage: vi.fn(),
-  filterTabsByUserSettings: vi.fn(),
   showNotification: vi.fn(),
   proveCapturedTitleUnowned: vi.fn(),
 }))
 vi.mock('@/lib/browser/prove-unmarked-tab-title', () => ({
   proveCapturedTitleUnowned: mocked.proveCapturedTitleUnowned,
 }))
+vi.mock('wxt/browser', () => ({
+  get browser() {
+    return globalThis.chrome
+  },
+}))
 vi.mock('@/app/composition/backgroundSavedTabsDataPlane', () => ({
   getBackgroundSavedTabsDataPlane: () => ({
-    saveTabs: async (tabs: chrome.tabs.Tab[]) => {
-      await mocked.saveTabsWithAutoCategory(tabs)
-      const settings = await mocked.getUserSettings()
-      const excludePatterns = settings.excludePatterns ?? []
-      const savableTabs = tabs.filter((tab) => {
-        const url = tab.url?.trim()
-        if (
-          !url ||
-          excludePatterns.some((pattern: string) => url.includes(pattern))
-        ) {
-          return false
-        }
-        try {
-          new URL(url)
-          return true
-        } catch {
-          return false
-        }
-      })
-      if (savableTabs.length > 0) {
-        await mocked.saveUrlsToCustomProjects(
-          savableTabs.map((tab) => ({
-            title: tab.title ?? '',
-            url: tab.url ?? '',
-          })),
-        )
-      }
-    },
+    saveTabs: mocked.dataPlaneSaveTabs,
   }),
 }))
-vi.mock('@/lib/storage/migration', () => ({
-  saveTabsWithAutoCategory: mocked.saveTabsWithAutoCategory,
-}))
-vi.mock('@/lib/storage/projects', () => ({
-  saveUrlsToCustomProjects: mocked.saveUrlsToCustomProjects,
-}))
-vi.mock('@/lib/storage/settings', () => ({
+vi.mock('@/lib/storage/settings', async (importOriginal) => ({
+  ...(await importOriginal<typeof UserSettingsModule>()),
   getUserSettings: mocked.getUserSettings,
+  requireUserSettings: mocked.getUserSettings,
 }))
 vi.mock('./saved-tabs-page', () => ({
   openSavedTabsPage: mocked.openSavedTabsPage,
 }))
-vi.mock('./utils', () => ({
-  filterTabsByUserSettings: mocked.filterTabsByUserSettings,
+vi.mock('./notification', () => ({
   showNotification: mocked.showNotification,
 }))
 
@@ -67,6 +40,7 @@ import {
   handleExtensionActionClick,
   handleSaveAllWindowsTabs,
   handleSaveCurrentTab,
+  handleSaveLink,
   handleSaveSameDomainTabs,
   handleSaveWindowTabs,
 } from './extension-actions'
@@ -78,17 +52,41 @@ type SendTabMessage = (
 ) => Promise<unknown>
 
 type TabsHarness = {
-  query: ReturnType<typeof vi.fn>
+  query: ReturnType<
+    typeof vi.fn<(options: chrome.tabs.QueryInfo) => Promise<chrome.tabs.Tab[]>>
+  >
+  setTabs: (tabs: chrome.tabs.Tab[]) => void
   remove: ReturnType<typeof vi.fn>
   getAllWindows: ReturnType<typeof vi.fn>
   sendMessage: ReturnType<typeof vi.fn<SendTabMessage>>
 }
 const createChromeTabsHarness = (): TabsHarness => {
-  const query = vi.fn()
-
+  const liveTabs = new Map<number, chrome.tabs.Tab>()
+  const query = vi.fn(async (_options: chrome.tabs.QueryInfo) => [
+    ...liveTabs.values(),
+  ])
+  const getAllWindows = vi.fn(
+    async (): Promise<{ tabs?: chrome.tabs.Tab[] }[]> => [
+      { tabs: [...liveTabs.values()] },
+    ],
+  )
+  const setTabs = (tabs: chrome.tabs.Tab[]) => {
+    liveTabs.clear()
+    for (const tab of tabs) {
+      if (tab.id !== undefined) {
+        liveTabs.set(tab.id, tab)
+      }
+    }
+  }
   const remove = vi.fn(async () => undefined)
+  const get = vi.fn(async (id: number) => {
+    const found = liveTabs.get(id)
+    if (!found) {
+      throw new Error('Tab not found')
+    }
+    return found
+  })
 
-  const getAllWindows = vi.fn(async () => [])
   const sendMessage = vi.fn<SendTabMessage>(async () => undefined)
   ;(
     globalThis as {
@@ -97,6 +95,7 @@ const createChromeTabsHarness = (): TabsHarness => {
   ).chrome = {
     tabs: {
       query,
+      get,
       remove,
       sendMessage,
     },
@@ -106,6 +105,7 @@ const createChromeTabsHarness = (): TabsHarness => {
   } as unknown as typeof chrome
   return {
     query,
+    setTabs,
     remove,
     getAllWindows,
     sendMessage,
@@ -114,6 +114,7 @@ const createChromeTabsHarness = (): TabsHarness => {
 const buildSettings = (override: Partial<UserSettings> = {}): UserSettings => ({
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: ['about:', 'chrome://', 'ignore.example'],
   enableCategories: true,
   autoDeletePeriod: 'never',
@@ -134,22 +135,211 @@ const tab = (partial: Partial<chrome.tabs.Tab>): chrome.tabs.Tab =>
     url: partial.url,
     title: partial.title,
     pinned: partial.pinned ?? false,
+    active: partial.active ?? true,
   }) as chrome.tabs.Tab
 describe('extension-actions モジュール', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    mocked.saveTabsWithAutoCategory.mockResolvedValue(undefined)
-    mocked.saveUrlsToCustomProjects.mockResolvedValue(undefined)
     mocked.getUserSettings.mockResolvedValue(buildSettings())
     mocked.openSavedTabsPage.mockResolvedValue(9999)
-    mocked.filterTabsByUserSettings.mockImplementation(
-      async (tabs: unknown) => tabs,
-    )
     mocked.showNotification.mockResolvedValue(undefined)
     mocked.proveCapturedTitleUnowned.mockResolvedValue(false)
+    mocked.dataPlaneSaveTabs.mockImplementation(
+      async (tabs: { url: string }[]) => ({
+        savedUrls: tabs.map(({ url }) => url),
+      }),
+    )
   })
+
+  describe('リンク先の保存', () => {
+    it('リンク先を1回だけ保存し、タブを閉じずに成功通知する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      const url = 'https://example.test/docs/start?x=1#part'
+
+      await expect(handleSaveLink(url)).resolves.toEqual([
+        { title: 'example.test/docs/start?x=1', url },
+      ])
+
+      expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith(
+        [{ title: 'example.test/docs/start?x=1', url }],
+        { preserveExistingTitle: true },
+      )
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+      expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンク保存',
+        'リンク先をTABBINに保存しました',
+      )
+    })
+
+    it.each([
+      undefined,
+      '',
+      'not a url',
+      ['java', 'script:alert(1)'].join(''),
+      'data:text/html,<h1>x</h1>',
+      'file:///tmp/example.txt',
+      'https://user:password@example.test/private',
+    ])(
+      '保存できないリンク (%s) は保存もタブ操作もせず通知する',
+      async (url) => {
+        const chromeTabs = createChromeTabsHarness()
+
+        await expect(handleSaveLink(url)).resolves.toEqual([])
+
+        expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+        expect(chromeTabs.remove).not.toHaveBeenCalled()
+        expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+        expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+          'リンクを保存できません',
+          'このリンクは保存できません。URLまたは除外パターンを確認してください。',
+        )
+      },
+    )
+
+    it('除外パターンに一致するリンクは保存しない', async () => {
+      createChromeTabsHarness()
+
+      await expect(
+        handleSaveLink('https://ignore.example/article'),
+      ).resolves.toEqual([])
+
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンクを保存できません',
+        'このリンクは保存できません。URLまたは除外パターンを確認してください。',
+      )
+    })
+
+    it('保存失敗時はタブを閉じず、失敗を通知して reject する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      const error = new Error('private persistence detail')
+      mocked.dataPlaneSaveTabs.mockRejectedValueOnce(error)
+
+      await expect(handleSaveLink('https://example.test/a')).rejects.toThrow(
+        error,
+      )
+
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+      expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンク保存に失敗しました',
+        '今回のリンク保存を完了できませんでした。もう一度お試しください。',
+      )
+    })
+
+    it('通知の言語判定に失敗しても見出しと本文を同じ言語で表示する', async () => {
+      createChromeTabsHarness()
+      mocked.getUserSettings
+        .mockResolvedValue(buildSettings({ language: 'en' }))
+        .mockResolvedValueOnce(buildSettings({ language: 'en' }))
+        .mockRejectedValueOnce(new UserSettingsReadError('unavailable'))
+
+      await expect(handleSaveLink('not a url')).resolves.toEqual([])
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'リンクを保存できません',
+        'このリンクは保存できません。URLまたは除外パターンを確認してください。',
+      )
+    })
+
+    it('設定を読めない場合は保存せず安全に中止する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      mocked.getUserSettings.mockRejectedValueOnce(
+        new UserSettingsReadError('unavailable'),
+      )
+
+      await expect(handleSaveLink('https://example.test/a')).rejects.toThrow(
+        UserSettingsReadError,
+      )
+
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+    })
+  })
+
+  const captureActions = [
+    ['current', handleSaveCurrentTab],
+    ['window', handleSaveWindowTabs],
+    ['domain', handleSaveSameDomainTabs],
+    ['all windows', handleSaveAllWindowsTabs],
+  ] as const
+
+  describe.each(captureActions)(
+    '%s capture failure boundary',
+    (_name, save) => {
+      it.each(['query', 'persistence'] as const)(
+        '%s failure rejects, keeps source tabs and gives retry feedback',
+        async (failure) => {
+          const chromeTabs = createChromeTabsHarness()
+          const source = tab({ id: 10, url: 'https://example.test/article' })
+          chromeTabs.setTabs([source])
+          const error = new Error('private failure detail')
+          if (failure === 'query') {
+            chromeTabs.getAllWindows.mockRejectedValueOnce(error)
+            chromeTabs.query.mockRejectedValueOnce(error)
+          } else {
+            mocked.dataPlaneSaveTabs.mockRejectedValueOnce(error)
+          }
+
+          await expect(save()).rejects.toThrow(error)
+          expect(chromeTabs.remove).not.toHaveBeenCalled()
+          expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledTimes(
+            failure === 'persistence' ? 1 : 0,
+          )
+          expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+          expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+            'タブの保存を完了できませんでした',
+            'タブは閉じていません。保存状態を確認してから、もう一度保存してください。',
+          )
+        },
+      )
+
+      it('保存が完了するまで成功通知もタブ閉鎖もしない', async () => {
+        const chromeTabs = createChromeTabsHarness()
+        const source = tab({ id: 10, url: 'https://example.test/article' })
+        chromeTabs.setTabs([source])
+        const completion = Promise.withResolvers<{ savedUrls: string[] }>()
+        mocked.dataPlaneSaveTabs.mockReturnValueOnce(completion.promise)
+        const saving = save()
+        await vi.waitFor(() =>
+          expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledOnce(),
+        )
+        expect(chromeTabs.remove).not.toHaveBeenCalled()
+        expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
+        expect(mocked.showNotification).not.toHaveBeenCalled()
+        completion.resolve({ savedUrls: [source.url ?? ''] })
+        await saving
+        expect(chromeTabs.remove).toHaveBeenCalledOnce()
+      })
+    },
+  )
+
+  it.each([
+    ['window', handleSaveWindowTabs],
+    ['all windows', handleSaveAllWindowsTabs],
+  ])(
+    '%s: 保存画面IDが不明なら保存結果を返して全タブを保全する',
+    async (_name, save) => {
+      const chromeTabs = createChromeTabsHarness()
+      const source = tab({
+        id: 10,
+        url: 'https://example.test/article',
+        title: 'Article',
+      })
+      chromeTabs.setTabs([source])
+      mocked.openSavedTabsPage.mockResolvedValueOnce(null)
+
+      await expect(save()).resolves.toEqual([
+        { url: source.url, title: source.title },
+      ])
+
+      expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledWith([source])
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+    },
+  )
 
   it.each([
     ['current', handleSaveCurrentTab],
@@ -168,8 +358,7 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      chromeTabs.query.mockResolvedValue([markedTab])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [markedTab] }])
+      chromeTabs.setTabs([markedTab])
       chromeTabs.sendMessage.mockResolvedValue({
         baseTitle: '✓ Site-owned title',
         displayTitle: markedTab.title,
@@ -179,11 +368,8 @@ describe('extension-actions モジュール', () => {
       expect(await save()).toStrictEqual([
         { url: markedTab.url, title: '✓ Site-owned title' },
       ])
-      expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledExactlyOnceWith([
+      expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith([
         { ...markedTab, title: '✓ Site-owned title' },
-      ])
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledExactlyOnceWith([
-        { url: markedTab.url, title: '✓ Site-owned title' },
       ])
       expect(chromeTabs.sendMessage).toHaveBeenCalledExactlyOnceWith(
         10,
@@ -197,10 +383,14 @@ describe('extension-actions モジュール', () => {
 
   it('保存対象から除外されたタブのタイトルは問い合わせない', async () => {
     const chromeTabs = createChromeTabsHarness()
-    chromeTabs.query.mockResolvedValue([
+    chromeTabs.setTabs([
       { ...tab({ id: 10, url: 'https://example.test' }), incognito: false },
     ])
-    mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
+    mocked.getUserSettings.mockResolvedValueOnce(
+      buildSettings({
+        excludePatterns: ['example.test'],
+      }),
+    )
 
     expect(await handleSaveWindowTabs()).toEqual([])
     expect(chromeTabs.sendMessage).not.toHaveBeenCalled()
@@ -223,12 +413,10 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      chromeTabs.query.mockResolvedValue([marked])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [marked] }])
+      chromeTabs.setTabs([marked])
       chromeTabs.sendMessage.mockRejectedValue(new Error('closed private URL'))
       await save().catch(() => undefined)
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
       expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
         'タブを保存できませんでした',
@@ -254,16 +442,14 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      chromeTabs.query.mockResolvedValue([marked])
-      chromeTabs.getAllWindows.mockResolvedValue([{ tabs: [marked] }])
+      chromeTabs.setTabs([marked])
       chromeTabs.sendMessage.mockResolvedValue({
         baseTitle: 'New document',
         displayTitle: '✓ New document',
         url: 'https://example.test/new',
       })
       await save().catch(() => undefined)
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
       expect(chromeTabs.remove).not.toHaveBeenCalled()
       expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
         'タブを保存できませんでした',
@@ -292,8 +478,7 @@ describe('extension-actions モジュール', () => {
         }),
         incognito: false,
       }
-      tabs.query.mockResolvedValue([marked])
-      tabs.getAllWindows.mockResolvedValue([{ tabs: [marked] }])
+      tabs.setTabs([marked])
       tabs.sendMessage.mockRejectedValue(
         new Error('private browser diagnostic'),
       )
@@ -302,8 +487,7 @@ describe('extension-actions モジュール', () => {
         'Tabs were not saved',
         'Could not confirm a tab title. No tabs were saved or closed by TABBIN. Retry saving the tab.',
       )
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+      expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
       expect(tabs.remove).not.toHaveBeenCalled()
       expect(JSON.stringify(mocked.showNotification.mock.calls)).not.toContain(
         'Private title',
@@ -335,7 +519,7 @@ describe('extension-actions モジュール', () => {
         incognito: false,
       },
     ]
-    tabs.query.mockResolvedValue(captures)
+    tabs.setTabs(captures)
     tabs.sendMessage.mockImplementation(async (id: number) =>
       id === 10
         ? {
@@ -347,8 +531,7 @@ describe('extension-actions モジュール', () => {
     )
     await expect(handleSaveWindowTabs()).rejects.toThrow('Retry saving the tab')
     expect(mocked.showNotification).toHaveBeenCalledTimes(1)
-    expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-    expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
+    expect(mocked.dataPlaneSaveTabs).not.toHaveBeenCalled()
     expect(tabs.remove).not.toHaveBeenCalled()
     tabs.sendMessage.mockImplementation(async (id: number) => ({
       baseTitle: id === 10 ? 'First document' : 'Second document',
@@ -359,1068 +542,141 @@ describe('extension-actions モジュール', () => {
       { url: captures[0]?.url, title: 'First document' },
       { url: captures[1]?.url, title: 'Second document' },
     ])
-    expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledTimes(1)
-    expect(tabs.remove).toHaveBeenCalledExactlyOnceWith([10, 11])
+    expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledTimes(1)
+    expect(tabs.remove.mock.calls.flat()).toEqual([10, 11])
     expect(mocked.showNotification).toHaveBeenCalledTimes(2)
   })
-  describe('handleSaveCurrentTab関数', () => {
-    it('フィルタ後にタブが残らない場合は空を返す', async () => {
+
+  it.each(['empty', 'unavailable'] as const)(
+    'all windows keeps the initial candidate boundary when windows are %s',
+    async (state) => {
       const chromeTabs = createChromeTabsHarness()
-      chromeTabs.query.mockResolvedValueOnce([
-        tab({
-          id: 1,
-          url: 'https://a.example',
-        }),
+      const source = tab({ id: 10, url: 'https://example.test/article' })
+      const primary = Promise.withResolvers<{ tabs?: chrome.tabs.Tab[] }[]>()
+      chromeTabs.setTabs([source])
+      chromeTabs.getAllWindows.mockReturnValueOnce(primary.promise)
+      const operation = handleSaveAllWindowsTabs()
+      chromeTabs.setTabs([
+        source,
+        tab({ id: 11, url: 'https://example.test/added-later' }),
       ])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([])
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-      expect(mocked.showNotification).not.toHaveBeenCalled()
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
+      if (state === 'empty') {
+        primary.resolve([])
+      } else {
+        primary.reject(new Error('windows unavailable'))
+      }
 
-    it('現在のタブを保存して通知し、閉じて、url/title を返す', async () => {
+      await expect(operation).resolves.toEqual([{ url: source.url, title: '' }])
+      expect(chromeTabs.query).toHaveBeenCalledExactlyOnceWith({})
+      expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10)
+    },
+  )
+
+  it.each(['saveAllWindowsTabs', 'saveWindowTabs'] as const)(
+    'toolbar %s uses its snapshots even if the other scope fails',
+    async (clickBehavior) => {
       const chromeTabs = createChromeTabsHarness()
-      const activeTab = tab({
-        id: 10,
-        url: 'https://current.example/path',
-        title: 'Current',
-      })
-      chromeTabs.query.mockResolvedValueOnce([activeTab])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      const result = await handleSaveCurrentTab()
-      expect(chromeTabs.query).toHaveBeenCalledWith({
-        active: true,
-        currentWindow: true,
-      })
-      expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith([activeTab])
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
-        {
-          url: 'https://current.example/path',
-          title: 'Current',
-        },
-      ])
-      expect(mocked.showNotification).toHaveBeenCalledWith(
-        'タブ保存',
-        '現在のタブを保存しました',
-      )
-      expect(chromeTabs.remove).toHaveBeenCalledWith(10)
-      expect(result).toStrictEqual([
-        {
-          url: 'https://current.example/path',
-          title: 'Current',
-        },
-      ])
-      const loggedValues = JSON.stringify(vi.mocked(console.log).mock.calls)
-      expect(loggedValues).toContain('[redacted-url]')
-      expect(loggedValues).not.toContain('current.example')
-      expect(loggedValues).not.toContain('/path')
-    })
-
-    it('タブを閉じる処理が失敗した場合はログ出力して継続する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const activeTab = tab({
-        id: 11,
-        url: 'https://current.example/fail-close',
-        title: 'Current',
-      })
-      const error = new Error('remove failed')
-      chromeTabs.query.mockResolvedValueOnce([activeTab])
-      chromeTabs.remove.mockRejectedValueOnce(error)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([
-        {
-          url: 'https://current.example/fail-close',
-          title: 'Current',
-        },
-      ])
-      expect(console.error).toHaveBeenCalledWith(
-        'タブを閉じる際にエラー:',
-        error,
-      )
-    })
-
-    it('atomic save failureを成功扱いせず通知とタブcloseを中止する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const activeTab = tab({
-        id: 12,
-        url: 'https://current.example/custom-sync-error',
-        title: 'Current',
-      })
-      chromeTabs.query.mockResolvedValueOnce([activeTab])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      mocked.saveUrlsToCustomProjects.mockRejectedValueOnce(
-        new Error('custom sync failed'),
-      )
-
-      await expect(handleSaveCurrentTab()).rejects.toThrow('custom sync failed')
-      expect(mocked.showNotification).not.toHaveBeenCalled()
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
-
-    it('アクティブタブに id がない場合は fallback タイトルを返してクローズをスキップする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const activeTab = tab({
-        id: undefined,
-        url: 'https://current.example/no-id',
-        title: undefined,
-      })
-      chromeTabs.query.mockResolvedValueOnce([activeTab])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([
-        {
-          url: 'https://current.example/no-id',
-          title: '',
-        },
-      ])
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
-
-    it('同期対象URLがない場合はカスタム未分類への同期をスキップする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const activeTab = tab({
-        id: 13,
-        url: undefined,
-        title: 'NoUrl',
-      })
-      chromeTabs.query.mockResolvedValueOnce([activeTab])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-
-      await handleSaveCurrentTab()
-
-      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
-    })
-
-    it('excludePatterns 未設定でも正規化できないURLはカスタム未分類へ同期しない', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const activeTab = tab({
-        id: 14,
-        url: '   ',
-        title: 'Blank URL',
-      })
-      chromeTabs.query.mockResolvedValueOnce([activeTab])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      mocked.getUserSettings.mockResolvedValueOnce({} as UserSettings)
-
-      await expect(handleSaveCurrentTab()).resolves.toStrictEqual([])
-
-      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
-    })
-  })
-  describe('handleSaveSameDomainTabs関数', () => {
-    it('アクティブタブがない、または url がない場合は空を返す', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      chromeTabs.query.mockResolvedValueOnce([
-        tab({
-          id: 1,
-          url: undefined,
-        }),
-      ])
-      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([])
-      expect(mocked.filterTabsByUserSettings).not.toHaveBeenCalled()
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-    })
-
-    it('同一ドメインタブを保存して通知し、対象タブのみ閉じる', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const active = tab({
-        id: 20,
-        url: 'https://same.example/page-1',
-        title: 'Active',
-      })
-      const allCurrentWindowTabs = [
-        active,
-        tab({
-          id: 21,
-          url: 'https://same.example/page-2',
-          title: 'Same2',
-        }),
-        tab({
-          id: 25,
-          url: undefined,
-          title: 'NoUrl',
-        }),
-        tab({
-          id: 22,
-          url: 'https://ignore.example/page',
-          title: 'Ignored',
-        }),
-        tab({
-          id: 23,
-          url: 'not-a-valid-url',
-          title: 'Broken',
-        }),
-        tab({
-          id: 24,
-          url: 'https://other.example/page',
-          title: 'Other',
-        }),
-        tab({
-          id: undefined,
-          url: 'https://same.example/no-id',
-          title: 'NoId',
-        }),
-      ]
-      const filteredTabs = [
-        active,
-        tab({
-          id: 21,
-          url: 'https://same.example/page-2',
-          title: 'Same2',
-        }),
-        tab({
-          id: 22,
-          url: 'https://ignore.example/page',
-          title: 'Ignored',
-        }),
-        tab({
-          id: undefined,
-          url: 'https://same.example/no-id',
-          title: 'NoId',
-        }),
-      ]
-      chromeTabs.query
-        .mockResolvedValueOnce([active])
-        .mockResolvedValueOnce(allCurrentWindowTabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(filteredTabs)
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({
-          excludePatterns: ['ignore.example'],
-        }),
-      )
-      const result = await handleSaveSameDomainTabs()
-      expect(chromeTabs.query).toHaveBeenNthCalledWith(1, {
-        active: true,
-        currentWindow: true,
-      })
-      expect(chromeTabs.query).toHaveBeenNthCalledWith(2, {
-        currentWindow: true,
-      })
-      expect(mocked.filterTabsByUserSettings).toHaveBeenCalledWith([
-        active,
-        tab({
-          id: 21,
-          url: 'https://same.example/page-2',
-          title: 'Same2',
-        }),
-        tab({
-          id: undefined,
-          url: 'https://same.example/no-id',
-          title: 'NoId',
-        }),
-      ])
-      expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith(filteredTabs)
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
-        {
-          url: 'https://same.example/page-1',
-          title: 'Active',
-        },
-        {
-          url: 'https://same.example/page-2',
-          title: 'Same2',
-        },
-        {
-          url: 'https://same.example/no-id',
-          title: 'NoId',
-        },
-      ])
-      expect(mocked.showNotification).toHaveBeenCalledWith(
-        'タブ保存',
-        'same.exampleの4個のタブを保存しました',
-      )
-      expect(chromeTabs.remove).toHaveBeenCalledWith([20, 21])
-      expect(result).toStrictEqual([
-        {
-          url: 'https://same.example/page-1',
-          title: 'Active',
-        },
-        {
-          url: 'https://same.example/page-2',
-          title: 'Same2',
-        },
-        {
-          url: 'https://ignore.example/page',
-          title: 'Ignored',
-        },
-        {
-          url: 'https://same.example/no-id',
-          title: 'NoId',
-        },
-      ])
-    })
-
-    it('閉じられる同一ドメインタブがない場合は fallback タイトルを返して一括クローズをスキップする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const active = tab({
-        id: 34,
-        url: 'https://same.example/page',
-        title: undefined,
-      })
-      chromeTabs.query
-        .mockResolvedValueOnce([active])
-        .mockResolvedValueOnce([active])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([active])
-      mocked.getUserSettings
-        .mockResolvedValueOnce(
-          buildSettings({
-            excludePatterns: ['same.example'],
-          }),
-        )
-        .mockResolvedValueOnce(
-          buildSettings({
-            excludePatterns: ['same.example'],
-          }),
-        )
-      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://same.example/page',
-          title: '',
-        },
-      ])
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
-
-    it('同一ドメインタブがすべてフィルタ除外された場合は空を返す', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const active = tab({
-        id: 30,
-        url: 'https://same.example/page',
-        title: 'Active',
-      })
-      chromeTabs.query
-        .mockResolvedValueOnce([active])
-        .mockResolvedValueOnce([active])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([])
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-      expect(mocked.showNotification).not.toHaveBeenCalled()
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
-
-    it('現在タブ URL の解析に失敗した場合はログ出力して空を返す', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      chromeTabs.query.mockResolvedValueOnce([
-        tab({
-          id: 31,
-          url: 'not a url',
-          title: 'Broken Active',
-        }),
-      ])
-      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([])
-      expect(console.error).toHaveBeenCalledWith(
-        'ドメインタブ保存エラー:',
-        expect.any(Error),
-      )
-    })
-
-    it('同一ドメインフローの一括クローズ失敗時はログ出力して継続する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const active = tab({
-        id: 32,
-        url: 'https://same.example/page',
-        title: 'Active',
-      })
-      const sameTabs = [
-        active,
-        tab({
-          id: 33,
-          url: 'https://same.example/2',
-          title: 'Two',
-        }),
-      ]
-      const error = new Error('remove failed')
-      chromeTabs.query
-        .mockResolvedValueOnce([active])
-        .mockResolvedValueOnce(sameTabs)
-      chromeTabs.remove.mockRejectedValueOnce(error)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(sameTabs)
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({
-          excludePatterns: [],
-        }),
-      )
-      await expect(handleSaveSameDomainTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://same.example/page',
-          title: 'Active',
-        },
-        {
-          url: 'https://same.example/2',
-          title: 'Two',
-        },
-      ])
-      expect(console.error).toHaveBeenCalledWith(
-        'タブを閉じる際にエラー:',
-        error,
-      )
-    })
-  })
-  describe('handleSaveAllWindowsTabs関数', () => {
-    it('すべてのタブがフィルタ除外された場合は空を返す', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      chromeTabs.getAllWindows.mockResolvedValueOnce([
-        {
-          id: 1,
-          tabs: [
-            tab({
-              id: 40,
-              url: 'https://a.example',
-              title: 'A',
-            }),
-          ],
-        },
-      ])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([])
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-      expect(mocked.showNotification).not.toHaveBeenCalled()
-      expect(mocked.openSavedTabsPage).not.toHaveBeenCalled()
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
-
-    it('全ウィンドウのタブを保存し、一括クローズ対象から saved-tabs ページを除外する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 41,
-          url: 'https://a.example',
-          title: 'A',
-        }),
-        tab({
-          id: 42,
-          url: 'https://b.example',
-          title: 'B',
-        }),
-        tab({
-          id: 43,
-          url: 'https://saved-tabs.example',
-          title: 'Saved',
-        }),
-      ]
-      chromeTabs.getAllWindows.mockResolvedValueOnce([
-        {
-          id: 1,
-          tabs: [tabs[0], tabs[1]],
-        },
-        {
-          id: 2,
-          tabs: [tabs[2]],
-        },
-      ])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(43)
-      const result = await handleSaveAllWindowsTabs()
-      expect(chromeTabs.getAllWindows).toHaveBeenCalledWith({
-        populate: true,
-      })
-      expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith(tabs)
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
-        {
-          url: 'https://a.example',
-          title: 'A',
-        },
-        {
-          url: 'https://b.example',
-          title: 'B',
-        },
-        {
-          url: 'https://saved-tabs.example',
-          title: 'Saved',
-        },
-      ])
-      expect(mocked.showNotification).toHaveBeenCalledWith(
-        'タブ保存',
-        'すべてのウィンドウから3個のタブを保存しました',
-      )
-      expect(chromeTabs.remove).toHaveBeenCalledWith([41, 42])
-      expect(result).toStrictEqual([
-        {
-          url: 'https://a.example',
-          title: 'A',
-        },
-        {
-          url: 'https://b.example',
-          title: 'B',
-        },
-        {
-          url: 'https://saved-tabs.example',
-          title: 'Saved',
-        },
-      ])
-    })
-
-    it('閉じられる全ウィンドウタブがない場合は fallback タイトルを返して一括クローズをスキップする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 46,
-          url: 'https://saved-tabs.example',
-          title: undefined,
-        }),
-      ]
-      chromeTabs.getAllWindows.mockResolvedValueOnce([
-        {
-          id: 1,
-          tabs,
-        },
-      ])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(46)
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://saved-tabs.example',
-          title: '',
-        },
-      ])
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
-
-    it('全タブ取得に失敗した場合はログ出力して空を返す', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const error = new Error('query failed')
-      chromeTabs.getAllWindows.mockRejectedValueOnce(error)
-      chromeTabs.query.mockRejectedValueOnce(error)
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([])
-      expect(console.error).toHaveBeenCalledWith(
-        'すべてのタブ保存エラー:',
-        error,
-      )
-    })
-
-    it('全ウィンドウフローの一括クローズ失敗時はログ出力して継続する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 44,
-          url: 'https://a.example',
-          title: 'A',
-        }),
-        tab({
-          id: 45,
-          url: 'https://b.example',
-          title: 'B',
-        }),
-      ]
-      const error = new Error('remove failed')
-      chromeTabs.getAllWindows.mockResolvedValueOnce([
-        {
-          id: 1,
-          tabs,
-        },
-      ])
-      chromeTabs.remove.mockRejectedValueOnce(error)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://a.example',
-          title: 'A',
-        },
-        {
-          url: 'https://b.example',
-          title: 'B',
-        },
-      ])
-      expect(console.error).toHaveBeenCalledWith(
-        'タブを閉じる際にエラー:',
-        error,
-      )
-    })
-
-    it('windows.getAll が空の場合は tabs.query にフォールバックする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 47,
-          url: 'https://fallback.example/a',
-          title: 'A',
-        }),
-        tab({
-          id: 48,
-          url: 'https://fallback.example/b',
-          title: 'B',
-        }),
-      ]
-      chromeTabs.getAllWindows.mockResolvedValueOnce([
-        {
-          id: 1,
-          tabs: [],
-        },
-      ])
-      chromeTabs.query.mockResolvedValueOnce(tabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
-
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://fallback.example/a',
-          title: 'A',
-        },
-        {
-          url: 'https://fallback.example/b',
-          title: 'B',
-        },
-      ])
-      expect(chromeTabs.query).toHaveBeenCalledWith({})
-    })
-
-    it('windows.getAll が失敗した場合は tabs.query にフォールバックする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 49,
-          url: 'https://fallback-error.example',
-          title: 'Fallback Error',
-        }),
-      ]
-      chromeTabs.getAllWindows.mockRejectedValueOnce(
-        new Error('windows failed'),
-      )
-      chromeTabs.query.mockResolvedValueOnce(tabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
-
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://fallback-error.example',
-          title: 'Fallback Error',
-        },
-      ])
-      expect(chromeTabs.query).toHaveBeenCalledWith({})
-    })
-
-    it('windows API が使えない場合は tabs.query で全タブを取得する', async () => {
-      const query = vi.fn()
-
-      const remove = vi.fn(async () => undefined)
-      ;(
-        globalThis as {
-          chrome?: typeof chrome
+      const source = tab({ id: 10, url: 'https://example.test/article' })
+      const otherWindow = tab({ id: 11, url: 'https://other.test/article' })
+      const allWindows = clickBehavior === 'saveAllWindowsTabs'
+      chromeTabs.setTabs([source, otherWindow])
+      chromeTabs.query.mockImplementation(async ({ currentWindow }) => {
+        if (Boolean(currentWindow) === allWindows) {
+          throw new Error('Unneeded scope failed')
         }
-      ).chrome = {
-        tabs: {
-          query,
-          remove,
-        },
-      } as unknown as typeof chrome
+        return allWindows ? [source, otherWindow] : [source]
+      })
+      if (!allWindows) {
+        chromeTabs.getAllWindows.mockRejectedValueOnce(
+          new Error('All windows unavailable'),
+        )
+      }
+      mocked.getUserSettings.mockResolvedValue(buildSettings({ clickBehavior }))
 
-      const tabs = [
-        tab({
-          id: 50,
-          url: 'https://no-windows-api.example/a',
-          title: 'A',
-        }),
-        tab({
-          id: 51,
-          url: 'https://no-windows-api.example/b',
-          title: 'B',
-        }),
-      ]
-      query.mockResolvedValueOnce(tabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
+      await handleExtensionActionClick()
 
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://no-windows-api.example/a',
-          title: 'A',
-        },
-        {
-          url: 'https://no-windows-api.example/b',
-          title: 'B',
-        },
-      ])
-      expect(query).toHaveBeenCalledWith({})
-      expect(remove).toHaveBeenCalledWith([50, 51])
-    })
+      expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith(
+        allWindows ? [source, otherWindow] : [source],
+      )
+      expect(chromeTabs.remove.mock.calls.flat()).toEqual(
+        allWindows ? [10, 11] : [10],
+      )
+    },
+  )
 
-    it('window.tabs が未設定のウィンドウを含んでも保存できる', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 52,
-          url: 'https://window-tabs-undefined.example',
-          title: 'Only Tab',
-        }),
-      ]
-      chromeTabs.getAllWindows.mockResolvedValueOnce([
-        { id: 1 },
-        {
-          id: 2,
-          tabs,
-        },
-      ])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
+  it('toolbar same-domain capture uses the clicked URL when activation changes', async () => {
+    const chromeTabs = createChromeTabsHarness()
+    const source = {
+      ...tab({ id: 10, url: 'https://a.example/article', active: false }),
+      windowId: 1,
+    }
+    const other = {
+      ...tab({ id: 11, url: 'https://b.example/article', active: true }),
+      windowId: 1,
+    }
+    chromeTabs.setTabs([source, other])
+    mocked.getUserSettings.mockResolvedValue(
+      buildSettings({ clickBehavior: 'saveSameDomainTabs' }),
+    )
 
-      await expect(handleSaveAllWindowsTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://window-tabs-undefined.example',
-          title: 'Only Tab',
-        },
-      ])
-      expect(chromeTabs.query).not.toHaveBeenCalled()
-    })
+    await handleExtensionActionClick({ ...source, active: true })
+
+    expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith([source])
+    expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10)
   })
-  describe('handleSaveWindowTabs関数', () => {
-    it('現在ウィンドウのタブがすべてフィルタ除外された場合は空を返す', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      chromeTabs.query.mockResolvedValueOnce([
-        tab({
-          id: 60,
-          url: 'https://x.example',
-          title: 'X',
-        }),
-      ])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([])
-      expect(mocked.saveTabsWithAutoCategory).not.toHaveBeenCalled()
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-    })
 
-    it('フィルタ済みタブを保存し、saved-tabs ページ/除外 URL を除く対象タブを閉じる', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const queriedTabs = [
-        tab({
-          id: 1,
-          url: 'https://keep.example/1',
-          title: 'One',
-        }),
-        tab({
-          id: 2,
-          url: 'https://ignore.example/2',
-          title: 'Ignored',
-        }),
-        tab({
-          id: 3,
-          url: 'https://saved-tabs.example',
-          title: 'Saved Page',
-        }),
-      ]
-      chromeTabs.query.mockResolvedValueOnce(queriedTabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(queriedTabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(3)
-      mocked.getUserSettings
-        .mockResolvedValueOnce(buildSettings())
-        .mockResolvedValueOnce(
-          buildSettings({
-            excludePatterns: ['ignore.example'],
-          }),
-        )
-      const result = await handleSaveWindowTabs()
-      expect(chromeTabs.query).toHaveBeenCalledWith({
-        currentWindow: true,
-      })
-      expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith(queriedTabs)
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
-        {
-          url: 'https://keep.example/1',
-          title: 'One',
-        },
-        {
-          url: 'https://saved-tabs.example',
-          title: 'Saved Page',
-        },
-      ])
-      expect(mocked.showNotification).toHaveBeenCalledWith(
-        'タブ保存',
-        '3個のタブが保存されました。タブを閉じます。',
-      )
-      expect(chromeTabs.remove).toHaveBeenCalledWith([1])
-      expect(result).toStrictEqual([
-        {
-          url: 'https://keep.example/1',
-          title: 'One',
-        },
-        {
-          url: 'https://ignore.example/2',
-          title: 'Ignored',
-        },
-        {
-          url: 'https://saved-tabs.example',
-          title: 'Saved Page',
-        },
-      ])
-    })
+  it('toolbar window capture can finish before the all-windows query settles', async () => {
+    const chromeTabs = createChromeTabsHarness()
+    const source = tab({ id: 10, url: 'https://example.test/article' })
+    const windows = Promise.withResolvers<{ tabs?: chrome.tabs.Tab[] }[]>()
+    chromeTabs.setTabs([source])
+    chromeTabs.getAllWindows.mockReturnValueOnce(windows.promise)
 
-    it('カスタム同期時に除外パターンと不正URLを再適用する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const queriedTabs = [
-        tab({
-          id: 90,
-          url: 'https://allowed.example/page',
-          title: 'Allowed',
-        }),
-        tab({
-          id: 91,
-          url: 'about:blank',
-          title: 'About',
-        }),
-        tab({
-          id: 92,
-          url: 'not-a-valid-url',
-          title: 'Invalid',
-        }),
-      ]
-      chromeTabs.query.mockResolvedValueOnce(queriedTabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(queriedTabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
-      mocked.getUserSettings
-        .mockResolvedValueOnce(
-          buildSettings({
-            excludePatterns: ['about:'],
-          }),
-        )
-        .mockResolvedValueOnce(
-          buildSettings({
-            excludePatterns: ['about:'],
-          }),
-        )
-
-      await handleSaveWindowTabs()
-
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
-        {
-          url: 'https://allowed.example/page',
-          title: 'Allowed',
-        },
-      ])
-    })
-
-    it('保存後に閉じるタブがない場合はログ出力する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const queriedTabs = [
-        tab({
-          id: 61,
-          url: 'https://ignore.example/only',
-          title: 'Ignored',
-        }),
-      ]
-      chromeTabs.query.mockResolvedValueOnce(queriedTabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(queriedTabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(61)
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({
-          excludePatterns: ['ignore.example'],
-        }),
+    const operation = handleExtensionActionClick()
+    try {
+      await vi.waitFor(() =>
+        expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10),
       )
-      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://ignore.example/only',
-          title: 'Ignored',
-        },
-      ])
-      expect(chromeTabs.remove).not.toHaveBeenCalled()
-      expect(console.log).toHaveBeenCalledWith('閉じるべきタブはありません')
-    })
-
-    it('save-window フローの remove エラーをログ出力する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const queriedTabs = [
-        tab({
-          id: 62,
-          url: 'https://keep.example/1',
-          title: undefined,
-        }),
-      ]
-      chromeTabs.query.mockResolvedValueOnce(queriedTabs)
-      chromeTabs.remove.mockRejectedValueOnce('remove failed')
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(queriedTabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({
-          excludePatterns: [],
-        }),
-      )
-      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://keep.example/1',
-          title: '',
-        },
-      ])
-      expect(console.error).toHaveBeenCalledWith(
-        'タブを閉じる際にエラーが発生しました:',
-        'remove failed',
-      )
-    })
-
-    it('save-window の remove catch で Error.message をログ出力する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const queriedTabs = [
-        tab({
-          id: 63,
-          url: 'https://keep.example/1',
-          title: 'One',
-        }),
-      ]
-      chromeTabs.query.mockResolvedValueOnce(queriedTabs)
-      chromeTabs.remove.mockRejectedValueOnce(
-        new Error('remove failed as Error'),
-      )
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(queriedTabs)
-      mocked.openSavedTabsPage.mockResolvedValueOnce(999)
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({
-          excludePatterns: [],
-        }),
-      )
-      await expect(handleSaveWindowTabs()).resolves.toStrictEqual([
-        {
-          url: 'https://keep.example/1',
-          title: 'One',
-        },
-      ])
-      expect(console.error).toHaveBeenCalledWith(
-        'タブを閉じる際にエラーが発生しました:',
-        'remove failed as Error',
-      )
-    })
+    } finally {
+      windows.resolve([{ tabs: [source] }])
+      await operation
+    }
   })
-  describe('handleExtensionActionClick関数', () => {
-    it('全ウィンドウ保存はドメイン保存完了後にカスタム保存を開始する', async () => {
+
+  it.each([handleSaveWindowTabs, handleSaveAllWindowsTabs])(
+    '%p preserves saved source tabs until a Saved Tabs page is confirmed',
+    async (save) => {
       const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 81,
-          url: 'https://a.example/1',
-          title: 'A',
-        }),
-        tab({
-          id: 82,
-          url: 'https://b.example/2',
-          title: 'B',
-        }),
-      ]
-      chromeTabs.getAllWindows.mockResolvedValueOnce([{ tabs }])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce(tabs)
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({ excludePatterns: [] }),
-      )
-      let resolveDomainSave: (() => void) | undefined
-      mocked.saveTabsWithAutoCategory.mockImplementationOnce(
-        async () =>
-          new Promise<void>((resolve) => {
-            resolveDomainSave = resolve
-          }),
-      )
+      const source = tab({ id: 10, url: 'https://example.test/article' })
+      chromeTabs.setTabs([source])
+      mocked.openSavedTabsPage.mockResolvedValueOnce(null)
+      await expect(save()).resolves.toEqual([{ title: '', url: source.url }])
+      expect(chromeTabs.remove).not.toHaveBeenCalled()
+    },
+  )
 
-      const saving = handleSaveAllWindowsTabs()
-      await vi.waitFor(() => {
-        expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith(tabs)
-      })
-      expect(mocked.saveUrlsToCustomProjects).not.toHaveBeenCalled()
-
-      resolveDomainSave?.()
-      await saving
-
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
-        { title: 'A', url: 'https://a.example/1' },
-        { title: 'B', url: 'https://b.example/2' },
-      ])
-    })
-
-    it('clickBehavior に従って saveCurrentTab フローを実行する', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const activeTab = tab({
-        id: 50,
-        url: 'https://current.example',
-        title: 'Current',
-      })
-      chromeTabs.query.mockResolvedValueOnce([activeTab])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([activeTab])
-      mocked.getUserSettings.mockReset()
-      mocked.getUserSettings.mockResolvedValue(
-        buildSettings({
-          clickBehavior: 'saveCurrentTab',
-        }),
-      )
-      await expect(handleExtensionActionClick()).resolves.toBeUndefined()
-      expect(mocked.saveTabsWithAutoCategory).toHaveBeenCalledWith([activeTab])
-      expect(mocked.saveUrlsToCustomProjects).toHaveBeenCalledWith([
-        {
-          url: 'https://current.example',
-          title: 'Current',
-        },
-      ])
-    })
-
-    it('clickBehavior がない場合は saveWindowTabs にフォールバックする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      const tabs = [
-        tab({
-          id: 70,
-          url: 'https://x.example',
-          title: 'X',
-        }),
-      ]
-      chromeTabs.query.mockResolvedValueOnce(tabs)
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      mocked.getUserSettings
-        .mockResolvedValueOnce({
-          ...buildSettings(),
-          clickBehavior: undefined as unknown as UserSettings['clickBehavior'],
-        })
-        .mockResolvedValueOnce(buildSettings())
-      await expect(handleExtensionActionClick()).resolves.toBeUndefined()
-      expect(chromeTabs.query).toHaveBeenCalledWith({
-        currentWindow: true,
-      })
-    })
-
-    it('clickBehavior が saveSameDomainTabs の場合は saveSameDomainTabs にディスパッチする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      chromeTabs.query.mockResolvedValueOnce([])
-      mocked.getUserSettings.mockReset()
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({
-          clickBehavior: 'saveSameDomainTabs',
-        }),
-      )
-      await expect(handleExtensionActionClick()).resolves.toBeUndefined()
-      expect(chromeTabs.query).toHaveBeenCalledWith({
-        active: true,
-        currentWindow: true,
-      })
-    })
-
-    it('clickBehavior が saveAllWindowsTabs の場合は saveAllWindowsTabs にディスパッチする', async () => {
-      const chromeTabs = createChromeTabsHarness()
-      chromeTabs.query.mockResolvedValueOnce([
-        tab({
-          id: 80,
-          url: 'https://all.example',
-          title: 'All',
-        }),
-      ])
-      mocked.filterTabsByUserSettings.mockResolvedValueOnce([])
-      mocked.getUserSettings.mockReset()
-      mocked.getUserSettings.mockResolvedValueOnce(
-        buildSettings({
-          clickBehavior: 'saveAllWindowsTabs',
-        }),
-      )
-      await expect(handleExtensionActionClick()).resolves.toBeUndefined()
-      expect(chromeTabs.query).toHaveBeenCalledWith({})
-    })
-
-    it('ディスパッチ前に拡張機能アクションのセットアップが失敗した場合はログ出力する', async () => {
-      mocked.getUserSettings.mockReset()
-      mocked.getUserSettings.mockRejectedValueOnce(new Error('settings failed'))
-      await expect(handleExtensionActionClick()).resolves.toBeUndefined()
-      expect(console.error).toHaveBeenCalledWith(
-        'エラーが発生しました:',
-        'settings failed',
-      )
-    })
-
-    it('拡張機能アクション失敗時の非 Error 値をログ出力する', async () => {
-      mocked.getUserSettings.mockReset()
-      mocked.getUserSettings.mockRejectedValueOnce('settings failed (string)')
-      await expect(handleExtensionActionClick()).resolves.toBeUndefined()
-      expect(console.error).toHaveBeenCalledWith(
-        'エラーが発生しました:',
-        'settings failed (string)',
-      )
-    })
+  it('toolbar dispatches current-window capture and tolerates a close rejection', async () => {
+    const chromeTabs = createChromeTabsHarness()
+    const source = {
+      ...tab({ id: 10, url: 'https://example.test/article' }),
+      windowId: 1,
+    }
+    const otherWindow = { ...source, id: 11, windowId: 2 }
+    chromeTabs.setTabs([source, otherWindow])
+    chromeTabs.query.mockImplementation(async ({ windowId }) =>
+      windowId === 1 ? [source] : [source, otherWindow],
+    )
+    chromeTabs.remove.mockRejectedValueOnce(new Error('Source tab closed'))
+    mocked.getUserSettings.mockResolvedValue(
+      buildSettings({ clickBehavior: 'saveWindowTabs' }),
+    )
+    await handleExtensionActionClick(source)
+    expect(mocked.dataPlaneSaveTabs).toHaveBeenCalledExactlyOnceWith([source])
+    expect(chromeTabs.query).toHaveBeenCalledWith({ windowId: 1 })
+    expect(chromeTabs.remove).toHaveBeenCalledExactlyOnceWith(10)
+    expect(console.error).toHaveBeenCalledWith(
+      'タブを閉じる際にエラー:',
+      expect.any(Error),
+    )
   })
 })

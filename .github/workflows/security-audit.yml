@@ -9,6 +9,17 @@ on:
     paths:
       - '.github/workflows/security-audit.yml'
       - 'tools/scripts/security-audit-workflow.test.ts'
+      - 'package.json'
+      - 'bun.lock'
+      - 'tools/scripts/dependency-audit.ts'
+      - 'tools/scripts/dependency-audit.test.ts'
+      - 'tools/scripts/run-security-audit.ts'
+      - 'tools/scripts/run-security-audit.test.ts'
+      - 'tools/scripts/security-audit-policy.ts'
+      - 'tools/scripts/security-audit-policy.test.ts'
+      - 'tools/scripts/verify-security-audit-policy.ts'
+      - 'tools/scripts/verify-node-forge-backport.ts'
+      - 'tools/security-audit-policy.json'
 
 permissions:
   contents: read
@@ -36,7 +47,7 @@ jobs:
         run: bun run verify:toolchain-versions
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Audit dependencies and expiring backport policy
+      - name: Audit dependencies and reviewed exception deadlines
         id: audit
         shell: bash
         run: |
@@ -51,8 +62,8 @@ jobs:
         run: |
           case "$AUDIT_OUTCOME" in
             success)
-              echo '### Audit passed' >> "$GITHUB_STEP_SUMMARY"
-              echo 'Backport policy/probe passed; no High or Critical advisories.' >> "$GITHUB_STEP_SUMMARY"
+              echo '### Audit gate passed' >> "$GITHUB_STEP_SUMMARY"
+              echo 'Policy/probe and audit gate passed; any reviewed exception is listed in the audit log and is not a vulnerability-free result.' >> "$GITHUB_STEP_SUMMARY"
               ;;
             failure)
               echo '::error title=Dependency security audit failed::Inspect the audit step and security-audit-log artifact. High/Critical findings, expired policy, and audit unavailability all require triage.'

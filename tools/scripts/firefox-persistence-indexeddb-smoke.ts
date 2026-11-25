@@ -2,15 +2,28 @@ import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
+import { createServer } from 'node:http'
+import type { Server } from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 
+// eslint-disable-next-line import/no-relative-parent-imports -- native capture smoke shares its WebDriver result contract
+import type { FirefoxCaptureSafetySmokeResult } from '../../e2e/support/firefox-capture-safety-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- native alarm smoke shares its WebDriver result contract
+import type { FirefoxExpiredTabsAlarmSmokeResult } from '../../e2e/support/firefox-expired-tabs-alarm-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- native browser smoke result is a shared WebDriver boundary contract
+import type { FirefoxSavedTabsPageSmokeResult } from '../../e2e/support/firefox-saved-tabs-page-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- native settings smoke shares its WebDriver result contract
+import type { FirefoxSettingsSafetySmokeResult } from '../../e2e/support/firefox-settings-safety-harness'
+// eslint-disable-next-line import/no-relative-parent-imports -- native drag smoke shares its WebDriver result contract
+import type * as FirefoxDragSmoke from '../../e2e/support/firefox-url-drag-identity-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- shared browser harness result is the WebDriver protocol contract
 import type { FirefoxUrlOpeningSmokeResult } from '../../e2e/support/firefox-url-opening-harness'
 // eslint-disable-next-line import/no-relative-parent-imports -- opt-in native measurement shares its browser result contract
 import type { StagedOpeningMeasurement } from '../../e2e/support/staged-url-opening-measurements'
+import { runFirefoxAcademyUiSmoke } from './firefoxAcademyUiSmoke'
 import {
+  createFirefoxSmokeProcessEnvironment,
   FirefoxIndexedDbSmokeUnsupportedError,
   resolveFirefoxSmokeEnvironment,
 } from './firefoxSmokeEnvironment'
@@ -40,6 +53,20 @@ type WebDriverSession = {
 }
 
 type SmokeResult = {
+  readonly academy: {
+    readonly first: {
+      readonly lessonId: string
+      readonly generation: string | null
+      readonly startedAt: number | null
+      readonly skippedAt: number | null
+      readonly mastered: boolean
+    }
+  }
+  readonly savedTabsPage?: FirefoxSavedTabsPageSmokeResult
+  readonly settingsSafety?: FirefoxSettingsSafetySmokeResult
+  readonly captureSafety?: FirefoxCaptureSafetySmokeResult
+  readonly expiredTabsAlarm?: FirefoxExpiredTabsAlarmSmokeResult
+  readonly urlDragIdentity?: FirefoxDragSmoke.FirefoxUrlDragIdentitySmokeResult
   readonly urlOpening?: FirefoxUrlOpeningSmokeResult
   readonly urlOpeningAfterRestart?: readonly string[]
   readonly privateAccessAllowed?: boolean
@@ -92,26 +119,19 @@ const delay = async (milliseconds: number): Promise<void> =>
     setTimeout(resolve, milliseconds)
   })
 
-const reservePort = async (): Promise<number> => {
-  const server = createServer()
+const listenOnLoopback = async (server: Server): Promise<number> => {
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(0, '127.0.0.1', resolve)
   })
   const address = server.address()
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error)
-        return
-      }
-      resolve()
-    })
-  })
-  if (!address || typeof address === 'string') {
-    throw new Error('Could not reserve a local geckodriver port.')
-  }
+  assert.ok(address && typeof address !== 'string')
   return address.port
+}
+
+const reservePort = async (): Promise<number> => {
+  await using server = createServer()
+  return await listenOnLoopback(server)
 }
 
 const webdriverRequest = async <Value>(
@@ -132,7 +152,10 @@ const webdriverRequest = async <Value>(
   return value as Value
 }
 
-const createSmokeAddon = async (temporaryRoot: string): Promise<string> => {
+const createSmokeAddon = async (
+  temporaryRoot: string,
+  preserveBackground = false,
+): Promise<string> => {
   if (!existsSync(firefoxArtifactDir) || !existsSync(harnessBundlePath)) {
     throw new Error(
       'Firefox artifact and IndexedDB harness must be built before the smoke.',
@@ -162,7 +185,9 @@ const createSmokeAddon = async (temporaryRoot: string): Promise<string> => {
   }
   const manifest = parsedManifest
   // The harness opens the fresh database and owns each restart assertion.
-  delete manifest.background
+  if (!preserveBackground) {
+    delete manifest.background
+  }
   const browserSpecificSettings = isRecord(manifest.browser_specific_settings)
     ? manifest.browser_specific_settings
     : {}
@@ -236,6 +261,7 @@ const createSession = async (
       'extensions.startupScanScopes': 15,
       'extensions.update.enabled': false,
       'xpinstall.signatures.required': false,
+      'ui.prefersReducedMotion': 1,
     },
     binary,
   }
@@ -357,21 +383,23 @@ const resolveExtensionUuid = async (profileDir: string): Promise<string> => {
   throw new Error('Firefox did not persist the extension internal UUID.')
 }
 
-const runHarnessPhase = async (
+const runHarnessPhase = async <Result = SmokeResult>(
   session: WebDriverSession,
-  phase: 'fresh' | 'verify',
-): Promise<SmokeResult> => {
+  phase: 'fresh' | 'verify' | 'alarm' | 'drag-background',
+  captureOrigin?: string,
+): Promise<Result> => {
   const uuid = await resolveExtensionUuid(session.profileDir)
   await sessionCommand(session, '/url', {
-    url: `moz-extension://${uuid}/${SMOKE_PAGE}`,
+    url: `moz-extension://${uuid}/${phase === 'drag-background' ? 'app.html#/options' : SMOKE_PAGE}`,
   })
   await sessionCommand(session, '/timeouts', {
     script: WEBDRIVER_SCRIPT_TIMEOUT_MS,
   })
   const execution = await sessionCommand<unknown>(session, '/execute/async', {
-    args: [phase],
+    args: [phase, captureOrigin ?? null],
     script: `
       const phase = arguments[0]
+      const captureOrigin = arguments[1]
       const done = arguments[arguments.length - 1]
       const run = () => {
         const api = globalThis.__tabbinFirefoxPersistenceSmoke
@@ -379,7 +407,7 @@ const runHarnessPhase = async (
           done({ ok: false, error: { name: 'HarnessMissingError', message: 'IndexedDB harness global is missing.' } })
           return
         }
-        api.runFirefoxPersistenceSmoke(phase).then(
+        api.runFirefoxPersistenceSmoke(phase, captureOrigin).then(
           (value) => done({ ok: true, value }),
           (error) => done({ ok: false, error: { name: error?.name, message: error?.message, stack: error?.stack } }),
         )
@@ -396,10 +424,66 @@ const runHarnessPhase = async (
     throw new WebDriverCommandError(`IndexedDB harness ${phase}`, execution)
   }
   // eslint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- harness result is asserted field-by-field immediately after this protocol boundary
-  return execution.value as SmokeResult
+  return execution.value as Result
+}
+
+const assertExpiredTabsAlarmResult = (result: {
+  readonly expiredTabsAlarm?: FirefoxExpiredTabsAlarmSmokeResult
+}): void => {
+  assert.deepEqual(result.expiredTabsAlarm, {
+    alarmFired: true,
+    expiredRemoved: true,
+    freshPreserved: true,
+    favoritePreserved: true,
+    otherAlarmsUnchanged: true,
+    notificationsUnchanged: true,
+    settingsUnchanged: true,
+    restored: true,
+  })
 }
 
 const assertFreshResult = (result: SmokeResult): JsonRecord => {
+  assert.deepEqual(result.urlDragIdentity, {
+    savedOriginalUrls: true,
+    exactIdRemoved: true,
+    lookalikesPreserved: true,
+    membershipsPreserved: true,
+    hashMismatchPreserved: true,
+    queryMismatchPreserved: true,
+    externalDropDisabledPreserved: true,
+    duplicateDropPreservedNewId: true,
+    clearedDragPreserved: true,
+    restored: true,
+  })
+  assert.deepEqual(result.captureSafety, {
+    completedTabClosed: true,
+    directFailures: 16,
+    toolbarFailures: 16,
+    fixtureTabs: 3,
+    loadingTabPreserved: true,
+    tabsUnchanged: true,
+    persistenceUnchanged: true,
+    settingsUnchanged: true,
+    restored: true,
+  })
+  assert.deepEqual(result.settingsSafety, {
+    missingStatus: 'missing',
+    firstUseDefaults: true,
+    legacyStatus: 'available',
+    legacyReadUnchanged: true,
+    legacyUpgradePreserved: true,
+    invalidStatus: 'invalid',
+    invalidReadRejected: true,
+    invalidWriteRejected: true,
+    invalidUnchanged: true,
+    resetStatus: 'available',
+    resetDefaults: true,
+    restored: true,
+  })
+  assert.equal(result.academy.first.lessonId, 'pin-extension')
+  assert.ok(result.academy.first.startedAt)
+  assert.ok(result.academy.first.skippedAt)
+  assert.equal(result.academy.first.mastered, false)
   assert.equal(result.incognitoPolicy, 'not_allowed')
   assert.equal(result.privateAccessAllowed, false)
   assert.equal(result.inIncognitoContext, false)
@@ -420,6 +504,29 @@ const assertFreshResult = (result: SmokeResult): JsonRecord => {
   assert.equal(result.backup.data.messages.length, 1)
   assert.ok(result.obsoleteStorageBefore)
   assertUrlOpeningResult(result.urlOpening)
+  assert.ok(
+    result.savedTabsPage,
+    'Firefox Saved Tabs lifecycle result must be present.',
+  )
+  assert.deepEqual(
+    result.savedTabsPage.scenarios.map(({ requestedPath }) => requestedPath),
+    ['saved-tabs.html', 'app.html#/saved-tabs?mode=custom'],
+  )
+  for (const scenario of result.savedTabsPage.scenarios) {
+    assert.deepEqual(scenario.concurrentIds, [
+      scenario.mainId,
+      scenario.mainId,
+      scenario.mainId,
+    ])
+    assert.equal(scenario.reusedId, scenario.mainId)
+    assert.equal(scenario.mainPinned, true)
+    assert.equal(scenario.duplicateRemoved, true)
+    assert.equal(scenario.fakeUntouched, true)
+    assert.equal(scenario.navigatedUntouched, true)
+    assert.notEqual(scenario.replacementId, null)
+    assert.notEqual(scenario.replacementId, scenario.mainId)
+    assert.equal(scenario.replacementIsSavedTabsPage, true)
+  }
   return result.obsoleteStorageBefore
 }
 
@@ -492,7 +599,10 @@ const assertUrlOpeningResult = (
       `${name} must report the requested URLs.`,
     )
     assert.deepEqual(scenario.failureReasons, [])
-    assert.deepEqual(scenario.removedIds.toSorted(), ids.toSorted())
+    assert.deepEqual(
+      scenario.removedIds.toSorted((left, right) => left.localeCompare(right)),
+      ids.toSorted((left, right) => left.localeCompare(right)),
+    )
     assert.equal(scenario.createdTabCount, ids.length)
     for (const id of ids) {
       assert.equal(scenario.remainingIds.includes(id), false)
@@ -576,6 +686,16 @@ const run = async (): Promise<void> => {
   )
   const profileDir = path.join(temporaryRoot, 'profile')
   await mkdir(profileDir)
+  if (process.platform === 'darwin') {
+    // Precreate disposable Cocoa home directories so macOS does not add
+    // user-home deny-delete ACLs to this temporary test state.
+    await Promise.all(
+      ['Library/Application Support', 'Documents', 'Downloads'].map(
+        async (directory) =>
+          mkdir(path.join(temporaryRoot, directory), { recursive: true }),
+      ),
+    )
+  }
   const xpiPath = await createSmokeAddon(temporaryRoot)
   const port = await reservePort()
   const baseUrl = `http://127.0.0.1:${port}`
@@ -584,7 +704,14 @@ const run = async (): Promise<void> => {
   const geckodriver = spawn(
     executables.geckodriverPath,
     ['--port', String(port), '--allow-system-access', '--log', 'info'],
-    { stdio: ['ignore', 'pipe', 'pipe'] },
+    {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: createFirefoxSmokeProcessEnvironment({
+        environment: process.env,
+        platform: process.platform,
+        appDataDirectory: temporaryRoot,
+      }),
+    },
   )
   for (const stream of [geckodriver.stdout, geckodriver.stderr]) {
     stream.setEncoding('utf8')
@@ -606,7 +733,22 @@ const run = async (): Promise<void> => {
     await waitForDriver(baseUrl, () => driverFailure)
     session = await createSession(baseUrl, profileDir, executables.firefoxPath)
     await installAddon(session, xpiPath)
-    const fresh = await runHarnessPhase(session, 'fresh')
+    const captureFixture = createServer((request, response) => {
+      // Hold the response until the harness removes the navigating tab.
+      if (request.url !== '/capture-loading') {
+        response.writeHead(200, { 'Content-Type': 'text/html' })
+        response.end('<!doctype html><title>Firefox capture fixture</title>')
+      }
+    })
+    const capturePort = await listenOnLoopback(captureFixture)
+    const fresh = await runHarnessPhase(
+      session,
+      'fresh',
+      `http://127.0.0.1:${capturePort}`,
+    ).finally(() => {
+      captureFixture.close()
+      captureFixture.closeAllConnections()
+    })
     const obsoleteStorageBefore = assertFreshResult(fresh)
     const firefoxVersion = session.version
     const openingMeasurements =
@@ -621,11 +763,50 @@ const run = async (): Promise<void> => {
     await installAddon(session, xpiPath)
     const verified = await runHarnessPhase(session, 'verify')
     assertVerifyResult(verified, obsoleteStorageBefore, fresh.backup)
+    assert.deepEqual(verified.academy, fresh.academy)
+    const verifiedSession = session
+    const academyUI = await runFirefoxAcademyUiSmoke(
+      async (command, body) => sessionCommand(verifiedSession, command, body),
+      `moz-extension://${await resolveExtensionUuid(verifiedSession.profileDir)}`,
+    )
+
+    // The persistence phases intentionally omit background to own DB bootstrap.
+    // Use a separate profile and the production background for the native alarm.
+    await deleteSession(session)
+    session = undefined
+    const alarmRoot = path.join(temporaryRoot, 'alarm')
+    const alarmProfile = path.join(alarmRoot, 'profile')
+    await mkdir(alarmProfile, { recursive: true })
+    const alarmXpi = await createSmokeAddon(alarmRoot, true)
+    session = await createSession(
+      baseUrl,
+      alarmProfile,
+      executables.firefoxPath,
+    )
+    await installAddon(session, alarmXpi)
+    const alarmResult = await runHarnessPhase<{
+      readonly expiredTabsAlarm: FirefoxExpiredTabsAlarmSmokeResult
+    }>(session, 'alarm')
+    assertExpiredTabsAlarmResult(alarmResult)
+    const dragBackground = await runHarnessPhase<{
+      readonly urlDragBackground: FirefoxDragSmoke.FirefoxUrlDragBackgroundSmokeResult
+    }>(session, 'drag-background')
+    assert.deepEqual(dragBackground.urlDragBackground, {
+      backgroundMessagesHandled: true,
+      matchingNativeTabPreserved: true,
+      hashMismatchPreserved: true,
+      queryMismatchPreserved: true,
+      exactIdRemoved: true,
+      lookalikesPreserved: true,
+      externalDropDisabledPreserved: true,
+      restored: true,
+    })
 
     console.log(
       JSON.stringify(
         {
           firefoxVersion,
+          academyUI,
           ...(openingMeasurements ? { openingMeasurements } : {}),
           fresh: {
             ...fresh.projection,
@@ -640,7 +821,13 @@ const run = async (): Promise<void> => {
             savedTabsReadCount: verified.savedTabsReadCount,
           },
           schemaVersion: verified.backup.schemaVersion,
+          savedTabsPage: fresh.savedTabsPage,
+          settingsSafety: fresh.settingsSafety,
+          captureSafety: fresh.captureSafety,
+          expiredTabsAlarm: alarmResult.expiredTabsAlarm,
           urlOpening: fresh.urlOpening,
+          urlDragIdentity: fresh.urlDragIdentity,
+          urlDragBackground: dragBackground.urlDragBackground,
           urlOpeningAfterRestart: verified.urlOpeningAfterRestart,
           status: 'passed',
         },

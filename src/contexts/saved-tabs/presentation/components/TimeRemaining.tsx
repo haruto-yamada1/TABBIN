@@ -89,7 +89,6 @@ export const CategorySection = ({
           try {
             // 新形式のURL並び替え use-case を呼び出し
             await reorderTabGroupUrlsUseCase?.({
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
               tabGroupId: groupId,
               newUrlOrder: newUrls.map((item) => item.url),
             })
@@ -143,6 +142,7 @@ export const CategorySection = ({
                 url={item.url}
                 title={item.title}
                 id={item.url}
+                {...(item.id !== undefined ? { urlRecordId: item.id } : {})}
                 groupId={groupId}
                 {...(item.subCategory !== undefined
                   ? { subCategory: item.subCategory }

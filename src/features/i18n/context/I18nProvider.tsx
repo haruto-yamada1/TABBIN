@@ -1,4 +1,5 @@
-import { createContext, use, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import {
   getBrowserUiLocale,
@@ -6,7 +7,7 @@ import {
   getStoredLanguageSetting,
   resolveLanguage,
 } from '@/features/i18n/lib/language'
-import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
+import type { LanguageSetting } from '@/features/i18n/messages'
 import type { StorageChange } from '@/lib/browser/chrome-storage'
 import {
   getChromeStorageOnChanged,
@@ -15,17 +16,14 @@ import {
 import {
   defaultSettings,
   getUserSettings,
+  requireUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
 
-type I18nContextValue = {
-  language: AppLanguage
-  languageSetting: LanguageSetting
-  setLanguageSetting: (language: LanguageSetting) => Promise<void>
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}
+import { I18nContext } from './I18nContext'
+import type { I18nContextValue } from './I18nContext'
 
-const I18nContext = createContext<I18nContextValue | null>(null)
+export { useI18n, useOptionalI18n } from './I18nContext'
 
 const getUiLocale = () =>
   getBrowserUiLocale(
@@ -54,8 +52,8 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
             uiLocale: getUiLocale(),
           })
         }
-      } catch (error) {
-        console.error('言語設定の読み込みエラー:', error)
+      } catch {
+        console.error('言語設定の読み込みエラー: 設定を確認できませんでした')
       }
     }
 
@@ -94,18 +92,26 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
-  const setLanguageSetting = async (nextLanguage: LanguageSetting) => {
-    setI18nState({
-      languageSetting: nextLanguage,
-      uiLocale: getUiLocale(),
-    })
-
-    const settings = await getUserSettings()
-    await saveUserSettings({
-      ...settings,
-      language: nextLanguage,
-    })
-  }
+  const setLanguageSetting = useCallback(
+    async (nextLanguage: LanguageSetting) => {
+      try {
+        const settings = await requireUserSettings()
+        await saveUserSettings({ ...settings, language: nextLanguage })
+        setI18nState({
+          languageSetting: nextLanguage,
+          uiLocale: getUiLocale(),
+        })
+      } catch {
+        toast.error(
+          getMessage(
+            resolveLanguage(languageSetting, uiLocale),
+            'background.settings.readErrorMessage',
+          ),
+        )
+      }
+    },
+    [languageSetting, uiLocale],
+  )
 
   const language = resolveLanguage(languageSetting, uiLocale)
 
@@ -116,20 +122,10 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
       setLanguageSetting,
       t: (key, fallback, values) => getMessage(language, key, fallback, values),
     }),
-    [language, languageSetting],
+    [language, languageSetting, setLanguageSetting],
   )
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 
-export const useI18n = () => {
-  const context = use(I18nContext)
-  if (!context) {
-    throw new Error('useI18n must be used within I18nProvider')
-  }
-  return context
-}
-
 export type TranslateFn = I18nContextValue['t']
-
-export const useOptionalI18n = () => use(I18nContext)

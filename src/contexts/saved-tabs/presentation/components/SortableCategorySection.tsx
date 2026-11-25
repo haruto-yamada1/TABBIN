@@ -157,7 +157,6 @@ type SortableCategorySectionViewProps = SortableCategorySectionProps & {
 }
 
 const useSortableCategorySectionView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   id,
   handleOpenAllTabs,
   handleDeleteAllTabs, // 削除ハンドラを追加
@@ -347,6 +346,7 @@ const useSortableCategorySectionView = ({
           <div
             className={`flex grow items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab hover:cursor-grab active:cursor-grabbing'}`}
             ref={setActivatorNodeRef}
+            data-tour='academy-child-drag'
             {...attributes}
             {...getTouchHandleListeners(listeners)}
             aria-label={t('savedTabs.category.dragHandleAria', undefined, {

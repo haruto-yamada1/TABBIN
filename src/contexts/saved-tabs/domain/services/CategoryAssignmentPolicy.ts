@@ -77,7 +77,7 @@ export const resolveCategoryForTabGroup = (
   lookup: CategoryLookup,
 ): ParentCategory | undefined => {
   const groupId = tabGroupCollectionGroupId(group)
-  if (groupId) {
+  if (typeof groupId === 'string' && groupId.length > 0) {
     const direct = lookup.byId.get(createParentCategoryId(groupId))
     if (direct) {
       return direct

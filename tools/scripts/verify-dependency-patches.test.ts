@@ -1,10 +1,24 @@
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import JSON5 from 'json5'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { verifyReviewedPatchAdditions } from './dependency-patch-policy'
+import {
+  reviewedNodeForgeBackport,
+  verifyReviewedPatchAdditions,
+} from './dependency-patch-policy'
+import type { PatchContents } from './dependency-patch-policy'
 import { verifyDependencyPatchSnapshots } from './verify-dependency-patches'
 import type { PatchChange } from './verify-dependency-patches'
 
@@ -31,12 +45,20 @@ const forgeId = 'node-forge@github:digitalbazaar/forge#ceba344'
 const forgePath = 'patches/node-forge-null-parameters.patch'
 const forgeSource =
   'github:digitalbazaar/forge#ceba34402e329f0365134f23fe19898756527d65'
-const forgeContent = readFileSync(forgePath, 'utf8')
-const forgeEntry = z
-  .object({ packages: z.record(z.string(), z.unknown()) })
-  .parse(JSON5.parse<unknown>(readFileSync('bun.lock', 'utf8'))).packages[
-  'node-forge'
-]
+// Retain the reviewed historical artifact after the live patch is retired.
+const forgeContent = `diff --git a/lib/rsa.js b/lib/rsa.js
+--- a/lib/rsa.js
++++ b/lib/rsa.js
+@@ -1178,5 +1178,6 @@
+             obj.value.length !== 2 ||
+             obj.value[0].value.length !==
+-              (('parameters' in capture) ? 2 : 1)) {
++              (('parameters' in capture) ? 2 : 1) ||
++            (('parameters' in capture) && capture.parameters !== '')) {
+             var error = new Error(
+               'ASN.1 object does not contain a valid RSASSA-PKCS1-v1_5 ' +
+`
+const forgeEntry = reviewedNodeForgeBackport.resolution
 const forgeBase = {
   packages: {},
   patchedDependencies: {},
@@ -64,6 +86,236 @@ const verifyForge = (
     JSON.stringify(snapshot),
     changes,
   )
+
+const releasedForgeEntry = [
+  'node-forge@1.4.3',
+  '',
+  {},
+  'sha512-P6wzfh6t70avmV8FrVEAd/36sOPJQ+hkaJVX1Laap9J/77m7M0eyozDvc8SwnDf4P7MP94gwbAAo0rg3YVXT+g==',
+]
+const retirementBase = {
+  ...forgeHead,
+  packages: {
+    ...forgeHead.packages,
+    'nested/node-forge': forgeEntry,
+    alias: forgeEntry,
+    runner: entry,
+  },
+  patchedDependencies: { ...forgeHead.patchedDependencies, [id]: path },
+}
+const retirementHead = {
+  workspaces: { '': { devDependencies: { 'node-forge': '1.4.3' } } },
+  overrides: { 'node-forge': '1.4.3' },
+  packages: {
+    'node-forge': releasedForgeEntry,
+    'nested/node-forge': releasedForgeEntry,
+    alias: releasedForgeEntry,
+    runner: entry,
+  },
+  patchedDependencies: { [id]: path },
+}
+const retirementChange = { ...forgeChange, status: 'D' }
+const retirementBaseContents = { ...forgeContents, ...contents }
+const verifyRetirement = (
+  snapshot: unknown = retirementHead,
+  changes: readonly PatchChange[] = [retirementChange],
+  baseContents: PatchContents = retirementBaseContents,
+  headContents: PatchContents = contents,
+) =>
+  verifyDependencyPatchSnapshots(
+    JSON.stringify(retirementBase),
+    JSON.stringify(snapshot),
+    changes,
+    headContents,
+    JSON.parse,
+    baseContents,
+  )
+
+const verifyGitRetirement = (basePatch = forgeContent) => {
+  const directory = mkdtempSync(join(tmpdir(), 'tabbin-forge-retirement-'))
+  const git = (...args: string[]) =>
+    execFileSync('git', ['-c', 'core.hooksPath=/dev/null', ...args], {
+      cwd: directory,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim()
+  const commit = () => {
+    git('add', '--all')
+    git(
+      '-c',
+      'user.name=TABBIN test',
+      '-c',
+      'user.email=test@example.invalid',
+      'commit',
+      '--quiet',
+      '--no-gpg-sign',
+      '-m',
+      'fixture',
+    )
+    return git('rev-parse', 'HEAD')
+  }
+  try {
+    git('init', '--quiet')
+    mkdirSync(join(directory, 'patches'))
+    writeFileSync(join(directory, forgePath), basePatch)
+    writeFileSync(join(directory, path), content)
+    writeFileSync(join(directory, 'bun.lock'), JSON.stringify(retirementBase))
+    const base = commit()
+    rmSync(join(directory, forgePath))
+    writeFileSync(join(directory, 'bun.lock'), JSON.stringify(retirementHead))
+    const head = commit()
+    return execFileSync(
+      'bun',
+      [fileURLToPath(new URL('verify-dependency-patches.ts', import.meta.url))],
+      {
+        cwd: directory,
+        encoding: 'utf8',
+        env: { ...process.env, BASE_SHA: base, HEAD_SHA: head },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    )
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
+describe('reviewed node-forge backport retirement', () => {
+  it('accepts only the verified backport deletion with the exact registry replacement', () => {
+    expect(() => verifyRetirement()).not.toThrow()
+  })
+
+  it('reads the deleted regular patch bytes from the actual base Git tree', () => {
+    expect(verifyGitRetirement()).toContain('reviewed transitions')
+  })
+
+  it('rejects a tampered historical Git blob even after the patch is deleted', () => {
+    expect(() => verifyGitRetirement(`${forgeContent}\n`)).toThrow(/patch/)
+  })
+
+  it('requires the matching git deletion and approved historical bytes', () => {
+    expect(() => verifyRetirement(retirementHead, [])).toThrow(/patch/)
+    for (const baseContents of [
+      {},
+      { ...retirementBaseContents, [forgePath]: `${forgeContent}\n` },
+    ]) {
+      expect(() =>
+        verifyRetirement(retirementHead, [retirementChange], baseContents),
+      ).toThrow(/patch/)
+    }
+    expect(() =>
+      verifyRetirement(retirementHead, [
+        { ...retirementChange, content: `${forgeContent}\n` },
+      ]),
+    ).toThrow(/patch/)
+  })
+
+  it.each(['M', 'R100', 'A'])(
+    'rejects retirement disguised as file status %s',
+    (status) => {
+      expect(() =>
+        verifyRetirement(retirementHead, [{ ...retirementChange, status }]),
+      ).toThrow(/patch/)
+    },
+  )
+
+  it.each(['100755', '120000'])(
+    'rejects deletion of historical patch mode %s',
+    (mode) => {
+      expect(() =>
+        verifyRetirement(retirementHead, [{ ...retirementChange, mode }]),
+      ).toThrow(/patch/)
+    },
+  )
+
+  it('rejects removal without the fully pinned replacement and every bound resolution', () => {
+    for (const snapshot of [
+      { ...retirementHead, packages: {} },
+      { ...retirementHead, workspaces: {} },
+      { ...retirementHead, overrides: { 'node-forge': '^1.4.3' } },
+      {
+        ...retirementHead,
+        packages: { ...retirementHead.packages, alias: forgeEntry },
+      },
+      {
+        ...retirementHead,
+        packages: {
+          ...retirementHead.packages,
+          'nested/node-forge': [
+            ...releasedForgeEntry.slice(0, 3),
+            'sha512-changed',
+          ],
+        },
+      },
+      {
+        ...retirementHead,
+        patchedDependencies: {
+          ...retirementHead.patchedDependencies,
+          [forgeId]: forgePath,
+        },
+      },
+    ]) {
+      expect(() => verifyRetirement(snapshot)).toThrow(/patch|node-forge/)
+    }
+    expect(() =>
+      verifyRetirement(
+        retirementHead,
+        [retirementChange],
+        retirementBaseContents,
+        {
+          ...contents,
+          ...forgeContents,
+        },
+      ),
+    ).toThrow(/patch/)
+  })
+
+  it('requires the reviewed source, map and all resolutions in the base snapshot', () => {
+    for (const snapshot of [
+      { ...retirementBase, overrides: { 'node-forge': '^1.4.0' } },
+      { ...retirementBase, packages: {} },
+      {
+        ...retirementBase,
+        packages: {
+          ...retirementBase.packages,
+          alias: [...forgeEntry.slice(0, 3), 'sha512-changed'],
+        },
+      },
+      {
+        ...retirementBase,
+        patchedDependencies: {
+          [id]: path,
+          [forgeId]: 'patches/elsewhere.patch',
+        },
+      },
+    ]) {
+      expect(() =>
+        verifyDependencyPatchSnapshots(
+          JSON.stringify(snapshot),
+          JSON.stringify(retirementHead),
+          [retirementChange],
+          contents,
+          JSON.parse,
+          retirementBaseContents,
+        ),
+      ).toThrow(/patch/)
+    }
+  })
+
+  it('preserves rejection of other patch changes beside the retirement', () => {
+    for (const other of [
+      { ...change, status: 'D' },
+      { ...change, status: 'M' },
+      { ...change, path: 'patches/unreviewed.patch' },
+    ]) {
+      expect(() =>
+        verifyRetirement(retirementHead, [retirementChange, other]),
+      ).toThrow(/patch/)
+    }
+    expect(() =>
+      verifyRetirement({ ...retirementHead, patchedDependencies: {} }),
+    ).toThrow(/patch/)
+  })
+})
 
 describe('reviewed node-forge backport patch boundaries', () => {
   it('accepts the approved Git backport addition beside the Stryker addition', () => {

@@ -1,0 +1,103 @@
+{
+  "id": "domain-mode",
+  "lessonId": "domain-mode",
+  "version": 1,
+  "prerequisites": [997, 998],
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "browserVersion": "156.0.8078.4",
+  "demoSeed": "academy-997-v1",
+  "actions": [
+    {
+      "type": "assert-urls",
+      "count": 6
+    },
+    {
+      "type": "assert-domains",
+      "hostnames": [
+        "study.filming.test",
+        "notes.filming.test",
+        "garden.filming.test"
+      ]
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "study.filming.test",
+      "holdSeconds": 8
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "notes.filming.test",
+      "holdSeconds": 8
+    },
+    {
+      "type": "focus-domain",
+      "hostname": "garden.filming.test",
+      "holdSeconds": 8
+    }
+  ],
+  "assertions": {
+    "urls": 6,
+    "domains": 3
+  },
+  "segments": [
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "Domainモードを理解する",
+        "en": "Understand Domain mode"
+      },
+      "detail": {
+        "ja": "Chrome / Chromium 実録画・ナレーションなし",
+        "en": "Real Chrome / Chromium capture · no narration"
+      }
+    },
+    {
+      "kind": "page",
+      "start": 0,
+      "seconds": 24,
+      "zoom": 1
+    },
+    {
+      "kind": "card",
+      "seconds": 3,
+      "title": {
+        "ja": "いつでも一時停止して復習",
+        "en": "Pause and review anytime"
+      },
+      "detail": {
+        "ja": "日英字幕・テキスト手順を利用できます",
+        "en": "Japanese / English captions and text instructions available"
+      }
+    }
+  ],
+  "captions": [
+    {
+      "start": 3,
+      "end": 11,
+      "ja": "同じ hostname の保存URLは、1つの Domain に自動でまとまります",
+      "en": "Saved URLs with the same hostname are grouped into one Domain"
+    },
+    {
+      "start": 11,
+      "end": 19,
+      "ja": "3つの架空ドメイン、それぞれ2つのURL。別hostnameは別グループです",
+      "en": "Three fictional domains, with two URLs each. Different hostnames form separate groups"
+    },
+    {
+      "start": 19,
+      "end": 27,
+      "ja": "Domain は元のサイト別。親カテゴリ・子カテゴリでさらに整理できます",
+      "en": "Domain mode groups by site. Parent and child categories add more organization"
+    }
+  ],
+  "output": {
+    "filename": "domain-mode.mp4",
+    "fps": 30,
+    "maxBytes": 20000000
+  },
+  "captionMode": "tracks"
+}

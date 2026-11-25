@@ -31,6 +31,18 @@ describe('scheduled dependency security audit', () => {
     expect(workflow.on.pull_request.paths).toContain(
       'tools/scripts/security-audit-workflow.test.ts',
     )
+    for (const auditPath of [
+      'package.json',
+      'bun.lock',
+      'tools/scripts/dependency-audit.ts',
+      'tools/scripts/dependency-audit.test.ts',
+      'tools/scripts/run-security-audit.ts',
+      'tools/scripts/run-security-audit.test.ts',
+      'tools/scripts/security-audit-policy.ts',
+      'tools/scripts/security-audit-policy.test.ts',
+    ]) {
+      expect(workflow.on.pull_request.paths).toContain(auditPath)
+    }
     expect(workflow.on.pull_request_target).toBeUndefined()
     expect(workflow.permissions).toEqual({ contents: 'read' })
     expect(workflow.concurrency['cancel-in-progress']).toBe(false)
@@ -56,7 +68,7 @@ describe('scheduled dependency security audit', () => {
     expect(audit().run).toContain('bun run security:audit')
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
     expect(pkg.scripts['security:audit']).toBe(
-      'bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun audit --audit-level=high',
+      'bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun tools/scripts/run-security-audit.ts',
     )
     expect(
       steps.find((step: { uses?: string }) =>
@@ -114,7 +126,7 @@ describe('scheduled dependency security audit', () => {
   })
 
   it.each([
-    ['success', 'Audit passed', false],
+    ['success', 'Audit gate passed', false],
     ['failure', 'Audit failed', true],
     ['skipped', 'Audit did not run', true],
   ])(
@@ -147,7 +159,9 @@ describe('scheduled dependency security audit', () => {
         const summaryText = readFileSync(summary, 'utf8')
         expect(summaryText).toContain(message)
         expect(result.stdout.includes('::error')).toBe(error)
-        expect(summaryText.includes('Audit passed')).toBe(!error)
+        expect(summaryText.includes('Audit gate passed')).toBe(!error)
+        expect(summaryText.includes('reviewed exception')).toBe(!error)
+        expect(summaryText).not.toContain('no High or Critical advisories')
       } finally {
         rmSync(directory, { recursive: true, force: true })
       }

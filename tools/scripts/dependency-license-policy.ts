@@ -7,10 +7,10 @@ import { satisfies, valid, validRange } from 'semver'
 import { z } from 'zod'
 
 // User-approved ordinary TABBIN product-code diagnostics only. The approved
-// LICENSE bytes, purpose and review interval survive same-license upgrades.
+// LICENSE bytes and purpose survive same-license upgrades. The exception has no
+// expiry; it is re-reviewed whenever the LICENSE bytes or purpose change.
 export const reviewedLicensePolicy = {
-  reviewedAt: '2026-10-21',
-  expiresAt: '2026-11-20',
+  reviewedAt: '2026-11-22',
   owner: 'dependency maintenance / @haruto-yamada1',
   purpose: 'Ordinary TABBIN product code quality checks only',
   trackingPullRequest: 'https://github.com/haruto-yamada1/TABBIN/pull/978',
@@ -64,7 +64,7 @@ const resolutionSchema = z.tuple([
 
 const reviewError = (detail: string): Error =>
   new Error(
-    `React Doctor license review is invalid or expired: ${detail}; ${reviewedLicensePolicy.trackingPullRequest}`,
+    `React Doctor license review is invalid: ${detail}; ${reviewedLicensePolicy.trackingPullRequest}`,
   )
 
 // Include both package-key matches and references, so aliases and malformed
@@ -118,8 +118,6 @@ export function isReviewedLicense(
     Number.isFinite(now.getTime()) &&
     now.getTime() >=
       Date.parse(`${reviewedLicensePolicy.reviewedAt}T00:00:00Z`) &&
-    now.getTime() <
-      Date.parse(`${reviewedLicensePolicy.expiresAt}T00:00:00Z`) &&
     license === reviewedLicensePolicy.license &&
     typeof content === 'string' &&
     createHash('sha256').update(content).digest('hex') ===

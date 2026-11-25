@@ -195,6 +195,9 @@ test('previews selected JSON backup counts, excludes private data and restores t
   await seedPrivateSupplementaryData(serviceWorker, now)
   await page.goto(getExtensionUrl(extensionId, 'app.html#/options'))
   await waitForPersistenceV2Ready(serviceWorker)
+  await expect(
+    page.getByRole('heading', { name: 'Options', exact: true }),
+  ).toBeVisible()
   const before = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
   const settingsBefore = await readStorage(serviceWorker, 'userSettings')
   let downloadCount = 0

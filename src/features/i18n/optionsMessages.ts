@@ -1,8 +1,26 @@
+import { linkCaptureMessages } from './linkCaptureMessages'
 import { reviewReminderMessages } from './reviewReminderMessages'
 
 export const optionsMessages = {
   en: {
+    ...linkCaptureMessages.en,
     ...reviewReminderMessages.en,
+    'background.saveTabs.filterErrorTitle': 'Tabs were not saved',
+    'background.saveTabs.filterErrorMessage':
+      'Could not check which tabs to save. No tabs were saved or closed. Check pinned-tab and exclusion settings in Options, then try again.',
+    'background.saveTabs.captureErrorTitle': 'Could not complete saving tabs',
+    'background.saveTabs.captureErrorMessage':
+      'Tabs have been kept open. Check your saved tabs, then try saving again.',
+    'background.settings.readErrorTitle': 'Settings could not be verified',
+    'background.settings.readErrorMessage':
+      'The operation was stopped to protect your data. Reload or recover your settings in Options, then try again.',
+    'options.settingsRead.title': 'Settings could not be loaded',
+    'options.settingsRead.unavailable':
+      'Settings could not be read. Editing is paused to protect your saved preferences. Try loading them again.',
+    'options.settingsRead.invalid':
+      'Some saved settings are invalid. Try loading them again, or reset settings to defaults. Resetting replaces your preferences; saved tabs and categories are kept.',
+    'options.settingsRead.retry': 'Retry loading settings',
+    'options.settingsRead.reset': 'Reset settings to defaults',
     'background.saveTabs.titleCaptureErrorTitle': 'Tabs were not saved',
     'background.saveTabs.titleCaptureErrorMessage':
       'Could not confirm a tab title. No tabs were saved or closed by TABBIN. Retry saving the tab.',
@@ -18,7 +36,24 @@ export const optionsMessages = {
       'Could not check the setting or site access. Reload the settings page and try again.',
   },
   ja: {
+    ...linkCaptureMessages.ja,
     ...reviewReminderMessages.ja,
+    'background.saveTabs.filterErrorTitle': 'タブを保存できませんでした',
+    'background.saveTabs.filterErrorMessage':
+      '保存対象を判定できませんでした。タブの保存やクローズは行っていません。設定画面で固定タブと除外設定を確認してから再試行してください。',
+    'background.saveTabs.captureErrorTitle': 'タブの保存を完了できませんでした',
+    'background.saveTabs.captureErrorMessage':
+      'タブは閉じていません。保存状態を確認してから、もう一度保存してください。',
+    'background.settings.readErrorTitle': '設定を確認できません',
+    'background.settings.readErrorMessage':
+      'データを保護するため操作を中止しました。設定画面で設定を再読み込み・復旧してから再試行してください。',
+    'options.settingsRead.title': '設定を読み込めませんでした',
+    'options.settingsRead.unavailable':
+      '保存済みの設定を読み込めません。設定を保護するため編集を停止しています。再読み込みしてください。',
+    'options.settingsRead.invalid':
+      '保存済みの設定に不正な値があります。再読み込みするか、設定を初期値に戻してください。初期化すると設定内容が置き換わります。保存したタブとカテゴリは保持されます。',
+    'options.settingsRead.retry': '設定を再読み込み',
+    'options.settingsRead.reset': '設定を初期値に戻す',
     'background.saveTabs.titleCaptureErrorTitle': 'タブを保存できませんでした',
     'background.saveTabs.titleCaptureErrorMessage':
       'タブのタイトルを確認できませんでした。タブの保存やクローズは行っていません。もう一度保存してください。',

@@ -20,6 +20,9 @@ export const toSavedTabsUserSettingsDto = (
   settings: UserSettingsDto,
 ): SavedTabsUserSettingsDto => {
   const dto: SavedTabsUserSettingsDto = {
+    ...(settings.showOpenTabs !== undefined
+      ? { showOpenTabs: settings.showOpenTabs }
+      : {}),
     clickBehavior: settings.clickBehavior,
     confirmDeleteAll: settings.confirmDeleteAll,
     confirmDeleteEach: settings.confirmDeleteEach,
@@ -28,6 +31,7 @@ export const toSavedTabsUserSettingsDto = (
     excludePinnedTabs: settings.excludePinnedTabs,
     openAllInNewWindow: settings.openAllInNewWindow,
     openUrlInBackground: settings.openUrlInBackground,
+    protectFavoriteFromAutoRemoval: settings.protectFavoriteFromAutoRemoval,
     removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop,
     removeTabAfterOpen: settings.removeTabAfterOpen,
     showRelativeSavedTime: settings.showRelativeSavedTime,

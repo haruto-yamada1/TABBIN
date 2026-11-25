@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 
@@ -65,17 +65,13 @@ describe('normalizeDomainString', () => {
 describe('tryCreateDomainName', () => {
   it('有効な hostname は DomainName を返す', () => {
     const domain = tryCreateDomainName('example.com')
-    if (domain === null) {
-      throw new Error('expected DomainName, got null')
-    }
+    assert(domain !== null)
     expect(domainNameToString(domain)).toBe('example.com')
   })
 
   it('スキーム付き文字列は正規化して DomainName を返す', () => {
     const domain = tryCreateDomainName('https://Example.COM')
-    if (domain === null) {
-      throw new Error('expected DomainName, got null')
-    }
+    assert(domain !== null)
     expect(domainNameToString(domain)).toBe('example.com')
   })
 
@@ -99,9 +95,7 @@ describe('tryCreateDomainName', () => {
     // Node の URL は `https:///path` を host=path と解釈するため、
     // 有効な hostname が取れれば DomainName 化する (空でなければ許容)。
     const domain = tryCreateDomainName('https:///path')
-    if (domain === null) {
-      throw new Error('expected DomainName, got null')
-    }
+    assert(domain !== null)
     expect(domainNameToString(domain)).toBe('path')
   })
 })

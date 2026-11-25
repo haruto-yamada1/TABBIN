@@ -289,7 +289,13 @@ const useTabData = ({
         }))
       }
     }
-    void loadUrlsForTabGroups()
+    void loadUrlsForTabGroups().catch((error: unknown) => {
+      // URL 解決は画面表示をブロックしない背景処理。Practice の破棄などで
+      // セッションが終了した場合も unhandled rejection にしない。
+      if (!cancelled) {
+        console.error('タブグループのURL取得エラー:', error)
+      }
+    })
     return () => {
       cancelled = true
     }

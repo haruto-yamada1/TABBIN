@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
 

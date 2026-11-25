@@ -34,7 +34,11 @@ const ButtonContent = ({
     className='flex w-full min-w-0 flex-col overflow-hidden'
     data-testid='url-text-column'
   >
-    <span className='block truncate text-left' data-testid='url-title-label'>
+    <span
+      className='block truncate text-left'
+      data-testid='url-title-label'
+      data-tour='academy-saved-url'
+    >
       {title}
     </span>
     {savedAt !== undefined && (
@@ -69,6 +73,7 @@ export const SortableUrlItem = ({
   url,
   title,
   id,
+  urlRecordId,
   groupId,
   isFavorite = false,
   savedAt,
@@ -102,6 +107,12 @@ export const SortableUrlItem = ({
   })
 
   const isDraggingRef = useRef(false)
+  const dragSnapshotRef = useRef<{
+    readonly dragId: string
+    readonly groupId: string
+    readonly url: string
+    readonly urlRecordId?: string
+  } | null>(null)
   const windowBlurredDuringDragRef = useRef(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   // 外部ウィンドウへの D&D 通知に使う `MessagingPort` (issue #531)。
@@ -111,6 +122,7 @@ export const SortableUrlItem = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
+  const isPractice = savedTabsUseCases?.interactionMode === 'practice'
 
   const handleWindowBlur = useCallback(() => {
     if (isDraggingRef.current) {
@@ -134,29 +146,32 @@ export const SortableUrlItem = ({
 
       // ドラッグ開始をバックグラウンドに通知
       if (messagingPort) {
-        void messagingPort.send({
-          action: 'urlDragStarted',
+        const drag = {
+          dragId: crypto.randomUUID(),
           groupId,
           url,
-        })
+          ...(urlRecordId !== undefined ? { urlRecordId } : {}),
+        }
+        dragSnapshotRef.current = drag
+        void messagingPort.send({ action: 'urlDragStarted', ...drag })
       }
     },
-    [handleWindowBlur, messagingPort, groupId],
+    [handleWindowBlur, messagingPort, groupId, urlRecordId],
   )
 
   // 外部ウィンドウへのドロップ処理
   const handleExternalDrop = useCallback(() => {
-    if (!messagingPort) {
+    const drag = dragSnapshotRef.current
+    if (!messagingPort || !drag) {
       return
     }
-    // 外部へのドロップ時にタブを削除するよう通知
+    // Reuse the identity captured at drag start, even if this row was refreshed.
     void messagingPort.send({
       action: 'urlDropped',
       fromExternal: true,
-      groupId,
-      url,
+      ...drag,
     })
-  }, [messagingPort, url, groupId])
+  }, [messagingPort])
 
   const handleDragEnd = useCallback(
     (e: React.DragEvent<HTMLElement>) => {
@@ -175,6 +190,7 @@ export const SortableUrlItem = ({
       }
 
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur, handleExternalDrop],
@@ -185,6 +201,7 @@ export const SortableUrlItem = ({
     () => () => {
       window.removeEventListener('blur', handleWindowBlur)
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur],
@@ -211,18 +228,18 @@ export const SortableUrlItem = ({
   )
 
   const handleOpenTabClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
+    (event: React.MouseEvent<HTMLElement>) => {
       if (selection.handleSelectionClick(event)) {
         return
       }
-      if (!isManagedLinkActivation(event)) {
+      if (!isPractice && !isManagedLinkActivation(event)) {
         return
       }
 
       event.preventDefault()
       handleOpenTab(url)
     },
-    [selection, handleOpenTab, url],
+    [selection, isPractice, handleOpenTab, url],
   )
 
   const safeHref = toSafeSavedUrlHref(url)
@@ -230,7 +247,7 @@ export const SortableUrlItem = ({
     <ButtonContent
       title={title}
       savedAt={savedAt}
-      autoDeletePeriod={isFavorite ? undefined : autoDeletePeriod}
+      autoDeletePeriod={isFavorite || isPractice ? undefined : autoDeletePeriod}
       settings={settings}
     />
   )
@@ -247,6 +264,45 @@ export const SortableUrlItem = ({
     [transform, transition],
   )
 
+  let urlActivation = (
+    <span className='ml-2 flex w-full min-w-0 items-center justify-start gap-1 overflow-hidden px-1 py-2 pr-8 text-foreground'>
+      {buttonContent}
+    </span>
+  )
+  if (safeHref) {
+    urlActivation = isPractice ? (
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        onClick={handleOpenTabClick}
+        className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
+      >
+        {buttonContent}
+      </Button>
+    ) : (
+      <Button
+        asChild
+        variant='ghost'
+        size='sm'
+        draggable={!selection.isSelectionMode}
+        onDragStart={handleItemDragStart}
+        onDragEnd={handleDragEnd}
+        className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
+      >
+        <a
+          href={safeHref}
+          target='_blank'
+          rel='noopener noreferrer'
+          onClick={handleOpenTabClick}
+          onAuxClick={handleOpenTabClick}
+        >
+          {buttonContent}
+        </a>
+      </Button>
+    )
+  }
+
   return (
     <>
       <li
@@ -256,59 +312,41 @@ export const SortableUrlItem = ({
         data-category-context={categoryContext}
         data-testid='sortable-url-item'
       >
-        {selection.checkbox}
-        <div
-          className='z-10 shrink-0 cursor-grab px-2.5 text-muted-foreground hover:cursor-grab active:cursor-grabbing'
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
-          aria-describedby={
-            isOpen
-              ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
-              : attributes['aria-describedby']
-          }
-          aria-label={t('savedTabs.url.dragHandleAria', undefined, {
-            name: title,
-          })}
-        >
-          <SavedTabDragHandleIcon
-            isOpen={isOpen}
-            descriptionId={openStateDescriptionId}
-          />
-        </div>
+        {selection.checkbox ? (
+          <div className='z-10 flex w-10 shrink-0 items-center justify-center'>
+            {selection.checkbox}
+          </div>
+        ) : (
+          <div
+            className='z-10 flex w-10 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:cursor-grab active:cursor-grabbing'
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+            aria-describedby={
+              isOpen
+                ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+                : attributes['aria-describedby']
+            }
+            aria-label={t('savedTabs.url.dragHandleAria', undefined, {
+              name: title,
+            })}
+          >
+            <SavedTabDragHandleIcon
+              isOpen={isOpen}
+              descriptionId={openStateDescriptionId}
+            />
+          </div>
+        )}
         <SavedUrlFavoriteButton
           url={url}
           title={title}
           isFavorite={isFavorite}
           disabled={selection.isSelectionMode}
+          className='ml-2 w-10'
         />
         <div className='relative min-w-0 flex-1 overflow-hidden'>
-          {safeHref ? (
-            <Button
-              asChild
-              variant='ghost'
-              size='sm'
-              draggable={!selection.isSelectionMode}
-              onDragStart={handleItemDragStart}
-              onDragEnd={handleDragEnd}
-              className='ml-2 flex w-full min-w-0 cursor-pointer items-center justify-start gap-1 overflow-hidden bg-transparent px-1 py-2 pr-8 text-foreground hover:text-foreground'
-            >
-              <a
-                href={safeHref}
-                target='_blank'
-                rel='noopener noreferrer'
-                onClick={handleOpenTabClick}
-                onAuxClick={handleOpenTabClick}
-              >
-                {buttonContent}
-              </a>
-            </Button>
-          ) : (
-            <span className='ml-2 flex w-full min-w-0 items-center justify-start gap-1 overflow-hidden px-1 py-2 pr-8 text-foreground'>
-              {buttonContent}
-            </span>
-          )}
+          {urlActivation}
           <Button
             variant='ghost'
             size='icon'

@@ -1,4 +1,4 @@
-import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getChromeStorageLocal: vi.fn(),
@@ -26,6 +26,32 @@ const loadModule = async () => {
 }
 
 describe('settings storage', () => {
+  it('今開いているタブは初期ONで、明示OFFも保存して再読み込みできる', async () => {
+    const { defaultSettings, getUserSettings, saveUserSettings } =
+      await loadModule()
+    let storedValue: unknown = {}
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({ userSettings: storedValue })),
+      set: vi.fn(async ({ userSettings }: { userSettings: unknown }) => {
+        storedValue = userSettings
+      }),
+    })
+    expect(defaultSettings).toHaveProperty('showOpenTabs', true)
+    await expect(getUserSettings()).resolves.toMatchObject({
+      showOpenTabs: true,
+    })
+    const verifySavedSetting = async (showOpenTabs: boolean) => {
+      await saveUserSettings({ ...defaultSettings, showOpenTabs })
+      await expect(getUserSettings()).resolves.toMatchObject({ showOpenTabs })
+    }
+    await verifySavedSetting(true)
+    await verifySavedSetting(false)
+    storedValue = { showOpenTabs: 'true' }
+    await expect(getUserSettings()).resolves.toMatchObject({
+      showOpenTabs: true,
+    })
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -216,11 +242,7 @@ describe('settings storage', () => {
       ]),
       normalized: true,
     })
-    expect(storageLocal.set).toHaveBeenCalledWith({
-      userSettings: expect.objectContaining({
-        excludePatterns: expect.not.arrayContaining(['   ', 123, null]),
-      }),
-    })
+    expect(storageLocal.set).not.toHaveBeenCalled()
   })
 
   it('保存済み設定に excludePatterns が無い場合は既定値を補完して保存する', async () => {
@@ -286,9 +308,9 @@ describe('settings storage', () => {
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
 
-    const { readUserSettingsWithoutRepair } = await loadModule()
+    const { getUserSettings } = await loadModule()
 
-    const settings = await readUserSettingsWithoutRepair()
+    const settings = await getUserSettings({ repairStoredSettings: false })
 
     expect(settings).toMatchObject({
       excludePatterns: expect.arrayContaining([
@@ -305,6 +327,7 @@ describe('settings storage', () => {
 
   it('保存時も excludePatterns に既定の内部ページ除外を補完する', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -328,6 +351,7 @@ describe('settings storage', () => {
       openAllInNewWindow: false,
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: true,
       showRelativeSavedTime: false,
       showSavedTime: false,
@@ -382,6 +406,7 @@ describe('settings storage', () => {
 
   it('設定保存時に正規化した値を書き込む', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -398,15 +423,17 @@ describe('settings storage', () => {
     })
   })
 
-  it('保存先が無い場合は警告して終了し、保存失敗時は再送出する', async () => {
+  it('保存先が無い場合は拒否し、保存失敗時は再送出する', async () => {
     mocks.getChromeStorageLocal.mockReturnValueOnce(null)
 
     const { defaultSettings, saveUserSettings } = await loadModule()
 
-    await expect(saveUserSettings(defaultSettings)).resolves.toBeUndefined()
-    expect(mocks.warnMissingChromeStorage).toHaveBeenCalledWith('設定保存')
+    await expect(saveUserSettings(defaultSettings)).rejects.toThrow(
+      'Settings could not be verified',
+    )
 
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => {
         throw new Error('write failed')
       }),
@@ -417,7 +444,7 @@ describe('settings storage', () => {
     await expect(saveUserSettings(defaultSettings)).rejects.toThrow(
       'write failed',
     )
-    expect(errorSpy).toHaveBeenCalled()
+    expect(errorSpy).not.toHaveBeenCalled()
   })
 
   it('clickBehavior が enum 外れなら default に fallback する', async () => {
@@ -510,6 +537,7 @@ describe('settings storage', () => {
 
   it('saveUserSettings は未正規化の clickBehavior を default に正規化して保存する', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -530,6 +558,7 @@ describe('settings storage', () => {
 
   it('saveUserSettings は未正規化の autoDeletePeriod を default に正規化して保存する', async () => {
     const storageLocal = {
+      get: vi.fn(async () => ({})),
       set: vi.fn(async () => undefined),
     }
     mocks.getChromeStorageLocal.mockReturnValue(storageLocal)
@@ -546,5 +575,166 @@ describe('settings storage', () => {
         autoDeletePeriod: 'never',
       }),
     })
+  })
+})
+
+describe('settings read safety regressions', () => {
+  it('repair失敗でも読み取れた明示的な削除OFFを維持する', async () => {
+    using _errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { getUserSettings } = await loadModule()
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({
+        userSettings: { aiProvider: 'legacy', removeTabAfterOpen: false },
+      })),
+      set: vi.fn(async () => {
+        throw new Error('repair failed')
+      }),
+    })
+    await expect(getUserSettings()).resolves.toMatchObject({
+      removeTabAfterOpen: false,
+    })
+  })
+
+  it('不正設定の表示fallbackは保存値を修復・上書きしない', async () => {
+    const { getUserSettings } = await loadModule()
+    const set = vi.fn()
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({
+        userSettings: { removeTabAfterOpen: 'false' },
+      })),
+      set,
+    })
+    await getUserSettings()
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('読込障害中には設定を書き込まず安全なエラーを返す', async () => {
+    const { defaultSettings, saveUserSettings } = await loadModule()
+    const set = vi.fn()
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => {
+        throw new Error('private prompt')
+      }),
+      set,
+    })
+    await expect(saveUserSettings(defaultSettings)).rejects.toThrow(
+      'Settings could not be verified',
+    )
+    expect(set).not.toHaveBeenCalled()
+  })
+})
+
+describe('strict settings states and recovery', () => {
+  it('未保存はmissingとして正規のデフォルトを使い、書き戻さない', async () => {
+    const { defaultSettings, readUserSettingsStrict, requireUserSettings } =
+      await loadModule()
+    const set = vi.fn()
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({})),
+      set,
+    })
+    await expect(readUserSettingsStrict()).resolves.toMatchObject({
+      status: 'missing',
+      settings: defaultSettings,
+    })
+    await expect(requireUserSettings()).resolves.toMatchObject(defaultSettings)
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('API不在とget rejectはunavailableで例外内容を公開しない', async () => {
+    const { readUserSettingsStrict, requireUserSettings } = await loadModule()
+    mocks.getChromeStorageLocal.mockReturnValue(null)
+    await expect(readUserSettingsStrict()).resolves.toEqual({
+      status: 'unavailable',
+    })
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => {
+        throw new Error('secret prompt')
+      }),
+    })
+    await expect(readUserSettingsStrict()).resolves.toEqual({
+      status: 'unavailable',
+    })
+    await expect(requireUserSettings()).rejects.toThrow(
+      'Settings could not be verified',
+    )
+  })
+
+  it.each([
+    null,
+    [],
+    'private prompt',
+    { removeTabAfterOpen: 'false' },
+    { excludePatterns: ['private', 123] },
+    { autoDeletePeriod: 'invalid' },
+    { aiSystemPrompts: [{ template: 'private' }] },
+  ])('不正値%jはinvalidでrepairもしない', async (userSettings) => {
+    const {
+      readUserSettingsStrict,
+      requireUserSettings,
+      defaultSettings,
+      saveUserSettings,
+    } = await loadModule()
+    const set = vi.fn()
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({ userSettings })),
+      set,
+    })
+    await expect(readUserSettingsStrict()).resolves.toEqual({
+      status: 'invalid',
+    })
+    await expect(requireUserSettings()).rejects.toMatchObject({
+      status: 'invalid',
+    })
+    await expect(saveUserSettings(defaultSettings)).rejects.toMatchObject({
+      status: 'invalid',
+    })
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('旧形式の省略fieldとlegacy keyを移行し、strict readではrepair失敗の影響を受けない', async () => {
+    const { readUserSettingsStrict } = await loadModule()
+    const set = vi.fn(async () => {
+      throw new Error('repair failed')
+    })
+    mocks.getChromeStorageLocal.mockReturnValue({
+      get: vi.fn(async () => ({
+        userSettings: {
+          aiProvider: 'old',
+          removeTabAfterOpen: false,
+          excludePatterns: [' custom '],
+        },
+      })),
+      set,
+    })
+    await expect(readUserSettingsStrict()).resolves.toMatchObject({
+      status: 'available',
+      settings: {
+        protectFavoriteFromAutoRemoval: true,
+        removeTabAfterOpen: false,
+        excludePatterns: expect.arrayContaining(['custom', 'about:']),
+      },
+    })
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('不正値の明示的リセットだけがデフォルトを保存し、読込不能ならリセットしない', async () => {
+    const { resetInvalidUserSettings } = await loadModule()
+    const set = vi.fn()
+    const get = vi.fn(async (): Promise<Record<string, unknown>> => ({
+      userSettings: null,
+    }))
+    mocks.getChromeStorageLocal.mockReturnValue({ get, set })
+    await resetInvalidUserSettings()
+    expect(set).toHaveBeenCalledOnce()
+    set.mockClear()
+    get.mockResolvedValue({})
+    await resetInvalidUserSettings()
+    expect(set).not.toHaveBeenCalled()
+    get.mockRejectedValue(new Error('unavailable'))
+    await expect(resetInvalidUserSettings()).rejects.toMatchObject({
+      status: 'unavailable',
+    })
+    expect(set).not.toHaveBeenCalled()
   })
 })

@@ -199,6 +199,8 @@ const BackupUserSettingsSchema: z.ZodType<UserSettings> = z
   .strictObject({
     ...UserSettingsSchema.shape,
     aiSystemPrompts: z.array(backupAiSystemPromptPresetSchema).optional(),
+    // Older V2 backups predate favorite auto-removal protection.
+    protectFavoriteFromAutoRemoval: z.boolean().default(true),
     // Older V2 backups predate this opt-in display setting.
     showRelativeSavedTime: z.boolean().default(false),
   })

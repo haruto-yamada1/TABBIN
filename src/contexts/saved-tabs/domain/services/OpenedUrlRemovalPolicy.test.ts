@@ -26,6 +26,7 @@ describe('OpenedUrlRemovalPolicy.decideUrlRecordIdsToRemoveAfterOpen', () => {
         { urlRecordId: createUrlRecordId('url-2'), origin: 'click' },
       ],
       settings: {
+        protectFavoriteFromAutoRemoval: false,
         removeTabAfterOpen: true,
         removeTabAfterExternalDrop: false,
       },
@@ -42,6 +43,7 @@ describe('OpenedUrlRemovalPolicy.decideUrlRecordIdsToRemoveAfterOpen', () => {
         { urlRecordId: createUrlRecordId('url-1'), origin: 'click' },
       ],
       settings: {
+        protectFavoriteFromAutoRemoval: true,
         removeTabAfterOpen: false,
         removeTabAfterExternalDrop: true,
       },
@@ -55,11 +57,96 @@ describe('OpenedUrlRemovalPolicy.decideUrlRecordIdsToRemoveAfterOpen', () => {
         { urlRecordId: createUrlRecordId('url-1'), origin: 'externalDrop' },
       ],
       settings: {
+        protectFavoriteFromAutoRemoval: false,
         removeTabAfterOpen: false,
         removeTabAfterExternalDrop: true,
       },
     })
     expect(result.has(createUrlRecordId('url-1'))).toBe(true)
+  })
+
+  it.each([
+    {
+      expected: false,
+      favorite: true,
+      label: 'ON + favorite + click',
+      origin: 'click' as const,
+      protect: true,
+    },
+    {
+      expected: true,
+      favorite: false,
+      label: 'ON + non-favorite + click',
+      origin: 'click' as const,
+      protect: true,
+    },
+    {
+      expected: true,
+      favorite: true,
+      label: 'OFF + favorite + click',
+      origin: 'click' as const,
+      protect: false,
+    },
+    {
+      expected: false,
+      favorite: true,
+      label: 'ON + favorite + externalDrop',
+      origin: 'externalDrop' as const,
+      protect: true,
+    },
+    {
+      expected: true,
+      favorite: undefined,
+      label: 'ON + favorite flag unknown',
+      origin: 'click' as const,
+      protect: true,
+    },
+    {
+      expected: true,
+      favorite: true,
+      label: 'OFF + favorite + externalDrop',
+      origin: 'externalDrop' as const,
+      protect: false,
+    },
+  ])(
+    'favorite protection の削除マトリクス: $label',
+    ({ expected, favorite, origin, protect }) => {
+      const result = decideUrlRecordIdsToRemoveAfterOpen({
+        openedUrls: [
+          {
+            ...(favorite === undefined ? {} : { isFavorite: favorite }),
+            origin,
+            urlRecordId: createUrlRecordId('url-1'),
+          },
+        ],
+        settings: {
+          protectFavoriteFromAutoRemoval: protect,
+          removeTabAfterOpen: true,
+          removeTabAfterExternalDrop: true,
+        },
+      })
+
+      expect(result.has(createUrlRecordId('url-1'))).toBe(expected)
+    },
+  )
+
+  it('favorite protection が ON でも削除設定 OFF は優先される', () => {
+    const result = decideUrlRecordIdsToRemoveAfterOpen({
+      openedUrls: [
+        {
+          isFavorite: true,
+          origin: 'click',
+          urlRecordId: createUrlRecordId('url-1'),
+        },
+      ],
+      settings: {
+        protectFavoriteFromAutoRemoval: true,
+        removeTabAfterOpen: false,
+        removeTabAfterExternalDrop: false,
+      },
+    })
+
+    expect(result.size).toBe(0)
   })
 })
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AddDomainToParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/AddDomainToParentCategoryUseCase'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
@@ -25,14 +25,32 @@ vi.mock('@dnd-kit/core', () => ({
     <div>{children}</div>
   ),
   closestCenter: 'closestCenter',
+  KeyboardSensor: {},
+  PointerSensor: {},
+  useSensor: (sensor: unknown, options: unknown) => ({ sensor, options }),
+  useSensors: (...sensors: unknown[]) => sensors,
 }))
 
-vi.mock('@dnd-kit/sortable', () => ({
-  SortableContext: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  verticalListSortingStrategy: 'verticalListSortingStrategy',
-}))
+vi.mock('@dnd-kit/sortable', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...(actual as object),
+    SortableContext: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+    verticalListSortingStrategy: 'verticalListSortingStrategy',
+    useSortable: () => ({
+      attributes: {},
+      listeners: {},
+      setNodeRef: vi.fn(),
+      setActivatorNodeRef: vi.fn(),
+      transform: null,
+      transition: undefined,
+      isDragging: false,
+      index: 0,
+    }),
+  }
+})
 
 vi.mock('@/components/ui/tooltip', () => ({
   TooltipProvider: ({ children }: { children: React.ReactNode }) => (
@@ -62,7 +80,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -124,6 +142,7 @@ import { DomainModeContainer } from './DomainModeContainer'
 const defaultSettings: UserSettingsDto = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
@@ -243,6 +262,39 @@ describe('DomainModeContainer', () => {
         expect(card).toHaveAttribute('data-relative-time', String(child))
       }
     }
+  })
+
+  it('タブが 0 件のときは「タブを選択」を表示しない', () => {
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        handleDeleteSelectedUrls={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: 'タブを選択' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('タブがあるときは「タブを選択」を表示する', () => {
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        handleDeleteSelectedUrls={vi.fn()}
+        state={{
+          ...createProps().state,
+          shouldShowUncategorizedList: true,
+          shouldShowUncategorizedSectionHeader: true,
+        }}
+        uncategorizedForDisplay={uncategorizedGroups}
+        hasContentTabGroupsCount={uncategorizedGroups.length}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'タブを選択' }),
+    ).toBeInTheDocument()
   })
 
   it('renders English empty-state copy when the display language is en', () => {
@@ -726,5 +778,83 @@ describe('DomainModeContainer', () => {
 
     expect(handleCancelUncategorizedReorder).toHaveBeenCalledOnce()
     expect(handleConfirmUncategorizedReorder).toHaveBeenCalledOnce()
+  })
+
+  it.each([{}, { showOpenTabs: true }])(
+    '設定%jで「今開いているタブ」をコンテンツ最上部に表示する',
+    (setting) => {
+      render(
+        <DomainModeContainer
+          {...createProps()}
+          settings={{ ...createProps().settings, ...setting }}
+          state={{
+            ...createProps().state,
+            shouldShowUncategorizedList: true,
+            shouldShowUncategorizedSectionHeader: true,
+          }}
+          uncategorizedForDisplay={uncategorizedGroups}
+          openTabsRows={[
+            {
+              id: 'group-1\u0000https://example.com/a',
+              groupId: 'group-1',
+              isFavorite: false,
+              title: 'A',
+              url: 'https://example.com/a',
+            },
+            {
+              id: 'group-2\u0000https://sample.com/c',
+              groupId: 'group-2',
+              isFavorite: false,
+              title: 'C',
+              url: 'https://sample.com/c',
+            },
+          ]}
+        />,
+      )
+
+      const section = screen.getByTestId('open-tabs-section')
+      expect(section).toBeTruthy()
+      // 未分類カードより先にレンダリングされること
+      const domainCards = screen.getAllByText(
+        'sortable-domain-card:example.com',
+      )
+      const firstDomainCard = domainCards[0]
+      if (!firstDomainCard) {
+        throw new Error('domain card must be rendered')
+      }
+      const position = section.compareDocumentPosition(firstDomainCard)
+      expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    },
+  )
+
+  it.each([{ showOpenTabs: false }])(
+    '表示設定が明示OFFなら開いているタブがあっても表示しない: %j',
+    (setting) => {
+      const props = createProps()
+      render(
+        <DomainModeContainer
+          {...props}
+          settings={{ ...props.settings, ...setting }}
+          openTabsRows={[
+            {
+              id: 'open-a',
+              groupId: 'group-1',
+              isFavorite: false,
+              title: 'A',
+              url: 'https://example.com/a',
+            },
+          ]}
+        />,
+      )
+      expect(screen.queryByTestId('open-tabs-section')).toBeNull()
+    },
+  )
+
+  it('「今開いているタブ」行が空または未指定のときはセクションを出さない', () => {
+    const props = createProps()
+    const view = render(<DomainModeContainer {...props} />)
+    expect(screen.queryByTestId('open-tabs-section')).toBeNull()
+    view.rerender(<DomainModeContainer {...props} openTabsRows={[]} />)
+    expect(screen.queryByTestId('open-tabs-section')).toBeNull()
   })
 })

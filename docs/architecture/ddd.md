@@ -155,6 +155,13 @@ DDD の機械的ガードは 1 つの lint ルールへ寄せず、`dependency-c
     `chrome.contextMenus` / `chrome.alarms` / `chrome.notifications` /
     `chrome.runtime` の直叩きを layer 別にブロックします。
 
+`no-restricted-globals` と `no-restricted-properties` のオプション配列は、
+複数の override が一致すると後の配列で置き換わります。レイヤ固有の設定には
+`alert`、`DOMParser`、`innerHTML` などの共通項目も含めます。
+Storybook とテストではブラウザ API のモックを許可します。
+`bun run test:node src/lib/architecture/oxlintConfig.test.ts` で
+各レイヤ、adapter、Storybook、テストに対する実際の診断を検証できます。
+
 false positive が出たら `// oxlint-disable-next-line` のような局所回避より、
 責務に応じて `dependency-cruiser` または `oxlint` の設定・wrapper・adapter
 設計を見直すことを優先してください。Issue #462 がガード設定の source of truth

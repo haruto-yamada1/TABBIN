@@ -1,6 +1,7 @@
 import type { ViewMode } from '@/types/storage'
 
 type SidebarItemId =
+  | 'academy'
   | 'ai-chat'
   | 'analytics'
   | 'options'
@@ -32,6 +33,10 @@ const getSidebarStateFromLocation = (
   search: string,
 ): SidebarState => {
   const normalizedPathname = getNormalizedPathname(pathname)
+
+  if (pathname === '/academy' || pathname.startsWith('/academy/')) {
+    return { expandedGroup: 'tab-list', item: 'academy' }
+  }
 
   if (
     normalizedPathname === 'ai-chat.html' ||
@@ -84,6 +89,9 @@ const getSidebarStateFromLocation = (
 
 const getAppRoute = (item: SidebarItemId): string => {
   switch (item) {
+    case 'academy': {
+      return '/academy'
+    }
     case 'ai-chat': {
       return '/ai-chat'
     }
@@ -112,6 +120,9 @@ const getAppEntryHref = (route: string): string => `${APP_ENTRY_PATH}#${route}`
 
 const getPageHref = (item: SidebarItemId): string => {
   switch (item) {
+    case 'academy': {
+      return getAppEntryHref('/academy')
+    }
     case 'ai-chat': {
       return 'ai-chat.html'
     }

@@ -5,6 +5,7 @@ type SavedTabsActionSettings = Pick<
   | 'confirmDeleteAll'
   | 'confirmDeleteEach'
   | 'openAllInNewWindow'
+  | 'protectFavoriteFromAutoRemoval'
   | 'removeTabAfterExternalDrop'
   | 'removeTabAfterOpen'
 >
@@ -20,6 +21,7 @@ export const savedTabsActionSettingsDefaults = {
   confirmDeleteAll: false,
   confirmDeleteEach: false,
   openAllInNewWindow: false,
+  protectFavoriteFromAutoRemoval: true,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: true,
 } satisfies SavedTabsActionSettings

@@ -87,6 +87,7 @@ const buildFullUserSettings = (
 ): UserSettings => ({
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: ['existing-pattern'],
   enableCategories: true,
   autoDeletePeriod: 'never',

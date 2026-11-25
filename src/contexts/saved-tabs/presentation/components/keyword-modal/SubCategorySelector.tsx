@@ -38,6 +38,7 @@ const RenameSubCategoryButton = () => {
           variant='secondary'
           size='sm'
           onClick={rename.handleStartRenaming}
+          data-tour='academy-child-rename-action'
           className='flex cursor-pointer items-center gap-1 rounded px-2 py-1'
           disabled={!subcategory.activeCategory}
         >
@@ -122,7 +123,10 @@ export const SubCategorySelector = () => {
         onValueChange={subcategory.setActiveCategory}
         disabled={rename.isRenaming}
       >
-        <SelectTrigger className='w-full rounded border p-2'>
+        <SelectTrigger
+          data-tour='academy-child-select'
+          className='w-full rounded border p-2'
+        >
           <SelectValue
             placeholder={t('savedTabs.subCategory.selectPlaceholder')}
           />

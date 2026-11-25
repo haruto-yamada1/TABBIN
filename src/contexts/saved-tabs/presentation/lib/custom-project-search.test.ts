@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { describe, expect, it, vi } from 'vitest'
 
 import type { SavedTabsCustomProjectDto as CustomProject } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
-import { filterCustomProjectsByQuery } from './custom-project-search'
+import { createCustomProjectSearch } from './custom-project-search'
 
 const createProjects = (): CustomProject[] => [
   {
@@ -29,72 +29,67 @@ const createProjects = (): CustomProject[] => [
   },
 ]
 
-describe('filterCustomProjectsByQuery', () => {
+describe('createCustomProjectSearch', () => {
   it('検索語が空なら元のプロジェクト配列を返す', async () => {
     const projects = createProjects()
 
-    const result = await filterCustomProjectsByQuery({
-      customProjects: projects,
-      searchQuery: '  ',
-      loadProjectUrls: vi.fn(async () => []),
-    })
+    const loadProjectUrls = vi.fn(async () => new Map())
+    const search = createCustomProjectSearch(projects, loadProjectUrls)
 
-    expect(result).toBe(projects)
+    expect(await search('  ')).toBe(projects)
+    expect(loadProjectUrls).not.toHaveBeenCalled()
   })
 
   it('プロジェクト名一致は URL 解決なしでそのまま返す', async () => {
-    const projects = createProjects()
-    const loadProjectUrls = vi.fn(async () => [])
+    const projects = createProjects().slice(0, 1)
+    const loadProjectUrls = vi.fn(async () => new Map())
+    const search = createCustomProjectSearch(projects, loadProjectUrls)
 
-    const result = await filterCustomProjectsByQuery({
-      customProjects: projects,
-      searchQuery: 'Reading',
-      loadProjectUrls,
-    })
-
-    expect(result).toStrictEqual([projects[0]])
-    expect(loadProjectUrls).toHaveBeenCalledTimes(1)
-    expect(loadProjectUrls).toHaveBeenCalledWith(projects[1])
+    expect(await search('Reading')).toStrictEqual(projects)
+    expect(loadProjectUrls).not.toHaveBeenCalled()
   })
 
   it('urlIds ベースの URL タイトル一致で対象プロジェクトと一致 URL だけを返す', async () => {
     const projects = createProjects()
 
-    const loadProjectUrls = vi.fn(async (project: CustomProject) => {
-      if (project.id === 'project-1') {
-        return [
-          {
-            id: 'url-1',
-            url: 'https://example.com/docker-cmd',
-            title: 'Docker CMD',
-            savedAt: 10,
-            category: 'Later',
-          },
-          {
-            id: 'url-2',
-            url: 'https://example.com/other',
-            title: 'Other',
-            savedAt: 11,
-            category: 'Watch',
-          },
-        ]
-      }
+    const search = createCustomProjectSearch(
+      projects,
+      async () =>
+        new Map([
+          [
+            'project-1',
+            [
+              {
+                id: 'url-1',
+                url: 'https://example.com/docker-cmd',
+                title: 'Docker CMD',
+                savedAt: 10,
+                category: 'Later',
+              },
+              {
+                id: 'url-2',
+                url: 'https://example.com/other',
+                title: 'Other',
+                savedAt: 11,
+                category: 'Watch',
+              },
+            ],
+          ],
+          [
+            'project-2',
+            [
+              {
+                id: 'url-3',
+                url: 'https://work.example.com',
+                title: 'Meeting notes',
+                savedAt: 12,
+              },
+            ],
+          ],
+        ]),
+    )
 
-      return [
-        {
-          id: 'url-3',
-          url: 'https://work.example.com',
-          title: 'Meeting notes',
-          savedAt: 12,
-        },
-      ]
-    })
-
-    const result = await filterCustomProjectsByQuery({
-      customProjects: projects,
-      searchQuery: 'docker',
-      loadProjectUrls,
-    })
+    const result = await search('docker')
 
     expect(result).toStrictEqual([
       {
@@ -116,7 +111,7 @@ describe('filterCustomProjectsByQuery', () => {
     ])
   })
 
-  it('検索結果に同じ URL が複数回出ても一件にまとめる', async () => {
+  it('同じ URL 文字列でも異なる URL ID を保持し、同一 ID は一件にまとめる', async () => {
     const project: CustomProject = {
       id: 'project-duplicate-url',
       name: 'Duplicate URL',
@@ -125,26 +120,37 @@ describe('filterCustomProjectsByQuery', () => {
       updatedAt: 1,
     }
 
-    const result = await filterCustomProjectsByQuery({
-      customProjects: [project],
-      searchQuery: 'react',
+    const search = createCustomProjectSearch(
+      [project],
+      async () =>
+        new Map([
+          [
+            project.id,
+            [
+              {
+                id: 'url-1',
+                url: 'https://example.com/react',
+                title: 'React Guide',
+                savedAt: 1,
+              },
+              {
+                id: 'url-2',
+                url: 'https://example.com/react',
+                title: 'React Guide Copy',
+                savedAt: 2,
+              },
+              {
+                id: 'url-1',
+                url: 'https://example.com/react',
+                title: 'React Guide duplicate',
+                savedAt: 3,
+              },
+            ],
+          ],
+        ]),
+    )
 
-      loadProjectUrls: vi.fn(async () => [
-        {
-          id: 'url-1',
-          url: 'https://example.com/react',
-          title: 'React Guide',
-          savedAt: 1,
-        },
-        {
-          id: 'url-2',
-          url: 'https://example.com/react',
-          title: 'React Guide Copy',
-          savedAt: 2,
-        },
-      ]),
-    })
-
+    const result = await search('react')
     expect(result[0]?.urls).toStrictEqual([
       {
         id: 'url-1',
@@ -152,6 +158,26 @@ describe('filterCustomProjectsByQuery', () => {
         title: 'React Guide',
         url: 'https://example.com/react',
       },
+      {
+        id: 'url-2',
+        savedAt: 2,
+        title: 'React Guide Copy',
+        url: 'https://example.com/react',
+      },
     ])
+  })
+
+  it('retries a failed URL read and reuses the successful result', async () => {
+    const projects = createProjects()
+    const loadProjectUrls = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('read failed'))
+      .mockResolvedValue(new Map())
+    const search = createCustomProjectSearch(projects, loadProjectUrls)
+
+    await expect(search('missing')).rejects.toThrow('read failed')
+    expect(await search('missing')).toEqual([])
+    expect(await search('Reading')).toEqual([projects[0]])
+    expect(loadProjectUrls).toHaveBeenCalledTimes(2)
   })
 })

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
@@ -43,7 +43,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -54,12 +54,14 @@ import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/co
 
 import { ProjectUrlItem } from './ProjectUrlItem'
 import { getCategoryDisplayName } from './projectUrlItemHelpers'
+import { SavedTabsSelectionProvider } from './selection/SavedTabsSelectionProvider'
 
 const sendMessageMock = vi.fn()
 
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
@@ -168,6 +170,44 @@ describe('ProjectUrlItem', () => {
     cleanup()
   })
 
+  it('選択モードでは行クリックで開かず、選択した URL を削除コールバックへ渡す', async () => {
+    const user = userEvent.setup()
+    const handleOpenUrl = vi.fn()
+    const onDelete = vi.fn(async () => {})
+    const item = {
+      url: 'https://example.com/path',
+      title: 'Example',
+    }
+
+    render(
+      <SavedTabsSelectionProvider
+        scopeKey=''
+        confirmDeleteAll={false}
+        hasSelectableTabs
+        onOpen={async () => {}}
+        onDelete={onDelete}
+      >
+        <ProjectUrlItem {...createProps({ handleOpenUrl, item })} />
+      </SavedTabsSelectionProvider>,
+    )
+
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'タブを選択' }))
+    expect(screen.queryByTestId('project-url-drag-handle')).toBeNull()
+
+    const link = screen.getByRole('link', { name: 'Example' })
+    await user.click(link)
+    expect(handleOpenUrl).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('checkbox', { name: 'Exampleを選択' }),
+    ).toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: '選択したタブを削除' }))
+    expect(onDelete).toHaveBeenCalledExactlyOnceWith([
+      { groupId: 'project-1', title: 'Example', url: item.url },
+    ])
+  })
+
   it('keeps identical URLs in separate projects independently draggable and restores focus to the handle', () => {
     const setActivatorNodeRef = vi.fn()
     useSortableMock.mockReturnValue({
@@ -193,7 +233,6 @@ describe('ProjectUrlItem', () => {
     )
   })
 
-  // eslint-disable-next-line eslint/complexity
   it('未分類URLを描画しリンククリックと即時削除を処理する', async () => {
     const user = userEvent.setup()
     const handleOpenUrl = vi.fn()

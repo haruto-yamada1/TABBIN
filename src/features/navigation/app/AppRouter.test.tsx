@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const routeModuleLoads = vi.hoisted(() => ({
   aiChat: 0,
+  academy: 0,
   failingFeature: '',
 }))
 
@@ -95,6 +96,11 @@ vi.mock('@/features/analytics/routes/AnalyticsRoute', () => ({
 vi.mock('@/features/periodic-execution/routes/PeriodicExecutionRoute', () => ({
   PeriodicExecutionRoute: () => <div>periodic-execution-route</div>,
 }))
+
+vi.mock('@/features/academy/presentation/AcademyRoute', () => {
+  routeModuleLoads.academy += 1
+  return { AcademyRoute: () => <div>academy-route</div> }
+})
 
 vi.mock('@/features/options/routes/OptionsRoute', () => ({
   OptionsRoute: () => <div>options-route</div>,
@@ -219,6 +225,16 @@ describe('AppRouter', () => {
       expect(screen.queryByRole('alert')).toBeNull()
     },
   )
+
+  it('Academy は他画面の初回表示では読み込まず、詳細URLから直接開ける', async () => {
+    const before = routeModuleLoads.academy
+    const view = render(<AppRouter initialEntries={['/options']} />)
+    await screen.findByText('options-route')
+    expect(routeModuleLoads.academy).toBe(before)
+    view.unmount()
+    render(<AppRouter initialEntries={['/academy/domain-mode']} />)
+    expect(await screen.findByText('academy-route')).toBeTruthy()
+  })
 
   it('options route を開ける', async () => {
     render(<AppRouter initialEntries={['/options']} />)

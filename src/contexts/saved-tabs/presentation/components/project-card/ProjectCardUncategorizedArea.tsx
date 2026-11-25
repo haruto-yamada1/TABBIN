@@ -61,7 +61,7 @@ export const ProjectCardUncategorizedArea = () => {
   if (urls.projectUrls.length > 0 && urls.uncategorizedUrls.length > 0) {
     return (
       <section
-        className={`uncategorized-area uncategorized-drop-zone overflow-x-hidden rounded border border-dashed border-muted px-4 ${feedback.className}`}
+        className={`uncategorized-area uncategorized-drop-zone overflow-x-hidden rounded border border-dashed border-muted px-3 ${feedback.className}`}
         data-drop-state={feedback.state}
         ref={setUncategorizedDropRef}
         id={`uncategorized-${project.id}`}

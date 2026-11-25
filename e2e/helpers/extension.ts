@@ -1,5 +1,4 @@
 /* eslint-disable */
-/* eslint-disable typescript/no-misused-promises, typescript/no-floating-promises, typescript/no-unsafe-argument, typescript/TS7006 */
 import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -69,9 +68,11 @@ export const test = base.extend<ExtensionFixtures>({
   },
   page: async ({ extensionContext }, runFixture) => {
     const page = await extensionContext.newPage()
-    await runFixture(page).finally(async () => {
+    try {
+      await runFixture(page)
+    } finally {
       await page.close()
-    })
+    }
   },
   serviceWorker: async ({ extensionContext }, runFixture) => {
     let [serviceWorker] = extensionContext.serviceWorkers()
@@ -79,6 +80,17 @@ export const test = base.extend<ExtensionFixtures>({
     if (!serviceWorker) {
       serviceWorker = await extensionContext.waitForEvent('serviceworker')
     }
+
+    // Seeding must follow onInstalled: its asynchronous setup can otherwise
+    // overwrite a scenario's seed after chrome.storage.local.clear().
+    await expect
+      .poll(async () =>
+        serviceWorker.evaluate(async () => {
+          const values = await chrome.storage.local.get('changelogShown')
+          return values.changelogShown === true
+        }),
+      )
+      .toBe(true)
 
     await runFixture(serviceWorker)
   },
@@ -102,6 +114,8 @@ export const defaultUserSettings = {
   removeTabAfterExternalDrop: true,
   removeTabAfterOpen: true,
   showSavedTime: false,
+  // Saved-collection scenarios opt out; the display-setting scenario tests defaults.
+  showOpenTabs: false,
 }
 
 export const createBaseSeed = (overrides?: Record<string, unknown>) => ({
@@ -212,14 +226,12 @@ export const readStorage = async <T>(
   keys?: string | string[],
 ) =>
   serviceWorker.evaluate(async (value) => {
-    // eslint-disable-line
     const getItems = (
       query?: Record<string, unknown> | string | string[],
     ): Promise<Record<string, unknown>> =>
       new Promise((resolve) => {
         if (query === undefined) {
           chrome.storage.local.get((items: Record<string, unknown>) => {
-            // eslint-disable-line typescript/TS7006
             resolve(items)
           })
           return

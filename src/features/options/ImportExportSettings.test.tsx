@@ -9,7 +9,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ImportExportSettings } from './ImportExportSettings'
 import { inspectBackupV2 } from './lib/import-export/v2/BackupV2Inspector'
@@ -238,7 +238,7 @@ describe('ImportExportSettingsコンポーネント', () => {
       MockFileReader as unknown as typeof FileReader
 
     vi.mocked(exportBackupV2).mockResolvedValue({
-      appVersion: '2.0.19',
+      appVersion: '2.0.20',
       data: {
         analyticsViews: [],
         conversations: [],
@@ -260,6 +260,7 @@ describe('ImportExportSettingsコンポーネント', () => {
           openAllInNewWindow: false,
           openUrlInBackground: true,
           removeTabAfterExternalDrop: true,
+          protectFavoriteFromAutoRemoval: true,
           removeTabAfterOpen: true,
           showRelativeSavedTime: false,
           showSavedTime: false,
@@ -524,7 +525,7 @@ describe('ImportExportSettingsコンポーネント', () => {
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-08-12T00:00:00.000Z',
-        version: '2.0.19',
+        version: '2.0.20',
       },
     })
     vi.mocked(importSettings).mockResolvedValue({

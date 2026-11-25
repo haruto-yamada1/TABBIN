@@ -82,7 +82,9 @@ export const resolveGroupUrls = ({
   }
   const categoryByUrlId = new Map(
     group.memberships.flatMap(({ categoryId, urlId }) =>
-      categoryId ? [[urlId, categoryId] as const] : [],
+      typeof categoryId === 'string' && categoryId.length > 0
+        ? [[urlId, categoryId] as const]
+        : [],
     ),
   )
   const categoryNameById = new Map(
@@ -95,9 +97,8 @@ export const resolveGroupUrls = ({
     }
     const recordId = urlRecordIdToString(record.id)
     const categoryId = categoryByUrlId.get(recordId)
-    const subCategory = categoryId
-      ? categoryNameById.get(categoryId)
-      : undefined
+    const subCategory =
+      categoryId === undefined ? undefined : categoryNameById.get(categoryId)
     return [
       {
         ...(record.isFavorite !== undefined
@@ -107,7 +108,9 @@ export const resolveGroupUrls = ({
         savedAt: record.savedAt,
         title: record.title,
         url: record.url,
-        ...(subCategory ? { subCategory } : {}),
+        ...(subCategory !== undefined && subCategory !== ''
+          ? { subCategory }
+          : {}),
       },
     ]
   })

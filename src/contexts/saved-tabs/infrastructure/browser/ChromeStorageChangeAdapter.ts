@@ -64,6 +64,9 @@ type UserSettingsPayload = Extract<
 const toUserSettingsPresentationPayload = (
   settings: ParsedUserSettingsPayload,
 ): UserSettingsPayload => ({
+  ...(settings.showOpenTabs !== undefined
+    ? { showOpenTabs: settings.showOpenTabs }
+    : {}),
   ...(settings.activeAiSystemPromptId !== undefined
     ? { activeAiSystemPromptId: settings.activeAiSystemPromptId }
     : {}),
@@ -109,6 +112,11 @@ const toUserSettingsBehaviorPayload = (
     : {}),
   ...(settings.openUrlInBackground !== undefined
     ? { openUrlInBackground: settings.openUrlInBackground }
+    : {}),
+  ...(settings.protectFavoriteFromAutoRemoval !== undefined
+    ? {
+        protectFavoriteFromAutoRemoval: settings.protectFavoriteFromAutoRemoval,
+      }
     : {}),
   ...(settings.removeTabAfterExternalDrop !== undefined
     ? { removeTabAfterExternalDrop: settings.removeTabAfterExternalDrop }

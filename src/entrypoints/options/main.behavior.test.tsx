@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Children, createElement, isValidElement } from 'react'
-import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { OptionsPage } from '@/features/options/routes/OptionsRoute'
 import type { UserSettings } from '@/types/storage'
@@ -77,17 +77,23 @@ vi.mock('@/components/ui/button', () => ({
     children,
     onClick,
     type = 'button',
+    asChild = false,
     ...props
   }: {
     children: React.ReactNode
     onClick?: () => void
     type?: 'button' | 'submit'
-  } & Record<string, unknown>) => (
-    // eslint-disable-next-line react/button-has-type
-    <button onClick={onClick} type={type} {...props}>
-      {children}
-    </button>
-  ),
+  } & Record<string, unknown>): React.ReactNode => {
+    if (asChild) {
+      return children
+    }
+    return (
+      // eslint-disable-next-line react/button-has-type -- preserve the mocked Button's variable type
+      <button onClick={onClick} type={type} {...props}>
+        {children}
+      </button>
+    )
+  },
 }))
 
 vi.mock('@/components/ui/checkbox', () => ({
@@ -100,7 +106,6 @@ vi.mock('@/components/ui/checkbox', () => ({
     id?: string
     onCheckedChange?: (checked: boolean) => void
   }) => (
-    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <input
       id={id}
       type='checkbox'

@@ -5,6 +5,7 @@ import type {
   TypedSavedTabsStorageChange,
 } from '@/contexts/saved-tabs/application/ports/StorageChangePort'
 import { logger } from '@/lib/logging/logger'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 const CURRENT_DATA_HINT: TypedSavedTabsStorageChange = {
   key: 'urls',
@@ -67,14 +68,16 @@ export const useSavedTabsStorageSync = (
       if (!draining) {
         draining = true
         const previous = inFlightDrainRef.current
-        const current = previous ? previous.then(drain, drain) : drain()
+        const current = previous
+          ? handlePromiseSettlement(previous, drain, drain)
+          : drain()
         inFlightDrainRef.current = current
         const finish = () => {
           if (inFlightDrainRef.current === current) {
             inFlightDrainRef.current = undefined
           }
         }
-        void current.then(finish, finish)
+        void handlePromiseSettlement(current, finish, finish)
       }
     }
     const refresh = () => {

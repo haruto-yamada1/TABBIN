@@ -17,6 +17,7 @@ import type { UrlRecord } from '@/contexts/saved-tabs/domain/entities/UrlRecord'
 import type { CustomProjectRepository } from '@/contexts/saved-tabs/domain/repositories/CustomProjectRepository'
 import type { TabGroupRepository } from '@/contexts/saved-tabs/domain/repositories/TabGroupRepository'
 import type { UrlRecordRepository } from '@/contexts/saved-tabs/domain/repositories/UrlRecordRepository'
+import type { UserSettingsRepository } from '@/contexts/saved-tabs/domain/repositories/UserSettingsRepository'
 import {
   lookupUrlRecordIdsByUrl,
   removeUrlRecordIdsFromTabGroups,
@@ -31,6 +32,7 @@ export type OpenAllSavedUrlsUseCaseDeps = {
   readonly tabGroupRepository: TabGroupRepository
   readonly urlRecordRepository: UrlRecordRepository
   readonly customProjectRepository: CustomProjectRepository
+  readonly userSettingsRepository: UserSettingsRepository
   readonly browserTabPort: BrowserTabPort
   readonly browserWindowPort: BrowserWindowPort
 }
@@ -72,6 +74,7 @@ type SavedUrlsSnapshot = {
   readonly tabGroups: readonly TabGroup[]
   readonly urlRecords: readonly UrlRecord[]
   readonly customProjects: readonly CustomProject[]
+  readonly protectFavoriteFromAutoRemoval: boolean
 }
 
 // Bounds native creation pressure in both modes. A new window starts with at
@@ -116,7 +119,7 @@ const openRequestedUrls = async (
   }
   report()
 
-  if (command.mode === 'newWindow' && !options.signal?.aborted) {
+  if (command.mode === 'newWindow' && options.signal?.aborted !== true) {
     const batch = command.urls.slice(0, MAX_CONCURRENT_URL_OPENS)
     next = batch.length
     try {
@@ -175,7 +178,7 @@ const openRequestedUrls = async (
     }
   }
   const worker = async (): Promise<void> => {
-    if (next >= command.urls.length || options.signal?.aborted) {
+    if (next >= command.urls.length || options.signal?.aborted === true) {
       return
     }
     await openOne(next++)
@@ -205,12 +208,14 @@ const openRequestedUrls = async (
 
 const computeRemovalPlan = ({
   openedUrls,
+  protectFavoriteFromAutoRemoval,
   removeTabAfterOpen,
   urlRecords,
   tabGroups,
   customProjects,
 }: {
   readonly openedUrls: readonly string[]
+  readonly protectFavoriteFromAutoRemoval: boolean
   readonly removeTabAfterOpen: boolean
   readonly urlRecords: readonly UrlRecord[]
   readonly tabGroups: readonly TabGroup[]
@@ -234,7 +239,18 @@ const computeRemovalPlan = ({
   // 開いた URL 文字列 → UrlRecordId への逆引き。UrlRecord に存在しない
   // URL（保存タブに登録されていない URL）は単純に無視する。
   const effectiveIds = lookupUrlRecordIdsByUrl({ urlRecords, urls: openedUrls })
-  if (effectiveIds.size === 0) {
+  const favoriteIds = protectFavoriteFromAutoRemoval
+    ? new Set(
+        urlRecords
+          .filter(({ isFavorite }) => isFavorite === true)
+          .map(({ id }) => id),
+      )
+    : undefined
+  const idsToRemove =
+    favoriteIds === undefined
+      ? effectiveIds
+      : new Set([...effectiveIds].filter((id) => !favoriteIds.has(id)))
+  if (idsToRemove.size === 0) {
     return {
       previousCustomProjects,
       previousTabGroups,
@@ -247,13 +263,13 @@ const computeRemovalPlan = ({
 
   const updatedTabGroups = removeUrlRecordIdsFromTabGroups({
     tabGroups: previousTabGroups,
-    urlRecordIdsToRemove: effectiveIds,
+    urlRecordIdsToRemove: idsToRemove,
   })
 
   const updatedCustomProjects: CustomProject[] = previousCustomProjects.map(
     (project) => {
       const remaining = project.memberships.filter(
-        ({ urlId }) => !effectiveIds.has(urlId),
+        ({ urlId }) => !idsToRemove.has(urlId),
       )
       if (remaining.length === project.memberships.length) {
         return project
@@ -263,7 +279,7 @@ const computeRemovalPlan = ({
   )
 
   const urlRecordsInTarget = previousUrlRecords.filter((record) =>
-    effectiveIds.has(record.id),
+    idsToRemove.has(record.id),
   )
   const unreferenced = filterUnreferencedUrlRecords({
     customProjects: updatedCustomProjects,
@@ -297,6 +313,7 @@ const openAndRemoveFromSnapshot = async (
       // trailing slash). The requested URLs identify the saved records that
       // were successfully opened, so use them for removal matching.
       openedUrls: openedRequestedUrls,
+      protectFavoriteFromAutoRemoval: savedUrls.protectFavoriteFromAutoRemoval,
       removeTabAfterOpen: command.removeTabAfterOpen,
       tabGroups: savedUrls.tabGroups,
       urlRecords: savedUrls.urlRecords,
@@ -390,19 +407,26 @@ export const createOpenAllSavedUrlsUseCase = (
       }
     }
 
-    const [allTabGroups, allUrlRecords, allCustomProjects] = await Promise.all([
-      deps.tabGroupRepository.findAll(),
-      deps.urlRecordRepository.findAll(),
-      deps.customProjectRepository.findAll(),
-    ])
+    const [allTabGroups, allUrlRecords, allCustomProjects, settings] =
+      await Promise.all([
+        deps.tabGroupRepository.findAll(),
+        deps.urlRecordRepository.findAll(),
+        deps.customProjectRepository.findAll(),
+        deps.userSettingsRepository.findAll(),
+      ])
 
     // 保存状態の取得が成功してから開く。取得失敗時にブラウザ操作だけが
     // 先行しないよう、この snapshot をオープン・削除フェーズへ渡す。
     return openAndRemoveFromSnapshot(
-      command,
+      {
+        ...command,
+        removeTabAfterOpen:
+          command.removeTabAfterOpen && settings.removeTabAfterOpen,
+      },
       deps,
       {
         customProjects: allCustomProjects,
+        protectFavoriteFromAutoRemoval: settings.protectFavoriteFromAutoRemoval,
         tabGroups: allTabGroups,
         urlRecords: allUrlRecords,
       },

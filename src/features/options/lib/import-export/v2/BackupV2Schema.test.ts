@@ -29,6 +29,7 @@ const userSettings = {
   excludePinnedTabs: false,
   openAllInNewWindow: false,
   openUrlInBackground: false,
+  protectFavoriteFromAutoRemoval: true,
   removeTabAfterExternalDrop: false,
   removeTabAfterOpen: false,
   showRelativeSavedTime: false,
@@ -193,6 +194,38 @@ describe('Backup V2 schemas', () => {
     },
   )
 
+  it('imports older Backup V2 settings with favorite protection enabled', () => {
+    const data = BackupMapper.toBackupData(
+      createLogicalSnapshot(),
+      userSettings,
+    )
+    const {
+      protectFavoriteFromAutoRemoval: _protectFavoriteFromAutoRemoval,
+      ...legacySettings
+    } = data.userSettings
+    const parsed = BackupDataV2Schema.parse({
+      ...data,
+      userSettings: legacySettings,
+    })
+
+    expect(parsed.userSettings).toMatchObject({
+      protectFavoriteFromAutoRemoval: true,
+      showSavedTime: true,
+    })
+  })
+
+  it('round-trips favorite protection OFF through Backup V2', () => {
+    const data = BackupMapper.toBackupData(createLogicalSnapshot(), {
+      ...userSettings,
+      protectFavoriteFromAutoRemoval: false,
+    })
+
+    expect(
+      BackupDataV2Schema.parse(data).userSettings
+        .protectFavoriteFromAutoRemoval,
+    ).toBe(false)
+  })
+
   it('imports older Backup V2 settings with relative saved time disabled', () => {
     const data = BackupMapper.toBackupData(
       createLogicalSnapshot(),
@@ -211,6 +244,37 @@ describe('Backup V2 schemas', () => {
       showRelativeSavedTime: false,
       showSavedTime: true,
     })
+  })
+
+  it.each([true, false])(
+    'round-trips the open tabs display setting %j in Backup V2',
+    (showOpenTabs) => {
+      const data = BackupMapper.toBackupData(createLogicalSnapshot(), {
+        ...userSettings,
+        showOpenTabs,
+      })
+      const serialized = JSON.stringify(data)
+      const decoded: unknown = JSON.parse(serialized)
+      expect(BackupDataV2Schema.parse(decoded).userSettings).toMatchObject({
+        showOpenTabs,
+      })
+    },
+  )
+
+  it('accepts older backups without the open tabs display setting', () => {
+    const data = BackupMapper.toBackupData(
+      createLogicalSnapshot(),
+      userSettings,
+    )
+    expect(
+      BackupDataV2Schema.parse(data).userSettings.showOpenTabs,
+    ).toBeUndefined()
+    expect(
+      BackupDataV2Schema.safeParse({
+        ...data,
+        userSettings: { ...data.userSettings, showOpenTabs: 'true' },
+      }).success,
+    ).toBe(false)
   })
 
   it('round-trips relative saved time independently of its parent setting', () => {

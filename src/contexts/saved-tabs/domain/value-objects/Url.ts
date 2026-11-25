@@ -35,7 +35,6 @@ export const createUrl = (value: string): Url => {
     throw new SavedTabsDomainError('URL は空文字列にできません', 'INVALID_URL')
   }
   try {
-    // eslint-disable-next-line no-new
     new URL(value)
   } catch {
     throw new SavedTabsDomainError('URL の形式が不正です', 'INVALID_URL')

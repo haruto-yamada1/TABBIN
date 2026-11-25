@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { logger } from '@/lib/logging/logger'
 import { backgroundMessageSchema } from '@/types/background'
@@ -82,7 +82,7 @@ describe('setupMessageListener', () => {
       }
     ).chrome = {
       alarms: {
-        get: vi.fn((_name, callback) => callback?.(null)), // eslint-disable-line
+        get: vi.fn((_name, callback) => callback?.(null)),
       },
       runtime: {
         getURL: (path: string) =>
@@ -90,20 +90,18 @@ describe('setupMessageListener', () => {
         id: 'test-extension-id',
         onConnect: {
           addListener: vi.fn((callback) => {
-            // eslint-disable-line
             portListener = callback
           }),
         },
         onMessage: {
           addListener: vi.fn((callback) => {
-            // eslint-disable-line
             listener = callback
           }),
         },
       },
       storage: {
         local: {
-          get: vi.fn((_keys, callback) => callback?.({ userSettings: {} })), // eslint-disable-line
+          get: vi.fn((_keys, callback) => callback?.({ userSettings: {} })),
         },
       },
     } as unknown as typeof chrome
@@ -128,12 +126,46 @@ describe('setupMessageListener', () => {
     vi.clearAllMocks()
   })
 
+  it('validates bounded capture input from a top-frame content script without admitting privileged messages', () => {
+    const { listener } = setupListener()
+    const sender = {
+      id: 'test-extension-id',
+      frameId: 0,
+      url: 'https://example.com/',
+      tab: { id: 7, url: 'https://example.com/', incognito: false },
+    }
+    const sendResponse = vi.fn()
+    expect(
+      listener(
+        {
+          action: 'saveLinkCapture',
+          requestId: 'capture',
+          links: 'not-an-array',
+        },
+        sender,
+        sendResponse,
+      ),
+    ).toBe(false)
+    expect(sendResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'invalid_message' }),
+    )
+    sendResponse.mockClear()
+    expect(
+      listener(
+        { action: 'removeUrlFromStorage', url: 'https://example.com/' },
+        sender,
+        sendResponse,
+      ),
+    ).toBe(false)
+    expect(sendResponse).toHaveBeenCalledWith({ status: 'forbidden' })
+  })
+
   it.each(rejectedSenders)(
     'rejects every privileged message from an untrusted sender: %j',
     (sender) => {
       const { listener } = setupListener()
       mocked.handleUrlDropped.mockResolvedValue('removed')
-      mocked.removeUrlFromStorage.mockResolvedValue(undefined)
+      mocked.removeUrlFromStorage.mockResolvedValue(1)
       mocked.removeUrlRecordsFromStorage.mockResolvedValue(1)
       mocked.checkAndRemoveExpiredTabs.mockResolvedValue(undefined)
       mocked.updateTabTimestamps.mockResolvedValue(undefined)
@@ -528,6 +560,93 @@ describe('setupMessageListener', () => {
     })
   })
 
+  it('URL IDとsender tabを保持し旧URL-only契約も受け付ける', async () => {
+    const { listener } = setupListener()
+    const source = { ...trustedSender, tab: { id: 11 } }
+    const response = vi.fn()
+    mocked.handleUrlDropped.mockResolvedValue('removed')
+    mocked.removeUrlFromStorage.mockResolvedValue(1)
+    listener(
+      {
+        action: 'urlDragStarted',
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+        dragId: 'drag-1',
+      },
+      source,
+      response,
+    )
+    expect(mocked.handleUrlDragStarted).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      'url-1',
+      11,
+      'drag-1',
+    )
+    listener(
+      {
+        action: 'urlDropped',
+        fromExternal: true,
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+        dragId: 'drag-1',
+      },
+      source,
+      response,
+    )
+    expect(mocked.handleUrlDropped).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      true,
+      { urlRecordId: 'url-1', sourceTabId: 11, dragId: 'drag-1' },
+    )
+    listener(
+      {
+        action: 'removeUrlFromStorage',
+        url: 'https://EXAMPLE.com',
+        urlRecordId: 'url-1',
+      },
+      trustedSender,
+      response,
+    )
+    expect(mocked.removeUrlFromStorage).toHaveBeenCalledWith(
+      'https://EXAMPLE.com',
+      'url-1',
+    )
+    await vi.waitFor(() =>
+      expect(response).toHaveBeenCalledWith({
+        status: 'removed',
+        removedCount: 1,
+      }),
+    )
+    expect(
+      backgroundMessageSchema.safeParse({
+        action: 'urlDragStarted',
+        url: 'https://example.com',
+        urlRecordId: '',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('0件のURL削除はremovedを通知しない', async () => {
+    const { listener } = setupListener()
+    const response = vi.fn()
+    mocked.removeUrlFromStorage.mockResolvedValueOnce(0)
+    listener(
+      {
+        action: 'removeUrlFromStorage',
+        url: 'https://example.com',
+        urlRecordId: 'missing-id',
+      },
+      trustedSender,
+      response,
+    )
+    await vi.waitFor(() =>
+      expect(response).toHaveBeenCalledWith({
+        status: 'skipped',
+        removedCount: 0,
+      }),
+    )
+  })
+
   it('urlDragStarted, urlDropped, removeUrlFromStorage を処理する', async () => {
     const { listener } = setupListener()
     const dragStartedResponse = vi.fn()
@@ -535,7 +654,7 @@ describe('setupMessageListener', () => {
     const internalResponse = vi.fn()
     const removeResponse = vi.fn()
     mocked.handleUrlDropped.mockResolvedValue('removed')
-    mocked.removeUrlFromStorage.mockResolvedValue(undefined)
+    mocked.removeUrlFromStorage.mockResolvedValue(1)
 
     expect(
       listener(
@@ -546,6 +665,9 @@ describe('setupMessageListener', () => {
     ).toBe(true)
     expect(mocked.handleUrlDragStarted).toHaveBeenCalledWith(
       'https://example.com',
+      undefined,
+      undefined,
+      undefined,
     )
     expect(dragStartedResponse).toHaveBeenCalledWith({ status: 'ok' })
 
@@ -587,6 +709,7 @@ describe('setupMessageListener', () => {
     )
     await vi.waitFor(() => {
       expect(removeResponse).toHaveBeenCalledWith({
+        removedCount: 1,
         status: 'removed',
       })
     })
@@ -788,14 +911,21 @@ describe('setupMessageListener', () => {
       timeRemaining: null,
     })
 
-    const nonErrorCases: [thrown: unknown, expectedError: string][] = [
+    const hostileThrownValue = Object.defineProperty({}, 'toString', {
+      get: () => {
+        throw new Error('hostile toString getter')
+      },
+    })
+    const nonErrorCases: [thrown: unknown, expectedError?: string][] = [
       [42, '42'],
       [{ reason: 'boom' }, '[object Object]'],
       [Symbol('boom'), 'Symbol(boom)'],
+      [null],
+      [undefined],
+      [hostileThrownValue],
     ]
     for (const [thrown, expectedError] of nonErrorCases) {
       mocked.getExpirationPeriodMs.mockImplementation(() => {
-        // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- JavaScript permits arbitrary thrown values; this verifies the runtime boundary.
         throw thrown
       })
       const nonErrorResponse = vi.fn()
@@ -808,56 +938,15 @@ describe('setupMessageListener', () => {
         trustedSender,
         nonErrorResponse,
       )
-      expect(nonErrorResponse).toHaveBeenCalledWith({
-        error: expectedError,
-        timeRemaining: null,
-      })
+      expect(nonErrorResponse.mock.calls).toStrictEqual([
+        [
+          {
+            timeRemaining: null,
+            ...(expectedError === undefined ? {} : { error: expectedError }),
+          },
+        ],
+      ])
     }
-
-    for (const thrown of [null, undefined]) {
-      mocked.getExpirationPeriodMs.mockImplementation(() => {
-        // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- JavaScript permits nullish thrown values; this verifies omission semantics.
-        throw thrown
-      })
-      const nullishResponse = vi.fn()
-      listener(
-        {
-          action: 'calculateTimeRemaining',
-          autoDeletePeriod: '1day',
-          savedAt: 10,
-        },
-        trustedSender,
-        nullishResponse,
-      )
-      expect(nullishResponse).toHaveBeenCalledWith({
-        timeRemaining: null,
-      })
-      expect(nullishResponse.mock.calls[0]?.[0]).not.toHaveProperty('error')
-    }
-
-    const hostileThrownValue = Object.defineProperty({}, 'toString', {
-      get: () => {
-        throw new Error('hostile toString getter')
-      },
-    })
-    mocked.getExpirationPeriodMs.mockImplementation(() => {
-      // eslint-disable-next-line eslint/no-throw-literal, typescript/only-throw-error -- Exercises an untrusted runtime value whose coercion accessor throws.
-      throw hostileThrownValue
-    })
-    const hostileResponse = vi.fn()
-    listener(
-      {
-        action: 'calculateTimeRemaining',
-        autoDeletePeriod: '1day',
-        savedAt: 10,
-      },
-      trustedSender,
-      hostileResponse,
-    )
-    expect(hostileResponse).toHaveBeenCalledWith({
-      timeRemaining: null,
-    })
-    expect(hostileResponse.mock.calls[0]?.[0]).not.toHaveProperty('error')
   })
 
   it('期限切れチェックと時刻更新の success/error を返す', async () => {
@@ -913,6 +1002,19 @@ describe('setupMessageListener', () => {
     await vi.waitFor(() => {
       expect(checkOnlySuccessResponse).toHaveBeenCalledWith({
         status: 'completed',
+      })
+    })
+
+    const reloadResponse = vi.fn()
+    listener(
+      { action: 'checkExpiredTabs', forceReload: true },
+      trustedSender,
+      reloadResponse,
+    )
+    await vi.waitFor(() => {
+      expect(reloadResponse).toHaveBeenCalledWith({ status: 'completed' })
+      expect(mocked.checkAndRemoveExpiredTabs).toHaveBeenLastCalledWith({
+        afterCurrent: true,
       })
     })
 
@@ -1024,7 +1126,6 @@ describe('setupMessageListener', () => {
     ).chrome = {
       alarms: {
         get: vi.fn((name, callback) =>
-          // eslint-disable-line
           callback?.({
             name,
             scheduledTime: 123,
@@ -1037,7 +1138,6 @@ describe('setupMessageListener', () => {
         id: 'test-extension-id',
         onMessage: {
           addListener: vi.fn((callback) => {
-            // eslint-disable-line
             listener = callback
           }),
         },
@@ -1207,7 +1307,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1570,7 +1669,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1611,7 +1709,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },
@@ -1647,7 +1744,6 @@ describe('setupMessageListener', () => {
       },
       onMessage: {
         addListener: vi.fn((listener) => {
-          // eslint-disable-line
           onPortMessage = listener
         }),
       },

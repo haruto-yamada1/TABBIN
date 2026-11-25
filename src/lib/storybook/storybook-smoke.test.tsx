@@ -2,7 +2,7 @@
 import { composeStories } from '@storybook/react'
 import { cleanup, render, screen } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as inputStories from '@/components/ai-elements/vendor/inputs.stories'
 import * as messageStories from '@/components/ai-elements/vendor/message.stories'

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   createCloseImportDialogAction,
@@ -53,12 +53,12 @@ describe('shouldCloseImportDialog', () => {
         hasAnalytics: false,
         projectsCount: 0,
         timestamp: '2026-08-12T00:00:00.000Z',
-        version: '2.0.19',
+        version: '2.0.20',
       },
     })
 
     expect(state.step).toBe('preview')
-    expect(state.previewData?.version).toBe('2.0.19')
+    expect(state.previewData?.version).toBe('2.0.20')
   })
 
   it('resetImportFileInput は input がある場合だけ value を空にする', () => {

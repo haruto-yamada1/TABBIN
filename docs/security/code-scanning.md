@@ -119,13 +119,13 @@ boundaries safe. Continue manual source-to-sink review under
 
 ## Separation from other security checks
 
-| Check                                                           | Responsibility                                                                                   |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| CodeQL Default setup                                            | JS/TS source data flow and unsafe API use; results and triage live in GitHub Code scanning.      |
-| `bun run security:audit`                                        | Known dependency advisories plus the node-forge backport probe; CI retains `--audit-level=high`. |
-| `bun run secretlint` and GitHub secret scanning/push protection | Detect accidental secret exposure. CodeQL does not replace these.                                |
-| `bun run verify:production-network-policy`                      | Generated Chrome/Firefox manifest permissions, CSP and allowed outbound origins.                 |
-| Trust-boundary tests, `quality:check`, coverage, build and E2E  | Runtime contracts, architecture and regressions that static analysis alone cannot verify.        |
+| Check                                                           | Responsibility                                                                                                                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CodeQL Default setup                                            | JS/TS source data flow and unsafe API use; results and triage live in GitHub Code scanning.                                                                 |
+| `bun run security:audit`                                        | Audits dependencies and runs the node-forge probe. Blocks every High/Critical advisory. [Release audit policy](../release.md#リリース直前の依存脆弱性監査). |
+| `bun run secretlint` and GitHub secret scanning/push protection | Detect accidental secret exposure. CodeQL does not replace these.                                                                                           |
+| `bun run verify:production-network-policy`                      | Generated Chrome/Firefox manifest permissions, CSP and allowed outbound origins.                                                                            |
+| Trust-boundary tests, `quality:check`, coverage, build and E2E  | Runtime contracts, architecture and regressions that static analysis alone cannot verify.                                                                   |
 
 ## Permissions, cost and configuration changes
 

@@ -142,17 +142,25 @@ const createCustomProjectUndoPayload = (
     ...(customProjectOrder ? { customProjectOrder } : {}),
     customProjects,
     ...(customProjectsRaw ? { customProjectsRaw } : {}),
+    ...(snapshot.openedUrlsSnapshot
+      ? { openedUrlsSnapshot: snapshot.openedUrlsSnapshot }
+      : {}),
+    ...(snapshot.urlRecordsRaw
+      ? { urlRecordsRaw: snapshot.urlRecordsRaw }
+      : {}),
   }
 }
 
 const showCustomProjectDeleteUndoToast = ({
   count,
+  getCustomProjectRawsQuery,
   restoreCustomProjectsSnapshotUseCase,
   setCustomProjects,
   snapshot,
   t,
 }: {
   count: number
+  getCustomProjectRawsQuery: GetCustomProjectRawsQuery
   restoreCustomProjectsSnapshotUseCase: RestoreCustomProjectsSnapshotUseCase
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
   snapshot: CustomProjectUndoSnapshot
@@ -180,11 +188,18 @@ const showCustomProjectDeleteUndoToast = ({
             // `saveAll` へフォールバックする (issue #535 P1 / PR #506 review
             // P2 対応の責務を application 層へ移設)。
             await restoreCustomProjectsSnapshotUseCase({ payload })
-            setCustomProjects(
-              payload.customProjectsRaw
-                ? payload.customProjectsRaw.map(toRawStorageCustomProject)
-                : payload.customProjects.map(toSavedTabsCustomProjectViewModel),
-            )
+            if (payload.openedUrlsSnapshot) {
+              const currentProjects = await getCustomProjectRawsQuery()
+              setCustomProjects(currentProjects.map(toRawStorageCustomProject))
+            } else {
+              setCustomProjects(
+                payload.customProjectsRaw
+                  ? payload.customProjectsRaw.map(toRawStorageCustomProject)
+                  : payload.customProjects.map(
+                      toSavedTabsCustomProjectViewModel,
+                    ),
+              )
+            }
             toast.success(t('savedTabs.undo.restored'))
           } catch (error) {
             console.error(
@@ -197,6 +212,16 @@ const showCustomProjectDeleteUndoToast = ({
       },
     },
   )
+}
+
+/**
+ * 選択削除の 1 項目。`SavedTabSelectionItem` と同形だが、この層から
+ * presentation の選択ストアへ依存を増やさないため構造的に定義する。
+ */
+type SelectedUrlItem = {
+  readonly groupId: string
+  readonly title: string
+  readonly url: string
 }
 
 /** UseProjectManagement フックの戻り値型 */
@@ -271,6 +296,11 @@ type UseProjectManagementReturn = {
     projectId: string,
     urls: string[],
   ) => Promise<void>
+  /**
+   * 選択した URL を所属プロジェクトごとに一括削除する。
+   * @param items - 削除対象の選択項目
+   */
+  handleDeleteSelectedUrls: (items: SelectedUrlItem[]) => Promise<void>
   /**
    * プロジェクトにカテゴリを追加する。
    * @param projectId - 対象プロジェクトの ID

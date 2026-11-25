@@ -27,7 +27,7 @@ import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
 import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
 import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
 import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
-import { SavedTabTitleSettings } from '@/features/options/SavedTabTitleSettings'
+import { PageAccessSettings } from '@/features/options/PageAccessSettings'
 import type { UserSettings } from '@/types/storage'
 
 import {
@@ -71,6 +71,9 @@ const useOptionsRouteView = () => {
     settings,
     setSettings,
     isLoading,
+    loadError,
+    retryLoadSettings,
+    resetInvalidSettings,
     removeExcludePattern,
     updateSetting,
   } = useSettings()
@@ -177,6 +180,13 @@ const useOptionsRouteView = () => {
     [updateSetting],
   )
 
+  const handleToggleProtectFavorites = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('protectFavoriteFromAutoRemoval', checked)
+    },
+    [updateSetting],
+  )
+
   const handleToggleExcludePinnedTabs = useCallback(
     async (checked: boolean) => {
       await updateSetting('excludePinnedTabs', checked)
@@ -187,6 +197,13 @@ const useOptionsRouteView = () => {
   const handleToggleShowSavedTime = useCallback(
     async (checked: boolean) => {
       await updateSetting('showSavedTime', checked)
+    },
+    [updateSetting],
+  )
+
+  const handleToggleShowOpenTabs = useCallback(
+    async (checked: boolean) => {
+      await updateSetting('showOpenTabs', checked)
     },
     [updateSetting],
   )
@@ -296,8 +313,38 @@ const useOptionsRouteView = () => {
     )
   }, [])
 
+  const handleRetryLoadSettings = useCallback(() => {
+    void retryLoadSettings()
+  }, [retryLoadSettings])
+  const handleResetInvalidSettings = useCallback(() => {
+    void resetInvalidSettings()
+  }, [resetInvalidSettings])
+
   if (isLoading) {
     return <LoadingState minHeightClassName='min-h-[300px]' />
+  }
+  if (loadError) {
+    return (
+      <main className='mx-auto max-w-xl p-6'>
+        <h1 className='mb-6 text-3xl font-semibold'>{t('options.title')}</h1>
+        <div role='alert' className='rounded-lg border border-border p-6'>
+          <h2 className='mb-2 text-xl font-semibold'>
+            {t('options.settingsRead.title')}
+          </h2>
+          <p>{t(`options.settingsRead.${loadError}`)}</p>
+          <div className='mt-4 flex flex-wrap gap-3'>
+            <Button onClick={handleRetryLoadSettings}>
+              {t('options.settingsRead.retry')}
+            </Button>
+            {loadError === 'invalid' && (
+              <Button variant='outline' onClick={handleResetInvalidSettings}>
+                {t('options.settingsRead.reset')}
+              </Button>
+            )}
+          </div>
+        </div>
+      </main>
+    )
   }
   const activeExcludePatterns = settings.excludePatterns.filter((pattern) =>
     pattern.trim(),
@@ -330,7 +377,7 @@ const useOptionsRouteView = () => {
           onBaseUrlChange={handleOllamaBaseUrlChange}
         />
 
-        <SavedTabTitleSettings />
+        <PageAccessSettings />
 
         <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
           <h2 className='mb-4 text-xl font-semibold text-foreground'>
@@ -379,6 +426,25 @@ const useOptionsRouteView = () => {
           </div>
           <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.externalDropDescription')}
+          </p>
+
+          <div className='mt-6 mb-4 flex items-center gap-x-2'>
+            <Checkbox
+              id='protect-favorites'
+              checked={settings.protectFavoriteFromAutoRemoval}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onCheckedChange={handleToggleProtectFavorites}
+              className='cursor-pointer'
+            />
+            <Label
+              htmlFor='protect-favorites'
+              className='cursor-pointer text-foreground'
+            >
+              {t('options.autoDelete.protectFavorites')}
+            </Label>
+          </div>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
+            {t('options.autoDelete.protectFavoritesDescription')}
           </p>
 
           <div className='mt-6 mb-4 flex items-center gap-x-2'>
@@ -436,6 +502,25 @@ const useOptionsRouteView = () => {
           </div>
           <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.allWindowsDescription')}
+          </p>
+
+          <div className='mt-6 mb-4 flex items-center gap-x-2'>
+            <Checkbox
+              id='show-open-tabs'
+              checked={settings.showOpenTabs !== false}
+              // eslint-disable-next-line typescript/no-misused-promises
+              onCheckedChange={handleToggleShowOpenTabs}
+              className='cursor-pointer'
+            />
+            <Label
+              htmlFor='show-open-tabs'
+              className='cursor-pointer text-foreground'
+            >
+              {t('options.showOpenTabs')}
+            </Label>
+          </div>
+          <p className='mt-1 ml-7 text-sm text-muted-foreground'>
+            {t('options.showOpenTabsDescription')}
           </p>
 
           <div className='mt-6 mb-4 flex items-center gap-x-2'>

@@ -14,7 +14,6 @@ export default class ReleaseE2EReporter implements Reporter {
     this.suite = suite
   }
 
-  // eslint-disable-next-line typescript/require-await -- Playwright accepts a status override only from an async onEnd.
   async onEnd(result: FullResult): Promise<{ status: FullResult['status'] }> {
     const tests = this.suite?.allTests() ?? []
     const missing = requiredTags.filter(

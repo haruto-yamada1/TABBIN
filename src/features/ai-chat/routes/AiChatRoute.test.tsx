@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocked = vi.hoisted(() => ({
   createConversation: vi.fn(),
@@ -38,6 +38,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
+    language: 'en',
     t: (key: string, fallback?: string, values?: Record<string, string>) => {
       const template =
         (
@@ -51,6 +52,16 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
             'aiChat.historySaveError':
               'Conversation changes could not be saved.',
             'aiChat.historyTitle': 'Recent conversations',
+            'aiChat.history.clearSearch': 'Clear search',
+            'aiChat.history.messageMatches': 'Matched messages: {{count}}',
+            'aiChat.history.openSearchResultAria':
+              'Open conversation {{title}}',
+            'aiChat.history.roleAssistant': 'AI',
+            'aiChat.history.roleUser': 'You',
+            'aiChat.history.searchAria': 'Search conversation history',
+            'aiChat.history.searchEmpty': 'No conversations match your search',
+            'aiChat.history.searchPlaceholder': 'Search past conversations',
+            'aiChat.history.titleMatched': 'Matched title',
             'common.delete': 'Delete',
             'common.cancel': 'Cancel',
             'common.loadingLabel': 'Loading',
@@ -145,14 +156,35 @@ describe('AiChatRoute', () => {
         {
           id: 'conversation-1',
           isActive: true,
+          messages: [
+            {
+              content: '最初の会話',
+              id: 'message-1',
+              role: 'user',
+            },
+          ],
           preview: '最初の会話',
           title: '最初の会話',
+          updatedAt: 1,
         },
         {
           id: 'conversation-2',
           isActive: false,
+          messages: [
+            {
+              content: '別の会話',
+              id: 'message-2',
+              role: 'user',
+            },
+            {
+              content: 'アシスタントだけが知る秘密のメモ',
+              id: 'message-3',
+              role: 'assistant',
+            },
+          ],
           preview: '別の会話',
           title: '別の会話',
+          updatedAt: 2,
         },
       ],
       isLoading: false,
@@ -197,7 +229,6 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
 
     await user.click(
-      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       screen
         .getAllByRole('button', { name: /別の会話/ })
         .find((button) => button.className.includes('flex-col')) as HTMLElement,
@@ -213,7 +244,45 @@ describe('AiChatRoute', () => {
     expect(screen.getByText('Recent conversations')).toBeTruthy()
   })
 
-  // eslint-disable-next-line eslint/complexity
+  it('サイドバーで会話本文を検索し、一致した会話を再開できる', async () => {
+    const user = userEvent.setup()
+    render(createElement(AiChatRoute))
+
+    const search = screen.getByRole('searchbox', {
+      name: 'Search conversation history',
+    })
+
+    await user.type(search, '秘密')
+
+    const result = screen.getByRole('button', {
+      name: 'Open conversation 別の会話',
+    })
+    expect(result).toHaveTextContent('秘密')
+    expect(screen.queryByTestId('conversation-row-conversation-1')).toBeNull()
+
+    await user.click(result)
+
+    expect(mocked.selectConversation).toHaveBeenCalledWith('conversation-2')
+  })
+
+  it('サイドバー検索の0件表示とクリアで元の履歴一覧へ戻る', async () => {
+    const user = userEvent.setup()
+    render(createElement(AiChatRoute))
+
+    const search = screen.getByRole('searchbox', {
+      name: 'Search conversation history',
+    })
+
+    await user.type(search, '見つからない検索語')
+
+    expect(screen.getByText('No conversations match your search')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Clear search' }))
+
+    expect(search).toHaveValue('')
+    expect(screen.getByTestId('conversation-row-conversation-1')).toBeTruthy()
+  })
+
   it('履歴項目の本文ボタンは縦積みレイアウトで削除ボタンを押し出さない', () => {
     render(createElement(AiChatRoute))
 

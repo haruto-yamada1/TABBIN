@@ -36,6 +36,7 @@ export const SubCategoryAddSection = () => {
       </h4>
       <div className='flex flex-col'>
         <Input
+          data-tour='academy-child-create'
           value={subcategory.newSubCategory}
           onChange={subcategory.handleSubCategoryNameChange}
           placeholder={t('savedTabs.subCategory.addPlaceholder')}

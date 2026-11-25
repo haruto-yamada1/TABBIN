@@ -34,7 +34,7 @@ import type {
 import type { PersistenceStorageEstimatePort } from '@/lib/persistence/capacity'
 import {
   normalizeUserSettingsForStorage,
-  readUserSettingsWithoutRepair,
+  requireUserSettings,
   saveUserSettings,
 } from '@/lib/storage/settings'
 
@@ -153,7 +153,7 @@ const defaultDeps: OptionsBackupRecoveryRuntimeDeps = {
   getOperationGate: () => getPersistenceBootstrapRuntime().operationGate,
   idGenerator: createSystemIdGenerator(),
   normalizeUserSettings: normalizeUserSettingsForStorage,
-  readUserSettings: readUserSettingsWithoutRepair,
+  readUserSettings: requireUserSettings,
   writeUserSettings: saveUserSettings,
 }
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest' // eslint-disable-line
+import { describe, expect, it } from 'vitest'
 
 import {
   getDocumentTitle,
@@ -9,6 +9,15 @@ import {
 } from './title'
 
 describe('title helpers', () => {
+  it('Academy 詳細の直アクセスにも学習画面のタイトルを付ける', () => {
+    expect(
+      resolveDocumentTitleFromPathname('/academy/domain-mode', 'en', 'en-US'),
+    ).toBe('(preview)TABBIN Academy')
+    expect(resolveDocumentTitleFromPathname('/academy', 'ja', 'ja-JP')).toBe(
+      '(preview)TABBIN Academy',
+    )
+  })
+
   it('ページ ID をタイトルキーへ解決する', () => {
     expect(resolveTitleKey('options')).toBe('htmlTitle.options')
     expect(resolveTitleKey('changelog')).toBe('htmlTitle.changelog')

@@ -40,7 +40,6 @@ type UseCategoryGroupStateParams = {
  * @returns 折りたたみ・ソート・並び替え・モーダル・DnD関連の状態と操作
  */
 export const useCategoryGroupState = ({
-  // eslint-disable-line eslint/max-lines-per-function
   category,
   domains,
   handleUpdateDomainsOrder,
@@ -297,7 +296,6 @@ export const useCategoryGroupState = ({
   // --- 個別ドメイン削除のラッパー ---
   const handleDeleteSingleDomain = useCallback(
     (domainId: string) => {
-      // eslint-disable-next-line typescript/no-confusing-void-expression
       handleDeleteGroup(domainId)
       if (isReorderMode) {
         const filteredTempOrder = tempDomainOrder.filter(

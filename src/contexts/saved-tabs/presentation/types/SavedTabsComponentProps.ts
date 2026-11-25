@@ -85,6 +85,8 @@ export type SortableUrlItemProps = {
   url: string
   title: string
   id: string
+  /** 永続 URL ID。並べ替え用 id とは別に保持する。 */
+  urlRecordId?: string
   groupId: string
   subCategory?: string
   savedAt?: number
@@ -97,7 +99,8 @@ export type SortableUrlItemProps = {
     url: string,
     subCategory: string,
   ) => void
-  handleUpdateUrls: (
+  /** body 内で参照しない非推奨プロパティ。「今開いているタブ」行では省略可。 */
+  handleUpdateUrls?: (
     groupId: string,
     updatedUrls: { url: string; title: string; subCategory?: string }[],
   ) => void | Promise<void>

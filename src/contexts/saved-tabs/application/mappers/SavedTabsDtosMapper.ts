@@ -35,6 +35,9 @@ import type {
  * 値をそのまま詰め替える。
  */
 export const toUserSettingsDto = (storage: UserSettings): UserSettingsDto => ({
+  ...(storage.showOpenTabs !== undefined
+    ? { showOpenTabs: storage.showOpenTabs }
+    : {}),
   ...(storage.activeAiSystemPromptId !== undefined
     ? { activeAiSystemPromptId: storage.activeAiSystemPromptId }
     : {}),
@@ -62,6 +65,7 @@ export const toUserSettingsDto = (storage: UserSettings): UserSettingsDto => ({
     : {}),
   openAllInNewWindow: storage.openAllInNewWindow,
   openUrlInBackground: storage.openUrlInBackground,
+  protectFavoriteFromAutoRemoval: storage.protectFavoriteFromAutoRemoval,
   removeTabAfterExternalDrop: storage.removeTabAfterExternalDrop,
   removeTabAfterOpen: storage.removeTabAfterOpen,
   showRelativeSavedTime: storage.showRelativeSavedTime,
@@ -78,6 +82,9 @@ export const toStorageUserSettings = (dto: UserSettingsDto): UserSettings => {
   // OK: structural copy with optional fields stripped from undefined.
   // `excludePatterns` は必須フィールドなので常にコピーする。
   const result: UserSettings = {
+    ...(dto.showOpenTabs !== undefined
+      ? { showOpenTabs: dto.showOpenTabs }
+      : {}),
     clickBehavior: dto.clickBehavior,
     confirmDeleteAll: dto.confirmDeleteAll,
     confirmDeleteEach: dto.confirmDeleteEach,
@@ -86,6 +93,7 @@ export const toStorageUserSettings = (dto: UserSettingsDto): UserSettings => {
     excludePinnedTabs: dto.excludePinnedTabs,
     openAllInNewWindow: dto.openAllInNewWindow,
     openUrlInBackground: dto.openUrlInBackground,
+    protectFavoriteFromAutoRemoval: dto.protectFavoriteFromAutoRemoval,
     removeTabAfterExternalDrop: dto.removeTabAfterExternalDrop,
     removeTabAfterOpen: dto.removeTabAfterOpen,
     showRelativeSavedTime: dto.showRelativeSavedTime,

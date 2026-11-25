@@ -172,7 +172,7 @@ describe('Renovate dependency update policy', () => {
     const ciWorkflow = readRepositoryFile('.github/workflows/ci.yml')
 
     expect(packageJson.scripts['security:audit']).toBe(
-      'bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun audit --audit-level=high',
+      'bun run verify:security-audit-policy && bun run verify:node-forge-backport && bun tools/scripts/run-security-audit.ts',
     )
     expect(packageJson.scripts['verify:node-forge-backport']).toBe(
       'bun tools/scripts/verify-node-forge-backport.ts',
@@ -181,40 +181,10 @@ describe('Renovate dependency update policy', () => {
     expect(ciWorkflow).toContain('run: bun run security:audit')
   })
 
-  it('documents temporary audit exception state and rejects expired deadlines', () => {
-    const packageJson = JSON.parse(readRepositoryFile('package.json')) as {
-      scripts: Record<string, string>
-    }
-    const policy = readRepositoryFile('docs/maintenance/dependency-updates.md')
-    const auditScript = packageJson.scripts['security:audit']
-    assert.isDefined(auditScript)
-    const ignoredAdvisories = [
-      ...auditScript.matchAll(/--ignore (GHSA-[\w-]+)/g),
-    ].map(([, advisory]) => {
-      assert.isDefined(advisory)
-      return advisory
-    })
-
-    const requiredPolicyMarkers =
-      ignoredAdvisories.length === 0
-        ? ['継続する temporary exception はなく']
-        : ignoredAdvisories
-
-    for (const marker of requiredPolicyMarkers) {
-      expect(policy).toContain(marker)
-    }
-
-    const expiryInspection = inspectTemporaryAuditExceptionExpiries(
-      policy,
-      ignoredAdvisories,
-    )
-
-    expect(expiryInspection.complete).toBe(true)
-    for (const expiryDate of expiryInspection.expiryDates) {
-      const expiryEnd = Date.parse(`${expiryDate}T23:59:59+09:00`)
-
-      expect(expiryEnd).toBeGreaterThanOrEqual(Date.now())
-    }
+  it('records the picomatch advisory withdrawal in the release policy', () => {
+    const releasePolicy = readRepositoryFile('docs/release.md')
+    expect(releasePolicy).toContain('GHSA-fc5q-39xc-vjpf')
+    expect(releasePolicy).toContain('2026-11-18 15:38 UTC')
   })
 
   it('requires each ignored advisory to own its expiry date', () => {

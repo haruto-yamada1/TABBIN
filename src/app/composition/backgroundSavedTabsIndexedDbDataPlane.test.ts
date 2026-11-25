@@ -110,6 +110,83 @@ const createDataPlane = (state = createState()) => {
 }
 
 describe('backgroundSavedTabsIndexedDbDataPlane', () => {
+  it('captures only fresh URLs atomically and preserves every existing field and membership', async () => {
+    const state = createState()
+    assert.isDefined(state.urls[0])
+    state.urls[0] = { ...state.urls[0], isFavorite: true }
+    const existing = structuredClone(state.urls[0])
+    const memberships = structuredClone(state.memberships)
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.saveTabs(
+        [
+          { title: 'Untrusted replacement', url: 'https://example.com/docs' },
+          { title: 'Docs new', url: 'https://example.com/new' },
+        ],
+        { preserveExisting: true },
+      ),
+    ).resolves.toEqual({ existingCount: 1, savedCount: 1 })
+
+    expect(state.urls.find(({ id }) => id === existing.id)).toEqual(existing)
+    expect(
+      state.memberships.filter(({ urlId }) => urlId === existing.id),
+    ).toEqual(memberships)
+    expect(state.memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          collectionId: 'domain-1',
+          urlId: 'url-new',
+          categoryId: 'category-1',
+        }),
+        expect.objectContaining({
+          collectionId: 'project-1',
+          urlId: 'url-new',
+        }),
+      ]),
+    )
+    const afterCapture = structuredClone(state)
+    await expect(
+      dataPlane.saveTabs(
+        [{ title: 'Different', url: 'https://example.com/new' }],
+        { preserveExisting: true },
+      ),
+    ).resolves.toEqual({ existingCount: 1, savedCount: 0 })
+    expect(state).toEqual(afterCapture)
+  })
+
+  it('updates an existing URL without replacing its title when preserved', async () => {
+    const state = createState()
+    assert.isDefined(state.urls[0])
+    const originalFirstSavedAt = state.urls[0].firstSavedAt
+    const { dataPlane } = createDataPlane(state)
+
+    await dataPlane.saveTabs(
+      [{ title: 'example.com/docs', url: 'https://example.com/docs' }],
+      { preserveExistingTitle: true },
+    )
+
+    const saved = state.urls.find(({ id }) => id === 'url-1')
+    expect(saved?.title).toBe('Docs')
+    expect(saved?.firstSavedAt).toBe(originalFirstSavedAt)
+    expect(saved?.lastSavedAt).toBe(10)
+    expect(saved?.lastSavedAtProvenance).toBe('exact')
+  })
+
+  it('updates an existing URL title on the normal save path', async () => {
+    const state = createState()
+    assert.isDefined(state.urls[0])
+    const { dataPlane } = createDataPlane(state)
+
+    await dataPlane.saveTabs([
+      { title: 'Updated by normal save', url: 'https://example.com/docs' },
+    ])
+
+    expect(state.urls.find(({ id }) => id === 'url-1')?.title).toBe(
+      'Updated by normal save',
+    )
+  })
+
   it('projects URL metrics and membership events without collapsing their timestamps', async () => {
     const state = createState()
     assert.isDefined(state.urls[0])
@@ -243,7 +320,11 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     })
     const { dataPlane } = createDataPlane(state)
 
-    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).resolves.toEqual({
       removedCount: 1,
       sourceCount: 1,
     })
@@ -265,16 +346,80 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
     const { dataPlane } = createDataPlane(state)
     const before = structuredClone(state)
-    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).resolves.toEqual({
       removedCount: 0,
       sourceCount: 1,
     })
     expect(state).toEqual(before)
     state.urls = state.urls.map((url) => ({ ...url, isFavorite: false }))
-    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: true,
+      }),
+    ).resolves.toEqual({
       removedCount: 1,
       sourceCount: 1,
     })
+  })
+
+  it('favorite protection が OFF なら期限切れのお気に入りも削除する', async () => {
+    const state = createState()
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.removeExpiredUrls(2, 10, {
+        protectFavoriteFromAutoRemoval: false,
+      }),
+    ).resolves.toEqual({
+      removedCount: 1,
+      sourceCount: 1,
+    })
+    expect(state.urls.map(({ id }) => id)).toStrictEqual(['url-1'])
+    expect(state.memberships).toStrictEqual([
+      expect.objectContaining({
+        collectionId: 'project-1',
+        urlId: 'url-1',
+      }),
+    ])
+  })
+
+  it('外部ドロップ削除は transaction 内の最新 favorite 状態で保護する', async () => {
+    const state = createState()
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1', {
+        protectFavorite: true,
+      }),
+    ).resolves.toBe(0)
+    expect(state.urls.map(({ id }) => id)).toStrictEqual(['url-1'])
+    expect(state.memberships).toHaveLength(2)
+
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: false }))
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1', {
+        protectFavorite: true,
+      }),
+    ).resolves.toBe(1)
+    expect(state.urls).toStrictEqual([])
+    expect(state.memberships).toStrictEqual([])
+  })
+
+  it('明示的な手動削除は favorite protection の影響を受けない', async () => {
+    const state = createState()
+    state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
+    const { dataPlane } = createDataPlane(state)
+
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1'),
+    ).resolves.toBe(1)
+    expect(state.urls).toStrictEqual([])
   })
 
   it('propagates a native session failure without another backend attempt', async () => {
@@ -293,5 +438,47 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
 
     await expect(dataPlane.removeUrlIds(['url-1'])).rejects.toBe(error)
     expect(session.run).toHaveBeenCalledOnce()
+  })
+
+  it('exact URL-only delete resolves one persistent ID and preserves lookalikes', async () => {
+    const state = createState()
+    const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
+      idGenerator: () => crypto.randomUUID(),
+      now: () => 10,
+      readSnapshot: async () => ({ revision: 1, savedTabs: state }),
+      session: { run: async (operation) => operation(state) },
+    })
+    await dataPlane.saveTabs([
+      { url: 'https://example.com' },
+      { url: 'https://example.com/' },
+      { url: 'https://EXAMPLE.com' },
+    ])
+    await expect(dataPlane.removeUrl('https://example.com')).resolves.toBe(1)
+    expect(state.urls.map(({ url }) => url)).toContain('https://example.com/')
+    expect(state.urls.map(({ url }) => url)).toContain('https://EXAMPLE.com')
+  })
+
+  it('ID hint must match the exact source URL inside the mutation', async () => {
+    const { dataPlane, state } = createDataPlane()
+    const before = structuredClone(state)
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'wrong-id'),
+    ).resolves.toBe(0)
+    expect(state).toEqual(before)
+    await expect(
+      dataPlane.removeUrl('https://example.com/docs', 'url-1'),
+    ).resolves.toBe(1)
+    expect(state.urls).toEqual([])
+  })
+
+  it('ambiguous exact URL records are preserved without an ID hint', async () => {
+    const { dataPlane, state } = createDataPlane()
+    assert.isDefined(state.urls[0])
+    state.urls.push({ ...state.urls[0], id: 'duplicate' })
+    const before = structuredClone(state)
+    await expect(dataPlane.removeUrl('https://example.com/docs')).resolves.toBe(
+      0,
+    )
+    expect(state).toEqual(before)
   })
 })

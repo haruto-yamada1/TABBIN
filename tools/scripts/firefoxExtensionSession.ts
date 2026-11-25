@@ -13,9 +13,12 @@ import {
 import os from 'node:os'
 import path from 'node:path'
 
-import { firefox } from '@playwright/test'
+import { expect, firefox } from '@playwright/test'
 import { zipSync } from 'fflate'
 import type { Zippable } from 'fflate'
+
+import { parsedSourceProcessScript } from './firefoxParsedSources'
+import { createFirefoxSmokeProcessEnvironment } from './firefoxSmokeEnvironment'
 
 const ADDON_ID = 'tabbin@local'
 const COMMAND_TIMEOUT_MS = 30_000
@@ -25,6 +28,11 @@ export type FirefoxExtensionSession = {
   readonly origin: string
   readonly navigate: (relative: string) => Promise<void>
   readonly evaluate: (script: string, args?: unknown[]) => Promise<unknown>
+  readonly webdriver: (
+    route: string,
+    body?: unknown,
+    method?: string,
+  ) => Promise<unknown>
   readonly parsedJavaScript: () => Promise<string[]>
 }
 
@@ -37,44 +45,6 @@ const browserVersion = (capabilities: unknown): string =>
   record(capabilities) && typeof capabilities.browserVersion === 'string'
     ? capabilities.browserVersion
     : 'unknown'
-
-// Extension resource timings and BiDi network events omit moz-extension loads.
-// Inspect only real Window globals for this document, excluding WebDriver
-// sandboxes and other extension tabs in the same process.
-const parsedSourceProcessScript = (
-  href: string,
-  channel: string,
-  marker: string,
-): string => `
-  (() => {
-    let debuggerInstance;
-    try {
-      const { addDebuggerToGlobal } = ChromeUtils.importESModule('resource://gre/modules/jsdebugger.sys.mjs');
-      const sandbox = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), { freshCompartment: true });
-      addDebuggerToGlobal(sandbox);
-      debuggerInstance = new sandbox.Debugger();
-      const urls = new Set();
-      let matched = false;
-      for (const global of debuggerInstance.findAllGlobals()) {
-        if (global.class !== 'Window') continue;
-        const window = global.unsafeDereference();
-        if (window.location?.href !== ${JSON.stringify(href)}) continue;
-        if ((window.wrappedJSObject ?? window)[${JSON.stringify(marker)}] !== ${JSON.stringify(marker)}) continue;
-        matched = true;
-        debuggerInstance.addDebuggee(window);
-        for (const script of debuggerInstance.findScripts({ global })) {
-          const url = script.source?.url ?? script.url;
-          if (typeof url === 'string') urls.add(url);
-        }
-      }
-      if (matched && urls.size) sendAsyncMessage(${JSON.stringify(channel)}, { urls: [...urls] });
-    } catch (error) {
-      sendAsyncMessage(${JSON.stringify(channel)}, { error: String(error) });
-    } finally {
-      debuggerInstance?.removeAllDebuggees();
-    }
-  })();
-`
 
 const parsedSourceParentScript = `
   return new Promise((resolve, reject) => {
@@ -260,6 +230,13 @@ export const withFirefoxExtension = async <T>(
   const failures: unknown[] = []
   let completion: { value: T } | undefined
   try {
+    if (process.platform === 'darwin') {
+      await Promise.all(
+        ['Library/Application Support', 'Downloads'].map(async (directory) =>
+          mkdir(path.join(root, directory), { recursive: true }),
+        ),
+      )
+    }
     const archive = await archiveAddon(directory, root)
     const profile = path.join(root, 'profile')
     await mkdir(profile)
@@ -268,7 +245,14 @@ export const withFirefoxExtension = async <T>(
     driver = spawn(
       process.env.GECKODRIVER_PATH ?? 'geckodriver',
       ['--host', '127.0.0.1', '--port', '0', '--allow-system-access'],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: createFirefoxSmokeProcessEnvironment({
+          environment: process.env,
+          platform: process.platform,
+          appDataDirectory: root,
+        }),
+      },
     )
     base = await driverAddress(driver)
     const created = await request('/session', {
@@ -320,6 +304,8 @@ export const withFirefoxExtension = async <T>(
         origin,
         version: browserVersion(created.capabilities),
         evaluate,
+        webdriver: async (route, body, method) =>
+          request(`/session/${id}${route}`, body, method),
         parsedJavaScript: async () =>
           readParsedJavaScript(evaluate, command, origin),
         navigate: async (relative) => {
@@ -366,4 +352,26 @@ export const withFirefoxExtension = async <T>(
     throw new Error('Firefox run did not complete.')
   }
   return completion.value
+}
+
+export const navigateAfterFirefoxInstall = async (
+  session: Pick<FirefoxExtensionSession, 'navigate' | 'evaluate'>,
+  route: string,
+): Promise<void> => {
+  // Start on a static asset so the installer cannot close the measuring tab
+  // as a duplicate Saved Tabs page. It sets this flag after that cleanup.
+  await session.navigate('icon/128.png')
+  await expect
+    .poll(
+      async () =>
+        session.evaluate(
+          'return browser.storage.local.get("changelogShown").then(value => value.changelogShown === true)',
+        ),
+      {
+        message: 'Firefox add-on installation did not complete',
+        timeout: 5_000,
+      },
+    )
+    .toBe(true)
+  await session.navigate(route)
 }

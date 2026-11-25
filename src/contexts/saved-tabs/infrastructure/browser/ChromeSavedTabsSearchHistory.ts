@@ -4,6 +4,7 @@ import {
   getChromeStorageLocal,
   getChromeStorageOnChanged,
 } from '@/lib/browser/chrome-storage'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 const KEY = 'savedTabsSearchHistory'
 const LIMIT = 50
@@ -101,7 +102,8 @@ const abortableRead = async <T>(
       )
     }
     signal.addEventListener('abort', cancel, { once: true })
-    void operation.then(
+    void handlePromiseSettlement(
+      operation,
       (value) => {
         signal.removeEventListener('abort', cancel)
         resolve(value)

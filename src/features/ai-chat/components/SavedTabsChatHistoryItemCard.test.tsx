@@ -42,9 +42,18 @@ describe('SavedTabsChatHistoryItemCard', () => {
         historyItem: {
           id: 'conversation-1',
           isActive: true,
+          messages: [
+            {
+              content:
+                '現在のURL一覧の整理結果です。保存済みタブ総数は多く、説明文は 3 行を超えます。',
+              id: 'message-1',
+              role: 'assistant',
+            },
+          ],
           preview:
             '現在のURL一覧の整理結果です。保存済みタブ総数は多く、説明文は 3 行を超えます。',
           title: 'listSavedUrlsを使ってテーブル整理',
+          updatedAt: 1,
         },
         isActive: true,
         onDeleteHistoryItem: vi.fn(),

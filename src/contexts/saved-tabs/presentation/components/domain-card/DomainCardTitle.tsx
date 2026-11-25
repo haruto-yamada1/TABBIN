@@ -18,6 +18,7 @@ export const DomainCardTitle = () => {
     <div
       className='flex grow cursor-grab items-center gap-2 overflow-hidden hover:cursor-grab active:cursor-grabbing'
       ref={sortable.setActivatorNodeRef}
+      data-tour='academy-domain-drag'
       {...sortable.attributes}
       {...sortable.listeners}
     >

@@ -237,18 +237,9 @@ const removeEmptyDomainCollections = (
 const removeSelectedUrls = (
   state: IndexedDbSavedTabsMutableState,
   selectedIds: ReadonlySet<string>,
-  selectedUrls: ReadonlySet<string>,
 ): number => {
   const removedIds = new Set(
-    state.urls
-      .filter((url) => {
-        const comparable = validUrlIdentityKey(url.url)
-        return (
-          selectedIds.has(url.id) ||
-          (comparable !== null && selectedUrls.has(comparable))
-        )
-      })
-      .map(({ id }) => id),
+    state.urls.filter((url) => selectedIds.has(url.id)).map(({ id }) => id),
   )
   if (removedIds.size === 0) {
     return 0
@@ -327,12 +318,18 @@ const ensureUncategorizedCollection = (
   return collection
 }
 
+type SaveTabsContext = {
+  readonly idGenerator: () => string
+  readonly preserveExistingTitle: boolean
+  readonly timestamp: number
+}
+
 const ensureUrl = (
   state: IndexedDbSavedTabsMutableState,
   input: Required<BackgroundSavedTabInput>,
-  idGenerator: () => string,
-  timestamp: number,
+  options: SaveTabsContext,
 ): PersistenceV2Url => {
+  const { idGenerator, preserveExistingTitle, timestamp } = options
   const normalizedUrl = validUrlIdentityKey(input.url)
   if (!normalizedUrl) {
     throw new TypeError('A valid normalized URL is required.')
@@ -343,7 +340,9 @@ const ensureUrl = (
       ...existing,
       lastSavedAt: timestamp,
       lastSavedAtProvenance: 'exact',
-      title: input.title || existing.title,
+      title: preserveExistingTitle
+        ? existing.title
+        : input.title || existing.title,
       updatedAt: timestamp,
       url: normalizedUrl,
     }
@@ -432,9 +431,9 @@ const upsertMembership = (
 const saveTabs = (
   state: IndexedDbSavedTabsMutableState,
   tabs: readonly BackgroundSavedTabInput[],
-  idGenerator: () => string,
-  timestamp: number,
-): void => {
+  options: SaveTabsContext,
+): string[] => {
+  const { idGenerator, timestamp } = options
   const uniqueTabs = new Map<string, Required<BackgroundSavedTabInput>>()
   for (const tab of tabs) {
     const url = validUrlIdentityKey(tab.url ?? '')
@@ -443,7 +442,7 @@ const saveTabs = (
     }
   }
   if (uniqueTabs.size === 0) {
-    return
+    return []
   }
   const uncategorized = ensureUncategorizedCollection(state, timestamp)
   const customCollections = state.collections
@@ -458,7 +457,7 @@ const saveTabs = (
     )
 
   for (const input of uniqueTabs.values()) {
-    const url = ensureUrl(state, input, idGenerator, timestamp)
+    const url = ensureUrl(state, input, options)
     const domainCollection = ensureDomainCollection(
       state,
       toHostname(url.url),
@@ -492,12 +491,14 @@ const saveTabs = (
         : collection,
     )
   }
+  return [...uniqueTabs.keys()]
 }
 
 const removeExpiredUrls = (
   state: IndexedDbSavedTabsMutableState,
   cutoffTime: number,
   _currentTime: number,
+  options: { readonly protectFavoriteFromAutoRemoval: boolean },
 ): { readonly removedCount: number; readonly sourceCount: number } => {
   const collections = new Map(
     state.collections.map((collection) => [collection.id, collection]),
@@ -512,7 +513,10 @@ const removeExpiredUrls = (
       continue
     }
     sourceCount += 1
-    if (urls.get(membership.urlId)?.isFavorite) {
+    if (
+      options.protectFavoriteFromAutoRemoval &&
+      urls.get(membership.urlId)?.isFavorite
+    ) {
       continue
     }
     const savedAt =
@@ -547,20 +551,38 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   readInsightRecords: async () =>
     buildInsightRecords((await readSnapshot()).savedTabs),
   readUndoSnapshot: readSnapshot,
-  removeExpiredUrls: async (cutoffTime, currentTime) =>
-    session.run((state) => removeExpiredUrls(state, cutoffTime, currentTime)),
-  removeUrl: async (url) => {
-    const normalized = validUrlIdentityKey(url)
-    return normalized
-      ? session.run((state) =>
-          removeSelectedUrls(state, new Set(), new Set([normalized])),
-        )
-      : 0
+  removeExpiredUrls: async (
+    cutoffTime,
+    currentTime,
+    options = { protectFavoriteFromAutoRemoval: true },
+  ) =>
+    session.run((state) =>
+      removeExpiredUrls(state, cutoffTime, currentTime, options),
+    ),
+  removeUrl: async (url, urlRecordId, options = {}) => {
+    const identity = validUrlIdentityKey(url)
+    if (!identity) {
+      return 0
+    }
+    return session.run((state) => {
+      const matches = state.urls.filter(
+        (record) =>
+          record.url === identity &&
+          (urlRecordId === undefined || record.id === urlRecordId),
+      )
+      const target = matches.length === 1 ? matches[0] : undefined
+      if (
+        target &&
+        options.protectFavorite === true &&
+        target.isFavorite === true
+      ) {
+        return 0
+      }
+      return target ? removeSelectedUrls(state, new Set([target.id])) : 0
+    })
   },
   removeUrlIds: async (urlIds) =>
-    session.run((state) =>
-      removeSelectedUrls(state, new Set(urlIds), new Set()),
-    ),
+    session.run((state) => removeSelectedUrls(state, new Set(urlIds))),
   restoreUndoSnapshot: async (snapshot) =>
     session.run((state) => {
       state.categories = [...structuredClone(snapshot.savedTabs.categories)]
@@ -569,9 +591,38 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
       state.memberships = [...structuredClone(snapshot.savedTabs.memberships)]
       state.urls = [...structuredClone(snapshot.savedTabs.urls)]
     }),
-  saveTabs: async (tabs) =>
+  saveTabs: async (tabs, options = {}) =>
     session.run((state) => {
-      saveTabs(state, tabs, idGenerator, now())
+      if (options.preserveExisting) {
+        const existingIdentities = new Set(
+          state.urls.map(({ normalizedUrl }) => normalizedUrl),
+        )
+        const distinctTabs = new Map<string, BackgroundSavedTabInput>()
+        for (const tab of tabs) {
+          const identity = validUrlIdentityKey(tab.url ?? '')
+          if (identity) {
+            distinctTabs.set(identity, tab)
+          }
+        }
+        const freshTabs = [...distinctTabs]
+          .filter(([identity]) => !existingIdentities.has(identity))
+          .map(([, tab]) => tab)
+        const savedUrls = saveTabs(state, freshTabs, {
+          idGenerator,
+          preserveExistingTitle: false,
+          timestamp: now(),
+        })
+        return {
+          existingCount: distinctTabs.size - freshTabs.length,
+          savedCount: savedUrls.length,
+        }
+      }
+      const savedUrls = saveTabs(state, tabs, {
+        idGenerator,
+        preserveExistingTitle: options.preserveExistingTitle === true,
+        timestamp: now(),
+      })
+      return { savedUrls }
     }),
   updateTabTimestamps: async (timestamp) =>
     session.run((state) => {

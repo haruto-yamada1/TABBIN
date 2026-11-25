@@ -57,6 +57,7 @@ export const SubCategoryRenameForm = () => {
         placeholder={t('savedTabs.subCategory.addPlaceholder')}
         className={`w-full rounded border p-2 ${rename.categoryRenameError ? 'border-red-500' : ''}`}
         data-rename-input='true'
+        data-tour='academy-child-rename'
         // eslint-disable-next-line typescript/no-misused-promises
         onBlur={rename.handleSaveRenaming}
         onKeyDown={handleKeyDown}

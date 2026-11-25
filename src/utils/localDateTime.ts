@@ -28,7 +28,7 @@ const resolveTimeZone = (timeZone?: string): string =>
   // eslint-disable-next-line typescript/prefer-nullish-coalescing
   timeZone?.trim() ||
   Intl.DateTimeFormat().resolvedOptions().timeZone ||
-  FALLBACK_TIME_ZONE // eslint-disable-line typescript/prefer-nullish-coalescing -- chain: empty string should fall through
+  FALLBACK_TIME_ZONE
 const getCachedFormatter = (
   cache: Map<string, Intl.DateTimeFormat>,
   key: string,

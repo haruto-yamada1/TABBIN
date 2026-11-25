@@ -266,8 +266,8 @@ describe('IndexedDB-only PersistenceBootstrap architecture policy', () => {
     expect(source).toContain('const settingsStorage = getChromeStorageLocal()')
     expect(source).toContain('createChromeUserSettingsRepository(settingsPort)')
     expect(source).not.toContain('getPersistenceStorageLocal')
-    expect(readRepositoryFile('src/lib/storage/settings.ts')).toContain(
-      "get(['userSettings'])",
+    expect(readRepositoryFile('src/lib/storage/settings.ts')).toMatch(
+      /get\(\[\s*'userSettings',?\s*\]\)/u,
     )
   })
 
@@ -371,7 +371,7 @@ describe('IndexedDB-only PersistenceBootstrap architecture policy', () => {
     )
     for (const path of ['optionsBackupRecovery', 'optionsBackupV2Export']) {
       expect(readRepositoryFile(`src/app/composition/${path}.ts`)).toContain(
-        'readUserSettingsWithoutRepair',
+        'readUserSettings: requireUserSettings,',
       )
     }
   })

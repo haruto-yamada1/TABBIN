@@ -229,7 +229,6 @@ export const useCategoryActions = ({
       const { all } = await deleteParentCategory({
         categoryId: category.id,
       })
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...all])
       toast.success(
         t('savedTabs.categoryModal.deleted', undefined, {
@@ -272,7 +271,6 @@ export const useCategoryActions = ({
         domainId: activeSelectedDomain,
         domainName: selectedDomainInfo.domain,
       })
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...updatedCategories])
       setSelectedDomain('')
       toast.success(
@@ -337,7 +335,6 @@ export const useCategoryActions = ({
         domainId,
         domainName: domainInfo.domain,
       })
-      // eslint-disable-next-line typescript/no-unsafe-type-assertion -- TODO(#502-followup): branded 差異は mock factory で解消予定
       setParentCategories([...updatedCategories])
       toast.success(
         t('savedTabs.categoryModal.domainRemoved', undefined, {

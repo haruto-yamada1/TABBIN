@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { MessagingPort } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
@@ -54,7 +54,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -68,6 +68,7 @@ import { SortableUrlItem } from './SortableUrlItem'
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
@@ -139,15 +140,17 @@ const renderWithMessagingPort = (
     urlRecordRepository: {} as never,
     userSettingsRepository: {} as never,
   } as never
-  return render(
-    <SavedTabsUseCasesProvider value={{ deps, useCases: {} as never }}>
-      {ui}
-    </SavedTabsUseCasesProvider>,
-  )
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <SavedTabsUseCasesProvider value={{ deps, useCases: {} as never }}>
+        {children}
+      </SavedTabsUseCasesProvider>
+    ),
+  })
 }
 
 describe('SortableUrlItem additional', () => {
-  const sendMessageMock = vi.fn()
+  const sendMessageMock = vi.fn<MessagingPort['send']>()
 
   beforeEach(() => {
     sendMessageMock.mockResolvedValue(undefined)
@@ -157,6 +160,74 @@ describe('SortableUrlItem additional', () => {
     cleanup()
     vi.clearAllMocks()
     sortableUrlItemAdditionalI18nState.language = 'ja'
+  })
+
+  it('drag開始時の永続IDとtokenを保持し、新dragでは別tokenを生成する', () => {
+    const props = createProps()
+    const { rerender } = renderWithMessagingPort(
+      <SortableUrlItem {...props} urlRecordId='persistent-original' />,
+      { send: sendMessageMock },
+    )
+    const link = screen.getByRole('link', { name: 'Example Tab' })
+    const dataTransfer = { setData: vi.fn(), dropEffect: 'copy' }
+    fireEvent.dragStart(link, { dataTransfer })
+    const firstStart = sendMessageMock.mock.calls[0]?.[0]
+    assert.isDefined(firstStart)
+    expect(firstStart).toEqual(
+      expect.objectContaining({
+        action: 'urlDragStarted',
+        urlRecordId: 'persistent-original',
+        dragId: expect.any(String),
+      }),
+    )
+    rerender(
+      <SortableUrlItem {...props} urlRecordId='persistent-replacement' />,
+    )
+    fireEvent.dragEnd(link, { dataTransfer })
+    expect(sendMessageMock).toHaveBeenNthCalledWith(2, {
+      ...firstStart,
+      action: 'urlDropped',
+      fromExternal: true,
+    })
+
+    fireEvent.dragStart(link, { dataTransfer })
+    const secondStart = sendMessageMock.mock.calls[2]?.[0]
+    assert.isDefined(secondStart)
+    expect(secondStart).toEqual(
+      expect.objectContaining({
+        action: 'urlDragStarted',
+        urlRecordId: 'persistent-replacement',
+        dragId: expect.any(String),
+      }),
+    )
+    expect(Reflect.get(secondStart, 'dragId')).not.toBe(
+      Reflect.get(firstStart, 'dragId'),
+    )
+    fireEvent.dragEnd(link, { dataTransfer })
+    expect(sendMessageMock).toHaveBeenNthCalledWith(4, {
+      ...secondStart,
+      action: 'urlDropped',
+      fromExternal: true,
+    })
+  })
+
+  it('永続IDがない場合にDnD用IDやURLから推測しない', () => {
+    renderWithMessagingPort(<SortableUrlItem {...createProps()} />, {
+      send: sendMessageMock,
+    })
+    const link = screen.getByRole('link', { name: 'Example Tab' })
+    fireEvent.dragStart(link, {
+      dataTransfer: { setData: vi.fn(), dropEffect: 'copy' },
+    })
+    expect(sendMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'urlDragStarted',
+        dragId: expect.any(String),
+      }),
+    )
+    const start = sendMessageMock.mock.calls[0]?.[0]
+    assert.isDefined(start)
+    expect(Reflect.get(start, 'urlRecordId')).toBeUndefined()
   })
 
   it('window 内 drop 済みなら外部ドロップ扱いしない', () => {
@@ -221,11 +292,13 @@ describe('SortableUrlItem additional', () => {
 
     expect(sendMessageMock).toHaveBeenCalledWith({
       action: 'urlDragStarted',
+      dragId: expect.any(String),
       groupId: 'group-1',
       url: 'https://example.com',
     })
     expect(sendMessageMock).toHaveBeenCalledWith({
       action: 'urlDropped',
+      dragId: expect.any(String),
       fromExternal: true,
       groupId: 'group-1',
       url: 'https://example.com',

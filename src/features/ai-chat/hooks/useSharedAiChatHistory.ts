@@ -12,6 +12,7 @@ import type {
   AiChatHistoryItem,
 } from '@/features/ai-chat/types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 type ConversationHistoryState = {
   activeConversationId: string
@@ -95,7 +96,6 @@ const resolveNextActiveConversationId = ({
 }
 
 const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const newConversationTitle = t('aiChat.newConversation')
   const historyStartPrompt = t('aiChat.history.startPrompt')
@@ -129,7 +129,8 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
       newConversationTitle,
       interruptedResponseMessage,
     )
-    void loadHistory.then(
+    void handlePromiseSettlement(
+      loadHistory,
       (nextState) => {
         if (!isCurrentLoad) {
           return
@@ -166,7 +167,8 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
     ).then(async () => saveConversationHistory(state))
     saveQueueRef.current = queuedSave
     setHistoryError((current) => (current === 'save' ? null : current))
-    void queuedSave.then(
+    void handlePromiseSettlement(
+      queuedSave,
       () => {
         if (isMountedRef.current && saveQueueRef.current === queuedSave) {
           setHistoryError((current) => (current === 'save' ? null : current))
@@ -377,8 +379,10 @@ const useSharedAiChatHistory = (): UseSharedAiChatHistoryResult => {
   const historyItems = conversations.map((conversation) => ({
     id: conversation.id,
     isActive: conversation.id === currentConversationId,
+    messages: conversation.messages,
     preview: getConversationPreview(conversation, historyStartPrompt),
     title: conversation.title,
+    updatedAt: conversation.updatedAt,
   }))
 
   return {

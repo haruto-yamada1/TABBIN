@@ -2,7 +2,7 @@
 import { writeFile } from 'node:fs/promises'
 
 import { expect } from '@playwright/test'
-import type { Page, TestInfo } from '@playwright/test'
+import type { Locator, Page, TestInfo } from '@playwright/test'
 
 import {
   createCustomCollectionFixture,
@@ -97,6 +97,8 @@ type Sample = {
   observedBodyMutations: number
   renderedRows: number
   readonlyTransactions: number
+  savedTabsSnapshotTransactions: number
+  indexedDbUrlRowsRead: number
   readWorkSettledMs: number | null
 }
 
@@ -120,7 +122,17 @@ const installInputProbe = async (page: Page) => {
     let running: Sample | null = null
     let checking = false
     let readonlyTransactions = 0
+    let savedTabsSnapshotTransactions = 0
+    let indexedDbUrlRowsRead = 0
     let activeReads = 0
+    const savedTabsStores = [
+      'collectionCategories',
+      'collectionGroups',
+      'collectionMemberships',
+      'collections',
+      'metadata',
+      'urls',
+    ]
     // eslint-disable-next-line typescript/unbound-method -- rebound with apply to the database
     const originalTransaction = IDBDatabase.prototype.transaction
     IDBDatabase.prototype.transaction = function transaction(
@@ -130,11 +142,42 @@ const installInputProbe = async (page: Page) => {
       if (result.mode === 'readonly') {
         readonlyTransactions += 1
         activeReads += 1
+        const stores = result.objectStoreNames
+        if (
+          this.name === 'tabbin-persistence-v2' &&
+          stores.length === savedTabsStores.length &&
+          savedTabsStores.every((name) => stores.contains(name))
+        ) {
+          savedTabsSnapshotTransactions += 1
+        }
         const finish = () => {
           activeReads -= 1
         }
         result.addEventListener('complete', finish, { once: true })
         result.addEventListener('abort', finish, { once: true })
+      }
+      return result
+    }
+    // IDB returns fresh structured clones. Count materialized URL rows as a
+    // repeatable measure of allocation work without sampling the whole heap.
+    // eslint-disable-next-line typescript/unbound-method -- rebound to the store
+    const originalGetAll = IDBObjectStore.prototype.getAll
+    IDBObjectStore.prototype.getAll = function getAll(
+      ...args: Parameters<IDBObjectStore['getAll']>
+    ) {
+      const result = originalGetAll.apply(this, args)
+      if (
+        this.name === 'urls' &&
+        this.transaction.db.name === 'tabbin-persistence-v2' &&
+        this.transaction.mode === 'readonly'
+      ) {
+        result.addEventListener(
+          'success',
+          () => {
+            indexedDbUrlRowsRead += result.result.length
+          },
+          { once: true },
+        )
       }
       return result
     }
@@ -224,9 +267,13 @@ const installInputProbe = async (page: Page) => {
           observedBodyMutations: 0,
           renderedRows: 0,
           readonlyTransactions: 0,
+          savedTabsSnapshotTransactions: 0,
+          indexedDbUrlRowsRead: 0,
           readWorkSettledMs: null,
         }
         const initialReads = readonlyTransactions
+        const initialSnapshots = savedTabsSnapshotTransactions
+        const initialUrlRows = indexedDbUrlRowsRead
         const settleReads = () => {
           if (running !== sample) {
             return
@@ -239,6 +286,10 @@ const installInputProbe = async (page: Page) => {
               sample.resultPaintOpportunityMs !== null
             ) {
               sample.readonlyTransactions = readonlyTransactions - initialReads
+              sample.savedTabsSnapshotTransactions =
+                savedTabsSnapshotTransactions - initialSnapshots
+              sample.indexedDbUrlRowsRead =
+                indexedDbUrlRowsRead - initialUrlRows
               sample.readWorkSettledMs = performance.now() - startedAt
             } else {
               settleReads()
@@ -284,25 +335,7 @@ const summarize = (values: number[]) => {
   }
 }
 
-export const benchmarkSavedTabsSearch = async (
-  page: Page,
-  appUrl: string,
-  size: number,
-  mode: 'domain' | 'custom',
-  testInfo: TestInfo,
-) => {
-  await page.goto(`${appUrl}#/options`)
-  await seedSavedTabsFixture(page, createSearchFixture(size))
-  await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
-  const search = page.getByRole('textbox', { name: '検索', exact: true })
-  await expect(search).toBeVisible()
-  await expect(page.locator(rowSelector)).toHaveCount(size, {
-    timeout: completionTimeout,
-  })
-  await search.fill('琥珀夜空')
-  await waitForRows(page, [href(0)])
-  await installInputProbe(page)
-
+const collectWarmSamples = async (page: Page, search: Locator) => {
   const samples: Sample[] = []
   // Alternate distinct result sets so a stale DOM cannot satisfy completion.
   // fill uses native browser text insertion; isTrusted is asserted for each input.
@@ -336,6 +369,68 @@ export const benchmarkSavedTabsSearch = async (
     expect(sample.renderedRows).toBe(1)
     samples.push(sample)
   }
+  return samples
+}
+
+const measureWarmSearch = async (page: Page, search: Locator) => {
+  const profileHeap =
+    process.env.TABBIN_SEARCH_PROFILE_HEAP === '1' &&
+    page.context().browser()?.browserType().name() === 'chromium'
+  if (!profileHeap) {
+    return { samples: await collectWarmSamples(page, search) }
+  }
+
+  // Profile separately from latency runs. Include collected objects so the
+  // aggregate captures transient V8 allocation work as well as live samples.
+  const samplingIntervalBytes = 32_768
+  const session = await page.context().newCDPSession(page)
+  try {
+    await session.send('HeapProfiler.startSampling', {
+      samplingInterval: samplingIntervalBytes,
+      includeObjectsCollectedByMajorGC: true,
+      includeObjectsCollectedByMinorGC: true,
+    })
+    const samples = await collectWarmSamples(page, search)
+    const { profile } = await session.send('HeapProfiler.stopSampling')
+    return {
+      samples,
+      heapAllocationProfile: {
+        samplingIntervalBytes,
+        sampleCount: profile.samples.length,
+        sampledBytes: profile.samples.reduce(
+          (total, sample) => total + sample.size,
+          0,
+        ),
+      },
+    }
+  } finally {
+    await session.detach()
+  }
+}
+
+export const benchmarkSavedTabsSearch = async (
+  page: Page,
+  appUrl: string,
+  size: number,
+  mode: 'domain' | 'custom',
+  testInfo: TestInfo,
+) => {
+  await page.goto(`${appUrl}#/options`)
+  await seedSavedTabsFixture(page, createSearchFixture(size))
+  await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
+  const search = page.getByRole('textbox', { name: '検索', exact: true })
+  await expect(search).toBeVisible()
+  await expect(page.locator(rowSelector)).toHaveCount(size, {
+    timeout: completionTimeout,
+  })
+  await search.fill('琥珀夜空')
+  await waitForRows(page, [href(0)])
+  await installInputProbe(page)
+
+  const { samples, heapAllocationProfile } = await measureWarmSearch(
+    page,
+    search,
+  )
 
   // Partial, case-insensitive title matching and Japanese queries use real UI.
   await search.fill('HAYSTACK')
@@ -384,8 +479,9 @@ export const benchmarkSavedTabsSearch = async (
     outputPath,
     JSON.stringify(
       {
-        schemaVersion: 1,
+        schemaVersion: 2,
         browser: page.context().browser()?.browserType().name(),
+        browserVersion: page.context().browser()?.version(),
         mode,
         fixture: {
           uniqueUrls: size,
@@ -397,7 +493,7 @@ export const benchmarkSavedTabsSearch = async (
         scenario:
           'Warm Japanese title replacement; alternating distinct one-row results',
         methodology:
-          'Trusted input capture to double rAF paint opportunity; exact URL-set DOM completion plus a subsequent double rAF. Page performance.now only; no host RPC durations. Readonly IndexedDB transactions count page-local work until zero active reads and two rAF with no new reads after DOM completion. Body mutation records are observed DOM changes, not React render counts.',
+          'Trusted input capture to double rAF paint opportunity; exact URL-set DOM completion plus a subsequent double rAF. Page performance.now only; no host RPC durations. Readonly IndexedDB transactions count page-local work until zero active reads and two rAF with no new reads after DOM completion. Saved Tabs snapshot reads are identified by their six-store scope. URL rows cloned by readonly getAll requests are an allocation-work proxy, not heap bytes. Body mutation records are observed DOM changes, not React render counts.',
         limitations:
           'Observational samples without absolute thresholds; no cold-start or broad-result rendering timing; rAF marks paint opportunities, not physical display presentation; rapid typing does not emulate IME composition.',
         milliseconds: {
@@ -413,6 +509,13 @@ export const benchmarkSavedTabsSearch = async (
         readonlyIndexedDbTransactions: summarize(
           samples.map((sample) => sample.readonlyTransactions),
         ),
+        savedTabsSnapshotTransactions: summarize(
+          samples.map((sample) => sample.savedTabsSnapshotTransactions),
+        ),
+        indexedDbUrlRowsRead: summarize(
+          samples.map((sample) => sample.indexedDbUrlRowsRead),
+        ),
+        heapAllocationProfile,
         observedBodyMutationRecords: summarize(
           samples.map((sample) => sample.observedBodyMutations),
         ),

@@ -1,4 +1,4 @@
-import type { Page, TestInfo, Worker } from '@playwright/test'
+import type { Locator, Page, TestInfo, Worker } from '@playwright/test'
 
 import {
   createCustomCollectionFixture,
@@ -48,6 +48,46 @@ export const createSearchHistoryFixture = () => {
   }
 }
 
+const expectSuggestionsAboveStickyHeaders = async (
+  panel: Locator,
+): Promise<void> => {
+  const state = await panel.evaluate((element) => {
+    const panelRect = element.getBoundingClientRect()
+    const stickyHeaders = Array.from(
+      document.querySelectorAll<HTMLElement>('.sticky'),
+    )
+    const stickyZIndexes = stickyHeaders
+      .map((header) => Number(getComputedStyle(header).zIndex))
+      .filter((zIndex) => Number.isFinite(zIndex))
+    let coveredByStickyHeader = false
+    for (const header of stickyHeaders) {
+      const rect = header.getBoundingClientRect()
+      const left = Math.max(panelRect.left, rect.left)
+      const right = Math.min(panelRect.right, rect.right)
+      const top = Math.max(panelRect.top, rect.top)
+      const bottom = Math.min(panelRect.bottom, rect.bottom)
+      if (right <= left || bottom <= top) {
+        continue
+      }
+      const topmost = document.elementFromPoint(
+        (left + right) / 2,
+        (top + bottom) / 2,
+      )
+      if (topmost !== null && !element.contains(topmost)) {
+        coveredByStickyHeader = true
+        break
+      }
+    }
+    return {
+      panelZIndex: Number(getComputedStyle(element).zIndex),
+      maxStickyZIndex: Math.max(0, ...stickyZIndexes),
+      coveredByStickyHeader,
+    }
+  })
+  expect(state.panelZIndex).toBeGreaterThan(state.maxStickyZIndex)
+  expect(state.coveredByStickyHeader).toBe(false)
+}
+
 export const verifySearchHistory = async (
   {
     page,
@@ -67,6 +107,9 @@ export const verifySearchHistory = async (
   const history = page.getByRole('list', { name: 'Search history' })
   await expect(history.getByText('youtube ご飯')).toBeVisible()
   await expect(history.getByText('太郎 ご飯')).toBeVisible()
+  await expectSuggestionsAboveStickyHeaders(
+    page.getByTestId('search-history-panel'),
+  )
   await search.fill('youtube')
   await expect(rows).toHaveCount(1)
   await expect(history.getByText('youtube ご飯')).toBeVisible()

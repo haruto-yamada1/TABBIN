@@ -97,7 +97,6 @@ function findingLines(snapshot: HarnessSnapshot) {
   })
 }
 
-// eslint-disable-next-line eslint/complexity
 function nextActionLines(snapshot: HarnessSnapshot) {
   const actions = [
     snapshot.orchestrator?.next_action &&
@@ -113,7 +112,7 @@ function nextActionLines(snapshot: HarnessSnapshot) {
       `Scorecard: ${snapshot.scorecard.next_action}`,
     snapshot.learning?.next_action &&
       `Learning: ${snapshot.learning.next_action}`,
-  ].filter((line): line is string => Boolean(line)) // eslint-disable-line unicorn/prefer-native-coercion-functions
+  ].filter((line): line is string => Boolean(line))
 
   return listLines(actions, '次アクションなし。')
 }

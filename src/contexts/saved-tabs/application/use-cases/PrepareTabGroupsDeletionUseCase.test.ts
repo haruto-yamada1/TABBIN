@@ -19,16 +19,12 @@ const createBundle = (
   readonly updateCollectionCategories: ReturnType<typeof vi.fn>
 } => {
   const findRawTabGroupById = vi.fn(
-    // eslint-disable-next-line typescript/require-await -- Promise contract は TabGroupRepository 側で必須
     async (id: Parameters<TabGroupRepository['findRawTabGroupById']>[0]) => {
       const idString = id as unknown as string
       return summaries.find((entry) => entry.id === idString) ?? null
     },
   )
-  const updateCollectionCategories = vi.fn(
-    // eslint-disable-next-line typescript/require-await -- Promise contract は CategoriesCommandService 側で必須
-    async (): Promise<void> => undefined,
-  )
+  const updateCollectionCategories = vi.fn(async (): Promise<void> => undefined)
   const deps: PrepareTabGroupsDeletionUseCaseDeps = {
     categoriesCommandService: {
       updateCollectionCategories,

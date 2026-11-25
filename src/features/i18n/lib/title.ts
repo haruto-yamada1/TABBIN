@@ -2,6 +2,7 @@ import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
 import type { AppLanguage, LanguageSetting } from '@/features/i18n/messages'
 
 export type TitlePageKey =
+  | 'academy'
   | 'aiChat'
   | 'app'
   | 'analytics'
@@ -32,6 +33,13 @@ export const resolveTitlePageKeyFromPathname = (
 ): TitlePageKey => {
   const normalizedPathname =
     pathname.replace(/\/+$/, '').replace(/\.html$/, '') || '/'
+
+  if (
+    normalizedPathname === '/academy' ||
+    normalizedPathname.startsWith('/academy/')
+  ) {
+    return 'academy'
+  }
 
   switch (normalizedPathname) {
     case '/ai-chat': {

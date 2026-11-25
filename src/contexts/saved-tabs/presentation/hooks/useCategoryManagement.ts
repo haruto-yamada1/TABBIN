@@ -140,7 +140,6 @@ type UseCategoryManagementParams = {
 const useCategoryManagement = (
   params: UseCategoryManagementParams,
 ): UseCategoryManagementReturn => {
-  // eslint-disable-line eslint/max-lines-per-function
   const {
     reorderParentCategoriesUseCase,
     removeSubCategoryFromTabGroupsUseCase,

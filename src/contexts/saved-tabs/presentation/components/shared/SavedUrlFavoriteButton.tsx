@@ -4,17 +4,20 @@ import { useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { useSavedUrlFavorite } from '@/contexts/saved-tabs/presentation/controllers/useSavedUrlFavorite'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { cn } from '@/lib/utils'
 
 export const SavedUrlFavoriteButton = ({
   url,
   title,
   isFavorite = false,
   disabled = false,
+  className = '',
 }: {
   url: string
   title: string
   isFavorite?: boolean
   disabled?: boolean
+  className?: string
 }) => {
   const { t } = useI18n()
   const { toggle, isPending, isAvailable } = useSavedUrlFavorite(
@@ -36,7 +39,7 @@ export const SavedUrlFavoriteButton = ({
       type='button'
       variant='ghost'
       size='icon'
-      className='size-8 shrink-0 cursor-pointer'
+      className={cn('size-8 shrink-0 cursor-pointer', className)}
       aria-label={label}
       aria-pressed={isFavorite}
       title={t('savedTabs.favorite.protection')}

@@ -1,6 +1,36 @@
 /* eslint-disable playwright/expect-expect -- shared scenario asserts live browser state, query count, exact URL matching, and persistence */
 import { getExtensionUrl, test } from './helpers/extension'
-import { verifyOpenTabDragging, verifyOpenTabs } from './helpers/open-tabs'
+import {
+  verifyOpenTabDragging,
+  verifyOpenTabs,
+  verifyOpenTabsBulkDelete,
+  verifyOpenTabsDisplaySetting,
+} from './helpers/open-tabs'
+
+test('currently open tabs display defaults on and preserves explicit choices', async ({
+  extensionContext,
+  extensionId,
+  page,
+}, testInfo) => {
+  await verifyOpenTabsDisplaySetting({
+    page,
+    context: extensionContext,
+    appUrl: getExtensionUrl(extensionId, 'app.html'),
+    testInfo,
+  })
+})
+
+test('open tabs bulk delete spans domains and restores with one Undo', async ({
+  extensionContext,
+  extensionId,
+  page,
+}) => {
+  await verifyOpenTabsBulkDelete({
+    page,
+    context: extensionContext,
+    appUrl: getExtensionUrl(extensionId, 'app.html'),
+  })
+})
 
 for (const mode of ['domain', 'custom'] as const) {
   test(`${mode} saved URLs follow live tabs without repeated full queries or persistence changes`, async ({

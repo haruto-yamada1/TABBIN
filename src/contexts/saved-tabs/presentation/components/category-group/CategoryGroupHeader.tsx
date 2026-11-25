@@ -9,7 +9,7 @@ export const CategoryGroupHeader = ({
 }: {
   children: React.ReactNode
 }) => (
-  <CardHeader className='sticky top-0 z-50 flex-row items-baseline justify-between bg-card'>
+  <CardHeader className='sticky top-0 z-50 flex-row flex-wrap items-baseline justify-between gap-y-2 bg-card'>
     {children}
   </CardHeader>
 )

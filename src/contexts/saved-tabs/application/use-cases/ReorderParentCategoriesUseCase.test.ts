@@ -69,9 +69,9 @@ describe('createReorderParentCategoriesUseCase', () => {
       }),
     ]
     // command は storage 層 `ParentCategory[]` を要求するため widen。
-    const reorderedAsStorage =
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      reordered as unknown as Parameters<typeof useCase>[0]['categories']
+    const reorderedAsStorage = reordered as unknown as Parameters<
+      typeof useCase
+    >[0]['categories']
 
     await useCase({ categories: reorderedAsStorage })
 

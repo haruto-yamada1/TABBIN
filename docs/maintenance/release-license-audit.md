@@ -95,7 +95,7 @@ vendored source の権利関係まで自動で証明するものではない。
 ## 固定版を毎回修正しない運用
 
 0.9.16 という番号自体を永続的な承認条件にする必要はない。承認対象を2つの package 名、
-**承認済み LICENSE の bytes、用途、期限**にし、実際の version / integrity は毎回
+**承認済み LICENSE の bytes、用途**にし、実際の version / integrity は毎回
 `bun.lock` と exact-version npm metadata から検証する設計が適切。
 同じ LICENSE のままの版更新では例外定義の手直しを不要にできる。
 
@@ -103,13 +103,13 @@ vendored source の権利関係まで自動で証明するものではない。
 切り替える場合は、以下も同時に満たす必要がある。
 
 - 別 registry、registry identity / integrity 不一致、全 nested resolutions の
-  LICENSE 不明・変更、通信異常、期限切れを拒否する。advisory 検査は維持する。
+  LICENSE 不明・変更、通信異常を拒否する。advisory 検査は維持する。
 - agent skill の `npx react-doctor@latest`、独立した React Doctor Action の install、
   ローカル CLI を同じロック済みの検証経路へ揃える。
 - 実際の Doctor 実行前とリリース前にもライセンス検証を必須にする。現在は主に
   Dependency Review job と差分検査 CLI に限られ、`release:check` には入っていない。
-- 30日期限は現行の例外方針によるため、版固定を外しても用途の再確認は残る。
-  期限を自動更新して再確認を省略しない。
+- 期限は設けず、LICENSE 本文の SHA-256 と用途が変わった場合に再評価する
+  （2026-11-22 の再承認で期限を廃止）。
 
 ## 検証記録と限界
 
@@ -155,3 +155,11 @@ vendored source の権利関係まで自動で証明するものではない。
 展開後の全 path / SHA-256、entry order が一致した。検証ログと対象 snapshot は harness に記録する。
 CI 検査の成功を、未確認の利用形態や全 public / vendored assets の法的適合性の保証へ拡大しない。
 用途はユーザーが確認した TABBIN 品質検査に限定する。
+
+## 2026-11-22 の再承認
+
+React Doctor のライセンス例外は、LICENSE 本文の SHA-256 と用途（TABBIN の通常の
+コード品質検査のみ）を固定できるため、期限を廃止して恒久承認へ変更した。`reviewedAt`
+は再承認日の記録として残し、未来日の指定は引き続き拒否する。LICENSE 本文、package
+identity、registry / integrity、用途のいずれかが変わった場合は再評価する。
+`expiresAt` に依存していた CI の期限切れ失敗は発生しなくなる。

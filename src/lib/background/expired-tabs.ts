@@ -4,8 +4,9 @@
 
 import { getBackgroundSavedTabsDataPlane } from '@/app/composition/backgroundSavedTabsDataPlane'
 import { logger } from '@/lib/logging/logger'
-import { getUserSettings } from '@/lib/storage/settings'
 import type { AutoDeletePeriod } from '@/types/background'
+
+import { requireOperationalUserSettings } from './settings-policy'
 
 const SECOND_MS = 1000
 const SECONDS_PER_MINUTE = 60
@@ -78,11 +79,11 @@ export const getExpirationPeriodMs = (
   }
 }
 
-export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
+const scanExpiredTabs = async (): Promise<void> => {
   try {
     logger.debug('background_expired_tabs_check_started')
-    const autoDeletePeriod =
-      (await getUserSettings()).autoDeletePeriod ?? 'never'
+    const settings = await requireOperationalUserSettings()
+    const autoDeletePeriod = settings.autoDeletePeriod ?? 'never'
     if (autoDeletePeriod === 'never') {
       logger.debug('background_expired_tabs_auto_delete_disabled')
       return
@@ -96,6 +97,9 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
     const result = await getBackgroundSavedTabsDataPlane().removeExpiredUrls(
       currentTime - expirationPeriod,
       currentTime,
+      {
+        protectFavoriteFromAutoRemoval: settings.protectFavoriteFromAutoRemoval,
+      },
     )
     if (result.sourceCount === 0) {
       logger.debug('background_expired_tabs_source_empty')
@@ -116,10 +120,25 @@ export const checkAndRemoveExpiredTabs = async (): Promise<void> => {
   }
 }
 
+let checkInFlight: Promise<void> | undefined
+
+export const checkAndRemoveExpiredTabs = async ({
+  afterCurrent = false,
+}: { readonly afterCurrent?: boolean } = {}): Promise<void> => {
+  if (afterCurrent) {
+    await checkInFlight
+  }
+  checkInFlight ??= scanExpiredTabs().finally(() => {
+    checkInFlight = undefined
+  })
+  return checkInFlight
+}
+
 export const updateTabTimestamps = async (
   period?: string,
 ): Promise<{ readonly success: boolean; readonly timestamp: number }> => {
   try {
+    await requireOperationalUserSettings()
     logger.debug('background_tab_timestamp_update_started')
     const now = Date.now()
     let timestamp = now
@@ -135,7 +154,6 @@ export const updateTabTimestamps = async (
       return { success: false, timestamp: 0 }
     }
     logger.info('background_tab_timestamp_update_completed')
-    void checkAndRemoveExpiredTabs()
     return { success: true, timestamp }
   } catch (error) {
     logger.error('background_tab_timestamp_update_failed', error)

@@ -28,12 +28,26 @@ import {
   getCategoryDisplayName,
   getCategoryLevel,
 } from './projectUrlItemHelpers'
+import { useSavedTabSelectionItem } from './selection/SavedTabsSelectionProvider'
 import { DeleteUrlConfirmDialog } from './shared/DeleteUrlConfirmDialog'
 import { isManagedLinkActivation } from './shared/linkActivation'
 import { SavedTabDragHandleIcon } from './shared/SavedTabDragHandleIcon'
 import { SavedUrlFavoriteButton } from './shared/SavedUrlFavoriteButton'
 
 const MAX_URL_PREVIEW_LENGTH = 30
+
+const resolveUrlRowIndentClass = (
+  isInUncategorizedArea: boolean,
+  isInSubcategory: boolean,
+): string => {
+  if (isInUncategorizedArea && !isInSubcategory) {
+    return ''
+  }
+  if (isInSubcategory) {
+    return 'pl-2'
+  }
+  return 'pl-1'
+}
 
 // グローバルのドロップ状態を追跡（ウィンドウ内でのドロップか外部へのドロップかを判定するため）
 let isGlobalInternalDrop = false
@@ -79,6 +93,145 @@ const ProjectUrlContent = ({ item }: Pick<ProjectUrlItemProps, 'item'>) => (
   </>
 )
 
+type ProjectUrlActivationProps = Pick<ProjectUrlItemProps, 'item'> & {
+  isPractice: boolean
+  isSelectionMode: boolean
+  onClick: (event: React.MouseEvent<HTMLElement>) => void
+  onDragStart: (event: React.DragEvent<HTMLElement>) => void
+  onDragEnd: (event: React.DragEvent<HTMLElement>) => void
+}
+
+type ProjectUrlClickOptions = {
+  handleOpenUrl: ProjectUrlItemProps['handleOpenUrl']
+  isPractice: boolean
+  itemUrl: string
+  selection: ReturnType<typeof useSavedTabSelectionItem>
+}
+
+const useProjectUrlClick = ({
+  handleOpenUrl,
+  isPractice,
+  itemUrl,
+  selection,
+}: ProjectUrlClickOptions) =>
+  useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (selection.handleSelectionClick(event)) {
+        return
+      }
+      if (!isPractice && !isManagedLinkActivation(event)) {
+        return
+      }
+
+      event.preventDefault()
+      handleOpenUrl(itemUrl)
+    },
+    [selection, isPractice, handleOpenUrl, itemUrl],
+  )
+
+type ProjectUrlHandleProps = {
+  attributes: ReturnType<typeof useSortable>['attributes']
+  listeners: ReturnType<typeof useSortable>['listeners']
+  setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef']
+  isOpen: boolean
+  openStateDescriptionId: string
+  selection: ReturnType<typeof useSavedTabSelectionItem>
+  title: string
+}
+
+const ProjectUrlHandle = ({
+  attributes,
+  listeners,
+  setActivatorNodeRef,
+  isOpen,
+  openStateDescriptionId,
+  selection,
+  title,
+}: ProjectUrlHandleProps) => {
+  const { t } = useI18n()
+  if (selection.checkbox) {
+    return (
+      <div className='z-10 flex w-10 shrink-0 items-center justify-center'>
+        {selection.checkbox}
+      </div>
+    )
+  }
+  return (
+    <div
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
+      aria-describedby={
+        isOpen
+          ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
+          : attributes['aria-describedby']
+      }
+      aria-label={t('savedTabs.url.dragHandleAria', undefined, {
+        name: title,
+      })}
+      className='flex w-10 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing'
+      data-testid='project-url-drag-handle'
+    >
+      <SavedTabDragHandleIcon
+        isOpen={isOpen}
+        descriptionId={openStateDescriptionId}
+      />
+    </div>
+  )
+}
+
+const ProjectUrlActivation = ({
+  item,
+  isPractice,
+  isSelectionMode,
+  onClick,
+  onDragStart,
+  onDragEnd,
+}: ProjectUrlActivationProps) => {
+  const safeHref = toSafeSavedUrlHref(item.url)
+  if (!safeHref) {
+    return (
+      <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
+        <ProjectUrlContent item={item} />
+      </span>
+    )
+  }
+  if (isPractice) {
+    return (
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        onClick={onClick}
+        className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+      >
+        <ProjectUrlContent item={item} />
+      </Button>
+    )
+  }
+  return (
+    <Button
+      asChild
+      variant='ghost'
+      size='sm'
+      draggable={!isSelectionMode}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
+    >
+      <a
+        href={safeHref}
+        target='_blank'
+        rel='noopener noreferrer'
+        onClick={onClick}
+      >
+        <ProjectUrlContent item={item} />
+      </a>
+    </Button>
+  )
+}
+
 // eslint-disable-next-line eslint/complexity
 const ProjectUrlItemComponent = ({
   item,
@@ -97,6 +250,12 @@ const ProjectUrlItemComponent = ({
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const isDraggingRef = useRef(false)
+  const dragSnapshotRef = useRef<{
+    readonly dragId: string
+    readonly groupId: string
+    readonly url: string
+    readonly urlRecordId?: string
+  } | null>(null)
   const windowBlurredDuringDragRef = useRef(false)
   // 外部ウィンドウへの D&D 通知に使う `MessagingPort` (issue #531)。
   // `SavedTabsPage` 配下では `SavedTabsUseCasesProvider` が
@@ -105,7 +264,13 @@ const ProjectUrlItemComponent = ({
   // `null` になるので、その場合は通知を no-op とする。
   const savedTabsUseCases = useSavedTabsUseCases()
   const messagingPort = savedTabsUseCases?.deps.messagingPort
-  const canReorderUrls = useUrlReorderAvailable()
+  const isPractice = savedTabsUseCases?.interactionMode === 'practice'
+  const selection = useSavedTabSelectionItem({
+    groupId: projectId,
+    url: originalUrl,
+    title: item.title || originalUrl,
+  })
+  const canReorderUrls = useUrlReorderAvailable() && !selection.isSelectionMode
 
   // ドラッグアンドドロップの設定を強化
   const {
@@ -151,16 +316,16 @@ const ProjectUrlItemComponent = ({
   )
 
   const handleExternalDrop = useCallback(() => {
-    if (!messagingPort) {
+    const drag = dragSnapshotRef.current
+    if (!messagingPort || !drag) {
       return
     }
     void messagingPort.send({
       action: 'urlDropped',
       fromExternal: true,
-      groupId: projectId,
-      url: originalUrl,
+      ...drag,
     })
-  }, [messagingPort, originalUrl, projectId])
+  }, [messagingPort])
 
   const handleWindowBlur = useCallback(() => {
     if (isDraggingRef.current) {
@@ -179,14 +344,17 @@ const ProjectUrlItemComponent = ({
       window.addEventListener('blur', handleWindowBlur)
 
       if (messagingPort) {
-        void messagingPort.send({
-          action: 'urlDragStarted',
+        const drag = {
+          dragId: crypto.randomUUID(),
           groupId: projectId,
           url: originalUrl,
-        })
+          ...(item.id !== undefined ? { urlRecordId: item.id } : {}),
+        }
+        dragSnapshotRef.current = drag
+        void messagingPort.send({ action: 'urlDragStarted', ...drag })
       }
     },
-    [originalUrl, messagingPort, projectId, handleWindowBlur],
+    [originalUrl, item.id, messagingPort, projectId, handleWindowBlur],
   )
 
   const handleDragEnd = useCallback(
@@ -204,6 +372,7 @@ const ProjectUrlItemComponent = ({
       }
 
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur, handleExternalDrop],
@@ -213,6 +382,7 @@ const ProjectUrlItemComponent = ({
     () => () => {
       window.removeEventListener('blur', handleWindowBlur)
       isDraggingRef.current = false
+      dragSnapshotRef.current = null
       windowBlurredDuringDragRef.current = false
     },
     [handleWindowBlur],
@@ -222,19 +392,12 @@ const ProjectUrlItemComponent = ({
   const categoryLevel = getCategoryLevel(item.category)
   const isInSubcategory = categoryLevel > 0
 
-  const handleUrlClick = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (!isManagedLinkActivation(event)) {
-        return
-      }
-
-      event.preventDefault()
-      handleOpenUrl(item.url)
-    },
-    [handleOpenUrl, item.url],
-  )
-
-  const safeHref = toSafeSavedUrlHref(originalUrl)
+  const handleUrlClick = useProjectUrlClick({
+    handleOpenUrl,
+    isPractice,
+    itemUrl: item.url,
+    selection,
+  })
 
   const handleDeleteButtonClick = useCallback(
     (e: React.MouseEvent) => {
@@ -253,12 +416,17 @@ const ProjectUrlItemComponent = ({
     handleDeleteUrl(projectId, item.url)
   }, [handleDeleteUrl, projectId, item.url])
 
+  const liIndentClass = resolveUrlRowIndentClass(
+    isInUncategorizedArea,
+    isInSubcategory,
+  )
+
   return (
     <>
       <li
         ref={setNodeRef}
         style={style}
-        className={`group relative flex min-w-0 items-center overflow-hidden border-b border-border pb-1 last:border-0 ${isDragging ? 'bg-secondary/50 opacity-50' : ''} ${isInSubcategory ? 'pl-2' : ''} ${item.category ? 'border-l-2 border-l-primary/30' : ''} `}
+        className={`group relative flex min-w-0 items-center overflow-hidden border-b border-border pb-1 last:border-0 ${isDragging ? 'bg-secondary/50 opacity-50' : ''} ${liIndentClass} ${item.category ? 'border-l-2 border-l-primary/30' : ''} `}
         data-testid='project-url-item'
         data-url={originalUrl}
         data-project-id={projectId}
@@ -268,58 +436,32 @@ const ProjectUrlItemComponent = ({
         data-parent-type={parentType ?? ''}
         data-in-uncategorized={isInUncategorizedArea ? 'true' : 'false'}
       >
-        <div
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-description={isOpen ? t('savedTabs.url.openNow') : undefined}
-          aria-describedby={
-            isOpen
-              ? `${attributes['aria-describedby']} ${openStateDescriptionId}`.trim()
-              : attributes['aria-describedby']
-          }
-          aria-label={t('savedTabs.url.dragHandleAria', undefined, {
-            name: item.title || originalUrl,
-          })}
-          className='cursor-grab p-1 active:cursor-grabbing'
-          data-testid='project-url-drag-handle'
-        >
-          <SavedTabDragHandleIcon
-            isOpen={isOpen}
-            descriptionId={openStateDescriptionId}
-          />
-        </div>
+        <ProjectUrlHandle
+          attributes={attributes}
+          listeners={listeners}
+          setActivatorNodeRef={setActivatorNodeRef}
+          isOpen={isOpen}
+          openStateDescriptionId={openStateDescriptionId}
+          selection={selection}
+          title={item.title || originalUrl}
+        />
         <SavedUrlFavoriteButton
           url={originalUrl}
           title={item.title}
           isFavorite={item.isFavorite ?? false}
+          disabled={selection.isSelectionMode}
+          className='ml-2 w-10'
         />
         {/* タイトル＋バッジ部 */}
         <div className='flex min-w-0 flex-1 items-center'>
-          {safeHref ? (
-            <Button
-              asChild
-              variant='ghost'
-              size='sm'
-              draggable
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground hover:text-foreground hover:underline'
-            >
-              <a
-                href={safeHref}
-                target='_blank'
-                rel='noopener noreferrer'
-                onClick={handleUrlClick}
-              >
-                <ProjectUrlContent item={item} />
-              </a>
-            </Button>
-          ) : (
-            <span className='flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-left text-foreground'>
-              <ProjectUrlContent item={item} />
-            </span>
-          )}
+          <ProjectUrlActivation
+            item={item}
+            isPractice={isPractice}
+            isSelectionMode={selection.isSelectionMode}
+            onClick={handleUrlClick}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
         </div>
         {/* ボタン群 */}
         <div
@@ -330,6 +472,7 @@ const ProjectUrlItemComponent = ({
             variant='ghost'
             size='sm'
             onClick={handleDeleteButtonClick}
+            disabled={selection.isSelectionMode}
             className='size-8 cursor-pointer p-0'
             title={t('savedTabs.url.deleteAria')}
             aria-label={t('savedTabs.url.deleteAria')}

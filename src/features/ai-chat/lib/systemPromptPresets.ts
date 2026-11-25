@@ -188,21 +188,23 @@ const getActiveAiSystemPrompt = (
 }
 
 const buildFinalSystemPrompt = ({
+  language = getCurrentAppLanguage(),
   savedUrlContext,
   template,
 }: {
+  language?: AppLanguage
   savedUrlContext: string
   template: string
 }): string => {
   const normalizedTemplate = template.trim()
-  if (normalizedTemplate.includes(SAVED_URL_CONTEXT_PLACEHOLDER)) {
-    return normalizedTemplate.replace(
-      SAVED_URL_CONTEXT_PLACEHOLDER,
-      savedUrlContext,
-    )
-  }
+  const prompt = normalizedTemplate.includes(SAVED_URL_CONTEXT_PLACEHOLDER)
+    ? normalizedTemplate.replace(SAVED_URL_CONTEXT_PLACEHOLDER, savedUrlContext)
+    : [normalizedTemplate, savedUrlContext].join('\n\n')
 
-  return [normalizedTemplate, savedUrlContext].join('\n\n')
+  return [
+    prompt,
+    getMessage(language, 'aiChat.systemPrompt.untrustedDataPolicy'),
+  ].join('\n\n')
 }
 
 const createAiSystemPromptPreset = ({

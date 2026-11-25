@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ChangeEvent } from 'react'
 import { toast } from 'sonner'
-import { assert, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useSettings } from './useSettings'
 
@@ -30,9 +30,15 @@ vi.mock('@/lib/storage/settings', () => {
     colors: {},
   }
 
+  const getUserSettings = vi.fn()
   return {
     defaultSettings,
-    getUserSettings: vi.fn(),
+    getUserSettings,
+    readUserSettingsStrict: vi.fn(async () => ({
+      status: 'available',
+      settings: await getUserSettings(),
+    })),
+    resetInvalidUserSettings: vi.fn(),
     saveUserSettings: vi.fn(),
   }
 })

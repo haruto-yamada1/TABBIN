@@ -10,6 +10,7 @@ import { memo, useCallback, useMemo, useReducer, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
 import {
@@ -193,7 +194,6 @@ const CategoryContent = (props: CategoryContentProps) => {
 
 // eslint-disable-next-line eslint/complexity
 const useCustomProjectCategoryView = ({
-  // eslint-disable-line eslint/max-lines-per-function
   projectId,
   category,
   urls,
@@ -292,6 +292,7 @@ const useCustomProjectCategoryView = ({
   )
   const showBulkActions = sortedCategoryUrls.length > 0
   const isCollapseDisabled = isDraggingCategory || isCategoryReorder
+  const isPractice = useSavedTabsUseCases()?.interactionMode === 'practice'
 
   const handleOpenAllUrlsConfirmed = useCallback(() => {
     if (handleOpenAllUrls) {
@@ -299,9 +300,13 @@ const useCustomProjectCategoryView = ({
       return
     }
     for (const item of sortedCategoryUrls) {
+      if (isPractice) {
+        handleOpenUrl(item.url)
+        continue
+      }
       window.open(item.url, '_blank', 'noopener,noreferrer')
     }
-  }, [handleOpenAllUrls, sortedCategoryUrls])
+  }, [handleOpenAllUrls, sortedCategoryUrls, isPractice, handleOpenUrl])
 
   const handleDeleteAllUrlsConfirmed = useCallback(() => {
     if (handleDeleteUrlsFromProject) {

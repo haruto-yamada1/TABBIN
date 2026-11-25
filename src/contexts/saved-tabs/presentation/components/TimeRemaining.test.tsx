@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
@@ -56,8 +56,16 @@ vi.mock('@dnd-kit/sortable', () => ({
 }))
 
 vi.mock('./SortableUrlItem', () => ({
-  SortableUrlItem: ({ url }: { url: string }) => (
-    <li data-testid='sortable-url-item'>{url}</li>
+  SortableUrlItem: ({
+    url,
+    urlRecordId,
+  }: {
+    url: string
+    urlRecordId?: string
+  }) => (
+    <li data-testid='sortable-url-item' data-url-record-id={urlRecordId}>
+      {url}
+    </li>
   ),
 }))
 
@@ -78,6 +86,7 @@ vi.mock('sonner', () => ({
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
@@ -120,6 +129,20 @@ describe('CategorySection', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('DnD用URLとは別に表示レコードの永続IDを行へ渡す', () => {
+    const props = createProps()
+    render(
+      <CategorySection
+        {...props}
+        urls={[{ id: 'persistent-a', url: 'https://a.com', title: 'A' }]}
+      />,
+    )
+    expect(screen.getByTestId('sortable-url-item')).toHaveAttribute(
+      'data-url-record-id',
+      'persistent-a',
+    )
   })
 
   it('ドロップ後に先に表示順を更新し、保存完了後に親更新を通知する', async () => {

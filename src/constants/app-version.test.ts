@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getAppVersion } from './app-version'
 
@@ -24,8 +24,8 @@ describe('getAppVersion', () => {
   })
 
   it('build-time に注入された __APP_VERSION__ があればそれを返す', () => {
-    vi.stubGlobal('__APP_VERSION__', '2.0.19')
-    expect(getAppVersion()).toBe('2.0.19')
+    vi.stubGlobal('__APP_VERSION__', '2.0.20')
+    expect(getAppVersion()).toBe('2.0.20')
   })
 
   it('__APP_VERSION__ が未定義なら manifest version を返す', () => {

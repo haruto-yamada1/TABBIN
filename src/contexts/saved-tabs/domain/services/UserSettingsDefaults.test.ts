@@ -6,6 +6,15 @@ import {
 } from './UserSettingsDefaults'
 
 describe('normalizeUserSettings', () => {
+  it.each([undefined, null, 'true', false, true])(
+    '今開いているタブは未設定ならON、明示OFFを維持する: %j',
+    (showOpenTabs) => {
+      expect(
+        normalizeUserSettings({ userSettings: { showOpenTabs } }).normalized,
+      ).toMatchObject({ showOpenTabs: showOpenTabs !== false })
+    },
+  )
+
   it.each([undefined, null, 'invalid', {}, { userSettings: null }])(
     '保存値が利用できない場合は既定値を返す: %j',
     (stored) => {
@@ -68,6 +77,24 @@ describe('normalizeUserSettings', () => {
         userSettings: { removeTabAfterExternalDrop: true },
       }).normalized.removeTabAfterExternalDrop,
     ).toBe(true)
+  })
+
+  it('お気に入り自動削除保護は未設定ならON、明示OFFだけを維持する', () => {
+    expect(defaultUserSettings.protectFavoriteFromAutoRemoval).toBe(true)
+    expect(
+      normalizeUserSettings({ userSettings: {} }).normalized
+        .protectFavoriteFromAutoRemoval,
+    ).toBe(true)
+    expect(
+      normalizeUserSettings({
+        userSettings: { protectFavoriteFromAutoRemoval: 'true' },
+      }).normalized.protectFavoriteFromAutoRemoval,
+    ).toBe(true)
+    expect(
+      normalizeUserSettings({
+        userSettings: { protectFavoriteFromAutoRemoval: false },
+      }).normalized.protectFavoriteFromAutoRemoval,
+    ).toBe(false)
   })
 
   it('除外パターンを trim・重複除去し、必須パターンを補う', () => {

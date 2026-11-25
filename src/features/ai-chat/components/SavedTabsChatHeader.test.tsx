@@ -7,7 +7,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/features/i18n/context/I18nProvider', async () => {
   const { getMessages } = await vi.importActual<
@@ -17,33 +17,57 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
 
   return {
     useI18n: () => ({
+      language: 'en' as const,
       t: (key: string, fallback?: string, values?: Record<string, string>) => {
         const messages = getMessages('en')
         const template =
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
   }
 })
 
+import type { AiChatHistoryItem } from '@/features/ai-chat/types'
+
 import { SavedTabsChatHeader } from './SavedTabsChatHeader'
 
-const historyItems = [
+const historyItems: AiChatHistoryItem[] = [
   {
     id: 'conversation-1',
     isActive: true,
+    messages: [
+      {
+        content: 'First preview',
+        id: 'message-1',
+        role: 'user',
+      },
+    ],
     preview: 'First preview',
     title: 'First conversation',
+    updatedAt: Date.now(),
   },
   {
     id: 'conversation-2',
     isActive: false,
+    messages: [
+      {
+        content: 'Second preview',
+        id: 'message-2',
+        role: 'user',
+      },
+      {
+        content: '過去の相談で Ollama 設定を確認した',
+        id: 'message-3',
+        role: 'assistant',
+      },
+    ],
     preview: 'Second preview',
     title: 'Second conversation',
+    updatedAt: Date.now(),
   },
 ]
 
@@ -176,6 +200,91 @@ describe('SavedTabsChatHeader', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
     expect(props.onDeleteHistoryItem).toHaveBeenCalledWith('conversation-2')
+  })
+
+  it('searches conversation titles and bodies from the dropdown and resumes the matched conversation', async () => {
+    const user = userEvent.setup()
+    const props = createProps()
+
+    render(<SavedTabsChatHeader {...props} historyVariant='dropdown' />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Recent conversations' }),
+    )
+    const search = screen.getByRole('searchbox', {
+      name: 'Search conversation history',
+    })
+
+    await user.type(search, 'OLLAMA')
+
+    const result = screen.getByRole('button', {
+      name: 'Open conversation Second conversation',
+    })
+    expect(result).toHaveTextContent('Ollama')
+    expect(screen.queryByTestId('conversation-row-conversation-1')).toBeNull()
+
+    await user.click(result)
+
+    expect(props.onSelectHistoryItem).toHaveBeenCalledWith('conversation-2')
+  })
+
+  it('labels title-only matches and clears the dropdown search with Escape', async () => {
+    const user = userEvent.setup()
+    const props = createProps()
+
+    render(<SavedTabsChatHeader {...props} historyVariant='dropdown' />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Recent conversations' }),
+    )
+    const search = screen.getByRole('searchbox', {
+      name: 'Search conversation history',
+    })
+
+    await user.type(search, 'First conversation')
+
+    expect(screen.getByText('Matched title')).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: 'Open conversation First conversation',
+      }),
+    ).toBeTruthy()
+
+    await user.clear(search)
+    await user.type(search, 'no-such-conversation')
+
+    expect(screen.getByText('No conversations match your search')).toBeTruthy()
+
+    await user.keyboard('{Escape}')
+
+    expect(search).toHaveValue('')
+    expect(screen.getByTestId('conversation-row-conversation-1')).toBeTruthy()
+  })
+
+  it('clears the dropdown search with Escape while a search result has focus', async () => {
+    const user = userEvent.setup()
+    const props = createProps()
+
+    render(<SavedTabsChatHeader {...props} historyVariant='dropdown' />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Recent conversations' }),
+    )
+    const search = screen.getByRole('searchbox', {
+      name: 'Search conversation history',
+    })
+
+    await user.type(search, 'Ollama')
+
+    const result = screen.getByRole('button', {
+      name: 'Open conversation Second conversation',
+    })
+    result.focus()
+    await user.keyboard('{Escape}')
+
+    expect(search).toHaveValue('')
+    expect(screen.getByTestId('conversation-row-conversation-1')).toBeTruthy()
+    expect(screen.queryByTestId('conversation-search-results')).toBeNull()
   })
 
   it('forwards system prompt selection and reflects copied/disabled state', async () => {

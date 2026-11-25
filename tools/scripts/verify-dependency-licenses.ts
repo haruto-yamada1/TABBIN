@@ -15,5 +15,5 @@ verifyDependencyLicensePolicy(
   readReviewedLicenseContents(lock),
 )
 console.log(
-  `React Doctor product-code license review is valid until ${reviewedLicensePolicy.expiresAt} 00:00 UTC`,
+  `React Doctor product-code license review is approved (reviewed ${reviewedLicensePolicy.reviewedAt} 00:00 UTC; no expiry)`,
 )

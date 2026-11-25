@@ -27,7 +27,7 @@ import {
   getChromeStorageOnChanged,
   warnMissingChromeStorage,
 } from '@/lib/browser/chrome-storage'
-import { saveUserSettings } from '@/lib/storage/settings'
+import { requireUserSettings, saveUserSettings } from '@/lib/storage/settings'
 import {
   UserSettingsSchema,
   fromStorageChange,
@@ -55,7 +55,6 @@ type SavedTabsChatControllerOptions = {
   onToggleHistory?: () => void
 }
 
-// eslint-disable-next-line eslint/max-statements
 const useSavedTabsChatController = ({
   conversationId,
   defaultOpen = false,
@@ -268,11 +267,11 @@ const useSavedTabsChatController = ({
       if (!promptId || promptId === resolvedSettings.activeAiSystemPromptId) {
         return
       }
-      const nextSettings = normalizeAiSystemPromptSettings({
-        ...resolvedSettings,
-        activeAiSystemPromptId: promptId,
-      })
       try {
+        const nextSettings = normalizeAiSystemPromptSettings({
+          ...(await requireUserSettings()),
+          activeAiSystemPromptId: promptId,
+        })
         await saveUserSettings(nextSettings)
         setSettings(nextSettings)
         resetConversation()

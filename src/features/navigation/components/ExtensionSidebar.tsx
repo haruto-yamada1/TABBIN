@@ -3,6 +3,7 @@ import {
   Clock3,
   Folder,
   FolderTree,
+  GraduationCap,
   Globe,
   MessageCircleMore,
   PanelLeft,
@@ -113,6 +114,7 @@ const topLevelItems: {
     id: 'periodic-execution',
     labelKey: 'sidebar.periodicExecution',
   },
+  { icon: GraduationCap, id: 'academy', labelKey: 'sidebar.academy' },
 ]
 
 const tabListItems: {
@@ -435,7 +437,6 @@ const FooterSection = ({
 }
 
 export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
-  // eslint-disable-line eslint/max-lines-per-function
   const { t } = useI18n()
   const { open, setOpen, setSidebarWidth, sidebarWidth } = useSidebar()
   const isIconCollapsed = open && sidebarWidth <= ICON_RAIL_WIDTH_PX

@@ -314,7 +314,7 @@ export const DomainSelectionList = () => {
   }
 
   return (
-    <div>
+    <div data-tour='academy-domain-assignment'>
       <Label>
         {selection.selectedCategoryId === 'uncategorized'
           ? t('savedTabs.categoryModal.domainsLabelUncategorized')

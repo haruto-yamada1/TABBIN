@@ -5,6 +5,22 @@ before they reach `develop`. The configuration lives in
 `vitest.ci.config.ts` and is enforced by the `coverage` job in
 `.github/workflows/ci.yml`.
 
+## Reproducing the CI coverage job
+
+Use the same telemetry settings as `.github/workflows/ci.yml` when reproducing
+its result locally:
+
+```sh
+FLAKE_REPORT_PATH=test-results/flake-coverage.json FLAKE_SUITE=coverage bun run test:coverage
+```
+
+These settings enable the custom Vitest runner and reporter. Their executed
+telemetry code contributes to coverage, so the plain local command can report
+slightly different totals. Keep the thresholds and covered source unchanged;
+add tests for the relevant behavior. Run this gate and `quality:check` in
+sequence because their temporary fixtures and reserved ports are shared.
+See [flaky test diagnostics](flaky-tests.md) for the report format.
+
 ## Design decisions
 
 ### CI-only, not in `quality:check`

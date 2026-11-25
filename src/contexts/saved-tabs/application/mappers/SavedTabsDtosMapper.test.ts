@@ -34,9 +34,11 @@ describe('SavedTabsDtosMapper.toUserSettingsDto', () => {
       openAllInNewWindow: false,
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: true,
       showRelativeSavedTime: true,
       showSavedTime: false,
+      showOpenTabs: true,
     }
     const dto = toUserSettingsDto(storage)
     expect(dto).toStrictEqual(storage)
@@ -53,6 +55,7 @@ describe('SavedTabsDtosMapper.toUserSettingsDto', () => {
       openAllInNewWindow: false,
       openUrlInBackground: false,
       removeTabAfterExternalDrop: false,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: false,
       showRelativeSavedTime: true,
       showSavedTime: false,
@@ -73,9 +76,11 @@ describe('SavedTabsDtosMapper.toStorageUserSettings', () => {
       openAllInNewWindow: true,
       openUrlInBackground: false,
       removeTabAfterExternalDrop: false,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: true,
       showRelativeSavedTime: true,
       showSavedTime: true,
+      showOpenTabs: false,
     }
     const dto = toUserSettingsDto(original)
     const storage = toStorageUserSettings(dto)
@@ -95,6 +100,7 @@ describe('SavedTabsDtosMapper.toStorageUserSettings', () => {
       openAllInNewWindow: false,
       openUrlInBackground: false,
       removeTabAfterExternalDrop: false,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: false,
       showRelativeSavedTime: true,
       showSavedTime: false,
@@ -159,6 +165,7 @@ describe('SavedTabsDtosMapper round-trip', () => {
       openAllInNewWindow: false,
       openUrlInBackground: true,
       removeTabAfterExternalDrop: false,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: true,
       showRelativeSavedTime: true,
       showSavedTime: true,
@@ -194,6 +201,7 @@ describe('SavedTabsDtosMapper round-trip', () => {
       openAllInNewWindow: false,
       openUrlInBackground: true,
       removeTabAfterExternalDrop: true,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: true,
       showRelativeSavedTime: true,
       showSavedTime: false,

@@ -9,6 +9,9 @@ import { reviewedNodeForgeBackport } from './dependency-patch-policy'
 import { reviewDependencyChanges } from './dependency-review'
 import type { ReviewRequest } from './dependency-review'
 
+const forgePatch =
+  "diff --git a/lib/rsa.js b/lib/rsa.js\n--- a/lib/rsa.js\n+++ b/lib/rsa.js\n@@ -1178,5 +1178,6 @@\n             obj.value.length !== 2 ||\n             obj.value[0].value.length !==\n-              (('parameters' in capture) ? 2 : 1)) {\n+              (('parameters' in capture) ? 2 : 1) ||\n+            (('parameters' in capture) && capture.parameters !== '')) {\n             var error = new Error(\n               'ASN.1 object does not contain a valid RSASSA-PKCS1-v1_5 ' +\n"
+
 const lock = (packages: Record<string, unknown>) =>
   JSON.stringify({ lockfileVersion: 1, workspaces: {}, packages })
 const entry = (name: string, version: string) => [
@@ -65,7 +68,7 @@ const reviewDoctor = async (
     doctorRequest(metadata),
     {},
     contents,
-    new Date('2026-10-22T00:00:00Z'),
+    new Date('2026-11-23T00:00:00Z'),
   )
 
 describe('reviewed React Doctor npm identities', () => {
@@ -115,7 +118,7 @@ describe('reviewed React Doctor npm identities', () => {
         Object.fromEntries(
           versions.map((version) => [`${name}@${version}`, doctorLicense]),
         ),
-        new Date('2026-10-22T00:00:00Z'),
+        new Date('2026-11-23T00:00:00Z'),
       )
       expect(result).toEqual({
         dependencies: [],
@@ -154,7 +157,7 @@ describe('reviewed React Doctor npm identities', () => {
       doctorRequest({ ...metadata(), name }),
       {},
       { [`${name}@${version}`]: doctorLicense },
-      new Date('2026-10-22T00:00:00Z'),
+      new Date('2026-11-23T00:00:00Z'),
     )
     expect(result).toEqual({
       dependencies: [`${name}@${version}`],
@@ -202,7 +205,7 @@ describe('reviewed React Doctor npm identities', () => {
         request,
         {},
         { 'react-doctor@0.9.17': doctorLicense },
-        new Date('2026-10-22T00:00:00Z'),
+        new Date('2026-11-23T00:00:00Z'),
       ),
     ).toEqual({ dependencies: [], findings: [] })
     expect(request).toHaveBeenCalledTimes(2)
@@ -239,7 +242,7 @@ describe('reviewed React Doctor npm identities', () => {
         'react-doctor@0.9.17': doctorLicense,
         'react-doctor@0.9.18': `${doctorLicense}\n`,
       },
-      new Date('2026-10-22T00:00:00Z'),
+      new Date('2026-11-23T00:00:00Z'),
     )
     expect(result.findings).toEqual([
       'license: react-doctor@0.9.18: SEE LICENSE IN LICENSE',
@@ -278,6 +281,7 @@ describe('Bun dependency changes', () => {
     'Apache-2.0 AND MIT',
     'MIT AND ISC',
     '(MPL-2.0 OR Apache-2.0)',
+    '(MIT OR CC0-1.0)',
   ])(
     'accepts the explicitly reviewed permissive license %s',
     async (license) => {
@@ -299,6 +303,10 @@ describe('Bun dependency changes', () => {
 
   it.each([
     'MIT OR GPL-3.0-only',
+    '(MIT OR GPL-3.0-only)',
+    '(MIT OR UNKNOWN)',
+    '(MIT OR CC0-1.0 OR GPL-3.0-only)',
+    'MIT OR CC0-1.0',
     'MIT AND UNKNOWN',
     'MIT AND Apache-2.0',
     '(MPL-2.0 OR GPL-3.0-only)',
@@ -348,7 +356,7 @@ describe('Bun dependency changes', () => {
       request,
       {},
       { [id]: doctorLicense },
-      new Date('2026-10-22T00:00:00Z'),
+      new Date('2026-11-23T00:00:00Z'),
     )
     expect(result.dependencies).toEqual([id])
     expect(result.findings).toEqual(['high: GHSA-doctor'])
@@ -580,7 +588,7 @@ describe('Bun dependency changes', () => {
       packages: { 'node-forge': forge },
       patchedDependencies: { [dependency]: path },
     })
-    const contents = { [path]: readFileSync(path, 'utf8') }
+    const contents = { [path]: forgePatch }
     const request = vi.fn<ReviewRequest>()
     expect(
       await reviewDependencyChanges(lock({}), base, request, contents),
@@ -617,6 +625,54 @@ describe('Bun dependency changes', () => {
       ),
     ).rejects.toThrow('patch changes')
     expect(request).not.toHaveBeenCalled()
+  })
+
+  it('retires only the verified backport and reviews the published replacement', async () => {
+    const forge = reviewedNodeForgeBackport
+    const base = JSON.stringify({
+      lockfileVersion: 1,
+      workspaces: { '': { devDependencies: { 'node-forge': forge.source } } },
+      overrides: { 'node-forge': forge.source },
+      packages: { 'node-forge': forge.resolution },
+      patchedDependencies: { [forge.dependency]: forge.path },
+    })
+    const head = JSON.stringify({
+      lockfileVersion: 1,
+      workspaces: { '': { devDependencies: { 'node-forge': '1.4.3' } } },
+      overrides: { 'node-forge': '1.4.3' },
+      packages: { 'node-forge': installedLock.packages['node-forge'] },
+      patchedDependencies: {},
+    })
+    const request = vi.fn<ReviewRequest>().mockImplementation(async (url) =>
+      url.startsWith('https://api.github.com/')
+        ? response([])
+        : response({
+            name: 'node-forge',
+            version: '1.4.3',
+            license: '(BSD-3-Clause OR GPL-2.0)',
+          }),
+    )
+    const result = await reviewDependencyChanges(
+      base,
+      head,
+      request,
+      {},
+      {},
+      new Date(),
+      { [forge.path]: forgePatch },
+    )
+    expect(result).toEqual({ dependencies: ['node-forge@1.4.3'], findings: [] })
+    expect(request).toHaveBeenCalledWith(
+      expect.stringContaining('api.github.com/advisories?'),
+      expect.any(Object),
+    )
+    expect(request).toHaveBeenCalledWith(
+      'https://registry.npmjs.org/node-forge/1.4.3',
+      expect.any(Object),
+    )
+    await expect(
+      reviewDependencyChanges(base, head, request, reviewedContents),
+    ).rejects.toThrow(/patch changes/)
   })
 
   it('recognizes local workspaces while checking their third-party dependencies', async () => {

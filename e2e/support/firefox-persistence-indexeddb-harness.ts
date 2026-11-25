@@ -16,6 +16,15 @@ import {
   obsoletePersistenceStorageFixture,
 } from '@/test/fixtures/persistenceBrowserFixtures'
 
+import { runAcademyPersistenceSmoke } from './academy-progress-browser-harness'
+import { runFirefoxCaptureSafetySmoke } from './firefox-capture-safety-harness'
+import { runFirefoxExpiredTabsAlarmSmoke } from './firefox-expired-tabs-alarm-harness'
+import { runFirefoxSavedTabsPageSmoke } from './firefox-saved-tabs-page-harness'
+import { runFirefoxSettingsSafetySmoke } from './firefox-settings-safety-harness'
+import {
+  runFirefoxUrlDragBackgroundSmoke,
+  runFirefoxUrlDragIdentitySmoke,
+} from './firefox-url-drag-identity-harness'
 import {
   runFirefoxUrlOpeningSmoke,
   verifyFirefoxUrlOpeningAfterRestart,
@@ -177,7 +186,7 @@ const seedDomain = async (
   await waitForIndexedDbTransaction(transaction)
 }
 
-const fresh = async () => {
+const fresh = async (captureOrigin: string) => {
   const runtime = createPersistenceBootstrapRuntime()
   const emptyProjection = await withoutStorageAccess(async () => {
     await runtime.bootstrap.ready()
@@ -208,7 +217,11 @@ const fresh = async () => {
     url: 'https://example.com/custom',
   })
   const result = {
+    academy: await runAcademyPersistenceSmoke('fresh'),
+    settingsSafety: await runFirefoxSettingsSafetySmoke(),
+    captureSafety: await runFirefoxCaptureSafetySmoke(captureOrigin),
     urlOpening: await runFirefoxUrlOpeningSmoke(),
+    urlDragIdentity: await runFirefoxUrlDragIdentitySmoke(),
     privateAccessAllowed: await new Promise<boolean>((resolve) => {
       chrome.extension.isAllowedIncognitoAccess(resolve)
     }),
@@ -227,7 +240,7 @@ const fresh = async () => {
     storageIndependent: true,
   }
   runtime.connectionManager.close()
-  return result
+  return { ...result, savedTabsPage: await runFirefoxSavedTabsPageSmoke() }
 }
 
 class RecoverableIndexedDbFactory implements IDBFactory {
@@ -300,6 +313,7 @@ const verifyAfterRestart = async () => {
     url: 'https://example.com/firefox-write',
   })
   const result = {
+    academy: await runAcademyPersistenceSmoke('verify'),
     urlOpeningAfterRestart: await verifyFirefoxUrlOpeningAfterRestart(),
     backup: await exportBackup(
       runtime.connectionManager,
@@ -318,11 +332,30 @@ const verifyAfterRestart = async () => {
   return result
 }
 
-export type FirefoxPersistenceSmokePhase = 'fresh' | 'verify'
+export type FirefoxPersistenceSmokePhase =
+  | 'fresh'
+  | 'verify'
+  | 'alarm'
+  | 'drag-background'
 
 export const runFirefoxPersistenceSmoke = async (
   phase: FirefoxPersistenceSmokePhase,
-) => (phase === 'fresh' ? fresh() : verifyAfterRestart())
+  captureOrigin?: string,
+) => {
+  if (phase === 'drag-background') {
+    return { urlDragBackground: await runFirefoxUrlDragBackgroundSmoke() }
+  }
+  if (phase === 'alarm') {
+    return { expiredTabsAlarm: await runFirefoxExpiredTabsAlarmSmoke() }
+  }
+  if (phase === 'fresh') {
+    if (!captureOrigin) {
+      throw new Error('Firefox capture fixture origin is missing.')
+    }
+    return fresh(captureOrigin)
+  }
+  return verifyAfterRestart()
+}
 
 Object.assign(globalThis, {
   __tabbinFirefoxPersistenceSmoke: { runFirefoxPersistenceSmoke },

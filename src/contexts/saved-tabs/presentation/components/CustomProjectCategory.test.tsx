@@ -7,8 +7,13 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import {
+  createSavedTabsPresentationPortsStub,
+  createSavedTabsUseCasesStub,
+} from '@/contexts/saved-tabs/application/testing/SavedTabsPresentationStubs'
+import { SavedTabsUseCasesProvider } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import type { CustomProjectCategoryProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCategory.types'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
@@ -199,7 +204,7 @@ vi.mock('@/features/i18n/context/I18nProvider', async () => {
           messages[key as keyof typeof messages] ?? fallback ?? key
         return template.replaceAll(
           /\{\{(\w+)\}\}/g,
-          (_, token) => values?.[token] ?? '', // eslint-disable-line
+          (_, token) => values?.[token] ?? '',
         )
       },
     }),
@@ -211,6 +216,7 @@ import { CustomProjectCategory } from './CustomProjectCategory'
 const defaultSettings: UserSettings = {
   removeTabAfterOpen: true,
   removeTabAfterExternalDrop: true,
+  protectFavoriteFromAutoRemoval: true,
   excludePatterns: [],
   enableCategories: true,
   autoDeletePeriod: 'never',
@@ -507,6 +513,37 @@ describe('CustomProjectCategory', () => {
     )
   })
 
+  it('practice mode never falls back to window.open when the bulk callback is missing', async () => {
+    const user = userEvent.setup()
+    using openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const handleOpenUrl = vi.fn()
+    const { handleOpenAllUrls: _handleOpenAllUrls, ...props } = createProps({
+      handleOpenUrl,
+      urls: [
+        {
+          url: 'https://practice.example/article',
+          title: 'Practice',
+          category: 'Work',
+        },
+      ],
+    })
+    const value = {
+      deps: createSavedTabsPresentationPortsStub(),
+      useCases: createSavedTabsUseCasesStub(),
+      interactionMode: 'practice' as const,
+    }
+    render(
+      <SavedTabsUseCasesProvider value={value}>
+        <CustomProjectCategory {...props} />
+      </SavedTabsUseCasesProvider>,
+    )
+    await user.click(screen.getByRole('button', { name: 'すべて開く' }))
+    expect(openSpy).not.toHaveBeenCalled()
+    expect(handleOpenUrl).toHaveBeenCalledWith(
+      'https://practice.example/article',
+    )
+  })
+
   it('confirmDeleteAll=true では一括削除確認ダイアログを表示し未分類名も表示する', async () => {
     const user = userEvent.setup()
     const handleDeleteUrl = vi.fn(async () => {})
@@ -674,11 +711,9 @@ describe('CustomProjectCategory', () => {
     const emptyState = screen.getByTestId('empty-state')
     expect(emptyState).toBeTruthy()
     expect(
-      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('border-primary'),
     ).toBe(true)
     expect(
-      // eslint-disable-next-line typescript/non-nullable-type-assertion-style
       (emptyState as HTMLDivElement).className.includes('bg-primary/10'),
     ).toBe(true)
   })

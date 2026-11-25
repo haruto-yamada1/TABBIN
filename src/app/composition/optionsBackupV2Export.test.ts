@@ -21,7 +21,7 @@ import {
 } from './optionsBackupV2Export'
 
 const envelope = {
-  appVersion: '2.0.19',
+  appVersion: '2.0.20',
   data: {
     analyticsViews: [],
     conversations: [],
@@ -43,6 +43,7 @@ const envelope = {
       openAllInNewWindow: false,
       openUrlInBackground: true,
       removeTabAfterExternalDrop: false,
+      protectFavoriteFromAutoRemoval: true,
       removeTabAfterOpen: false,
       showRelativeSavedTime: false,
       showSavedTime: false,
@@ -79,7 +80,7 @@ describe('optionsBackupV2Export composition', () => {
       createConnectionManager,
       createExportUseCase,
       createSnapshotReader,
-      getAppVersion: vi.fn(() => '2.0.19'),
+      getAppVersion: vi.fn(() => '2.0.20'),
       getOperationGate: vi.fn(() => operationGate),
       now: vi.fn(() => new Date('2026-07-28T00:00:00.000Z')),
       preparePersistence,
@@ -140,7 +141,7 @@ describe('optionsBackupV2Export composition', () => {
       createExportUseCase: createExportBackupV2UseCase,
       createSnapshotReader: (manager, gate) =>
         new IndexedDbPersistenceSnapshotReader(manager, gate),
-      getAppVersion: () => '2.0.19',
+      getAppVersion: () => '2.0.20',
       getOperationGate: () => operationGate,
       now: () => new Date('2026-08-01T00:00:00.000Z'),
       preparePersistence: vi.fn(async () => undefined),
@@ -149,7 +150,7 @@ describe('optionsBackupV2Export composition', () => {
 
     const backup = await runtime.exportBackupV2()
     expect(backup).toMatchObject({
-      appVersion: '2.0.19',
+      appVersion: '2.0.20',
       data: {
         savedTabs: {
           categories: [],

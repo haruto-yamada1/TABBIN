@@ -8,6 +8,7 @@ import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entitie
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
+import { PROMPT_INJECTION_ATTACKS } from '@/features/ai-chat/lib/promptInjection.fixture'
 
 const createFixture = async () => {
   const manager = new IndexedDbConnectionManager({
@@ -198,6 +199,77 @@ describe('SavedTabsOrganizationService', () => {
     await expect(service.undo(first.value.undoId)).rejects.toMatchObject({
       code: 'UNDO_UNAVAILABLE',
     })
+    manager.close()
+  })
+
+  it('does not let prompt-injected metadata mint, bypass, or reuse approvals', async () => {
+    const { service, reader, unitOfWork, snapshot, commit, manager } =
+      await createFixture()
+    const targetUrl = snapshot.urls[0]
+    const targetCategory = snapshot.categories[0]
+    if (!targetUrl || !targetCategory) {
+      throw new Error('The integration fixture needs a URL and a category')
+    }
+    await unitOfWork.commit({
+      categories: {
+        put: [
+          {
+            ...targetCategory,
+            name: PROMPT_INJECTION_ATTACKS.exfiltrate,
+          },
+        ],
+      },
+      urls: {
+        put: [
+          {
+            ...targetUrl,
+            title: PROMPT_INJECTION_ATTACKS.deleteAll,
+          },
+        ],
+      },
+    })
+    const before = await reader.readVerifiedSavedTabsSnapshot()
+
+    await expect(
+      service.execute(PROMPT_INJECTION_ATTACKS.skipApproval),
+    ).rejects.toMatchObject({ code: 'PREVIEW_UNAVAILABLE' })
+    expect(commit).not.toHaveBeenCalled()
+    expect(await reader.readVerifiedSavedTabsSnapshot()).toEqual(before)
+
+    const preview = await service.preview({
+      kind: 'delete_urls',
+      urlIds: ['url-a'],
+    })
+    expect(preview.targets[0]?.title).toBe(PROMPT_INJECTION_ATTACKS.deleteAll)
+    expect(commit).not.toHaveBeenCalled()
+    expect(await reader.readVerifiedSavedTabsSnapshot()).toEqual(before)
+
+    const applied = await service.execute(preview.id)
+    await expect(service.execute(preview.id)).rejects.toMatchObject({
+      code: 'PREVIEW_UNAVAILABLE',
+    })
+    expect(commit).toHaveBeenCalledOnce()
+
+    const afterExecute = await reader.readVerifiedSavedTabsSnapshot()
+    expect(afterExecute.savedTabs.urls).toEqual(
+      before.savedTabs.urls.filter(({ id }) => id !== 'url-a'),
+    )
+    expect(afterExecute.savedTabs.memberships).toEqual(
+      before.savedTabs.memberships.filter(({ urlId }) => urlId !== 'url-a'),
+    )
+    expect(afterExecute.savedTabs.categories).toEqual(
+      before.savedTabs.categories,
+    )
+    expect(afterExecute.savedTabs.collections).toEqual(
+      before.savedTabs.collections,
+    )
+
+    await expect(service.undo(applied.undoId)).resolves.toStrictEqual({
+      notificationFailed: false,
+    })
+    expect((await reader.readVerifiedSavedTabsSnapshot()).savedTabs).toEqual(
+      before.savedTabs,
+    )
     manager.close()
   })
 

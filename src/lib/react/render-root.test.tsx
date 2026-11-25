@@ -1,6 +1,6 @@
 import type { RootOptions } from 'react-dom/client'
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest' // eslint-disable-line
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as LoggingModule from '@/lib/logging/logger'
 

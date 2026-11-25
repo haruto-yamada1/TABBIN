@@ -8,6 +8,11 @@ import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/applica
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
 import { IndexedDbPersistenceUnitOfWork } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceUnitOfWork'
+import {
+  createCustomCollectionFixture,
+  createMembershipFixture,
+  createUrlFixture,
+} from '@/test/fixtures/persistenceBrowserFixtures'
 
 import {
   createIndexedDbSavedTabsUseCases,
@@ -21,6 +26,100 @@ const gate: PersistenceOperationGatePort = {
 }
 
 describe('createIndexedDbSavedTabsUseCases', () => {
+  it('resolves shared search URLs with project-specific metadata without changing the snapshot', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'project-search-urls',
+      indexedDb: new IDBFactory(),
+    })
+    vi.stubGlobal('chrome', {
+      storage: {
+        local: { get: vi.fn(async () => ({})), set: vi.fn(), remove: vi.fn() },
+      },
+    })
+    const unitOfWork = new IndexedDbPersistenceUnitOfWork(manager, gate)
+    const reader = new IndexedDbPersistenceSnapshotReader(manager, gate)
+    const useCases = createIndexedDbSavedTabsUseCases({
+      connectionManager: manager,
+      operationGate: gate,
+    })
+    const sharedUrl = createUrlFixture(
+      'shared',
+      'https://example.com/shared',
+      'Shared',
+      10,
+    )
+    const otherUrl = createUrlFixture(
+      'other',
+      'https://example.com/other',
+      'Other',
+      20,
+    )
+    try {
+      await unitOfWork.commit({
+        categories: {
+          put: [
+            {
+              id: 'later',
+              name: 'Later',
+              collectionId: 'reading',
+              createdAt: 1,
+              sortOrder: 0,
+              updatedAt: 1,
+              keywords: [],
+            },
+          ],
+        },
+        collections: {
+          put: [
+            createCustomCollectionFixture('reading', 'Reading List', 1),
+            createCustomCollectionFixture('work', 'Work', 1, 1),
+          ],
+        },
+        memberships: {
+          put: [
+            {
+              ...createMembershipFixture('reading', 'shared', 1, 1),
+              categoryId: 'later',
+              notes: 'Read soon',
+            },
+            createMembershipFixture('reading', 'other', 1),
+            {
+              ...createMembershipFixture('work', 'shared', 1),
+              notes: 'For work',
+            },
+          ],
+        },
+        urls: { put: [sharedUrl, otherUrl] },
+      })
+      const before = await reader.readVerifiedSavedTabsSnapshot()
+      const projects = await useCases.getCustomProjects()
+      const matches = await useCases.getProjectSearchUrls(projects)
+      expect(matches.get('reading')).toEqual([
+        { id: 'other', title: 'Other', url: otherUrl.url, savedAt: 20 },
+        {
+          id: 'shared',
+          title: 'Shared',
+          url: sharedUrl.url,
+          savedAt: 10,
+          category: 'Later',
+          notes: 'Read soon',
+        },
+      ])
+      expect(matches.get('work')).toEqual([
+        {
+          id: 'shared',
+          title: 'Shared',
+          url: sharedUrl.url,
+          savedAt: 10,
+          notes: 'For work',
+        },
+      ])
+      expect(await reader.readVerifiedSavedTabsSnapshot()).toEqual(before)
+    } finally {
+      manager.close()
+    }
+  })
+
   it('forwards cancellation and progress through the native persistence session', async () => {
     const manager = new IndexedDbConnectionManager({
       databaseName: 'opening-cancel-session',
@@ -904,7 +1003,9 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       readSnapshot: async () => snapshotReader.readVerifiedSavedTabsSnapshot(),
       session: runtime.session,
     })
-    await dataPlane.removeExpiredUrls(2, 3)
+    await dataPlane.removeExpiredUrls(2, 3, {
+      protectFavoriteFromAutoRemoval: true,
+    })
 
     const afterExpiryRemoval =
       await snapshotReader.readVerifiedSavedTabsSnapshot()
