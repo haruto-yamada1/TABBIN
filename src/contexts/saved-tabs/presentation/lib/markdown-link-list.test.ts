@@ -40,6 +40,48 @@ describe('buildMarkdownLinkList', () => {
     )
   })
 
+  it('タイトル内の山括弧・バッククォート・強調記号をエスケープする', () => {
+    expect(
+      buildMarkdownLinkList([
+        {
+          title: 'Array<T> `code` *bold* _em_',
+          url: 'https://example.com/',
+        },
+      ]),
+    ).toBe(
+      String.raw`- [Array\<T\> \`code\` \*bold\* \_em\_](https://example.com/)`,
+    )
+  })
+
+  it('タイトル内の文字参照は開始文字をエスケープし、通常の & はそのままにする', () => {
+    expect(
+      buildMarkdownLinkList([
+        { title: 'A &copy; B', url: 'https://example.com/' },
+        { title: 'Tom & Jerry', url: 'https://example.com/' },
+      ]),
+    ).toBe(
+      '- [A \\&copy; B](https://example.com/)\n- [Tom & Jerry](https://example.com/)',
+    )
+  })
+
+  it('URL 内の文字参照は &amp; にして元の URL を保持する', () => {
+    expect(
+      buildMarkdownLinkList([
+        { title: 'x', url: 'https://example.com/?q=&copy;' },
+        { title: 'y', url: 'https://example.com/?q=&amp;x' },
+      ]),
+    ).toBe(
+      '- [x](https://example.com/?q=&amp;copy;)\n- [y](https://example.com/?q=&amp;amp;x)',
+    )
+  })
+
+  it('<...> 形式の URL でも文字参照は &amp; にする', () => {
+    const url = 'https://example.com/wiki/A_(b)?q=&copy;'
+    expect(buildMarkdownLinkList([{ title: 'x', url }])).toBe(
+      '- [x](<https://example.com/wiki/A_(b)?q=&amp;copy;>)',
+    )
+  })
+
   it('タイトルが空なら URL をラベルに使う', () => {
     expect(
       buildMarkdownLinkList([{ title: '  ', url: 'https://example.com/x' }]),
