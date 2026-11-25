@@ -61,7 +61,10 @@ export type DeleteParentCategoryUseCaseDeps = {
  * 割り込むと読み取った一覧が古くなるため、保存直前に再読込し、対象に
  * 割り当てが増えていない場合に限り更新する。保存機構に条件付き保存が
  * ないため完全な原子性はないが、同一ページ内の並行操作による
- * 読み取り-書き込み競合はこの再確認で防げる。
+ * 読み取り-書き込み競合はこの再確認で防げる。`requireEmpty` 指定時は
+ * 保存する一覧と返却する一覧を再読込した `latest` から作る。初回の一覧
+ * を使うと、その間に追加された別カテゴリが保存時に消えてしまうため。
+ * 未指定時は初回の一覧を使う既存動作を維持する。
  *
  * 旧 `src/contexts/saved-tabs/presentation/components/CategoryManagementModal.tsx`
  * の `parentCategoryRepository.removeByIds` 直叩きを use-case 経由へ置換する
@@ -105,6 +108,16 @@ export const createDeleteParentCategoryUseCase = (
         )
       }
       assertCategoryIsEmpty(latestTarget)
+      // 初回の一覧ではなく再読込した latest を基に保存・返却する。
+      // その間に追加された別カテゴリを保存時に消さないため。
+      const latestRemaining = latest.filter(
+        (category) => category.id !== targetCategoryId,
+      )
+      await deps.parentCategoryRepository.saveAll(latestRemaining)
+      return {
+        all: latestRemaining.map(toSavedTabsParentCategoryDto),
+        removedCategory: toSavedTabsParentCategoryDto(targetCategory),
+      }
     }
     await deps.parentCategoryRepository.saveAll(remaining)
 

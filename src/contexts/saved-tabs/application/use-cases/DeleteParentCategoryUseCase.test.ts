@@ -194,4 +194,36 @@ describe('createDeleteParentCategoryUseCase requireEmpty (issue #898)', () => {
     })
     expect(repo.saveAll).not.toHaveBeenCalled()
   })
+
+  it('再読込時に追加された別カテゴリは保存・返却の一覧に残る', async () => {
+    const empty = createParentCategory({
+      collections: [],
+      id: 'cat-empty',
+      name: 'Empty',
+    })
+    const added = createParentCategory({
+      collections: [{ domain: 'news.com', id: 'tab-2' }],
+      id: 'cat-added',
+      name: 'Added',
+    })
+    let findAllCalls = 0
+    const saveAllSpy = vi.fn()
+    const repo: ParentCategoryRepository = {
+      findAll: async () => {
+        findAllCalls += 1
+        return findAllCalls === 1 ? [empty] : [empty, added]
+      },
+      findById: async (id) => (id === 'cat-empty' ? empty : null),
+      removeByIds: async () => {},
+      saveAll: saveAllSpy,
+    }
+    const useCase = createDeleteParentCategoryUseCase(createDeps(repo))
+    const result = await useCase({
+      categoryId: createParentCategoryId('cat-empty'),
+      requireEmpty: true,
+    })
+    expect(result.all.map((c) => c.id)).toStrictEqual(['cat-added'])
+    expect(saveAllSpy).toHaveBeenCalledTimes(1)
+    expect(saveAllSpy).toHaveBeenCalledWith([added])
+  })
 })
