@@ -3,13 +3,13 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { hasSavedTabsDomainErrorCode } from '@/contexts/saved-tabs/application/errors/hasSavedTabsDomainErrorCode'
 import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/application/services/ParentCategoryReorderService'
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { MoveDomainBetweenCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveDomainBetweenCategoriesUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderDomainsInCategoryUseCase'
 import type { ReorderParentCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderParentCategoriesUseCase'
-import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import {
   toSavedTabsTabGroupViewModel,
   toTabGroupFromViewModel,
@@ -255,10 +255,7 @@ const useCategoryManagement = (
         )
       } catch (error) {
         console.error('空カテゴリの削除に失敗しました:', error)
-        if (
-          error instanceof SavedTabsDomainError &&
-          error.code === 'PARENT_CATEGORY_NOT_EMPTY'
-        ) {
+        if (hasSavedTabsDomainErrorCode(error, 'PARENT_CATEGORY_NOT_EMPTY')) {
           toast.error(t('savedTabs.emptyCategoriesDeleteNotEmpty'))
           return
         }
