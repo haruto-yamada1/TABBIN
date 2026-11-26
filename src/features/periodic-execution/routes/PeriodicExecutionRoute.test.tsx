@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createElement } from 'react'
+import { createElement, useState } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -221,7 +221,7 @@ vi.mock('@/features/options/hooks/useSettings', () => ({
 }))
 
 vi.mock('@/features/options/hooks/useAutoDeletePeriod', async () => {
-  const React = await vi.importActual<typeof import('react')>('react')
+  const React = await vi.importActual<{ useState: typeof useState }>('react')
   return {
     useAutoDeletePeriod: () => {
       const [isVisible, setIsVisible] = React.useState(false)
