@@ -1,3 +1,4 @@
+import { aiChatComposerMessages } from './aiChatComposerMessages'
 import { aiChatTrustMessages } from './aiChatTrustMessages'
 import { analyticsHealthMessages } from './analyticsHealthMessages'
 import { backgroundContextMenuMessages } from './backgroundContextMenuMessages'
@@ -15,6 +16,7 @@ import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
 const messages = {
   en: {
     ...aiChatTrustMessages.en,
+    ...aiChatComposerMessages.en,
     ...navigationMessages.en,
     ...backupExportMessages.en,
     ...backupImportMessages.en,
@@ -146,8 +148,6 @@ const messages = {
     'aiChat.resizeAria': 'Resize the AI chat width',
     'aiChat.responseError': 'Could not get a response from AI.',
     'aiChat.scrollLatest': 'Jump to latest message',
-    'aiChat.send': 'Send',
-    'aiChat.sending': 'Sending...',
     'aiChat.shimmer': 'Assembling the answer...',
     'aiChat.sidebarAria': 'AI chat sidebar',
     'aiChat.sources.one': '{{count}} source',
@@ -928,6 +928,7 @@ const messages = {
   },
   ja: {
     ...aiChatTrustMessages.ja,
+    ...aiChatComposerMessages.ja,
     ...navigationMessages.ja,
     ...backupExportMessages.ja,
     ...backupImportMessages.ja,
@@ -1057,8 +1058,6 @@ const messages = {
     'aiChat.resizeAria': 'AIチャットの幅を調整',
     'aiChat.responseError': 'AI からの応答を取得できませんでした。',
     'aiChat.scrollLatest': '最新メッセージへ移動',
-    'aiChat.send': '送信',
-    'aiChat.sending': '送信中...',
     'aiChat.shimmer': '回答を組み立てています...',
     'aiChat.sidebarAria': 'AIチャットサイドバー',
     'aiChat.sources.one': '参照ソース {{count}}件',

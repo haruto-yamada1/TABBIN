@@ -2263,7 +2263,7 @@ describe('SavedTabsChatWidget', () => {
     expect(mocked.sendRuntimeMessage).not.toHaveBeenCalled()
   })
 
-  it('inserts a newline on Enter instead of sending', async () => {
+  it('inserts a newline on Shift+Enter instead of sending', async () => {
     const user = userEvent.setup()
     restoreClipboardMock()
     mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
@@ -2282,7 +2282,7 @@ describe('SavedTabsChatWidget', () => {
     fireEvent.change(textarea, { target: { value: 'first' } })
     textarea.focus()
     textarea.setSelectionRange(5, 5)
-    await user.type(textarea, '{Enter}')
+    await user.type(textarea, '{Shift>}{Enter}{/Shift}')
 
     await waitFor(() => {
       expect(textarea.value).toBe('first\n')
