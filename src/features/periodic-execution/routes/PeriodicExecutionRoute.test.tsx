@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
-import type { ComponentPropsWithoutRef } from 'react'
+import type { ComponentPropsWithoutRef, useState } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getMessages } from '@/features/i18n/messages'
@@ -58,6 +58,7 @@ vi.mock('@/components/ui/sonner', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
+  buttonVariants: () => '',
   Button: ({
     children,
     ref,
@@ -219,19 +220,34 @@ vi.mock('@/features/options/hooks/useSettings', () => ({
   }),
 }))
 
-vi.mock('@/features/options/hooks/useAutoDeletePeriod', () => ({
-  useAutoDeletePeriod: () => ({
-    confirmationState: {
-      isVisible: true,
-      message: '確認メッセージ',
-      onConfirm: mocked.confirmationConfirm,
+vi.mock('@/features/options/hooks/useAutoDeletePeriod', async () => {
+  const React = await vi.importActual<{ useState: typeof useState }>('react')
+  return {
+    useAutoDeletePeriod: () => {
+      const [isVisible, setIsVisible] = React.useState(false)
+      return {
+        confirmationState: {
+          isVisible,
+          message: '確認メッセージ',
+          onConfirm: () => {
+            mocked.confirmationConfirm()
+            setIsVisible(false)
+          },
+        },
+        handleAutoDeletePeriodChange: mocked.handleSelectAutoDelete,
+        hideConfirmation: () => {
+          mocked.hideConfirmation()
+          setIsVisible(false)
+        },
+        pendingAutoDeletePeriod: null,
+        prepareAutoDeletePeriod: () => {
+          mocked.prepareAutoDeletePeriod()
+          setIsVisible(true)
+        },
+      }
     },
-    handleAutoDeletePeriodChange: mocked.handleSelectAutoDelete,
-    hideConfirmation: mocked.hideConfirmation,
-    pendingAutoDeletePeriod: null,
-    prepareAutoDeletePeriod: mocked.prepareAutoDeletePeriod,
-  }),
-}))
+  }
+})
 
 import { PeriodicExecutionRoute } from './PeriodicExecutionRoute'
 
@@ -359,13 +375,19 @@ describe('PeriodicExecutionRoute', () => {
     expect(mocked.prepareAutoDeletePeriod).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(mocked.hideConfirmation).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(mocked.confirmationConfirm).toHaveBeenCalledTimes(1)
   })
 
-  it('確認 UI を alertdialog として表示し、キャンセルボタンへ初期フォーカスを移す', () => {
+  it('確認 UI を alertdialog として表示し、キャンセルボタンへ初期フォーカスを移す', async () => {
+    const user = userEvent.setup()
     render(createElement(PeriodicExecutionRoute))
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
 
     const dialog = screen.getByRole('alertdialog')
     const cancelButton = screen.getByRole('button', { name: 'Cancel' })
@@ -373,5 +395,31 @@ describe('PeriodicExecutionRoute', () => {
     expect(dialog).toHaveAccessibleName('Auto delete')
     expect(dialog).toHaveAccessibleDescription('確認メッセージ')
     expect(cancelButton).toHaveFocus()
+  })
+
+  it('確認ダイアログ表示中はフォーカスがダイアログ内に留まり、Escapeで閉じると適用ボタンへ戻る', async () => {
+    const user = userEvent.setup()
+    render(createElement(PeriodicExecutionRoute))
+
+    const applyButton = screen.getByRole('button', { name: 'Apply' })
+    await user.click(applyButton)
+
+    const dialog = screen.getByRole('alertdialog')
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' })
+    expect(dialog).toHaveAccessibleName('Auto delete')
+    expect(cancelButton).toHaveFocus()
+
+    await user.tab()
+    expect(confirmButton).toHaveFocus()
+    await user.tab()
+    expect(cancelButton).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(confirmButton).toHaveFocus()
+
+    await user.keyboard('{Escape}')
+    expect(mocked.hideConfirmation).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alertdialog')).toBeNull()
+    expect(applyButton).toHaveFocus()
   })
 })
