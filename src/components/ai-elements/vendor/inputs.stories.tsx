@@ -1,6 +1,4 @@
 // @covers components/ai-elements/vendor/mic-selector.tsx
-// @covers components/ai-elements/vendor/model-selector.tsx
-// @covers components/ai-elements/vendor/open-in-chat.tsx
 // @covers components/ai-elements/prompt-input.tsx
 // @covers components/ai-elements/vendor/speech-input.tsx
 // @covers components/ai-elements/vendor/voice-selector.tsx
@@ -57,35 +55,6 @@ import {
   MicSelectorTrigger,
   MicSelectorValue,
 } from './mic-selector'
-import {
-  ModelSelector,
-  ModelSelectorContent,
-  ModelSelectorEmpty,
-  ModelSelectorGroup,
-  ModelSelectorInput,
-  ModelSelectorItem,
-  ModelSelectorList,
-  ModelSelectorLogo,
-  ModelSelectorLogoGroup,
-  ModelSelectorName,
-  ModelSelectorSeparator,
-  ModelSelectorShortcut,
-  ModelSelectorTrigger,
-} from './model-selector'
-import {
-  OpenIn,
-  OpenInChatGPT,
-  OpenInClaude,
-  OpenInContent,
-  OpenInCursor,
-  OpenInItem,
-  OpenInLabel,
-  OpenInScira,
-  OpenInSeparator,
-  OpenInT3,
-  OpenInTrigger,
-  OpenInv0,
-} from './open-in-chat'
 import { SpeechInput } from './speech-input'
 import {
   VoiceSelector,
@@ -169,42 +138,6 @@ const SelectorGallery = () => {
         </MicSelector>
       </Section>
 
-      <Section title='Model Selector'>
-        <ModelSelector defaultOpen open>
-          <ModelSelectorTrigger asChild>
-            <Button variant='outline'>Choose a model</Button>
-          </ModelSelectorTrigger>
-          <ModelSelectorContent>
-            <ModelSelectorInput placeholder='Search models...' />
-            <ModelSelectorList>
-              <ModelSelectorEmpty>No model found.</ModelSelectorEmpty>
-              <ModelSelectorGroup heading='Recommended'>
-                <ModelSelectorItem value='openai/gpt-4.1-mini'>
-                  <ModelSelectorLogoGroup>
-                    <ModelSelectorLogo provider='openai' />
-                    <ModelSelectorLogo provider='vercel' />
-                  </ModelSelectorLogoGroup>
-                  <ModelSelectorName>GPT-4.1 mini</ModelSelectorName>
-                  <ModelSelectorShortcut>Fast</ModelSelectorShortcut>
-                </ModelSelectorItem>
-                <ModelSelectorItem value='anthropic/claude-3.7-sonnet'>
-                  <ModelSelectorLogo provider='anthropic' />
-                  <ModelSelectorName>Claude 3.7 Sonnet</ModelSelectorName>
-                  <ModelSelectorShortcut>Reasoning</ModelSelectorShortcut>
-                </ModelSelectorItem>
-              </ModelSelectorGroup>
-              <ModelSelectorSeparator />
-              <ModelSelectorGroup heading='Fallback'>
-                <ModelSelectorItem value='openrouter/deepseek-r1'>
-                  <ModelSelectorLogo provider='openrouter' />
-                  <ModelSelectorName>DeepSeek R1</ModelSelectorName>
-                </ModelSelectorItem>
-              </ModelSelectorGroup>
-            </ModelSelectorList>
-          </ModelSelectorContent>
-        </ModelSelector>
-      </Section>
-
       <Section title='Voice Selector'>
         <VoiceSelector
           defaultOpen
@@ -252,30 +185,6 @@ const SelectorGallery = () => {
             </VoiceSelectorList>
           </VoiceSelectorContent>
         </VoiceSelector>
-      </Section>
-
-      <Section title='Open In Chat'>
-        <OpenIn
-          open
-          query='Summarize my pinned TABBIN projects for weekly review'
-        >
-          <OpenInTrigger />
-          <OpenInContent>
-            <OpenInLabel>Providers</OpenInLabel>
-            <OpenInChatGPT />
-            <OpenInClaude />
-            <OpenInT3 />
-            <OpenInScira />
-            <OpenInv0 />
-            <OpenInCursor />
-            <OpenInSeparator />
-            <OpenInItem asChild>
-              <a href='https://github.com' rel='noreferrer' target='_blank'>
-                GitHub
-              </a>
-            </OpenInItem>
-          </OpenInContent>
-        </OpenIn>
       </Section>
     </div>
   )
