@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { I18nProvider, useI18n } from '@/features/i18n/context/I18nProvider'
+import { MemoryI18nProvider } from '@/features/i18n/context/MemoryI18nProvider'
 import { defaultSettings } from '@/lib/storage/settings'
 
 import { LanguageSelect } from './LanguageSelect'
@@ -67,6 +68,10 @@ const MessageProbe = () => {
 }
 
 describe('LanguageSelect', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   it('選択変更で表示言語を切り替え、設定を保存する', async () => {
     const user = userEvent.setup()
     mockedSettings.getUserSettings.mockResolvedValue({
@@ -99,5 +104,17 @@ describe('LanguageSelect', () => {
       ...defaultSettings,
       language: 'en',
     })
+  })
+
+  it('日本語UIでは System 選択肢が日本語になり、言語名は原語表記で統一される', () => {
+    render(
+      <MemoryI18nProvider initialLanguage='ja'>
+        <LanguageSelect />
+      </MemoryI18nProvider>,
+    )
+
+    expect(screen.getByRole('option', { name: 'システム設定' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: '日本語' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'English' })).toBeTruthy()
   })
 })
