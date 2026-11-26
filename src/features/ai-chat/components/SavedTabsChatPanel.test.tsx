@@ -191,7 +191,9 @@ describe('SavedTabsChatPanel', () => {
     )
 
     expect(screen.getByTestId('ai-chat-setup-guide')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Open AI settings' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Open AI settings' }),
+    ).toBeTruthy()
 
     rerender(
       <SavedTabsChatPanel
