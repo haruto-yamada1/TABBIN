@@ -120,6 +120,26 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('language').textContent).toBe('en')
   })
 
+  it('document の lang 属性が表示言語へ追随し、言語切替でも変わる', async () => {
+    const user = userEvent.setup()
+    render(
+      <I18nProvider>
+        <Consumer />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('language').textContent).toBe('ja')
+    })
+    expect(document.documentElement.lang).toBe('ja')
+
+    await user.click(screen.getByText('set-en'))
+
+    await waitFor(() => {
+      expect(document.documentElement.lang).toBe('en')
+    })
+  })
+
   it('表示用fallbackで言語変更時に保存済み設定を上書きしない', async () => {
     mocks.requireUserSettings.mockRejectedValueOnce(
       new Error('private setting value'),

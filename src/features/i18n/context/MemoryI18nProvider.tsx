@@ -1,7 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
+import {
+  getMessage,
+  resolveLanguage,
+  syncDocumentLanguage,
+} from '@/features/i18n/lib/language'
 import type { LanguageSetting } from '@/features/i18n/messages'
 
 import { I18nContext } from './I18nContext'
@@ -17,6 +21,10 @@ export const MemoryI18nProvider = ({
 }) => {
   const [setting, setSetting] = useState(initialLanguage)
   const language = resolveLanguage(setting, navigator.language)
+
+  useEffect(() => {
+    syncDocumentLanguage(language)
+  }, [language])
   const value = useMemo<I18nContextValue>(
     () => ({
       language,
