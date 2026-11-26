@@ -140,6 +140,7 @@ const extractSingleBraceTokens = (message: string): string[] =>
 
 const expectDictionaryParity = (name: string, dict: BilingualDictionary) => {
   const enKeys = Object.keys(dict.en).toSorted()
+  assert.isNotEmpty(enKeys)
   const jaKeys = Object.keys(dict.ja).toSorted()
   expect(jaKeys, `${name}: ja/en key set`).toEqual(enKeys)
 
@@ -161,27 +162,38 @@ const expectDictionaryParity = (name: string, dict: BilingualDictionary) => {
       `${name}.${key}: single-brace placeholders are not allowed (ja)`,
     ).toEqual([])
   }
+  return enKeys.length
 }
 
 describe('i18n parity for satellite dictionaries (#1126)', () => {
   it('Academy UI 辞書の ja/en parity が一致する', () => {
-    expectDictionaryParity('academyUiMessages', academyUiMessages)
+    expect(
+      expectDictionaryParity('academyUiMessages', academyUiMessages),
+    ).toBeGreaterThan(0)
   })
 
   it('Academy カタログ辞書の ja/en parity が一致する', () => {
-    expectDictionaryParity('ACADEMY_MESSAGES', ACADEMY_MESSAGES)
+    expect(
+      expectDictionaryParity('ACADEMY_MESSAGES', ACADEMY_MESSAGES),
+    ).toBeGreaterThan(0)
   })
 
   it('Academy 実習辞書の ja/en parity が一致する', () => {
-    expectDictionaryParity('practiceMessages', practiceMessages)
+    expect(
+      expectDictionaryParity('practiceMessages', practiceMessages),
+    ).toBeGreaterThan(0)
   })
 
   it('Academy 画面案内辞書の ja/en parity が一致する', () => {
-    expectDictionaryParity('screenGuideMessages', screenGuideMessages)
+    expect(
+      expectDictionaryParity('screenGuideMessages', screenGuideMessages),
+    ).toBeGreaterThan(0)
   })
 
   it('リンクキャプチャ辞書の ja/en parity が一致する', () => {
-    expectDictionaryParity('linkCaptureMessages', linkCaptureMessages)
+    expect(
+      expectDictionaryParity('linkCaptureMessages', linkCaptureMessages),
+    ).toBeGreaterThan(0)
   })
 
   it('Academy ガイドは全レッスンで ja/en のステップ数が一致する', () => {
