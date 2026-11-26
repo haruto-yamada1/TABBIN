@@ -9,18 +9,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { getMessage, resolveUiLanguage } from '@/features/i18n/lib/language'
-
-const getThemeMessage = (key: string) =>
-  getMessage(
-    resolveUiLanguage(
-      typeof navigator === 'undefined' ? undefined : navigator.language,
-    ),
-    key,
-  )
+import { useI18nText } from '@/features/i18n/lib/useI18nText'
 
 export const ModeToggle = () => {
   const { setTheme } = useTheme()
+  const t = useI18nText()
   const handleLight = useCallback(() => {
     setTheme('light')
   }, [setTheme])
@@ -40,21 +33,21 @@ export const ModeToggle = () => {
         <Button className='relative' variant='outline' size='icon'>
           <Sun className='size-[1.2rem] scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90' />
           <Moon className='absolute size-[1.2rem] scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0' />
-          <span className='sr-only'>{getThemeMessage('theme.toggle')}</span>
+          <span className='sr-only'>{t('theme.toggle')}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
         <DropdownMenuItem onClick={handleLight}>
-          {getThemeMessage('theme.light')}
+          {t('theme.light')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleDark}>
-          {getThemeMessage('theme.dark')}
+          {t('theme.dark')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSystem}>
-          {getThemeMessage('theme.system')}
+          {t('theme.system')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleUser}>
-          {getThemeMessage('theme.user')}
+          {t('theme.user')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

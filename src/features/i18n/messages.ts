@@ -1270,7 +1270,7 @@ const messages = {
     'language.english': 'English',
     'language.japanese': '日本語',
     'language.label': '表示言語',
-    'language.system': 'System',
+    'language.system': 'システム設定',
     'options.autoDelete.14days': '14日',
     'options.autoDelete.180days': '6ヶ月',
     'options.autoDelete.1day': '1日',
