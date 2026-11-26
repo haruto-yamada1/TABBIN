@@ -12,6 +12,7 @@ import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentatio
 import { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
 import { useSavedTabsSortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSortOrder'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
+import { resolveCustomProjectDisplayName } from '@/contexts/saved-tabs/presentation/lib/custom-project-display-name'
 import { getFavoriteDisplayUrls } from '@/contexts/saved-tabs/presentation/lib/favorite-display'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
@@ -124,6 +125,7 @@ export const ProjectCardRoot = ({
   children,
 }: ProjectCardRootProps) => {
   const { t } = useI18n()
+  const displayName = resolveCustomProjectDisplayName(project, t)
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const {
     sortOrder,
@@ -288,11 +290,11 @@ export const ProjectCardRoot = ({
             <CardFavoriteFilter
               only={favoritesOnly}
               setOnly={setFavoritesOnly}
-              name={project.name}
+              name={displayName}
               hasFavorites={urls.projectUrls.some((url) => url.isFavorite)}
             />
             <CardGroupTitle
-              title={project.name}
+              title={displayName}
               badges={titleBadges}
               sortableAttributes={attributes}
               activatorRef={setActivatorNodeRef}
@@ -316,14 +318,14 @@ export const ProjectCardRoot = ({
             openAllConfirmDescription={t(
               'savedTabs.openAllConfirmDescriptionWithName',
               undefined,
-              { count: String(bulkUrlCount), name: project.name },
+              { count: String(bulkUrlCount), name: displayName },
             )}
             itemName={t('savedTabs.project.deleteAllItemName')}
             warningMessage={t('savedTabs.project.deleteAllWarning')}
             deleteAllConfirmDescription={t(
               'savedTabs.deleteAllConfirmDescriptionWithCount',
               undefined,
-              { categoryName: project.name, count: String(bulkUrlCount) },
+              { categoryName: displayName, count: String(bulkUrlCount) },
             )}
           />
         </CardHeader>

@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDndAccessibility } from '@/contexts/saved-tabs/presentation/hooks/useDndAccessibility'
 import { useSavedTabsSensors } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSensors'
+import { resolveCustomProjectDisplayName } from '@/contexts/saved-tabs/presentation/lib/custom-project-display-name'
 import {
   customProjectCollisionDetection,
   customProjectKeyboardCoordinates,
@@ -68,6 +69,7 @@ const noop = () => {}
 const DRAG_OVERLAY_STYLE = { pointerEvents: 'none' as const }
 
 const ProjectDragPreview = ({ project }: { project: CustomProject }) => {
+  const { t } = useI18n()
   const badges = useMemo(
     () => <Badge variant='secondary'>{project.urls?.length ?? 0}</Badge>,
     [project.urls?.length],
@@ -85,7 +87,7 @@ const ProjectDragPreview = ({ project }: { project: CustomProject }) => {
           />
           <CardSortControl sortOrder='default' setSortOrder={noop} />
           <CardGroupTitle
-            title={project.name}
+            title={resolveCustomProjectDisplayName(project, t)}
             badges={badges}
             className='py-2'
           />
