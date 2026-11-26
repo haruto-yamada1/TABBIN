@@ -7,7 +7,6 @@ import { Attachments } from '@/components/ai-elements/attachments'
 import {
   Conversation,
   ConversationContent,
-  ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
 import {
@@ -38,7 +37,10 @@ import {
 } from '@/components/ai-elements/tool'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
+import {
+  ChatSetupGuide,
+  OllamaErrorNotice,
+} from '@/features/ai-chat/components/OllamaErrorNotice'
 import type {
   OllamaErrorDetails,
   OllamaErrorPlatform,
@@ -349,11 +351,7 @@ const ChatConversation = ({
   return (
     <Conversation className='min-h-0 flex-1'>
       {messages.length === 0 && !isConfigured ? (
-        <ConversationEmptyState
-          data-testid='empty-state-root'
-          description=''
-          title={t('aiChat.emptySelectModel')}
-        />
+        <ChatSetupGuide />
       ) : (
         <>
           <ConversationContent
