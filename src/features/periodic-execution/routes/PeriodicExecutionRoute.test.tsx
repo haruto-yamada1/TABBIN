@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createElement, useState } from 'react'
+import { createElement, type useState } from 'react'
 import type { ComponentPropsWithoutRef } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
