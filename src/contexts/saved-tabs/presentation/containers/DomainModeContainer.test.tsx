@@ -350,6 +350,54 @@ describe('DomainModeContainer', () => {
     expect(screen.getByText('保存されたタブはありません')).toBeTruthy()
   })
 
+  it('ドメイン未割り当てのカテゴリだけを整理候補として表示する', async () => {
+    const user = userEvent.setup()
+    const onDeleteEmptyCategory = vi.fn()
+    const props = createProps()
+
+    render(
+      <DomainModeContainer
+        {...props}
+        categories={[
+          { collections: [], id: 'empty-1', name: 'Empty One' },
+          {
+            collections: [{ domain: 'example.com', id: 'domain-1' }],
+            id: 'used-1',
+            name: 'Used One',
+          },
+        ]}
+        onDeleteEmptyCategory={onDeleteEmptyCategory}
+      />,
+    )
+
+    expect(screen.getByTestId('empty-categories-cleanup')).toBeTruthy()
+    expect(screen.getByText('Empty One')).toBeTruthy()
+    expect(screen.queryByText('Used One')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: '削除' }))
+    expect(onDeleteEmptyCategory).not.toHaveBeenCalled()
+    expect(
+      screen.getByText(
+        '「Empty One」を削除しますか？割り当てられたドメインはなく、保存したURLは削除されません。',
+      ),
+    ).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: '削除' }))
+    expect(onDeleteEmptyCategory).toHaveBeenCalledExactlyOnceWith('empty-1')
+  })
+
+  it('削除ハンドラがなければ空カテゴリの整理候補を表示しない', () => {
+    const props = createProps()
+
+    render(
+      <DomainModeContainer
+        {...props}
+        categories={[{ collections: [], id: 'empty-1', name: 'Empty One' }]}
+      />,
+    )
+
+    expect(screen.queryByTestId('empty-categories-cleanup')).toBeNull()
+  })
+
   it('renders a spinner-only loading state', () => {
     const props = createProps()
 

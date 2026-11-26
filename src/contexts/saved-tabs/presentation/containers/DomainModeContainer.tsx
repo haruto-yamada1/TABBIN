@@ -17,6 +17,7 @@ import type {
   CategoryManagementModalDeps,
   CategoryManagementModalUseCases,
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
+import { EmptyCategoriesCleanup } from '@/contexts/saved-tabs/presentation/components/EmptyCategoriesCleanup'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
 import { SearchNoResultsNotice } from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
 import { SavedTabsSelectionProvider } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
@@ -159,6 +160,8 @@ type DomainModeContainerProps = {
   hasContentTabGroupsCount: number
   /** 検索解除操作 (issue #890)。検索 0 件時の案内から呼ばれる。 */
   onClearSearch?: () => void
+  /** 空カテゴリの削除 (issue #898)。整理候補の確認後に呼ばれる。 */
+  onDeleteEmptyCategory?: (categoryId: string) => Promise<void>
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
   /**
    * 「今開いているタブ」行。コンテンツ最上部に表示する。空または未指定の
@@ -487,6 +490,43 @@ const UncategorizedDomainSection = ({
   )
 }
 
+type EmptyCategoriesCleanupSectionProps = {
+  categories: ParentCategory[]
+  enableCategories: boolean
+  onDeleteEmptyCategory: ((categoryId: string) => Promise<void>) | undefined
+  searchQuery: string
+}
+
+/**
+ * 空カテゴリの整理候補セクション (issue #898)。カテゴリ機能が有効で、
+ * 検索中でなく、削除ハンドラがある場合だけ候補を提示する。
+ */
+const EmptyCategoriesCleanupSection = ({
+  categories,
+  enableCategories,
+  onDeleteEmptyCategory,
+  searchQuery,
+}: EmptyCategoriesCleanupSectionProps) => {
+  const emptyCategories = useMemo(
+    () => categories.filter((category) => category.collections.length === 0),
+    [categories],
+  )
+  if (
+    !enableCategories ||
+    searchQuery.trim().length > 0 ||
+    onDeleteEmptyCategory === undefined ||
+    emptyCategories.length === 0
+  ) {
+    return null
+  }
+  return (
+    <EmptyCategoriesCleanup
+      categories={emptyCategories}
+      onDeleteCategory={onDeleteEmptyCategory}
+    />
+  )
+}
+
 export const DomainModeContainer = ({
   state,
   settings,
@@ -514,6 +554,7 @@ export const DomainModeContainer = ({
   handleUncategorizedDragEnd,
   hasContentTabGroupsCount,
   onClearSearch,
+  onDeleteEmptyCategory,
   reorderTabGroupUrlsUseCase,
   openTabsRows,
   renameParentCategoryUseCase,
@@ -561,6 +602,7 @@ export const DomainModeContainer = ({
     searchQuery,
     tabGroupsCount: tabGroups.length,
   })
+
   const uncategorizedTargetName = t('savedTabs.uncategorizedDomainsTitle')
   const uncategorizedUrlsToOpen = useMemo(
     () => uncategorizedForDisplay.flatMap((group) => group.urls ?? []),
@@ -729,6 +771,13 @@ export const DomainModeContainer = ({
         hasContentCount={hasContentTabGroupsCount}
         searchNoResults={searchNoResults}
         reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+      />
+
+      <EmptyCategoriesCleanupSection
+        categories={categories}
+        enableCategories={settings.enableCategories}
+        onDeleteEmptyCategory={onDeleteEmptyCategory}
+        searchQuery={searchQuery}
       />
     </>
   )

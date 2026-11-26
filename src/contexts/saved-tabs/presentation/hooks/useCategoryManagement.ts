@@ -3,7 +3,9 @@ import { useCallback, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { hasSavedTabsDomainErrorCode } from '@/contexts/saved-tabs/application/errors/hasSavedTabsDomainErrorCode'
 import { buildReorderedCategoryOrder } from '@/contexts/saved-tabs/application/services/ParentCategoryReorderService'
+import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { MoveDomainBetweenCategoriesUseCase } from '@/contexts/saved-tabs/application/use-cases/MoveDomainBetweenCategoriesUseCase'
 import type { RemoveSubCategoryFromTabGroupsUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveSubCategoryFromTabGroupsUseCase'
 import type { ReorderDomainsInCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderDomainsInCategoryUseCase'
@@ -50,6 +52,12 @@ type UseCategoryManagementReturn = {
     categoryName: string,
     refreshTabGroupsWithUrls: (nextGroups?: TabGroup[]) => Promise<TabGroup[]>,
   ) => Promise<void>
+  /**
+   * ドメインが割り当てられていない空の親カテゴリを削除する (issue #898)。
+   * カテゴリ自体だけを削除し、保存した URL は削除しない。
+   * @param categoryId - 対象カテゴリの ID
+   */
+  handleDeleteEmptyCategory: (categoryId: string) => Promise<void>
   /**
    * 親カテゴリのドラッグエンド処理（並び替えモード開始または更新）。
    * @param event - dnd-kit の DragEndEvent
@@ -123,6 +131,11 @@ type UseCategoryManagementParams = {
    * application use-case へ統合する。
    */
   reorderDomainsInCategoryUseCase: ReorderDomainsInCategoryUseCase
+  /**
+   * 空カテゴリ整理の削除 use-case (issue #898)。
+   * 親カテゴリ管理モーダルと同じ `deleteParentCategory` を使う。
+   */
+  deleteParentCategoryUseCase: DeleteParentCategoryUseCase
 }
 
 /**
@@ -145,6 +158,7 @@ const useCategoryManagement = (
     removeSubCategoryFromTabGroupsUseCase,
     moveDomainBetweenCategoriesUseCase,
     reorderDomainsInCategoryUseCase,
+    deleteParentCategoryUseCase,
   } = params
   const { t } = useI18n()
   const [categoryState, setCategoryState] = useState<{
@@ -214,6 +228,41 @@ const useCategoryManagement = (
       }
     },
     [removeSubCategoryFromTabGroupsUseCase],
+  )
+
+  /**
+   * 空の親カテゴリを削除する (issue #898)。整理候補として提示された
+   * ドメイン未割り当てのカテゴリだけが対象で、保存した URL は
+   * 削除されない。結果は toast で知らせる。
+   *
+   * 候補表示から削除までの間にドメインが割り当てられた場合は
+   * use-case 側で拒否される (`requireEmpty`)。その場合は削除せず、
+   * 割り当てが増えた旨を伝える。
+   */
+  const handleDeleteEmptyCategory = useCallback(
+    async (categoryId: string): Promise<void> => {
+      const target = categories.find((category) => category.id === categoryId)
+      try {
+        const { all } = await deleteParentCategoryUseCase({
+          categoryId,
+          requireEmpty: true,
+        })
+        setCategoriesWithOrder([...all])
+        toast.success(
+          t('savedTabs.categoryModal.deleted', undefined, {
+            name: target?.name ?? '',
+          }),
+        )
+      } catch (error) {
+        console.error('空カテゴリの削除に失敗しました:', error)
+        if (hasSavedTabsDomainErrorCode(error, 'PARENT_CATEGORY_NOT_EMPTY')) {
+          toast.error(t('savedTabs.emptyCategoriesDeleteNotEmpty'))
+          return
+        }
+        toast.error(t('savedTabs.categoryModal.deleteError'))
+      }
+    },
+    [categories, deleteParentCategoryUseCase, setCategoriesWithOrder, t],
   )
 
   /** 親カテゴリのドラッグエンド処理（並び替えモード開始または更新） */
@@ -375,6 +424,7 @@ const useCategoryManagement = (
     handleCategoryDragEnd,
     handleConfirmCategoryReorder,
     handleDeleteCategory,
+    handleDeleteEmptyCategory,
     handleMoveDomainToCategory,
     handleUpdateDomainsOrder,
     isCategoryReorderMode,

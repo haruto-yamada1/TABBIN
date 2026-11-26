@@ -43,3 +43,4 @@ export type SavedTabsDomainErrorCode =
   | 'TAB_GROUP_NOT_FOUND'
   | 'URL_RECORD_NOT_FOUND'
   | 'PARENT_CATEGORY_NOT_FOUND'
+  | 'PARENT_CATEGORY_NOT_EMPTY'

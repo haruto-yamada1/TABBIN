@@ -1,5 +1,6 @@
 import type { SavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDto'
 import { toSavedTabsParentCategoryDto } from '@/contexts/saved-tabs/application/mappers/SavedTabsPresentationMapper'
+import type { ParentCategory } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { parentCategoryById } from '@/contexts/saved-tabs/domain/entities/ParentCategory'
 import { SavedTabsDomainError } from '@/contexts/saved-tabs/domain/errors/SavedTabsDomainError'
 import type { ParentCategoryRepository } from '@/contexts/saved-tabs/domain/repositories/ParentCategoryRepository'
@@ -9,10 +10,15 @@ import type { ParentCategoryId } from '@/contexts/saved-tabs/domain/value-object
 /**
  * `DeleteParentCategoryUseCase` の入力。
  *
- * 削除対象カテゴリの ID のみを受け取る。
+ * 削除対象カテゴリの ID のみを受け取る。`requireEmpty` が true の場合、
+ * 対象カテゴリにドメインの割り当てがあると削除を拒否する
+ * (issue #898: 空カテゴリ整理専用)。未指定時は従来どおり割り当てが
+ * あっても削除する（親カテゴリ管理モーダルの削除は割り当て解除を伴う
+ * 既存挙動のため、そちらは拒否しない）。
  */
 export type DeleteParentCategoryCommand = {
   readonly categoryId: string
+  readonly requireEmpty?: boolean
 }
 
 export type DeleteParentCategoryResult = {
@@ -46,7 +52,19 @@ export type DeleteParentCategoryUseCaseDeps = {
  * 責務:
  * 1. 既存カテゴリ一覧を `parentCategoryRepository.findAll` で取得する
  * 2. 対象カテゴリが見つからない場合は `SavedTabsDomainError` を投げる
- * 3. 対象を除外したカテゴリ配列で `parentCategoryRepository.saveAll` する
+ * 3. `requireEmpty` 指定時は、対象カテゴリにドメインの割り当てが
+ *    ある場合に削除を拒否する（空カテゴリ整理の前提が崩れた場合の
+ *    誤削除を防ぐ。親カテゴリ管理モーダルからの削除は対象外）
+ * 4. 対象を除外したカテゴリ配列で `parentCategoryRepository.saveAll` する
+ *
+ * 3 の再確認は保存直前にも行う。`findAll` と `saveAll` の間に別操作が
+ * 割り込むと読み取った一覧が古くなるため、保存直前に再読込し、対象に
+ * 割り当てが増えていない場合に限り更新する。保存機構に条件付き保存が
+ * ないため完全な原子性はないが、同一ページ内の並行操作による
+ * 読み取り-書き込み競合はこの再確認で防げる。`requireEmpty` 指定時は
+ * 保存する一覧と返却する一覧を再読込した `latest` から作る。初回の一覧
+ * を使うと、その間に追加された別カテゴリが保存時に消えてしまうため。
+ * 未指定時は初回の一覧を使う既存動作を維持する。
  *
  * 旧 `src/contexts/saved-tabs/presentation/components/CategoryManagementModal.tsx`
  * の `parentCategoryRepository.removeByIds` 直叩きを use-case 経由へ置換する
@@ -60,6 +78,14 @@ export const createDeleteParentCategoryUseCase = (
     const targetCategoryId: ParentCategoryId = createParentCategoryId(
       command.categoryId,
     )
+    const assertCategoryIsEmpty = (category: ParentCategory): void => {
+      if (category.collections.length > 0) {
+        throw new SavedTabsDomainError(
+          `ドメインが割り当てられている ParentCategory は削除できません: ${command.categoryId}`,
+          'PARENT_CATEGORY_NOT_EMPTY',
+        )
+      }
+    }
     const all = await deps.parentCategoryRepository.findAll()
     const targetCategory = parentCategoryById(all, targetCategoryId)
     if (!targetCategory) {
@@ -68,7 +94,31 @@ export const createDeleteParentCategoryUseCase = (
         'PARENT_CATEGORY_NOT_FOUND',
       )
     }
+    if (command.requireEmpty === true) {
+      assertCategoryIsEmpty(targetCategory)
+    }
     const remaining = all.filter((category) => category.id !== targetCategoryId)
+    if (command.requireEmpty === true) {
+      const latest = await deps.parentCategoryRepository.findAll()
+      const latestTarget = parentCategoryById(latest, targetCategoryId)
+      if (!latestTarget) {
+        throw new SavedTabsDomainError(
+          `指定された ParentCategory が見つかりません: ${command.categoryId}`,
+          'PARENT_CATEGORY_NOT_FOUND',
+        )
+      }
+      assertCategoryIsEmpty(latestTarget)
+      // 初回の一覧ではなく再読込した latest を基に保存・返却する。
+      // その間に追加された別カテゴリを保存時に消さないため。
+      const latestRemaining = latest.filter(
+        (category) => category.id !== targetCategoryId,
+      )
+      await deps.parentCategoryRepository.saveAll(latestRemaining)
+      return {
+        all: latestRemaining.map(toSavedTabsParentCategoryDto),
+        removedCategory: toSavedTabsParentCategoryDto(targetCategory),
+      }
+    }
     await deps.parentCategoryRepository.saveAll(remaining)
 
     return {

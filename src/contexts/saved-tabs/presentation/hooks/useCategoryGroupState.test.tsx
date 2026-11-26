@@ -88,6 +88,7 @@ const managementParams = (
   removeSubCategoryFromTabGroupsUseCase: vi.fn(),
   moveDomainBetweenCategoriesUseCase: vi.fn(),
   reorderDomainsInCategoryUseCase,
+  deleteParentCategoryUseCase: vi.fn(),
 })
 
 it('retains the domain preview when the real management handler cannot persist, then permits retry', async () => {
