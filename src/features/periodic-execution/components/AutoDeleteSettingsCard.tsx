@@ -1,6 +1,17 @@
 import { AlertTriangle } from 'lucide-react'
-import { useCallback, useId } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import type { MouseEvent } from 'react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -67,61 +78,46 @@ const SelectContentArea = ({
 const ConfirmationDialog = ({
   confirmationState,
   hideConfirmation,
-  dialogTitleId,
-  dialogDescriptionId,
 }: {
   confirmationState: ConfirmationState
   hideConfirmation: () => void
-  dialogTitleId: string
-  dialogDescriptionId: string
 }) => {
   const { t } = useI18n()
+  const handleEscapeKeyDown = useCallback(() => {
+    hideConfirmation()
+  }, [hideConfirmation])
+  const handleConfirm = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      confirmationState.onConfirm()
+    },
+    [confirmationState],
+  )
 
   return (
-    <dialog
-      aria-describedby={dialogDescriptionId}
-      aria-labelledby={dialogTitleId}
-      aria-modal='true'
-      className='mt-3 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/30'
-      open
-      role='alertdialog'
-    >
-      <div className='flex flex-col gap-3'>
-        <h3 className='sr-only' id={dialogTitleId}>
-          {t('options.autoDelete.title')}
-        </h3>
-        <div className='flex items-start'>
-          <div className='shrink-0 text-yellow-500'>
-            <AlertTriangle size={24} />
-          </div>
-          <p
-            className='ml-3 text-sm whitespace-pre-line text-foreground'
-            id={dialogDescriptionId}
-          >
+    <AlertDialog open={confirmationState.isVisible}>
+      <AlertDialogContent onEscapeKeyDown={handleEscapeKeyDown}>
+        <AlertDialogHeader>
+          <AlertDialogTitle className='flex items-center gap-2'>
+            <span className='shrink-0 text-yellow-500'>
+              <AlertTriangle size={24} />
+            </span>
+            {t('options.autoDelete.title')}
+          </AlertDialogTitle>
+          <AlertDialogDescription className='whitespace-pre-line'>
             {confirmationState.message}
-          </p>
-        </div>
-
-        <div className='flex justify-end gap-2'>
-          <Button
-            autoFocus
-            type='button'
-            variant='ghost'
-            onClick={hideConfirmation}
-          >
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={hideConfirmation}>
             {t('common.cancel')}
-          </Button>
-          <Button
-            type='button'
-            variant='destructive'
-            // eslint-disable-next-line react/jsx-handler-names
-            onClick={confirmationState.onConfirm}
-          >
+          </AlertDialogCancel>
+          <AlertDialogAction variant='destructive' onClick={handleConfirm}>
             {t('common.confirm')}
-          </Button>
-        </div>
-      </div>
-    </dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 
@@ -134,8 +130,19 @@ export const AutoDeleteSettingsCard = ({
   onPrepareAutoDeletePeriod,
 }: AutoDeleteSettingsCardProps) => {
   const { t } = useI18n()
-  const dialogTitleId = useId()
-  const dialogDescriptionId = useId()
+  const applyButtonRef = useRef<HTMLButtonElement>(null)
+  const wasConfirmationVisibleRef = useRef(false)
+
+  useEffect(() => {
+    if (confirmationState.isVisible) {
+      wasConfirmationVisibleRef.current = true
+      return
+    }
+    if (wasConfirmationVisibleRef.current) {
+      wasConfirmationVisibleRef.current = false
+      applyButtonRef.current?.focus()
+    }
+  }, [confirmationState.isVisible])
 
   return (
     <section className='rounded-2xl border border-border bg-card p-6 shadow-sm'>
@@ -164,6 +171,7 @@ export const AutoDeleteSettingsCard = ({
           />
 
           <Button
+            ref={applyButtonRef}
             type='button'
             variant='outline'
             onClick={onPrepareAutoDeletePeriod}
@@ -173,14 +181,10 @@ export const AutoDeleteSettingsCard = ({
           </Button>
         </div>
 
-        {confirmationState.isVisible && (
-          <ConfirmationDialog
-            confirmationState={confirmationState}
-            hideConfirmation={hideConfirmation}
-            dialogTitleId={dialogTitleId}
-            dialogDescriptionId={dialogDescriptionId}
-          />
-        )}
+        <ConfirmationDialog
+          confirmationState={confirmationState}
+          hideConfirmation={hideConfirmation}
+        />
 
         <p className='mt-2 text-sm text-muted-foreground'>
           {t('options.autoDelete.periodDescription')}
