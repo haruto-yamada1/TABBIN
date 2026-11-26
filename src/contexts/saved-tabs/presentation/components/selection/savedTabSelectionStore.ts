@@ -4,9 +4,15 @@ export type SavedTabSelectionItem = {
   title: string
 }
 
-type Operation = 'open' | 'delete'
+type Operation = 'open' | 'delete' | 'copy'
 const BULK_OPEN_CONFIRMATION_THRESHOLD = 10
-type SelectionMessage = { kind: 'openError' | 'deleteError' }
+type SelectionMessage = { kind: 'openError' | 'deleteError' | 'copyError' }
+
+const operationErrorKind: Record<Operation, SelectionMessage['kind']> = {
+  copy: 'copyError',
+  delete: 'deleteError',
+  open: 'openError',
+}
 
 type Confirmation = {
   operation: Operation
@@ -25,6 +31,8 @@ type SelectionCallbacks = {
   confirmDeleteAll: boolean
   onOpen: (items: SavedTabSelectionItem[]) => Promise<void>
   onDelete: (items: SavedTabSelectionItem[]) => Promise<void>
+  /** Markdown コピー (issue #930)。未指定ならコピー操作は無効。 */
+  onCopyMarkdown?: (items: SavedTabSelectionItem[]) => Promise<void>
 }
 
 export const savedTabSelectionKey = (item: SavedTabSelectionItem) =>
@@ -105,6 +113,9 @@ export const createSavedTabSelectionStore = () => {
     try {
       if (operation === 'open') {
         await callbacks.onOpen(items)
+      } else if (operation === 'copy') {
+        // コピーは非破壊的なので選択は保持する。
+        await callbacks.onCopyMarkdown?.(items)
       } else {
         await callbacks.onDelete(items)
         if (version === scopeVersion) {
@@ -114,7 +125,7 @@ export const createSavedTabSelectionStore = () => {
     } catch {
       if (version === scopeVersion) {
         update({
-          message: { kind: operation === 'open' ? 'openError' : 'deleteError' },
+          message: { kind: operationErrorKind[operation] },
         })
       }
     } finally {

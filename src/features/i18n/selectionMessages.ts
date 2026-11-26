@@ -32,6 +32,14 @@ export const selectionMessages = {
       'Could not open selected tabs. Your selection is unchanged.',
     'savedTabs.selection.deleteError':
       'Could not delete selected tabs. Your selection is unchanged.',
+    'savedTabs.selection.copyMarkdown': 'Copy as Markdown',
+    'savedTabs.selection.copying': 'Copying…',
+    'savedTabs.selection.copySuccess.one':
+      'Copied {{count}} tab as a Markdown list.',
+    'savedTabs.selection.copySuccess.other':
+      'Copied {{count}} tabs as a Markdown list.',
+    'savedTabs.selection.copyError':
+      'Could not copy to the clipboard. Your selection is unchanged.',
     'savedTabs.selection.refreshFailed':
       'Tabs were deleted. Reload the list to see the latest state.',
   },
@@ -69,6 +77,14 @@ export const selectionMessages = {
       '選択したタブを開けませんでした。選択はそのままです。',
     'savedTabs.selection.deleteError':
       '選択したタブを削除できませんでした。選択はそのままです。',
+    'savedTabs.selection.copyMarkdown': 'Markdownでコピー',
+    'savedTabs.selection.copying': 'コピーしています…',
+    'savedTabs.selection.copySuccess.one':
+      '{{count}}件のタブをMarkdownリストとしてコピーしました。',
+    'savedTabs.selection.copySuccess.other':
+      '{{count}}件のタブをMarkdownリストとしてコピーしました。',
+    'savedTabs.selection.copyError':
+      'クリップボードにコピーできませんでした。選択はそのままです。',
     'savedTabs.selection.refreshFailed':
       'タブは削除されました。最新の一覧を表示するには再読み込みしてください。',
   },
