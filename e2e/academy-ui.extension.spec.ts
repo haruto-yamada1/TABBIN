@@ -66,7 +66,7 @@ test('Academy code loads only when navigating to the learning center', async ({
   ).toBeVisible()
   expect(requested.filter((url) => url.includes('/AcademyRoute-'))).toEqual([])
   await page
-    .getByRole('link', { name: 'TABBIN Academy', exact: true })
+    .getByRole('link', { name: 'TABBIN Academy Preview', exact: true })
     .first()
     .click()
   await expect(
@@ -196,7 +196,7 @@ test('Academy direct links, navigation and review preserve saved data and real t
   })
   await page.goto(`${app}#/options`)
   await page
-    .getByRole('link', { name: 'TABBIN Academy', exact: true })
+    .getByRole('link', { name: 'TABBIN Academy Preview', exact: true })
     .first()
     .click()
   await expect(

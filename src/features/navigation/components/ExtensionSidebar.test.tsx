@@ -89,6 +89,8 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         {
           'savedTabs.viewMode.custom': 'Custom mode',
           'savedTabs.viewMode.domain': 'Domain mode',
+          'sidebar.academy': 'TABBIN Academy',
+          'sidebar.academyPreview': 'プレビュー',
           'sidebar.analytics': '分析',
           'sidebar.chat': 'チャット',
           'sidebar.collapse': 'サイドバーを小さくする',
@@ -143,6 +145,22 @@ describe('ExtensionSidebar', () => {
     expect(
       screen.getByRole('link', { name: 'オプション' }).getAttribute('href'),
     ).toBe('app.html#/options')
+  })
+
+  it('Academy のアクセシブル名にはプレビュー状態を含める', () => {
+    render(
+      <ExtensionSidebar
+        state={{
+          expandedGroup: 'tab-list',
+          item: 'saved-tabs-domain',
+        }}
+      />,
+    )
+
+    expect(
+      screen.getByRole('link', { name: 'TABBIN Academy プレビュー' }),
+    ).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'TABBIN Academy' })).toBeNull()
   })
 
   it('options が active のときオプションだけを current page にする', () => {
