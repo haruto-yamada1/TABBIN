@@ -13,7 +13,6 @@
 // @covers components/ai-elements/vendor/inline-citation.tsx
 // @covers components/ai-elements/jsx-preview.tsx
 // @covers components/ai-elements/vendor/package-info.tsx
-// @covers components/ai-elements/vendor/persona.tsx
 // @covers components/ai-elements/vendor/plan.tsx
 // @covers components/ai-elements/vendor/schema-display.tsx
 // @covers components/ai-elements/shimmer.tsx

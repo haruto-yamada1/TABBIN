@@ -38,7 +38,6 @@ import {
   CheckpointIcon,
   CheckpointTrigger,
 } from '@/components/ai-elements/vendor/checkpoint'
-import { Persona } from '@/components/ai-elements/vendor/persona'
 import {
   Plan,
   PlanAction,
@@ -224,7 +223,7 @@ const ReviewArtifacts = () => (
       </div>
     </Section>
 
-    <Section title='Transcription + Persona'>
+    <Section title='Transcription'>
       <div className='gap-y-4'>
         <Transcription
           className='rounded-lg border p-3'
@@ -244,16 +243,6 @@ const ReviewArtifacts = () => (
             <TranscriptionSegment index={index} segment={segment} />
           )}
         </Transcription>
-
-        <div className='flex items-center gap-4'>
-          <Persona className='size-20' state='thinking' variant='opal' />
-          <div className='text-sm'>
-            <p className='font-medium'>Persona preview</p>
-            <p className='text-muted-foreground'>
-              Voice/avatar state mapped to AI chat activity.
-            </p>
-          </div>
-        </div>
       </div>
     </Section>
   </div>
