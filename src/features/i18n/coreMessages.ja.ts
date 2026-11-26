@@ -1,6 +1,6 @@
 import type { coreMessagesEn } from './coreMessages.en'
 
-const coreMessagesJa: Record<keyof typeof coreMessagesEn, string> = {
+const coreMessagesJa = {
   'aiChat.attachments.add': 'ファイルを添付',
   'aiChat.attachments.contextTitle': '添付ファイルの内容:',
   'aiChat.attachments.defaultName': '添付ファイル',
@@ -884,6 +884,6 @@ const coreMessagesJa: Record<keyof typeof coreMessagesEn, string> = {
   'tool.status.outputAvailable': '完了',
   'tool.status.outputDenied': '却下',
   'tool.status.outputError': 'エラー',
-}
+} as const satisfies Record<keyof typeof coreMessagesEn, string>
 
 export { coreMessagesJa }

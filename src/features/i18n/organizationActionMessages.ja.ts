@@ -1,9 +1,6 @@
 import type { organizationActionMessagesEn } from './organizationActionMessages.en'
 
-const organizationActionMessagesJa: Record<
-  keyof typeof organizationActionMessagesEn,
-  string
-> = {
+const organizationActionMessagesJa = {
   'aiChat.tool.listOrganizationTargets.description':
     '既存のプロジェクト・カテゴリのIDと保存URLの所属をページ単位で読み取る（既定50件、1ページ最大200件）。projectIdと検索結果のurlIdsで所属を絞り込める。page・totalPages・hasNextPageで残りの所属を取得してから整理操作を提案する',
   'aiChat.tool.listOrganizationTargets.title': '整理対象の確認',
@@ -37,6 +34,6 @@ const organizationActionMessagesJa: Record<
     '元に戻せませんでした。期限切れ、または対象が変更された可能性があります。保存データは上書きしていません。',
   'aiChat.action.notificationFailed':
     '変更は保存されましたが、他の画面に通知できませんでした。該当画面を再読み込みしてください。',
-}
+} as const satisfies Record<keyof typeof organizationActionMessagesEn, string>
 
 export { organizationActionMessagesJa }

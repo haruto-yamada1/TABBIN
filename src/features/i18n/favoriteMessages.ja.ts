@@ -1,6 +1,6 @@
 import type { favoriteMessagesEn } from './favoriteMessages.en'
 
-const favoriteMessagesJa: Record<keyof typeof favoriteMessagesEn, string> = {
+const favoriteMessagesJa = {
   'options.autoDelete.description':
     '保存されたタブが指定した期間を超えると自動的に削除されます。お気に入り保護がONのときはお気に入りは対象外です。',
   'options.autoDelete.periodDescription':
@@ -17,6 +17,6 @@ const favoriteMessagesJa: Record<keyof typeof favoriteMessagesEn, string> = {
   'savedTabs.favorite.filter': '{{name}}のお気に入りのみ表示',
   'savedTabs.favorite.orderHint':
     'お気に入りを先頭に表示します。URLの手動並び替えは、お気に入りと絞り込みがないときに利用できます。',
-}
+} as const satisfies Record<keyof typeof favoriteMessagesEn, string>
 
 export { favoriteMessagesJa }

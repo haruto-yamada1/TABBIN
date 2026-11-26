@@ -1,9 +1,6 @@
 import type { backupImportMessagesEn } from './backupImportMessages.en'
 
-const backupImportMessagesJa: Record<
-  keyof typeof backupImportMessagesEn,
-  string
-> = {
+const backupImportMessagesJa = {
   'options.importExport.importConcurrentChange':
     '復元が完了しました。その後、別の画面でデータが更新されました。最新の状態を確認してください。',
   'options.importExport.backupDetails': 'バックアップの詳細',
@@ -35,6 +32,6 @@ const backupImportMessagesJa: Record<
   'options.importExport.entity.analyticsViews': '分析ビュー',
   'options.importExport.previewStale':
     'プレビュー後にデータが変更されました。戻ってファイルを選び直し、最新の差分を確認してください。',
-}
+} as const satisfies Record<keyof typeof backupImportMessagesEn, string>
 
 export { backupImportMessagesJa }

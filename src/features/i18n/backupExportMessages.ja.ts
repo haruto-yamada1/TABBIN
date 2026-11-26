@@ -1,9 +1,6 @@
 import type { backupExportMessagesEn } from './backupExportMessages.en'
 
-const backupExportMessagesJa: Record<
-  keyof typeof backupExportMessagesEn,
-  string
-> = {
+const backupExportMessagesJa = {
   'options.importExport.exportSizeLimit':
     'バックアップファイルの最大サイズ: {{maxSize}}。',
   'options.importExport.exportPreviewTitle': 'エクスポートプレビュー',
@@ -24,6 +21,6 @@ const backupExportMessagesJa: Record<
   'options.importExport.exportPartialWarning':
     '選択外のデータはファイル内で空になり、設定は既定値になります。部分バックアップの復元時も、置き換える対象だけを選択してください。保存タブを復元すると、現在の保存タブ全体が置き換わります。',
   'options.importExport.confirmExport': 'JSON バックアップをダウンロード',
-}
+} as const satisfies Record<keyof typeof backupExportMessagesEn, string>
 
 export { backupExportMessagesJa }

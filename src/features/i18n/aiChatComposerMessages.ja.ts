@@ -1,9 +1,6 @@
 import type { aiChatComposerMessagesEn } from './aiChatComposerMessages.en'
 
-const aiChatComposerMessagesJa: Record<
-  keyof typeof aiChatComposerMessagesEn,
-  string
-> = {
+const aiChatComposerMessagesJa = {
   'aiChat.send': '送信',
   'aiChat.sending': '送信中...',
   'aiChat.liveErrorOccurred': 'AIチャットでエラーが発生しました',
@@ -20,6 +17,6 @@ const aiChatComposerMessagesJa: Record<
     '接続が拒否される場合は、OLLAMA_ORIGINS でこの拡張機能を許可して Ollama を再起動する',
   'aiChat.setupStepSelect':
     '下のモデル選択でモデルを取得して選ぶ（チャットを開き直す必要はありません）',
-}
+} as const satisfies Record<keyof typeof aiChatComposerMessagesEn, string>
 
 export { aiChatComposerMessagesJa }

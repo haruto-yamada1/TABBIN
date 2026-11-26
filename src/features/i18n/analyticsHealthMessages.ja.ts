@@ -1,9 +1,6 @@
 import type { analyticsHealthMessagesEn } from './analyticsHealthMessages.en'
 
-const analyticsHealthMessagesJa: Record<
-  keyof typeof analyticsHealthMessagesEn,
-  string
-> = {
+const analyticsHealthMessagesJa = {
   'analytics.health.title': '保存タブの健康状態',
   'analytics.health.score': '健康スコア',
   'analytics.health.scope':
@@ -33,6 +30,6 @@ const analyticsHealthMessagesJa: Record<
   'analytics.health.noHistory':
     '閲覧履歴は記録していないため、未閲覧率は算出できず、スコアにも含めません。',
   'analytics.health.organize': '保存タブ画面で整理する',
-}
+} as const satisfies Record<keyof typeof analyticsHealthMessagesEn, string>
 
 export { analyticsHealthMessagesJa }

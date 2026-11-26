@@ -1,9 +1,6 @@
 import type { reviewReminderMessagesEn } from './reviewReminderMessages.en'
 
-const reviewReminderMessagesJa: Record<
-  keyof typeof reviewReminderMessagesEn,
-  string
-> = {
+const reviewReminderMessagesJa = {
   'periodicExecution.review.targetTitle': '通知対象',
   'periodicExecution.review.scheduleTitle': '実行日時',
   'periodicExecution.review.quietTitle': '通知しない時間帯',
@@ -106,6 +103,6 @@ const reviewReminderMessagesJa: Record<
   'reviewReminder.open': 'タブを開く',
   'reviewReminder.configure': 'リマインダー設定',
   'reviewReminder.loading': '見直しの候補を読み込み中…',
-}
+} as const satisfies Record<keyof typeof reviewReminderMessagesEn, string>
 
 export { reviewReminderMessagesJa }

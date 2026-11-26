@@ -1,6 +1,6 @@
 import type { dndMessagesEn } from './dndMessages.en'
 
-const dndMessagesJa: Record<keyof typeof dndMessagesEn, string> = {
+const dndMessagesJa = {
   'savedTabs.dnd.instructions':
     'Tabで並び替えハンドルへ移動し、SpaceまたはEnterで1件を持ち上げます。矢印キーで移動し、SpaceまたはEnterでドロップ、Escapeで現在のドラッグを取り消します。',
   'savedTabs.dnd.customInstructions':
@@ -18,6 +18,6 @@ const dndMessagesJa: Record<keyof typeof dndMessagesEn, string> = {
   'savedTabs.dnd.saved': 'タブ1件の並び順を保存しました。',
   'savedTabs.dnd.saveError':
     '並び順を保存できませんでした。もう一度お試しください。',
-}
+} as const satisfies Record<keyof typeof dndMessagesEn, string>
 
 export { dndMessagesJa }

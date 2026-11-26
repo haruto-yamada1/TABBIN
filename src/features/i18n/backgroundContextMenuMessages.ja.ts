@@ -1,9 +1,6 @@
 import type { backgroundContextMenuMessagesEn } from './backgroundContextMenuMessages.en'
 
-const backgroundContextMenuMessagesJa: Record<
-  keyof typeof backgroundContextMenuMessagesEn,
-  string
-> = {
+const backgroundContextMenuMessagesJa = {
   'background.contextMenu.openSavedTabs': '保存したタブを開く',
   'background.contextMenu.saveAllTabs': 'ウィンドウのすべてのタブを保存',
   'background.contextMenu.saveAllWindowsTabs':
@@ -46,6 +43,9 @@ const backgroundContextMenuMessagesJa: Record<
   'background.saveTabs.linkAlreadySavedTitle': '保存済み',
   'background.saveTabs.windowTabsSaved':
     '{{count}}個のタブが保存されました。タブを閉じます。',
-}
+} as const satisfies Record<
+  keyof typeof backgroundContextMenuMessagesEn,
+  string
+>
 
 export { backgroundContextMenuMessagesJa }

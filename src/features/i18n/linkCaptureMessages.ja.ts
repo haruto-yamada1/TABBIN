@@ -1,9 +1,6 @@
 import type { linkCaptureMessagesEn } from './linkCaptureMessages.en'
 
-const linkCaptureMessagesJa: Record<
-  keyof typeof linkCaptureMessagesEn,
-  string
-> = {
+const linkCaptureMessagesJa = {
   'options.linkClickCapture.title': 'リンク保存操作',
   'options.linkClickCapture.enable': 'キー＋クリックでのリンク保存を有効にする',
   'options.linkClickCapture.instructions':
@@ -37,6 +34,6 @@ const linkCaptureMessagesJa: Record<
   'options.linkCapture.reserved':
     'ブラウザまたは OS の操作と競合するキーです。別のキーを選んでください。',
   'options.linkCapture.saved': 'キーを保存しました。',
-}
+} as const satisfies Record<keyof typeof linkCaptureMessagesEn, string>
 
 export { linkCaptureMessagesJa }

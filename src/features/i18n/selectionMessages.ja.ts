@@ -1,6 +1,6 @@
 import type { selectionMessagesEn } from './selectionMessages.en'
 
-const selectionMessagesJa: Record<keyof typeof selectionMessagesEn, string> = {
+const selectionMessagesJa = {
   'savedTabs.deleteAll': 'すべて削除',
   'savedTabs.openAll': 'すべて開く',
   'savedTabs.openAllTabs': 'すべてのタブを開く',
@@ -44,6 +44,6 @@ const selectionMessagesJa: Record<keyof typeof selectionMessagesEn, string> = {
     'クリップボードにコピーできませんでした。選択はそのままです。',
   'savedTabs.selection.refreshFailed':
     'タブは削除されました。最新の一覧を表示するには再読み込みしてください。',
-}
+} as const satisfies Record<keyof typeof selectionMessagesEn, string>
 
 export { selectionMessagesJa }

@@ -2,7 +2,7 @@ import { linkCaptureMessagesJa } from './linkCaptureMessages.ja'
 import type { optionsMessagesEn } from './optionsMessages.en'
 import { reviewReminderMessagesJa } from './reviewReminderMessages.ja'
 
-const optionsMessagesJa: Record<keyof typeof optionsMessagesEn, string> = {
+const optionsMessagesJa = {
   ...linkCaptureMessagesJa,
   ...reviewReminderMessagesJa,
   'background.saveTabs.filterErrorTitle': 'タブを保存できませんでした',
@@ -34,6 +34,6 @@ const optionsMessagesJa: Record<keyof typeof optionsMessagesEn, string> = {
     '設定を保存できませんでした。設定ページを再読み込みして、もう一度お試しください。',
   'options.savedTabTitle.loadError':
     '設定またはサイトアクセスを確認できませんでした。設定ページを再読み込みして、もう一度お試しください。',
-}
+} as const satisfies Record<keyof typeof optionsMessagesEn, string>
 
 export { optionsMessagesJa }
