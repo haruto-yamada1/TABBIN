@@ -2,7 +2,6 @@ name: Persistence State Model
 
 on:
   pull_request:
-    branches: [main, develop]
   schedule:
     # Daily at 03:41 JST. Scheduled workflows run on the default branch.
     - cron: '41 18 * * *'
