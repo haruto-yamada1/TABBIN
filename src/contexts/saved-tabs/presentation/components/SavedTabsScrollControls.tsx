@@ -8,7 +8,14 @@ import {
   ChevronsDown,
   ChevronsUp,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type { RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -50,6 +57,22 @@ const initialAvailability: ScrollControlAvailability = {
   previousProject: false,
   top: false,
 }
+
+const isSameAvailability = (
+  a: ScrollControlAvailability,
+  b: ScrollControlAvailability,
+) =>
+  a.isScrollable === b.isScrollable &&
+  a.top === b.top &&
+  a.bottom === b.bottom &&
+  a.nextProject === b.nextProject &&
+  a.previousProject === b.previousProject &&
+  a.nextParent === b.nextParent &&
+  a.previousParent === b.previousParent &&
+  a.nextDomain === b.nextDomain &&
+  a.previousDomain === b.previousDomain &&
+  a.nextChild === b.nextChild &&
+  a.previousChild === b.previousChild
 
 type SavedTabsScrollControlsProps = {
   scrollContainerRef: RefObject<HTMLDivElement | null>
@@ -163,6 +186,7 @@ const useSavedTabsScrollControlsView = ({
   const t = useI18nText()
   const [availability, setAvailability] =
     useState<ScrollControlAvailability>(initialAvailability)
+  const availabilityRef = useRef(initialAvailability)
   const [announcement, setAnnouncement] = useState('')
   const highlightedTargetRef = useRef<HTMLElement | null>(null)
   const highlightTimeoutRef = useRef<number | null>(null)
@@ -207,10 +231,19 @@ const useSavedTabsScrollControlsView = ({
   const updateAvailability = useCallback(() => {
     const container = scrollContainerRef.current
     if (!container) {
-      setAvailability(initialAvailability)
+      // Keep the current availability: the pane is gone or not yet mounted,
+      // and operations already no-op without a container.
       return
     }
-    setAvailability(getScrollControlAvailability(container))
+    const next = getScrollControlAvailability(container)
+    // Scroll / resize notifications and render-driven re-checks fire often.
+    // Only publish a new state when the availability actually changed,
+    // otherwise each notification re-renders the controls for no effect.
+    if (isSameAvailability(availabilityRef.current, next)) {
+      return
+    }
+    availabilityRef.current = next
+    setAvailability(next)
   }, [scrollContainerRef])
 
   const clearHighlight = useCallback(() => {
@@ -332,7 +365,9 @@ const useSavedTabsScrollControlsView = ({
     ],
   )
 
-  useEffect(() => {
+  // Publish the first availability before paint so the controls column does
+  // not appear after the list has already laid out without it.
+  useLayoutEffect(() => {
     const container = scrollContainerRef.current
     if (!container) {
       return
@@ -351,19 +386,19 @@ const useSavedTabsScrollControlsView = ({
         : new ResizeObserver(updateAvailability)
     resizeObserver?.observe(container)
 
-    const mutationObserver =
-      typeof MutationObserver === 'undefined'
-        ? null
-        : new MutationObserver(updateAvailability)
-    mutationObserver?.observe(container, { childList: true, subtree: true })
-
     // eslint-disable-next-line typescript/consistent-return
     return () => {
       container.removeEventListener('scroll', handleScroll)
       resizeObserver?.disconnect()
-      mutationObserver?.disconnect()
     }
   }, [scrollContainerRef, updateAvailability])
+
+  // List content changes always arrive as React renders of the surrounding
+  // tree, so re-check after each render. (Observing DOM mutations instead
+  // re-evaluated geometry mid-render and perturbed the initial data load.)
+  useEffect(() => {
+    updateAvailability()
+  })
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -393,9 +428,17 @@ const useSavedTabsScrollControlsView = ({
 
   if (!availability.isScrollable) {
     return (
-      <output aria-live='polite' className='sr-only'>
-        {announcement}
-      </output>
+      <>
+        {/* Reserve the controls column so the list layout stays stable
+            while content loads; only the buttons are hidden. */}
+        <div
+          aria-hidden='true'
+          className='flex h-full w-12 shrink-0 border-l border-border bg-background/80'
+        />
+        <output aria-live='polite' className='sr-only'>
+          {announcement}
+        </output>
+      </>
     )
   }
 
