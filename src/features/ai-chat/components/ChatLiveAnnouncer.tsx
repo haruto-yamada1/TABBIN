@@ -31,21 +31,22 @@ const ChatLiveAnnouncer = ({
   const wasSubmittingRef = useRef(false)
 
   useEffect(() => {
-    if (isSubmitting) {
-      // Clear the previous completion when a new submission starts, so a
-      // second completion with the same message still changes the live
-      // region content and is announced again.
-      setCompletionMessage('')
-    } else if (wasSubmittingRef.current && !errorText && hasAssistantReply) {
-      setCompletionMessage(t('aiChat.liveResponseCompleted'))
+    if (wasSubmittingRef.current && !isSubmitting) {
+      setCompletionMessage(
+        !errorText && hasAssistantReply
+          ? t('aiChat.liveResponseCompleted')
+          : '',
+      )
     }
     wasSubmittingRef.current = isSubmitting
   }, [errorText, hasAssistantReply, isSubmitting, t])
 
   return (
     <>
+      {/* While submitting, render the region empty so that completing again
+          with the same message still changes its content and is announced. */}
       <output aria-live='polite' className='sr-only'>
-        {completionMessage}
+        {isSubmitting ? '' : completionMessage}
       </output>
       <output aria-live='assertive' className='sr-only'>
         {errorText ?? ''}
