@@ -2240,10 +2240,13 @@ describe('SavedTabsChatWidget', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Select a model' })).toBeTruthy()
-    const emptyStateRoot = screen.getByTestId('empty-state-root')
+    // #1115: 未セットアップ時はセットアップガイド（手順+設定導線）を表示する
+    expect(screen.getByTestId('ai-chat-setup-guide')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Open AI settings' }),
+    ).toBeTruthy()
 
     expect(screen.queryByTestId('ai-chat-intro')).toBeNull()
-    expect(emptyStateRoot.className.includes('justify-center')).toBe(true)
   })
 
   it('does not send when the input is empty', async () => {

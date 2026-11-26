@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { getExtensionUrl } from '@/lib/browser/runtime'
 import { cn } from '@/lib/utils'
 import type { OllamaErrorDetails } from '@/types/background'
 
@@ -291,3 +292,50 @@ const OllamaErrorNotice = ({
 
 export type { OllamaErrorDetails, OllamaErrorPlatform }
 export { OllamaErrorNotice }
+
+const SETUP_STEP_KEYS = [
+  'aiChat.setupStepInstall',
+  'aiChat.setupStepModel',
+  'aiChat.setupStepStart',
+  'aiChat.setupStepSelect',
+] as const
+
+const openAiSettings = () => {
+  window.open(
+    getExtensionUrl('options.html') ?? 'options.html',
+    '_blank',
+    'noopener,noreferrer',
+  )
+}
+
+/**
+ * Ollama 未セットアップ時の空状態ガイド (#1115)。
+ * 手順と AI 設定画面への導線をチャット内に表示する。
+ * セットアップ後はモデル選択（取得ボタン）で開き直さずに状態が更新される。
+ */
+const ChatSetupGuide = () => {
+  const { t } = useI18n()
+  return (
+    <div
+      data-testid='ai-chat-setup-guide'
+      className='flex flex-col items-center gap-3 px-6 py-8 text-center'
+    >
+      <h3 className='text-base font-semibold'>
+        {t('aiChat.emptySelectModel')}
+      </h3>
+      <p className='text-sm text-muted-foreground'>
+        {t('aiChat.setupDescription')}
+      </p>
+      <ol className='list-decimal space-y-1 text-left text-sm text-muted-foreground'>
+        {SETUP_STEP_KEYS.map((key) => (
+          <li key={key}>{t(key)}</li>
+        ))}
+      </ol>
+      <Button type='button' variant='outline' onClick={openAiSettings}>
+        {t('aiChat.openAiSettings')}
+      </Button>
+    </div>
+  )
+}
+
+export { ChatSetupGuide }
