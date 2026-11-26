@@ -146,6 +146,7 @@ describe('scroll-controls', () => {
     }
 
     expect(getScrollControlAvailability(container)).toStrictEqual({
+      isScrollable: true,
       bottom: true,
       nextChild: true,
       nextDomain: true,
@@ -169,6 +170,7 @@ describe('scroll-controls', () => {
     mockTop(container, 100)
 
     expect(getScrollControlAvailability(container)).toStrictEqual({
+      isScrollable: false,
       bottom: false,
       nextChild: false,
       nextDomain: false,

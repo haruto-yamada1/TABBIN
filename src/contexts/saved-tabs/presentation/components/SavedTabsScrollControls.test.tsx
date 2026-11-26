@@ -70,6 +70,7 @@ describe('contexts/SavedTabsScrollControls', () => {
     vi.clearAllMocks()
     document.body.innerHTML = ''
     scrollControlState.getScrollControlAvailability.mockReturnValue({
+      isScrollable: true,
       bottom: true,
       nextChild: true,
       nextDomain: true,
@@ -155,6 +156,25 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(scrollButtonGroup).toHaveClass('opacity-100')
     expect(scrollButtonGroup).not.toHaveClass('opacity-35')
     expect(scrollButtonGroup).not.toHaveClass('opacity-70')
+  })
+
+  it('スクロール不要な状態ではスクロールボタン群を表示しない', () => {
+    scrollControlState.getScrollControlAvailability.mockReturnValue({
+      isScrollable: false,
+      bottom: false,
+      nextChild: false,
+      nextDomain: false,
+      nextParent: false,
+      nextProject: false,
+      previousChild: false,
+      previousDomain: false,
+      previousParent: false,
+      previousProject: false,
+      top: false,
+    })
+    renderWithContainer('domain')
+    expect(screen.queryByTestId('scroll-button-group')).toBeNull()
+    expect(screen.queryAllByRole('button')).toStrictEqual([])
   })
 
   it('初期状態で全ボタンが active なら disabled にならない', () => {

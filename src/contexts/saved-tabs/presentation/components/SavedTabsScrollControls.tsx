@@ -38,6 +38,7 @@ const REPEAT_SCROLL_DELAY_MS = 450
 const REPEAT_SCROLL_INTERVAL_MS = 220
 
 const initialAvailability: ScrollControlAvailability = {
+  isScrollable: false,
   bottom: false,
   nextChild: false,
   nextDomain: false,
@@ -350,10 +351,17 @@ const useSavedTabsScrollControlsView = ({
         : new ResizeObserver(updateAvailability)
     resizeObserver?.observe(container)
 
+    const mutationObserver =
+      typeof MutationObserver === 'undefined'
+        ? null
+        : new MutationObserver(updateAvailability)
+    mutationObserver?.observe(container, { childList: true, subtree: true })
+
     // eslint-disable-next-line typescript/consistent-return
     return () => {
       container.removeEventListener('scroll', handleScroll)
       resizeObserver?.disconnect()
+      mutationObserver?.disconnect()
     }
   }, [scrollContainerRef, updateAvailability])
 
@@ -382,6 +390,14 @@ const useSavedTabsScrollControlsView = ({
   )
 
   const isCustomMode = viewMode === 'custom'
+
+  if (!availability.isScrollable) {
+    return (
+      <output aria-live='polite' className='sr-only'>
+        {announcement}
+      </output>
+    )
+  }
 
   return (
     <TooltipProvider delayDuration={0}>
