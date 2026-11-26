@@ -351,7 +351,10 @@ const ChatConversation = ({
   return (
     <Conversation className='min-h-0 flex-1'>
       {messages.length === 0 && !isConfigured ? (
-        <ConversationContent scrollClassName='overscroll-contain overflow-y-auto'>
+        <ConversationContent
+          data-testid='ai-chat-setup-guide-content'
+          scrollClassName='overscroll-contain overflow-y-auto'
+        >
           <ChatSetupGuide />
         </ConversationContent>
       ) : (
