@@ -91,7 +91,7 @@ const SavedTabsChatComposer = ({
         return
       }
 
-      if (event.ctrlKey || event.metaKey) {
+      if (!event.shiftKey) {
         event.preventDefault()
         requestPromptSubmit(event.currentTarget)
         return
@@ -200,6 +200,9 @@ const SavedTabsChatComposer = ({
           {isCompactLayout ? compactSubmitLabel : undefined}
         </PromptInputSubmit>
       </PromptInputFooter>
+      <p className='px-3 pt-1 pb-2 text-xs text-muted-foreground'>
+        {t('aiChat.submitHint')}
+      </p>
     </PromptInput>
   )
 }

@@ -111,7 +111,7 @@ describe('SavedTabsChatComposer', () => {
     mocked.promptInputErrorHandler = undefined
   })
 
-  it('forwards controlled input changes and inserts a newline on Enter', () => {
+  it('forwards controlled input changes and inserts a newline on Shift+Enter', () => {
     const props = createProps()
     render(<SavedTabsChatComposer {...props} />)
 
@@ -128,10 +128,37 @@ describe('SavedTabsChatComposer', () => {
     textarea.setSelectionRange(5, 5)
     // The caret position must be set before the synthetic Enter event.
     // eslint-disable-next-line testing-library/prefer-user-event
-    fireEvent.keyDown(textarea, { key: 'Enter' })
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true })
 
     expect(props.onInputChange).toHaveBeenCalledWith('first\n')
     expect(props.onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('submits the prompt on Enter', async () => {
+    const user = userEvent.setup()
+    const props = createProps()
+    render(<SavedTabsChatComposer {...props} />)
+
+    const textarea = screen.getByRole('textbox', { name: 'Ask AI' })
+    textarea.focus()
+    await user.keyboard('{Enter}')
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('does not submit on Enter while IME composition is active', () => {
+    const props = createProps()
+    render(<SavedTabsChatComposer {...props} />)
+
+    const textarea = screen.getByRole('textbox', { name: 'Ask AI' })
+    textarea.focus()
+    // eslint-disable-next-line testing-library/prefer-user-event
+    fireEvent.keyDown(textarea, { isComposing: true, key: 'Enter' })
+
+    expect(props.onSubmit).not.toHaveBeenCalled()
+    expect(props.onInputChange).not.toHaveBeenCalled()
   })
 
   it('submits the prompt on Ctrl+Enter', async () => {
