@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useSavedTabsChatController } from '@/features/ai-chat/hooks/useSavedTabsChatController'
 import type { SavedTabsChatControllerOptions } from '@/features/ai-chat/hooks/useSavedTabsChatController'
 
+import { ChatLiveAnnouncer } from './ChatLiveAnnouncer'
 import { SavedTabsChatPanel } from './SavedTabsChatPanel'
 import { SystemPromptManagerDialog } from './SystemPromptManagerDialog'
 
@@ -71,6 +72,16 @@ const SavedTabsChatWidget = (props: SavedTabsChatWidgetProps = {}) => {
           ? { setupOllamaError: controller.errors.setupOllama }
           : {})}
       />
+      {controller.status.isOpen ? (
+        <ChatLiveAnnouncer
+          chatErrorMessage={controller.errors.chatMessage}
+          hasOllamaError={controller.errors.chatOllama !== undefined}
+          isSubmitting={controller.status.isSubmitting}
+          hasAssistantReply={
+            controller.messages.items.at(-1)?.role === 'assistant'
+          }
+        />
+      ) : null}
       <SystemPromptManagerDialog {...controller.dialog} />
     </>
   )

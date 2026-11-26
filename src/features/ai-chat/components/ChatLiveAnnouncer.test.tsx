@@ -19,14 +19,16 @@ describe('ChatLiveAnnouncer', () => {
   it('応答生成が完了すると polite 領域で完了を通知する', () => {
     const { rerender } = render(
       <ChatLiveAnnouncer
-        errorText={undefined}
+        chatErrorMessage=''
+        hasOllamaError={false}
         isSubmitting
         hasAssistantReply={false}
       />,
     )
     rerender(
       <ChatLiveAnnouncer
-        errorText={undefined}
+        chatErrorMessage=''
+        hasOllamaError={false}
         isSubmitting={false}
         hasAssistantReply
       />,
@@ -39,7 +41,8 @@ describe('ChatLiveAnnouncer', () => {
   it('送信していない状態では完了を通知しない', () => {
     render(
       <ChatLiveAnnouncer
-        errorText={undefined}
+        chatErrorMessage=''
+        hasOllamaError={false}
         isSubmitting={false}
         hasAssistantReply
       />,
@@ -50,7 +53,8 @@ describe('ChatLiveAnnouncer', () => {
   it('エラーは assertive 領域で通知する', () => {
     render(
       <ChatLiveAnnouncer
-        errorText='Connection failed'
+        chatErrorMessage='Connection failed'
+        hasOllamaError={false}
         isSubmitting={false}
         hasAssistantReply={false}
       />,
@@ -62,14 +66,16 @@ describe('ChatLiveAnnouncer', () => {
   it('エラーがある場合は完了を通知しない', () => {
     const { rerender } = render(
       <ChatLiveAnnouncer
-        errorText={undefined}
+        chatErrorMessage=''
+        hasOllamaError={false}
         isSubmitting
         hasAssistantReply={false}
       />,
     )
     rerender(
       <ChatLiveAnnouncer
-        errorText='Connection failed'
+        chatErrorMessage='Connection failed'
+        hasOllamaError={false}
         isSubmitting={false}
         hasAssistantReply
       />,
