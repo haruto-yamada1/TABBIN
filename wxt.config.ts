@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import tailwindcss from '@tailwindcss/vite'
-import { type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
+import { type ConfigEnv, type WxtViteConfig, defineConfig } from 'wxt' // eslint-disable-line
 
 import '@wxt-dev/module-react' // eslint-disable-line
 
@@ -44,6 +44,14 @@ const readPackageVersion = (): string => {
 const APP_VERSION = readPackageVersion()
 
 const vitePlugins = tailwindcss()
+
+const createExtensionPageCsp = ({ command, manifestVersion }: ConfigEnv) => {
+  const productionCsp = createProductionExtensionCsp(manifestVersion)
+  // WXT adds the dev server to script-src, so allow its HMR socket here.
+  return command === 'serve'
+    ? productionCsp.replace('connect-src ', 'connect-src ws://localhost:* ')
+    : productionCsp
+}
 
 export default defineConfig({
   srcDir: 'src',
@@ -103,7 +111,7 @@ export default defineConfig({
     version: APP_VERSION,
     incognito: 'not_allowed',
     content_security_policy: {
-      extension_pages: createProductionExtensionCsp(env.manifestVersion),
+      extension_pages: createExtensionPageCsp(env),
     },
     host_permissions: PRODUCTION_OUTBOUND_HOST_PERMISSIONS,
     permissions: [...PRODUCTION_EXTENSION_PERMISSIONS],

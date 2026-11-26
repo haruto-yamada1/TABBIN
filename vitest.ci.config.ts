@@ -178,6 +178,7 @@ export default defineConfig({
             'src/features/analytics/**/*.test.ts',
             'src/test/**/*.test.ts',
             'tools/**/*.test.ts',
+            'wxt.config.test.ts',
           ],
         },
       },
