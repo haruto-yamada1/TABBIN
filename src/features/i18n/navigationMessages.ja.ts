@@ -1,25 +1,7 @@
-export const navigationMessages = {
-  en: {
-    'sidebar.academy': 'TABBIN Academy',
-    'sidebar.academyPreview': 'Preview',
-    'htmlTitle.academy': 'TABBIN Academy',
-    'htmlTitle.aiChat': 'AI Chat - TABBIN',
-    'htmlTitle.analytics': 'Analytics - TABBIN',
-    'htmlTitle.app': 'TABBIN',
-    'htmlTitle.changelog': 'Release Notes - TABBIN',
-    'htmlTitle.options': 'Options - TABBIN',
-    'htmlTitle.periodicExecution': 'Scheduled tasks - TABBIN',
-    'htmlTitle.savedTabs': 'Saved tabs - TABBIN',
-    'sidebar.analytics': 'Analytics',
-    'sidebar.chat': 'Chat',
-    'sidebar.collapse': 'Collapse sidebar',
-    'sidebar.open': 'Open sidebar',
-    'sidebar.options': 'Options',
-    'sidebar.periodicExecution': 'Scheduled tasks',
-    'sidebar.resize': 'Resize sidebar width',
-    'sidebar.tabList': 'Saved tabs',
-  },
-  ja: {
+import type { navigationMessagesEn } from './navigationMessages.en'
+
+const navigationMessagesJa: Record<keyof typeof navigationMessagesEn, string> =
+  {
     'sidebar.academy': 'TABBIN Academy',
     'sidebar.academyPreview': 'プレビュー',
     'htmlTitle.academy': 'TABBIN Academy',
@@ -38,5 +20,6 @@ export const navigationMessages = {
     'sidebar.periodicExecution': '定期実行',
     'sidebar.resize': 'サイドバーの幅を調整',
     'sidebar.tabList': 'タブ一覧',
-  },
-}
+  }
+
+export { navigationMessagesJa }

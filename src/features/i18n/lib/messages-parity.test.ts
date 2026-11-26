@@ -122,7 +122,8 @@ import { academyGuides } from '@/features/academy/presentation/academyLessonGuid
 import { academyUiMessages } from '@/features/academy/presentation/academyUiMessages'
 import { practiceMessages } from '@/features/academy/presentation/practiceMessages'
 import { screenGuideMessages } from '@/features/academy/presentation/screenGuideMessages'
-import { linkCaptureMessages } from '@/features/i18n/linkCaptureMessages'
+import { linkCaptureMessagesEn } from '@/features/i18n/linkCaptureMessages.en'
+import { linkCaptureMessagesJa } from '@/features/i18n/linkCaptureMessages.ja'
 
 type BilingualDictionary = {
   en: Record<string, string>
@@ -192,7 +193,10 @@ describe('i18n parity for satellite dictionaries (#1126)', () => {
 
   it('リンクキャプチャ辞書の ja/en parity が一致する', () => {
     expect(
-      expectDictionaryParity('linkCaptureMessages', linkCaptureMessages),
+      expectDictionaryParity('linkCaptureMessages', {
+        en: linkCaptureMessagesEn,
+        ja: linkCaptureMessagesJa,
+      }),
     ).toBeGreaterThan(0)
   })
 

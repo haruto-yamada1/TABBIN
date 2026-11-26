@@ -252,16 +252,15 @@ const b = 'chrome-extension://id-b'
     })
 
     it('reports a literal when file is allowlisted with a different count', () => {
-      // i18n messages.ts is allowlisted with 2 occurrences. A file that looks
-      // like i18n but only matches 1 literal should not be treated as fully
-      // suppressed; instead, since actual < allowlist count, no violation is
-      // reported (zero NEW). This case is documented for maintainers so they
-      // know the count is an upper bound, not an exact-match requirement.
+      // i18n coreMessages.en.ts is allowlisted with 1 occurrence. A file that
+      // matches exactly the allowlisted count is fully suppressed and reports
+      // no violation (zero NEW). This case is documented for maintainers so
+      // they know the count is an upper bound, not an exact-match requirement.
       const source = `const msg = 'e.g. chrome-extension://'
 `
       const violations = collectFirefoxSourceContractViolations({
         source,
-        filePath: 'src/features/i18n/messages.ts',
+        filePath: 'src/features/i18n/coreMessages.en.ts',
       })
 
       expect(violations).toEqual([])

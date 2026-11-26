@@ -31,7 +31,10 @@ const KNOWN_CHROME_EXTENSION_LITERAL_DEBT: ReadonlyMap<string, number> =
     ['src/contexts/saved-tabs/domain/services/userSettingsDefaultsMerge.ts', 1],
     // i18n message placeholder shown next to the exclude patterns input as an
     // example of what to exclude. The text is illustrative, not a runtime URL.
-    ['src/features/i18n/messages.ts', 2],
+    // The dictionary is split by language, so each language file carries one
+    // occurrence of the example.
+    ['src/features/i18n/coreMessages.en.ts', 1],
+    ['src/features/i18n/coreMessages.ja.ts', 1],
     // Property-based corpus example URLs use the chrome-extension:// scheme as
     // a representative browser-internal page. The corpus expresses
     // normalization rules, not a runtime URL contract.
