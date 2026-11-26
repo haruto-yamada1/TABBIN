@@ -6,6 +6,7 @@ import {
   getMessage,
   getStoredLanguageSetting,
   resolveLanguage,
+  syncDocumentLanguage,
 } from '@/features/i18n/lib/language'
 import type { LanguageSetting } from '@/features/i18n/messages'
 import type { StorageChange } from '@/lib/browser/chrome-storage'
@@ -116,7 +117,7 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const language = resolveLanguage(languageSetting, uiLocale)
 
   useEffect(() => {
-    document.documentElement.lang = language
+    syncDocumentLanguage(language)
   }, [language])
 
   const value = useMemo<I18nContextValue>(

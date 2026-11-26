@@ -52,6 +52,14 @@ export const resolveLanguage = (
 export const isLanguageSetting = (value: unknown): value is LanguageSetting =>
   value === 'system' || value === 'ja' || value === 'en'
 
+export const syncDocumentLanguage = (language: AppLanguage): void => {
+  document.documentElement.lang = language
+  document.documentElement.dataset.languageSynced = 'true'
+}
+
+export const isDocumentLanguageSynced = (): boolean =>
+  document.documentElement.dataset.languageSynced === 'true'
+
 export const getStoredLanguageSetting = (value: unknown): LanguageSetting => {
   if (!isRecord(value)) {
     return 'system'

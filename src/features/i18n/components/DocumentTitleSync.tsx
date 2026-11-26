@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 
 import { useI18n } from '@/features/i18n/context/I18nProvider'
+import { syncDocumentLanguage } from '@/features/i18n/lib/language'
 import type { TitlePageKey } from '@/features/i18n/lib/title'
 import { getDocumentTitle } from '@/features/i18n/lib/title'
 
@@ -15,7 +16,7 @@ export const DocumentTitleSync = ({ page }: DocumentTitleSyncProps) => {
   // Provider 単体では描画されない画面でも表示言語と一致させる
   useEffect(() => {
     document.title = getDocumentTitle(language, page)
-    document.documentElement.lang = language
+    syncDocumentLanguage(language)
   }, [language, page])
 
   return null

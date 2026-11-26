@@ -1,6 +1,12 @@
 import { Component, useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import {
+  getBrowserUiLocale,
+  isDocumentLanguageSynced,
+  resolveUiLanguage,
+} from '@/features/i18n/lib/language'
+
 export type RenderRecoveryOptions = {
   readonly onExport?: (() => Promise<void>) | undefined
   readonly fallback?: ReactNode
@@ -15,8 +21,21 @@ type State = {
 }
 
 // Recovery must also work when translation, theme, or feature providers fail.
-const getLabels = () =>
-  document.documentElement.lang.startsWith('ja')
+const getLabels = () => {
+  // When the first render fails, the provider has not synced the display
+  // language into document.lang yet, so only the static default remains.
+  // Fall back to the browser UI language in that case; once the provider
+  // has synced, document.lang reflects the user's language setting.
+  const documentLang = document.documentElement.lang
+  const browserLang = resolveUiLanguage(
+    getBrowserUiLocale(
+      typeof navigator === 'undefined' ? undefined : navigator.language,
+    ),
+  )
+  const isJapanese =
+    documentLang.startsWith('ja') ||
+    (!isDocumentLanguageSynced() && browserLang === 'ja')
+  return isJapanese
     ? {
         title: '画面の表示中に問題が発生しました',
         description: '再試行するか、ページを再読み込みしてください。',
@@ -38,6 +57,7 @@ const getLabels = () =>
         privacy: 'The backup contains private data. Store it securely.',
         actionFailed: 'The action could not be completed. Please try again.',
       }
+}
 
 const buttonClassName =
   'rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50'

@@ -27,8 +27,17 @@ vi.mock('@/lib/logging/logger', async (importOriginal) => {
   }
 })
 
+const setNavigatorLanguage = (language: string) => {
+  Object.defineProperty(window.navigator, 'language', {
+    configurable: true,
+    value: language,
+  })
+}
+
 beforeEach(() => {
   document.documentElement.lang = 'en'
+  delete document.documentElement.dataset.languageSynced
+  setNavigatorLanguage('en-US')
   diagnostics.records = []
 })
 
@@ -102,6 +111,41 @@ describe('root render recovery', () => {
     )
     expect(screen.getByText('Saved tabs remain visible')).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('uses the browser UI language for recovery before the provider syncs document.lang', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    setNavigatorLanguage('ja-JP')
+    const BrokenProvider = () => {
+      throw new Error('provider unavailable')
+    }
+    await act(async () => renderToRoot(createContainer(), <BrokenProvider />))
+
+    expect(
+      screen.getByRole('heading', {
+        name: '画面の表示中に問題が発生しました',
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'ページを再読み込み' }),
+    ).toBeTruthy()
+  })
+
+  it('respects the synced document.lang over the browser UI language', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    setNavigatorLanguage('ja-JP')
+    document.documentElement.dataset.languageSynced = 'true'
+    const BrokenProvider = () => {
+      throw new Error('provider unavailable')
+    }
+    await act(async () => renderToRoot(createContainer(), <BrokenProvider />))
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Something went wrong while displaying this page',
+      }),
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reload page' })).toBeTruthy()
   })
 
   it('has no export action without a safe export callback', async () => {
