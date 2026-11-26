@@ -38,6 +38,7 @@ import {
 } from '@/components/ai-elements/tool'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { ChatLiveAnnouncer } from '@/features/ai-chat/components/ChatLiveAnnouncer'
 import { OllamaErrorNotice } from '@/features/ai-chat/components/OllamaErrorNotice'
 import type {
   OllamaErrorDetails,
@@ -560,6 +561,14 @@ const SavedTabsChatPanel = ({
           isCompactLayout ? 'gap-2 p-2' : 'gap-3 p-3',
         )}
       >
+        <ChatLiveAnnouncer
+          errorText={
+            chatErrorMessage ||
+            (chatOllamaError ? t('aiChat.liveErrorOccurred') : undefined)
+          }
+          isSubmitting={status.isSubmitting}
+          hasAssistantReply={messages.at(-1)?.role === 'assistant'}
+        />
         <ChatConversation
           messages={messages}
           platform={platform}

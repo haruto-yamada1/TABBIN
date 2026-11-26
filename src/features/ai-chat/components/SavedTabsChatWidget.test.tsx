@@ -2104,9 +2104,11 @@ describe('SavedTabsChatWidget', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
+    // 表示上の2箇所（assistant メッセージとエラー表示）に加え、
+    // #1118 の assertive live region が同じ文言を読み上げるため 3 件になる
     await expect(
       screen.findAllByText('Could not get a response from AI.'),
-    ).resolves.toHaveLength(2)
+    ).resolves.toHaveLength(3)
   })
 
   it('shows macOS setup guidance and the FAQ link for Ollama 403 stream errors', async () => {

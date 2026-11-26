@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -220,9 +220,11 @@ describe('SavedTabsChatPanel', () => {
       />,
     )
 
-    expect(screen.getByTestId('ai-chat-bottom-dock')).toContainElement(
-      screen.getByText('Connection failed'),
-    )
+    expect(
+      within(screen.getByTestId('ai-chat-bottom-dock')).getByText(
+        'Connection failed',
+      ),
+    ).toBeTruthy()
   })
 
   it('does not render when closed', () => {
