@@ -78,8 +78,15 @@ describe('Academy learning screen', () => {
     const progressbar = screen.getByRole('progressbar', {
       name: 'Overall progress',
     })
-    expect(progressbar.getAttribute('aria-valuenow')).toBe('0')
-    expect(screen.getByTestId('academy-progress-fill').style.width).toBe('0%')
+    expect(progressbar.getAttribute('value')).toBe('0')
+    expect(Number(progressbar.getAttribute('max'))).toBeGreaterThan(0)
+    // トラック (bg-muted) とフィル ([&::-webkit-progress-value]:bg-primary) が
+    // 分離され、0% ではフィルが描かれないことをクラスで固定する
+    expect(progressbar.className).toContain('bg-muted')
+    expect(progressbar.className).toContain(
+      '[&::-webkit-progress-value]:bg-primary',
+    )
+    expect(progressbar.className).toContain('[&::-moz-progress-bar]:bg-primary')
   })
 
   it('loads a bilingual video only after requesting playback', async () => {

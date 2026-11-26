@@ -111,28 +111,12 @@ export const AcademyCourseList = ({
             </Button>
           ) : null}
         </div>
-        <div
-          role='progressbar'
+        <progress
+          className='mt-4 h-2 w-full appearance-none overflow-hidden rounded-full bg-muted [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-primary'
           aria-label={text('progress')}
-          aria-valuemin={0}
-          aria-valuemax={Math.max(1, progress.summary.denominator)}
-          aria-valuenow={progress.summary.completed}
-          className='mt-4 h-2 w-full overflow-hidden rounded-full bg-muted'
-        >
-          <div
-            data-testid='academy-progress-fill'
-            className='h-full rounded-full bg-primary transition-[width] duration-300'
-            style={{
-              width: `${
-                progress.summary.denominator > 0
-                  ? (progress.summary.completed /
-                      progress.summary.denominator) *
-                    100
-                  : 0
-              }%`,
-            }}
-          />
-        </div>
+          max={Math.max(1, progress.summary.denominator)}
+          value={progress.summary.completed}
+        />
         <p className='mt-3 text-sm text-muted-foreground'>{text('textNote')}</p>
       </section>
       {lessons.length === 0 ? (
