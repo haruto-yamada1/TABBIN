@@ -205,7 +205,7 @@ describe('i18n parity for satellite dictionaries (#1126)', () => {
       expect(guide.ja.length, `${lessonId}: step count`).toBe(guide.en.length)
       expect(guide.en.length, `${lessonId}: non-empty`).toBeGreaterThan(0)
       for (const [index, enStep] of guide.en.entries()) {
-        const jaStep = guide.ja[index]
+        const jaStep: string | undefined = guide.ja[index]
         assert.isDefined(jaStep)
         expect(
           extractTokens(jaStep),
