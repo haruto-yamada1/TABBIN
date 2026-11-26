@@ -115,6 +115,10 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
 
   const language = resolveLanguage(languageSetting, uiLocale)
 
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
+
   const value = useMemo<I18nContextValue>(
     () => ({
       language,

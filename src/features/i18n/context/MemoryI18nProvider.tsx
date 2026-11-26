@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { getMessage, resolveLanguage } from '@/features/i18n/lib/language'
@@ -17,6 +17,10 @@ export const MemoryI18nProvider = ({
 }) => {
   const [setting, setSetting] = useState(initialLanguage)
   const language = resolveLanguage(setting, navigator.language)
+
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
   const value = useMemo<I18nContextValue>(
     () => ({
       language,
