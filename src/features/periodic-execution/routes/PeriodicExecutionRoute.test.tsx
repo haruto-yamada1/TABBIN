@@ -407,14 +407,15 @@ describe('PeriodicExecutionRoute', () => {
     const dialog = screen.getByRole('alertdialog')
     const cancelButton = screen.getByRole('button', { name: 'Cancel' })
     const confirmButton = screen.getByRole('button', { name: 'Confirm' })
+    expect(dialog).toHaveAccessibleName('Auto delete')
     expect(cancelButton).toHaveFocus()
 
     await user.tab()
     expect(confirmButton).toHaveFocus()
     await user.tab()
-    expect(dialog.contains(document.activeElement)).toBe(true)
+    expect(cancelButton).toHaveFocus()
     await user.tab({ shift: true })
-    expect(dialog.contains(document.activeElement)).toBe(true)
+    expect(confirmButton).toHaveFocus()
 
     await user.keyboard('{Escape}')
     expect(mocked.hideConfirmation).toHaveBeenCalledTimes(1)
