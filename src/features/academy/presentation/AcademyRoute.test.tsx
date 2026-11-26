@@ -66,6 +66,22 @@ const show = (props: AcademyRouteProps, route = '/academy') =>
   render(renderRoute(props, route))
 
 describe('Academy learning screen', () => {
+  it('shows the title with a preview chip and an empty progress fill at 0%', async () => {
+    const useCases = createUseCases()
+    show({ useCases })
+
+    const heading = await screen.findByRole('heading', {
+      name: /TABBIN Academy/,
+    })
+    expect(heading.textContent).toContain('TABBIN Academy')
+    expect(heading.textContent).toContain('Preview')
+    const progressbar = screen.getByRole('progressbar', {
+      name: 'Overall progress',
+    })
+    expect(progressbar.getAttribute('aria-valuenow')).toBe('0')
+    expect(screen.getByTestId('academy-progress-fill').style.width).toBe('0%')
+  })
+
   it('loads a bilingual video only after requesting playback', async () => {
     const useCases = createUseCases()
     const user = userEvent.setup()

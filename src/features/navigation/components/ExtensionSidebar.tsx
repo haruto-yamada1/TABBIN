@@ -256,6 +256,11 @@ const TopLevelNavItem = ({
         <LinkLabel to={getAppRoute(item.id)} isActive={isActive} label={label}>
           <item.icon className='size-5 shrink-0' />
           <span className='group-data-[collapsible=icon]:hidden'>{label}</span>
+          {item.id === 'academy' ? (
+            <span className='rounded-full border border-sidebar-border bg-sidebar-accent px-2 py-0.5 text-xs font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden'>
+              {t('sidebar.academyPreview')}
+            </span>
+          ) : null}
         </LinkLabel>
       </SidebarMenuButton>
     </SidebarMenuItem>

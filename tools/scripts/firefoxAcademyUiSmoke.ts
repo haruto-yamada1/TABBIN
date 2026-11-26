@@ -218,12 +218,12 @@ export const runFirefoxAcademyUiSmoke = async (
   assert.equal(narrowDarkReducedMotion, true)
   await navigate('/options')
   await evaluate(`
-    const link = await waitFor(() => byText('a', '(preview)TABBIN Academy'))
+    const link = await waitFor(() => byText('a', 'TABBIN Academy'))
     link.focus()
   `)
   await press('\uE007')
   const revisit = await evaluate<boolean>(`
-    await waitFor(() => byText('main h1', '(preview)TABBIN Academy'))
+    await waitFor(() => byText('main h1', 'TABBIN Academy Preview'))
     return !document.querySelector('[role="dialog"]')
   `)
   assert.equal(revisit, true)
