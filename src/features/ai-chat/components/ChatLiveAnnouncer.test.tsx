@@ -38,6 +38,46 @@ describe('ChatLiveAnnouncer', () => {
     expect(polite.getAttribute('aria-live')).toBe('polite')
   })
 
+  it('2回目の送信開始で完了文が消え、完了で再び通知する', () => {
+    const { rerender } = render(
+      <ChatLiveAnnouncer
+        chatErrorMessage=''
+        hasOllamaError={false}
+        isSubmitting
+        hasAssistantReply={false}
+      />,
+    )
+    rerender(
+      <ChatLiveAnnouncer
+        chatErrorMessage=''
+        hasOllamaError={false}
+        isSubmitting={false}
+        hasAssistantReply
+      />,
+    )
+    expect(screen.getByText('AI response completed')).toBeTruthy()
+
+    rerender(
+      <ChatLiveAnnouncer
+        chatErrorMessage=''
+        hasOllamaError={false}
+        isSubmitting
+        hasAssistantReply
+      />,
+    )
+    expect(screen.queryByText('AI response completed')).toBeNull()
+
+    rerender(
+      <ChatLiveAnnouncer
+        chatErrorMessage=''
+        hasOllamaError={false}
+        isSubmitting={false}
+        hasAssistantReply
+      />,
+    )
+    expect(screen.getByText('AI response completed')).toBeTruthy()
+  })
+
   it('送信していない状態では完了を通知しない', () => {
     render(
       <ChatLiveAnnouncer

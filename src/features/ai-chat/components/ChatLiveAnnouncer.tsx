@@ -31,12 +31,12 @@ const ChatLiveAnnouncer = ({
   const wasSubmittingRef = useRef(false)
 
   useEffect(() => {
-    if (
-      wasSubmittingRef.current &&
-      !isSubmitting &&
-      !errorText &&
-      hasAssistantReply
-    ) {
+    if (isSubmitting) {
+      // Clear the previous completion when a new submission starts, so a
+      // second completion with the same message still changes the live
+      // region content and is announced again.
+      setCompletionMessage('')
+    } else if (wasSubmittingRef.current && !errorText && hasAssistantReply) {
       setCompletionMessage(t('aiChat.liveResponseCompleted'))
     }
     wasSubmittingRef.current = isSubmitting
