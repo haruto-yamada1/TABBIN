@@ -1,6 +1,6 @@
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-const messages = {
+const screenGuideMessages = {
   en: {
     title: 'Screen guide',
     start: 'Start screen guide',
@@ -64,5 +64,7 @@ const messages = {
 } as const
 export const useScreenGuideText = () => {
   const { language } = useI18n()
-  return messages[language]
+  return screenGuideMessages[language]
 }
+
+export { screenGuideMessages }
