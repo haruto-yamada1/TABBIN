@@ -385,6 +385,13 @@ const useSavedTabsScrollControlsView = ({
         ? null
         : new ResizeObserver(updateAvailability)
     resizeObserver?.observe(container)
+    // Card expand/collapse is local state inside the list items, so this
+    // component does not re-render and the container's own box does not
+    // change when the content grows or shrinks. Observe the content
+    // element as well so list height changes re-evaluate scrollability.
+    for (const child of container.children) {
+      resizeObserver?.observe(child)
+    }
 
     // eslint-disable-next-line typescript/consistent-return
     return () => {
