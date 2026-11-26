@@ -495,6 +495,66 @@ describe('extension-actions モジュール', () => {
     })
   })
 
+  describe('再保存時の明示 (#923)', () => {
+    it('全件が再保存で保存先も変わらない場合はその旨を通知する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([tab({ id: 10, url: 'https://example.test/a' })])
+      mocked.dataPlaneSaveTabs.mockResolvedValueOnce({
+        resavedMovedCount: 0,
+        resavedRefreshedCount: 1,
+        savedUrls: ['https://example.test/a'],
+      })
+
+      await handleSaveCurrentTab()
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブ保存',
+        'すでに保存済みの1個のタブです。保存日時を更新しました。',
+      )
+    })
+
+    it('新規と再保存が混在する場合は内訳を添えて通知する', async () => {
+      const chromeTabs = createChromeTabsHarness()
+      chromeTabs.setTabs([
+        tab({ id: 10, url: 'https://example.test/a' }),
+        tab({ id: 11, url: 'https://example.test/b' }),
+        tab({ id: 12, url: 'https://example.test/c' }),
+      ])
+      mocked.dataPlaneSaveTabs.mockResolvedValueOnce({
+        resavedMovedCount: 1,
+        resavedRefreshedCount: 1,
+        savedUrls: [
+          'https://example.test/a',
+          'https://example.test/b',
+          'https://example.test/c',
+        ],
+      })
+
+      await handleSaveWindowTabs()
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        'タブ保存',
+        '3個のタブが保存されました。タブを閉じます。\nうち1個は保存済みのため保存日時を更新しました。\nうち1個は保存済みのため、振り分け先を更新しました。',
+      )
+    })
+
+    it('保存済みリンクの再保存は保存済みであることを通知する', async () => {
+      createChromeTabsHarness()
+      mocked.dataPlaneSaveTabs.mockResolvedValueOnce({
+        resavedMovedCount: 0,
+        resavedRefreshedCount: 1,
+        savedUrls: ['https://example.test/docs'],
+      })
+
+      await handleSaveLink('https://example.test/docs')
+
+      expect(mocked.showNotification).toHaveBeenCalledExactlyOnceWith(
+        '保存済み',
+        'このリンクはすでに保存済みです。保存日時を更新しました。',
+      )
+    })
+  })
+
   it.each([
     ['current', handleSaveCurrentTab],
     ['window', handleSaveWindowTabs],
