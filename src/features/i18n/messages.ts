@@ -8,6 +8,7 @@ import { favoriteMessages } from './favoriteMessages'
 import { navigationMessages } from './navigationMessages'
 import { optionsMessages } from './optionsMessages'
 import { organizationActionMessages } from './organizationActionMessages'
+import { savedTabsUndoMessages } from './savedTabsUndoMessages'
 import { searchHistoryMessages } from './searchHistoryMessages'
 import { selectionMessages } from './selectionMessages'
 import { tabOpeningErrorMessages } from './tabOpeningErrorMessages'
@@ -24,6 +25,7 @@ const messages = {
     ...selectionMessages.en,
     ...searchHistoryMessages.en,
     ...optionsMessages.en,
+    ...savedTabsUndoMessages.en,
     ...favoriteMessages.en,
     ...tabOpeningErrorMessages.en,
     'aiChat.attachments.add': 'Attach files',
@@ -895,12 +897,6 @@ const messages = {
     'savedTabs.tabs.deletedCount': 'Deleted {{count}} tabs',
     'savedTabs.uncategorized': 'Uncategorized',
     'savedTabs.uncategorizedDomainsTitle': 'Uncategorized domains',
-    'savedTabs.undo.deletedTabs':
-      'You can restore {{count}} deleted tabs to saved data',
-    'savedTabs.undo.removedAfterOpen':
-      'Removed {{count}} opened tabs from saved data',
-    'savedTabs.undo.restoreError': 'Could not restore saved data',
-    'savedTabs.undo.restored': 'Restored saved data',
     'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
     'savedTabs.url.deleteAria': 'Delete tab',
     'savedTabs.url.openNow': 'Open now',
@@ -937,6 +933,7 @@ const messages = {
     ...selectionMessages.ja,
     ...searchHistoryMessages.ja,
     ...optionsMessages.ja,
+    ...savedTabsUndoMessages.ja,
     ...favoriteMessages.ja,
     ...tabOpeningErrorMessages.ja,
     'aiChat.attachments.add': 'ファイルを添付',
@@ -1802,12 +1799,6 @@ const messages = {
     'savedTabs.tabs.deletedCount': '{{count}}件のタブを削除しました',
     'savedTabs.uncategorized': '未分類',
     'savedTabs.uncategorizedDomainsTitle': '未分類のドメイン',
-    'savedTabs.undo.deletedTabs':
-      '削除した{{count}}件のタブを保存データに戻せます',
-    'savedTabs.undo.removedAfterOpen':
-      '開いた{{count}}件のタブを保存データから削除しました',
-    'savedTabs.undo.restoreError': '保存データを復元できませんでした',
-    'savedTabs.undo.restored': '保存データを復元しました',
     'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
     'savedTabs.url.deleteAria': 'タブを削除',
     'savedTabs.url.openNow': '開いています',

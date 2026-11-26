@@ -31,6 +31,7 @@ import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/a
 import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
+import { resolveUndoMessageKey } from '@/contexts/saved-tabs/presentation/lib/undo-message'
 import { toSavedTabsCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
 import { toStorageCustomProjectFromRaw } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
@@ -167,7 +168,7 @@ const showCustomProjectDeleteUndoToast = ({
   t: (key: string, fallback?: string, values?: Record<string, string>) => string
 }) => {
   toast.info(
-    t('savedTabs.undo.deletedTabs', undefined, {
+    t(resolveUndoMessageKey('savedTabs.undo.deletedTabs', count), undefined, {
       count: String(count),
     }),
     {
