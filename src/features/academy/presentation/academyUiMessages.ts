@@ -1,7 +1,7 @@
 import { ACADEMY_MESSAGES } from '@/features/academy/domain/academyCatalog'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-const ui = {
+const academyUiMessages = {
   en: {
     title: '(preview)TABBIN Academy',
     intro: 'Learn to save, organize and restore tabs at your own pace.',
@@ -151,12 +151,14 @@ const ui = {
     reading: 'テキストガイド',
   },
 } as const
-export type AcademyUiKey = keyof typeof ui.en
+export type AcademyUiKey = keyof typeof academyUiMessages.en
 export const useAcademyText = () => {
   const { language } = useI18n()
   return {
     language,
-    text: (key: AcademyUiKey) => ui[language][key],
+    text: (key: AcademyUiKey) => academyUiMessages[language][key],
     content: (key: string) => ACADEMY_MESSAGES[language][key] ?? key,
   }
 }
+
+export { academyUiMessages }

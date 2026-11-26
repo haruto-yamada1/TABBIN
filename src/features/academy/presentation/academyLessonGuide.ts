@@ -1,5 +1,5 @@
 type Guide = { en: string[]; ja: string[] }
-const guides: Record<string, Guide> = {
+const academyGuides: Record<string, Guide> = {
   'install-extension': {
     en: [
       'Chrome: open the official TABBIN page in Chrome Web Store, choose Add to Chrome, read the permission prompt and confirm Add extension.',
@@ -82,8 +82,10 @@ const guides: Record<string, Guide> = {
   },
 }
 export const getAcademyGuide = (lessonId: string, language: 'ja' | 'en') =>
-  guides[lessonId]?.[language] ?? []
+  academyGuides[lessonId]?.[language] ?? []
 export const getAcademyRelatedRoute = (lessonId: string) =>
   lessonId === 'pin-extension' || lessonId === 'install-extension'
     ? '/options'
     : '/saved-tabs?mode=domain'
+
+export { academyGuides }
