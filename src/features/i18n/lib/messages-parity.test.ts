@@ -196,7 +196,7 @@ describe('i18n parity for satellite dictionaries (#1126)', () => {
     ).toBeGreaterThan(0)
   })
 
-  it('Academy ガイドは全レッスンで ja/en のステップ数が一致する', () => {
+  it('Academy ガイドは全レッスンで ja/en のステップ数とプレースホルダーが一致する', () => {
     const lessonIds = Object.keys(academyGuides).toSorted()
     expect(lessonIds.length).toBeGreaterThan(0)
     for (const lessonId of lessonIds) {
@@ -204,6 +204,22 @@ describe('i18n parity for satellite dictionaries (#1126)', () => {
       assert.isDefined(guide)
       expect(guide.ja.length, `${lessonId}: step count`).toBe(guide.en.length)
       expect(guide.en.length, `${lessonId}: non-empty`).toBeGreaterThan(0)
+      for (const [index, enStep] of guide.en.entries()) {
+        const jaStep = guide.ja[index]
+        assert.isDefined(jaStep)
+        expect(
+          extractTokens(jaStep),
+          `${lessonId}[${index}]: placeholder tokens`,
+        ).toEqual(extractTokens(enStep))
+        expect(
+          extractSingleBraceTokens(enStep),
+          `${lessonId}[${index}]: single-brace placeholders are not allowed (en)`,
+        ).toEqual([])
+        expect(
+          extractSingleBraceTokens(jaStep),
+          `${lessonId}[${index}]: single-brace placeholders are not allowed (ja)`,
+        ).toEqual([])
+      }
     }
   })
 })
