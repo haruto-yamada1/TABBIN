@@ -194,6 +194,13 @@ describe('SavedTabsChatPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Open AI settings' }),
     ).toBeTruthy()
+    // The guide lives in the same scrollable content area as messages so
+    // its lower steps and settings button stay reachable at low heights.
+    expect(
+      screen
+        .getByTestId('ai-chat-setup-guide')
+        .closest('.overflow-y-auto'),
+    ).not.toBeNull()
 
     rerender(
       <SavedTabsChatPanel
