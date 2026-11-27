@@ -84,7 +84,9 @@ const demonstrateChildren = async (
   checkpoint: (name: string) => Promise<void>,
 ) => {
   const study = domain(page, 'study.filming.test')
-  await study.locator('[data-tour="academy-child-categories"]').click()
+  await study.locator('[data-tour="academy-domain-more-actions"]').click()
+  // メニュー内容は portal でカード外に描画されるため page から探す。
+  await page.locator('[data-tour="academy-child-categories"]').click()
   await enter(target(page, 'academy-child-create'), 'Reading')
   await expect(target(page, 'academy-child-select')).toContainText('Reading')
   await checkpoint('create child Reading')
