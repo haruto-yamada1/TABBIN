@@ -711,6 +711,11 @@ const deleteLongTabName = `Delete tab: ${longDrilldownTitle}`
 const deleteButtonName = (mode: 'single' | 'bulk') =>
   mode === 'single' ? deleteTabName : deleteAllTabsName
 
+const deleteTabUrlName = 'Delete tab: https://docs.example.com/a'
+
+const deleteConfirmText = (mode: 'single' | 'bulk') =>
+  mode === 'single' ? 'Delete this tab?' : 'Delete all tabs?'
+
 describe('AnalyticsRoute', () => {
   it('shows an explained health overview independent of chart filters', async () => {
     analyticsRouteMocks.loadRecordsMock.mockResolvedValue([
@@ -2343,9 +2348,7 @@ describe('AnalyticsRoute', () => {
       await user.click(
         await screen.findByRole('button', { name: deleteButtonName(mode) }),
       )
-      await screen.findByText(
-        mode === 'single' ? 'Delete this tab?' : 'Delete all tabs?',
-      )
+      await screen.findByText(deleteConfirmText(mode))
       expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
     },
   )
@@ -2389,9 +2392,7 @@ describe('AnalyticsRoute', () => {
       await user.click(
         await screen.findByRole('button', { name: deleteButtonName(mode) }),
       )
-      await screen.findByText(
-        mode === 'single' ? 'Delete this tab?' : 'Delete all tabs?',
-      )
+      await screen.findByText(deleteConfirmText(mode))
       await user.click(screen.getByRole('button', { name: 'Delete' }))
 
       await waitFor(() => {
@@ -2655,6 +2656,22 @@ describe('AnalyticsRoute', () => {
     expect(analyticsRouteMocks.restoreUndoSnapshotMock).toHaveBeenCalledWith(
       await analyticsRouteMocks.readUndoSnapshotMock.mock.results[0]?.value,
     )
+  })
+
+  it('空白のみのタイトルでは削除ボタンの名前がURLへフォールバックする', async () => {
+    const user = userEvent.setup()
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValueOnce([
+      { ...records[0], title: '   ' },
+      records[1],
+    ])
+
+    render(<AnalyticsRoute />)
+
+    expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
+    await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
+    expect(
+      await screen.findByRole('button', { name: deleteTabUrlName }),
+    ).toBeTruthy()
   })
 
   it('削除 Undo の復元失敗はトーストで通知する', async () => {

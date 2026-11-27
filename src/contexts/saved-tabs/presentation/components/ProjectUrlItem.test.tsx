@@ -310,6 +310,34 @@ describe('ProjectUrlItem', () => {
     )
   })
 
+  it('空白のみのタイトルでは削除ボタンの名前がURLへフォールバックする', async () => {
+    const user = userEvent.setup()
+    const handleDeleteUrl = vi.fn()
+    const item = {
+      url: 'https://example.com/long/path',
+      title: '   ',
+      notes: 'memo',
+    }
+
+    renderWithMessagingPort(
+      <ProjectUrlItem
+        {...createProps({
+          item,
+          handleOpenUrl: vi.fn(),
+          handleDeleteUrl,
+          settings: { ...defaultSettings, confirmDeleteEach: false },
+        })}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'タブを削除: https://example.com/long/path',
+      }),
+    )
+    expect(handleDeleteUrl).toHaveBeenCalledWith('project-1', item.url)
+  })
+
   it('通常クリックとEnterだけをTABBIN処理し標準リンク操作へ委譲する', async () => {
     const user = userEvent.setup()
     const handleOpenUrl = vi.fn()

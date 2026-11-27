@@ -298,6 +298,29 @@ describe('SortableUrlItem', () => {
     expect(handleOpenTab).toHaveBeenCalledTimes(2)
   })
 
+  it('空白のみのタイトルでは削除ボタンの名前がURLへフォールバックする', () => {
+    const url = 'https://example.com/path'
+
+    render(
+      <SortableUrlItem
+        url={url}
+        title='   '
+        id={url}
+        groupId='group-1'
+        handleDeleteUrl={vi.fn()}
+        handleOpenTab={vi.fn()}
+        handleUpdateUrls={vi.fn()}
+        settings={defaultSettings}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', {
+        name: 'タブを削除: https://example.com/path',
+      }),
+    ).toBeTruthy()
+  })
+
   it('許可されないprotocolのURLはリンクとして描画しない', () => {
     const unsafeUrl = ['java', 'script:alert(1)'].join('')
 

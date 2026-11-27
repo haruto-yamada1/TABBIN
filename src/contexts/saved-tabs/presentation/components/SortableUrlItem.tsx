@@ -377,7 +377,7 @@ export const SortableUrlItem = ({
           {urlActivation}
           <SortableUrlDeleteButton
             deleteLabel={t('savedTabs.url.deleteAriaWithName', undefined, {
-              name: title || url,
+              name: title.trim() || url,
             })}
             deleteTitle={t('savedTabs.url.deleteAria')}
             disabled={selection.isSelectionMode}

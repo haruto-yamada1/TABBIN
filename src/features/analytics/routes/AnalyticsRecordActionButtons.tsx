@@ -59,7 +59,7 @@ const DeleteRecordButton = ({
       <TooltipTrigger asChild>
         <Button
           aria-label={t('savedTabs.url.deleteAriaWithName', undefined, {
-            name: record.title || record.url,
+            name: record.title.trim() || record.url,
           })}
           disabled={isDeleteActionDisabled || deletingUrl === record.url}
           onClick={handleDeleteRecord}
