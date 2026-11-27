@@ -72,10 +72,7 @@ export const HeaderCounts = ({
     : t(groupCountKey, undefined, { count: String(groups.length) })
 
   return (
-    <output
-      className='flex items-center gap-2'
-      data-testid='header-counts'
-    >
+    <output className='flex items-center gap-2' data-testid='header-counts'>
       <Badge variant='secondary' className='rounded-full'>
         {tabText}
       </Badge>
