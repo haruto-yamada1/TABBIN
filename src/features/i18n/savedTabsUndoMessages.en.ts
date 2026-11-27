@@ -7,6 +7,8 @@ const savedTabsUndoMessagesEn = {
     'Removed {{count}} opened tabs from saved data',
   'savedTabs.undo.removedAfterOpenTab':
     'Removed {{count}} opened tab from saved data',
+  'savedTabs.undo.availabilityNote':
+    'Undo is available while this notification is shown.',
   'savedTabs.undo.restoreError': 'Could not restore saved data',
   'savedTabs.undo.restored': 'Restored saved data',
 } as const
