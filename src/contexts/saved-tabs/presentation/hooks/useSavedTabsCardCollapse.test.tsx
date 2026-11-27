@@ -29,7 +29,7 @@ describe('useSavedTabsCardCollapse', () => {
     expect(result.current[0]).toBe(false)
   })
 
-  it('opens search results without overwriting the browse choice', () => {
+  it('starts each search expanded and restores the browse choice when cleared', () => {
     const policy = { collapseByDefault: true, isSearching: false }
     const { result, rerender } = renderCard(policy)
     expect(result.current[0]).toBe(true)
@@ -47,8 +47,13 @@ describe('useSavedTabsCardCollapse', () => {
     policy.isSearching = true
     rerender()
     act(() => result.current[1](true))
+    rerender()
     expect(result.current[0]).toBe(true)
     policy.isSearching = false
+    rerender()
+    expect(result.current[0]).toBe(false)
+
+    policy.isSearching = true
     rerender()
     expect(result.current[0]).toBe(false)
   })

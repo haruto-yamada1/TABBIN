@@ -67,8 +67,16 @@ const scenarios = [
     mode: 'domain',
     cardType: 'domain',
     name: 'rendering-benchmark-19.example',
+    cardCount: 20,
+    urlCount: 50,
   },
-  { mode: 'custom', cardType: 'project', name: 'Synthetic project 4' },
+  {
+    mode: 'custom',
+    cardType: 'project',
+    name: 'Synthetic project 4',
+    cardCount: 5,
+    urlCount: 200,
+  },
 ] as const
 
 const tabToLink = async (page: Page, link: Locator) => {
@@ -94,7 +102,7 @@ const tabToLink = async (page: Page, link: Locator) => {
   await expect(link, `Tab focus order: ${focusOrder.join(' → ')}`).toBeFocused()
 }
 
-for (const { mode, cardType, name } of scenarios) {
+for (const { mode, cardType, name, cardCount, urlCount } of scenarios) {
   for (const size of [299, 300]) {
     test(`${mode} list has the expected display at ${size} saved URLs`, async ({
       extensionId,
@@ -131,11 +139,8 @@ for (const { mode, cardType, name } of scenarios) {
     await page.goto(
       getExtensionUrl(extensionId, `app.html#/saved-tabs?mode=${mode}`),
     )
-    const card = page
-      .locator(`[data-saved-tabs-scroll-target="${cardType}"]`)
-      .filter({
-        has: page.getByText(name, { exact: true }),
-      })
+    const cards = page.locator(`[data-saved-tabs-scroll-target="${cardType}"]`)
+    const card = cards.filter({ has: page.getByText(name, { exact: true }) })
     const rows = page.locator('a[href^="https://rendering-benchmark-"]')
     const expand = card.getByRole('button', {
       name: `Expand "${name}"`,
@@ -154,7 +159,17 @@ for (const { mode, cardType, name } of scenarios) {
 
     const search = page.getByRole('textbox', { name: 'Search', exact: true })
     await search.fill(searchTitle)
-    await expect(page.getByRole('link', { name: searchTitle })).toBeVisible()
+    const result = card.getByRole('link', { name: searchTitle })
+    await expect(result).toBeVisible()
+    await expect(rows).toHaveCount(1)
+    await collapse.click()
+    await expect(expand).toBeVisible()
+    await expect(rows).toHaveCount(0)
+
+    await search.clear()
+    await expect(cards).toHaveCount(cardCount)
+    await search.fill(searchTitle)
+    await expect(result).toBeVisible()
     await expect(rows).toHaveCount(1)
     await search.clear()
     await expect(expand).toHaveCount(1)
@@ -165,8 +180,10 @@ for (const { mode, cardType, name } of scenarios) {
     await expect(expand).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(collapse).toBeFocused()
-    await expect(page.getByRole('link', { name: searchTitle })).toBeVisible()
-    await tabToLink(page, card.getByRole('link').first())
+    const links = card.getByRole('link')
+    // Custom can still show its cached search row while browse URLs load.
+    await expect(links).toHaveCount(urlCount)
+    await tabToLink(page, links.first())
     await collapse.press('Space')
     await expect(expand).toBeFocused()
     await expect(rows).toHaveCount(0)

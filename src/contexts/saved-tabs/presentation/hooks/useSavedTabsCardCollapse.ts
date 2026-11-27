@@ -17,6 +17,10 @@ export const useSavedTabsCardCollapse = () => {
     browse: collapseByDefault,
     search: false,
   }))
+  // A manual collapse in search lasts until the query is cleared.
+  if (!isSearching && collapse.search) {
+    setCollapse({ ...collapse, search: false })
+  }
   // Search opens an automatically collapsed card without changing its browse state.
   const scope = collapse.initiallyCollapsed && isSearching ? 'search' : 'browse'
   const setCollapsed = useCallback(
