@@ -20,9 +20,7 @@ describe('SavedTabsEmptyState', () => {
 
     expect(screen.getByTestId('saved-tabs-empty-state')).toBeInTheDocument()
     expect(screen.getByText('savedTabs.emptyTitle')).toBeInTheDocument()
-    expect(
-      screen.getByText('savedTabs.emptyDescription'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('savedTabs.emptyDescription')).toBeInTheDocument()
     expect(
       screen.getByRole('button', {
         name: /savedTabs\.emptyState\.saveAllOpenTabsCta/,
@@ -96,9 +94,7 @@ describe('SavedTabsEmptyState', () => {
     render(<SavedTabsEmptyState />)
 
     expect(screen.getByText('savedTabs.emptyTitle')).toBeInTheDocument()
-    expect(
-      screen.getByText('savedTabs.emptyDescription'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('savedTabs.emptyDescription')).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })

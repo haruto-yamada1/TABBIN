@@ -30,13 +30,13 @@ import {
 import { handlePromiseSettlement } from '@/utils/handlePromiseSettlement'
 
 import { listLocalOllamaModels, runAiChatRequest } from './ai-chat'
-import { handleSaveWindowTabs } from './extension-actions'
 import {
   checkAndRemoveExpiredTabs,
   getExpirationPeriodMs,
   isAutoDeletePeriod,
   updateTabTimestamps,
 } from './expired-tabs'
+import { handleSaveWindowTabs } from './extension-actions'
 import {
   handleLinkCaptureMessage,
   linkCaptureSenderOrigin,
