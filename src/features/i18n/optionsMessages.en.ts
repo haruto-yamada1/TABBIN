@@ -23,6 +23,10 @@ const optionsMessagesEn = {
   'background.saveTabs.titleCaptureErrorTitle': 'Tabs were not saved',
   'background.saveTabs.titleCaptureErrorMessage':
     'Could not confirm a tab title. No tabs were saved or closed by TABBIN. Retry saving the tab.',
+  'options.keyboardShortcuts.title': 'Keyboard shortcuts',
+  'options.keyboardShortcuts.description':
+    'Shortcuts available on the saved tabs page. They do not run while you are typing in a text field.',
+  'options.keyboardShortcuts.toggleSidebar': 'Toggle sidebar',
   'options.savedTabTitle.title': 'Saved marks on browser tabs',
   'options.savedTabTitle.enable': 'Show ✓ in saved tab titles',
   'options.savedTabTitle.description':

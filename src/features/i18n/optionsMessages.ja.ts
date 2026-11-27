@@ -24,6 +24,10 @@ const optionsMessagesJa = {
   'background.saveTabs.titleCaptureErrorTitle': 'タブを保存できませんでした',
   'background.saveTabs.titleCaptureErrorMessage':
     'タブのタイトルを確認できませんでした。タブの保存やクローズは行っていません。もう一度保存してください。',
+  'options.keyboardShortcuts.title': 'キーボードショートカット',
+  'options.keyboardShortcuts.description':
+    '保存済みタブページで使えるショートカットです。テキスト入力中は発火しません。',
+  'options.keyboardShortcuts.toggleSidebar': 'サイドバーの表示切り替え',
   'options.savedTabTitle.title': 'ブラウザタブの保存済みマーク',
   'options.savedTabTitle.enable': '保存済みタブのタイトルに ✓ を表示する',
   'options.savedTabTitle.description':
