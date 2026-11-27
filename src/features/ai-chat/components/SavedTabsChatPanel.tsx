@@ -56,7 +56,13 @@ import type {
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { cn } from '@/lib/utils'
 
-import { getMessageSources, getSourcesLabel } from './savedTabsChat/messages'
+import {
+  getCurrentToolProgress,
+  getMessageSources,
+  getSourcesLabel,
+  isToolTraceFailed,
+  sanitizeReasoningForDisplay,
+} from './savedTabsChat/messages'
 import type { ChatMessage, TranslateFn } from './savedTabsChat/messages'
 import { getAttachmentInputErrorMessage } from './savedTabsChat/streaming'
 import { getSavedTabsChatAttachmentId } from './savedTabsChatAttachmentItem.helpers'
@@ -123,6 +129,21 @@ const AssistantMessageDiagnostics = ({
       }`,
     [t, toolTraces.length],
   )
+  // 小型モデルがツール呼び出し JSON をテキストとして出力した場合でも、
+  // 生 JSON を直接表示せず要約文に置き換える（生データは下のツール詳細で確認できる）。
+  const displayReasoning = useMemo(
+    () =>
+      reasoning
+        ? sanitizeReasoningForDisplay(
+            reasoning,
+            t('aiChat.toolTrace.hiddenToolCall'),
+          ).text
+        : reasoning,
+    [reasoning, t],
+  )
+  const currentProgress = isStreaming
+    ? getCurrentToolProgress(toolTraces, t)
+    : undefined
 
   if (!reasoning && toolTraces.length === 0) {
     return null
@@ -130,14 +151,23 @@ const AssistantMessageDiagnostics = ({
 
   return (
     <div className='gap-y-2 pl-1 wrap-break-word'>
-      {reasoning ? (
+      {displayReasoning ? (
         <Reasoning
           className='mb-0 rounded-md border border-border/70 bg-background/70 px-3 py-2'
           {...(isStreaming !== undefined ? { isStreaming } : {})}
         >
           <ReasoningTrigger getThinkingMessage={getThinkingMessage} />
-          <ReasoningContent>{reasoning}</ReasoningContent>
+          <ReasoningContent>{displayReasoning}</ReasoningContent>
         </Reasoning>
+      ) : null}
+      {currentProgress ? (
+        <div
+          aria-live='polite'
+          className='pl-1 text-xs text-muted-foreground'
+          data-testid='ai-chat-tool-progress'
+        >
+          <Shimmer duration={1}>{currentProgress}</Shimmer>
+        </div>
       ) : null}
       {toolTraces.length > 0 ? (
         <div className='gap-y-2'>
@@ -145,24 +175,31 @@ const AssistantMessageDiagnostics = ({
             {t('aiChat.toolsRun')}
           </p>
           {toolTraces.map((toolTrace) => (
-            <Tool
-              className='mb-0 border-border/70 bg-background/70'
-              key={toolTrace.toolCallId}
-            >
-              <ToolHeader
-                state={toolTrace.state}
-                title={toolTrace.title}
-                toolName={toolTrace.toolName}
-                type='dynamic-tool'
-              />
-              <ToolContent>
-                <ToolInput input={toolTrace.input} />
-                <ToolOutput
-                  errorText={toolTrace.errorText}
-                  output={toolTrace.output}
+            <div key={toolTrace.toolCallId}>
+              <Tool className='mb-0 border-border/70 bg-background/70'>
+                <ToolHeader
+                  state={toolTrace.state}
+                  title={toolTrace.title}
+                  toolName={toolTrace.toolName}
+                  type='dynamic-tool'
                 />
-              </ToolContent>
-            </Tool>
+                <ToolContent>
+                  <ToolInput input={toolTrace.input} />
+                  <ToolOutput
+                    errorText={toolTrace.errorText}
+                    output={toolTrace.output}
+                  />
+                </ToolContent>
+              </Tool>
+              {isToolTraceFailed(toolTrace) ? (
+                <p
+                  className='pt-1 pl-1 text-xs text-destructive'
+                  data-testid='ai-chat-tool-failure-note'
+                >
+                  {t('aiChat.toolTrace.failureNote')}
+                </p>
+              ) : null}
+            </div>
           ))}
         </div>
       ) : null}

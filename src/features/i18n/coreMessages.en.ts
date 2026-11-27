@@ -143,6 +143,11 @@ const coreMessagesEn = {
   'aiChat.tool.searchSavedUrls.description':
     'Search saved tabs by keyword. page/pageSize/sortDirection are configurable.',
   'aiChat.tool.searchSavedUrls.title': 'Search tabs by keyword',
+  'aiChat.toolTrace.failureNote':
+    'This tool call failed. A smaller model may have generated invalid arguments. Using a larger model or rephrasing your question may help.',
+  'aiChat.toolTrace.hiddenToolCall':
+    'Tool call data is not shown here. See the tool details below for the raw data.',
+  'aiChat.toolTrace.running': 'Running {{title}}…',
   'aiChat.suggestion.favoriteContent':
     'What kinds of content do I save most often?',
   'aiChat.suggestion.recentTabs': 'Show me the tabs I added this month',

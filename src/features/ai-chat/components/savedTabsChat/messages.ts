@@ -223,4 +223,9 @@ export {
   requestPromptSubmit,
   tryGetItemsArray,
 }
+export {
+  getCurrentToolProgress,
+  isToolTraceFailed,
+  sanitizeReasoningForDisplay,
+} from './toolTracePresentation'
 export type { ChatMessage, ChatMessageSource, ChatMessageUpdate, TranslateFn }
