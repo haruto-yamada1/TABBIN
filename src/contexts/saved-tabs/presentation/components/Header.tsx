@@ -19,6 +19,7 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { CategoryModal } from './CategoryModal'
 import { HeaderCounts } from './HeaderCounts'
 import { NewProjectDialog } from './NewProjectDialog'
+import { useSavedTabsResponsiveLayout } from './SavedTabsResponsiveLayoutContext'
 import { SearchHistoryInput } from './SearchHistoryInput'
 import {
   SavedTabsResponsiveLabel,
@@ -71,6 +72,7 @@ export const Header = ({
   assignDomainToCategoryUseCase,
 }: HeaderProps) => {
   const { t } = useI18n()
+  const { isCompactLayout } = useSavedTabsResponsiveLayout()
   const [isComposing, setIsComposing] = useState(false)
   const history = useSearchHistory(searchHistoryPort, searchQuery, isComposing)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -88,6 +90,19 @@ export const Header = ({
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false)
   }, [])
+
+  // 件数ピル (#1134) は単一の HeaderCounts を使い、狭幅では検索バーの
+  // 下段へ逃がす (#1138)。表示位置だけを切り替え、二重管理しない。
+  const counts = (
+    <HeaderCounts
+      currentMode={currentMode}
+      searchQuery={searchQuery}
+      tabGroups={tabGroups}
+      filteredTabGroups={filteredTabGroups}
+      customProjects={customProjects}
+      filteredCustomProjects={filteredCustomProjects}
+    />
+  )
 
   return (
     <div className='mb-4 flex flex-wrap items-center gap-4'>
@@ -146,15 +161,13 @@ export const Header = ({
           </Tooltip>
         )}
         <ViewModeToggle currentMode={currentMode} onChange={onModeChange} />
-        <HeaderCounts
-          currentMode={currentMode}
-          searchQuery={searchQuery}
-          tabGroups={tabGroups}
-          filteredTabGroups={filteredTabGroups}
-          customProjects={customProjects}
-          filteredCustomProjects={filteredCustomProjects}
-        />
+        {!isCompactLayout && counts}
       </div>
+      {isCompactLayout && (
+        <div className='w-full' data-testid='header-counts-row'>
+          {counts}
+        </div>
+      )}
       {currentMode === 'domain' && isModalOpen && (
         <CategoryModal
           onClose={handleCloseModal}

@@ -12,10 +12,7 @@ import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
-import {
-  SavedTabsResponsiveLabel,
-  SavedTabsResponsiveTooltipContent,
-} from './shared/SavedTabsResponsive'
+import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
 
 type ViewModeToggleProps = {
   currentMode: ViewMode
@@ -54,18 +51,14 @@ export const ViewModeToggle = ({
     selectedValue = (
       <div className='flex items-center gap-2'>
         <Globe size={16} />
-        <SavedTabsResponsiveLabel>
-          {t('savedTabs.viewMode.domain')}
-        </SavedTabsResponsiveLabel>
+        <span>{t('savedTabs.viewMode.domain')}</span>
       </div>
     )
   } else {
     selectedValue = (
       <div className='flex items-center gap-2'>
         <Folder size={16} />
-        <SavedTabsResponsiveLabel>
-          {t('savedTabs.viewMode.custom')}
-        </SavedTabsResponsiveLabel>
+        <span>{t('savedTabs.viewMode.custom')}</span>
       </div>
     )
   }

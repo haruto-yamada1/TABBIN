@@ -131,6 +131,7 @@ vi.mock('@/components/ui/dialog', () => ({
 }))
 
 import { Header } from './Header'
+import { SavedTabsResponsiveLayoutProvider } from './SavedTabsResponsiveLayoutContext'
 
 const createTabGroups = (): TabGroup[] => [
   {
@@ -322,6 +323,27 @@ describe('Header', () => {
 
     expect(screen.getByText('タブ:2')).toBeTruthy()
     expect(screen.getByText('プロジェクト:1')).toBeTruthy()
+  })
+
+  it('compact layout では件数ピルを検索バーの下段に逃がす (#1138)', () => {
+    render(
+      <SavedTabsResponsiveLayoutProvider isCompactLayout>
+        <Header {...createProps()} />
+      </SavedTabsResponsiveLayoutProvider>,
+    )
+
+    const row = screen.getByTestId('header-counts-row')
+    expect(row.className).toContain('w-full')
+    expect(row.contains(screen.getByTestId('header-counts'))).toBe(true)
+    expect(screen.getByText('タブ:3')).toBeTruthy()
+    expect(screen.getByText('ドメイン:2')).toBeTruthy()
+  })
+
+  it('通常幅では件数ピルを下段に逃がさない (#1138)', () => {
+    render(<Header {...createProps()} />)
+
+    expect(screen.queryByTestId('header-counts-row')).toBeNull()
+    expect(screen.getByTestId('header-counts')).toBeTruthy()
   })
 
   it('custom モードでは検索なしなら urlIds を優先してタブ件数を表示する', () => {

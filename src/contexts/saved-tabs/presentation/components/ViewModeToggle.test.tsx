@@ -148,7 +148,7 @@ describe('ViewModeToggle', () => {
     )
   })
 
-  it('compact layout ではラベルを隠して tooltip を表示対象にする', () => {
+  it('compact layout でもモード切替のラベルを残す (#1138)', () => {
     render(
       <SavedTabsResponsiveLayoutProvider isCompactLayout>
         <ViewModeToggle currentMode='domain' onChange={vi.fn()} />
@@ -156,10 +156,22 @@ describe('ViewModeToggle', () => {
     )
 
     expect(
-      screen.getAllByText('ドメインモード')[0]?.getAttribute('class'),
-    ).toContain('hidden')
+      screen.getAllByText('ドメインモード')[0]?.getAttribute('class') ?? '',
+    ).not.toContain('hidden')
     expect(
       screen.getByTestId('tooltip-content').getAttribute('data-class-name'),
     ).toContain('block')
+  })
+
+  it('compact layout でも custom モードのラベルを残す (#1138)', () => {
+    render(
+      <SavedTabsResponsiveLayoutProvider isCompactLayout>
+        <ViewModeToggle currentMode='custom' onChange={vi.fn()} />
+      </SavedTabsResponsiveLayoutProvider>,
+    )
+
+    expect(
+      screen.getAllByText('カスタムモード')[0]?.getAttribute('class') ?? '',
+    ).not.toContain('hidden')
   })
 })
