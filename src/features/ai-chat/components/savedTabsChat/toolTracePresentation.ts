@@ -70,10 +70,9 @@ const isToolCallJson = (value: unknown): boolean => {
     return true
   }
 
-  if (value.type === 'function') {
-    return true
-  }
-
+  // `type: "function"` だけでは呼び出し構造が確認できないため判定しない。
+  // `{"type":"function","description":"..."}` のような通常の説明データを
+  // 誤って置き換えないため、名前と引数の組もあわせて確認する。
   return (
     typeof value.name === 'string' &&
     (isRecord(Reflect.get(value, 'parameters')) ||
@@ -127,28 +126,66 @@ const findBalancedJsonEnd = (text: string, startIndex: number): number => {
 
 type SanitizedReasoning = {
   hiddenToolCallCount: number
+  /** 置き換えで除去したツール呼び出し JSON の生データ（確認経路用）。 */
+  hiddenToolCalls: string[]
   text: string
 }
 
 const FENCED_CODE_BLOCK_PATTERN = /```[^\n`]*\n?([\s\S]*?)```/g
 
 /**
+ * 生成途中で閉じ括弧がまだ届いていないツール呼び出し JSON かどうか。
+ * 末尾が `{` から始まり、ツール呼び出しの署名（type: "function"、
+ * function.name、name + parameters/arguments）を含む場合に true。
+ * 通常の文章や未完了の非ツール JSON は false のまま保持する。
+ */
+const isIncompleteToolCallJson = (text: string): boolean => {
+  if (!text.startsWith('{')) {
+    return false
+  }
+
+  if (/"type"\s*:\s*"function"/.test(text)) {
+    return true
+  }
+
+  if (/"function"\s*:\s*\{\s*"name"\s*:\s*"/.test(text)) {
+    return true
+  }
+
+  return (
+    /"name"\s*:\s*"[^"]*"/.test(text) &&
+    /"(parameters|arguments)"\s*:/.test(text)
+  )
+}
+
+/**
  * Reasoning テキストからツール呼び出しの生 JSON を取り除き、
  * replacement の要約文に置き換える。生 JSON 以外の文章はそのまま保持する
  * （大型モデル利用時の既存表示を損なわないため）。
  */
+/**
+ * テキスト末尾に要約文が無ければ追加する。連続する呼び出し JSON を
+ * 1つの要約にまとめるための共通処理。
+ */
+const appendReplacementOnce = (text: string, replacement: string): string =>
+  text.trimEnd().endsWith(replacement) ? text : `${text}${replacement}`
+
 const sanitizeReasoningForDisplay = (
   reasoning: string,
   replacement: string,
 ): SanitizedReasoning => {
-  let hiddenToolCallCount = 0
+  const hiddenToolCalls: string[] = []
 
   const withoutFencedToolCalls = reasoning.replace(
     FENCED_CODE_BLOCK_PATTERN,
-    (block, inner: string) =>
-      isToolCallJson(tryParseJson(inner.trim()))
-        ? ((hiddenToolCallCount += 1), replacement)
-        : block,
+    (block, inner: string) => {
+      const candidate = inner.trim()
+      if (!isToolCallJson(tryParseJson(candidate))) {
+        return block
+      }
+      hiddenToolCalls.push(candidate)
+      return replacement
+    },
   )
 
   let text = ''
@@ -163,17 +200,28 @@ const sanitizeReasoningForDisplay = (
 
     const end = findBalancedJsonEnd(withoutFencedToolCalls, start)
     if (end === -1) {
-      text += withoutFencedToolCalls.slice(cursor)
+      // 生成途中の未完了ツール呼び出しは生 JSON のまま残さず要約に置き換える。
+      // 生成が途中で止まった場合も生 JSON が表示に残らない。
+      const tail = withoutFencedToolCalls.slice(start)
+      if (isIncompleteToolCallJson(tail)) {
+        text = appendReplacementOnce(
+          text + withoutFencedToolCalls.slice(cursor, start),
+          replacement,
+        )
+        hiddenToolCalls.push(tail)
+      } else {
+        text += withoutFencedToolCalls.slice(cursor)
+      }
       break
     }
 
     const candidate = withoutFencedToolCalls.slice(start, end + 1)
     if (isToolCallJson(tryParseJson(candidate))) {
-      text += withoutFencedToolCalls.slice(cursor, start)
-      if (!text.trimEnd().endsWith(replacement)) {
-        text += replacement
-      }
-      hiddenToolCallCount += 1
+      text = appendReplacementOnce(
+        text + withoutFencedToolCalls.slice(cursor, start),
+        replacement,
+      )
+      hiddenToolCalls.push(candidate)
       cursor = end + 1
       continue
     }
@@ -182,7 +230,7 @@ const sanitizeReasoningForDisplay = (
     cursor = start + 1
   }
 
-  return { hiddenToolCallCount, text }
+  return { hiddenToolCallCount: hiddenToolCalls.length, hiddenToolCalls, text }
 }
 
 export {

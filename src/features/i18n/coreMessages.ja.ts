@@ -146,6 +146,7 @@ const coreMessagesJa = {
     'ツール実行に失敗しました。使用中のモデルが小さいために、引数が正しく生成できなかった可能性があります。より大きなモデルを使うか、質問を言い換えてお試しください。',
   'aiChat.toolTrace.hiddenToolCall':
     'ツール呼び出しの生データはここには表示しません。詳細は下の実行ツールの詳細で確認できます。',
+  'aiChat.toolTrace.rawData': 'ツール呼び出しの生データ',
   'aiChat.toolTrace.running': '{{title}}を実行しています…',
   'aiChat.suggestion.favoriteContent': '最近よく保存しているカテゴリは？',
   'aiChat.suggestion.recentTabs': '今月追加したタブを教えて',

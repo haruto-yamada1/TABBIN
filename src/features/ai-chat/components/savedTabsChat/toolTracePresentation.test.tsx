@@ -143,6 +143,49 @@ describe('sanitizeReasoningForDisplay', () => {
     expect(result.text).toBe(reasoning)
   })
 
+  it('keeps a description-only function JSON unchanged', () => {
+    const reasoning =
+      'The value is {"type":"function","description":"A callable value"}.'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCallCount).toBe(0)
+    expect(result.hiddenToolCalls).toEqual([])
+    expect(result.text).toBe(reasoning)
+  })
+
+  it('replaces an incomplete tool call JSON while streaming', () => {
+    const reasoning =
+      'Checking {"type":"function","function":{"name":"listSavedUrls","parameters":'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCallCount).toBe(1)
+    expect(result.text).toBe(`Checking ${REPLACEMENT}`)
+    expect(result.text).not.toContain('listSavedUrls')
+    expect(result.hiddenToolCalls).toHaveLength(1)
+  })
+
+  it('keeps an incomplete non-tool JSON unchanged', () => {
+    const reasoning = 'Consider {a, b} and {c'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCallCount).toBe(0)
+    expect(result.text).toBe(reasoning)
+  })
+
+  it('returns the hidden raw JSON for the details view', () => {
+    const reasoning =
+      'Checking.\n```json\n{"name": "searchSavedUrls", "parameters": {"keyword": "react"}}\n```\nDone.'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCalls).toEqual([
+      '{"name": "searchSavedUrls", "parameters": {"keyword": "react"}}',
+    ])
+  })
+
   it('collapses consecutive tool call JSON into one replacement', () => {
     const reasoning =
       '{"type":"function","function":{"name":"listSavedUrls","parameters":{}}} {"type":"function","function":{"name":"listSavedUrls","parameters":{}}}'

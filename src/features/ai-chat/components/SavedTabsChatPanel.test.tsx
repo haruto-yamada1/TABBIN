@@ -274,6 +274,32 @@ describe('SavedTabsChatPanel', () => {
     expect(document.body.textContent).toContain('"year": "2023"')
   })
 
+  it('keeps hidden raw tool call data reachable without tool traces', async () => {
+    const user = userEvent.setup()
+    render(
+      <SavedTabsChatPanel
+        {...createProps({
+          messages: [
+            {
+              content: 'Here are your saved tabs.',
+              id: 'json-no-trace-message',
+              reasoning:
+                'Reasoning {"type":"function","function":{"name": "listSavedUrls","parameters": {"year": "2023", "month": "1"}}}',
+              role: 'assistant',
+            },
+          ],
+        })}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Reasoning/ }))
+
+    const reasoningText = screen.getByText(/Tool call data is not shown here/)
+    expect(reasoningText.textContent).not.toContain('"year"')
+    expect(screen.getByText('Raw tool call data')).toBeTruthy()
+    expect(screen.getByText(/"year": "2023"/)).toBeTruthy()
+  })
+
   it('shows a user-facing note when a tool call fails', () => {
     render(
       <SavedTabsChatPanel

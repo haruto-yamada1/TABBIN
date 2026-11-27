@@ -262,6 +262,14 @@ const validateOrganizationProposal = (
   }
 }
 
+/** ツール呼び出しの開始通知。`toolName` は `getAiChatToolDefinitions` のキー。 */
+type AiChatToolCallStart = {
+  input: unknown
+  toolCallId: string
+  toolName: string
+}
+
+// eslint-disable-next-line eslint/max-params -- ツール生成の入力は位置引数で固定されており、開始フックは5番目の引数として追加する
 const createAiChatTools = (
   records: AiSavedUrlRecord[],
   language: AppLanguage = 'ja',
@@ -271,6 +279,9 @@ const createAiChatTools = (
     projects: [],
     revision: 0,
   },
+  // ツール呼び出しの開始時に呼ばれる。background 側で実行中のトレースを
+  // Panel へ届け、ステップ完了を待たずに進捗表示するためのフック。
+  onToolCallStart?: (toolCall: AiChatToolCallStart) => void,
 ) => ({
   findUrlsByMonth: tool({
     description: getAiChatToolDescription(language, 'findUrlsByMonth'),
@@ -281,6 +292,9 @@ const createAiChatTools = (
 
     execute: async (input) =>
       mapPageForToolOutput(findSavedUrlsAddedInMonthPage(records, input)),
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({ input, toolCallId, toolName: 'findUrlsByMonth' })
+    },
   }),
   generateSavedTabsAnalytics: tool({
     description: getAiChatToolDescription(
@@ -374,12 +388,22 @@ const createAiChatTools = (
         },
       )
     },
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({
+        input,
+        toolCallId,
+        toolName: 'generateSavedTabsAnalytics',
+      })
+    },
   }),
   getCurrentDateTime: tool({
     description: getAiChatToolDescription(language, 'getCurrentDateTime'),
     inputSchema: z.object({}),
 
     execute: async () => createCurrentDateTimeOutput(),
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({ input, toolCallId, toolName: 'getCurrentDateTime' })
+    },
   }),
 
   inferUserInterests: tool({
@@ -387,6 +411,9 @@ const createAiChatTools = (
     inputSchema: z.object({}),
 
     execute: async () => inferUserInterests(records, language),
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({ input, toolCallId, toolName: 'inferUserInterests' })
+    },
   }),
   listOrganizationTargets: tool({
     description: getAiChatToolDescription(language, 'listOrganizationTargets'),
@@ -414,6 +441,13 @@ const createAiChatTools = (
         projects: structuredClone(organizationCatalog.projects),
       }
     },
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({
+        input,
+        toolCallId,
+        toolName: 'listOrganizationTargets',
+      })
+    },
   }),
   listSavedUrls: tool({
     description: getAiChatToolDescription(language, 'listSavedUrls'),
@@ -421,6 +455,9 @@ const createAiChatTools = (
 
     execute: async (input) =>
       mapPageForToolOutput(listSavedUrlPage(records, input)),
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({ input, toolCallId, toolName: 'listSavedUrls' })
+    },
   }),
 
   proposeSavedTabsAction: tool({
@@ -432,6 +469,13 @@ const createAiChatTools = (
       validateOrganizationProposal(proposal, records, organizationCatalog)
       return { proposal }
     },
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({
+        input,
+        toolCallId,
+        toolName: 'proposeSavedTabsAction',
+      })
+    },
   }),
 
   searchSavedUrls: tool({
@@ -442,7 +486,11 @@ const createAiChatTools = (
 
     execute: async (input) =>
       mapPageForToolOutput(searchSavedUrlsPage(records, input)),
+    onInputAvailable: ({ input, toolCallId }) => {
+      onToolCallStart?.({ input, toolCallId, toolName: 'searchSavedUrls' })
+    },
   }),
 })
 
 export { createAiChatTools }
+export type { AiChatToolCallStart }
