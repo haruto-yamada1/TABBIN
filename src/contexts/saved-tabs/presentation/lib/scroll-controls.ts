@@ -4,6 +4,7 @@ type ScrollTargetType = 'parent' | 'project' | 'domain' | 'child'
 type ScrollDirection = 'previous' | 'next'
 
 type ScrollControlAvailability = {
+  isScrollable: boolean
   bottom: boolean
   nextChild: boolean
   nextDomain: boolean
@@ -81,6 +82,7 @@ const getScrollControlAvailability = (
       container.scrollHeight - POSITION_TOLERANCE
 
   return {
+    isScrollable,
     bottom,
     nextChild: Boolean(getRelativeScrollTarget(container, 'child', 'next')),
     nextDomain: Boolean(getRelativeScrollTarget(container, 'domain', 'next')),

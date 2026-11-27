@@ -70,6 +70,7 @@ describe('contexts/SavedTabsScrollControls', () => {
     vi.clearAllMocks()
     document.body.innerHTML = ''
     scrollControlState.getScrollControlAvailability.mockReturnValue({
+      isScrollable: true,
       bottom: true,
       nextChild: true,
       nextDomain: true,
@@ -155,6 +156,117 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(scrollButtonGroup).toHaveClass('opacity-100')
     expect(scrollButtonGroup).not.toHaveClass('opacity-35')
     expect(scrollButtonGroup).not.toHaveClass('opacity-70')
+  })
+
+  it('スクロール不要な状態ではスクロールボタン群を表示しない', () => {
+    scrollControlState.getScrollControlAvailability.mockReturnValue({
+      isScrollable: false,
+      bottom: false,
+      nextChild: false,
+      nextDomain: false,
+      nextParent: false,
+      nextProject: false,
+      previousChild: false,
+      previousDomain: false,
+      previousParent: false,
+      previousProject: false,
+      top: false,
+    })
+    renderWithContainer('domain')
+    expect(screen.queryByTestId('scroll-button-group')).toBeNull()
+    expect(screen.queryAllByRole('button')).toStrictEqual([])
+  })
+
+  it('コンテンツ側の高さ変化でもスクロール可否を再判定する', () => {
+    const instances: {
+      callback: ResizeObserverCallback
+      observed: Set<Element>
+    }[] = []
+    class FakeResizeObserver {
+      callback: ResizeObserverCallback
+      observed = new Set<Element>()
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback
+        instances.push(this)
+      }
+      observe(element: Element) {
+        this.observed.add(element)
+      }
+      unobserve(element: Element) {
+        this.observed.delete(element)
+      }
+      disconnect() {
+        this.observed.clear()
+      }
+    }
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+    try {
+      scrollControlState.getScrollControlAvailability.mockReturnValue({
+        isScrollable: false,
+        bottom: false,
+        nextChild: false,
+        nextDomain: false,
+        nextParent: false,
+        nextProject: false,
+        previousChild: false,
+        previousDomain: false,
+        previousParent: false,
+        previousProject: false,
+        top: false,
+      })
+      let pane: HTMLDivElement | null = null
+      const Probe = () => {
+        const { ref, setRef } = useAttachedRef()
+        return (
+          <div>
+            <div
+              ref={(node) => {
+                setRef(node)
+                pane = node
+              }}
+              data-testid='left-pane'
+            >
+              <div data-testid='pane-content' />
+            </div>
+            <SavedTabsScrollControls
+              scrollContainerRef={ref}
+              viewMode='domain'
+            />
+          </div>
+        )
+      }
+      render(<Probe />)
+      expect(screen.queryByTestId('scroll-button-group')).toBeNull()
+
+      const observer = instances.at(-1)
+      expect(observer).toBeDefined()
+      // The container and its content element are both observed, so a
+      // height change from local expand/collapse state is picked up.
+      expect(observer?.observed.has(pane as unknown as Element)).toBe(true)
+      expect(observer?.observed.has(screen.getByTestId('pane-content'))).toBe(
+        true,
+      )
+
+      scrollControlState.getScrollControlAvailability.mockReturnValue({
+        isScrollable: true,
+        bottom: true,
+        nextChild: true,
+        nextDomain: true,
+        nextParent: true,
+        nextProject: true,
+        previousChild: true,
+        previousDomain: true,
+        previousParent: true,
+        previousProject: true,
+        top: true,
+      })
+      act(() => {
+        observer?.callback([], observer as unknown as ResizeObserver)
+      })
+      expect(screen.getByTestId('scroll-button-group')).toBeTruthy()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('初期状態で全ボタンが active なら disabled にならない', () => {
