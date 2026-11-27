@@ -130,7 +130,7 @@ describe('Sidebar', () => {
     expect(wrapper?.style.getPropertyValue('--sidebar-width')).toBe('256px')
   })
 
-  it('初回でも狭幅 viewport では展開幅が clamp される (#1135)', () => {
+  it('初回でも狭幅 viewport ではアイコン幅で開始する (#1135)', () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: 320,
@@ -147,8 +147,8 @@ describe('Sidebar', () => {
       )
 
       const wrapper = container.firstElementChild as HTMLElement | null
-      // 320px viewport では上限 (320 - 96) = 224px に収まる
-      expect(wrapper?.style.getPropertyValue('--sidebar-width')).toBe('224px')
+      // 320px viewport では展開幅が本文を圧迫するためアイコン幅で開始する
+      expect(wrapper?.style.getPropertyValue('--sidebar-width')).toBe('48px')
     } finally {
       Object.defineProperty(window, 'innerWidth', {
         configurable: true,
