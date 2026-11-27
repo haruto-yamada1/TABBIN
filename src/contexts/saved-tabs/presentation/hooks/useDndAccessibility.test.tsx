@@ -3,6 +3,7 @@ import type { Active, Over } from '@dnd-kit/core'
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { savedTabsUncategorizedProjectId } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
 import { getMessages } from '@/features/i18n/messages'
 
 import { useDndAccessibility } from './useDndAccessibility'
@@ -67,6 +68,67 @@ describe('DnD accessibility', () => {
       )
     },
   )
+
+  it('announces the seeded default project in the UI language', () => {
+    language.current = 'en'
+    const { result } = renderHook(() => useDndAccessibility('custom'))
+    const projectActive: Active = {
+      ...active,
+      id: savedTabsUncategorizedProjectId,
+      data: {
+        current: {
+          name: '未分類',
+          projectId: savedTabsUncategorizedProjectId,
+          type: 'project',
+        },
+      },
+    }
+    const announcement = result.current.announcements?.onDragStart?.({
+      ...event,
+      active: projectActive,
+    })
+    expect(announcement).toContain('Uncategorized')
+    expect(announcement).not.toContain('未分類')
+  })
+
+  it('announces renamed or non-default projects by their stored name', () => {
+    language.current = 'en'
+    const { result } = renderHook(() => useDndAccessibility('custom'))
+    const renamedDefault: Active = {
+      ...active,
+      id: savedTabsUncategorizedProjectId,
+      data: {
+        current: {
+          name: 'Renamed project',
+          projectId: savedTabsUncategorizedProjectId,
+          type: 'project',
+        },
+      },
+    }
+    expect(
+      result.current.announcements?.onDragStart?.({
+        ...event,
+        active: renamedDefault,
+      }),
+    ).toContain('Renamed project')
+    const otherProject: Active = {
+      ...active,
+      id: 'custom-other',
+      data: {
+        current: {
+          name: '未分類',
+          projectId: 'custom-other',
+          type: 'project',
+        },
+      },
+    }
+    expect(
+      result.current.announcements?.onDragStart?.({
+        ...event,
+        active: otherProject,
+      }),
+    ).toContain('未分類')
+  })
 
   it('distinguishes saving from confirmation and canceled/no-target drags', () => {
     language.current = 'en'

@@ -2,6 +2,7 @@ import type { Active, DndContext, Over } from '@dnd-kit/core'
 import { useMemo } from 'react'
 import type { ComponentProps } from 'react'
 
+import { resolveCustomProjectDisplayName } from '@/contexts/saved-tabs/presentation/lib/custom-project-display-name'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 type Item = Active | Over
@@ -20,7 +21,21 @@ export const useDndAccessibility = (mode: SaveMode = 'confirm') => {
   >(() => {
     const label = (item: Item): string => {
       const name = itemName(item)
-      return name === '__uncategorized' ? t('savedTabs.uncategorized') : name
+      if (name === '__uncategorized') {
+        return t('savedTabs.uncategorized')
+      }
+      // Project sortables/droppables carry the stored project name, so the
+      // seeded default project would be announced in its stored language.
+      // Resolve it the same way the card heading does (#1114).
+      const data = item.data.current
+      const projectId: unknown = data?.projectId
+      if (
+        (data?.type === 'project' || data?.type === 'project-header') &&
+        typeof projectId === 'string'
+      ) {
+        return resolveCustomProjectDisplayName({ id: projectId, name }, t)
+      }
+      return name
     }
     const position = (item: Item): string => {
       const sortable: unknown = item.data.current?.sortable
