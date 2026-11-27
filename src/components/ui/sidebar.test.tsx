@@ -116,7 +116,50 @@ describe('Sidebar', () => {
     expect(wrapper?.style.getPropertyValue('--sidebar-width')).toBe('320px')
   })
 
-  it('保存済み幅がない時はアイコン幅で開始する', () => {
+  it('保存済み幅がない初回はラベル付きの展開幅で開始する (#1135)', () => {
+    const { container } = render(
+      <SidebarProvider defaultOpen>
+        <Sidebar>
+          <div>sidebar-content</div>
+        </Sidebar>
+        <SidebarInset>main-content</SidebarInset>
+      </SidebarProvider>,
+    )
+
+    const wrapper = container.firstElementChild as HTMLElement | null
+    expect(wrapper?.style.getPropertyValue('--sidebar-width')).toBe('256px')
+  })
+
+  it('初回でも狭幅 viewport ではアイコン幅で開始する (#1135)', () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 320,
+    })
+
+    try {
+      const { container } = render(
+        <SidebarProvider defaultOpen>
+          <Sidebar>
+            <div>sidebar-content</div>
+          </Sidebar>
+          <SidebarInset>main-content</SidebarInset>
+        </SidebarProvider>,
+      )
+
+      const wrapper = container.firstElementChild as HTMLElement | null
+      // 320px viewport では展開幅が本文を圧迫するためアイコン幅で開始する
+      expect(wrapper?.style.getPropertyValue('--sidebar-width')).toBe('48px')
+    } finally {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1024,
+      })
+    }
+  })
+
+  it('保存済みのアイコン幅は初回扱いでリセットされない (#1135)', () => {
+    window.localStorage.setItem('tabbin-extension-sidebar-width', '48')
+
     const { container } = render(
       <SidebarProvider defaultOpen>
         <Sidebar>
@@ -128,6 +171,9 @@ describe('Sidebar', () => {
 
     const wrapper = container.firstElementChild as HTMLElement | null
     expect(wrapper?.style.getPropertyValue('--sidebar-width')).toBe('48px')
+    expect(window.localStorage.getItem('tabbin-extension-sidebar-width')).toBe(
+      '48',
+    )
   })
 
   it('SidebarProvider は viewport 高に固定して子の内部スクロールを許可する', () => {

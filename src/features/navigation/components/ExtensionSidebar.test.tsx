@@ -109,6 +109,7 @@ describe('ExtensionSidebar', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    window.localStorage.clear()
     sidebarContextValue.open = true
     sidebarContextValue.sidebarWidth = 256
   })
@@ -286,6 +287,10 @@ describe('ExtensionSidebar', () => {
     expect(sidebarContextValue.setSidebarWidth).toHaveBeenCalledWith(256)
     expect(sidebarContextValue.setOpen).toHaveBeenCalledWith(true)
     expect(sidebarContextValue.toggleSidebar).not.toHaveBeenCalled()
+    // 展開状態も保存され、次回以降は保存済み状態が使われる (#1135)
+    expect(window.localStorage.getItem('tabbin-extension-sidebar-width')).toBe(
+      '256',
+    )
 
     sidebarContextValue.sidebarWidth = 256
     sidebarContextValue.open = true
@@ -334,6 +339,10 @@ describe('ExtensionSidebar', () => {
     expect(sidebarContextValue.setSidebarWidth).toHaveBeenCalledWith(48)
     expect(sidebarContextValue.setOpen).toHaveBeenCalledWith(true)
     expect(sidebarContextValue.toggleSidebar).not.toHaveBeenCalled()
+    // 畳んだ状態が保存され、次回以降はアイコンレールのままになる (#1135)
+    expect(window.localStorage.getItem('tabbin-extension-sidebar-width')).toBe(
+      '48',
+    )
   })
 
   it('縮小時は active 項目をページごとに 1 つだけ切り替える', () => {

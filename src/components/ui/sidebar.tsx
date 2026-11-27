@@ -34,6 +34,8 @@ const SIDEBAR_WIDTH_ICON = '3rem'
 const SIDEBAR_WIDTH_ICON_PX = 48
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
 const SIDEBAR_WIDTH_STORAGE_KEY = 'tabbin-extension-sidebar-width'
+// 初回に展開幅で開始する最小 viewport 幅 (useMobile の MOBILE_BREAKPOINT と揃える)
+const FIRST_RUN_EXPANDED_MIN_VIEWPORT_PX = 768
 const MAX_SIDEBAR_WIDTH = 420
 const SIDEBAR_VIEWPORT_GUTTER = 96
 
@@ -58,7 +60,18 @@ const loadSidebarWidth = (): number => {
 
   const storedWidth = readLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY)
   if (!storedWidth) {
-    return clampSidebarWidth(SIDEBAR_WIDTH_ICON_PX)
+    // 初回表示 (#1135): 幅が未保存 = ユーザーがサイドバーの表示状態を
+    // まだ選んでいないため、ラベル付きの展開幅で開始して行き先を
+    // アイコンの推測なしに理解できるようにする。ユーザーが畳む /
+    // 展開する / リサイズすると幅が保存され、次回以降は保存済みの
+    // 状態がそのまま使われる (既存ユーザーの状態はリセットしない)。
+    // ただし狭幅 viewport では展開幅が本文を圧迫して操作対象が画面外に
+    // 出てしまうため、モバイル判定 (useMobile の 768px) 未満では
+    // アイコン幅で開始する。
+    if (window.innerWidth < FIRST_RUN_EXPANDED_MIN_VIEWPORT_PX) {
+      return SIDEBAR_WIDTH_ICON_PX
+    }
+    return clampSidebarWidth(SIDEBAR_WIDTH)
   }
 
   const savedWidth = Number(storedWidth)

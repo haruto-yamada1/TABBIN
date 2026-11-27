@@ -171,11 +171,10 @@ describe('AppRouter', () => {
   })
 
   it('router context では内部リンクが app.html ではなく route を指す', async () => {
-    const user = userEvent.setup()
     render(<AppRouter initialEntries={['/saved-tabs?mode=custom']} />)
 
-    await user.click(screen.getByRole('button', { name: 'サイドバーを開く' }))
-
+    // 初回はラベル付きで展開される (#1135) ため、開く操作なしに
+    // ラベル付きリンクへ到達できる
     expect(
       screen
         .getAllByRole('link', { name: 'チャット' })[0]
