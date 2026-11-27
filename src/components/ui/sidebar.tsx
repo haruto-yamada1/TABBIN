@@ -58,7 +58,12 @@ const loadSidebarWidth = (): number => {
 
   const storedWidth = readLocalStorage(SIDEBAR_WIDTH_STORAGE_KEY)
   if (!storedWidth) {
-    return clampSidebarWidth(SIDEBAR_WIDTH_ICON_PX)
+    // 初回表示 (#1135): 幅が未保存 = ユーザーがサイドバーの表示状態を
+    // まだ選んでいないため、ラベル付きの展開幅で開始して行き先を
+    // アイコンの推測なしに理解できるようにする。ユーザーが畳む /
+    // 展開する / リサイズすると幅が保存され、次回以降は保存済みの
+    // 状態がそのまま使われる (既存ユーザーの状態はリセットしない)。
+    return clampSidebarWidth(SIDEBAR_WIDTH)
   }
 
   const savedWidth = Number(storedWidth)
