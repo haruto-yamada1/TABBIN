@@ -1364,7 +1364,7 @@ describe('CategoryManagementModal', () => {
     )
 
     const removeButtons = screen.getAllByRole('button', {
-      name: 'ドメインを削除',
+      name: 'ドメインを取り除く',
     })
     const firstRemoveButton = removeButtons[0]
     expect(firstRemoveButton).toBeTruthy()
@@ -1374,7 +1374,7 @@ describe('CategoryManagementModal', () => {
     await user.click(firstRemoveButton)
     await waitFor(() => {
       expect(toastSuccessSpy).toHaveBeenCalledWith(
-        'ドメイン a.com を「仕事」から削除しました',
+        'ドメイン a.com を「仕事」から取り除きました',
       )
     })
 
@@ -1385,7 +1385,7 @@ describe('CategoryManagementModal', () => {
       },
     )
     const nextRemoveButtons = screen.getAllByRole('button', {
-      name: 'ドメインを削除',
+      name: 'ドメインを取り除く',
     })
     const nextRemoveButton = nextRemoveButtons[0]
     expect(nextRemoveButton).toBeTruthy()
@@ -1489,7 +1489,7 @@ describe('CategoryManagementModal', () => {
     )
 
     let removeButtons = screen.getAllByRole('button', {
-      name: 'ドメインを削除',
+      name: 'ドメインを取り除く',
     })
     const removeButton = removeButtons[0]
     expect(removeButton).toBeTruthy()
@@ -1504,7 +1504,7 @@ describe('CategoryManagementModal', () => {
 
     const removeButtonProps = getLatestButtonProps(
       (props) =>
-        props['aria-label'] === 'ドメインを削除' &&
+        props['aria-label'] === 'ドメインを取り除く' &&
         props.onClick instanceof Function,
     ) as { onClick?: () => void } | undefined
     removeButtonProps?.onClick?.()
@@ -1516,7 +1516,7 @@ describe('CategoryManagementModal', () => {
 
     await waitFor(() => {
       expect(toastSuccessSpy).toHaveBeenCalledWith(
-        'ドメイン a.com を「仕事」から削除しました',
+        'ドメイン a.com を「仕事」から取り除きました',
       )
     })
 
@@ -1547,7 +1547,9 @@ describe('CategoryManagementModal', () => {
         useCases={setup.useCases}
       />,
     )
-    removeButtons = screen.getAllByRole('button', { name: 'ドメインを削除' })
+    removeButtons = screen.getAllByRole('button', {
+      name: 'ドメインを取り除く',
+    })
     await user.click(removeButtons[0] as HTMLButtonElement)
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの削除に失敗しました')
@@ -1572,7 +1574,9 @@ describe('CategoryManagementModal', () => {
         useCases={setup2.useCases}
       />,
     )
-    removeButtons = screen.getAllByRole('button', { name: 'ドメインを削除' })
+    removeButtons = screen.getAllByRole('button', {
+      name: 'ドメインを取り除く',
+    })
     await user.click(removeButtons[0] as HTMLButtonElement)
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith('カテゴリの削除に失敗しました')

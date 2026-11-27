@@ -146,9 +146,9 @@ const chapters: Chapter[] = [
       'Restore the sample saved tabs in the simulated browser.',
     ],
     ja: [
-      '保存タブを復元',
-      '1件・複数件のURLを復元し、開いた後の設定を確認します。',
-      '練習環境の模擬ブラウザへサンプルの保存タブを復元します。',
+      '保存タブを開く',
+      '1件・複数件のURLを開き、開いた後の設定を確認します。',
+      '練習環境の模擬ブラウザへサンプルの保存タブを開きます。',
     ],
     action: 'restore-tabs',
     dataTour: 'academy-restore-tabs',
@@ -164,7 +164,7 @@ export const ACADEMY_MESSAGES: Record<'ja' | 'en', Record<string, string>> = {
   ja: {
     'academy.courses.gettingStarted': 'はじめてのTABBIN',
     'academy.courses.organization': 'タブを整理',
-    'academy.courses.recovery': '復元と復習',
+    'academy.courses.recovery': 'タブを開くことと復習',
   },
 }
 

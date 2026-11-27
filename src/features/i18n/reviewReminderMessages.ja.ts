@@ -82,16 +82,16 @@ const reviewReminderMessagesJa = {
   'reviewReminder.deleteSelected': '選択したタブを削除（{{count}}件）',
   'reviewReminder.deleteTitle': 'この保存タブを削除しますか？',
   'reviewReminder.deleteDescription':
-    'すべてのカテゴリ・プロジェクトから削除します。この画面を開いている間は、30分以内なら直前の削除を取り消せます。',
+    'すべてのカテゴリ・プロジェクトから削除します。この画面を開いている間は、30分以内なら直前の削除を元に戻せます。',
   'reviewReminder.confirmDelete': '{{count}}件のタブを削除',
   'reviewReminder.cancel': 'キャンセル',
   'reviewReminder.deleted': '保存タブを削除しました。',
-  'reviewReminder.undone': '削除を取り消しました。',
-  'reviewReminder.undo': '削除を取り消す',
+  'reviewReminder.undone': '削除を元に戻しました。',
+  'reviewReminder.undo': '削除を元に戻す',
   'reviewReminder.actionError':
     'タブを削除できませんでした。保存データが変更された可能性があります。リストを更新してもう一度お試しください。',
   'reviewReminder.undoError':
-    '削除を取り消せませんでした。保存データが変更されたか、取り消せる時間を過ぎた可能性があります。',
+    '削除を元に戻せませんでした。保存データが変更されたか、元に戻せる時間を過ぎた可能性があります。',
   'reviewReminder.notificationFailed':
     '変更は保存されましたが、他の画面への通知に失敗しました。他に開いている画面を更新してください。',
   'reviewReminder.listCount': '見直しの候補 {{count}} 件',

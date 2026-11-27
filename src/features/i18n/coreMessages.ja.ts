@@ -21,7 +21,7 @@ const coreMessagesJa = {
   'aiChat.copyConversationError': '会話をコピーできませんでした',
   'aiChat.copyConversationSuccess': '会話をコピーしました',
   'aiChat.deleteConversationAria': '{{title}}を削除',
-  'aiChat.deleteDescription': '削除すると元に戻せません。',
+  'aiChat.deleteDescription': 'この操作は元に戻せません。',
   'aiChat.deleteTitle': 'この会話を削除しますか？',
   'aiChat.emptySelectModel': 'モデルを選択してください',
   'aiChat.history.clearSearch': '検索をクリア',
@@ -48,7 +48,7 @@ const coreMessagesJa = {
     '左下で Ollama モデルを選択してください',
   'aiChat.interests.categoryBias': 'カテゴリでは {{categories}} が目立ちます。',
   'aiChat.interests.categoryCountDescription': '最近保存したカテゴリ件数',
-  'aiChat.interests.categoryCountTitle': 'ジャンル別の保存数',
+  'aiChat.interests.categoryCountTitle': 'カテゴリ別の保存数',
   'aiChat.interests.categoryShareDescription': '最近保存したカテゴリ比率',
   'aiChat.interests.categoryWeak': 'カテゴリ偏りはまだ弱めです。',
   'aiChat.interests.domainCountDescription': '最近保存したドメイン件数',
@@ -59,7 +59,7 @@ const coreMessagesJa = {
     '保存傾向から見ると {{domainSummary}} 周辺への関心が強く、{{categorySummary}}',
   'aiChat.interests.tentativeSummary':
     '保存件数が少なく判断材料が限られるため、まだ強い傾向は読み取りにくいです。',
-  'aiChat.interests.topCategoriesTitle': 'よく保存しているジャンル',
+  'aiChat.interests.topCategoriesTitle': 'よく保存しているカテゴリ',
   'aiChat.interests.topDomainsTitle': 'よく保存しているドメイン',
   'aiChat.interruptedResponse':
     '前回の応答は途中で中断されました。必要であれば、もう一度送信してください。',
@@ -142,7 +142,7 @@ const coreMessagesJa = {
   'aiChat.tool.searchSavedUrls.description':
     'キーワードで保存済みタブを検索する。page/pageSize/sortDirection を指定できる',
   'aiChat.tool.searchSavedUrls.title': 'キーワードタブ検索',
-  'aiChat.suggestion.favoriteContent': '最近よく保存しているジャンルは？',
+  'aiChat.suggestion.favoriteContent': '最近よく保存しているカテゴリは？',
   'aiChat.suggestion.recentTabs': '今月追加したタブを教えて',
   'aiChat.suggestion.recommendation': 'どんなコンテンツが好きそうか教えて',
   'aiChat.systemPrompt.availableTools': '利用できるツール',
@@ -279,6 +279,7 @@ const coreMessagesJa = {
   'common.console': 'コンソール',
   'common.copy': 'コピー',
   'common.delete': '削除',
+  'common.remove': '取り除く',
   'common.enterUrl': 'URLを入力...',
   'common.input': '入力',
   'common.instructions': '手順',
@@ -434,7 +435,7 @@ const coreMessagesJa = {
     'これらのパターンに一致するURLは保存されず、タブも閉じられません。',
   'options.excludePatterns.label': '保存・閉じない URL パターン',
   'options.excludePatterns.placeholder': '例: chrome-extension://',
-  'options.excludePatterns.removeAria': '除外パターン {{pattern}} を削除',
+  'options.excludePatterns.removeAria': '除外パターン {{pattern}} を取り除く',
   'options.excludePatterns.title': '除外設定',
   'options.fontSize.currentValue': '現在の値: {{value}}%',
   'options.fontSize.description': 'フォントサイズを調整できます。',
@@ -567,7 +568,7 @@ const coreMessagesJa = {
     '選択したドメインを親カテゴリに追加',
   'savedTabs.categoryManagement.deleteAction': '親カテゴリを削除',
   'savedTabs.categoryManagement.deleteConfirmDescription':
-    '親カテゴリ「{{name}}」を削除しますか？この操作は取り消せません。',
+    '親カテゴリ「{{name}}」を削除しますか？この操作は元に戻せません。',
   'savedTabs.categoryManagement.deleteConfirmDomains':
     'このカテゴリには {{count}} 件のドメインが関連付けられています。削除すると、ドメインと親カテゴリの関連付けも削除されます。',
   'savedTabs.categoryManagement.nameLabel': '親カテゴリ名',
@@ -576,7 +577,7 @@ const coreMessagesJa = {
   'savedTabs.categoryManagement.registeredDomainsEmpty':
     '登録されているドメインがありません',
   'savedTabs.categoryManagement.registeredDomainsLabel': '登録済みドメイン',
-  'savedTabs.categoryManagement.removeDomainAria': 'ドメインを削除',
+  'savedTabs.categoryManagement.removeDomainAria': 'ドメインを取り除く',
   'savedTabs.categoryManagement.renameAction': '親カテゴリ名を変更',
   'savedTabs.categoryManagement.renameError':
     '親カテゴリ名の更新に失敗しました',
@@ -601,7 +602,7 @@ const coreMessagesJa = {
   'savedTabs.categoryModal.created': 'カテゴリを作成しました',
   'savedTabs.categoryModal.currentCategory': '現在選択中のカテゴリ: {{name}}',
   'savedTabs.categoryModal.deleteConfirmDescription':
-    '親カテゴリ「{{name}}」を削除しますか？この操作は取り消せません。',
+    '親カテゴリ「{{name}}」を削除しますか？この操作は元に戻せません。',
   'savedTabs.categoryModal.deleteConfirmDomains':
     'このカテゴリには {{count}} 件のドメインが関連付けられています。削除すると、ドメインと親カテゴリの関連付けも削除されます。',
   'savedTabs.categoryModal.deleteError': 'カテゴリの削除に失敗しました',
@@ -612,7 +613,7 @@ const coreMessagesJa = {
   'savedTabs.categoryModal.domainAssigned':
     'ドメイン {{domain}} を「{{categoryName}}」に追加しました',
   'savedTabs.categoryModal.domainRemoved':
-    'ドメイン {{domain}} を「{{categoryName}}」から削除しました',
+    'ドメイン {{domain}} を「{{categoryName}}」から取り除きました',
   'savedTabs.categoryModal.domainsLabel': 'ドメイン選択',
   'savedTabs.categoryModal.domainsLabelUncategorized':
     'ドメイン選択（未割り当てドメインのみ表示）',
@@ -694,7 +695,7 @@ const coreMessagesJa = {
     '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
   'savedTabs.openAllConfirmTitle': 'タブをすべて開きますか？',
   'savedTabs.openTabs.deleteAllWarning':
-    '保存リストから今開いているタブをすべて削除します。この操作は取り消せません。',
+    '保存リストから今開いているタブをすべて削除します。この操作は元に戻せません。',
   'savedTabs.openTabs.title': '今開いているタブ',
   'savedTabs.project.deleteAllItemName': 'このプロジェクトのタブ',
   'savedTabs.project.deleteAllWarning':
@@ -733,7 +734,7 @@ const coreMessagesJa = {
   'savedTabs.projectManagement.autoAssignLabel': '自動振り分けキーワード',
   'savedTabs.projectManagement.deleteAction': 'プロジェクトを削除',
   'savedTabs.projectManagement.deleteConfirmDescription':
-    'プロジェクト「{{name}}」を削除しますか？この操作は取り消せません。',
+    'プロジェクト「{{name}}」を削除しますか？この操作は元に戻せません。',
   'savedTabs.projectManagement.deleteConfirmHint':
     'このプロジェクトに含まれるすべてのタブとの紐付けも解除されます。',
   'savedTabs.projectManagement.keywordDomainDescription':

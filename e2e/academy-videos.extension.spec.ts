@@ -56,7 +56,7 @@ const chapters = [
     id: 'restore-tabs',
     seconds: 25,
     en: 'Restore saved tabs',
-    ja: '保存タブを復元',
+    ja: '保存タブを開く',
   },
 ]
 const labels = {

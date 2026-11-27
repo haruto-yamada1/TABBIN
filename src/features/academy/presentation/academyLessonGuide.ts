@@ -76,7 +76,7 @@ const academyGuides: Record<string, Guide> = {
       'Keep a JSON backup of important saved tabs from Options. Review the import preview before restoring any backup.',
     ],
     ja: [
-      '保存タブ一覧のURLを開くと、ブラウザのタブとして復元できます。一括で開くと多くのタブが作られるため、実行前に対象を確認します。',
+      '保存タブ一覧のURLを開くと、ブラウザのタブとして開けます。一括で開くと多くのタブが作られるため、実行前に対象を確認します。',
       '大切な保存タブはOptionsからJSONバックアップも保存しておきましょう。バックアップの復元前にはインポートプレビューを確認します。',
     ],
   },
