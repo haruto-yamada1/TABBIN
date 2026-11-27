@@ -17,7 +17,9 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
 }))
 
 vi.mock('@/features/navigation/components/SettingsCrossLink', () => ({
-  SettingsCrossLink: ({ label }: { label: string }) => <a href='#stub'>{label}</a>,
+  SettingsCrossLink: ({ label }: { label: string }) => (
+    <a href='#stub'>{label}</a>
+  ),
 }))
 
 afterEach(() => {
@@ -31,9 +33,7 @@ describe('OptionsTableOfContents', () => {
 
     expect(screen.getByRole('navigation', { name: 'Contents' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Backup & Restore' })).toBeTruthy()
-    expect(
-      screen.getByRole('link', { name: 'Scheduled tasks' }),
-    ).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Scheduled tasks' })).toBeTruthy()
   })
 
   it('リンクをクリックすると対象セクションへスクロールする', async () => {
