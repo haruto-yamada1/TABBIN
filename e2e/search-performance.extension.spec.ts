@@ -1,7 +1,11 @@
 import { expect, getExtensionUrl, test } from './helpers/extension'
 import { benchmarkSavedTabsSearch } from './helpers/search-performance'
 
-for (const size of [1_000, 10_000]) {
+for (const { size, initiallyCollapsed } of [
+  { size: 120, initiallyCollapsed: false },
+  { size: 1_000, initiallyCollapsed: true },
+  { size: 10_000, initiallyCollapsed: true },
+]) {
   for (const mode of ['domain', 'custom'] as const) {
     test(`${mode} search latency with ${size} synthetic URLs`, async ({
       extensionId,
@@ -11,8 +15,7 @@ for (const size of [1_000, 10_000]) {
       await benchmarkSavedTabsSearch(
         page,
         getExtensionUrl(extensionId, 'app.html'),
-        size,
-        mode,
+        { size, mode, initiallyCollapsed },
         testInfo,
       )
       await expect(

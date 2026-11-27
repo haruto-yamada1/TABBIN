@@ -78,6 +78,7 @@ export const CardCollapseControl = ({
           className={`flex items-center gap-1 ${
             isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
           }`}
+          aria-expanded={!isCollapsed}
           aria-label={isCollapsed ? expandLabel : collapseLabel}
           disabled={isDisabled}
         >

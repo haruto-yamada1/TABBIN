@@ -17,14 +17,14 @@ const cruiserDirectory = path.resolve(
 )
 const cruiserUrl = pathToFileURL(`${cruiserDirectory}${path.sep}`).href
 
-// dependency-cruiser loads TypeScript optionally without declaring a peer.
-// Route only its legacy API requests to this workspace's supported compiler;
-// project parsing and compilation continue to resolve the root TypeScript 7.
+// dependency-cruiser loads TypeScript and SWC as optional parsers. Resolve both
+// from this workspace so it uses the TypeScript 6 API and the same native SWC
+// binding as the probe above. Loading two SWC bindings can crash on macOS.
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (
       context.parentURL?.startsWith(cruiserUrl) &&
-      (specifier === 'typescript' || specifier.startsWith('typescript/'))
+      /^(?:typescript|@swc\/core)(?:\/|$)/u.test(specifier)
     ) {
       return {
         shortCircuit: true,

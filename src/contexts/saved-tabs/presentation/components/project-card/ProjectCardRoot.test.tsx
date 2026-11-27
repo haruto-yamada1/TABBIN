@@ -9,6 +9,7 @@ import {
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { savedTabsUncategorizedProjectId } from '@/contexts/saved-tabs/application/dto/SavedTabsPresentationDefaultsDto'
 import type { CustomProjectCardProps } from '@/contexts/saved-tabs/presentation/types/CustomProjectCard.types'
 import type { SavedTabsUserSettingsDto as UserSettings } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
@@ -563,6 +564,30 @@ describe('ProjectCardRoot', () => {
     ).toBe(true)
   })
 
+  it('names the default project disclosure in the display language', () => {
+    projectCardRootI18nState.language = 'en'
+    const props = createProps()
+    render(
+      <ProjectCardRoot
+        {...props}
+        project={{
+          ...props.project,
+          id: savedTabsUncategorizedProjectId,
+          name: '未分類',
+        }}
+      >
+        <div>children</div>
+      </ProjectCardRoot>,
+    )
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Collapse "Uncategorized"',
+        expanded: true,
+      }),
+    ).toBeInTheDocument()
+  })
+
   it('プロジェクト並び替えモードではカテゴリ表示を折りたたむ', () => {
     render(
       <ProjectCardRoot
@@ -574,7 +599,12 @@ describe('ProjectCardRoot', () => {
       </ProjectCardRoot>,
     )
 
-    expect(screen.getByRole('button', { name: '展開' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: '「Project A」を展開',
+        expanded: false,
+      }),
+    ).toBeTruthy()
     expect(screen.queryByText('children')).toBeNull()
   })
 
@@ -589,7 +619,12 @@ describe('ProjectCardRoot', () => {
       </ProjectCardRoot>,
     )
 
-    expect(screen.getByRole('button', { name: '展開' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', {
+        name: '「Project A」を展開',
+        expanded: false,
+      }),
+    ).toBeTruthy()
     expect(screen.queryByText('children')).toBeNull()
   })
 
@@ -601,11 +636,19 @@ describe('ProjectCardRoot', () => {
       </ProjectCardRoot>,
     )
 
-    const collapseButton = screen.getByRole('button', { name: '折りたたむ' })
+    const collapseButton = screen.getByRole('button', {
+      name: '「Project A」を折りたたむ',
+      expanded: true,
+    })
     await user.click(collapseButton)
     expect(screen.queryByText('children')).toBeNull()
 
-    await user.click(screen.getByRole('button', { name: '展開' }))
+    await user.click(
+      screen.getByRole('button', {
+        name: '「Project A」を展開',
+        expanded: false,
+      }),
+    )
     expect(screen.getByText('children')).toBeTruthy()
 
     const sortButton = screen.getByRole('button', { name: 'デフォルト' })

@@ -148,13 +148,11 @@ test('reduced motion keeps dialog/collapse state, counts and toast feedback', as
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   const rows = page.getByTestId('project-url-item')
-  await page
-    .getByRole('button', { name: 'Collapse', exact: true })
-    .last()
-    .click()
+  const project = page.locator('[data-saved-tabs-scroll-target="project"]')
+  await project.getByRole('button', { name: /^Collapse "/u }).click()
   await expect(rows).toHaveCount(0)
   await expect(page.getByTestId('card-group-title')).toContainText('2')
-  await page.getByRole('button', { name: 'Expand', exact: true }).last().click()
+  await project.getByRole('button', { name: /^Expand "/u }).click()
   await expect(rows).toHaveCount(2)
   await rows.first().hover()
   await rows

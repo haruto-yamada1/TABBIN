@@ -118,17 +118,15 @@ const matchesParentCategoryQuery = (
 const filterGroupByQuery = (
   group: TabGroupDto,
   normalizedQuery: string,
-  categoryLookup: PresentationCategoryLookup,
+  categoryLookup: PresentationCategoryLookup | undefined,
 ): TabGroupDto => {
   const currentUrls = group.resolvedUrls ?? []
   if (currentUrls.length === 0) {
     return group
   }
-  const parentCategoryMatched = matchesParentCategoryQuery(
-    group,
-    categoryLookup,
-    normalizedQuery,
-  )
+  const parentCategoryMatched =
+    categoryLookup !== undefined &&
+    matchesParentCategoryQuery(group, categoryLookup, normalizedQuery)
   const filteredUrls = currentUrls.filter((item) => {
     const matchesBasicFields =
       item.title.toLowerCase().includes(normalizedQuery) ||
@@ -249,23 +247,24 @@ export const organizeTabGroupsWithCategories = ({
   readonly categorized: Record<string, TabGroupDto[]>
   readonly uncategorized: TabGroupDto[]
 } => {
+  const normalizedQuery = searchQuery?.trim().toLowerCase() ?? ''
+  const searchCategoryLookup = enableCategories ? categoryLookup : undefined
+  const matchingGroups = normalizedQuery
+    ? tabGroupsWithUrls.map((group) =>
+        filterGroupByQuery(group, normalizedQuery, searchCategoryLookup),
+      )
+    : tabGroupsWithUrls
   if (!enableCategories) {
     return {
       categorized: {},
-      uncategorized: [...tabGroupsWithUrls],
+      uncategorized: normalizedQuery
+        ? matchingGroups.filter(hasDisplayableUrls)
+        : [...matchingGroups],
     }
   }
   let categorizedGroups: Record<string, TabGroupDto[]> = {}
   const uncategorizedGroups: TabGroupDto[] = []
-  const normalizedQuery = searchQuery?.trim().toLowerCase() ?? ''
-  const hasSearchQuery = normalizedQuery.length > 0
-  const groupsToOrganize = tabGroupsWithUrls
-    .map((group) =>
-      hasSearchQuery
-        ? filterGroupByQuery(group, normalizedQuery, categoryLookup)
-        : group,
-    )
-    .filter(hasDisplayableUrls)
+  const groupsToOrganize = matchingGroups.filter(hasDisplayableUrls)
   for (const group of groupsToOrganize) {
     const categoryId = resolveCategoryId(group, categoryLookup)
     if (categoryId === undefined || categoryId === '') {

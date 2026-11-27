@@ -115,6 +115,7 @@ type RenderingSample = {
     }
   >
   stepsMs: number[]
+  maxScrollTopPx: number
 }
 
 declare global {
@@ -127,6 +128,7 @@ declare global {
         operation:
           | 'initial'
           | 'scroll'
+          | 'scroll-collapsed'
           | 'collapse'
           | 'expand'
           | 'category-switch',
@@ -256,6 +258,27 @@ export const installRenderingProbe = async (page: Page) => {
       button.click()
       await ended
     }
+    const sweepPane = async (stepsMs: number[]) => {
+      let maxScrollTopPx = 0
+      const pane = document.querySelector(
+        '[data-testid="saved-tabs-left-pane"]',
+      )
+      if (!(pane instanceof HTMLElement)) {
+        throw new TypeError('Missing scroll pane')
+      }
+      const fractions = Array.from({ length: 13 }, (_, index) => index / 12)
+      for (const fraction of [
+        ...fractions,
+        ...fractions.slice(0, -1).toReversed(),
+      ]) {
+        const stepStart = performance.now()
+        pane.scrollTop = fraction * (pane.scrollHeight - pane.clientHeight)
+        await paintOpportunity()
+        stepsMs.push(performance.now() - stepStart)
+        maxScrollTopPx = Math.max(maxScrollTopPx, pane.scrollTop)
+      }
+      return maxScrollTopPx
+    }
     window.tabbinRenderingProbe = {
       beginOperation(kind) {
         const counts = operations[kind] ?? { started: 0, completed: 0 }
@@ -287,32 +310,25 @@ export const installRenderingProbe = async (page: Page) => {
               operations: structuredClone(operations),
             }
         const stepsMs: number[] = []
-        if (operation === 'scroll') {
-          const pane = document.querySelector(
-            '[data-testid="saved-tabs-left-pane"]',
-          )
-          if (!(pane instanceof HTMLElement)) {
-            throw new TypeError('Missing scroll pane')
-          }
-          const fractions = Array.from({ length: 13 }, (_, index) => index / 12)
-          for (const fraction of [
-            ...fractions,
-            ...fractions.slice(0, -1).toReversed(),
-          ]) {
-            const stepStart = performance.now()
-            pane.scrollTop = fraction * (pane.scrollHeight - pane.clientHeight)
+        let maxScrollTopPx = 0
+        const kind = mode === 'domain' ? 'domain' : 'project'
+        const cardSelector = `[data-saved-tabs-scroll-target="${kind}"]`
+        if (initial) {
+          // Zero URL rows also matches the loading shell. Wait for every card.
+          while (
+            document.querySelectorAll(cardSelector).length !== expectedCards
+          ) {
             await paintOpportunity()
-            stepsMs.push(performance.now() - stepStart)
           }
+        }
+        if (operation === 'scroll' || operation === 'scroll-collapsed') {
+          maxScrollTopPx = await sweepPane(stepsMs)
         }
         if (operation === 'category-switch') {
           await navigateCategory(mode)
         }
         if (operation === 'collapse' || operation === 'expand') {
-          const kind = mode === 'domain' ? 'domain' : 'project'
-          const cards = document.querySelectorAll(
-            `[data-saved-tabs-scroll-target="${kind}"]`,
-          )
+          const cards = document.querySelectorAll(cardSelector)
           if (cards.length !== expectedCards) {
             throw new Error(
               `Expected ${expectedCards} cards, got ${cards.length}`,
@@ -360,6 +376,7 @@ export const installRenderingProbe = async (page: Page) => {
           ),
           profilers: summarizeCommits(events),
           stepsMs,
+          maxScrollTopPx,
         }
       },
     }
@@ -388,8 +405,15 @@ const verifyInitialSample = (sample: RenderingSample | undefined) => {
 export const benchmarkSavedTabsRendering = async (
   page: Page,
   appUrl: string,
-  size: number,
-  mode: 'domain' | 'custom',
+  {
+    size,
+    mode,
+    initiallyCollapsed,
+  }: {
+    size: number
+    mode: 'domain' | 'custom'
+    initiallyCollapsed: boolean
+  },
   testInfo: TestInfo,
 ) => {
   await page.goto(`${appUrl}#/options`)
@@ -405,12 +429,15 @@ export const benchmarkSavedTabsRendering = async (
   const expectedUrls = Array.from({ length: size }, (_, index) => href(index))
   await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
   const observations = []
-  for (const operation of [
-    'initial',
-    'scroll',
-    'collapse',
-    'expand',
-  ] as const) {
+  const operations = initiallyCollapsed
+    ? (['initial', 'scroll-collapsed', 'expand', 'scroll', 'collapse'] as const)
+    : (['initial', 'scroll', 'collapse', 'expand'] as const)
+  for (const operation of operations) {
+    const expectNoRows =
+      operation === 'collapse' ||
+      operation === 'scroll-collapsed' ||
+      (operation === 'initial' && initiallyCollapsed)
+    const expected = expectNoRows ? [] : expectedUrls
     const sample = await page.evaluate(
       async ({
         operation: current,
@@ -426,12 +453,18 @@ export const benchmarkSavedTabsRendering = async (
         ),
       {
         operation,
-        expected: operation === 'collapse' ? [] : expectedUrls,
+        expected,
         mode,
         expectedCards: mode === 'domain' ? domainCount : projectCount,
       },
     )
-    verifySettledSample(sample, operation === 'collapse' ? 0 : size)
+    verifySettledSample(sample, expected.length)
+    if (
+      operation === 'scroll' ||
+      (operation === 'scroll-collapsed' && mode === 'domain')
+    ) {
+      expect(sample.maxScrollTopPx).toBeGreaterThan(0)
+    }
     observations.push({
       operation,
       ...sample,
@@ -453,7 +486,7 @@ export const benchmarkSavedTabsRendering = async (
     outputPath,
     JSON.stringify(
       {
-        schemaVersion: 2,
+        schemaVersion: 3,
         mode,
         repeatIndex: testInfo.repeatEachIndex,
         fixture: {
@@ -465,9 +498,10 @@ export const benchmarkSavedTabsRendering = async (
           categoryOrderingInitialized: true,
         },
         methodology:
-          'Production profiling renderer; build-only root and named subtree Profilers, plus session-operation and page-data-query begin/finally-end probes. Initial timing starts at navigation time origin and includes bootstrap/hydration; later samples use page performance.now. Exact synthetic URL-set DOM completion followed by two rAF with zero active readonly IndexedDB transactions, zero pending session/query operations, no new transactions/operations, and no React commits. Session completion includes settings reads, lock waits, state projection/diff and any commit. The fixture represents existing saved data with initialized category ordering. Scroll sweeps 13 fractions down and 12 back. Collapse/expand invokes each real button handler with page-local DOM click and awaits two rAF per card. No host RPC timings or absolute latency gates.',
+          'Production profiling renderer; build-only root and named subtree Profilers, plus session-operation and page-data-query begin/finally-end probes. Initial timing starts at navigation time origin and includes bootstrap/hydration; later samples use page performance.now. Exact synthetic URL-set DOM completion followed by two rAF with zero active readonly IndexedDB transactions, zero pending session/query operations, no new transactions/operations, and no React commits. Session completion includes settings reads, lock waits, state projection/diff and any commit. The fixture represents existing saved data with initialized category ordering. Initial completion also waits for all card headers. Scroll sweeps 13 fractions down and 12 back, recording actual travel in expanded and (where applicable) collapsed states. Collapse/expand invokes each real button handler with page-local DOM click and awaits two rAF per card. No host RPC timings or absolute latency gates.',
         limitations:
           'Each test repeat is a single observation; repeat indices are recorded for aggregation. Session and page-data-query counts overlap and must not be added. Profiler instrumentation adds overhead; actualDuration includes descendants and must not be added across nested profiler ids. Programmatic clicks are not trusted physical input. Double rAF is a paint opportunity, not proof of physical presentation. Fractional scrolling is a repeatable sweep, not proof every row reached the viewport. DOM elements count the current document; CDP DOM counters can include detached nodes. Heap observations use Runtime.getHeapUsage without forced GC and are not leak proof. Native transaction counts and pending operations cover this page only, not background workers or unrelated timers.',
+        initiallyCollapsed,
         observations,
         retainedUrls: storedUrls.length,
         retainedMemberships: memberships.length,

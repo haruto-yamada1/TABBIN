@@ -180,6 +180,33 @@ describe('SavedTabsCategorizationService.organizeTabGroupsWithCategories', () =>
     expect(result.uncategorized).toStrictEqual(groups)
   })
 
+  it('カテゴリ非表示でも検索語に一致する URL だけを未分類として返す', () => {
+    const match = { title: 'Needle', url: 'https://docs1.example.com/needle' }
+    const result = organizeTabGroupsWithCategories({
+      categoryLookup: lookup,
+      enableCategories: false,
+      searchQuery: ' needle ',
+      tabGroupsWithUrls: [
+        makeGroup({
+          domain: 'docs1.example.com',
+          id: 'group-docs-1',
+          resolvedUrls: [
+            match,
+            { title: 'Other', url: 'https://docs1.example.com/' },
+          ],
+        }),
+        makeGroup({ domain: 'docs2.example.com', id: 'group-docs-2' }),
+      ],
+    })
+    expect(result.categorized).toEqual({})
+    expect(
+      result.uncategorized.map(({ id, resolvedUrls }) => ({
+        id,
+        resolvedUrls,
+      })),
+    ).toEqual([{ id: 'group-docs-1', resolvedUrls: [match] }])
+  })
+
   it('カテゴリ内の groups は ParentCategory.domains 順で並ぶ', () => {
     const result = organizeTabGroupsWithCategories({
       categoryLookup: lookup,

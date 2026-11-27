@@ -1,5 +1,8 @@
 # Saved Tabs search performance (#900)
 
+For the current large-list defaults and measurements, see
+[#1140](saved-tabs-large-list-performance.md).
+
 ## Baseline and scope
 
 The baseline is `develop` at `a24f1390d7d6c9fd038ca23057a2666e3439d7df`.

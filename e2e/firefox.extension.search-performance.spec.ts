@@ -15,8 +15,7 @@ for (const size of [1_000, 10_000]) {
       await benchmarkSavedTabsSearch(
         firefoxExtensionPage,
         getFirefoxExtensionUrl(firefoxExtensionUuid, 'app.html'),
-        size,
-        mode,
+        { size, mode, initiallyCollapsed: true },
         testInfo,
       )
       await expect(

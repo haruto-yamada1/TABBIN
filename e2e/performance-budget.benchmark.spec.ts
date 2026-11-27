@@ -81,7 +81,10 @@ for (const size of [1_000, 10_000] as const) {
       await installRenderingProbe(page)
       await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
       const expected = fixture.persistence.urls.map(({ url }) => url)
-      const measure = async (scenario: 'initial' | 'category-switch') =>
+      const measure = async (
+        scenario: 'initial' | 'expand' | 'category-switch',
+        expectedRows = expected,
+      ) =>
         page.evaluate(
           async ({ scenario: operation, expected: urls, mode: view }) =>
             window.tabbinRenderingProbe.measure(
@@ -90,13 +93,15 @@ for (const size of [1_000, 10_000] as const) {
               view,
               view === 'domain' ? 20 : 5,
             ),
-          { scenario, expected, mode },
+          { scenario, expected: expectedRows, mode },
         )
-      const initial = await measure('initial')
+      const initial = await measure('initial', [])
       expect(initial.reactCommits).toBeGreaterThan(0)
       expect(initial.operations.session?.started).toBeGreaterThan(0)
-      // Trigger geometry availability after content-visibility has laid out the
-      // first card. This setup is excluded from the navigation measurement.
+      // Measure navigation with the same expanded rows as the baseline.
+      const expanded = await measure('expand')
+      expect(expanded.renderedUrls).toBe(size)
+      // Refresh the controls' geometry after expanding the cards.
       await page.getByTestId('saved-tabs-left-pane').evaluate(async (pane) => {
         pane.scrollTop = 1
         await new Promise(requestAnimationFrame)
@@ -120,7 +125,7 @@ for (const size of [1_000, 10_000] as const) {
       ).toBeGreaterThan(0)
       const samples: BudgetSample[] = [initial, navigation].map(
         (sample, index) => {
-          expect(sample.renderedUrls).toBe(size)
+          expect(sample.renderedUrls).toBe(index === 0 ? 0 : size)
           for (const operation of Object.values(sample.operations)) {
             expect(operation.started).toBe(operation.completed)
             expect(operation.pendingAtCompletion).toBe(0)
@@ -163,8 +168,7 @@ for (const size of [1_000, 10_000] as const) {
       const samples = await benchmarkSavedTabsSearch(
         page,
         getExtensionUrl(extensionId, 'app.html'),
-        size,
-        mode,
+        { size, mode, initiallyCollapsed: true },
         info,
       )
       expect(samples).toHaveLength(12)

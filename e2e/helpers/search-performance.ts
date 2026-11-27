@@ -335,6 +335,39 @@ const summarize = (values: number[]) => {
   }
 }
 
+const measureQuery = async (
+  page: Page,
+  search: Locator,
+  query: string,
+  expected: string[],
+) => {
+  await page.evaluate(
+    ({ query: next, expected: urls }) => {
+      window.tabbinSearchProbe.arm(next, urls)
+    },
+    { query, expected },
+  )
+  await search.fill(query)
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(
+          () => window.tabbinSearchProbe.sample?.readWorkSettledMs ?? null,
+        ),
+      { timeout: completionTimeout },
+    )
+    .not.toBeNull()
+  const sample = await page.evaluate(() => window.tabbinSearchProbe.sample)
+  if (!sample) {
+    throw new Error('Missing trusted input sample')
+  }
+  expect(sample.trusted).toBe(true)
+  expect(sample.nextPaintOpportunityMs).not.toBeNull()
+  expect(sample.observedBodyMutations).toBeGreaterThan(0)
+  expect(sample.renderedRows).toBe(expected.length)
+  return sample
+}
+
 const collectWarmSamples = async (page: Page, search: Locator) => {
   const samples: Sample[] = []
   // Alternate distinct result sets so a stale DOM cannot satisfy completion.
@@ -342,32 +375,7 @@ const collectWarmSamples = async (page: Page, search: Locator) => {
   for (let index = 0; index < sampleCount; index += 1) {
     const target = index % 2 === 0 ? 1 : 0
     const query = target === 0 ? '琥珀夜空' : '深緑渓谷'
-    await page.evaluate(
-      ({ query: next, expected }) => {
-        window.tabbinSearchProbe.arm(next, expected)
-      },
-      { query, expected: [href(target)] },
-    )
-    await search.fill(query)
-    await expect
-      .poll(
-        async () =>
-          page.evaluate(
-            () => window.tabbinSearchProbe.sample?.readWorkSettledMs ?? null,
-          ),
-        { timeout: completionTimeout },
-      )
-      .not.toBeNull()
-    const sample = await page.evaluate(() => window.tabbinSearchProbe.sample)
-    expect(sample).not.toBeNull()
-    if (!sample) {
-      throw new Error('Missing trusted input sample')
-    }
-    expect(sample.trusted).toBe(true)
-    expect(sample.nextPaintOpportunityMs).not.toBeNull()
-    expect(sample.observedBodyMutations).toBeGreaterThan(0)
-    expect(sample.renderedRows).toBe(1)
-    samples.push(sample)
+    samples.push(await measureQuery(page, search, query, [href(target)]))
   }
   return samples
 }
@@ -411,8 +419,15 @@ const measureWarmSearch = async (page: Page, search: Locator) => {
 export const benchmarkSavedTabsSearch = async (
   page: Page,
   appUrl: string,
-  size: number,
-  mode: 'domain' | 'custom',
+  {
+    size,
+    mode,
+    initiallyCollapsed,
+  }: {
+    size: number
+    mode: 'domain' | 'custom'
+    initiallyCollapsed: boolean
+  },
   testInfo: TestInfo,
 ) => {
   await page.goto(`${appUrl}#/options`)
@@ -420,9 +435,23 @@ export const benchmarkSavedTabsSearch = async (
   await page.goto(`${appUrl}#/saved-tabs?mode=${mode}`)
   const search = page.getByRole('textbox', { name: '検索', exact: true })
   await expect(search).toBeVisible()
-  await expect(page.locator(rowSelector)).toHaveCount(size, {
-    timeout: completionTimeout,
-  })
+  const assertBrowseRows = async () => {
+    if (initiallyCollapsed) {
+      // Search can temporarily render no cards. Verify the browse cards returned.
+      await expect(
+        page.getByRole('button', { name: /^「.*」を展開$/u, expanded: false }),
+      ).toHaveCount(mode === 'domain' ? domainCount : projectCount, {
+        timeout: completionTimeout,
+      })
+    }
+    await expect(page.locator(rowSelector)).toHaveCount(
+      initiallyCollapsed ? 0 : size,
+      {
+        timeout: completionTimeout,
+      },
+    )
+  }
+  await assertBrowseRows()
   await search.fill('琥珀夜空')
   await waitForRows(page, [href(0)])
   await installInputProbe(page)
@@ -431,6 +460,16 @@ export const benchmarkSavedTabsSearch = async (
     page,
     search,
   )
+
+  const broadQuerySample =
+    size <= 1_000
+      ? await measureQuery(
+          page,
+          search,
+          'search-benchmark',
+          Array.from({ length: size }, (_, index) => href(index)),
+        )
+      : undefined
 
   // Partial, case-insensitive title matching and Japanese queries use real UI.
   await search.fill('HAYSTACK')
@@ -448,9 +487,7 @@ export const benchmarkSavedTabsSearch = async (
   }
   await page.getByRole('button', { name: '検索をクリア', exact: true }).click()
   await expect(search).toHaveValue('')
-  await expect(page.locator(rowSelector)).toHaveCount(size, {
-    timeout: completionTimeout,
-  })
+  await assertBrowseRows()
   await search.fill('no-such-record-zzzzzzzzzz')
   await waitForRows(page, [])
   await search.selectText()
@@ -479,7 +516,7 @@ export const benchmarkSavedTabsSearch = async (
     outputPath,
     JSON.stringify(
       {
-        schemaVersion: 2,
+        schemaVersion: 3,
         browser: page.context().browser()?.browserType().name(),
         browserVersion: page.context().browser()?.version(),
         mode,
@@ -495,7 +532,7 @@ export const benchmarkSavedTabsSearch = async (
         methodology:
           'Trusted input capture to double rAF paint opportunity; exact URL-set DOM completion plus a subsequent double rAF. Page performance.now only; no host RPC durations. Readonly IndexedDB transactions count page-local work until zero active reads and two rAF with no new reads after DOM completion. Saved Tabs snapshot reads are identified by their six-store scope. URL rows cloned by readonly getAll requests are an allocation-work proxy, not heap bytes. Body mutation records are observed DOM changes, not React render counts.',
         limitations:
-          'Observational samples without absolute thresholds; no cold-start or broad-result rendering timing; rAF marks paint opportunities, not physical display presentation; rapid typing does not emulate IME composition.',
+          'Observational samples without absolute thresholds; one broad-result sample at sizes up to 1,000 URLs; no cold-start timing; rAF marks paint opportunities, not physical display presentation; rapid typing does not emulate IME composition.',
         milliseconds: {
           inputToNextPaintOpportunity: summarize(
             numeric('nextPaintOpportunityMs'),
@@ -506,6 +543,7 @@ export const benchmarkSavedTabsSearch = async (
             numeric('resultPaintOpportunityMs'),
           ),
         },
+        broadQuerySample,
         readonlyIndexedDbTransactions: summarize(
           samples.map((sample) => sample.readonlyTransactions),
         ),

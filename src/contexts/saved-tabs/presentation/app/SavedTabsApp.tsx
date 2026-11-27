@@ -43,7 +43,10 @@ import {
 } from './handlers'
 import { useSelectedSavedTabsDeletion } from './handlers/useSelectedSavedTabsDeletion'
 import {
+  SAVED_TABS_CARD_COLLAPSE_THRESHOLD,
+  SavedTabsCardCollapseContext,
   buildPresentationCategoryLookup,
+  countTabGroupUrls,
   createCategorizedDisplayState,
   organizeTabGroupsWithCategories,
   shouldWaitForInitialViewMode,
@@ -191,6 +194,26 @@ const useSavedTabsAppView = ({
     handleReorderProjects,
     handleRenameCategory,
   } = projectState
+  const collapseByDefault = useMemo(() => {
+    const rowCount =
+      viewMode === 'domain'
+        ? tabGroupsWithUrls.reduce(
+            (total, group) => total + countTabGroupUrls(group),
+            0,
+          )
+        : customProjects.reduce(
+            (total, project) =>
+              total +
+              (project.urls?.length ?? project.memberships?.length ?? 0),
+            0,
+          )
+    return rowCount >= SAVED_TABS_CARD_COLLAPSE_THRESHOLD
+  }, [viewMode, tabGroupsWithUrls, customProjects])
+  const isSearching = searchQuery.trim().length > 0
+  const cardCollapsePolicy = useMemo(
+    () => ({ collapseByDefault, isSearching }),
+    [collapseByDefault, isSearching],
+  )
   const openTabsRows = useOpenTabsRows({
     enabled: viewMode === 'domain' && settings.showOpenTabs !== false,
     searchQuery,
@@ -574,7 +597,9 @@ const useSavedTabsAppView = ({
             savedTabsUseCases.assignDomainToCategory
           }
         />
-        {mainContent}
+        <SavedTabsCardCollapseContext value={cardCollapsePolicy}>
+          {mainContent}
+        </SavedTabsCardCollapseContext>
         {shouldShowCategoryReorderFooter && (
           <CategoryReorderFooter
             // eslint-disable-next-line typescript/no-misused-promises

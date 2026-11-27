@@ -35,14 +35,16 @@ The 14-case matrix has 1,000 and 10,000 unique URLs:
 
 | Scenario            | Modes           | Completion and observed duration                                                                                                                                                                               |
 | ------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Initial list        | Domain, Custom  | Navigation time origin through the exact full URL set, zero page-local reads/pending operations and two animation frames with no new work or React commit.                                                     |
+| Initial list        | Domain, Custom  | Navigation through all expected card headers with zero URL rows for these large fixtures, settled page-local operations and two animation frames without more work or commits.                                 |
 | Search              | Domain, Custom  | Upper central observation (7th of 12 sorted latencies) for warm trusted Japanese input replacements, each to exact one-row results and settled readonly reads; maximum transaction count across all 12 inputs. |
 | Category navigation | Domain, Custom  | The real next-parent-category / next-project button handler, native smooth-scroll end, and the same full URL set/operation settlement.                                                                         |
 | Bulk opening        | Background tabs | Native IndexedDB session and production opening use case through completion of async recording browser ports.                                                                                                  |
 
 There is no category-filter dropdown in Saved Tabs. “Category switching” here is
 navigation to the next parent section in Domain mode, and to the next project
-in Custom mode. Before measurement, a one-pixel scroll and return refreshes the
+in Custom mode. As of #1140, cards start collapsed in both fixture sizes. The
+initial measurement waits for all card headers and the subsequent navigation
+setup expands every card. A one-pixel scroll and return refreshes the
 controls' geometry after content-visibility layout. The timed operation must
 move the pane. It retains all URL rows and verifies the complete native storage
 snapshot remains identical; it does not rename or reassign categories.
@@ -104,7 +106,9 @@ The committed baseline was collected on 2026-10-20 (JST), on macOS arm64. It con
 three fresh-profile observations. With only three samples, p95 is the maximum,
 not a population tail estimate. Search values use the upper central observation of the inner twelve
 inputs, so their outer p95 is a maximum of three such observations. This is a reproducible
-starting point, not evidence of a general-device latency guarantee or speedup.
+starting point for comparing runs. It predates default collapse and measured
+initial display with every URL mounted. The navigation scenario still uses
+fully expanded cards. See the [#1140 rendering and search measurements](saved-tabs-large-list-performance.md).
 
 The profiling renderer adds overhead. Double animation frames mark an opportunity
 to paint, not physical presentation. Category activation uses a DOM click; search

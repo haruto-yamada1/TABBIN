@@ -116,14 +116,18 @@ export const DomainCardRoot = ({
   // グローバルドラッグ監視
   useDndMonitor(state.dndMonitorHandlers)
 
+  const { isCollapsed } = state.collapse
   const style: CSSProperties = useMemo(
     () => ({
-      containIntrinsicSize: '360px',
-      contentVisibility: 'auto',
+      // A collapsed header is cheap to lay out at its actual height.
+      ...(!isCollapsed && {
+        containIntrinsicSize: '360px',
+        contentVisibility: 'auto',
+      }),
       transform: CSS.Transform.toString(transform),
       transition,
     }),
-    [transform, transition],
+    [isCollapsed, transform, transition],
   )
 
   // 検索でヒットしない場合は非表示

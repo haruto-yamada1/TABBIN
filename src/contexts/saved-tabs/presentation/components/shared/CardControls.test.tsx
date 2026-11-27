@@ -101,11 +101,17 @@ describe('CardCollapseControl', () => {
 
     render(<Harness />)
 
-    await user.click(screen.getByRole('button', { name: '折りたたむ' }))
+    const collapse = screen.getByRole('button', { name: '折りたたむ' })
+    expect(collapse).toHaveAttribute('aria-expanded', 'true')
+    collapse.focus()
+    await user.keyboard('{Enter}')
+    expect(collapse).toHaveFocus()
+    expect(collapse).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByTestId('collapsed').textContent).toBe('true')
     expect(screen.getByTestId('user-collapsed').textContent).toBe('true')
 
-    await user.click(screen.getByRole('button', { name: '展開' }))
+    await user.keyboard(' ')
+    expect(collapse).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByTestId('collapsed').textContent).toBe('false')
     expect(screen.getByTestId('user-collapsed').textContent).toBe('false')
   })
