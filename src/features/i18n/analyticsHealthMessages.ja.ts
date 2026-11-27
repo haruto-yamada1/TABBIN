@@ -30,6 +30,11 @@ const analyticsHealthMessagesJa = {
   'analytics.health.noHistory':
     '閲覧履歴は記録していないため、未閲覧率は算出できず、スコアにも含めません。',
   'analytics.health.organize': '保存タブ画面で整理する',
+  'analytics.ghost.title': 'プレビュー：タブを保存するとこう見えます',
+  'analytics.ghost.badge': 'サンプル',
+  'analytics.ghost.description':
+    'これはサンプル表示で、あなたのデータではありません。タブを保存すると、あなたの保存タブから作られた健康状態やチャートがこのように表示されます。',
+  'analytics.ghost.openSavedTabs': '保存タブ画面でタブを保存する',
 } as const satisfies Record<keyof typeof analyticsHealthMessagesEn, string>
 
 export { analyticsHealthMessagesJa }

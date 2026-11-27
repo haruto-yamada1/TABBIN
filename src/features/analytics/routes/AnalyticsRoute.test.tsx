@@ -757,19 +757,55 @@ describe('AnalyticsRoute', () => {
     )
   })
 
-  it('does not award a perfect score to an empty library', async () => {
+  it('shows a labelled ghost preview with sample charts for an empty library', async () => {
     analyticsRouteMocks.loadRecordsMock.mockResolvedValue([])
     render(<AnalyticsRoute />)
-    const overview = await screen.findByRole('region', {
-      name: 'Saved-tab health',
+    const ghost = await screen.findByRole('region', {
+      name: 'Preview: how Analytics will look',
     })
-    expect(within(overview).getByLabelText('Health score')).toHaveTextContent(
-      '—',
-    )
+    expect(within(ghost).getByText('Sample')).toBeInTheDocument()
     expect(
-      within(overview).getByText('Save tabs to see a health overview.'),
-    ).toBeInTheDocument()
-    expect(within(overview).queryByRole('button')).not.toBeInTheDocument()
+      within(ghost).getByText(/sample preview, not your data/),
+    ).toBeTruthy()
+    const cta = within(ghost).getByRole('link', {
+      name: 'Save tabs in Saved Tabs',
+    })
+    expect(cta).toHaveAttribute('href', 'app.html#/saved-tabs?mode=domain')
+    const sample = within(ghost).getByTestId('analytics-ghost-sample')
+    expect(sample).toHaveAttribute('aria-hidden', 'true')
+    expect(sample.className).toContain('opacity-40')
+    expect(sample.className).toContain('pointer-events-none')
+    expect(within(ghost).getByText('Saved count by domain')).toBeTruthy()
+    expect(within(ghost).getByText(/docs\.example\.com/)).toBeTruthy()
+    expect(screen.queryByText(/from 0 saved records\./)).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Saved-tab health' }),
+    ).toBeNull()
+  })
+
+  it('shows the ghost preview guidance in Japanese', async () => {
+    analyticsRouteMocks.language = 'ja'
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue([])
+    render(<AnalyticsRoute />)
+    const ghost = await screen.findByRole('region', {
+      name: 'プレビュー：タブを保存するとこう見えます',
+    })
+    expect(within(ghost).getByText('サンプル')).toBeInTheDocument()
+    expect(within(ghost).getByText(/これはサンプル表示で/)).toBeTruthy()
+    const cta = within(ghost).getByRole('link', {
+      name: '保存タブ画面でタブを保存する',
+    })
+    expect(cta).toHaveAttribute('href', 'app.html#/saved-tabs?mode=domain')
+  })
+
+  it('switches from the ghost preview to real data once records exist', async () => {
+    analyticsRouteMocks.loadRecordsMock.mockResolvedValue(records)
+    render(<AnalyticsRoute />)
+    const summary = 'Created Saved count by domain from 2 saved records.'
+    expect(await screen.findByText(summary)).toBeTruthy()
+    expect(screen.queryByTestId('analytics-ghost-preview')).toBeNull()
+    const overview = screen.getByRole('region', { name: 'Saved-tab health' })
+    expect(within(overview).getByLabelText('Health score')).toBeTruthy()
   })
 
   it('makes a concentration penalty actionable even with no recent or uncategorized URLs', async () => {
