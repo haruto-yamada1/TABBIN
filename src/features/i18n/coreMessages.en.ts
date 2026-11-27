@@ -705,6 +705,7 @@ const coreMessagesEn = {
   'savedTabs.keywords.placeholder': 'e.g. Tech, New features, Tutorial',
   'savedTabs.manageParentCategories': 'Manage parent categories',
   'savedTabs.manageSubcategories': 'Manage subcategories',
+  'savedTabs.moreActions': 'More actions',
   'savedTabs.newProjectPlaceholder': 'e.g. Work, Research, Read later',
   'savedTabs.newProjectTitle': 'Add a new project',
   'savedTabs.openAllConfirmDescription':

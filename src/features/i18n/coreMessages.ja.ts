@@ -702,6 +702,7 @@ const coreMessagesJa = {
   'savedTabs.keywords.placeholder': '例: 技術、新機能、チュートリアル',
   'savedTabs.manageParentCategories': '親カテゴリ管理',
   'savedTabs.manageSubcategories': '子カテゴリ管理',
+  'savedTabs.moreActions': 'その他の操作',
   'savedTabs.newProjectPlaceholder': '例: 仕事、調査、後で読む',
   'savedTabs.newProjectTitle': '新しいプロジェクトを追加',
   'savedTabs.openAllConfirmDescription':

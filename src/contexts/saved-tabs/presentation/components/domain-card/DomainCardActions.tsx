@@ -1,4 +1,4 @@
-import { ExternalLink, Settings, Trash } from 'lucide-react'
+import { ExternalLink, MoreHorizontal, Settings, Trash } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 
 import {
@@ -11,6 +11,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { CategoryKeywordModal } from '@/contexts/saved-tabs/presentation/components/CategoryKeywordModal'
 import { CardActionButton } from '@/contexts/saved-tabs/presentation/components/shared/CardActionButton'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
@@ -25,7 +32,9 @@ const BULK_OPEN_THRESHOLD = 10
 
 /**
  * DomainCard の操作ボタン群
- * 子カテゴリ管理、すべて開く、すべて削除、キーワードモーダルを含む
+ * 常時表示は「すべて開く」のみとし、子カテゴリ管理とすべて削除は
+ * 「…」メニューへ集約する（キーボードでも到達可能）。
+ * キーワードモーダルを含む
  */
 export const DomainCardActions = () => {
   const { t } = useI18n()
@@ -59,6 +68,11 @@ export const DomainCardActions = () => {
     t,
     domainName,
     t('savedTabs.deleteAllTabs'),
+  )
+  const moreActionsLabel = getScopedNounActionLabel(
+    t,
+    domainName,
+    t('savedTabs.moreActions'),
   )
 
   const executeDeleteAll = useCallback(() => {
@@ -117,23 +131,18 @@ export const DomainCardActions = () => {
     [group.urls, group.domain, handlers, isReorderMode],
   )
 
-  const handleDeleteClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      e.preventDefault()
-      if (settings.confirmDeleteAll) {
-        setIsDeleteConfirmOpen(true)
-      } else {
-        executeDeleteAll()
-        if (isReorderMode) {
-          console.log(
-            `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
-          )
-        }
+  const handleDeleteSelect = useCallback(() => {
+    if (settings.confirmDeleteAll) {
+      setIsDeleteConfirmOpen(true)
+    } else {
+      executeDeleteAll()
+      if (isReorderMode) {
+        console.log(
+          `並び替えモード中にドメイン ${redactUrlForLog(group.domain)} を削除しました`,
+        )
       }
-    },
-    [settings.confirmDeleteAll, executeDeleteAll, isReorderMode, group.domain],
-  )
+    }
+  }, [settings.confirmDeleteAll, executeDeleteAll, isReorderMode, group.domain])
 
   const handleConfirmOpenAll = useCallback(() => {
     handlers.handleOpenAllTabs(group.urls ?? [])
@@ -166,17 +175,7 @@ export const DomainCardActions = () => {
   return (
     <>
       <div className='flex shrink-0 items-center gap-2'>
-        {/* 子カテゴリ管理 */}
-        <CardActionButton
-          icon={Settings}
-          dataTour='academy-child-categories'
-          label={t('savedTabs.manageSubcategories')}
-          accessibleLabel={manageSubcategoriesLabel}
-          tooltip={manageSubcategoriesLabel}
-          onClick={handleKeywordToggle}
-        />
-
-        {/* すべて開く */}
+        {/* すべて開く（常時表示はこの操作のみ） */}
         <CardActionButton
           icon={ExternalLink}
           dataTour='academy-restore-tabs'
@@ -186,14 +185,38 @@ export const DomainCardActions = () => {
           onClick={handleOpenAllClick}
         />
 
-        {/* グループ削除 */}
-        <CardActionButton
-          icon={Trash}
-          label={t('savedTabs.deleteAll')}
-          accessibleLabel={deleteAllTabsLabel}
-          tooltip={deleteAllTabsLabel}
-          onClick={handleDeleteClick}
-        />
+        {/* 子カテゴリ管理・すべて削除は「…」メニューへ集約 */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='secondary'
+              size='sm'
+              className='flex cursor-pointer items-center gap-1'
+              aria-label={moreActionsLabel}
+              data-tour='academy-domain-more-actions'
+            >
+              <MoreHorizontal size={14} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem
+              aria-label={manageSubcategoriesLabel}
+              data-tour='academy-child-categories'
+              onSelect={handleKeywordToggle}
+            >
+              <Settings size={14} />
+              {t('savedTabs.manageSubcategories')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              aria-label={deleteAllTabsLabel}
+              className='text-destructive focus:text-destructive'
+              onSelect={handleDeleteSelect}
+            >
+              <Trash size={14} />
+              {t('savedTabs.deleteAll')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* キーワードモーダル */}
         {keywordModal.showKeywordModal &&
