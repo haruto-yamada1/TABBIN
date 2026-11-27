@@ -33,8 +33,11 @@ export const AcademyRoute = ({
       >
         {!lessonId ? (
           <header className='space-y-2'>
-            <h1 className='text-3xl font-semibold tracking-tight'>
+            <h1 className='flex flex-wrap items-center gap-3 text-3xl font-semibold tracking-tight'>
               {text('title')}
+              <span className='rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground'>
+                {text('preview')}
+              </span>
             </h1>
             <p className='text-muted-foreground'>{text('intro')}</p>
           </header>

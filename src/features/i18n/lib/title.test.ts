@@ -12,9 +12,9 @@ describe('title helpers', () => {
   it('Academy 詳細の直アクセスにも学習画面のタイトルを付ける', () => {
     expect(
       resolveDocumentTitleFromPathname('/academy/domain-mode', 'en', 'en-US'),
-    ).toBe('(preview)TABBIN Academy')
+    ).toBe('TABBIN Academy')
     expect(resolveDocumentTitleFromPathname('/academy', 'ja', 'ja-JP')).toBe(
-      '(preview)TABBIN Academy',
+      'TABBIN Academy',
     )
   })
 

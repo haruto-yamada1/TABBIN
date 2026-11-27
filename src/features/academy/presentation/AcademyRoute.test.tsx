@@ -66,6 +66,29 @@ const show = (props: AcademyRouteProps, route = '/academy') =>
   render(renderRoute(props, route))
 
 describe('Academy learning screen', () => {
+  it('shows the title with a preview chip and an empty progress fill at 0%', async () => {
+    const useCases = createUseCases()
+    show({ useCases })
+
+    const heading = await screen.findByRole('heading', {
+      name: /TABBIN Academy/,
+    })
+    expect(heading.textContent).toContain('TABBIN Academy')
+    expect(heading.textContent).toContain('Preview')
+    const progressbar = screen.getByRole('progressbar', {
+      name: 'Overall progress',
+    })
+    expect(progressbar.getAttribute('value')).toBe('0')
+    expect(Number(progressbar.getAttribute('max'))).toBeGreaterThan(0)
+    // トラック (bg-muted) とフィル ([&::-webkit-progress-value]:bg-primary) が
+    // 分離され、0% ではフィルが描かれないことをクラスで固定する
+    expect(progressbar.className).toContain('bg-muted')
+    expect(progressbar.className).toContain(
+      '[&::-webkit-progress-value]:bg-primary',
+    )
+    expect(progressbar.className).toContain('[&::-moz-progress-bar]:bg-primary')
+  })
+
   it('loads a bilingual video only after requesting playback', async () => {
     const useCases = createUseCases()
     const user = userEvent.setup()

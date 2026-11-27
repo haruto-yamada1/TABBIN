@@ -112,7 +112,7 @@ export const AcademyCourseList = ({
           ) : null}
         </div>
         <progress
-          className='mt-4 h-2 w-full accent-primary'
+          className='mt-4 h-2 w-full appearance-none overflow-hidden rounded-full bg-muted [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-primary'
           aria-label={text('progress')}
           max={Math.max(1, progress.summary.denominator)}
           value={progress.summary.completed}

@@ -243,6 +243,10 @@ const TopLevelNavItem = ({
 }) => {
   const { t } = useI18n()
   const label = t(item.labelKey)
+  // The preview badge is visual only, so the accessible name and the
+  // collapsed tooltip must carry the preview state explicitly.
+  const accessibleLabel =
+    item.id === 'academy' ? `${label} ${t('sidebar.academyPreview')}` : label
 
   return (
     <SidebarMenuItem>
@@ -250,12 +254,21 @@ const TopLevelNavItem = ({
         isActive={isActive}
         className={expandedPrimaryButtonClass}
         size='lg'
-        tooltip={label}
+        tooltip={accessibleLabel}
         asChild
       >
-        <LinkLabel to={getAppRoute(item.id)} isActive={isActive} label={label}>
+        <LinkLabel
+          to={getAppRoute(item.id)}
+          isActive={isActive}
+          label={accessibleLabel}
+        >
           <item.icon className='size-5 shrink-0' />
           <span className='group-data-[collapsible=icon]:hidden'>{label}</span>
+          {item.id === 'academy' ? (
+            <span className='rounded-full border border-sidebar-border bg-sidebar-accent px-2 py-0.5 text-xs font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden'>
+              {t('sidebar.academyPreview')}
+            </span>
+          ) : null}
         </LinkLabel>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -467,7 +480,10 @@ export const ExtensionSidebar = ({ state }: ExtensionSidebarProps) => {
       ...topLevelItems.map((item) => ({
         icon: item.icon,
         isActive: state.item === item.id,
-        label: t(item.labelKey),
+        label:
+          item.id === 'academy'
+            ? `${t(item.labelKey)} ${t('sidebar.academyPreview')}`
+            : t(item.labelKey),
         to: getAppRoute(item.id),
       })),
     ],

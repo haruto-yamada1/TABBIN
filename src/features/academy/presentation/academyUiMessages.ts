@@ -3,7 +3,8 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 const academyUiMessages = {
   en: {
-    title: '(preview)TABBIN Academy',
+    title: 'TABBIN Academy',
+    preview: 'Preview',
     intro: 'Learn to save, organize and restore tabs at your own pace.',
     safe: 'Reading this guide does not save, move, delete or restore your tabs.',
     progress: 'Overall progress',
@@ -77,7 +78,8 @@ const academyUiMessages = {
     reading: 'Text guide',
   },
   ja: {
-    title: '(preview)TABBIN Academy',
+    title: 'TABBIN Academy',
+    preview: 'プレビュー',
     intro: '保存・整理・復元を、自分のペースで学びましょう。',
     safe: 'このガイドを読むだけでは、タブの保存・移動・削除・復元は行いません。',
     progress: '全体の進捗',
