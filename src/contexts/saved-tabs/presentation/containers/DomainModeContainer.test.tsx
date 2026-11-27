@@ -513,14 +513,12 @@ describe('DomainModeContainer', () => {
       />,
     )
 
-    const tabCount = screen.getByText('3')
-    const domainCount = screen.getByText('2')
+    const tabCount = screen.getByText('タブ数 3')
+    const domainCount = screen.getByText('ドメイン数 2')
 
     expect(screen.getByText('未分類のドメイン')).toBeTruthy()
     expect(tabCount).toBeTruthy()
     expect(domainCount).toBeTruthy()
-    expect(screen.getByText('タブ数')).toBeTruthy()
-    expect(screen.getByText('ドメイン数')).toBeTruthy()
     expect(tabCount.className).toContain('inline-flex')
     expect(tabCount.className).toContain('bg-secondary')
     expect(domainCount.className).toContain('inline-flex')

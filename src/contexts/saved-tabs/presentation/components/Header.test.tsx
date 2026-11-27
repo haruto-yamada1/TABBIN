@@ -212,8 +212,63 @@ describe('Header', () => {
     await user.click(clearButton)
     expect(onSearchChange).toHaveBeenCalledWith('')
 
-    expect(screen.getByText('タブ:2')).toBeTruthy()
-    expect(screen.getByText('ドメイン:1')).toBeTruthy()
+    expect(screen.getByText('タブ: 全3件中2件')).toBeTruthy()
+    expect(screen.getByText('ドメイン: 全2件中1件')).toBeTruthy()
+  })
+
+  it('件数表示はピル型バッジ1行に統合される', () => {
+    render(<Header {...createProps()} />)
+
+    const counts = screen.getByTestId('header-counts')
+    expect(counts.className).toContain('flex')
+    const tabPill = screen.getByText('タブ:3')
+    const domainPill = screen.getByText('ドメイン:2')
+    expect(tabPill.className).toContain('rounded-full')
+    expect(domainPill.className).toContain('rounded-full')
+    expect(counts.contains(tabPill)).toBe(true)
+    expect(counts.contains(domainPill)).toBe(true)
+  })
+
+  it('検索で絞り込み中は全体件数と結果件数の関係を表示する', () => {
+    render(
+      <Header
+        {...createProps({
+          searchQuery: 'example.com',
+          filteredTabGroups: createTabGroups().slice(0, 1),
+        })}
+      />,
+    )
+
+    expect(screen.getByText('タブ: 全3件中2件')).toBeTruthy()
+    expect(screen.getByText('ドメイン: 全2件中1件')).toBeTruthy()
+  })
+
+  it('custom モードの絞り込み中はプロジェクトの全体と結果を表示する', () => {
+    const customProjects = [
+      ...createCustomProjects(),
+      {
+        id: 'project-2',
+        name: 'Project B',
+        categories: [],
+        createdAt: 1,
+        updatedAt: 2,
+        urls: [{ url: 'https://example.com/1', title: 'One' }],
+      },
+    ]
+
+    render(
+      <Header
+        {...createProps({
+          currentMode: 'custom',
+          searchQuery: 'one',
+          customProjects,
+          filteredCustomProjects: customProjects.slice(1),
+        })}
+      />,
+    )
+
+    expect(screen.getByText('タブ: 全1件中1件')).toBeTruthy()
+    expect(screen.getByText('プロジェクト: 全2件中1件')).toBeTruthy()
   })
 
   it('renders English header copy when the display language is en', () => {
@@ -326,8 +381,8 @@ describe('Header', () => {
       />,
     )
 
-    expect(screen.getByText('タブ:1')).toBeTruthy()
-    expect(screen.getByText('プロジェクト:1')).toBeTruthy()
+    expect(screen.getByText('タブ: 全3件中1件')).toBeTruthy()
+    expect(screen.getByText('プロジェクト: 全1件中1件')).toBeTruthy()
   })
 
   it('domain モードで親カテゴリ管理モーダルを開閉し ViewModeToggle を描画する', async () => {
