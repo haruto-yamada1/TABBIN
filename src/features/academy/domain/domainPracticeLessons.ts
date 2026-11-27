@@ -122,7 +122,7 @@ const lessons: Readonly<Record<string, readonly DomainPracticeStep[]>> = {
       dataTour: 'academy-restore-tabs',
       instruction: {
         en: 'Open a sample saved URL or use Open all. This practice simulates restoration and never opens a real browser tab.',
-        ja: '練習用URLを開くか、「すべて開く」を使います。練習では復元を模擬し、実際のブラウザタブは開きません。',
+        ja: '練習用URLを開くか、「すべて開く」を使います。練習では開く操作を模擬し、実際のブラウザタブは開きません。',
       },
     },
   ],

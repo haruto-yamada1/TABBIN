@@ -48,7 +48,7 @@ const coreMessagesEn = {
     'Categories such as {{categories}} stand out.',
   'aiChat.interests.categoryCountDescription':
     'Saved count by recently saved category',
-  'aiChat.interests.categoryCountTitle': 'Saved count by genre',
+  'aiChat.interests.categoryCountTitle': 'Saved count by category',
   'aiChat.interests.categoryShareDescription':
     'Share of recently saved categories',
   'aiChat.interests.categoryWeak': 'No strong category bias is visible yet.',
@@ -61,7 +61,7 @@ const coreMessagesEn = {
     'Based on your saved trends, interest is strongest around {{domainSummary}}, and {{categorySummary}}',
   'aiChat.interests.tentativeSummary':
     'There are only a few saved items so far, so it is still hard to infer a strong trend.',
-  'aiChat.interests.topCategoriesTitle': 'Frequently saved genres',
+  'aiChat.interests.topCategoriesTitle': 'Frequently saved categories',
   'aiChat.interests.topDomainsTitle': 'Frequently saved domains',
   'aiChat.interruptedResponse':
     'The previous response was interrupted. Send your message again if needed.',
@@ -281,6 +281,7 @@ const coreMessagesEn = {
   'common.console': 'Console',
   'common.copy': 'Copy',
   'common.delete': 'Delete',
+  'common.remove': 'Remove',
   'common.enterUrl': 'Enter URL...',
   'common.input': 'Input',
   'common.instructions': 'Instructions',
@@ -576,7 +577,7 @@ const coreMessagesEn = {
   'savedTabs.categoryManagement.registeredDomainsEmpty':
     'No registered domains',
   'savedTabs.categoryManagement.registeredDomainsLabel': 'Registered domains',
-  'savedTabs.categoryManagement.removeDomainAria': 'Delete domain',
+  'savedTabs.categoryManagement.removeDomainAria': 'Remove domain',
   'savedTabs.categoryManagement.renameAction': 'Rename parent category',
   'savedTabs.categoryManagement.renameError':
     'Failed to rename the parent category',

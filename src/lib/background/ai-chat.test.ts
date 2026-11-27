@@ -1172,7 +1172,7 @@ describe('runAiChatRequest', () => {
     expect(result.charts).toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          title: 'よく保存しているジャンル',
+          title: 'よく保存しているカテゴリ',
           type: 'pie',
         }),
       ]),

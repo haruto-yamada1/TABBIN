@@ -95,7 +95,7 @@ const PIE_SPEC: AiChartSpec = {
       label: '保存数',
     },
   ],
-  title: 'よく保存しているジャンル',
+  title: 'よく保存しているカテゴリ',
   type: 'pie',
   valueFormat: 'count',
 }
@@ -144,7 +144,7 @@ describe('AiChartRenderer', () => {
           label: '保存数',
         },
       ],
-      title: 'ジャンル別の保存数',
+      title: 'カテゴリ別の保存数',
       type: 'bar',
       valueFormat: 'count',
       xKey: 'label',
@@ -158,7 +158,7 @@ describe('AiChartRenderer', () => {
     expect(Object.hasOwn(mocked.barChartProps[0] ?? {}, 'onClick')).toBe(false)
     expect(Object.hasOwn(mocked.barProps[0] ?? {}, 'onClick')).toBe(false)
     expect(Object.hasOwn(mocked.barProps[0] ?? {}, 'stackId')).toBe(false)
-    expect(screen.getByText('ジャンル別の保存数')).toBeTruthy()
+    expect(screen.getByText('カテゴリ別の保存数')).toBeTruthy()
   })
 
   it('グラフ要素クリックを通知する', async () => {
@@ -175,7 +175,7 @@ describe('AiChartRenderer', () => {
           label: '保存数',
         },
       ],
-      title: 'ジャンル別の保存数',
+      title: 'カテゴリ別の保存数',
       type: 'bar',
       valueFormat: 'count',
       xKey: 'label',
@@ -222,7 +222,7 @@ describe('AiChartRenderer', () => {
           label: '保存数',
         },
       ],
-      title: 'ジャンル別の保存数',
+      title: 'カテゴリ別の保存数',
       type: 'bar',
       valueFormat: 'count',
       xKey: 'label',

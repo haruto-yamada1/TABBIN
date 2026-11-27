@@ -43,7 +43,7 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
         'savedTabs.openAllConfirmDescriptionWithName':
           '「{{name}}」のタブ{{count}}件を開きます。続行しますか？',
         'savedTabs.openTabs.deleteAllWarning':
-          '保存リストから今開いているタブをすべて削除します。この操作は取り消せません。',
+          '保存リストから今開いているタブをすべて削除します。この操作は元に戻せません。',
         'savedTabs.openTabs.title': '今開いているタブ',
         'savedTabs.sortableCategory.bulkOpenTitle': '複数タブを開く',
         'savedTabs.sortableCategory.bulkDeleteTitle': 'タブを削除',
@@ -470,7 +470,7 @@ describe('OpenTabsSection', () => {
     expect(screen.getByTestId('alert-dialog')).toBeVisible()
     expect(
       screen.getByText(
-        '保存リストから今開いているタブをすべて削除します。この操作は取り消せません。',
+        '保存リストから今開いているタブをすべて削除します。この操作は元に戻せません。',
       ),
     ).toBeVisible()
     await user.click(screen.getByRole('button', { name: '削除' }))

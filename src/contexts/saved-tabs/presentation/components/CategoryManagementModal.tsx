@@ -172,7 +172,7 @@ const DomainBadge = ({
           </Button>
         </TooltipTrigger>
         <SavedTabsResponsiveTooltipContent side='top'>
-          {t('common.delete')}
+          {t('common.remove')}
         </SavedTabsResponsiveTooltipContent>
       </Tooltip>
     </Badge>
