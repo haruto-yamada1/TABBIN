@@ -72,12 +72,18 @@ export const HeaderCounts = ({
     : t(groupCountKey, undefined, { count: String(groups.length) })
 
   return (
-    <output className='flex items-center gap-2' data-testid='header-counts'>
-      <Badge variant='secondary' className='rounded-full'>
-        {tabText}
-      </Badge>
-      <Badge variant='secondary' className='rounded-full'>
-        {groupText}
+    <output className='flex items-center' data-testid='header-counts'>
+      <Badge
+        variant='secondary'
+        className='rounded-full'
+        data-testid='header-counts-pill'
+      >
+        <span>{tabText}</span>
+        <span
+          aria-hidden='true'
+          className='mx-1.5 h-3 w-px bg-current opacity-30'
+        />
+        <span>{groupText}</span>
       </Badge>
     </output>
   )

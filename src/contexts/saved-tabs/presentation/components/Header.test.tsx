@@ -216,17 +216,15 @@ describe('Header', () => {
     expect(screen.getByText('ドメイン: 全2件中1件')).toBeTruthy()
   })
 
-  it('件数表示はピル型バッジ1行に統合される', () => {
+  it('件数表示は単一のピル型バッジに統合される', () => {
     render(<Header {...createProps()} />)
 
     const counts = screen.getByTestId('header-counts')
     expect(counts.className).toContain('flex')
-    const tabPill = screen.getByText('タブ:3')
-    const domainPill = screen.getByText('ドメイン:2')
-    expect(tabPill.className).toContain('rounded-full')
-    expect(domainPill.className).toContain('rounded-full')
-    expect(counts.contains(tabPill)).toBe(true)
-    expect(counts.contains(domainPill)).toBe(true)
+    const pill = screen.getByTestId('header-counts-pill')
+    expect(pill.className).toContain('rounded-full')
+    expect(pill.contains(screen.getByText('タブ:3'))).toBe(true)
+    expect(pill.contains(screen.getByText('ドメイン:2'))).toBe(true)
   })
 
   it('検索で絞り込み中は全体件数と結果件数の関係を表示する', () => {
