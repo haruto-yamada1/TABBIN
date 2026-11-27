@@ -13,6 +13,7 @@ import type { ProjectCardContextType } from './ProjectCardContext'
 export const useProjectCardDragDrop = (
   project: ProjectCardContextType['project'],
   dnd: ProjectCardContextType['hookState']['dnd'],
+  isCollapsed: boolean,
 ) => {
   const { t } = useI18n()
   // プロジェクト全体をドラッグ可能にするためのsortable設定
@@ -37,13 +38,15 @@ export const useProjectCardDragDrop = (
 
   const style: CSSProperties = useMemo(
     () => ({
-      containIntrinsicSize: '360px',
-      contentVisibility: 'auto',
+      ...(!isCollapsed && {
+        containIntrinsicSize: '360px',
+        contentVisibility: 'auto',
+      }),
       opacity: isDragging ? DRAGGING_OPACITY : 1,
       transform: CSS.Transform.toString(transform),
       transition,
     }),
-    [isDragging, transform, transition],
+    [isCollapsed, isDragging, transform, transition],
   )
 
   // このプロジェクトをドロップターゲットとして設定

@@ -1,5 +1,8 @@
 # Saved Tabs rendering observations (#921)
 
+For the current large-list defaults and measurements, see
+[#1140](saved-tabs-large-list-performance.md).
+
 ## Scope and reproduction
 
 The baseline is `develop` at `69c91edff3cce32f9489039a37f989b3e47da006`.

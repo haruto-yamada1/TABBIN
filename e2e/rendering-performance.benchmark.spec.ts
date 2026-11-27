@@ -11,8 +11,7 @@ for (const size of [1_000, 10_000]) {
       const result = await benchmarkSavedTabsRendering(
         page,
         getExtensionUrl(extensionId, 'app.html'),
-        size,
-        mode,
+        { size, mode, initiallyCollapsed: true },
         testInfo,
       )
       expect(result.retainedUrls).toBe(size)

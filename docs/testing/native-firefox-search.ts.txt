@@ -70,6 +70,18 @@ try {
         (a) => a.href,
       ).sort(),
     )
+  const waitForBrowseCards = async (mode) => {
+    await poll(
+      () =>
+        evaluate(() =>
+          Array.from(document.querySelectorAll('button[aria-expanded="false"]'))
+            .filter((button) => /^「.*」を展開$/u.test(button.getAttribute('aria-label') ?? ''))
+            .length,
+        ),
+      mode === 'domain' ? 20 : 5,
+    )
+    await poll(rows, [])
+  }
   const url = (index) =>
     `https://search-benchmark-${index % 20}.example/item/${index}`
   const input = async (query) => {
@@ -115,7 +127,7 @@ try {
       await sessionCommand(session, '/url', {
         url: `${app}#/saved-tabs?mode=${mode}`,
       })
-      await poll(async () => (await rows()).length, size)
+      await waitForBrowseCards(mode)
       await input('琥')
       await poll(rows, [url(0)])
       await installInputProbe(evaluator)
@@ -168,7 +180,7 @@ try {
           },
         ],
       })
-      await poll(async () => (await rows()).length, size)
+      await waitForBrowseCards(mode)
       await input('琥')
       await input('渓')
       await poll(rows, [url(1)])

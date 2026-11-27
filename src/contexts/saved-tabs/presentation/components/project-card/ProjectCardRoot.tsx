@@ -10,6 +10,7 @@ import { CardGroupTitle } from '@/contexts/saved-tabs/presentation/components/sh
 import { CardSortControl } from '@/contexts/saved-tabs/presentation/components/shared/CardSortControl'
 import { UrlReorderAvailabilityContext } from '@/contexts/saved-tabs/presentation/controllers/UrlReorderAvailabilityContext'
 import { useCustomProjectCard } from '@/contexts/saved-tabs/presentation/hooks/useCustomProjectCard'
+import { useSavedTabsCardCollapse } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsCardCollapse'
 import { useSavedTabsSortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsSortOrder'
 import type { SortOrder } from '@/contexts/saved-tabs/presentation/hooks/useSortOrder'
 import { resolveCustomProjectDisplayName } from '@/contexts/saved-tabs/presentation/lib/custom-project-display-name'
@@ -145,7 +146,9 @@ export const ProjectCardRoot = ({
 
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false)
 
-  const [userCollapsedState, setUserCollapsedState] = useState(false)
+  const [userCollapsedState, setUserCollapsedState] = useSavedTabsCardCollapse()
+  const isCollapsed =
+    isProjectReorderMode || isCrossProjectUrlDragActive || userCollapsedState
 
   const handleOpenManagement = useCallback(() => {
     setIsManagementModalOpen(true)
@@ -180,14 +183,12 @@ export const ProjectCardRoot = ({
     isUncategorizedOver,
     isProjectOver,
     isProjectHeaderOver,
-  } = useProjectCardDragDrop(project, dnd)
+  } = useProjectCardDragDrop(project, dnd, isCollapsed)
 
   // 別プロジェクトからドラッグされているかを判定
   const isExternalItemOver =
     !isProjectReorderMode &&
     (isProjectOver || isProjectHeaderOver || isDropTarget)
-  const isCollapsed =
-    isProjectReorderMode || isCrossProjectUrlDragActive || userCollapsedState
 
   const projectUrlCount = getProjectUrlCount(project, sortedProjectUrls.length)
   const bulkUrlCount = sortedProjectUrls.length
@@ -281,6 +282,7 @@ export const ProjectCardRoot = ({
               setIsCollapsed={setUserCollapsedState}
               setUserCollapsedState={setUserCollapsedState}
               isDisabled={isProjectReorderMode}
+              targetName={displayName}
             />
             <CardSortControl
               disabled={isSortPending || isProjectReorderMode}

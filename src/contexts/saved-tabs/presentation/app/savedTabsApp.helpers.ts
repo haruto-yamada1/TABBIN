@@ -88,3 +88,8 @@ export type { OpenedUrlsStorageSnapshot }
 export { useSavedTabsStorageSync } from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsStorageSync'
 
 export { useOpenTabsRows } from '@/contexts/saved-tabs/presentation/controllers/useOpenTabsRows'
+
+export {
+  SAVED_TABS_CARD_COLLAPSE_THRESHOLD,
+  SavedTabsCardCollapseContext,
+} from '@/contexts/saved-tabs/presentation/hooks/useSavedTabsCardCollapse'

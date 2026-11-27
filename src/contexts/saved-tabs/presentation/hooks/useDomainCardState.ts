@@ -19,6 +19,7 @@ import type {
 } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
+import { useSavedTabsCardCollapse } from './useSavedTabsCardCollapse'
 import { useSavedTabsSortOrder } from './useSavedTabsSortOrder'
 
 /** UseDomainCardState フックの引数 */
@@ -202,7 +203,7 @@ const persistCategoryOrder = async ({
 }
 
 const useDomainCardCollapse = (isReorderMode: boolean) => {
-  const [userCollapsedState, setUserCollapsedState] = useState(false)
+  const [userCollapsedState, setUserCollapsedState] = useSavedTabsCardCollapse()
   const [isDraggingGlobal, setIsDraggingGlobal] = useState(false)
   const isCollapsed = isDraggingGlobal || isReorderMode || userCollapsedState
   const dndMonitorHandlers = useMemo(
