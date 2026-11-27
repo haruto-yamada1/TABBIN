@@ -34,6 +34,7 @@ import type { AiChatToolTrace, OllamaErrorDetails } from '@/types/background'
 import type { UserSettings } from '@/types/storage'
 
 import { createAiChatTools } from './ai-chat-tools'
+import type { AiChatToolCallStart } from './ai-chat-tools'
 
 const HTTP_FORBIDDEN = 403
 const MAX_AI_CHAT_STEPS = 5
@@ -728,13 +729,41 @@ const runAiChatRequest = async (
     baseURL: baseUrl,
   })
 
+  let streamedToolTraces: AiChatToolTrace[] = []
+
+  // ツール呼び出しの開始時に実行中トレースを Panel へ届ける。
+  // generateText の onStepEnd はステップ完了時にしか呼ばれないため、
+  // これがないと実行中の進捗表示が実運用で現れない。
+  const emitToolCallStarted = (toolCall: AiChatToolCallStart): void => {
+    const startedTrace: AiChatToolTrace = {
+      errorText: undefined,
+      input: toolCall.input,
+      output: undefined,
+      state: 'input-available',
+      title: getToolTitle(language, toolCall.toolName),
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      type: 'dynamic-tool',
+    }
+    streamedToolTraces = mergeToolTraces(streamedToolTraces, [startedTrace])
+    options.onStepUpdate?.({
+      reasoning: createReasoningSummary({
+        language,
+        prompt,
+        recordCount: records.length,
+        toolTraces: streamedToolTraces,
+      }),
+      toolTraces: streamedToolTraces,
+    })
+  }
+
   const tools = createAiChatTools(
     records,
     language,
     analyticsRecords,
     organizationCatalog,
+    emitToolCallStarted,
   )
-  let streamedToolTraces: AiChatToolTrace[] = []
 
   const result = await (async () => {
     try {

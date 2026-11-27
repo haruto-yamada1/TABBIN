@@ -233,6 +233,135 @@ describe('SavedTabsChatPanel', () => {
     )
   })
 
+  it('hides raw tool call JSON in reasoning and keeps raw data in tool details', async () => {
+    const user = userEvent.setup()
+    render(
+      <SavedTabsChatPanel
+        {...createProps({
+          messages: [
+            {
+              content: 'Here are your saved tabs.',
+              id: 'json-message',
+              reasoning:
+                'Reasoning {"type":"function","function":{"name": "listSavedUrls","parameters": {"year": "2023", "month": "1"}}}',
+              role: 'assistant',
+              toolTraces: [
+                {
+                  input: { month: '1', year: '2023' },
+                  output: { items: [] },
+                  state: 'output-available',
+                  title: 'Search tabs by month',
+                  toolCallId: 'call-json',
+                  toolName: 'findUrlsByMonth',
+                  type: 'dynamic-tool',
+                },
+              ],
+            },
+          ],
+        })}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Reasoning/ }))
+
+    expect(screen.queryByText(/"year"/)).toBeNull()
+    expect(screen.getByText(/Tool call data is not shown here/)).toBeTruthy()
+
+    await user.click(
+      screen.getByRole('button', { name: /Search tabs by month/ }),
+    )
+
+    expect(document.body.textContent).toContain('"year": "2023"')
+  })
+
+  it('keeps hidden raw tool call data reachable without tool traces', async () => {
+    const user = userEvent.setup()
+    render(
+      <SavedTabsChatPanel
+        {...createProps({
+          messages: [
+            {
+              content: 'Here are your saved tabs.',
+              id: 'json-no-trace-message',
+              reasoning:
+                'Reasoning {"type":"function","function":{"name": "listSavedUrls","parameters": {"year": "2023", "month": "1"}}}',
+              role: 'assistant',
+            },
+          ],
+        })}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Reasoning/ }))
+
+    const reasoningText = screen.getByText(/Tool call data is not shown here/)
+    expect(reasoningText.textContent).not.toContain('"year"')
+    expect(screen.getByText('Raw tool call data')).toBeTruthy()
+    expect(screen.getByText(/"year": "2023"/)).toBeTruthy()
+  })
+
+  it('shows a user-facing note when a tool call fails', () => {
+    render(
+      <SavedTabsChatPanel
+        {...createProps({
+          messages: [
+            {
+              content: 'I could not complete that.',
+              id: 'failed-message',
+              role: 'assistant',
+              toolTraces: [
+                {
+                  errorText: 'Invalid arguments',
+                  input: { year: '2023' },
+                  state: 'output-error',
+                  title: 'Search tabs by month',
+                  toolCallId: 'call-failed',
+                  toolName: 'findUrlsByMonth',
+                  type: 'dynamic-tool',
+                },
+              ],
+            },
+          ],
+        })}
+      />,
+    )
+
+    const note = screen.getByTestId('ai-chat-tool-failure-note')
+    expect(note.textContent).toContain('smaller model')
+  })
+
+  it('shows which tool is running while streaming', () => {
+    render(
+      <SavedTabsChatPanel
+        {...createProps({
+          messages: [
+            {
+              content: '',
+              id: 'streaming-message',
+              isStreaming: true,
+              reasoning: '- Checking saved tabs.',
+              role: 'assistant',
+              toolTraces: [
+                {
+                  input: { keyword: 'react' },
+                  state: 'input-available',
+                  title: 'Search tabs by keyword',
+                  toolCallId: 'call-running',
+                  toolName: 'searchSavedUrls',
+                  type: 'dynamic-tool',
+                },
+              ],
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getByTestId('ai-chat-tool-progress').textContent).toContain(
+      'Running Search tabs by keyword',
+    )
+  })
+
   it('does not render when closed', () => {
     const props = createProps()
     render(

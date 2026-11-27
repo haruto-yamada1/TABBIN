@@ -1039,6 +1039,144 @@ describe('runAiChatRequest', () => {
     )
   })
 
+  it('ツール呼び出しの開始時に実行中トレースを onStepUpdate へ届ける', async () => {
+    const onStepUpdate = vi.fn()
+    mocked.generateText.mockImplementationOnce(
+      async (options: {
+        onStepEnd?: (result: {
+          toolCalls?: {
+            input: {
+              page: number
+              pageSize: number
+              sortDirection: 'asc' | 'desc'
+            }
+            toolCallId: string
+            toolName: string
+          }[]
+          toolResults?: {
+            input: {
+              page: number
+              pageSize: number
+              sortDirection: 'asc' | 'desc'
+            }
+            output: {
+              url: string
+            }[]
+            toolCallId: string
+            toolName: string
+          }[]
+        }) => void
+        tools?: Record<
+          string,
+          {
+            onInputAvailable?: (options: {
+              input: unknown
+              toolCallId: string
+            }) => void
+          }
+        >
+      }) => {
+        // ツール実行の開始（ステップ完了前）に実行中トレースが届くこと。
+        options.tools?.searchSavedUrls?.onInputAvailable?.({
+          input: { keyword: 'react' },
+          toolCallId: 'call-running',
+        })
+
+        expect(onStepUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            toolTraces: [
+              expect.objectContaining({
+                state: 'input-available',
+                title: 'キーワードタブ検索',
+                toolCallId: 'call-running',
+                toolName: 'searchSavedUrls',
+              }),
+            ],
+          }),
+        )
+
+        options.onStepEnd?.({
+          toolCalls: [
+            {
+              input: {
+                page: 1,
+                pageSize: 10,
+                sortDirection: 'desc',
+              },
+              toolCallId: 'call-running',
+              toolName: 'searchSavedUrls',
+            },
+          ],
+          toolResults: [
+            {
+              input: {
+                page: 1,
+                pageSize: 10,
+                sortDirection: 'desc',
+              },
+              output: [
+                {
+                  url: 'https://react.dev/learn',
+                },
+              ],
+              toolCallId: 'call-running',
+              toolName: 'searchSavedUrls',
+            },
+          ],
+        })
+
+        return {
+          text: '今月追加した URL は https://react.dev/learn です。',
+          toolCalls: [
+            {
+              input: {
+                page: 1,
+                pageSize: 10,
+                sortDirection: 'desc',
+              },
+              toolCallId: 'call-running',
+              toolName: 'searchSavedUrls',
+            },
+          ],
+          toolResults: [
+            {
+              input: {
+                page: 1,
+                pageSize: 10,
+                sortDirection: 'desc',
+              },
+              output: [
+                {
+                  url: 'https://react.dev/learn',
+                },
+              ],
+              toolCallId: 'call-running',
+              toolName: 'searchSavedUrls',
+            },
+          ],
+        }
+      },
+    )
+
+    const result = await runAiChatRequest(
+      {
+        history: [],
+        prompt: 'どんな URL がある？',
+      },
+      {
+        onStepUpdate,
+      },
+    )
+
+    // 完了時には同じ呼び出しが output-available へ更新されていること。
+    expect(result.toolTraces).toContainEqual(
+      expect.objectContaining({
+        state: 'output-available',
+        toolCallId: 'call-running',
+      }),
+    )
+  })
+
   it('request の abort signal を generateText へ渡す', async () => {
     const controller = new AbortController()
 
