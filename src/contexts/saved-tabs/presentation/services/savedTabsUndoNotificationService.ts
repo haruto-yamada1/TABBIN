@@ -7,6 +7,7 @@ import type {
   RestoredSnapshotViewDto,
   RestoreOpenedUrlsSnapshotViewUseCase,
 } from '@/contexts/saved-tabs/application/use-cases/RestoreOpenedUrlsSnapshotViewUseCase'
+import { resolveUndoMessageKey } from '@/contexts/saved-tabs/presentation/lib/undo-message'
 import {
   toSavedTabsCustomProjectViewModel,
   toSavedTabsTabGroupViewModel,
@@ -78,39 +79,46 @@ const showOpenedUrlsUndoToast = ({
     savedTabsUseCases.restoreOpenedUrlsSnapshotView
   let restoring = false
   let restored = false
-  toast.info(t(messageKey, undefined, { count: String(count) }), {
-    action: {
-      label: t('common.undo'),
-      // eslint-disable-next-line typescript/no-misused-promises
-      onClick: async () => {
-        if (restoring || restored) {
-          return
-        }
-        restoring = true
-        try {
-          const view: RestoredSnapshotViewDto = await restoreView({ snapshot })
-          restored = true
-          if (view.customProjects) {
-            setCustomProjects(
-              view.customProjects.map(toSavedTabsCustomProjectViewModel),
+  toast.info(
+    t(resolveUndoMessageKey(messageKey, count), undefined, {
+      count: String(count),
+    }),
+    {
+      action: {
+        label: t('common.undo'),
+        // eslint-disable-next-line typescript/no-misused-promises
+        onClick: async () => {
+          if (restoring || restored) {
+            return
+          }
+          restoring = true
+          try {
+            const view: RestoredSnapshotViewDto = await restoreView({
+              snapshot,
+            })
+            restored = true
+            if (view.customProjects) {
+              setCustomProjects(
+                view.customProjects.map(toSavedTabsCustomProjectViewModel),
+              )
+            }
+            if (view.parentCategories && setCategories) {
+              setCategories([...view.parentCategories])
+            }
+            await refreshTabGroupsWithUrls(
+              view.savedTabs.map(toSavedTabsTabGroupViewModel),
             )
+            toast.success(t('savedTabs.undo.restored'))
+          } catch (error) {
+            console.error('開いた後に削除したURLの復元に失敗しました:', error)
+            toast.error(t('savedTabs.undo.restoreError'))
+          } finally {
+            restoring = false
           }
-          if (view.parentCategories && setCategories) {
-            setCategories([...view.parentCategories])
-          }
-          await refreshTabGroupsWithUrls(
-            view.savedTabs.map(toSavedTabsTabGroupViewModel),
-          )
-          toast.success(t('savedTabs.undo.restored'))
-        } catch (error) {
-          console.error('開いた後に削除したURLの復元に失敗しました:', error)
-          toast.error(t('savedTabs.undo.restoreError'))
-        } finally {
-          restoring = false
-        }
+        },
       },
     },
-  })
+  )
 }
 
 type NotifyDeleteFailureParams = UndoNotificationContext & {
