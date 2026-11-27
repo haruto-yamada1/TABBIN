@@ -475,7 +475,9 @@ const ProjectUrlItemComponent = ({
             disabled={selection.isSelectionMode}
             className='size-8 cursor-pointer p-0'
             title={t('savedTabs.url.deleteAria')}
-            aria-label={t('savedTabs.url.deleteAria')}
+            aria-label={t('savedTabs.url.deleteAriaWithName', undefined, {
+              name: item.title.trim() || originalUrl,
+            })}
           >
             <X size={14} />
           </Button>

@@ -584,6 +584,8 @@ const coreMessagesJa = {
     '登録されているドメインがありません',
   'savedTabs.categoryManagement.registeredDomainsLabel': '登録済みドメイン',
   'savedTabs.categoryManagement.removeDomainAria': 'ドメインを取り除く',
+  'savedTabs.categoryManagement.removeDomainAriaWithName':
+    'ドメイン {{name}} を取り除く',
   'savedTabs.categoryManagement.renameAction': '親カテゴリ名を変更',
   'savedTabs.categoryManagement.renameError':
     '親カテゴリ名の更新に失敗しました',
@@ -876,6 +878,7 @@ const coreMessagesJa = {
   'savedTabs.uncategorizedDomainsTitle': '未分類のドメイン',
   'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
   'savedTabs.url.deleteAria': 'タブを削除',
+  'savedTabs.url.deleteAriaWithName': 'タブを削除: {{name}}',
   'savedTabs.url.openNow': '開いています',
   'savedTabs.url.deleteConfirmDescription':
     'このタブを削除します。この操作は元に戻せません。',

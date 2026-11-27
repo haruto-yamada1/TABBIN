@@ -226,7 +226,11 @@ describe('SortableUrlItem', () => {
       'https://example.com/really/long/path/that/should/not/stretch/the/card',
     )
 
-    await user.click(screen.getByRole('button', { name: 'タブを削除' }))
+    await user.click(
+      screen.getByRole('button', {
+        name: 'タブを削除: Very long saved tab title Very long saved tab title Very long saved tab title',
+      }),
+    )
     expect(handleDeleteUrl).toHaveBeenCalledWith(
       'group-1',
       'https://example.com/really/long/path/that/should/not/stretch/the/card',
@@ -292,6 +296,29 @@ describe('SortableUrlItem', () => {
     link.focus()
     await user.keyboard('{Enter}')
     expect(handleOpenTab).toHaveBeenCalledTimes(2)
+  })
+
+  it('空白のみのタイトルでは削除ボタンの名前がURLへフォールバックする', () => {
+    const url = 'https://example.com/path'
+
+    render(
+      <SortableUrlItem
+        url={url}
+        title='   '
+        id={url}
+        groupId='group-1'
+        handleDeleteUrl={vi.fn()}
+        handleOpenTab={vi.fn()}
+        handleUpdateUrls={vi.fn()}
+        settings={defaultSettings}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', {
+        name: 'タブを削除: https://example.com/path',
+      }),
+    ).toBeTruthy()
   })
 
   it('許可されないprotocolのURLはリンクとして描画しない', () => {

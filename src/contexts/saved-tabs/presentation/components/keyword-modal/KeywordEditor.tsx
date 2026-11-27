@@ -117,7 +117,11 @@ export const KeywordEditor = () => {
               keyword={keyword}
               onRemove={keywordsState.handleRemoveKeyword}
               isDisabled={rename.isRenaming}
-              deleteAriaLabel={t('savedTabs.keywords.deleteAria')}
+              deleteAriaLabel={t(
+                'savedTabs.keywords.deleteAriaWithName',
+                undefined,
+                { name: keyword },
+              )}
             />
           ))
         )}

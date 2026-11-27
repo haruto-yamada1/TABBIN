@@ -112,7 +112,7 @@ const isDeleteTabFocused = () => {
   const active = document.activeElement
   return (
     active instanceof HTMLButtonElement &&
-    active.getAttribute('aria-label') === 'Delete tab'
+    (active.getAttribute('aria-label')?.startsWith('Delete tab: ') ?? false)
   )
 }
 

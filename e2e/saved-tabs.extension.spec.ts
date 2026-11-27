@@ -306,7 +306,7 @@ test.describe('extension saved-tabs', () => {
     await expect(page.getByText('Example Home')).toBeVisible()
 
     await page.locator('[data-testid="sortable-url-item"]').hover()
-    await page.locator('[aria-label="Delete tab"]').click()
+    await page.locator('[aria-label="Delete tab: Example Home"]').click()
 
     await expect(page.getByText('Example Home')).toBeHidden()
 
@@ -330,7 +330,7 @@ test.describe('extension saved-tabs', () => {
     await expect(page.getByText('Example Home')).toBeVisible()
 
     await page.locator('[data-testid="project-url-item"]').hover()
-    await page.locator('[aria-label="Delete tab"]').click()
+    await page.locator('[aria-label="Delete tab: Example Home"]').click()
 
     await expect(page.getByText('Example Home')).toBeHidden()
 
