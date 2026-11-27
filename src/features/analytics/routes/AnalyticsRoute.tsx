@@ -20,9 +20,15 @@ import {
 } from '@/features/analytics/lib/analytics'
 import type { AnalyticsQuery } from '@/features/analytics/lib/analytics'
 import type { AnalyticsHealth } from '@/features/analytics/lib/analyticsHealth'
+import { calculateAnalyticsHealth } from '@/features/analytics/lib/analyticsHealth'
+import {
+  createAnalyticsSampleRecords,
+  shouldShowAnalyticsGhostPreview,
+} from '@/features/analytics/lib/analyticsSampleData'
 import { loadAnalyticsRecords } from '@/features/analytics/lib/loadAnalyticsRecords'
 import { AnalyticsDialogs } from '@/features/analytics/routes/AnalyticsDialogs'
 import { AnalyticsDrilldownPanel } from '@/features/analytics/routes/AnalyticsDrilldownPanel'
+import { AnalyticsGhostPreview } from '@/features/analytics/routes/AnalyticsGhostPreview'
 import { AnalyticsHealthPanel } from '@/features/analytics/routes/AnalyticsHealthPanel'
 import type {
   AnalyticsChartMessages,
@@ -70,7 +76,13 @@ import { cn } from '@/lib/utils'
 
 const defaultAnalyticsQuery = getDefaultAnalyticsQuery()
 
+type AnalyticsGhostPreviewData = {
+  chartSpecs: AiChartSpec[]
+  health: AnalyticsHealth
+}
+
 const CanvasPane = ({
+  ghostPreview,
   health,
   isReviewingHealth,
   onReviewHealth,
@@ -88,6 +100,7 @@ const CanvasPane = ({
   summary,
   t,
 }: {
+  ghostPreview: AnalyticsGhostPreviewData | null
   health: AnalyticsHealth | null
   isReviewingHealth: boolean
   onReviewHealth: (records: AiSavedUrlRecord[], label: string) => void
@@ -107,12 +120,14 @@ const CanvasPane = ({
   language: string
   summary: string
   t: (key: string) => string
-}) => (
-  <ScrollArea
-    className='min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card shadow-none'
-    data-testid='analytics-canvas-pane'
-  >
-    <div className='min-w-0 p-5'>
+}) => {
+  const content = ghostPreview ? (
+    <AnalyticsGhostPreview
+      chartSpecs={ghostPreview.chartSpecs}
+      health={ghostPreview.health}
+    />
+  ) : (
+    <>
       {health ? (
         <AnalyticsHealthPanel health={health} onReview={onReviewHealth} />
       ) : null}
@@ -151,9 +166,17 @@ const CanvasPane = ({
         onDeleteClick={handleDeleteClick}
         onOpenAllClick={handleOpenAllClick}
       />
-    </div>
-  </ScrollArea>
-)
+    </>
+  )
+  return (
+    <ScrollArea
+      className='min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card shadow-none'
+      data-testid='analytics-canvas-pane'
+    >
+      <div className='min-w-0 p-5'>{content}</div>
+    </ScrollArea>
+  )
+}
 
 const useAnalyticsRouteOptions = (t: (key: string) => string) => {
   const chartMessages = useMemo<AnalyticsChartMessages>(
@@ -214,8 +237,38 @@ const useAnalyticsRouteOptions = (t: (key: string) => string) => {
   return { analyticsChartTypeOptions, analyticsGroupByOptions, chartMessages }
 }
 
-const useAnalyticsRouteView = () => {
-  const { language, t } = useI18n()
+const useAnalyticsGhostPreview = ({
+  chartMessages,
+  isUsingAiCharts,
+  loadedAt,
+  query,
+  recordCount,
+}: {
+  chartMessages: AnalyticsChartMessages
+  isUsingAiCharts: boolean
+  loadedAt: number | null
+  query: AnalyticsQuery
+  recordCount: number
+}): AnalyticsGhostPreviewData | null =>
+  useMemo<AnalyticsGhostPreviewData | null>(() => {
+    if (
+      isUsingAiCharts ||
+      loadedAt === null ||
+      !shouldShowAnalyticsGhostPreview(recordCount, true)
+    ) {
+      return null
+    }
+    const sampleRecords = createAnalyticsSampleRecords(loadedAt)
+    return {
+      chartSpecs: generateAnalyticsResult(sampleRecords, query, {
+        ...(chartMessages !== undefined ? { messages: chartMessages } : {}),
+        now: loadedAt,
+      }).chartSpecs,
+      health: calculateAnalyticsHealth(sampleRecords, loadedAt),
+    }
+  }, [chartMessages, isUsingAiCharts, loadedAt, query, recordCount])
+
+const useAnalyticsRouteData = () => {
   const [analyticsData, setAnalyticsData] = useState<{
     loadedAt: number | null
     records: typeof awaitableEmptyRecords
@@ -225,17 +278,41 @@ const useAnalyticsRouteView = () => {
     records: awaitableEmptyRecords,
     savedViews: [],
   }))
-  const { records, savedViews, loadedAt } = analyticsData
-  const setRecords = (records: typeof awaitableEmptyRecords) => {
+  const setRecords = useCallback((records: typeof awaitableEmptyRecords) => {
     setAnalyticsData((current) => ({
       ...current,
       records,
       loadedAt: Date.now(),
     }))
-  }
-  const setSavedViews = (savedViews: SavedAnalyticsView[]) => {
+  }, [])
+  const setSavedViews = useCallback((savedViews: SavedAnalyticsView[]) => {
     setAnalyticsData((current) => ({ ...current, savedViews }))
-  }
+  }, [])
+  useEffect(() => {
+    let cancelled = false
+    void Promise.all([loadAnalyticsRecords(), loadSavedAnalyticsViews()]).then(
+      ([nextRecords, nextSavedViews]) => {
+        if (cancelled) {
+          return
+        }
+        setAnalyticsData({
+          loadedAt: Date.now(),
+          records: nextRecords,
+          savedViews: nextSavedViews,
+        })
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return { ...analyticsData, setRecords, setSavedViews }
+}
+
+const useAnalyticsRouteView = () => {
+  const { language, t } = useI18n()
+  const { records, savedViews, loadedAt, setRecords, setSavedViews } =
+    useAnalyticsRouteData()
   const [query, setQuery] = useState<AnalyticsQuery>(() =>
     normalizeAnalyticsRouteQuery(defaultAnalyticsQuery),
   )
@@ -264,28 +341,6 @@ const useAnalyticsRouteView = () => {
   const { analyticsChartTypeOptions, analyticsGroupByOptions, chartMessages } =
     useAnalyticsRouteOptions(t)
 
-  useEffect(() => {
-    let cancelled = false
-
-    void Promise.all([loadAnalyticsRecords(), loadSavedAnalyticsViews()]).then(
-      ([nextRecords, nextSavedViews]) => {
-        if (cancelled) {
-          return
-        }
-
-        setAnalyticsData({
-          loadedAt: Date.now(),
-          records: nextRecords,
-          savedViews: nextSavedViews,
-        })
-      },
-    )
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const generatedAnalyticsResult = useMemo(
     () =>
       generateAnalyticsResult(
@@ -306,6 +361,14 @@ const useAnalyticsRouteView = () => {
   const summary = isUsingAiCharts
     ? t('analytics.aiSummary')
     : generatedAnalyticsResult.summary
+
+  const ghostPreview = useAnalyticsGhostPreview({
+    chartMessages,
+    isUsingAiCharts,
+    loadedAt,
+    query,
+    recordCount: records.length,
+  })
 
   const filteredRecords = useMemo(
     () =>
@@ -351,7 +414,7 @@ const useAnalyticsRouteView = () => {
     setSavedViews(nextViews)
     await saveSavedAnalyticsViews(nextViews)
     setViewName('')
-  }, [viewName, savedViews, query])
+  }, [viewName, savedViews, query, setSavedViews])
 
   const handleDeleteView = useCallback(
     async (viewId: string) => {
@@ -359,7 +422,7 @@ const useAnalyticsRouteView = () => {
       setSavedViews(nextViews)
       await deleteSavedAnalyticsView(viewId)
     },
-    [savedViews],
+    [savedViews, setSavedViews],
   )
 
   const handleMessagesChange = useCallback(
@@ -408,7 +471,7 @@ const useAnalyticsRouteView = () => {
     const nextRecords = await loadAnalyticsRecords()
     setRecords(nextRecords)
     return nextRecords
-  }, [])
+  }, [setRecords])
 
   const rebuildDrilldownSelection = useCallback(
     (nextRecords: AiSavedUrlRecord[]) => {
@@ -704,6 +767,7 @@ const useAnalyticsRouteView = () => {
             />
 
             <CanvasPane
+              ghostPreview={ghostPreview}
               health={health}
               isReviewingHealth={isReviewingHealth}
               onReviewHealth={handleReviewHealth}

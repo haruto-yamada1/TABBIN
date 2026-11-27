@@ -29,6 +29,11 @@ const analyticsHealthMessagesEn = {
   'analytics.health.noHistory':
     'Viewing history is not tracked, so an unviewed rate cannot be calculated and does not affect the score.',
   'analytics.health.organize': 'Organize in Saved Tabs',
+  'analytics.ghost.title': 'Preview: how Analytics will look',
+  'analytics.ghost.badge': 'Sample',
+  'analytics.ghost.description':
+    'This is a sample preview, not your data. Save tabs to see a health overview and charts like these, built from your own saved tabs.',
+  'analytics.ghost.openSavedTabs': 'Save tabs in Saved Tabs',
 } as const
 
 export { analyticsHealthMessagesEn }
