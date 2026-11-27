@@ -263,7 +263,8 @@ test('Domain practice child lesson uses the real category manager and keyword-dr
   )
   const notes = domain(page, 'notes.academy.test')
   await notes.locator('[data-tour="academy-domain-more-actions"]').click()
-  await notes.locator('[data-tour="academy-child-categories"]').click()
+  // メニュー内容は portal でカード外に描画されるため page から探す。
+  await page.locator('[data-tour="academy-child-categories"]').click()
   await enterValue(target(page, 'academy-child-create'), 'Scratch')
   await expect(status(page)).toContainText('1 / 4')
   await target(page, 'academy-child-rename-action').click()
