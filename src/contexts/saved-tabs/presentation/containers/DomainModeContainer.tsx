@@ -19,7 +19,10 @@ import type {
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { EmptyCategoriesCleanup } from '@/contexts/saved-tabs/presentation/components/EmptyCategoriesCleanup'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
-import { SearchNoResultsNotice } from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
+import {
+  SavedTabsEmptyState,
+  SearchNoResultsNotice,
+} from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
 import {
   SavedTabsSelectionProvider,
   useSavedTabsMarkdownCopyHandler,
@@ -165,6 +168,12 @@ type DomainModeContainerProps = {
   onClearSearch?: () => void
   /** 空カテゴリの削除 (issue #898)。整理候補の確認後に呼ばれる。 */
   onDeleteEmptyCategory?: (categoryId: string) => Promise<void>
+  /**
+   * 空状態 CTA「開いているタブをすべて保存」(issue #1131)。
+   * background の既存キャプチャフローへ委譲する。未指定のときは
+   * CTA を出さず従来の空表示にする。
+   */
+  onSaveAllOpenTabs?: (() => Promise<void>) | undefined
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
   /**
    * 「今開いているタブ」行。コンテンツ最上部に表示する。空または未指定の
@@ -282,6 +291,8 @@ type UncategorizedDomainSectionProps = {
    */
   searchNoResults: SearchNoResults | undefined
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
+  /** 空状態 CTA の保存操作 (issue #1131)。未指定時は CTA を出さない。 */
+  onSaveAllOpenTabs?: (() => Promise<void>) | undefined
 }
 
 const UncategorizedDomainSection = ({
@@ -316,6 +327,7 @@ const UncategorizedDomainSection = ({
   hasContentCount,
   searchNoResults,
   reorderTabGroupUrlsUseCase,
+  onSaveAllOpenTabs,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
   const accessibility = useDndAccessibility()
@@ -480,14 +492,7 @@ const UncategorizedDomainSection = ({
             onClearSearch={searchNoResults.handleClearSearch}
           />
         ) : (
-          <div className='flex min-h-[200px] flex-col items-center justify-center gap-4'>
-            <div className='text-2xl text-foreground'>
-              {t('savedTabs.emptyTitle')}
-            </div>
-            <div className='text-muted-foreground'>
-              {t('savedTabs.emptyDescription')}
-            </div>
-          </div>
+          <SavedTabsEmptyState onSaveAllOpenTabs={onSaveAllOpenTabs} />
         ))}
     </div>
   )
@@ -558,6 +563,7 @@ export const DomainModeContainer = ({
   hasContentTabGroupsCount,
   onClearSearch,
   onDeleteEmptyCategory,
+  onSaveAllOpenTabs,
   reorderTabGroupUrlsUseCase,
   openTabsRows,
   renameParentCategoryUseCase,
@@ -775,6 +781,7 @@ export const DomainModeContainer = ({
         hasContentCount={hasContentTabGroupsCount}
         searchNoResults={searchNoResults}
         reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+        onSaveAllOpenTabs={onSaveAllOpenTabs}
       />
 
       <EmptyCategoriesCleanupSection

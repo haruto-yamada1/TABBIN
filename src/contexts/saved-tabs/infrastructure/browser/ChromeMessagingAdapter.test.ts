@@ -1,20 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CHROME_MESSAGING_ADAPTER_MARKER } from '@/contexts/saved-tabs/application/ports/MessagingPort'
-import type { ExternalDragMessage } from '@/contexts/saved-tabs/application/ports/MessagingPort'
+import type { SavedTabsBackgroundMessage } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 
 import type { ChromeApiLike } from './ChromeMessagingAdapter'
 import { createChromeMessagingAdapter } from './ChromeMessagingAdapter'
 
 const createMockApi = (
-  impl?: (message: ExternalDragMessage) => void,
+  impl?: (message: SavedTabsBackgroundMessage) => void,
   lastError?: { readonly message?: string },
 ): ChromeApiLike => ({
   runtime: {
     lastError,
     sendMessage: vi.fn(
       (
-        message: ExternalDragMessage,
+        message: SavedTabsBackgroundMessage,
         callback?: (response: { status: string }) => void,
       ) => {
         if (impl) {
@@ -41,7 +41,7 @@ describe('createChromeMessagingAdapter', () => {
   it('chrome.runtime.sendMessage 経由で urlDragStarted を送信する', async () => {
     const sendMessage = vi.fn(
       (
-        message: ExternalDragMessage,
+        message: SavedTabsBackgroundMessage,
         callback?: (response: { status: string }) => void,
       ) => {
         expect(message).toStrictEqual({
@@ -66,7 +66,7 @@ describe('createChromeMessagingAdapter', () => {
   it('chrome.runtime.sendMessage 経由で fromExternal 付き urlDropped を送信する', async () => {
     const sendMessage = vi.fn(
       (
-        message: ExternalDragMessage,
+        message: SavedTabsBackgroundMessage,
         callback?: (response: { status: string }) => void,
       ) => {
         expect(message).toStrictEqual({
@@ -96,7 +96,7 @@ describe('createChromeMessagingAdapter', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const sendMessage = vi.fn(
       (
-        _message: ExternalDragMessage,
+        _message: SavedTabsBackgroundMessage,
         callback?: (response: { status: string }) => void,
       ) => {
         callback?.({ status: 'ok' })

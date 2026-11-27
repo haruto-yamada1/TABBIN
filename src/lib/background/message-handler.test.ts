@@ -7,6 +7,7 @@ const mocked = vi.hoisted(() => ({
   checkAndRemoveExpiredTabs: vi.fn(),
   getAlarm: vi.fn(),
   getExpirationPeriodMs: vi.fn(),
+  handleSaveWindowTabs: vi.fn(),
   handleUrlDragStarted: vi.fn(),
   handleUrlDropped: vi.fn(),
   isAutoDeletePeriod: vi.fn(),
@@ -35,6 +36,10 @@ vi.mock('./url-storage', () => ({
 vi.mock('./ai-chat', () => ({
   listLocalOllamaModels: mocked.listLocalOllamaModels,
   runAiChatRequest: mocked.runAiChatRequest,
+}))
+
+vi.mock('./extension-actions', () => ({
+  handleSaveWindowTabs: mocked.handleSaveWindowTabs,
 }))
 
 vi.mock('./saved-tab-title-indicator', () => ({
@@ -192,6 +197,7 @@ describe('setupMessageListener', () => {
         { action: 'listOllamaModels' },
         { action: 'runAiChat', history: [], prompt: 'private saved data' },
         { action: 'refreshNativeSavedTabTitles' },
+        { action: 'saveAllOpenTabs' },
       ]
 
       for (const message of messages) {
@@ -211,6 +217,7 @@ describe('setupMessageListener', () => {
       expect(chrome.alarms.get).not.toHaveBeenCalled()
       expect(mocked.listLocalOllamaModels).not.toHaveBeenCalled()
       expect(mocked.runAiChatRequest).not.toHaveBeenCalled()
+      expect(mocked.handleSaveWindowTabs).not.toHaveBeenCalled()
     },
   )
 
@@ -340,6 +347,51 @@ describe('setupMessageListener', () => {
         ],
         status: 'ok',
       })
+    })
+  })
+
+  it('accepts only the no-payload saveAllOpenTabs action', () => {
+    expect(
+      backgroundMessageSchema.safeParse({
+        action: 'saveAllOpenTabs',
+      }).success,
+    ).toBe(true)
+    expect(
+      backgroundMessageSchema.safeParse({
+        action: 'saveAllOpenTabs',
+        url: 'https://private.example',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('saveAllOpenTabs を受けたら既存のウィンドウ保存フローを実行して ok を返す', async () => {
+    const { listener } = setupListener()
+    mocked.handleSaveWindowTabs.mockResolvedValue([])
+
+    const sendResponse = vi.fn()
+    const shouldKeepChannel = listener(
+      { action: 'saveAllOpenTabs' },
+      trustedSender,
+      sendResponse,
+    )
+
+    expect(shouldKeepChannel).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({ status: 'ok' })
+    })
+    expect(mocked.handleSaveWindowTabs).toHaveBeenCalledTimes(1)
+  })
+
+  it('saveAllOpenTabs の保存が失敗したら error を返す', async () => {
+    const { listener } = setupListener()
+    mocked.handleSaveWindowTabs.mockRejectedValue(new Error('capture failed'))
+
+    const sendResponse = vi.fn()
+    expect(
+      listener({ action: 'saveAllOpenTabs' }, trustedSender, sendResponse),
+    ).toBe(true)
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({ status: 'error' })
     })
   })
 

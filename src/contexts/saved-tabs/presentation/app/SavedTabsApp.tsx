@@ -69,6 +69,17 @@ type SavedTabsAppProps = {
   readonly useCases: SavedTabsUseCases
 }
 
+// 空状態 CTA (issue #1131): MessagingPort 経由で保存を依頼する。
+const useSaveAllOpenTabs = (
+  messagingPort: SavedTabsPresentationPorts['messagingPort'],
+) =>
+  useCallback(async () => {
+    const response = await messagingPort.send({ action: 'saveAllOpenTabs' })
+    if (response?.status === 'error') {
+      throw new Error('saveAllOpenTabs failed in background')
+    }
+  }, [messagingPort])
+
 const useSavedTabsAppView = ({
   controller,
   deps,
@@ -102,6 +113,7 @@ const useSavedTabsAppView = ({
     setSearchQuery('')
   }, [setSearchQuery])
 
+  const handleSaveAllOpenTabs = useSaveAllOpenTabs(deps.messagingPort)
   // 未分類ドメインの並び替えモード状態管理
   const [isUncategorizedReorderMode, setIsUncategorizedReorderMode] =
     useState(false)
@@ -528,6 +540,7 @@ const useSavedTabsAppView = ({
         hasContentTabGroupsCount={hasContentTabGroups.length}
         onClearSearch={handleClearSearch}
         onDeleteEmptyCategory={handleDeleteEmptyCategory}
+        onSaveAllOpenTabs={handleSaveAllOpenTabs}
         reorderTabGroupUrlsUseCase={savedTabsUseCases.reorderTabGroupUrls}
         openTabsRows={openTabsRows}
         renameParentCategoryUseCase={savedTabsUseCases.renameParentCategory}

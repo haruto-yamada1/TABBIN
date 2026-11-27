@@ -310,6 +310,28 @@ describe('DomainModeContainer', () => {
     ).toBeTruthy()
   })
 
+  it('空状態の CTA からすべて保存ハンドラを呼び、Academy 導線を表示する', async () => {
+    const user = userEvent.setup()
+    const onSaveAllOpenTabs = vi.fn(async () => {})
+
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        onSaveAllOpenTabs={onSaveAllOpenTabs}
+      />,
+    )
+
+    expect(screen.getByTestId('saved-tabs-empty-state')).toBeTruthy()
+    expect(
+      screen.getByRole('link', { name: /Academyで使い方を見る/ }),
+    ).toBeTruthy()
+
+    await user.click(
+      screen.getByRole('button', { name: /開いているタブをすべて保存/ }),
+    )
+    expect(onSaveAllOpenTabs).toHaveBeenCalledTimes(1)
+  })
+
   it('検索で 0 件のときは保存データなしと区別し、検索語と解除操作を表示する', async () => {
     const user = userEvent.setup()
     const onClearSearch = vi.fn()
