@@ -135,17 +135,14 @@ const FENCED_CODE_BLOCK_PATTERN = /```[^\n`]*\n?([\s\S]*?)```/g
 
 /**
  * 生成途中で閉じ括弧がまだ届いていないツール呼び出し JSON かどうか。
- * 末尾が `{` から始まり、ツール呼び出しの署名（type: "function"、
- * function.name、name + parameters/arguments）を含む場合に true。
+ * 末尾が `{` から始まり、ツール呼び出しの署名（function.name、
+ * name + parameters/arguments）を含む場合に true。
+ * `type: "function"` だけでは判定しない（完成形の判定と同一基準）。
  * 通常の文章や未完了の非ツール JSON は false のまま保持する。
  */
 const isIncompleteToolCallJson = (text: string): boolean => {
   if (!text.startsWith('{')) {
     return false
-  }
-
-  if (/"type"\s*:\s*"function"/.test(text)) {
-    return true
   }
 
   if (/"function"\s*:\s*\{\s*"name"\s*:\s*"/.test(text)) {

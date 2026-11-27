@@ -175,6 +175,16 @@ describe('sanitizeReasoningForDisplay', () => {
     expect(result.text).toBe(reasoning)
   })
 
+  it('keeps an incomplete description-only function JSON unchanged', () => {
+    const reasoning =
+      'Checking {"type":"function","description":"A callable value'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCallCount).toBe(0)
+    expect(result.text).toBe(reasoning)
+  })
+
   it('returns the hidden raw JSON for the details view', () => {
     const reasoning =
       'Checking.\n```json\n{"name": "searchSavedUrls", "parameters": {"keyword": "react"}}\n```\nDone.'
