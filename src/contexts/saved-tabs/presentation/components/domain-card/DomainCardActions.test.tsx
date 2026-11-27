@@ -62,6 +62,7 @@ const createContext = (
 const domainCardMessages: Record<string, string> = {
   'savedTabs.accessibility.nounAction': '「{{target}}」の{{action}}',
   'savedTabs.manageSubcategories': '子カテゴリ管理',
+  'savedTabs.moreActions': 'その他の操作',
   'savedTabs.openAll': 'すべて開く',
   'savedTabs.openAllTabs': 'すべてのタブを開く',
   'savedTabs.deleteAll': 'すべて削除',
@@ -166,6 +167,26 @@ vi.mock('./DomainCardContext', () => ({
 
 import { DomainCardActions } from './DomainCardActions'
 
+// Radix DropdownMenu が jsdom で必要とする API のスタブ
+window.HTMLElement.prototype.hasPointerCapture = () => false
+window.HTMLElement.prototype.setPointerCapture = () => undefined
+window.HTMLElement.prototype.releasePointerCapture = () => undefined
+window.HTMLElement.prototype.scrollIntoView = () => undefined
+
+const MORE_ACTIONS_LABEL = '「example.com」のその他の操作'
+const MANAGE_SUBCATEGORIES_LABEL = '「example.com」の子カテゴリ管理'
+const DELETE_ALL_LABEL = '「example.com」のすべてのタブを削除'
+
+const openActionsMenu = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: MORE_ACTIONS_LABEL }))
+  return {
+    manageItem: await screen.findByRole('menuitem', {
+      name: MANAGE_SUBCATEGORIES_LABEL,
+    }),
+    deleteItem: screen.getByRole('menuitem', { name: DELETE_ALL_LABEL }),
+  }
+}
+
 describe('DomainCardActions', () => {
   afterEach(() => {
     cleanup()
@@ -212,11 +233,8 @@ describe('DomainCardActions', () => {
 
     render(<DomainCardActions />)
 
-    await user.click(
-      screen.getByRole('button', {
-        name: '「example.com」のすべてのタブを削除',
-      }),
-    )
+    const { deleteItem } = await openActionsMenu(user)
+    await user.click(deleteItem)
 
     await waitFor(() => {
       expect(handleDeleteUrls).toHaveBeenCalledWith('group-1', [
@@ -266,66 +284,99 @@ describe('DomainCardActions', () => {
 
     render(<DomainCardActions />)
 
-    await user.click(
-      screen.getByRole('button', {
-        name: '「example.com」のすべてのタブを削除',
-      }),
-    )
+    const { deleteItem } = await openActionsMenu(user)
+    await user.click(deleteItem)
 
     expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
     expect(handleDeleteUrls).not.toHaveBeenCalled()
   })
 
-  it('対象名付きの aria-label を各操作ボタンへ付与する', () => {
-    useDomainCardMock.mockReturnValue({
-      state: {
-        keywordModal: {
-          showKeywordModal: false,
-          setShowKeywordModal: vi.fn(),
-          handleCloseKeywordModal: vi.fn(),
-        },
-        parentCategories: {
-          categories: [],
-          handleCreateParentCategory: vi.fn(),
-          handleAssignToParentCategory: vi.fn(),
-          handleUpdateParentCategories: vi.fn(),
-        },
-        categoryActions: {
-          handleCategoryDelete: vi.fn(),
-        },
-      },
-      group: {
-        id: 'group-1',
-        domain: 'example.com',
-        urls: [{ url: 'https://example.com/docs', title: 'Docs' }],
-      },
-      settings: { confirmDeleteAll: false },
-      isReorderMode: false,
-      searchQuery: '',
-      handlers: {
-        handleOpenAllTabs: vi.fn(),
-        handleDeleteGroup: vi.fn(),
-        handleDeleteUrls: vi.fn(),
-      },
-    })
+  it('常時表示は「すべて開く」とメニューボタンだけで、集約した操作はボタンとして露出しない', () => {
+    useDomainCardMock.mockReturnValue(
+      createContext({
+        urls: [{ title: 'Docs', url: 'https://example.com/docs' }],
+      }),
+    )
 
     render(<DomainCardActions />)
 
-    expect(
-      screen.getByRole('button', {
-        name: '「example.com」の子カテゴリ管理',
-      }),
-    ).toBeTruthy()
     expect(
       screen.getByRole('button', {
         name: '「example.com」のすべてのタブを開く',
       }),
     ).toBeTruthy()
     expect(
-      screen.getByRole('button', {
-        name: '「example.com」のすべてのタブを削除',
+      screen.getByRole('button', { name: MORE_ACTIONS_LABEL }),
+    ).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: MANAGE_SUBCATEGORIES_LABEL }),
+    ).toBeNull()
+    expect(screen.queryByRole('button', { name: DELETE_ALL_LABEL })).toBeNull()
+    expect(
+      screen.queryByRole('menuitem', { name: MANAGE_SUBCATEGORIES_LABEL }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('menuitem', { name: DELETE_ALL_LABEL }),
+    ).toBeNull()
+  })
+
+  it('メニュー内の各操作に対象名付きの aria-label を付与する', async () => {
+    const user = userEvent.setup()
+    useDomainCardMock.mockReturnValue(
+      createContext({
+        urls: [{ title: 'Docs', url: 'https://example.com/docs' }],
+      }),
+    )
+
+    render(<DomainCardActions />)
+    const { manageItem, deleteItem } = await openActionsMenu(user)
+
+    expect(manageItem).toBeTruthy()
+    expect(deleteItem).toBeTruthy()
+  })
+
+  it('キーボード操作のみでメニューを開き、子カテゴリ管理へ到達できる', async () => {
+    const user = userEvent.setup()
+    const setShowKeywordModal = vi.fn()
+    useDomainCardMock.mockReturnValue(
+      createContext({
+        setShowKeywordModal,
+        urls: [{ title: 'Docs', url: 'https://example.com/docs' }],
+      }),
+    )
+
+    render(<DomainCardActions />)
+    screen.getByRole('button', { name: MORE_ACTIONS_LABEL }).focus()
+    await user.keyboard('{Enter}')
+    expect(
+      await screen.findByRole('menuitem', {
+        name: MANAGE_SUBCATEGORIES_LABEL,
       }),
     ).toBeTruthy()
+    await user.keyboard('{Enter}')
+
+    expect(setShowKeywordModal).toHaveBeenCalledWith(true)
+  })
+
+  it('キーボード操作のみでメニューからすべて削除へ到達できる', async () => {
+    const user = userEvent.setup()
+    const handleDeleteGroup = vi.fn()
+    useDomainCardMock.mockReturnValue(
+      createContext({
+        handleDeleteGroup,
+        urls: [{ title: 'Docs', url: 'https://example.com/docs' }],
+      }),
+    )
+
+    render(<DomainCardActions />)
+    screen.getByRole('button', { name: MORE_ACTIONS_LABEL }).focus()
+    await user.keyboard('{Enter}')
+    expect(
+      await screen.findByRole('menuitem', { name: DELETE_ALL_LABEL }),
+    ).toBeTruthy()
+    await user.keyboard('{ArrowDown}{Enter}')
+
+    expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
   })
 
   it('子カテゴリ管理ボタンで keyword modal を toggle する', async () => {
@@ -339,9 +390,8 @@ describe('DomainCardActions', () => {
     )
 
     render(<DomainCardActions />)
-    await user.click(
-      screen.getByRole('button', { name: '「example.com」の子カテゴリ管理' }),
-    )
+    const { manageItem } = await openActionsMenu(user)
+    await user.click(manageItem)
 
     expect(setShowKeywordModal).toHaveBeenCalledWith(true)
   })
@@ -403,11 +453,8 @@ describe('DomainCardActions', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
 
     render(<DomainCardActions />)
-    await user.click(
-      screen.getByRole('button', {
-        name: '「example.com」のすべてのタブを削除',
-      }),
-    )
+    const { deleteItem } = await openActionsMenu(user)
+    await user.click(deleteItem)
     await user.click(screen.getByRole('button', { name: '削除' }))
 
     expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
@@ -423,11 +470,8 @@ describe('DomainCardActions', () => {
       favoriteFilter: { only: true, hasFavorites: false, setOnly: vi.fn() },
     })
     render(<DomainCardActions />)
-    await user.click(
-      screen.getByRole('button', {
-        name: '「example.com」のすべてのタブを削除',
-      }),
-    )
+    const { deleteItem } = await openActionsMenu(user)
+    await user.click(deleteItem)
     expect(handleDeleteGroup).not.toHaveBeenCalled()
     expect(handleDeleteUrls).not.toHaveBeenCalled()
   })
@@ -440,11 +484,8 @@ describe('DomainCardActions', () => {
     )
 
     render(<DomainCardActions />)
-    await user.click(
-      screen.getByRole('button', {
-        name: '「example.com」のすべてのタブを削除',
-      }),
-    )
+    const { deleteItem } = await openActionsMenu(user)
+    await user.click(deleteItem)
 
     expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
   })

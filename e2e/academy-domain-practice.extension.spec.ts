@@ -262,6 +262,7 @@ test('Domain practice child lesson uses the real category manager and keyword-dr
     'child-categories',
   )
   const notes = domain(page, 'notes.academy.test')
+  await notes.locator('[data-tour="academy-domain-more-actions"]').click()
   await notes.locator('[data-tour="academy-child-categories"]').click()
   await enterValue(target(page, 'academy-child-create'), 'Scratch')
   await expect(status(page)).toContainText('1 / 4')
