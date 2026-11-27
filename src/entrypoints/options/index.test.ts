@@ -94,7 +94,12 @@ describe('オプションページ', () => {
     expect(screen.getByRole('heading', { name: 'Options' })).toBeTruthy()
     expect(screen.getByText('LanguageSelect')).toBeTruthy()
     expect(screen.getByText('ModeToggle')).toBeTruthy()
-    expect(screen.getByText('Backup & Restore')).toBeTruthy()
-    expect(screen.getByText('Exclude settings')).toBeTruthy()
+    // 目次 (#1127) にも同じ文言のリンクが出るため、見出しに限定して確認する
+    expect(
+      screen.getByRole('heading', { name: 'Backup & Restore' }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { name: 'Exclude settings' }),
+    ).toBeTruthy()
   })
 })
