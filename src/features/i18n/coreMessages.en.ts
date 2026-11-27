@@ -541,6 +541,8 @@ const coreMessagesEn = {
   'options.previewColorCustomization': '(preview) Color customization',
   'options.previewColorCustomizationReset': 'Reset',
   'options.previewFontSizeCustomization': 'Font size',
+  'options.related.periodicExecutionDescription':
+    'The auto-delete period and review reminders are configured on the Scheduled tasks page.',
   'options.releaseNotes': 'Release Notes',
   'options.showRelativeSavedTime': 'Show relative saved time',
   'options.showOpenTabs': 'Show currently open tabs',
@@ -550,9 +552,14 @@ const coreMessagesEn = {
   'options.showSavedTimeDescription':
     'When enabled, the saved date is shown in the saved tabs list.',
   'options.title': 'Options',
+  'options.toc.pageAccess': 'Page access',
+  'options.toc.title': 'Contents',
   'periodicExecution.title': 'Scheduled tasks',
   'periodicExecution.description':
     'Set up review reminders and automatic cleanup for your saved tabs.',
+  'periodicExecution.related.optionsDescription':
+    'Tab behavior (such as deleting a tab after opening it), the Ollama connection, and Import / Export are configured in Options.',
+  'periodicExecution.related.title': 'Related settings',
   'savedTabs.addProject': 'Add project',
   'savedTabs.category.dragHandleAria': 'Drag to reorder category "{{name}}"',
   'savedTabs.category.deleteAllItemName': 'domains in this category',
