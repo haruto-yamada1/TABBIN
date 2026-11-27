@@ -166,6 +166,38 @@ describe('sanitizeReasoningForDisplay', () => {
     expect(result.hiddenToolCalls).toHaveLength(1)
   })
 
+  it('replaces an incomplete tool call JSON when a field precedes function.name', () => {
+    const reasoning =
+      'Checking {"type":"function","function":{"description":"List the saved tabs","name":"listSavedUrls","parameters":'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCallCount).toBe(1)
+    expect(result.text).toBe(`Checking ${REPLACEMENT}`)
+    expect(result.text).not.toContain('listSavedUrls')
+    expect(result.hiddenToolCalls).toHaveLength(1)
+  })
+
+  it('replaces an incomplete tool call JSON with fields before function.name and no type field', () => {
+    const reasoning = '{"function":{"description":"x","name":"listSavedUrls"'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCallCount).toBe(1)
+    expect(result.text).toBe(REPLACEMENT)
+    expect(result.text).not.toContain('listSavedUrls')
+  })
+
+  it('keeps an incomplete function JSON without a name unchanged even with other fields', () => {
+    const reasoning =
+      'Checking {"function":{"description":"A callable value","parameters":{"keyword":'
+
+    const result = sanitizeReasoningForDisplay(reasoning, REPLACEMENT)
+
+    expect(result.hiddenToolCallCount).toBe(0)
+    expect(result.text).toBe(reasoning)
+  })
+
   it('keeps an incomplete non-tool JSON unchanged', () => {
     const reasoning = 'Consider {a, b} and {c'
 

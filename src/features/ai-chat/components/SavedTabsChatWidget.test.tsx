@@ -213,50 +213,54 @@ const restoreClipboardMock = () => {
   })
 }
 
-describe('SavedTabsChatWidget', () => {
-  beforeEach(() => {
-    storageListeners.length = 0
-    vi.clearAllMocks()
-    mocked.language = 'en'
-    mocked.connectRuntimePort.mockResolvedValue(null)
-    mocked.conversationScrollButtonVisible = false
-    mocked.platformOs = 'mac'
-    mocked.saveUserSettings.mockResolvedValue(undefined)
-    mocked.toastError.mockReset()
-    mocked.toastSuccess.mockReset()
-    mocked.writeClipboardText.mockResolvedValue(undefined)
-    window.localStorage.clear()
-    vi.stubGlobal(
-      'ResizeObserver',
-      class ResizeObserver {
-        disconnect() {}
-        observe() {}
-        unobserve() {}
-      },
-    )
-    restoreClipboardMock()
-    ;(globalThis as unknown as { chrome: typeof chrome }).chrome =
-      createChromeMock()
-    Element.prototype.scrollIntoView = vi.fn()
-    vi.stubGlobal(
-      'URL',
-      Object.assign(URL, {
-        createObjectURL: vi.fn((file: Blob) => {
-          if (file.type === 'text/plain') {
-            return 'data:text/plain;base64,SGVsbG8='
-          }
+const setupSavedTabsChatWidgetTest = () => {
+  storageListeners.length = 0
+  vi.clearAllMocks()
+  mocked.language = 'en'
+  mocked.connectRuntimePort.mockResolvedValue(null)
+  mocked.conversationScrollButtonVisible = false
+  mocked.platformOs = 'mac'
+  mocked.saveUserSettings.mockResolvedValue(undefined)
+  mocked.toastError.mockReset()
+  mocked.toastSuccess.mockReset()
+  mocked.writeClipboardText.mockResolvedValue(undefined)
+  window.localStorage.clear()
+  vi.stubGlobal(
+    'ResizeObserver',
+    class ResizeObserver {
+      disconnect() {}
+      observe() {}
+      unobserve() {}
+    },
+  )
+  restoreClipboardMock()
+  ;(globalThis as unknown as { chrome: typeof chrome }).chrome =
+    createChromeMock()
+  Element.prototype.scrollIntoView = vi.fn()
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn((file: Blob) => {
+        if (file.type === 'text/plain') {
+          return 'data:text/plain;base64,SGVsbG8='
+        }
 
-          return 'data:application/octet-stream;base64,AAAA'
-        }),
-        revokeObjectURL: vi.fn(),
+        return 'data:application/octet-stream;base64,AAAA'
       }),
-    )
-  })
+      revokeObjectURL: vi.fn(),
+    }),
+  )
+}
 
-  afterEach(() => {
-    cleanup()
-    vi.unstubAllGlobals()
-  })
+const teardownSavedTabsChatWidgetTest = () => {
+  cleanup()
+  vi.unstubAllGlobals()
+}
+
+describe('SavedTabsChatWidget', () => {
+  beforeEach(setupSavedTabsChatWidgetTest)
+
+  afterEach(teardownSavedTabsChatWidgetTest)
 
   it('uses the shared ui button and does not leave raw button/input elements', () => {
     const source = readFileSync(
@@ -2560,5 +2564,116 @@ describe('SavedTabsChatWidget', () => {
         name: 'https://docs.ollama.com/faq#how-do-i-configure-ollama-server',
       }),
     ).toBeTruthy()
+  })
+})
+
+describe('SavedTabsChatWidget stream progress', () => {
+  beforeEach(setupSavedTabsChatWidgetTest)
+
+  afterEach(teardownSavedTabsChatWidgetTest)
+
+  it('shows tool progress from port step messages and updates it as the tool completes', async () => {
+    const user = userEvent.setup()
+    restoreClipboardMock()
+    mocked.getUserSettings.mockResolvedValue(buildConfiguredSettings())
+    let handlePortMessage: ((message: unknown) => void) | undefined
+    const port = {
+      disconnect: vi.fn(),
+      onDisconnect: {
+        removeListener: vi.fn(),
+        addListener: vi.fn(),
+      },
+      onMessage: {
+        removeListener: vi.fn(),
+        addListener: vi.fn((listener) => {
+          handlePortMessage = listener
+        }),
+      },
+      postMessage: vi.fn(),
+    }
+    mocked.connectRuntimePort.mockResolvedValue(port)
+
+    render(<SavedTabsChatWidget defaultOpen />)
+
+    await user.clear(await screen.findByLabelText('Ask AI'))
+    await user.type(
+      await screen.findByLabelText('Ask AI'),
+      'List my saved tabs',
+    )
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
+
+    await waitFor(() => {
+      expect(port.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'run' }),
+      )
+    })
+
+    // background がツール開始時に送る step（input-available トレース）を
+    // 受けると、Panel に実行中の進捗が表示される。
+    handlePortMessage?.({
+      reasoning: '- Listing saved tabs.',
+      toolTraces: [
+        {
+          input: {},
+          state: 'input-available',
+          title: 'List saved tabs',
+          toolCallId: 'call-1',
+          toolName: 'listSavedUrls',
+          type: 'dynamic-tool',
+        },
+      ],
+      type: 'step',
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('ai-chat-tool-progress').textContent).toContain(
+        'Running List saved tabs',
+      )
+    })
+
+    // ツール完了後の step では進捗表示が消える（ストリーミング自体は継続）。
+    handlePortMessage?.({
+      reasoning: '- Listed saved tabs.',
+      toolTraces: [
+        {
+          input: {},
+          output: { count: 3 },
+          state: 'output-available',
+          title: 'List saved tabs',
+          toolCallId: 'call-1',
+          toolName: 'listSavedUrls',
+          type: 'dynamic-tool',
+        },
+      ],
+      type: 'step',
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('ai-chat-tool-progress')).toBeNull()
+    })
+
+    // 完了メッセージで回答が表示され、進捗表示は出たままにならない。
+    handlePortMessage?.({
+      answer: 'You have 3 saved tabs.',
+      charts: [],
+      reasoning: '- Listed saved tabs.',
+      toolTraces: [
+        {
+          input: {},
+          output: { count: 3 },
+          state: 'output-available',
+          title: 'List saved tabs',
+          toolCallId: 'call-1',
+          toolName: 'listSavedUrls',
+          type: 'dynamic-tool',
+        },
+      ],
+      type: 'complete',
+    })
+
+    await expect(
+      screen.findByText('You have 3 saved tabs.'),
+    ).resolves.toBeTruthy()
+    expect(screen.queryByTestId('ai-chat-tool-progress')).toBeNull()
   })
 })
