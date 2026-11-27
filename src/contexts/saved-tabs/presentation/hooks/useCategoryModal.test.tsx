@@ -55,6 +55,58 @@ describe('useCategoryModal', () => {
     ])
   })
 
+  it('作成直後は作成したカテゴリを保持し、別カテゴリへの切替でクリアする', async () => {
+    const existing = { id: 'existing', name: 'existing', collections: [] }
+    const created = { id: 'created', name: '仕事', collections: [] }
+    const pageData: PageData = {
+      parentCategories: [existing],
+      tabGroups: [],
+      userSettings: savedTabsDefaultUserSettings,
+    }
+    const getSavedTabsPageDataQuery = vi
+      .fn<GetSavedTabsPageDataQuery>()
+      .mockResolvedValue(pageData)
+    const createParentCategoryUseCase = vi.fn(async () => ({
+      all: [existing, created],
+      category: created,
+    }))
+    const { result } = renderHook(
+      ({ tabGroups }) =>
+        useCategoryModal({
+          tabGroups,
+          getSavedTabsPageDataQuery,
+          createParentCategoryUseCase,
+          deleteParentCategoryUseCase: vi.fn(),
+          assignDomainToCategoryUseCase: vi.fn(),
+        }),
+      { initialProps: { tabGroups: [] } },
+    )
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(result.current.create.justCreatedCategory).toBeNull()
+
+    act(() => {
+      result.current.create.handleCategoryNameChange({
+        target: { value: '仕事' },
+      } as React.ChangeEvent<HTMLInputElement>)
+    })
+    await act(async () => {
+      await result.current.create.handleCreateCategory()
+    })
+
+    expect(result.current.create.justCreatedCategory).toEqual({
+      id: 'created',
+      name: '仕事',
+    })
+    expect(result.current.selection.selectedCategoryId).toBe('created')
+
+    act(() => {
+      result.current.selection.handleCategoryChange('existing')
+    })
+    expect(result.current.create.justCreatedCategory).toBeNull()
+  })
+
   it('keeps the selected parent when a domain update refreshes the modal', async () => {
     const pageData: PageData = {
       parentCategories: ['first', 'practice'].map((id) => ({

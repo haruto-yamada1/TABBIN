@@ -8,6 +8,7 @@ import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/pre
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useCategoryModalContext } from './CategoryModalContext'
+import { DOMAIN_ASSIGNMENT_SECTION_ID } from './domainAssignmentSectionId'
 
 type DomainCategoryInfo = {
   id: string
@@ -314,7 +315,11 @@ export const DomainSelectionList = () => {
   }
 
   return (
-    <div data-tour='academy-domain-assignment'>
+    <div
+      data-tour='academy-domain-assignment'
+      data-testid='domain-selection-list'
+      id={DOMAIN_ASSIGNMENT_SECTION_ID}
+    >
       <Label>
         {selection.selectedCategoryId === 'uncategorized'
           ? t('savedTabs.categoryModal.domainsLabelUncategorized')

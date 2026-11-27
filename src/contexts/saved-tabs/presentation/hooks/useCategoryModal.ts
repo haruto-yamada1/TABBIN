@@ -221,6 +221,13 @@ export const useCategoryModal = ({
   const [isCategoryUpdating, setIsCategoryUpdating] = useState(false)
   const isLoading = isCategoryUpdating
 
+  // --- 作成直後の割当ガイド状態 (issue #1130) ---
+  // 作成したカテゴリを保持し、ダイアログ内の割当ステップ表示に使う。
+  const [justCreatedCategory, setJustCreatedCategory] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+
   // --- 削除確認UI状態 ---
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [categoryToDelete, setCategoryToDelete] =
@@ -330,6 +337,10 @@ export const useCategoryModal = ({
   // --- カテゴリ選択ハンドラ ---
   const handleCategoryChange = useCallback(
     (value: string) => {
+      // 別のカテゴリへ手動で切り替えたら作成直後ガイドは役目を終える
+      setJustCreatedCategory((current) =>
+        current && current.id !== value ? null : current,
+      )
       if (value === 'uncategorized') {
         setSelectedCategoryId('uncategorized')
         updateSelectedDomains('uncategorized')
@@ -368,6 +379,7 @@ export const useCategoryModal = ({
       const updatedAll = all.map(toStorageParentCategory)
       setCategories(updatedAll)
       setSelectedCategoryId(newCategory.id)
+      setJustCreatedCategory({ id: newCategory.id, name: newCategory.name })
       setNewCategoryName('')
       toast.success(t('savedTabs.categoryModal.created'))
       updateSelectedDomains(toStorageParentCategory(newCategory))
@@ -450,6 +462,9 @@ export const useCategoryModal = ({
       })
       const updatedAll = all.map(toStorageParentCategory)
       setCategories(updatedAll)
+      setJustCreatedCategory((current) =>
+        current?.id === categoryToDelete.id ? null : current,
+      )
       const updatedDomainCategories = clearCategoryFromDomainMap(
         domainCategories,
         categoryToDelete.id,
@@ -580,6 +595,7 @@ export const useCategoryModal = ({
       handleCategoryNameChange,
       handleCreateCategory,
       handleKeyDown,
+      justCreatedCategory,
       nameError,
       newCategoryName,
     },

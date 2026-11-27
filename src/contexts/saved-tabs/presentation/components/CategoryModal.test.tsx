@@ -26,6 +26,12 @@ vi.mock('./category-modal/CategoryCreateSection', () => ({
   CategoryCreateSection: () => <div data-testid='category-create-section' />,
 }))
 
+vi.mock('./category-modal/CategoryAssignmentGuide', () => ({
+  CategoryAssignmentGuide: () => (
+    <div data-testid='category-assignment-guide' />
+  ),
+}))
+
 vi.mock('./category-modal/CategorySelector', () => ({
   CategorySelector: () => <div data-testid='category-selector' />,
 }))
@@ -75,6 +81,7 @@ describe('CategoryModal', () => {
     expect(screen.getByTestId('category-modal-root')).toBeTruthy()
     expect(screen.getByTestId('category-create-section')).toBeTruthy()
     expect(screen.getByTestId('category-selector')).toBeTruthy()
+    expect(screen.getByTestId('category-assignment-guide')).toBeTruthy()
     expect(screen.getByTestId('domain-selection-list')).toBeTruthy()
   })
 })

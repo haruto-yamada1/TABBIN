@@ -595,6 +595,13 @@ const coreMessagesEn = {
   'savedTabs.categoryManagement.title': 'Manage parent category "{{name}}"',
   'savedTabs.categoryModal.allCategorized':
     'All domains are already categorized',
+  'savedTabs.categoryModal.assignmentGuideAction': 'Assign domains',
+  'savedTabs.categoryModal.assignmentGuideDescription':
+    'Next, check the domains to assign in the domain list below. Assigned domains appear under this category in the Domain mode list, and the checks in this list show the current assignments.',
+  'savedTabs.categoryModal.assignmentGuideTitle': 'Created "{{name}}"',
+  'savedTabs.categoryModal.createAction': 'Create category',
+  'savedTabs.categoryModal.createGuide':
+    'After creating a category, assign domains to it from the domain list below. Assigned domains appear grouped under the category in the Domain mode list.',
   'savedTabs.categoryModal.belongsToCategory': 'Assigned category: {{name}}',
   'savedTabs.categoryModal.createError': 'Could not create the category',
   'savedTabs.categoryModal.createLabel': 'New parent category',
