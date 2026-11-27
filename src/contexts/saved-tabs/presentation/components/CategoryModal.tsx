@@ -4,6 +4,7 @@ import type { CreateParentCategoryUseCase } from '@/contexts/saved-tabs/applicat
 import type { DeleteParentCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/DeleteParentCategoryUseCase'
 import type { SavedTabsTabGroupDto as TabGroup } from '@/contexts/saved-tabs/presentation/types/SavedTabsCompatibilityViewModel'
 
+import { CategoryAssignmentGuide } from './category-modal/CategoryAssignmentGuide'
 import { CategoryCreateSection } from './category-modal/CategoryCreateSection'
 import { CategoryModalRoot } from './category-modal/CategoryModalRoot'
 import { CategorySelector } from './category-modal/CategorySelector'
@@ -54,6 +55,7 @@ export const CategoryModal = ({
   >
     <CategoryCreateSection />
     <CategorySelector />
+    <CategoryAssignmentGuide />
     <DomainSelectionList />
   </CategoryModalRoot>
 )

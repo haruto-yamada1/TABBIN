@@ -602,6 +602,13 @@ const coreMessagesJa = {
   'savedTabs.categoryManagement.title': '「{{name}}」の親カテゴリ管理',
   'savedTabs.categoryModal.allCategorized':
     'すべてのドメインがカテゴリに分類されています',
+  'savedTabs.categoryModal.assignmentGuideAction': 'ドメインを割り当てる',
+  'savedTabs.categoryModal.assignmentGuideDescription':
+    '次に、下のドメイン一覧で割り当てるドメインにチェックを入れてください。割り当てたドメインは Domain モードの一覧でこのカテゴリの下に表示され、この一覧のチェック状態でも確認できます。',
+  'savedTabs.categoryModal.assignmentGuideTitle': '「{{name}}」を作成しました',
+  'savedTabs.categoryModal.createAction': 'カテゴリを作成',
+  'savedTabs.categoryModal.createGuide':
+    'カテゴリを作成すると、続けて下のドメイン一覧でドメインを割り当てられます。割り当てたドメインは、Domain モードの一覧でこのカテゴリの下にまとまって表示されます。',
   'savedTabs.categoryModal.belongsToCategory': '所属カテゴリ: {{name}}',
   'savedTabs.categoryModal.createError': 'カテゴリの作成に失敗しました',
   'savedTabs.categoryModal.createLabel': '新規親カテゴリ名',

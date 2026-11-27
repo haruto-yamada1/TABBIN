@@ -139,6 +139,22 @@ describe('DomainSelectionList', () => {
     expect(screen.queryByText('domain-119.example.com')).toBeNull()
   })
 
+  it('作成直後ガイドからの遷移先として割当セクションの id を持つ', () => {
+    setCategoryModalContext({
+      tabGroups: createTabGroups(1),
+      selectedCategoryId: 'cat-1',
+      domainCategories: {
+        'group-0': null,
+      },
+    })
+
+    render(<DomainSelectionList />)
+
+    expect(screen.getByTestId('domain-selection-list').id).toBe(
+      'parent-category-domain-assignment',
+    )
+  })
+
   it('タブが0件なら空メッセージを表示する', () => {
     setCategoryModalContext({
       tabGroups: [],
