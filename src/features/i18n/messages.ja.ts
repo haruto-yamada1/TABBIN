@@ -10,6 +10,7 @@ import { favoriteMessagesJa } from './favoriteMessages.ja'
 import { navigationMessagesJa } from './navigationMessages.ja'
 import { optionsMessagesJa } from './optionsMessages.ja'
 import { organizationActionMessagesJa } from './organizationActionMessages.ja'
+import { savedTabsUndoMessagesJa } from './savedTabsUndoMessages.ja'
 import { searchHistoryMessagesJa } from './searchHistoryMessages.ja'
 import { selectionMessagesJa } from './selectionMessages.ja'
 import { tabOpeningErrorMessagesJa } from './tabOpeningErrorMessages.ja'
@@ -26,6 +27,7 @@ const messagesJa = {
   ...selectionMessagesJa,
   ...searchHistoryMessagesJa,
   ...optionsMessagesJa,
+  ...savedTabsUndoMessagesJa,
   ...favoriteMessagesJa,
   ...tabOpeningErrorMessagesJa,
   ...backgroundContextMenuMessagesJa,

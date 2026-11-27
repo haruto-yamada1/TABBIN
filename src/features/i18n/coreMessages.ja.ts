@@ -854,12 +854,6 @@ const coreMessagesJa = {
   'savedTabs.tabs.deletedCount': '{{count}}件のタブを削除しました',
   'savedTabs.uncategorized': '未分類',
   'savedTabs.uncategorizedDomainsTitle': '未分類のドメイン',
-  'savedTabs.undo.deletedTabs':
-    '削除した{{count}}件のタブを保存データに戻せます',
-  'savedTabs.undo.removedAfterOpen':
-    '開いた{{count}}件のタブを保存データから削除しました',
-  'savedTabs.undo.restoreError': '保存データを復元できませんでした',
-  'savedTabs.undo.restored': '保存データを復元しました',
   'savedTabs.url.dragHandleAria': 'ドラッグしてタブ「{{name}}」を並べ替える',
   'savedTabs.url.deleteAria': 'タブを削除',
   'savedTabs.url.openNow': '開いています',

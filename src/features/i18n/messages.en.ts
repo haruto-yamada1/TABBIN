@@ -10,6 +10,7 @@ import { favoriteMessagesEn } from './favoriteMessages.en'
 import { navigationMessagesEn } from './navigationMessages.en'
 import { optionsMessagesEn } from './optionsMessages.en'
 import { organizationActionMessagesEn } from './organizationActionMessages.en'
+import { savedTabsUndoMessagesEn } from './savedTabsUndoMessages.en'
 import { searchHistoryMessagesEn } from './searchHistoryMessages.en'
 import { selectionMessagesEn } from './selectionMessages.en'
 import { tabOpeningErrorMessagesEn } from './tabOpeningErrorMessages.en'
@@ -26,6 +27,7 @@ const messagesEn = {
   ...selectionMessagesEn,
   ...searchHistoryMessagesEn,
   ...optionsMessagesEn,
+  ...savedTabsUndoMessagesEn,
   ...favoriteMessagesEn,
   ...tabOpeningErrorMessagesEn,
   ...backgroundContextMenuMessagesEn,

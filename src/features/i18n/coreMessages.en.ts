@@ -856,12 +856,6 @@ const coreMessagesEn = {
   'savedTabs.tabs.deletedCount': 'Deleted {{count}} tabs',
   'savedTabs.uncategorized': 'Uncategorized',
   'savedTabs.uncategorizedDomainsTitle': 'Uncategorized domains',
-  'savedTabs.undo.deletedTabs':
-    'You can restore {{count}} deleted tabs to saved data',
-  'savedTabs.undo.removedAfterOpen':
-    'Removed {{count}} opened tabs from saved data',
-  'savedTabs.undo.restoreError': 'Could not restore saved data',
-  'savedTabs.undo.restored': 'Restored saved data',
   'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
   'savedTabs.url.deleteAria': 'Delete tab',
   'savedTabs.url.openNow': 'Open now',
