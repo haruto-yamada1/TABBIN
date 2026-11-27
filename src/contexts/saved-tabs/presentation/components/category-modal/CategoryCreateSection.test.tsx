@@ -46,10 +46,11 @@ const setContext = ({
   isLoading?: boolean
   handleCreateCategory?: () => void
 } = {}) => {
+  const handleBlur = vi.fn()
   useCategoryModalContextMock.mockReturnValue({
     state: {
       create: {
-        handleBlur: vi.fn(),
+        handleBlur,
         handleCategoryNameChange: vi.fn(),
         handleCreateCategory,
         handleKeyDown: vi.fn(),
@@ -60,6 +61,7 @@ const setContext = ({
     },
     tabGroups: [],
   })
+  return { handleBlur, handleCreateCategory }
 }
 
 afterEach(() => {
@@ -95,6 +97,22 @@ describe('CategoryCreateSection', () => {
     render(<CategoryCreateSection />)
     await user.click(screen.getByRole('button', { name: 'カテゴリを作成' }))
 
+    expect(handleCreateCategory).toHaveBeenCalledTimes(1)
+  })
+
+  it('入力欄にフォーカスした状態で作成ボタンをクリックしても二重作成しない', async () => {
+    const user = userEvent.setup()
+    const handleCreateCategory = vi.fn()
+    const { handleBlur } = setContext({
+      newCategoryName: '仕事',
+      handleCreateCategory,
+    })
+
+    render(<CategoryCreateSection />)
+    await user.click(screen.getByRole('textbox'))
+    await user.click(screen.getByRole('button', { name: 'カテゴリを作成' }))
+
+    expect(handleBlur).not.toHaveBeenCalled()
     expect(handleCreateCategory).toHaveBeenCalledTimes(1)
   })
 })
