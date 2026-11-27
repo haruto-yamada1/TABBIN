@@ -226,7 +226,11 @@ describe('SortableUrlItem', () => {
       'https://example.com/really/long/path/that/should/not/stretch/the/card',
     )
 
-    await user.click(screen.getByRole('button', { name: 'タブを削除' }))
+    await user.click(
+      screen.getByRole('button', {
+        name: 'タブを削除: Very long saved tab title Very long saved tab title Very long saved tab title',
+      }),
+    )
     expect(handleDeleteUrl).toHaveBeenCalledWith(
       'group-1',
       'https://example.com/really/long/path/that/should/not/stretch/the/card',

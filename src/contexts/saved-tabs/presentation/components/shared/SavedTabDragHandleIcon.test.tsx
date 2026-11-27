@@ -178,7 +178,9 @@ describe.each(['domain', 'project'] as const)(
       expect(link).toHaveAccessibleName('Example')
       await user.click(link)
       expect(onOpen).toHaveBeenCalledWith(url)
-      await user.click(screen.getByRole('button', { name: 'Delete tab' }))
+      await user.click(
+        screen.getByRole('button', { name: 'Delete tab: Example' }),
+      )
       expect(onDelete).toHaveBeenCalledWith(
         mode === 'domain' ? 'group-1' : 'project-1',
         url,

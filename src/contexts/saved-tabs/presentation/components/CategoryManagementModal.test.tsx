@@ -1364,7 +1364,7 @@ describe('CategoryManagementModal', () => {
     )
 
     const removeButtons = screen.getAllByRole('button', {
-      name: 'ドメインを取り除く',
+      name: /^ドメイン .* を取り除く$/u,
     })
     const firstRemoveButton = removeButtons[0]
     expect(firstRemoveButton).toBeTruthy()
@@ -1385,7 +1385,7 @@ describe('CategoryManagementModal', () => {
       },
     )
     const nextRemoveButtons = screen.getAllByRole('button', {
-      name: 'ドメインを取り除く',
+      name: /^ドメイン .* を取り除く$/u,
     })
     const nextRemoveButton = nextRemoveButtons[0]
     expect(nextRemoveButton).toBeTruthy()
@@ -1489,7 +1489,7 @@ describe('CategoryManagementModal', () => {
     )
 
     let removeButtons = screen.getAllByRole('button', {
-      name: 'ドメインを取り除く',
+      name: /^ドメイン .* を取り除く$/u,
     })
     const removeButton = removeButtons[0]
     expect(removeButton).toBeTruthy()
@@ -1504,7 +1504,7 @@ describe('CategoryManagementModal', () => {
 
     const removeButtonProps = getLatestButtonProps(
       (props) =>
-        props['aria-label'] === 'ドメインを取り除く' &&
+        props['aria-label'] === 'ドメイン a.com を取り除く' &&
         props.onClick instanceof Function,
     ) as { onClick?: () => void } | undefined
     removeButtonProps?.onClick?.()
@@ -1548,7 +1548,7 @@ describe('CategoryManagementModal', () => {
       />,
     )
     removeButtons = screen.getAllByRole('button', {
-      name: 'ドメインを取り除く',
+      name: /^ドメイン .* を取り除く$/u,
     })
     await user.click(removeButtons[0] as HTMLButtonElement)
     await waitFor(() => {
@@ -1575,7 +1575,7 @@ describe('CategoryManagementModal', () => {
       />,
     )
     removeButtons = screen.getAllByRole('button', {
-      name: 'ドメインを取り除く',
+      name: /^ドメイン .* を取り除く$/u,
     })
     await user.click(removeButtons[0] as HTMLButtonElement)
     await waitFor(() => {

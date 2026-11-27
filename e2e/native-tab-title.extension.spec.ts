@@ -153,7 +153,7 @@ test.describe('pregranted optional native title access', () => {
       .filter({ has: page.getByRole('link', { name: 'Article', exact: true }) })
     await customRow.hover()
     await customRow
-      .getByRole('button', { name: 'Delete tab', exact: true })
+      .getByRole('button', { name: 'Delete tab: Article', exact: true })
       .click()
     await expect(customRow).toBeHidden()
     await expectNativeTitle(article, serviceWorker, '✓ Article')
@@ -163,7 +163,7 @@ test.describe('pregranted optional native title access', () => {
       .filter({ has: page.getByRole('link', { name: 'Article', exact: true }) })
     await domainRow.hover()
     await domainRow
-      .getByRole('button', { name: 'Delete tab', exact: true })
+      .getByRole('button', { name: 'Delete tab: Article', exact: true })
       .click()
     await expect(domainRow).toBeHidden()
     await expectNativeTitle(article, serviceWorker, 'Article')
@@ -265,7 +265,7 @@ test.describe('native title persistence lifecycle', () => {
       .filter({ has: page.getByRole('link', { name: 'Article', exact: true }) })
     await custom.hover()
     await custom
-      .getByRole('button', { name: 'Delete tab', exact: true })
+      .getByRole('button', { name: 'Delete tab: Article', exact: true })
       .click()
     await page.goto(`${appUrl}#/saved-tabs?mode=domain`)
     const domain = page
@@ -273,7 +273,7 @@ test.describe('native title persistence lifecycle', () => {
       .filter({ has: page.getByRole('link', { name: 'Article', exact: true }) })
     await domain.hover()
     await domain
-      .getByRole('button', { name: 'Delete tab', exact: true })
+      .getByRole('button', { name: 'Delete tab: Article', exact: true })
       .click()
     await expectNativeTitle(article, serviceWorker, 'Article')
     await page
@@ -293,7 +293,7 @@ test.describe('native title persistence lifecycle', () => {
     await page.goto(`${appUrl}#/saved-tabs?mode=domain`)
     await domain.hover()
     await domain
-      .getByRole('button', { name: 'Delete tab', exact: true })
+      .getByRole('button', { name: 'Delete tab: Article', exact: true })
       .click()
     await expectNativeTitle(article, serviceWorker, 'Article')
     await page.goto(`${appUrl}#/options`)

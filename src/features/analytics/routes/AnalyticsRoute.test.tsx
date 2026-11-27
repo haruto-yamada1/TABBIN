@@ -1980,7 +1980,9 @@ describe('AnalyticsRoute', () => {
     const savedAtText = new Date(records[0].savedAt).toLocaleString('en-US')
     expect(screen.getByText(savedAtText)).toBeTruthy()
     const openLink = screen.getByRole('link', { name: 'Open Example Docs' })
-    const deleteButton = screen.getByRole('button', { name: 'Delete tab' })
+    const deleteButton = screen.getByRole('button', {
+      name: 'Delete tab: Example Docs',
+    })
     const actionButtonsSource = readFileSync(
       resolve(import.meta.dirname, './AnalyticsRecordActionButtons.tsx'),
       {
@@ -2222,7 +2224,9 @@ describe('AnalyticsRoute', () => {
     await screen.findByRole('link', {
       name: 'Open Extremely long analytics drilldown title that should never push the action area out of view even when the canvas is narrow',
     })
-    const deleteButton = screen.getByRole('button', { name: 'Delete tab' })
+    const deleteButton = screen.getByRole('button', {
+      name: 'Delete tab: Extremely long analytics drilldown title that should never push the action area out of view even when the canvas is narrow',
+    })
 
     const buttonRow = screen.getByTestId('analytics-action-row-1')
     const actionColumn = screen.getByTestId('analytics-action-column-1')
@@ -2232,9 +2236,11 @@ describe('AnalyticsRoute', () => {
     expect(cardLayout).toHaveClass('sm:grid-cols-[minmax(0,1fr)_auto]')
     expect(buttonRow).toHaveClass('items-center')
     expect(buttonRow).toHaveClass('justify-end')
-    expect(within(buttonRow).getByRole('button', { name: 'Delete tab' })).toBe(
-      deleteButton,
-    )
+    expect(
+      within(buttonRow).getByRole('button', {
+        name: 'Delete tab: Extremely long analytics drilldown title that should never push the action area out of view even when the canvas is narrow',
+      }),
+    ).toBe(deleteButton)
     expect(actionColumn).toHaveClass('sm:items-end')
   })
 
@@ -2246,7 +2252,7 @@ describe('AnalyticsRoute', () => {
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     expect(
-      await screen.findByRole('button', { name: 'Delete tab' }),
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
     ).toBeTruthy()
   })
 
@@ -2337,7 +2343,9 @@ describe('AnalyticsRoute', () => {
       await user.click(
         await screen.findByRole('button', {
           name:
-            mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+            mode === 'single'
+              ? 'Delete tab: Example Docs'
+              : 'Delete all tabs in this item',
         }),
       )
       await screen.findByText(
@@ -2360,7 +2368,9 @@ describe('AnalyticsRoute', () => {
       await user.click(
         await screen.findByRole('button', {
           name:
-            mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+            mode === 'single'
+              ? 'Delete tab: Example Docs'
+              : 'Delete all tabs in this item',
         }),
       )
       await waitFor(() => {
@@ -2389,7 +2399,9 @@ describe('AnalyticsRoute', () => {
       await user.click(
         await screen.findByRole('button', {
           name:
-            mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+            mode === 'single'
+              ? 'Delete tab: Example Docs'
+              : 'Delete all tabs in this item',
         }),
       )
       await screen.findByText(
@@ -2424,7 +2436,10 @@ describe('AnalyticsRoute', () => {
         .mockReturnValueOnce(settingsRead)
         .mockResolvedValue(defaultSettings)
       const deleteButton = screen.getByRole('button', {
-        name: mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+        name:
+          mode === 'single'
+            ? 'Delete tab: Example Docs'
+            : 'Delete all tabs in this item',
       })
       await user.click(deleteButton)
       await user.click(deleteButton)
@@ -2456,7 +2471,9 @@ describe('AnalyticsRoute', () => {
         .mockReturnValueOnce(settingsRead)
         .mockReturnValueOnce(settingsRead)
         .mockResolvedValue(defaultSettings)
-      const singleDelete = screen.getByRole('button', { name: 'Delete tab' })
+      const singleDelete = screen.getByRole('button', {
+        name: 'Delete tab: Example Docs',
+      })
       const bulkDelete = screen.getByRole('button', {
         name: 'Delete all tabs in this item',
       })
@@ -2498,7 +2515,10 @@ describe('AnalyticsRoute', () => {
         .mockReturnValueOnce(settingsRead)
         .mockResolvedValue(defaultSettings)
       const deleteButton = screen.getByRole('button', {
-        name: mode === 'single' ? 'Delete tab' : 'Delete all tabs in this item',
+        name:
+          mode === 'single'
+            ? 'Delete tab: Example Docs'
+            : 'Delete all tabs in this item',
       })
       await user.click(deleteButton)
       await act(async () => {
@@ -2624,7 +2644,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
+    )
 
     await waitFor(() => {
       expect(analyticsRouteMocks.sendMessageMock).toHaveBeenCalledWith(
@@ -2679,7 +2701,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
+    )
 
     await waitFor(() => {
       expect(toast.info).toHaveBeenCalled()
@@ -2718,7 +2742,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
+    )
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete the tab')
@@ -2749,7 +2775,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
+    )
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to delete the tab')
@@ -2859,7 +2887,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
+    )
 
     await waitFor(() => {
       expect(toast.info).toHaveBeenCalled()
@@ -2893,7 +2923,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
+    )
 
     expect(await screen.findByText('Delete this tab?')).toBeTruthy()
     expect(analyticsRouteMocks.sendMessageMock).not.toHaveBeenCalled()
@@ -2916,7 +2948,9 @@ describe('AnalyticsRoute', () => {
 
     expect((await screen.findAllByText('Saved count by domain')).length).toBe(1)
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
-    await user.click(await screen.findByRole('button', { name: 'Delete tab' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete tab: Example Docs' }),
+    )
 
     expect(await screen.findByText('Delete this tab?')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -2945,7 +2979,7 @@ describe('AnalyticsRoute', () => {
     await user.click(screen.getByRole('button', { name: 'emit-chart-click' }))
 
     const deleteButton = await screen.findByRole('button', {
-      name: 'Delete tab',
+      name: 'Delete tab: Example Docs',
     })
     await user.click(deleteButton)
     await user.click(deleteButton)

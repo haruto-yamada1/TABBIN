@@ -80,7 +80,9 @@ const KeywordBadge = ({
         size='sm'
         onClick={handleClick}
         className='h-5 px-1'
-        aria-label={t('savedTabs.keywords.deleteAria')}
+        aria-label={t('savedTabs.keywords.deleteAriaWithName', undefined, {
+          name: keyword,
+        })}
         disabled={disabled}
       >
         <X size={14} />

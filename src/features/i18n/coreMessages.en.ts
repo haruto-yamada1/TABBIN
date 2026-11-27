@@ -584,6 +584,8 @@ const coreMessagesEn = {
     'No registered domains',
   'savedTabs.categoryManagement.registeredDomainsLabel': 'Registered domains',
   'savedTabs.categoryManagement.removeDomainAria': 'Remove domain',
+  'savedTabs.categoryManagement.removeDomainAriaWithName':
+    'Remove domain {{name}}',
   'savedTabs.categoryManagement.renameAction': 'Rename parent category',
   'savedTabs.categoryManagement.renameError':
     'Failed to rename the parent category',
@@ -870,6 +872,7 @@ const coreMessagesEn = {
   'savedTabs.uncategorizedDomainsTitle': 'Uncategorized domains',
   'savedTabs.url.dragHandleAria': 'Drag to reorder tab "{{name}}"',
   'savedTabs.url.deleteAria': 'Delete tab',
+  'savedTabs.url.deleteAriaWithName': 'Delete tab: {{name}}',
   'savedTabs.url.openNow': 'Open now',
   'savedTabs.url.deleteConfirmDescription':
     'Delete this tab. This action cannot be undone.',

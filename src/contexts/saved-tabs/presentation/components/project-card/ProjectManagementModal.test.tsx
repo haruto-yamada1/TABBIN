@@ -391,7 +391,7 @@ describe('ProjectManagementModal', () => {
     fireEvent.keyDown(domainInput, { key: 'Enter' })
 
     const deleteButtons = screen.getAllByRole('button', {
-      name: 'キーワードを削除',
+      name: /^キーワード .* を削除$/u,
     })
     const firstDeleteButton = deleteButtons[0]
     assert.isDefined(firstDeleteButton)

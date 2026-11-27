@@ -94,7 +94,9 @@ const scenarios = [
         .getByTestId('project-url-item')
         .filter({ hasText: titles.a })
       await row.hover()
-      await row.getByRole('button', { name: 'Delete tab', exact: true }).click()
+      await row
+        .getByRole('button', { name: `Delete tab: ${titles.a}`, exact: true })
+        .click()
     },
   },
   {

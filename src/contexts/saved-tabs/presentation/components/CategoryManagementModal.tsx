@@ -165,7 +165,11 @@ const DomainBadge = ({
             size='sm'
             onClick={handleRemove}
             className='ml-1 cursor-pointer text-zinc-400 hover:text-zinc-200'
-            aria-label={t('savedTabs.categoryManagement.removeDomainAria')}
+            aria-label={t(
+              'savedTabs.categoryManagement.removeDomainAriaWithName',
+              undefined,
+              { name: domain.domain },
+            )}
             disabled={isProcessing}
           >
             <X size={14} />

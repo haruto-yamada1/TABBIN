@@ -100,7 +100,7 @@ const exercisePracticeData = async (page: Page) => {
   await expect(items).toHaveCount(6)
   const first = items.first()
   await first.hover()
-  await first.getByRole('button', { name: 'Delete tab', exact: true }).click()
+  await first.getByRole('button', { name: /^Delete tab: /u }).click()
   await expect(items).toHaveCount(5)
   await page
     .getByRole('button', { name: 'Reset practice', exact: true })

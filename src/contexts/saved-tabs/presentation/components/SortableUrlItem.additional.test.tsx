@@ -317,7 +317,9 @@ describe('SortableUrlItem additional', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'タブを削除' }))
+    await user.click(
+      screen.getByRole('button', { name: 'タブを削除: Example Tab' }),
+    )
     expect(handleDeleteUrl).not.toHaveBeenCalled()
 
     await user.click(screen.getByRole('button', { name: '削除' }))

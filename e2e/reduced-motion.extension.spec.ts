@@ -157,7 +157,7 @@ test('reduced motion keeps dialog/collapse state, counts and toast feedback', as
   await rows.first().hover()
   await rows
     .first()
-    .getByRole('button', { name: 'Delete tab', exact: true })
+    .getByRole('button', { name: /^Delete tab: /u })
     .click()
   await expect(rows).toHaveCount(1)
   const toast = page.locator('[data-sonner-toast]').filter({
