@@ -409,7 +409,7 @@ describe('CustomProjectCategory', () => {
     expect(card.getAttribute('id')).toBe('category-drop-project-1-Work')
     expect(card.getAttribute('data-category')).toBe('Work')
     expect(screen.getByText('Work')).toBeTruthy()
-    expect(screen.getByText('3')).toBeTruthy()
+    expect(screen.getByText('タブ数 3')).toBeTruthy()
     expect(screen.getAllByTestId('project-url-item').length).toBe(3)
     expect(screen.getAllByTestId('project-url-item')[0]?.textContent).toContain(
       'https://b.com',

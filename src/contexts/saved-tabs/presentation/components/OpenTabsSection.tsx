@@ -9,7 +9,6 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
@@ -31,6 +30,7 @@ import { cn } from '@/lib/utils'
 
 import { ActionConfirmDialog } from './shared/ActionConfirmDialog'
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
+import { LabeledCountBadge } from './shared/LabeledCountBadge'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
 import { SortableUrlItem } from './SortableUrlItem'
 
@@ -79,25 +79,6 @@ const TooltipIconButton = ({
       {tooltip}
     </SavedTabsResponsiveTooltipContent>
   </Tooltip>
-)
-
-const OpenTabsCountBadge = ({
-  count,
-  label,
-}: {
-  count: number
-  label: string
-}) => (
-  <span className='text-sm text-muted-foreground'>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge variant='secondary'>{count}</Badge>
-      </TooltipTrigger>
-      <SavedTabsResponsiveTooltipContent side='top'>
-        {label}
-      </SavedTabsResponsiveTooltipContent>
-    </Tooltip>
-  </span>
 )
 
 const groupRowsByGroupId = (
@@ -295,7 +276,7 @@ export const OpenTabsSection = ({
             >
               {t('savedTabs.openTabs.title')}
             </h2>
-            <OpenTabsCountBadge
+            <LabeledCountBadge
               count={orderedRows.length}
               label={t('savedTabs.sortableCategory.tabCountLabel')}
             />

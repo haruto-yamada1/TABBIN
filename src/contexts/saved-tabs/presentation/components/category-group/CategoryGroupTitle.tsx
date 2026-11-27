@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
 
-import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { CardGroupTitle } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupTitle'
-import { SavedTabsResponsiveTooltipContent } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import { LabeledCountBadge } from '@/contexts/saved-tabs/presentation/components/shared/LabeledCountBadge'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useCategoryGroup } from './CategoryGroupContext'
 
@@ -12,31 +11,24 @@ import { useCategoryGroup } from './CategoryGroupContext'
  * カテゴリ名、タブ数・ドメイン数バッジ、ドラッグハンドルを含む
  */
 export const CategoryGroupTitle = () => {
+  const { t } = useI18n()
   const { category, allUrls, visibleDomainsCount, sortable } =
     useCategoryGroup()
 
   const badges = useMemo(
     () => (
       <>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant='secondary'>{allUrls?.length ?? 0}</Badge>
-          </TooltipTrigger>
-          <SavedTabsResponsiveTooltipContent side='top'>
-            タブ数
-          </SavedTabsResponsiveTooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant='secondary'>{visibleDomainsCount}</Badge>
-          </TooltipTrigger>
-          <SavedTabsResponsiveTooltipContent side='top'>
-            ドメイン数
-          </SavedTabsResponsiveTooltipContent>
-        </Tooltip>
+        <LabeledCountBadge
+          count={allUrls?.length ?? 0}
+          label={t('savedTabs.sortableCategory.tabCountLabel')}
+        />
+        <LabeledCountBadge
+          count={visibleDomainsCount}
+          label={t('savedTabs.domainCountLabel')}
+        />
       </>
     ),
-    [allUrls?.length, visibleDomainsCount],
+    [allUrls?.length, t, visibleDomainsCount],
   )
 
   return (

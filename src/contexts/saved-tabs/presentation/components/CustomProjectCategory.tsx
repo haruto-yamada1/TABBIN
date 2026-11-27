@@ -8,7 +8,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import { memo, useCallback, useMemo, useReducer, useState } from 'react'
 
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useSavedTabsUseCases } from '@/contexts/saved-tabs/presentation/controllers/SavedTabsUseCasesContext'
 import { useDropTargetFeedback } from '@/contexts/saved-tabs/presentation/hooks/useDropTargetFeedback'
@@ -27,6 +26,7 @@ import { CustomProjectCategoryManageDialog } from './CustomProjectCategoryManage
 import { ProjectUrlItem } from './ProjectUrlItem'
 import { CardCollapseControl } from './shared/CardCollapseControl'
 import { CardSortControl } from './shared/CardSortControl'
+import { LabeledCountBadge } from './shared/LabeledCountBadge'
 
 type CategoryUrl = NonNullable<CustomProjectCategoryProps['urls']>[number]
 
@@ -116,7 +116,10 @@ const CategoryHeaderMain = ({
       <h3 className='m-0 border-none bg-transparent p-0 text-lg font-medium'>
         {category}
       </h3>
-      <Badge variant='secondary'>{urlCount}</Badge>
+      <LabeledCountBadge
+        count={urlCount}
+        label={t('savedTabs.sortableCategory.tabCountLabel')}
+      />
     </div>
   )
 }

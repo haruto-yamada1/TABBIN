@@ -31,6 +31,16 @@ vi.mock('../shared/SavedTabsResponsive', () => ({
   }) => <span>{children}</span>,
 }))
 
+vi.mock('@/features/i18n/context/I18nProvider', () => ({
+  useI18n: () => ({
+    t: (key: string) =>
+      ({
+        'savedTabs.sortableCategory.tabCountLabel': 'タブ数',
+        'savedTabs.subCategoryCountLabel': '子カテゴリ数',
+      })[key] ?? key,
+  }),
+}))
+
 vi.mock('./DomainCardContext', () => ({
   useDomainCard: () => useDomainCardMock(),
 }))
@@ -63,10 +73,8 @@ describe('DomainCardTitle', () => {
     expect(screen.getByText('example.com')).toBeTruthy()
     const dragHandle = screen.getByTestId('drag-handle')
     expect(dragHandle).not.toHaveClass('text-muted-foreground/80')
-    expect(screen.getByText('1')).toBeTruthy()
-    expect(screen.getByText('タブ数')).toBeTruthy()
-    expect(screen.getByText('2')).toBeTruthy()
-    expect(screen.getByText('子カテゴリ数')).toBeTruthy()
+    expect(screen.getByText('タブ数 1')).toBeTruthy()
+    expect(screen.getByText('子カテゴリ数 2')).toBeTruthy()
   })
 
   it('親カテゴリ配下でない場合は子カテゴリ数を表示しない', () => {
@@ -86,6 +94,6 @@ describe('DomainCardTitle', () => {
 
     render(<DomainCardTitle />)
 
-    expect(screen.queryByText('子カテゴリ数')).toBeNull()
+    expect(screen.queryByText('子カテゴリ数 2')).toBeNull()
   })
 })

@@ -5,7 +5,6 @@ import { Check, X } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import type { ComponentProps } from 'react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
@@ -26,6 +25,7 @@ import {
 } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import type { SavedTabSelectionItem } from '@/contexts/saved-tabs/presentation/components/selection/SavedTabsSelectionProvider'
 import { CardGroupActions } from '@/contexts/saved-tabs/presentation/components/shared/CardGroupActions'
+import { LabeledCountBadge } from '@/contexts/saved-tabs/presentation/components/shared/LabeledCountBadge'
 import {
   SavedTabsResponsiveLabel,
   SavedTabsResponsiveTooltipContent,
@@ -43,19 +43,6 @@ import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 const BULK_OPEN_THRESHOLD = 10
 const EMPTY_TAB_GROUPS: TabGroup[] = []
-
-const TabCountBadge = ({ count, label }: { count: number; label: string }) => (
-  <span className='text-sm text-muted-foreground'>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge variant='secondary'>{count}</Badge>
-      </TooltipTrigger>
-      <SavedTabsResponsiveTooltipContent side='top'>
-        {label}
-      </SavedTabsResponsiveTooltipContent>
-    </Tooltip>
-  </span>
-)
 
 const UncategorizedReorderActions = ({
   handleCancelReorder,
@@ -357,10 +344,13 @@ const UncategorizedDomainSection = ({
             </h2>
             {displayedDomainCount > 0 && (
               <div className='flex items-center gap-3 text-sm text-muted-foreground'>
-                <TabCountBadge count={displayedTabCount} label='タブ数' />
-                <TabCountBadge
+                <LabeledCountBadge
+                  count={displayedTabCount}
+                  label={t('savedTabs.sortableCategory.tabCountLabel')}
+                />
+                <LabeledCountBadge
                   count={displayedDomainCount}
-                  label='ドメイン数'
+                  label={t('savedTabs.domainCountLabel')}
                 />
               </div>
             )}

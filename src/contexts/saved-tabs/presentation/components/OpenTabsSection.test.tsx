@@ -279,7 +279,7 @@ describe('OpenTabsSection', () => {
         level: 2,
       })
       expect(heading).toBeVisible()
-      expect(screen.getByText('3')).toBeVisible()
+      expect(screen.getByText('タブ数 3')).toBeVisible()
       for (const url of [
         'https://example.com/a',
         'https://example.com/b',
@@ -296,7 +296,7 @@ describe('OpenTabsSection', () => {
     render(<OpenTabsSection {...props} />)
     await user.click(screen.getByRole('button', { name: '折りたたむ' }))
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
-    expect(screen.getByText('3')).toBeVisible()
+    expect(screen.getByText('タブ数 3')).toBeVisible()
     await user.click(screen.getByRole('button', { name: '展開' }))
     expect(screen.getAllByTestId('sortable-url-item')).toHaveLength(3)
   })

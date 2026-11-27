@@ -393,7 +393,7 @@ describe('SortableCategorySection', () => {
       />,
     )
 
-    expect(screen.getByText('0')).toBeTruthy()
+    expect(screen.getByText('タブ数 0')).toBeTruthy()
     await user.click(
       screen.getByRole('button', {
         name: '「未分類」のすべてのタブを開く',

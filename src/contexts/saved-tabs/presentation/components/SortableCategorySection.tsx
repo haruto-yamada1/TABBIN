@@ -20,7 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ReorderTabGroupUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderTabGroupUrlsUseCase'
@@ -36,6 +35,7 @@ import type { SortableCategorySectionProps } from '@/contexts/saved-tabs/present
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { CategoryBulkActionButtons } from './shared/CategoryBulkActionButtons'
+import { LabeledCountBadge } from './shared/LabeledCountBadge'
 import { SavedTabsResponsiveTooltipContent } from './shared/SavedTabsResponsive'
 import { getTouchHandleListeners } from './shared/touchDragHandle'
 import { useSortableCategoryDrag } from './shared/useSortableCategoryDrag'
@@ -75,19 +75,6 @@ const TooltipIconButton = ({
       {tooltip}
     </SavedTabsResponsiveTooltipContent>
   </Tooltip>
-)
-
-const TabCountBadge = ({ count, label }: { count: number; label: string }) => (
-  <span className='text-sm text-muted-foreground'>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge variant='secondary'>{count}</Badge>
-      </TooltipTrigger>
-      <SavedTabsResponsiveTooltipContent side='top'>
-        {label}
-      </SavedTabsResponsiveTooltipContent>
-    </Tooltip>
-  </span>
 )
 
 type SortOrder = 'default' | 'asc' | 'desc'
@@ -364,7 +351,7 @@ const useSortableCategorySectionView = ({
             <h3 className='font-medium text-foreground'>
               {displayedCategoryName}
             </h3>
-            <TabCountBadge
+            <LabeledCountBadge
               count={urlCount}
               label={t('savedTabs.sortableCategory.tabCountLabel')}
             />

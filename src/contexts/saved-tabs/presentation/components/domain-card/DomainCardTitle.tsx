@@ -1,8 +1,7 @@
 import { GripVertical } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
-import { SavedTabsResponsiveTooltipContent } from '@/contexts/saved-tabs/presentation/components/shared/SavedTabsResponsive'
+import { LabeledCountBadge } from '@/contexts/saved-tabs/presentation/components/shared/LabeledCountBadge'
+import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 import { useDomainCard } from './DomainCardContext'
 
@@ -11,6 +10,7 @@ import { useDomainCard } from './DomainCardContext'
  * ドメイン名、タブ数バッジ、ドラッグハンドルを含む
  */
 export const DomainCardTitle = () => {
+  const { t } = useI18n()
   const { group, sortable, categoryId, visibleSubCategoryCount } =
     useDomainCard()
 
@@ -28,27 +28,15 @@ export const DomainCardTitle = () => {
       <h2 className='truncate text-lg font-semibold text-foreground'>
         {group.domain}
       </h2>
-      <span className='text-sm text-muted-foreground'>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant='secondary'>{group.urls?.length ?? 0}</Badge>
-          </TooltipTrigger>
-          <SavedTabsResponsiveTooltipContent side='top'>
-            タブ数
-          </SavedTabsResponsiveTooltipContent>
-        </Tooltip>
-      </span>
+      <LabeledCountBadge
+        count={group.urls?.length ?? 0}
+        label={t('savedTabs.sortableCategory.tabCountLabel')}
+      />
       {categoryId ? (
-        <span className='text-sm text-muted-foreground'>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant='secondary'>{visibleSubCategoryCount}</Badge>
-            </TooltipTrigger>
-            <SavedTabsResponsiveTooltipContent side='top'>
-              子カテゴリ数
-            </SavedTabsResponsiveTooltipContent>
-          </Tooltip>
-        </span>
+        <LabeledCountBadge
+          count={visibleSubCategoryCount}
+          label={t('savedTabs.subCategoryCountLabel')}
+        />
       ) : null}
     </div>
   )
