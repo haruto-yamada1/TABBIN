@@ -311,4 +311,51 @@ describe('Sidebar', () => {
       '360',
     )
   })
+
+  it('Ctrl+B でサイドバーを切り替える', () => {
+    window.localStorage.setItem('tabbin-extension-sidebar-width', '320')
+
+    render(
+      <SidebarProvider defaultOpen>
+        <Sidebar>
+          <div>sidebar-content</div>
+        </Sidebar>
+        <SidebarInset>main-content</SidebarInset>
+      </SidebarProvider>,
+    )
+
+    const sidebarRoot = screen
+      .getByRole('button', { name: resizeLabel })
+      .closest('[data-side]')
+    expect(sidebarRoot?.getAttribute('data-state')).toBe('expanded')
+
+    fireEvent.keyDown(window, { ctrlKey: true, key: 'b' })
+
+    expect(sidebarRoot?.getAttribute('data-state')).toBe('collapsed')
+  })
+
+  it('テキスト入力中は Ctrl+B でサイドバーを切り替えない', () => {
+    window.localStorage.setItem('tabbin-extension-sidebar-width', '320')
+
+    render(
+      <SidebarProvider defaultOpen>
+        <Sidebar>
+          <div>sidebar-content</div>
+        </Sidebar>
+        <SidebarInset>
+          <input data-testid='search-input' type='text' />
+        </SidebarInset>
+      </SidebarProvider>,
+    )
+
+    const sidebarRoot = screen
+      .getByRole('button', { name: resizeLabel })
+      .closest('[data-side]')
+    const input = screen.getByTestId('search-input')
+    input.focus()
+
+    fireEvent.keyDown(input, { ctrlKey: true, key: 'b' })
+
+    expect(sidebarRoot?.getAttribute('data-state')).toBe('expanded')
+  })
 })

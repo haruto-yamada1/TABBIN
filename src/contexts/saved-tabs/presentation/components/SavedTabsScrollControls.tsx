@@ -97,6 +97,25 @@ type KeyboardScrollAction =
   | 'previousParent'
   | 'previousProject'
 
+const isEditableEventTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+  // Alt+矢印系はテキスト入力中の操作（入力欄内での移動や履歴操作）と競合する
+  // ため、入力可能な要素にフォーカスがある間は発火させない (#1128)。
+  if (target.isContentEditable || target.contentEditable === 'true') {
+    return true
+  }
+  if (target.closest('input, textarea, select') !== null) {
+    return true
+  }
+  const editableAncestor = target.closest('[contenteditable]')
+  return (
+    editableAncestor !== null &&
+    editableAncestor.getAttribute('contenteditable') !== 'false'
+  )
+}
+
 const getKeyboardScrollAction = (
   event: KeyboardEvent,
 ): KeyboardScrollAction | null => {
@@ -409,6 +428,9 @@ const useSavedTabsScrollControlsView = ({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isEditableEventTarget(event.target)) {
+        return
+      }
       const action = getKeyboardScrollAction(event)
       if (!action) {
         return

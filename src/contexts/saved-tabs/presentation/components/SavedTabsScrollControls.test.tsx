@@ -331,6 +331,35 @@ describe('contexts/SavedTabsScrollControls', () => {
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
 
+  it('テキスト入力中に alt + 矢印系が誤発しない', () => {
+    renderWithContainer('domain')
+    const input = document.createElement('input')
+    document.body.append(input)
+    const textarea = document.createElement('textarea')
+    document.body.append(textarea)
+    const editable = document.createElement('div')
+    editable.contentEditable = 'true'
+    document.body.append(editable)
+    act(() => {
+      // eslint-disable-next-line testing-library/prefer-user-event
+      fireEvent.keyDown(input, { altKey: true, key: 'ArrowDown' })
+      // eslint-disable-next-line testing-library/prefer-user-event
+      fireEvent.keyDown(textarea, { altKey: true, key: 'ArrowUp' })
+      // eslint-disable-next-line testing-library/prefer-user-event
+      fireEvent.keyDown(editable, { altKey: true, key: 'PageDown' })
+    })
+    expect(scrollControlState.getRelativeScrollTarget).not.toHaveBeenCalled()
+  })
+
+  it('入力欄以外では alt + 矢印でスクロール対象を解決する', () => {
+    renderWithContainer('domain')
+    act(() => {
+      // eslint-disable-next-line testing-library/prefer-user-event
+      fireEvent.keyDown(document.body, { altKey: true, key: 'ArrowDown' })
+    })
+    expect(scrollControlState.getRelativeScrollTarget).toHaveBeenCalled()
+  })
+
   it('alt + 未知 key は無視される', () => {
     renderWithContainer('domain')
     // eslint-disable-next-line testing-library/prefer-user-event
