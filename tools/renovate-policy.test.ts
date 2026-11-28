@@ -19,8 +19,10 @@ type RenovatePackageRule = {
 
 type RenovateConfig = {
   automerge: boolean
-  dependencyDashboard: boolean
-  dependencyDashboardOSVVulnerabilitySummary: string
+  dependencyDashboard: {
+    enabled: boolean
+    osvVulnerabilitySummary: string
+  }
   enabledManagers: string[]
   extends: string[]
   ignoreScripts: boolean
@@ -131,9 +133,11 @@ describe('Renovate dependency update policy', () => {
         'abandonments:recommended',
       ]),
     )
-    expect(config.dependencyDashboard).toBe(true)
+    expect(config.dependencyDashboard).toEqual({
+      enabled: true,
+      osvVulnerabilitySummary: 'all',
+    })
     expect(config.osvVulnerabilityAlerts).toBe(true)
-    expect(config.dependencyDashboardOSVVulnerabilitySummary).toBe('all')
     expect(config.vulnerabilityAlerts).toEqual({
       enabled: true,
       automerge: false,

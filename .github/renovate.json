@@ -15,8 +15,10 @@
   ],
   "timezone": "Asia/Tokyo",
   "schedule": ["before 6am on monday"],
-  "dependencyDashboard": true,
-  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "dependencyDashboard": {
+    "enabled": true,
+    "osvVulnerabilitySummary": "all"
+  },
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "prCreation": "not-pending",
