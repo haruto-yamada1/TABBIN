@@ -52,6 +52,8 @@ const optionsMessagesEn = {
   'periodicExecution.recovery.noLocation': 'No original collection',
   'periodicExecution.recovery.restore': 'Restore',
   'periodicExecution.recovery.restoreTab': 'Restore {{name}}',
+  'periodicExecution.recovery.restoreCompleted':
+    'Finished restoring saved tabs',
   'periodicExecution.recovery.restoreAll': 'Restore all',
   'periodicExecution.recovery.discard': 'Permanently delete',
   'periodicExecution.recovery.discardTab': 'Permanently delete {{name}}',

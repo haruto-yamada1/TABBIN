@@ -10,6 +10,7 @@ type MoveCustomProjectUrlAndSyncStateParams = {
   url: string
   moveUrlBetweenCustomProjects: MoveUrlBetweenCustomProjectsUseCase
   getCustomProjects: () => Promise<readonly CustomProject[]>
+  onMoved?: (undo: (() => Promise<void>) | undefined) => void
   setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
 }
 
@@ -29,15 +30,17 @@ export const moveCustomProjectUrlAndSyncState = async ({
   url,
   moveUrlBetweenCustomProjects,
   getCustomProjects,
+  onMoved,
   setCustomProjects,
 }: MoveCustomProjectUrlAndSyncStateParams): Promise<void> => {
   if (sourceProjectId === targetProjectId) {
     return
   }
 
-  await moveUrlBetweenCustomProjects(
+  const undo = await moveUrlBetweenCustomProjects(
     buildMoveCommand(sourceProjectId, targetProjectId, url),
   )
+  onMoved?.(undo)
   // application query `getCustomProjects` は
   // `readonly CustomProject[]` を返す。`setCustomProjects` 側の
   // シグネチャは `CustomProject[]` だが、`Dispatch<SetStateAction<T>>` は

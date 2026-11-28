@@ -9,6 +9,11 @@ const savedTabsUndoMessagesEn = {
     'Removed {{count}} opened tab from saved data',
   'savedTabs.undo.availabilityNote':
     'Undo is available while this notification is shown.',
+  'savedTabs.undo.operationError':
+    'Could not undo this action. The data may have changed.',
+  'savedTabs.undo.operationUndone': 'Action undone',
+  'savedTabs.undo.refreshError':
+    'Action undone. Reload the page to see the latest data.',
   'savedTabs.undo.restoreError': 'Could not restore saved data',
   'savedTabs.undo.restored': 'Restored saved data',
 } as const

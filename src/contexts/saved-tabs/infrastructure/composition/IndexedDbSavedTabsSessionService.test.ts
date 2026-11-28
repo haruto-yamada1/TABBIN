@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PersistenceV2SnapshotReaderPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
+import { PersistenceRevisionConflictError } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import type { PersistenceV2UnitOfWorkPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 
 import { IndexedDbSavedTabsSessionService } from './IndexedDbSavedTabsSessionService'
@@ -67,10 +68,12 @@ const createSnapshotReaderPort = (): PersistenceV2SnapshotReaderPort => ({
 })
 
 const createUnitOfWork = () => {
-  const commit = vi.fn(async () => ({
-    changedScopes: ['memberships', 'urls'] as const,
-    revision: 8,
-  }))
+  const commit = vi.fn<PersistenceV2UnitOfWorkPort['commit']>(
+    async (_plan, options) => {
+      options?.assertCanCommit?.()
+      return { changedScopes: ['memberships', 'urls'], revision: 8 }
+    },
+  )
   const unitOfWork: PersistenceV2UnitOfWorkPort = {
     commit,
     readRevision: vi.fn(async () => 7),
@@ -165,6 +168,106 @@ describe('IndexedDbSavedTabsSessionService', () => {
       service.run(async (state) => state.collections[0]?.id),
     ).resolves.toBe(collection.id)
 
+    expect(commit).not.toHaveBeenCalled()
+  })
+
+  it('undoes only the committed changes against the committed revision', async () => {
+    const { commit, unitOfWork } = createUnitOfWork()
+    const service = new IndexedDbSavedTabsSessionService({
+      snapshotReaderPort: createSnapshotReaderPort(),
+      unitOfWorkPort: unitOfWork,
+    })
+    const destination = { ...membership, notes: 'Moved' }
+    const { result, undo } = await service.runUndoable((state) => {
+      state.memberships = [destination]
+      return 'moved'
+    })
+
+    expect(result).toBe('moved')
+    expect(undo).toBeTypeOf('function')
+    await undo?.()
+    expect(commit).toHaveBeenNthCalledWith(
+      2,
+      { memberships: { put: [membership] } },
+      { expectedRevision: 8 },
+    )
+  })
+
+  it('rejects Undo when another writer changes the revision', async () => {
+    const { commit, unitOfWork } = createUnitOfWork()
+    const service = new IndexedDbSavedTabsSessionService({
+      snapshotReaderPort: createSnapshotReaderPort(),
+      unitOfWorkPort: unitOfWork,
+    })
+    const { undo } = await service.runUndoable((state) => {
+      state.memberships = []
+    })
+
+    const conflict = new PersistenceRevisionConflictError(8, 9)
+    commit.mockRejectedValueOnce(conflict)
+    expect(undo).toBeTypeOf('function')
+    await expect(undo?.()).rejects.toBe(conflict)
+    expect(commit).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not re-archive purged or newly overdue rows when undoing a restore', async () => {
+    const snapshotReaderPort = createSnapshotReaderPort()
+    const { commit, unitOfWork } = createUnitOfWork()
+    const archived = {
+      expiredAt: 1,
+      id: 'archived',
+      memberships: [],
+      recoverUntil: 10,
+      url,
+    }
+    let now = 3
+    const clock = vi.fn(() => now)
+    const service = new IndexedDbSavedTabsSessionService({
+      readWithExpiredUrls: async () => ({
+        ...(await snapshotReaderPort.readVerifiedSavedTabsSnapshot()),
+        expiredUrls: [
+          archived,
+          { ...archived, id: 'expired', recoverUntil: 2 },
+        ],
+      }),
+      snapshotReaderPort,
+      unitOfWorkPort: unitOfWork,
+    })
+
+    const { undo } = await service.runUndoableWithExpiredUrls(
+      (state, cutoff) => {
+        expect(cutoff).toBe(3)
+        now = 4
+        state.expiredUrls = []
+      },
+      clock,
+    )
+    expect(clock).toHaveBeenCalledOnce()
+    expect(undo).toBeTypeOf('function')
+    await undo?.()
+    expect(commit).toHaveBeenNthCalledWith(
+      2,
+      { expiredUrls: { put: [archived] } },
+      {
+        assertCanCommit: expect.any(Function),
+        durability: 'strict',
+        expectedRevision: 8,
+      },
+    )
+
+    now = 10
+    await expect(undo?.()).rejects.toThrow('original recovery deadline')
+    expect(commit).toHaveBeenCalledTimes(3)
+  })
+
+  it('returns no Undo for an unchanged operation', async () => {
+    const { commit, unitOfWork } = createUnitOfWork()
+    const service = new IndexedDbSavedTabsSessionService({
+      snapshotReaderPort: createSnapshotReaderPort(),
+      unitOfWorkPort: unitOfWork,
+    })
+
+    await expect(service.runUndoable(() => 0)).resolves.toEqual({ result: 0 })
     expect(commit).not.toHaveBeenCalled()
   })
 

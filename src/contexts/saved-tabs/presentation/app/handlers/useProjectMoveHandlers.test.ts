@@ -64,6 +64,7 @@ describe('useProjectMoveHandlers', () => {
     }
     moveState.moveCustomProjectUrlAndSyncState.mockImplementation(
       async (options) => {
+        options.onMoved(undefined)
         const projects = await options.getCustomProjects()
         expect(projects).toStrictEqual(
           currentProjects.map(toSavedTabsCustomProjectViewModel),

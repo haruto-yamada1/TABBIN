@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { showUndoToast } from '@/components/ui/undo-toast'
 import type { ExpiredUrlRecoveryDto } from '@/contexts/saved-tabs/public-api'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { formatLocaleDateTime } from '@/utils/localDateTime'
@@ -35,9 +36,14 @@ type RecoveryFeedback =
   | { kind: 'idle' | 'pending' | 'error' | 'unavailable' }
   | { kind: 'restored' | 'discarded'; count: number }
 
-type RecoveryAction = (ids: readonly string[]) => void
+type RecoveryAction = 'restore' | 'restoreAll' | 'discard'
+type RunRecoveryAction = (
+  action: RecoveryAction,
+  ids: readonly string[],
+) => void
 
 const useExpiredUrlRecovery = () => {
+  const { t } = useI18n()
   const recovery = getExpiredUrlRecovery()
   const [load, setLoad] = useState<RecoveryLoad>({ kind: 'loading' })
   const [feedback, setFeedback] = useState<RecoveryFeedback>({ kind: 'idle' })
@@ -113,14 +119,17 @@ const useExpiredUrlRecovery = () => {
   }, [load, reload])
 
   const mutate = useCallback(
-    async (action: 'restore' | 'discard', ids: readonly string[]) => {
+    async (action: RecoveryAction, ids: readonly string[]) => {
       if (mutating.current) {
         return false
       }
       mutating.current = true
       setFeedback({ kind: 'pending' })
       try {
-        const count = await recovery[action](ids)
+        const { result: count, undo } =
+          action === 'restoreAll'
+            ? await recovery.restoreWithUndo(ids)
+            : { result: await recovery[action](ids), undo: undefined }
         await refresh()
         if (!active.current) {
           return false
@@ -129,8 +138,19 @@ const useExpiredUrlRecovery = () => {
           setFeedback({ kind: 'unavailable' })
         } else {
           setFeedback({
-            kind: action === 'restore' ? 'restored' : 'discarded',
+            kind: action === 'discard' ? 'discarded' : 'restored',
             count,
+          })
+        }
+        if (count > 0 && undo) {
+          showUndoToast({
+            message: t('periodicExecution.recovery.restoreCompleted'),
+            onUndone: async () => {
+              setFeedback({ kind: 'idle' })
+              await refresh()
+            },
+            t,
+            undo,
           })
         }
         return true
@@ -143,7 +163,7 @@ const useExpiredUrlRecovery = () => {
         mutating.current = false
       }
     },
-    [recovery, refresh],
+    [recovery, refresh, t],
   )
 
   return { feedback, load, mutate, reload }
@@ -153,14 +173,12 @@ const RecoveryRow = ({
   disabled,
   entry,
   name,
-  onDiscard,
-  onRestore,
+  onAction,
 }: {
   readonly disabled: boolean
   readonly entry: ExpiredUrlRecoveryDto
   readonly name: string
-  readonly onDiscard: RecoveryAction
-  readonly onRestore: RecoveryAction
+  readonly onAction: RunRecoveryAction
 }) => {
   const { language, t } = useI18n()
   const collectionNames = new Set(
@@ -174,11 +192,11 @@ const RecoveryRow = ({
     ),
   )
   const restore = useCallback(() => {
-    onRestore([entry.id])
-  }, [entry.id, onRestore])
+    onAction('restore', [entry.id])
+  }, [entry.id, onAction])
   const discard = useCallback(() => {
-    onDiscard([entry.id])
-  }, [entry.id, onDiscard])
+    onAction('discard', [entry.id])
+  }, [entry.id, onAction])
 
   return (
     <div className='space-y-3 p-3 sm:p-4'>
@@ -281,13 +299,11 @@ const RecoveryRow = ({
 const RecoveryList = ({
   disabled,
   entries,
-  onDiscard,
-  onRestore,
+  onAction,
 }: {
   readonly disabled: boolean
   readonly entries: readonly ExpiredUrlRecoveryDto[]
-  readonly onDiscard: RecoveryAction
-  readonly onRestore: RecoveryAction
+  readonly onAction: RunRecoveryAction
 }) => {
   const { language, t } = useI18n()
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -295,8 +311,11 @@ const RecoveryList = ({
     setVisibleCount((current) => current + PAGE_SIZE)
   }, [])
   const restoreAll = useCallback(() => {
-    onRestore(entries.map(({ id }) => id))
-  }, [entries, onRestore])
+    onAction(
+      'restoreAll',
+      entries.map(({ id }) => id),
+    )
+  }, [entries, onAction])
 
   if (entries.length === 0) {
     return (
@@ -333,8 +352,7 @@ const RecoveryList = ({
                 disabled={disabled}
                 entry={entry}
                 name={name}
-                onDiscard={onDiscard}
-                onRestore={onRestore}
+                onAction={onAction}
               />
             </li>
           )
@@ -381,19 +399,9 @@ export const ExpiredUrlRecoveryCard = () => {
   const titleId = useId()
   const heading = useRef<HTMLHeadingElement>(null)
   const { feedback, load, mutate, reload } = useExpiredUrlRecovery()
-  const restore = useCallback<RecoveryAction>(
-    (ids) => {
-      void mutate('restore', ids).then((changed) => {
-        if (changed) {
-          heading.current?.focus()
-        }
-      })
-    },
-    [mutate],
-  )
-  const discard = useCallback<RecoveryAction>(
-    (ids) => {
-      void mutate('discard', ids).then((changed) => {
+  const runAction = useCallback<RunRecoveryAction>(
+    (action, ids) => {
+      void mutate(action, ids).then((changed) => {
         if (changed) {
           heading.current?.focus()
         }
@@ -442,8 +450,7 @@ export const ExpiredUrlRecoveryCard = () => {
         <RecoveryList
           disabled={feedback.kind === 'pending'}
           entries={load.entries}
-          onDiscard={discard}
-          onRestore={restore}
+          onAction={runAction}
         />
       )}
     </section>

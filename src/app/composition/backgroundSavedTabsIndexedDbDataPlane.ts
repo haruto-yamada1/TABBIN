@@ -17,7 +17,10 @@ import {
 } from '@/contexts/saved-tabs/domain/services/ExpiredUrlRecoveryService'
 import type { ExpiredUrlRecoveryState } from '@/contexts/saved-tabs/domain/services/ExpiredUrlRecoveryService'
 import { createUrlIdentityKey } from '@/contexts/saved-tabs/domain/services/UrlIdentityPolicy'
-import type { IndexedDbSavedTabsMutableState } from '@/contexts/saved-tabs/infrastructure/composition/IndexedDbSavedTabsSessionService'
+import type {
+  IndexedDbSavedTabsSessionService,
+  IndexedDbSavedTabsMutableState,
+} from '@/contexts/saved-tabs/infrastructure/composition/IndexedDbSavedTabsSessionService'
 import { BACKUP_RESOURCE_LIMITS } from '@/lib/persistence/backupResourcePolicy'
 import { toHostname } from '@/utils/domain-normalize'
 
@@ -28,7 +31,10 @@ import type {
   SavedTabsInsightRecord,
 } from './backgroundSavedTabsDataPlaneTypes'
 
-type NativeSession = {
+type NativeSession = Pick<
+  IndexedDbSavedTabsSessionService,
+  'runUndoableWithExpiredUrls'
+> & {
   readonly runWithExpiredUrls: <Result>(
     operation: (state: ExpiredUrlRecoveryState) => Result,
   ) => Promise<Result>
@@ -567,6 +573,28 @@ const toExpiredUrlRecoveryDto = (
   url: record.url.url,
 })
 
+const restoreArchivedUrls = (
+  state: ExpiredUrlRecoveryState,
+  ids: readonly string[],
+  timestamp: number,
+  idGenerator: () => string,
+): number => {
+  const outcome = restoreExpiredUrls(state, new Set(ids), {
+    generateId: idGenerator,
+    getFallbackCollection: (next) => {
+      const fallback = ensureUncategorizedCollection(next, timestamp)
+      if (fallback.definition.type !== 'custom') {
+        throw new Error('The Custom uncategorized collection ID is occupied.')
+      }
+      return fallback
+    },
+    maxNoteBytes: BACKUP_RESOURCE_LIMITS.maxNotesBytes,
+    now: timestamp,
+  })
+  Object.assign(state, outcome.state)
+  return outcome.result
+}
+
 export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   idGenerator,
   now,
@@ -647,25 +675,14 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   removeUrlIds: async (urlIds) =>
     session.run((state) => removeSelectedUrls(state, new Set(urlIds))),
   restoreExpiredUrls: async (ids) =>
-    session.runWithExpiredUrls((state) => {
-      const timestamp = now()
-      const outcome = restoreExpiredUrls(state, new Set(ids), {
-        generateId: idGenerator,
-        getFallbackCollection: (next) => {
-          const fallback = ensureUncategorizedCollection(next, timestamp)
-          if (fallback.definition.type !== 'custom') {
-            throw new Error(
-              'The Custom uncategorized collection ID is occupied.',
-            )
-          }
-          return fallback
-        },
-        maxNoteBytes: BACKUP_RESOURCE_LIMITS.maxNotesBytes,
-        now: timestamp,
-      })
-      Object.assign(state, outcome.state)
-      return outcome.result
-    }),
+    session.runWithExpiredUrls((state) =>
+      restoreArchivedUrls(state, ids, now(), idGenerator),
+    ),
+  restoreExpiredUrlsWithUndo: async (ids) =>
+    session.runUndoableWithExpiredUrls(
+      (state, cutoff) => restoreArchivedUrls(state, ids, cutoff, idGenerator),
+      now,
+    ),
   restoreUndoSnapshot: async (snapshot) =>
     session.run((state) => {
       state.categories = [...structuredClone(snapshot.savedTabs.categories)]

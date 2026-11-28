@@ -94,6 +94,7 @@ const createDataPlane = (initialState = createState(), now = () => 10) => {
   let nextId = 0
   const sessionRun = vi.fn()
   const session = {
+    runUndoableWithExpiredUrls: vi.fn(),
     runWithExpiredUrls: async <Result>(
       operation: (value: ExpiredUrlRecoveryState) => Result,
     ): Promise<Result> => operation(state),
@@ -808,6 +809,7 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
   it('propagates a native session failure without another backend attempt', async () => {
     const error = new Error('indexeddb failed')
     const session = {
+      runUndoableWithExpiredUrls: vi.fn(),
       runWithExpiredUrls: vi.fn(),
       run: vi.fn(async () => {
         throw error

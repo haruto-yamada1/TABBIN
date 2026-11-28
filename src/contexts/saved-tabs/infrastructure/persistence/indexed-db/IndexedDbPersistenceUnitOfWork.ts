@@ -176,6 +176,7 @@ export class IndexedDbPersistenceUnitOfWork implements PersistenceV2UnitOfWorkPo
                 return
               }
 
+              options.assertCanCommit?.()
               for (const key of entries) {
                 queueMutation(
                   transaction.objectStore(PLAN_STORE_NAMES[key]),

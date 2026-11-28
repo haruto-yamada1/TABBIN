@@ -95,6 +95,43 @@ describe('IndexedDbPersistenceUnitOfWork', () => {
     }
   })
 
+  it('checks the recovery deadline before applying the inverse transaction', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'expiry-undo-deadline',
+      indexedDb: new IDBFactory(),
+    })
+    const unit = new IndexedDbPersistenceUnitOfWork(manager, operationGate)
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
+    const archive = createExpiredUrl('expired')
+    const expired = new Error('The original recovery deadline has passed.')
+    try {
+      await unit.commit({ urls: { put: [archive.url] } })
+      await expect(
+        unit.commit(
+          { expiredUrls: { put: [archive] }, urls: { delete: [archive.id] } },
+          {
+            expectedRevision: 1,
+            assertCanCommit: () => {
+              throw expired
+            },
+          },
+        ),
+      ).rejects.toBe(expired)
+      await expect(
+        reader.readVerifiedSavedTabsWithExpiredUrls(),
+      ).resolves.toMatchObject({
+        expiredUrls: [],
+        revision: 1,
+        savedTabs: { urls: [archive.url] },
+      })
+    } finally {
+      manager.close()
+    }
+  })
+
   it('retains active URL and revision if writing the expiration archive fails', async () => {
     const manager = new IndexedDbConnectionManager({
       databaseName: 'expiry-archive-quota-failure',

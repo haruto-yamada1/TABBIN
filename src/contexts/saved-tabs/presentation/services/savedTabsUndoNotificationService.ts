@@ -1,8 +1,15 @@
-import type { Dispatch } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { toast } from 'sonner'
 
+import { UNDO_TOAST_DURATION_MS } from '@/components/ui/undo-toast'
 import type { OpenedUrlsRestoreSnapshot } from '@/contexts/saved-tabs/application/commands/RestoreOpenedUrlsSnapshotCommand'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
+import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
+import type { CustomProjectUndoSnapshot } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
+import type {
+  RestoreCustomProjectsSnapshotPayload,
+  RestoreCustomProjectsSnapshotUseCase,
+} from '@/contexts/saved-tabs/application/use-cases/RestoreCustomProjectsSnapshotUseCase'
 import type {
   RestoredSnapshotViewDto,
   RestoreOpenedUrlsSnapshotViewUseCase,
@@ -12,6 +19,7 @@ import {
   toSavedTabsCustomProjectViewModel,
   toSavedTabsTabGroupViewModel,
 } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
+import { toStorageCustomProjectFromRaw } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
   SavedTabsParentCategoryDto as ParentCategory,
@@ -169,9 +177,120 @@ const notifyDeleteFailure = async ({
   toast.error(t('savedTabs.deleteError'))
 }
 
+const getArraySnapshot = <T>(
+  value: readonly T[] | undefined,
+): readonly T[] | undefined => (Array.isArray(value) ? value : undefined)
+
+/**
+ * `getCustomProjectRawsQuery` 戻り値の要素 shape (issue #538)。
+ *
+ * `CustomProjectRepository.findAllRaw()` 由来の `CustomProjectRawSnapshot`
+ * を domain repository モジュールから直接 import するのを避け、
+ * `GetCustomProjectRawsQuery` 戻り値から派生させたローカル alias を
+ * 使う。presentation 層が `CustomProjectRepository` 型を import しない
+ * ことを保証する目的 (issue 受け入れ条件)。
+ */
+type RawCustomProjectEntry = Awaited<
+  ReturnType<GetCustomProjectRawsQuery>
+>[number]
+
+/** rich フィールド込みの `CustomProject` へ raw snapshot を投影する */
+const toRawStorageCustomProject = (raw: RawCustomProjectEntry): CustomProject =>
+  toStorageCustomProjectFromRaw(raw)
+
+const createCustomProjectUndoPayload = (
+  snapshot: CustomProjectUndoSnapshot,
+): RestoreCustomProjectsSnapshotPayload | null => {
+  const customProjects = getArraySnapshot(snapshot.customProjects)
+  if (!customProjects) {
+    return null
+  }
+
+  const customProjectOrder = getArraySnapshot(snapshot.customProjectOrder)
+  const customProjectsRaw = getArraySnapshot(snapshot.customProjectsRaw)
+  return {
+    ...(customProjectOrder ? { customProjectOrder } : {}),
+    customProjects,
+    ...(customProjectsRaw ? { customProjectsRaw } : {}),
+    ...(snapshot.openedUrlsSnapshot
+      ? { openedUrlsSnapshot: snapshot.openedUrlsSnapshot }
+      : {}),
+    ...(snapshot.urlRecordsRaw
+      ? { urlRecordsRaw: snapshot.urlRecordsRaw }
+      : {}),
+  }
+}
+
+const showCustomProjectDeleteUndoToast = ({
+  count,
+  getCustomProjectRawsQuery,
+  restoreCustomProjectsSnapshotUseCase,
+  setCustomProjects,
+  snapshot,
+  t,
+}: {
+  count: number
+  getCustomProjectRawsQuery: GetCustomProjectRawsQuery
+  restoreCustomProjectsSnapshotUseCase: RestoreCustomProjectsSnapshotUseCase
+  setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
+  snapshot: CustomProjectUndoSnapshot
+  t: (key: string, fallback?: string, values?: Record<string, string>) => string
+}) => {
+  toast.info(
+    t(resolveUndoMessageKey('savedTabs.undo.deletedTabs', count), undefined, {
+      count: String(count),
+    }),
+    {
+      description: t('savedTabs.undo.availabilityNote'),
+      duration: UNDO_TOAST_DURATION_MS,
+      action: {
+        label: t('common.undo'),
+        // eslint-disable-next-line typescript/no-misused-promises
+        onClick: async () => {
+          try {
+            const payload = createCustomProjectUndoPayload(snapshot)
+            if (!payload) {
+              return
+            }
+
+            // 削除した URL の `urls` / `urlMetadata` / `projectKeywords` のような
+            // domain entity 化されない rich フィールドを保持するため、payload に
+            // raw snapshot があれば `restoreCustomProjectsSnapshotUseCase` 内で
+            // `restoreAllRaw` 経路 (rich 保持) が走り、無ければ entity 経由
+            // `saveAll` へフォールバックする (issue #535 P1 / PR #506 review
+            // P2 対応の責務を application 層へ移設)。
+            await restoreCustomProjectsSnapshotUseCase({ payload })
+            if (payload.openedUrlsSnapshot) {
+              const currentProjects = await getCustomProjectRawsQuery()
+              setCustomProjects(currentProjects.map(toRawStorageCustomProject))
+            } else {
+              setCustomProjects(
+                payload.customProjectsRaw
+                  ? payload.customProjectsRaw.map(toRawStorageCustomProject)
+                  : payload.customProjects.map(
+                      toSavedTabsCustomProjectViewModel,
+                    ),
+              )
+            }
+            toast.success(t('savedTabs.undo.restored'))
+          } catch (error) {
+            console.error(
+              'カスタムプロジェクトURL削除の復元に失敗しました:',
+              error,
+            )
+            toast.error(t('savedTabs.undo.restoreError'))
+          }
+        },
+      },
+    },
+  )
+}
+
 export {
   notifyDeleteFailure,
   showOpenedUrlsUndoToast,
+  showCustomProjectDeleteUndoToast,
+  toRawStorageCustomProject,
   type NotifyDeleteFailureParams,
   type ShowOpenedUrlsUndoToastParams,
 }

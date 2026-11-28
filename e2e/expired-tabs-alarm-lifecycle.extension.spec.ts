@@ -22,6 +22,7 @@ import {
 import { currentWorker, stopWorker } from './helpers/worker-lifecycle'
 
 const DAY_MS = 86_400_000
+const expiringIds = new Set(['alarm-expired', 'alarm-expired-2'])
 const createUserSettings = (autoDeletePeriod: '1day' | 'never') =>
   normalizeUserSettingsForStorage({
     ...defaultSettings,
@@ -53,12 +54,19 @@ test('@release-expiry-recovery a real expiration alarm wakes a stopped MV3 worke
       createMembershipFixture('alarm-domain', 'alarm-expired', now),
       createMembershipFixture('alarm-domain', 'alarm-fresh', now, 1),
       createMembershipFixture('alarm-domain', 'alarm-favorite', now, 2),
+      createMembershipFixture('alarm-domain', 'alarm-expired-2', now, 3),
     ],
     urls: [
       createUrlFixture(
         'alarm-expired',
         'https://alarm.test/expired',
         'Expired saved URL',
+        expiringSavedAt,
+      ),
+      createUrlFixture(
+        'alarm-expired-2',
+        'https://alarm.test/expired-2',
+        'Second expired URL',
         expiringSavedAt,
       ),
       createUrlFixture(
@@ -165,7 +173,7 @@ test('@release-expiry-recovery a real expiration alarm wakes a stopped MV3 worke
       createPersistence(cutoff - 1_000, cutoff + 60_000),
     )
     const before = await readPersistenceV2SavedTabsSnapshot(page)
-    expect(before.urls).toHaveLength(3)
+    expect(before.urls).toHaveLength(4)
     expect(workerRunning).toBe(false)
 
     // Only arm after the worker is stopped and the expired rows are committed.
@@ -187,10 +195,10 @@ test('@release-expiry-recovery a real expiration alarm wakes a stopped MV3 worke
     const after = {
       ...before,
       memberships: before.memberships.filter(
-        ({ urlId }) => urlId !== 'alarm-expired',
+        ({ urlId }) => !expiringIds.has(urlId),
       ),
       revision: 2,
-      urls: before.urls.filter(({ id }) => id !== 'alarm-expired'),
+      urls: before.urls.filter(({ id }) => !expiringIds.has(id)),
     }
     await expect
       .poll(async () => readPersistenceV2SavedTabsSnapshot(page))
@@ -219,14 +227,17 @@ test('@release-expiry-recovery a real expiration alarm wakes a stopped MV3 worke
     )
     await page.reload()
     const recovery = page.getByRole('region', { name: 'Recover expired tabs' })
-    await expect(recovery.getByText('Expired saved URL')).toBeVisible()
+    const expiredRow = recovery.getByRole('listitem', {
+      name: 'Expired saved URL',
+    })
+    await expect(expiredRow).toBeVisible()
     await expect(
-      recovery.getByText('1 saved tab available to restore'),
+      recovery.getByText('2 saved tabs available to restore'),
     ).toBeVisible()
-    await expect(recovery.getByText('Removed on')).toBeVisible()
-    await expect(recovery.getByText('Restore by')).toBeVisible()
+    await expect(expiredRow.getByText('Removed on')).toBeVisible()
+    await expect(expiredRow.getByText('Restore by')).toBeVisible()
     await expect(
-      recovery.getByText('alarm.test', { exact: true }),
+      expiredRow.getByText('alarm.test', { exact: true }),
     ).toBeVisible()
     const screenshot = testInfo.outputPath('expired-url-recovery.png')
     await recovery.screenshot({ path: screenshot })
@@ -255,10 +266,31 @@ test('@release-expiry-recovery a real expiration alarm wakes a stopped MV3 worke
     })
 
     await recovery
-      .getByRole('button', { name: 'Restore Expired saved URL' })
+      .getByRole('button', { name: 'Restore all', exact: true })
       .click()
     await expect(
       recovery.getByText('No expired tabs to restore.'),
+    ).toBeVisible()
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await expect(undo).toBeVisible()
+    const undoScreenshot = testInfo.outputPath('issue-922-restore-undo.png')
+    await page.screenshot({ path: undoScreenshot, animations: 'disabled' })
+    await testInfo.attach('restore-undo', {
+      path: undoScreenshot,
+      contentType: 'image/png',
+    })
+    await undo.click()
+    await expect(expiredRow).toBeVisible()
+    await expect(recovery.getByText('Second expired URL')).toBeVisible()
+    expect(await readPersistenceV2SavedTabsSnapshot(page)).toEqual({
+      ...after,
+      revision: expect.any(Number),
+    })
+    await recovery
+      .getByRole('button', { name: 'Restore Expired saved URL' })
+      .click()
+    await expect(
+      recovery.getByText('1 saved tab available to restore'),
     ).toBeVisible()
     await page.goto(
       getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),

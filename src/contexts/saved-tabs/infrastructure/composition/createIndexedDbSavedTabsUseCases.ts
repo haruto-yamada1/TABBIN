@@ -98,6 +98,13 @@ export const createIndexedDbSavedTabsUseCases = (
         )
       },
     )
+  const moveUrlBetweenCustomProjects: SavedTabsUseCases['moveUrlBetweenCustomProjects'] =
+    async (command) => {
+      const { undo } = await runtime.session.runUndoable(async (state) =>
+        createSessionUseCases(state).moveUrlBetweenCustomProjects(command),
+      )
+      return undo
+    }
   const sessionBacked = new Proxy(
     {},
     {
@@ -107,6 +114,9 @@ export const createIndexedDbSavedTabsUseCases = (
         }
         if (property === 'openAllSavedUrls') {
           return openAllSavedUrls
+        }
+        if (property === 'moveUrlBetweenCustomProjects') {
+          return moveUrlBetweenCustomProjects
         }
         if (typeof property !== 'string') {
           return undefined

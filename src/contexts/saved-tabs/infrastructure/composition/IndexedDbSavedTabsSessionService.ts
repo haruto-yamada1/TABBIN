@@ -39,6 +39,23 @@ type SavedTabsStateWithExpiredUrls = IndexedDbSavedTabsMutableState & {
 type SavedTabsSessionState = IndexedDbSavedTabsMutableState &
   Partial<Pick<SavedTabsStateWithExpiredUrls, 'expiredUrls'>>
 
+type SessionResult<Result> = {
+  readonly result: Result
+  readonly undo?: () => Promise<void>
+}
+
+type SessionOptions<Result> = {
+  readonly onCommitFailure?:
+    | ((error: unknown, result: Result) => never)
+    | undefined
+  readonly undo?:
+    | true
+    | {
+        readonly clock: () => number
+        readonly cutoff: number
+      }
+}
+
 type EntityWithId = { readonly id: string }
 
 const isSameRecord = (left: unknown, right: unknown): boolean =>
@@ -148,14 +165,16 @@ export class IndexedDbSavedTabsSessionService {
     ) => Promise<Result> | Result,
     onCommitFailure?: (error: unknown, result: Result) => never,
   ): Promise<Result> {
-    const { revision, savedTabs } =
-      await this.deps.snapshotReaderPort.readVerifiedSavedTabsSnapshot()
-    return this.runState(
-      revision,
-      materializeState(savedTabs),
-      operation,
-      onCommitFailure,
-    )
+    const { result } = await this.runSavedTabs(operation, { onCommitFailure })
+    return result
+  }
+
+  async runUndoable<Result>(
+    operation: (
+      state: IndexedDbSavedTabsMutableState,
+    ) => Promise<Result> | Result,
+  ): Promise<SessionResult<Result>> {
+    return this.runSavedTabs(operation, { undo: true })
   }
 
   async runWithExpiredUrls<Result>(
@@ -163,40 +182,124 @@ export class IndexedDbSavedTabsSessionService {
       state: SavedTabsStateWithExpiredUrls,
     ) => Promise<Result> | Result,
   ): Promise<Result> {
+    const { revision, state } = await this.readExpiredState()
+    const { result } = await this.runState(revision, state, operation, {})
+    return result
+  }
+
+  async runUndoableWithExpiredUrls<Result>(
+    operation: (
+      state: SavedTabsStateWithExpiredUrls,
+      cutoff: number,
+    ) => Promise<Result> | Result,
+    clock: () => number,
+  ): Promise<SessionResult<Result>> {
+    const { revision, state } = await this.readExpiredState()
+    const cutoff = clock()
+    return this.runState(
+      revision,
+      state,
+      async (next) => operation(next, cutoff),
+      {
+        undo: { clock, cutoff },
+      },
+    )
+  }
+
+  private async runSavedTabs<Result>(
+    operation: (
+      state: IndexedDbSavedTabsMutableState,
+    ) => Promise<Result> | Result,
+    options: SessionOptions<Result>,
+  ): Promise<SessionResult<Result>> {
+    const { revision, savedTabs } =
+      await this.deps.snapshotReaderPort.readVerifiedSavedTabsSnapshot()
+    return this.runState(
+      revision,
+      materializeState(savedTabs),
+      operation,
+      options,
+    )
+  }
+
+  private async readExpiredState() {
     const read = this.deps.readWithExpiredUrls
     if (!read) {
       throw new Error('The expiration recovery reader has not been configured.')
     }
     const { expiredUrls, revision, savedTabs } = await read()
-    return this.runState(
+    return {
       revision,
-      { ...materializeState(savedTabs), expiredUrls: [...expiredUrls] },
-      operation,
-    )
+      state: { ...materializeState(savedTabs), expiredUrls: [...expiredUrls] },
+    }
   }
 
   private async runState<State extends SavedTabsSessionState, Result>(
     revision: number,
     source: State,
     operation: (state: State) => Promise<Result> | Result,
-    onCommitFailure?: (error: unknown, result: Result) => never,
-  ): Promise<Result> {
+    options: SessionOptions<Result>,
+  ): Promise<SessionResult<Result>> {
     const state = structuredClone(source)
+    const archiveUndo =
+      typeof options.undo === 'object' ? options.undo : undefined
     const result = await operation(state)
     const plan = toWritePlan(source, state)
-    if (hasWritePlanChanges(plan)) {
-      try {
-        await this.deps.unitOfWorkPort.commit(plan, {
-          ...(plan.expiredUrls ? { durability: 'strict' } : {}),
-          expectedRevision: revision,
-        })
-      } catch (error) {
-        if (onCommitFailure) {
-          onCommitFailure(error, result)
-        }
-        throw error
-      }
+    if (!hasWritePlanChanges(plan)) {
+      return { result }
     }
-    return result
+
+    // Restoring also purges overdue archive rows. Undo must leave those purged.
+    const undoSource =
+      archiveUndo === undefined
+        ? source
+        : {
+            ...source,
+            expiredUrls:
+              source.expiredUrls?.filter(
+                ({ recoverUntil }) => recoverUntil > archiveUndo.cutoff,
+              ) ?? [],
+          }
+    const inverse = options.undo && toWritePlan(state, undoSource)
+    const commit = this.commit(plan, revision).catch((error: unknown) => {
+      options.onCommitFailure?.(error, result)
+      throw error
+    })
+    if (!inverse || !hasWritePlanChanges(inverse)) {
+      await commit
+      return { result }
+    }
+    const { revision: committedRevision } = await commit
+    const clock = archiveUndo?.clock
+    const assertCanCommit =
+      clock &&
+      (() => {
+        const now = clock()
+        if (
+          inverse.expiredUrls?.put?.some(
+            ({ recoverUntil }) => recoverUntil <= now,
+          )
+        ) {
+          throw new Error('The original recovery deadline has passed.')
+        }
+      })
+    return {
+      result,
+      undo: async () => {
+        await this.commit(inverse, committedRevision, assertCanCommit)
+      },
+    }
+  }
+
+  private async commit(
+    plan: PersistenceV2WritePlan,
+    revision: number,
+    assertCanCommit?: () => void,
+  ) {
+    return this.deps.unitOfWorkPort.commit(plan, {
+      ...(assertCanCommit ? { assertCanCommit } : {}),
+      ...(plan.expiredUrls ? { durability: 'strict' } : {}),
+      expectedRevision: revision,
+    })
   }
 }

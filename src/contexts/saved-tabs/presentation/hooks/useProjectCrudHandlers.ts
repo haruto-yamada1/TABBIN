@@ -279,7 +279,6 @@ const useProjectCrudHandlers = ({
           snapshot: undoSnapshot,
           t,
         })
-        toast.success(t('savedTabs.tab.deleted'))
         await refreshProjectsAfterDeletion()
       } catch (error) {
         console.error('URL削除エラー:', error)
@@ -318,11 +317,6 @@ const useProjectCrudHandlers = ({
           snapshot: undoSnapshot,
           t,
         })
-        toast.success(
-          t('savedTabs.tabs.deletedCount', undefined, {
-            count: String(urls.length),
-          }),
-        )
         await refreshProjectsAfterDeletion()
       } catch (error) {
         console.error('URL一括削除エラー:', error)

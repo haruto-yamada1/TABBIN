@@ -40,6 +40,7 @@ const mocked = vi.hoisted(() => ({
   getReviewCategories: vi.fn(),
   listExpired: vi.fn(),
   restoreExpired: vi.fn(),
+  restoreExpiredWithUndo: vi.fn(),
   discardExpired: vi.fn(),
   subscribeExpired: vi.fn(),
 }))
@@ -48,6 +49,7 @@ vi.mock('@/app/composition/expiredUrlRecovery', () => {
   const recovery = {
     list: mocked.listExpired,
     restore: mocked.restoreExpired,
+    restoreWithUndo: mocked.restoreExpiredWithUndo,
     discard: mocked.discardExpired,
     subscribe: mocked.subscribeExpired,
   }
@@ -294,6 +296,7 @@ describe('PeriodicExecutionRoute', () => {
     mocked.getReviewCategories.mockResolvedValue([])
     mocked.listExpired.mockReset().mockResolvedValue([])
     mocked.restoreExpired.mockReset().mockResolvedValue(1)
+    mocked.restoreExpiredWithUndo.mockReset().mockResolvedValue({ result: 1 })
     mocked.discardExpired.mockReset().mockResolvedValue(1)
     mocked.subscribeExpired.mockReset().mockReturnValue(() => {})
     mocked.settings = {
@@ -376,7 +379,9 @@ describe('PeriodicExecutionRoute', () => {
     await user.click(
       within(recovery).getByRole('button', { name: 'Restore all' }),
     )
-    expect(mocked.restoreExpired).toHaveBeenLastCalledWith(['expired-article'])
+    expect(mocked.restoreExpiredWithUndo).toHaveBeenCalledExactlyOnceWith([
+      'expired-article',
+    ])
     expect(
       await within(recovery).findByText('No expired tabs to restore.'),
     ).toBeVisible()
