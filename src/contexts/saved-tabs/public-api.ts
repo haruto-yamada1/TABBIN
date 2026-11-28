@@ -14,6 +14,7 @@
 
 export { normalizeDomainString } from './domain/value-objects/DomainName'
 
+export type { ExpiredUrlRecoveryDto } from './application/dto/ExpiredUrlRecoveryDto'
 export { savedTabsOrganizationProposalSchema } from './application/dto/SavedTabsOrganizationDto'
 export type {
   SavedTabsOrganizationCatalogDto,

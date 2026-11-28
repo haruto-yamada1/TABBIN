@@ -24,6 +24,50 @@ const requestResult = async <Value>(
 }
 
 describe('Persistence v2 IndexedDB schema', () => {
+  it('adds the expiration archive when upgrading intact v1 data', async () => {
+    const indexedDb = new IDBFactory()
+    const databaseName = 'expiration-archive-upgrade'
+    const oldManager = new IndexedDbConnectionManager({
+      databaseName,
+      databaseVersion: 1,
+      indexedDb,
+    })
+    const oldDatabase = await oldManager.open()
+    expect(oldDatabase.objectStoreNames.contains('expiredUrls')).toBe(false)
+    const metadata = { key: 'revision', value: 42 }
+    const originalUrl = {
+      firstSavedAt: 1,
+      id: 'existing-url',
+      lastSavedAt: 2,
+      normalizedUrl: 'https://example.com/',
+      title: 'Existing URL',
+      updatedAt: 2,
+      url: 'https://example.com/',
+    }
+    const seed = oldDatabase.transaction(['metadata', 'urls'], 'readwrite')
+    await Promise.all([
+      requestResult(seed.objectStore('metadata').put(metadata)),
+      requestResult(seed.objectStore('urls').put(originalUrl)),
+    ])
+    oldManager.close()
+
+    const manager = new IndexedDbConnectionManager({ databaseName, indexedDb })
+    try {
+      const database = await manager.open()
+      expect(database.version).toBeGreaterThan(1)
+      const upgrade = database.transaction(['expiredUrls', 'metadata', 'urls'])
+      expect(upgrade.objectStore('expiredUrls').keyPath).toBe('id')
+      await expect(
+        requestResult(upgrade.objectStore('metadata').get('revision')),
+      ).resolves.toEqual(metadata)
+      await expect(
+        requestResult(upgrade.objectStore('urls').get(originalUrl.id)),
+      ).resolves.toEqual(originalUrl)
+    } finally {
+      manager.close()
+    }
+  })
+
   it('Storage Placement Matrix に対応する store と index を作成する', async () => {
     const manager = new IndexedDbConnectionManager({
       databaseName: 'schema-contract',

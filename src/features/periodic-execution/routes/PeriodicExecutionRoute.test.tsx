@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createElement } from 'react'
 import type { ComponentPropsWithoutRef, useState } from 'react'
 import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getMessages } from '@/features/i18n/messages'
+import { getMessage } from '@/features/i18n/lib/language'
 import { defaultReviewReminderSettings } from '@/features/review-reminders/lib/reviewReminderSettings'
 import type { UserSettings } from '@/types/storage'
 
@@ -38,7 +38,24 @@ const mocked = vi.hoisted(() => ({
   readReminderSettings: vi.fn(),
   saveReminderSettings: vi.fn(),
   getReviewCategories: vi.fn(),
+  listExpired: vi.fn(),
+  restoreExpired: vi.fn(),
+  discardExpired: vi.fn(),
+  subscribeExpired: vi.fn(),
 }))
+
+vi.mock('@/app/composition/expiredUrlRecovery', () => {
+  const recovery = {
+    list: mocked.listExpired,
+    restore: mocked.restoreExpired,
+    discard: mocked.discardExpired,
+    subscribe: mocked.subscribeExpired,
+  }
+  return {
+    EXPIRED_URL_RECOVERY_DAYS: 30,
+    getExpiredUrlRecovery: () => recovery,
+  }
+})
 
 vi.mock('@/lib/storage/review-reminders', () => ({
   readReviewReminderSettings: mocked.readReminderSettings,
@@ -146,7 +163,8 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
-    t: (key: string) =>
+    language: 'en',
+    t: (key: string, fallback?: string, values?: Record<string, string>) =>
       (
         {
           'common.cancel': 'Cancel',
@@ -166,8 +184,6 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
             'When enabled, a confirmation dialog appears before deleting a tab.',
           'options.autoDelete.confirmMessage':
             'Set auto-delete period to "{{periodLabel}}".\n\n{{warningMessage}}\n\nContinue?',
-          'options.autoDelete.description':
-            'Saved tabs are deleted automatically after the selected period.',
           'options.autoDelete.externalDrop':
             'Delete automatically after dropping into another browser',
           'options.autoDelete.externalDropDescription':
@@ -179,8 +195,6 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
             'Delete automatically after opening a saved tab',
           'options.autoDelete.openAfterDescription':
             'When enabled, a saved tab is removed from the list after you open it. When disabled, the tab stays in the list.',
-          'options.autoDelete.periodDescription':
-            'Saved tabs are deleted automatically when they exceed the selected period. Applying the setting deletes tabs that have already expired. Favorites are excluded.',
           'options.autoDelete.periodLabel': 'Auto-delete period for tabs',
           'options.autoDelete.apply': 'Apply',
           'options.autoDelete.disabled': 'Disabled auto delete',
@@ -194,18 +208,12 @@ vi.mock('@/features/i18n/context/I18nProvider', () => ({
             'When enabled, saved tabs open in the background.',
           'options.autoDelete.selectPlaceholder':
             'Select an auto-delete period',
-          'options.autoDelete.shorterWarning':
-            'Warning: This shortens the current period, so some tabs may be deleted immediately!',
-          'options.autoDelete.validateWarning':
-            'Note: Tabs older than the selected period may be deleted immediately.',
           'options.autoDelete.saveError': 'Failed to save settings',
           'options.autoDelete.zero': 'Do not auto delete',
           'options.autoDelete.title': 'Auto delete',
           'periodicExecution.title': 'Scheduled tasks',
         } satisfies Record<string, string>
-      )[key] ??
-      (getMessages('en') as Record<string, string>)[key] ??
-      key,
+      )[key] ?? getMessage('en', key, fallback, values),
   }),
 }))
 
@@ -251,6 +259,25 @@ vi.mock('@/features/options/hooks/useAutoDeletePeriod', async () => {
 
 import { PeriodicExecutionRoute } from './PeriodicExecutionRoute'
 
+const expiredGuide = {
+  id: 'expired-guide',
+  title: 'Expired guide',
+  url: 'https://guide.example/expired',
+  expiredAt: 1_800_000_000_000,
+  recoverUntil: 1_802_592_000_000,
+  memberships: [
+    { collectionName: 'guide.example' },
+    { collectionName: 'Work', categoryName: 'Research' },
+  ],
+}
+
+const expiredArticle = {
+  ...expiredGuide,
+  id: 'expired-article',
+  title: 'Expired article',
+  url: 'https://guide.example/article',
+}
+
 describe('PeriodicExecutionRoute', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -261,6 +288,10 @@ describe('PeriodicExecutionRoute', () => {
     })
     mocked.saveReminderSettings.mockResolvedValue(undefined)
     mocked.getReviewCategories.mockResolvedValue([])
+    mocked.listExpired.mockReset().mockResolvedValue([])
+    mocked.restoreExpired.mockReset().mockResolvedValue(1)
+    mocked.discardExpired.mockReset().mockResolvedValue(1)
+    mocked.subscribeExpired.mockReset().mockReturnValue(() => {})
     mocked.settings = {
       autoDeletePeriod: 'never',
       clickBehavior: 'saveSameDomainTabs',
@@ -301,9 +332,126 @@ describe('PeriodicExecutionRoute', () => {
     expect(screen.getByText('Auto-delete period for tabs')).toBeTruthy()
     expect(
       screen.getByText(
-        'Saved tabs are deleted automatically after the selected period.',
+        'Saved tabs move to recovery after the selected period. When favorite protection is on, favorites are excluded.',
       ),
     ).toBeTruthy()
+  })
+
+  it('自動削除が無効でも元の所属と復元期限を確認し、個別と一括で復元できる', async () => {
+    const user = userEvent.setup()
+    mocked.listExpired
+      .mockResolvedValueOnce([expiredGuide, expiredArticle])
+      .mockResolvedValueOnce([expiredArticle])
+    render(createElement(PeriodicExecutionRoute))
+
+    const recovery = screen.getByRole('region', {
+      name: 'Recover expired tabs',
+    })
+    expect(await within(recovery).findByText('Expired guide')).toBeVisible()
+    expect(within(recovery).getByText(expiredGuide.url)).toBeVisible()
+    expect(
+      within(recovery).getByText('2 saved tabs available to restore'),
+    ).toBeVisible()
+    const guide = within(recovery).getByRole('listitem', {
+      name: 'Expired guide',
+    })
+    expect(within(guide).getByText('guide.example')).toBeVisible()
+    expect(within(guide).getByText('Work / Research')).toBeVisible()
+    expect(within(guide).getByText('Removed on')).toBeVisible()
+    expect(within(guide).getByText('Restore by')).toBeVisible()
+
+    await user.click(
+      within(guide).getByRole('button', { name: 'Restore Expired guide' }),
+    )
+    expect(mocked.restoreExpired).toHaveBeenLastCalledWith(['expired-guide'])
+    expect(
+      await within(recovery).findByText('1 saved tab available to restore'),
+    ).toBeVisible()
+    await user.click(
+      within(recovery).getByRole('button', { name: 'Restore all' }),
+    )
+    expect(mocked.restoreExpired).toHaveBeenLastCalledWith(['expired-article'])
+    expect(
+      await within(recovery).findByText('No expired tabs to restore.'),
+    ).toBeVisible()
+  })
+
+  it('完全削除は確認後に実行し、失敗後も項目を保持する', async () => {
+    const user = userEvent.setup()
+    mocked.listExpired.mockResolvedValue([expiredGuide])
+    mocked.discardExpired.mockRejectedValueOnce(new Error('unavailable'))
+    render(createElement(PeriodicExecutionRoute))
+
+    const remove = await screen.findByRole('button', {
+      name: 'Permanently delete Expired guide',
+    })
+    await user.click(remove)
+    const firstDialog = screen.getByRole('alertdialog')
+    await user.click(
+      within(firstDialog).getByRole('button', { name: 'Cancel' }),
+    )
+    expect(mocked.discardExpired).not.toHaveBeenCalled()
+
+    await user.click(remove)
+    const dialog = screen.getByRole('alertdialog')
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Permanently delete' }),
+    )
+    expect(mocked.discardExpired).toHaveBeenCalledWith(['expired-guide'])
+    expect(
+      await screen.findByText('Could not update expired tabs. Try again.'),
+    ).toBeVisible()
+    expect(screen.getByText('Expired guide')).toBeVisible()
+
+    mocked.listExpired.mockResolvedValue([])
+    await user.click(remove)
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Permanently delete',
+      }),
+    )
+    expect(await screen.findByText('No expired tabs to restore.')).toBeVisible()
+  })
+
+  it('読み込みを再試行し、別画面からの変更を反映する', async () => {
+    const user = userEvent.setup()
+    const unsubscribe = vi.fn()
+    mocked.subscribeExpired.mockReturnValue(unsubscribe)
+    mocked.listExpired.mockRejectedValueOnce(new Error('unavailable'))
+    const view = render(createElement(PeriodicExecutionRoute))
+
+    expect(
+      await screen.findByText('Could not load expired tabs.'),
+    ).toBeVisible()
+    await user.click(
+      screen.getByRole('button', { name: 'Retry loading expired tabs' }),
+    )
+    expect(await screen.findByText('No expired tabs to restore.')).toBeVisible()
+
+    mocked.listExpired.mockResolvedValue([expiredArticle])
+    const onChange = mocked.subscribeExpired.mock.calls[0]?.[0] as () => void
+    act(onChange)
+    expect(await screen.findByText('Expired article')).toBeVisible()
+    view.unmount()
+    expect(unsubscribe).toHaveBeenCalledOnce()
+  })
+
+  it('画面を開いたままでも復元期限を過ぎた候補を除く', async () => {
+    vi.useFakeTimers()
+    try {
+      const oneSecondInMs = 1000
+      mocked.listExpired.mockResolvedValueOnce([
+        { ...expiredGuide, recoverUntil: Date.now() + oneSecondInMs },
+      ])
+      render(createElement(PeriodicExecutionRoute))
+
+      await act(async () => vi.advanceTimersByTimeAsync(0))
+      expect(screen.getByText('Expired guide')).toBeVisible()
+      await act(async () => vi.advanceTimersByTimeAsync(oneSecondInMs))
+      expect(screen.getByText('No expired tabs to restore.')).toBeVisible()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('移設したリマインダー設定を保存し、再表示時に読み込む', async () => {

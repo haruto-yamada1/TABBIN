@@ -33,6 +33,7 @@ type PersistenceChangeScope =
   | 'categories'
   | 'collections'
   | 'conversations'
+  | 'expiredUrls'
   | 'groups'
   | 'memberships'
   | 'recoverySnapshots'
@@ -41,8 +42,7 @@ type PersistenceChangeScope =
 
 `changeId` identifies one post-commit publication attempt. `revision` is the
 committed Persistence Model v2 revision, and `scopes` is the exact set of
-logical stores changed by that commit. The protocol has only the eight scopes
-above; in particular, it has no settings scope.
+logical stores changed by that commit. Settings use their own change protocol.
 
 Inbound adapters validate the whole value before exposing it through
 `PersistenceChangePort`: it must be a plain JSON-safe object with no unknown

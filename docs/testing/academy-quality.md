@@ -10,7 +10,7 @@ Issue #1004。既存の章別 unit / E2E を使い、教材と実装の参照、
 | `bun run academy:check`                                                                                   | catalog・scenario・日英タイトル/手順・step・実 JSX target・素材hash/VTTを検査 | 同じ検査                                                      |
 | `bun run academy:e2e`                                                                                     | Chromiumで全章の日英・動画・操作練習・axe・キーボード・中断/再開/復習         | `release:e2e` でも必須                                        |
 | `bun run academy:check .output/chrome-mv3 .output/firefox-mv2 .output/*-chrome.zip .output/*-firefox.zip` | 既存 Verify Build job の配布物に対して欠損/改変・撮影fixture漏出を検査        | `release:check` は両ディレクトリ、`release:zip` はZIPも必須   |
-| Firefox native Academy smoke                                                                              | 通常PRで再収録やnative環境導入を強制しない                                    | Academy Quality workflowの手動/毎週、および既存 `release:e2e` |
+| Firefox native Academy smoke                                                                              | `Firefox Native Release Smoke` の実 UI 検証を `Verify Build` が必須化         | Academy Quality workflowの手動/毎週、および既存 `release:e2e` |
 | `size:loads` / `size:report`                                                                              | 既存Verify Build jobで初回feature別JSとZIPを計測                              | base branchとの比較をPRへ記録                                 |
 | `perf:budget`                                                                                             | 既存 Saved Tabs budget を維持                                                 | 同じ指標としきい値を使用                                      |
 

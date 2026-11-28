@@ -49,27 +49,33 @@ const runPressureScenario = (body: string, retries = 0) => {
 const saved = "test('save @release-saved-tabs', () => {})"
 const backup = "test('backup @release-backup-v2', () => {})"
 
+const expiry = "test('expiry recovery @release-expiry-recovery', () => {})"
+
 describe('release E2E reporter against the real Playwright runner', () => {
-  it('accepts both critical flows passing', () => {
-    const result = runPressureScenario(`${saved}\n${backup}`)
+  it('accepts all critical flows passing', () => {
+    const result = runPressureScenario(`${saved}\n${backup}\n${expiry}`)
     expect(result.error).toBeUndefined()
     expect(result.status).toBe(0)
   }, 20_000)
 
   it.each([
-    ['missing critical flow', saved],
-    ['skip', `${saved}\ntest.skip('backup @release-backup-v2', () => {})`],
+    ['missing expiry recovery', `${saved}\n${backup}`],
+    ['missing Backup V2 flow', `${saved}\n${expiry}`],
+    [
+      'skip',
+      `${saved}\n${expiry}\ntest.skip('backup @release-backup-v2', () => {})`,
+    ],
     [
       'expected failure',
-      `${saved}\ntest('backup @release-backup-v2', () => { test.fail(); expect(1).toBe(2) })`,
+      `${saved}\n${expiry}\ntest('backup @release-backup-v2', () => { test.fail(); expect(1).toBe(2) })`,
     ],
     [
       'failure',
-      `${saved}\ntest('backup @release-backup-v2', () => { expect(1).toBe(2) })`,
+      `${saved}\n${expiry}\ntest('backup @release-backup-v2', () => { expect(1).toBe(2) })`,
     ],
     [
       'focused test',
-      `${saved}\ntest.only('backup @release-backup-v2', () => {})`,
+      `${saved}\n${expiry}\ntest.only('backup @release-backup-v2', () => {})`,
     ],
     ['empty selection', ''],
   ])(
@@ -84,7 +90,7 @@ describe('release E2E reporter against the real Playwright runner', () => {
 
   it('rejects a retry-recovered flaky test', () => {
     const result = runPressureScenario(
-      `${saved}\ntest('backup @release-backup-v2', ({}, info) => { expect(info.retry).toBe(1) })`,
+      `${saved}\n${expiry}\ntest('backup @release-backup-v2', ({}, info) => { expect(info.retry).toBe(1) })`,
       1,
     )
     expect(result.error).toBeUndefined()

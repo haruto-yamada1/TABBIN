@@ -6,6 +6,7 @@ import { SettingsCrossLink } from '@/features/navigation/components/SettingsCros
 import { useAutoDeletePeriod } from '@/features/options/hooks/useAutoDeletePeriod'
 import { useSettings } from '@/features/options/hooks/useSettings'
 import { AutoDeleteSettingsCard } from '@/features/periodic-execution/components/AutoDeleteSettingsCard'
+import { ExpiredUrlRecoveryCard } from '@/features/periodic-execution/components/ExpiredUrlRecoveryCard'
 import { ReviewReminderSettings } from '@/features/periodic-execution/components/ReviewReminderSettings'
 
 export const PeriodicExecutionRoute = () => {
@@ -42,6 +43,7 @@ export const PeriodicExecutionRoute = () => {
             onAutoDeletePeriodChange={handleAutoDeletePeriodChange}
             onPrepareAutoDeletePeriod={prepareAutoDeletePeriod}
           />
+          <ExpiredUrlRecoveryCard />
 
           <section
             aria-labelledby='periodic-execution-related-title'

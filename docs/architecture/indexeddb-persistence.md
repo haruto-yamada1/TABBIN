@@ -74,8 +74,12 @@ run in `onupgradeneeded`.
 ## Database and schema version
 
 The database name is `tabbin-persistence-v2`. Its physical schema version is
-`PERSISTENCE_DATABASE_VERSION = 1`. This integer is independent of both the
+`PERSISTENCE_DATABASE_VERSION = 2`. This integer is independent of both the
 extension app version and the public backup `schemaVersion`.
+
+The upgrade from version 1 creates `expiredUrls` and preserves the existing
+stores and revision. Builds that open version 1 cannot open a profile upgraded
+to version 2. The release compatibility metadata records that downgrade limit.
 
 Upgrade work runs only in `onupgradeneeded`. A legacy Chrome Storage migration
 must never be placed in this callback; it is a separate, coordinated operation
@@ -85,18 +89,19 @@ contract is defined in
 
 ## Object stores, keys, and indexes
 
-| Store                   | Key                     | Secondary indexes                                                                                          | Policy                                                                                                   |
-| ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `urls`                  | `id`                    | `normalizedUrl`, `firstSavedAt`, `lastSavedAt`                                                             | `normalizedUrl` is deliberately non-unique until #738 proves source collisions are handled.              |
-| `collections`           | `id`                    | `definition.type`, unique `definition.domain`, `groupId`, `createdAt`, `updatedAt`, `[groupId, sortOrder]` | Domain collections have one canonical domain; Custom records have no domain index entry.                 |
-| `collectionMemberships` | `[collectionId, urlId]` | `collectionId`, `urlId`, `[collectionId, categoryId]`, `[collectionId, sortOrder]`, `addedAt`              | The composite key is the #725 logical identity and prevents duplicate membership.                        |
-| `collectionCategories`  | `id`                    | `collectionId`, `[collectionId, sortOrder]`                                                                | Category ownership remains explicit.                                                                     |
-| `collectionGroups`      | `id`                    | `sortOrder`                                                                                                | Group ordering is indexed without requiring contiguous ranks.                                            |
-| `conversations`         | `id`                    | `updatedAt`                                                                                                | Context-owned JSON value includes explicit `messageIds` order; the store does not own AI domain rules.   |
-| `messages`              | `id`                    | `conversationId`, `[conversationId, createdAt]`, `createdAt`                                               | Messages are queryable without loading a conversation blob; timestamps are not ordering surrogates.      |
-| `analyticsViews`        | `id`                    | `updatedAt`                                                                                                | Context-owned JSON-safe projection.                                                                      |
-| `recoverySnapshots`     | `id`                    | `createdAt`, `expiresAt`                                                                                   | At most 2 snapshots, 7 days, and 256 MiB aggregate; expired/older records are pruned atomically on save. |
-| `metadata`              | `key`                   | none                                                                                                       | Internal monotonic revision; not part of Backup V2.                                                      |
+| Store                   | Key                     | Secondary indexes                                                                                          | Policy                                                                                                                         |
+| ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `urls`                  | `id`                    | `normalizedUrl`, `firstSavedAt`, `lastSavedAt`                                                             | `normalizedUrl` is deliberately non-unique until #738 proves source collisions are handled.                                    |
+| `collections`           | `id`                    | `definition.type`, unique `definition.domain`, `groupId`, `createdAt`, `updatedAt`, `[groupId, sortOrder]` | Domain collections have one canonical domain; Custom records have no domain index entry.                                       |
+| `collectionMemberships` | `[collectionId, urlId]` | `collectionId`, `urlId`, `[collectionId, categoryId]`, `[collectionId, sortOrder]`, `addedAt`              | The composite key is the #725 logical identity and prevents duplicate membership.                                              |
+| `collectionCategories`  | `id`                    | `collectionId`, `[collectionId, sortOrder]`                                                                | Category ownership remains explicit.                                                                                           |
+| `collectionGroups`      | `id`                    | `sortOrder`                                                                                                | Group ordering is indexed without requiring contiguous ranks.                                                                  |
+| `conversations`         | `id`                    | `updatedAt`                                                                                                | Context-owned JSON value includes explicit `messageIds` order; the store does not own AI domain rules.                         |
+| `messages`              | `id`                    | `conversationId`, `[conversationId, createdAt]`, `createdAt`                                               | Messages are queryable without loading a conversation blob; timestamps are not ordering surrogates.                            |
+| `analyticsViews`        | `id`                    | `updatedAt`                                                                                                | Context-owned JSON-safe projection.                                                                                            |
+| `expiredUrls`           | `id`                    | none                                                                                                       | Bounded [automatic expiry recovery](../adr/0001-saved-tabs-deletion-confirmation-policy.md#automatic-expiry-recovery) records. |
+| `recoverySnapshots`     | `id`                    | `createdAt`, `expiresAt`                                                                                   | At most 2 snapshots, 7 days, and 256 MiB aggregate; expired/older records are pruned atomically on save.                       |
+| `metadata`              | `key`                   | none                                                                                                       | Internal monotonic revision; not part of Backup V2.                                                                            |
 
 Arbitrary runtime values are not accepted merely because structured clone can
 store them. Every complete write-plan record is validated as `JsonValue` before
@@ -206,8 +211,8 @@ urls + collections + memberships + categories + groups
 + conversations + messages + analyticsViews
 ```
 
-`metadata` is internal and `recoverySnapshots` is an internal recovery artifact,
-so neither is exported. Chrome-storage settings cannot join an IndexedDB
+`metadata`, `expiredUrls`, and `recoverySnapshots` stay local to the database.
+Chrome-storage settings cannot join an IndexedDB
 transaction; #730 must combine that independently owned configuration with the
 atomic IndexedDB logical snapshot without claiming cross-engine atomicity.
 

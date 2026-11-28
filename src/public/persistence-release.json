@@ -1,9 +1,9 @@
 {
-  "databaseVersion": 1,
+  "databaseVersion": 2,
   "minimumCompatibleAppVersion": "2.0.20",
   "persistenceGeneration": 2,
   "rollbackCompatibility": {
-    "databaseDowngradeCompatible": true,
+    "databaseDowngradeCompatible": false,
     "destructiveSchemaChange": false,
     "queryWriteContractCompatible": true
   }

@@ -1,15 +1,20 @@
-import type { PersistenceV2SnapshotReaderPort } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
+import type {
+  PersistenceV2SnapshotReaderPort,
+  PersistenceVersionedExpiredUrlsSnapshot,
+} from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 import type {
   PersistenceRecordMutation,
   PersistenceV2MembershipKey,
   PersistenceV2UnitOfWorkPort,
   PersistenceV2WritePlan,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
+import type { ExpiredUrlRecoveryRecord } from '@/contexts/saved-tabs/domain/entities/ExpiredUrlRecovery'
 import type {
   PersistenceV2Collection,
   PersistenceV2CollectionCategory,
   PersistenceV2CollectionGroup,
   PersistenceV2CollectionMembership,
+  PersistenceV2Snapshot,
   PersistenceV2Url,
 } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 
@@ -22,9 +27,17 @@ export type IndexedDbSavedTabsMutableState = {
 }
 
 export type IndexedDbSavedTabsSessionServiceDeps = {
+  readonly readWithExpiredUrls?: () => Promise<PersistenceVersionedExpiredUrlsSnapshot>
   readonly snapshotReaderPort: PersistenceV2SnapshotReaderPort
   readonly unitOfWorkPort: PersistenceV2UnitOfWorkPort
 }
+
+type SavedTabsStateWithExpiredUrls = IndexedDbSavedTabsMutableState & {
+  expiredUrls: ExpiredUrlRecoveryRecord[]
+}
+
+type SavedTabsSessionState = IndexedDbSavedTabsMutableState &
+  Partial<Pick<SavedTabsStateWithExpiredUrls, 'expiredUrls'>>
 
 type EntityWithId = { readonly id: string }
 
@@ -87,17 +100,22 @@ const diffMemberships = (
 }
 
 const toWritePlan = (
-  current: IndexedDbSavedTabsMutableState,
-  next: IndexedDbSavedTabsMutableState,
+  current: SavedTabsSessionState,
+  next: SavedTabsSessionState,
 ): PersistenceV2WritePlan => {
   const categories = diffById(current.categories, next.categories)
   const collections = diffById(current.collections, next.collections)
+  const expiredUrls =
+    current.expiredUrls && next.expiredUrls
+      ? diffById(current.expiredUrls, next.expiredUrls)
+      : undefined
   const groups = diffById(current.groups, next.groups)
   const memberships = diffMemberships(current.memberships, next.memberships)
   const urls = diffById(current.urls, next.urls)
   return {
     ...(categories !== undefined ? { categories } : {}),
     ...(collections !== undefined ? { collections } : {}),
+    ...(expiredUrls !== undefined ? { expiredUrls } : {}),
     ...(groups !== undefined ? { groups } : {}),
     ...(memberships !== undefined ? { memberships } : {}),
     ...(urls !== undefined ? { urls } : {}),
@@ -107,24 +125,15 @@ const toWritePlan = (
 const hasWritePlanChanges = (plan: PersistenceV2WritePlan): boolean =>
   Object.keys(plan).length > 0
 
-const materializeState = async (
-  snapshotReaderPort: PersistenceV2SnapshotReaderPort,
-): Promise<{
-  readonly revision: number
-  readonly state: IndexedDbSavedTabsMutableState
-}> => {
-  const snapshot = await snapshotReaderPort.readVerifiedSavedTabsSnapshot()
-  return {
-    revision: snapshot.revision,
-    state: {
-      categories: [...snapshot.savedTabs.categories],
-      collections: [...snapshot.savedTabs.collections],
-      groups: [...snapshot.savedTabs.groups],
-      memberships: [...snapshot.savedTabs.memberships],
-      urls: [...snapshot.savedTabs.urls],
-    },
-  }
-}
+const materializeState = (
+  savedTabs: PersistenceV2Snapshot,
+): IndexedDbSavedTabsMutableState => ({
+  categories: [...savedTabs.categories],
+  collections: [...savedTabs.collections],
+  groups: [...savedTabs.groups],
+  memberships: [...savedTabs.memberships],
+  urls: [...savedTabs.urls],
+})
 
 export class IndexedDbSavedTabsSessionService {
   private readonly deps: IndexedDbSavedTabsSessionServiceDeps
@@ -139,15 +148,46 @@ export class IndexedDbSavedTabsSessionService {
     ) => Promise<Result> | Result,
     onCommitFailure?: (error: unknown, result: Result) => never,
   ): Promise<Result> {
-    const { revision, state: source } = await materializeState(
-      this.deps.snapshotReaderPort,
+    const { revision, savedTabs } =
+      await this.deps.snapshotReaderPort.readVerifiedSavedTabsSnapshot()
+    return this.runState(
+      revision,
+      materializeState(savedTabs),
+      operation,
+      onCommitFailure,
     )
+  }
+
+  async runWithExpiredUrls<Result>(
+    operation: (
+      state: SavedTabsStateWithExpiredUrls,
+    ) => Promise<Result> | Result,
+  ): Promise<Result> {
+    const read = this.deps.readWithExpiredUrls
+    if (!read) {
+      throw new Error('The expiration recovery reader has not been configured.')
+    }
+    const { expiredUrls, revision, savedTabs } = await read()
+    return this.runState(
+      revision,
+      { ...materializeState(savedTabs), expiredUrls: [...expiredUrls] },
+      operation,
+    )
+  }
+
+  private async runState<State extends SavedTabsSessionState, Result>(
+    revision: number,
+    source: State,
+    operation: (state: State) => Promise<Result> | Result,
+    onCommitFailure?: (error: unknown, result: Result) => never,
+  ): Promise<Result> {
     const state = structuredClone(source)
     const result = await operation(state)
     const plan = toWritePlan(source, state)
     if (hasWritePlanChanges(plan)) {
       try {
         await this.deps.unitOfWorkPort.commit(plan, {
+          ...(plan.expiredUrls ? { durability: 'strict' } : {}),
           expectedRevision: revision,
         })
       } catch (error) {

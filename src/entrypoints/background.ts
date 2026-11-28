@@ -9,6 +9,7 @@ import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBoo
 import {
   registerExpiredTabsAlarmListener,
   setupExpiredTabsCheckAlarm,
+  setupExpiredUrlRecoveryPurgeAlarm,
 } from '@/lib/background/alarm-notification'
 // 分離したモジュールをインポート
 import {
@@ -114,6 +115,7 @@ export default defineBackground(() => {
 
       // 期限切れタブのチェック用アラームを設定
       await setupExpiredTabsCheckAlarm()
+      void setupExpiredUrlRecoveryPurgeAlarm()
       await reconcileReviewReminderAlarm()
     } catch (error) {
       logger.error('background_initialization_failed', error)

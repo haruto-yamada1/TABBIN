@@ -7,6 +7,7 @@ export const PERSISTENCE_STORE_NAMES = {
   categories: 'collectionCategories',
   collections: 'collections',
   conversations: 'conversations',
+  expiredUrls: 'expiredUrls',
   groups: 'collectionGroups',
   memberships: 'collectionMemberships',
   messages: 'messages',
@@ -106,5 +107,10 @@ export const upgradePersistenceDatabase = (
 ): void => {
   if (oldVersion < 1) {
     createVersionOneSchema(database)
+  }
+  if (oldVersion < 2 && database.version >= 2) {
+    database.createObjectStore(PERSISTENCE_STORE_NAMES.expiredUrls, {
+      keyPath: 'id',
+    })
   }
 }

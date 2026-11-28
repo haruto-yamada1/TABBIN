@@ -7,7 +7,7 @@ const workflow = parse(readFileSync('.github/workflows/ci.yml', 'utf8'))
 
 describe('feature initial-load CI contract', () => {
   it('measures both production browser artifacts before the existing report on every PR', () => {
-    const job = workflow.jobs['verify-build']
+    const job = workflow.jobs['build-artifacts']
     expect(job.if).toBeUndefined()
     const steps = job.steps
     const measureIndex = steps.findIndex(

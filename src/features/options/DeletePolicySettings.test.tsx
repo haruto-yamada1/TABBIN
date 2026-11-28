@@ -12,9 +12,10 @@ const i18nMocks = vi.hoisted(() => ({
 
 vi.mock('@/features/i18n/context/I18nProvider', () => ({
   useI18n: () => ({
-    t: (key: string) => {
+    t: (key: string, fallback?: string, params?: { days: string }) => {
       const messages: Record<string, string> = getMessages(i18nMocks.language)
-      return messages[key] ?? key
+      const message = messages[key] ?? fallback ?? key
+      return params ? message.replace('{{days}}', params.days) : message
     },
   }),
 }))
@@ -58,6 +59,11 @@ describe('DeletePolicySettings', () => {
         'Up to 30 minutes while the page stays open',
       ),
     ).toBeTruthy()
+    const autoDelete = within(
+      rowByOperation(/Automatic deletion of expired URLs/),
+    )
+    expect(autoDelete.getByText('Restore from Scheduled tasks')).toBeTruthy()
+    expect(autoDelete.getByText('30 days from automatic deletion')).toBeTruthy()
   })
 
   it('確認列は confirmDeleteEach / confirmDeleteAll の現在値に連動する', () => {
@@ -85,6 +91,9 @@ describe('DeletePolicySettings', () => {
     )
 
     expect(screen.getByText('削除ポリシー')).toBeTruthy()
+    const autoDelete = within(rowByOperation(/期限切れURLの自動削除/))
+    expect(autoDelete.getByText('定期実行から復元')).toBeTruthy()
+    expect(autoDelete.getByText('自動削除から30日間')).toBeTruthy()
     expect(
       within(rowByOperation(/保存URLを1件削除/)).getByText(
         '通知が表示されている間',

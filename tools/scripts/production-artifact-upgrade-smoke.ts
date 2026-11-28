@@ -3,9 +3,10 @@ import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { chromium } from '@playwright/test'
-import type { BrowserContext, Worker } from '@playwright/test'
+import { chromium, expect } from '@playwright/test'
+import type { BrowserContext, Page, Worker } from '@playwright/test'
 
+import { PERSISTENCE_DATABASE_VERSION } from '@/contexts/saved-tabs/public-api'
 import { BackupEnvelopeV2Schema } from '@/features/options/lib/import-export/v2/BackupV2Schema'
 import * as persistence from '@/test/fixtures/persistenceBrowserFixtures'
 
@@ -36,6 +37,47 @@ const launch = async (profileDir: string, addonDir: string) =>
     ],
   })
 
+const reopenSavedTabsPage = async (
+  context: BrowserContext,
+  worker: Worker,
+): Promise<Page> => {
+  let pinnedId: number | undefined
+  await expect
+    .poll(async () => {
+      pinnedId = await worker.evaluate(async () => {
+        const appRoute = chrome.runtime.getURL('app.html#/saved-tabs')
+        const legacyPage = chrome.runtime.getURL('saved-tabs.html')
+        const tabs = await chrome.tabs.query({ pinned: true })
+        return tabs.find(
+          ({ url }) =>
+            url === legacyPage ||
+            url === appRoute ||
+            url?.startsWith(`${appRoute}?`),
+        )?.id
+      })
+      return pinnedId
+    })
+    .toBeDefined()
+  assert.notEqual(pinnedId, undefined)
+
+  // Startup can close a second Saved Tabs page. Reuse the restored pinned
+  // tab, including when Chrome restored it before the extension was loaded.
+  const url = await worker.evaluate(async (tabId) => {
+    const target = chrome.runtime.getURL('app.html#/saved-tabs?mode=domain')
+    await chrome.tabs.update(tabId, { url: target })
+    return target
+  }, pinnedId)
+  let page: Page | undefined
+  await expect
+    .poll(() => {
+      page = context.pages().find((candidate) => candidate.url() === url)
+      return page !== undefined
+    })
+    .toBe(true)
+  assert.ok(page)
+  return page
+}
+
 const readManifestVersion = async (artifactDirectory: string) => {
   const manifest: unknown = JSON.parse(
     await readFile(path.join(artifactDirectory, 'manifest.json'), 'utf8'),
@@ -54,7 +96,7 @@ const readManifestVersion = async (artifactDirectory: string) => {
 const readIndexedDbSnapshot = async (worker: Worker) =>
   worker.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      const request = indexedDB.open('tabbin-persistence-v2')
       request.addEventListener('success', () => {
         resolve(request.result)
       })
@@ -80,9 +122,12 @@ const readIndexedDbSnapshot = async (worker: Worker) =>
           reject(transaction.error ?? new Error('IndexedDB snapshot failed.'))
         })
       })
-      return Object.fromEntries(
-        requests.map(({ name, request }) => [name, request.result]),
-      )
+      return {
+        records: Object.fromEntries(
+          requests.map(({ name, request }) => [name, request.result]),
+        ),
+        version: database.version,
+      }
     } finally {
       database.close()
     }
@@ -211,7 +256,7 @@ const seed = {
 const seedIndexedDb = async (worker: Worker): Promise<void> => {
   await worker.evaluate(async (value) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      const request = indexedDB.open('tabbin-persistence-v2')
       request.addEventListener('success', () => {
         resolve(request.result)
       })
@@ -310,7 +355,11 @@ try {
     .waitFor({ state: 'visible' })
   await seedIndexedDb(worker)
   const indexedDbBefore = await readIndexedDbSnapshot(worker)
-  assert.equal(indexedDbBefore.urls?.length, 2)
+  const expectedAfterUpgrade = {
+    records: { expiredUrls: [], ...indexedDbBefore.records },
+    version: PERSISTENCE_DATABASE_VERSION,
+  }
+  assert.equal(indexedDbBefore.records.urls?.length, 2)
   await worker.evaluate(
     async ({ settings, values }) => {
       await chrome.storage.local.set({ ...values, userSettings: settings })
@@ -329,14 +378,11 @@ try {
   context = await launch(profileDir, addonDir)
   worker = await waitForWorker(context)
   assert.equal(new URL(worker.url()).host, extensionId)
-  appPage = await context.newPage()
-  await appPage.goto(
-    `chrome-extension://${extensionId}/app.html#/saved-tabs?mode=domain`,
-  )
+  appPage = await reopenSavedTabsPage(context, worker)
   await appPage
     .getByText('Production IndexedDB URL', { exact: true })
     .waitFor({ state: 'visible' })
-  assert.deepEqual(await readIndexedDbSnapshot(worker), indexedDbBefore)
+  assert.deepEqual(await readIndexedDbSnapshot(worker), expectedAfterUpgrade)
   assert.deepEqual(await readObsoleteStorage(worker), obsoleteStorageBefore)
   assertUserSettingsPreserved(await readUserSettings(worker))
   await appPage.goto(
@@ -414,14 +460,11 @@ try {
 
   context = await launch(profileDir, addonDir)
   worker = await waitForWorker(context)
-  appPage = await context.newPage()
-  await appPage.goto(
-    `chrome-extension://${extensionId}/app.html#/saved-tabs?mode=domain`,
-  )
+  appPage = await reopenSavedTabsPage(context, worker)
   await appPage
     .getByText('Production IndexedDB URL', { exact: true })
     .waitFor({ state: 'visible' })
-  assert.deepEqual(await readIndexedDbSnapshot(worker), indexedDbBefore)
+  assert.deepEqual(await readIndexedDbSnapshot(worker), expectedAfterUpgrade)
   assert.deepEqual(await readObsoleteStorage(worker), obsoleteStorageBefore)
   assertUserSettingsPreserved(await readUserSettings(worker))
   console.log(

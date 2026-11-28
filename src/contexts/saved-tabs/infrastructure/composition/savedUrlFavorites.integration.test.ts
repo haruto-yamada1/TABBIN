@@ -49,6 +49,7 @@ const setup = async () => {
   const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
     idGenerator: () => `id-${id++}`,
     now: () => 10,
+    readExpiredUrls: async () => reader.readExpiredUrls(),
     readSnapshot: async () => reader.readVerifiedSavedTabsSnapshot(),
     session: runtime.session,
   })

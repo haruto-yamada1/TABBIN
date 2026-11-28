@@ -37,6 +37,7 @@ const PERSISTENCE_CHANGE_SCOPES = [
   'categories',
   'collections',
   'conversations',
+  'expiredUrls',
   'groups',
   'memberships',
   'recoverySnapshots',

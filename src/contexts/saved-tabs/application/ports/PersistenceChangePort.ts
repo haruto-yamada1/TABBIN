@@ -3,6 +3,7 @@ export type PersistenceChangeScope =
   | 'categories'
   | 'collections'
   | 'conversations'
+  | 'expiredUrls'
   | 'groups'
   | 'memberships'
   | 'recoverySnapshots'

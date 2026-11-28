@@ -102,7 +102,7 @@ const seedOrganizationConversation = async (serviceWorker: Worker) => {
   await serviceWorker.evaluate(
     async (value) => {
       const database = await new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open('tabbin-persistence-v2', 1)
+        const request = indexedDB.open('tabbin-persistence-v2')
         request.addEventListener('success', () => resolve(request.result))
         request.addEventListener('error', () =>
           reject(request.error ?? new Error('Failed to open persistence v2.')),

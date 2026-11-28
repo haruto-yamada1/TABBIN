@@ -1000,6 +1000,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
       idGenerator: () => 'unused',
       now: () => 3,
+      readExpiredUrls: async () => snapshotReader.readExpiredUrls(),
       readSnapshot: async () => snapshotReader.readVerifiedSavedTabsSnapshot(),
       session: runtime.session,
     })
@@ -1013,6 +1014,11 @@ describe('createIndexedDbSavedTabsUseCases', () => {
       ['legacy-orphan'],
     )
     expect(afterExpiryRemoval.savedTabs.memberships).toStrictEqual([])
+    await expect(snapshotReader.readExpiredUrls()).resolves.toEqual([
+      expect.objectContaining({
+        url: expect.objectContaining({ id: 'expired-url' }),
+      }),
+    ])
   })
 
   it('legacy 共有 URL を開いて再保存した後も reload 用 snapshot を健全に保つ', async () => {
@@ -1115,6 +1121,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
       idGenerator: () => 'resaved-url',
       now: () => 2,
+      readExpiredUrls: async () => snapshotReader.readExpiredUrls(),
       readSnapshot: async () => snapshotReader.readVerifiedSavedTabsSnapshot(),
       session: runtime.session,
     })
@@ -1169,6 +1176,7 @@ describe('createIndexedDbSavedTabsUseCases', () => {
     const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
       idGenerator: () => 'duplicate-url',
       now: () => 2,
+      readExpiredUrls: async () => snapshotReader.readExpiredUrls(),
       readSnapshot: async () => snapshotReader.readVerifiedSavedTabsSnapshot(),
       session: runtime.session,
     })

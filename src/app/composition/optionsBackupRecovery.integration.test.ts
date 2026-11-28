@@ -2,11 +2,14 @@ import { IDBFactory } from 'fake-indexeddb'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createReadyPersistenceOperationGateStub } from '@/contexts/saved-tabs/application/testing/PersistenceOperationGateStub'
+import type { ExpiredUrlRecoveryRecord } from '@/contexts/saved-tabs/domain/entities/ExpiredUrlRecovery'
 import { createHealthyPersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/testing/persistenceV2IntegrityFixtures'
 import { IndexedDbConnectionManager } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbConnectionManager'
 import { IndexedDbPersistenceRecoverySnapshotRepository } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceRecoverySnapshotRepository'
 import { IndexedDbPersistenceReplacementAdapter } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceReplacementAdapter'
 import { IndexedDbPersistenceSnapshotReader } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbPersistenceSnapshotReader'
+import { waitForIndexedDbTransaction } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/IndexedDbTransaction'
+import { PERSISTENCE_STORE_NAMES } from '@/contexts/saved-tabs/infrastructure/persistence/indexed-db/persistenceDatabaseSchema'
 import type { PersistenceLogicalSnapshot } from '@/contexts/saved-tabs/public-api'
 import { normalizeAiSystemPromptSettings } from '@/features/ai-chat/lib/systemPromptPresets'
 import { BackupMapper } from '@/features/options/lib/import-export/v2/BackupMapper'
@@ -83,6 +86,7 @@ const createRuntime = (corruptImportedSettings = false) => {
     return snapshotReader.readConsistentSnapshot()
   }
   return {
+    manager,
     reopen,
     replacement,
     repository,
@@ -245,6 +249,84 @@ describe('Backup V2 with production settings storage', () => {
     expect(await snapshotReader.readConsistentSnapshot()).toStrictEqual(before)
     expect(writeUserSettings).not.toHaveBeenCalled()
     expect(await runtime.listRecoverySnapshots()).toHaveLength(0)
+  })
+
+  it('round-trips Backup V2 and restores the pre-import snapshot without carrying or replacing local expiry recovery', async () => {
+    const {
+      manager,
+      reopen,
+      replacement,
+      repository,
+      runtime,
+      snapshotReader,
+    } = createRuntime()
+    await saveUserSettings(defaultSettings)
+    await replacement.replaceAll(
+      createSelectionSnapshot('original backup data'),
+    )
+    const original = await snapshotReader.readConsistentSnapshot()
+
+    const {
+      categories: [category],
+      collections: [collection],
+      memberships: [membership],
+      urls: [url],
+    } = createHealthyPersistenceV2Snapshot()
+    const archivedUrl = 'https://alpha.test/archived-only'
+    const archived: ExpiredUrlRecoveryRecord = {
+      expiredAt: 100,
+      id: 'archived-url',
+      memberships: [
+        {
+          category,
+          collection,
+          membership: { ...membership, urlId: 'archive' },
+        },
+      ],
+      recoverUntil: 2_592_000_100,
+      url: {
+        ...url,
+        id: 'archive',
+        normalizedUrl: archivedUrl,
+        url: archivedUrl,
+      },
+    }
+    const database = await manager.open()
+    const archiveStore = PERSISTENCE_STORE_NAMES.expiredUrls
+    const seed = database.transaction(archiveStore, 'readwrite')
+    seed.objectStore(archiveStore).add(archived)
+    await waitForIndexedDbTransaction(seed)
+
+    const exportBackupV2 = createExportBackupV2UseCase({
+      getAppVersion: () => '2.0.20',
+      now: () => new Date(1_000),
+      readUserSettings: requireUserSettings,
+      snapshotReader,
+    })
+    const exported = JSON.stringify(await exportBackupV2())
+    expect(exported).not.toContain('expiredUrls')
+    expect(exported).not.toContain(archivedUrl)
+    const roundTrip = inspectBackupV2(exported)
+    expect(roundTrip.data.savedTabs).toStrictEqual(original.savedTabs)
+
+    await replacement.replaceAll(createSelectionSnapshot('saved after export'))
+    const beforeImport = await snapshotReader.readConsistentSnapshot()
+    await runtime.importBackupV2(roundTrip)
+    expect((await reopen()).savedTabs).toStrictEqual(original.savedTabs)
+    expect(await snapshotReader.readExpiredUrls()).toStrictEqual([archived])
+
+    const [recovery] = await runtime.listRecoverySnapshots()
+    if (!recovery) {
+      throw new Error('Expected a pre-import recovery snapshot')
+    }
+    const preImport = await repository.findAvailableById(recovery.id, 1_000)
+    expect(preImport?.data).toStrictEqual(
+      BackupMapper.toBackupData(beforeImport, await requireUserSettings()),
+    )
+
+    await runtime.restoreRecoverySnapshot(recovery.id)
+    expect((await reopen()).savedTabs).toStrictEqual(beforeImport.savedTabs)
+    expect(await snapshotReader.readExpiredUrls()).toStrictEqual([archived])
   })
 
   it.each(['savedTabs', 'userSettings', 'aiChat', 'analyticsViews'] as const)(

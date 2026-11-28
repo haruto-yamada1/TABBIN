@@ -55,8 +55,9 @@ describe('IndexedDB persistence architecture policy', () => {
 
     for (const requiredContract of [
       'collectionMemberships',
+      'expiredUrls',
       'recoverySnapshots',
-      'PERSISTENCE_DATABASE_VERSION = 1',
+      'PERSISTENCE_DATABASE_VERSION = 2',
       'IndexedDbExternalAsyncTransactionError',
       'PersistenceCommitResult',
       'PersistenceSnapshotIntegrityError',

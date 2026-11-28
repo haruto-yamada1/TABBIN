@@ -38,6 +38,38 @@ const optionsMessagesJa = {
     '設定を保存できませんでした。設定ページを再読み込みして、もう一度お試しください。',
   'options.savedTabTitle.loadError':
     '設定またはサイトアクセスを確認できませんでした。設定ページを再読み込みして、もう一度お試しください。',
+  'periodicExecution.recovery.title': '期限切れタブの復元',
+  'periodicExecution.recovery.description':
+    '期限切れで削除されたタブは{{days}}日間復元できます。復元用のデータはこの端末に保存されます。',
+  'periodicExecution.recovery.empty': '復元できる期限切れタブはありません。',
+  'periodicExecution.recovery.single': '復元できる保存タブは1件です',
+  'periodicExecution.recovery.count': '復元できる保存タブは{{count}}件です',
+  'periodicExecution.recovery.removedOn': '削除日時',
+  'periodicExecution.recovery.restoreBy': '復元期限',
+  'periodicExecution.recovery.originalLocations': '元の所属',
+  'periodicExecution.recovery.categoryPath':
+    '{{collectionName}} / {{categoryName}}',
+  'periodicExecution.recovery.noLocation': '元の所属なし',
+  'periodicExecution.recovery.restore': '復元',
+  'periodicExecution.recovery.restoreTab': '復元 {{name}}',
+  'periodicExecution.recovery.restoreAll': 'すべて復元',
+  'periodicExecution.recovery.discard': '完全に削除',
+  'periodicExecution.recovery.discardTab': '完全に削除 {{name}}',
+  'periodicExecution.recovery.discardTitle': 'このタブを完全に削除しますか？',
+  'periodicExecution.recovery.discardDescription':
+    '「{{name}}」を復元候補から削除します。削除後はここから復元できません。',
+  'periodicExecution.recovery.loadError':
+    '期限切れタブを読み込めませんでした。',
+  'periodicExecution.recovery.retry': '期限切れタブを再読み込み',
+  'periodicExecution.recovery.error':
+    '期限切れタブを更新できませんでした。もう一度お試しください。',
+  'periodicExecution.recovery.pending': '期限切れタブを更新しています…',
+  'periodicExecution.recovery.unavailable':
+    '選択したタブは復元候補にありません。',
+  'periodicExecution.recovery.restored': '{{count}}件のタブを復元しました。',
+  'periodicExecution.recovery.discarded':
+    '{{count}}件のタブを完全に削除しました。',
+  'periodicExecution.recovery.showMore': '期限切れタブをさらに表示',
 } as const satisfies Record<keyof typeof optionsMessagesEn, string>
 
 export { optionsMessagesJa }

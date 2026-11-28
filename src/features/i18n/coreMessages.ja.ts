@@ -377,10 +377,10 @@ const coreMessagesJa = {
     'オンにすると、保存タブ一覧に保存された日時が表示されます。',
   'options.autoDelete.selectPlaceholder': '自動削除期間を選択',
   'options.autoDelete.shorterWarning':
-    '警告: 現在よりも短い期間に設定するため、一部のタブがすぐに削除される可能性があります！',
+    '現在よりも短い期間に設定するため、一部のタブがすぐに復元候補に移動する場合があります。',
   'options.autoDelete.title': '自動削除',
   'options.autoDelete.validateWarning':
-    '注意: 設定した期間より古いタブはすぐに削除される可能性があります。',
+    '設定した期間より古いタブはすぐに復元候補に移動する場合があります。',
   'options.autoDelete.zero': '自動削除しない',
   'options.backupRestore': 'バックアップと復元',
   'options.behavior.description':
@@ -448,6 +448,8 @@ const coreMessagesJa = {
   'options.deletePolicy.confirmNone': '表示しない',
   'options.deletePolicy.undoAvailable': 'あり',
   'options.deletePolicy.undoUnavailable': 'なし',
+  'options.deletePolicy.undoInScheduledTasks': '定期実行から復元',
+  'options.deletePolicy.windowAutoDeleteRecovery': '自動削除から{{days}}日間',
   'options.deletePolicy.windowWhileNotification': '通知が表示されている間',
   'options.deletePolicy.windowPageOpen30Minutes':
     'ページを開いている間、30分以内',

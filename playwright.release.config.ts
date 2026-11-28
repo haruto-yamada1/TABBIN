@@ -11,6 +11,7 @@ export default defineConfig({
       testMatch: [
         '**/release.extension.spec.ts',
         '**/options.extension.spec.ts',
+        '**/expired-tabs-alarm-lifecycle.extension.spec.ts',
       ],
     },
   ],

@@ -1,8 +1,8 @@
 const favoriteMessagesEn = {
   'options.autoDelete.description':
-    'Saved tabs are deleted automatically after the selected period. When favorite protection is on, favorites are excluded.',
+    'Saved tabs move to recovery after the selected period. When favorite protection is on, favorites are excluded.',
   'options.autoDelete.periodDescription':
-    'Saved tabs are deleted automatically when they exceed the selected period. Applying the setting deletes tabs that have already expired. When favorite protection is on, favorites are excluded.',
+    'Applying the setting can move tabs that have already expired to recovery immediately.',
   'options.autoDelete.protectFavorites': 'Do not auto-delete favorite URLs',
   'options.autoDelete.protectFavoritesDescription':
     'When on, favorites are not removed by automatic cleanup after opening or expiration. You can still delete them manually.',

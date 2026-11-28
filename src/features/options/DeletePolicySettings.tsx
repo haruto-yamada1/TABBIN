@@ -1,3 +1,4 @@
+import { EXPIRED_URL_RECOVERY_DAYS } from '@/app/composition/expiredUrlRecovery'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 
 type DeletePolicySettingsProps = {
@@ -8,7 +9,7 @@ type DeletePolicySettingsProps = {
 type DeletePolicyRow = {
   readonly confirmationKey: string
   readonly operationKey: string
-  readonly undoAvailable: boolean
+  readonly undoKey: string
   readonly undoWindowKey: string
 }
 
@@ -36,61 +37,61 @@ const DeletePolicySettings = ({
     {
       operationKey: 'options.deletePolicy.rowDeleteOneUrl',
       confirmationKey: confirmBySetting(confirmDeleteEach),
-      undoAvailable: true,
+      undoKey: 'options.deletePolicy.undoAvailable',
       undoWindowKey: 'options.deletePolicy.windowWhileNotification',
     },
     {
       operationKey: 'options.deletePolicy.rowDeleteGroupUrls',
       confirmationKey: confirmBySetting(confirmDeleteAll),
-      undoAvailable: true,
+      undoKey: 'options.deletePolicy.undoAvailable',
       undoWindowKey: 'options.deletePolicy.windowWhileNotification',
     },
     {
       operationKey: 'options.deletePolicy.rowRemoveFromProject',
       confirmationKey: confirmBySetting(confirmDeleteEach),
-      undoAvailable: true,
+      undoKey: 'options.deletePolicy.undoAvailable',
       undoWindowKey: 'options.deletePolicy.windowWhileNotification',
     },
     {
       operationKey: 'options.deletePolicy.rowRemoveAfterOpen',
       confirmationKey: 'options.deletePolicy.confirmNone',
-      undoAvailable: true,
+      undoKey: 'options.deletePolicy.undoAvailable',
       undoWindowKey: 'options.deletePolicy.windowWhileNotification',
     },
     {
       operationKey: 'options.deletePolicy.rowRemoveAfterExternalDrop',
       confirmationKey: 'options.deletePolicy.confirmNone',
-      undoAvailable: false,
+      undoKey: 'options.deletePolicy.undoUnavailable',
       undoWindowKey: 'options.deletePolicy.windowNone',
     },
     {
       operationKey: 'options.deletePolicy.rowDeleteProject',
       confirmationKey: 'options.deletePolicy.confirmAlways',
-      undoAvailable: true,
+      undoKey: 'options.deletePolicy.undoAvailable',
       undoWindowKey: 'options.deletePolicy.windowWhileNotification',
     },
     {
       operationKey: 'options.deletePolicy.rowDeleteCategory',
       confirmationKey: 'options.deletePolicy.confirmAlways',
-      undoAvailable: false,
+      undoKey: 'options.deletePolicy.undoUnavailable',
       undoWindowKey: 'options.deletePolicy.windowNone',
     },
     {
       operationKey: 'options.deletePolicy.rowAutoDelete',
       confirmationKey: 'options.deletePolicy.confirmNone',
-      undoAvailable: false,
-      undoWindowKey: 'options.deletePolicy.windowNone',
+      undoKey: 'options.deletePolicy.undoInScheduledTasks',
+      undoWindowKey: 'options.deletePolicy.windowAutoDeleteRecovery',
     },
     {
       operationKey: 'options.deletePolicy.rowReviewReminderDelete',
       confirmationKey: 'options.deletePolicy.confirmAlways',
-      undoAvailable: true,
+      undoKey: 'options.deletePolicy.undoAvailable',
       undoWindowKey: 'options.deletePolicy.windowPageOpen30Minutes',
     },
     {
       operationKey: 'options.deletePolicy.rowAiActionDelete',
       confirmationKey: 'options.deletePolicy.confirmAlways',
-      undoAvailable: true,
+      undoKey: 'options.deletePolicy.undoAvailable',
       undoWindowKey: 'options.deletePolicy.windowPageOpen30Minutes',
     },
   ]
@@ -129,14 +130,12 @@ const DeletePolicySettings = ({
               >
                 <td className='py-2 pr-4'>{t(row.operationKey)}</td>
                 <td className='py-2 pr-4'>{t(row.confirmationKey)}</td>
-                <td className='py-2 pr-4'>
-                  {t(
-                    row.undoAvailable
-                      ? 'options.deletePolicy.undoAvailable'
-                      : 'options.deletePolicy.undoUnavailable',
-                  )}
+                <td className='py-2 pr-4'>{t(row.undoKey)}</td>
+                <td className='py-2'>
+                  {t(row.undoWindowKey, undefined, {
+                    days: String(EXPIRED_URL_RECOVERY_DAYS),
+                  })}
                 </td>
-                <td className='py-2'>{t(row.undoWindowKey)}</td>
               </tr>
             ))}
           </tbody>
