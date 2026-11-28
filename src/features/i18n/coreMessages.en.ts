@@ -471,7 +471,7 @@ const coreMessagesEn = {
     'Delete from the review reminder',
   'options.deletePolicy.rowAiActionDelete': 'Delete via an AI proposal',
   'options.deletePolicy.autoDeleteNote':
-    'Automatic deletion runs only when a period is set in Periodic execution; it is off by default.',
+    'Automatic deletion runs only when a period is set in Scheduled tasks; it is off by default.',
   'options.excludePatterns.add': 'Add',
   'options.excludePatterns.empty': 'No exclude patterns',
   'options.excludePatterns.help':
