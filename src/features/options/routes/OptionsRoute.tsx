@@ -7,8 +7,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Toaster } from '@/components/ui/sonner'
-import { colorOptions } from '@/constants/colorOptions'
-import { getDefaultColor } from '@/constants/defaultColors'
 import {
   DEFAULT_FONT_SIZE_PERCENT,
   FONT_SIZE_PERCENT_STEP,
@@ -23,10 +21,15 @@ import { useColorSettings } from '@/features/options/hooks/useColorSettings'
 import { useSettings } from '@/features/options/hooks/useSettings'
 import { ImportExportSettings } from '@/features/options/ImportExportSettings'
 import { OllamaConnectionSettings } from '@/features/options/OllamaConnectionSettings'
-import { OptionsColorPickerRow } from '@/features/options/OptionsColorPickerRow'
+import { OptionsColorSettings } from '@/features/options/OptionsColorSettings'
 import { OptionsExcludePatternBadge } from '@/features/options/OptionsExcludePatternBadge'
 import { OptionsExcludePatternInputRow } from '@/features/options/OptionsExcludePatternInputRow'
 import { OptionsFontSizeInputColumn } from '@/features/options/OptionsFontSizeInputColumn'
+import {
+  OPTIONS_SECTION_IDS,
+  OptionsTableOfContents,
+  SettingsCrossLink,
+} from '@/features/options/OptionsTableOfContents'
 import { PageAccessSettings } from '@/features/options/PageAccessSettings'
 import type { UserSettings } from '@/types/storage'
 
@@ -39,18 +42,6 @@ import {
 const resolveClickBehavior = (
   value: UserSettings['clickBehavior'] | undefined,
 ): UserSettings['clickBehavior'] => value ?? 'saveWindowTabs'
-
-const createThemeColorChangeHandler =
-  (
-    key: keyof NonNullable<UserSettings['colors']>,
-    handleColorChange: (
-      key: keyof NonNullable<UserSettings['colors']>,
-      value: string,
-    ) => void,
-  ) =>
-  (event: React.ChangeEvent<HTMLInputElement>) => {
-    handleColorChange(key, event.target.value)
-  }
 
 const FONT_SIZE_PERCENT_DIVISOR = 100
 
@@ -365,21 +356,33 @@ const useOptionsRouteView = () => {
           </div>
         </header>
 
-        <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
+        <OptionsTableOfContents />
+
+        <div
+          id={OPTIONS_SECTION_IDS.backup}
+          className='mb-8 scroll-mt-4 rounded-lg border border-border bg-card p-6 shadow-md'
+        >
           <h2 className='mb-4 text-xl font-semibold text-foreground'>
             {t('options.backupRestore')}
           </h2>
           <ImportExportSettings />
         </div>
 
-        <OllamaConnectionSettings
-          baseUrl={settings.ollamaBaseUrl}
-          onBaseUrlChange={handleOllamaBaseUrlChange}
-        />
+        <div id={OPTIONS_SECTION_IDS.ollama} className='scroll-mt-4'>
+          <OllamaConnectionSettings
+            baseUrl={settings.ollamaBaseUrl}
+            onBaseUrlChange={handleOllamaBaseUrlChange}
+          />
+        </div>
 
-        <PageAccessSettings />
+        <div id={OPTIONS_SECTION_IDS.pageAccess} className='scroll-mt-4'>
+          <PageAccessSettings />
+        </div>
 
-        <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
+        <div
+          id={OPTIONS_SECTION_IDS.behavior}
+          className='mb-8 scroll-mt-4 rounded-lg border border-border bg-card p-6 shadow-md'
+        >
           <h2 className='mb-4 text-xl font-semibold text-foreground'>
             {t('options.behaviorSettings')}
           </h2>
@@ -596,9 +599,22 @@ const useOptionsRouteView = () => {
           <p className='mt-1 ml-7 text-sm text-muted-foreground'>
             {t('options.autoDelete.confirmDeleteAllDescription')}
           </p>
+
+          <div className='mt-6 border-t border-border pt-4'>
+            <p className='mb-2 text-sm text-muted-foreground'>
+              {t('options.related.periodicExecutionDescription')}
+            </p>
+            <SettingsCrossLink
+              item='periodic-execution'
+              label={t('periodicExecution.title')}
+            />
+          </div>
         </div>
 
-        <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
+        <div
+          id={OPTIONS_SECTION_IDS.excludePatterns}
+          className='mb-8 scroll-mt-4 rounded-lg border border-border bg-card p-6 shadow-md'
+        >
           <h2 className='mb-4 text-xl font-semibold text-foreground'>
             {t('options.excludePatterns.title')}
           </h2>
@@ -639,7 +655,10 @@ const useOptionsRouteView = () => {
           </div>
         </div>
 
-        <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
+        <div
+          id={OPTIONS_SECTION_IDS.fontSize}
+          className='mb-8 scroll-mt-4 rounded-lg border border-border bg-card p-6 shadow-md'
+        >
           <div className='mb-4 flex items-center justify-between gap-4'>
             <div>
               <h2 className='text-xl font-semibold text-foreground'>
@@ -695,44 +714,12 @@ const useOptionsRouteView = () => {
           </div>
         </div>
 
-        <div className='mb-8 rounded-lg border border-border bg-card p-6 shadow-md'>
-          <div className='mb-4 flex items-center justify-between'>
-            <h2 className='text-xl font-semibold text-foreground'>
-              {t('options.previewColorCustomization')}
-            </h2>
-            <Button
-              variant='outline'
-              size='sm'
-              // eslint-disable-next-line typescript/no-misused-promises
-              onClick={handleResetColors}
-              className='flex cursor-pointer items-center gap-1'
-            >
-              <RotateCcw size={16} />
-              {t('common.reset')}
-            </Button>
-          </div>
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-            {colorOptions.map(({ key, labelKey }) => {
-              const changeHandler = createThemeColorChangeHandler(
-                key,
-                // eslint-disable-next-line typescript/no-misused-promises
-                handleColorChange,
-              )
-
-              return (
-                <OptionsColorPickerRow
-                  key={key}
-                  colorKey={key}
-                  // `||` needed: color could be empty string
-                  // eslint-disable-next-line typescript/prefer-nullish-coalescing
-                  color={settings.colors?.[key] || getDefaultColor(key)}
-                  label={t(labelKey)}
-                  onChange={changeHandler}
-                />
-              )
-            })}
-          </div>
-        </div>
+        <OptionsColorSettings
+          colors={settings.colors}
+          onColorChange={handleColorChange}
+          onResetColors={handleResetColors}
+          sectionId={OPTIONS_SECTION_IDS.colors}
+        />
 
         <div className='mt-4'>
           <Button

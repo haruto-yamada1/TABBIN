@@ -547,6 +547,8 @@ const coreMessagesJa = {
   'options.previewColorCustomization': '(preview)カラーカスタマイズ',
   'options.previewColorCustomizationReset': 'リセット',
   'options.previewFontSizeCustomization': 'フォントサイズ',
+  'options.related.periodicExecutionDescription':
+    '自動削除の期間と見直しリマインダーは「定期実行」画面で設定します。',
   'options.releaseNotes': 'リリースノート',
   'options.showRelativeSavedTime': '保存日時を相対表示する',
   'options.showOpenTabs': '今開いているタブを表示する',
@@ -556,9 +558,14 @@ const coreMessagesJa = {
   'options.showSavedTimeDescription':
     'オンにすると、保存タブ一覧に保存された日時が表示されます。',
   'options.title': 'オプション',
+  'options.toc.pageAccess': 'ページアクセス',
+  'options.toc.title': '目次',
   'periodicExecution.title': '定期実行',
   'periodicExecution.description':
     '保存タブの整理リマインダーの通知予定と、自動削除までの期間を設定します。',
+  'periodicExecution.related.optionsDescription':
+    'タブの挙動（開いたタブの自動削除など）、Ollama 接続、Import / Export は「オプション」画面で設定します。',
+  'periodicExecution.related.title': '関連設定',
   'savedTabs.addProject': 'プロジェクト追加',
   'savedTabs.category.dragHandleAria':
     'ドラッグしてカテゴリ「{{name}}」を並べ替える',

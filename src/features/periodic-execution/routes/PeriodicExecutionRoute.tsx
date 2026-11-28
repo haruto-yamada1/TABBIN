@@ -2,6 +2,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { Toaster } from '@/components/ui/sonner'
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { ExtensionPageHeader } from '@/features/navigation/components/ExtensionPageHeader'
+import { SettingsCrossLink } from '@/features/navigation/components/SettingsCrossLink'
 import { useAutoDeletePeriod } from '@/features/options/hooks/useAutoDeletePeriod'
 import { useSettings } from '@/features/options/hooks/useSettings'
 import { AutoDeleteSettingsCard } from '@/features/periodic-execution/components/AutoDeleteSettingsCard'
@@ -41,6 +42,24 @@ export const PeriodicExecutionRoute = () => {
             onAutoDeletePeriodChange={handleAutoDeletePeriodChange}
             onPrepareAutoDeletePeriod={prepareAutoDeletePeriod}
           />
+
+          <section
+            aria-labelledby='periodic-execution-related-title'
+            className='rounded-2xl border border-border bg-card p-6 shadow-sm'
+          >
+            <h2
+              id='periodic-execution-related-title'
+              className='text-xl font-semibold'
+            >
+              {t('periodicExecution.related.title')}
+            </h2>
+            <p className='mt-2 text-sm leading-6 text-muted-foreground'>
+              {t('periodicExecution.related.optionsDescription')}
+            </p>
+            <p className='mt-3'>
+              <SettingsCrossLink item='options' label={t('options.title')} />
+            </p>
+          </section>
         </div>
       </div>
     </>
