@@ -259,24 +259,28 @@ vi.mock('@/features/options/hooks/useAutoDeletePeriod', async () => {
 
 import { PeriodicExecutionRoute } from './PeriodicExecutionRoute'
 
-const expiredGuide = {
-  id: 'expired-guide',
-  title: 'Expired guide',
-  url: 'https://guide.example/expired',
-  expiredAt: 1_800_000_000_000,
-  recoverUntil: 1_802_592_000_000,
-  memberships: [
-    { collectionName: 'guide.example' },
-    { collectionName: 'Work', categoryName: 'Research' },
-  ],
+const createExpiredGuide = () => {
+  const dayInMs = 86_400_000
+  const expiredAt = Date.now() - dayInMs
+  return {
+    id: 'expired-guide',
+    title: 'Expired guide',
+    url: 'https://guide.example/expired',
+    expiredAt,
+    recoverUntil: expiredAt + 30 * dayInMs,
+    memberships: [
+      { collectionName: 'guide.example' },
+      { collectionName: 'Work', categoryName: 'Research' },
+    ],
+  }
 }
 
-const expiredArticle = {
-  ...expiredGuide,
+const createExpiredArticle = () => ({
+  ...createExpiredGuide(),
   id: 'expired-article',
   title: 'Expired article',
   url: 'https://guide.example/article',
-}
+})
 
 describe('PeriodicExecutionRoute', () => {
   beforeEach(() => {
@@ -339,6 +343,8 @@ describe('PeriodicExecutionRoute', () => {
 
   it('自動削除が無効でも元の所属と復元期限を確認し、個別と一括で復元できる', async () => {
     const user = userEvent.setup()
+    const expiredGuide = createExpiredGuide()
+    const expiredArticle = createExpiredArticle()
     mocked.listExpired
       .mockResolvedValueOnce([expiredGuide, expiredArticle])
       .mockResolvedValueOnce([expiredArticle])
@@ -378,7 +384,7 @@ describe('PeriodicExecutionRoute', () => {
 
   it('完全削除は確認後に実行し、失敗後も項目を保持する', async () => {
     const user = userEvent.setup()
-    mocked.listExpired.mockResolvedValue([expiredGuide])
+    mocked.listExpired.mockResolvedValue([createExpiredGuide()])
     mocked.discardExpired.mockRejectedValueOnce(new Error('unavailable'))
     render(createElement(PeriodicExecutionRoute))
 
@@ -428,7 +434,7 @@ describe('PeriodicExecutionRoute', () => {
     )
     expect(await screen.findByText('No expired tabs to restore.')).toBeVisible()
 
-    mocked.listExpired.mockResolvedValue([expiredArticle])
+    mocked.listExpired.mockResolvedValue([createExpiredArticle()])
     const onChange = mocked.subscribeExpired.mock.calls[0]?.[0] as () => void
     act(onChange)
     expect(await screen.findByText('Expired article')).toBeVisible()
@@ -436,12 +442,27 @@ describe('PeriodicExecutionRoute', () => {
     expect(unsubscribe).toHaveBeenCalledOnce()
   })
 
+  it('将来の時計でも有効な候補の読み込みを繰り返さない', async () => {
+    vi.useFakeTimers({ now: new Date('2030-01-01T00:00:00Z') })
+    try {
+      mocked.listExpired.mockResolvedValue([createExpiredGuide()])
+      render(createElement(PeriodicExecutionRoute))
+
+      await act(async () => vi.advanceTimersByTimeAsync(0))
+      expect(screen.getByText('Expired guide')).toBeVisible()
+      await act(async () => vi.advanceTimersByTimeAsync(5))
+      expect(mocked.listExpired).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('画面を開いたままでも復元期限を過ぎた候補を除く', async () => {
     vi.useFakeTimers()
     try {
       const oneSecondInMs = 1000
       mocked.listExpired.mockResolvedValueOnce([
-        { ...expiredGuide, recoverUntil: Date.now() + oneSecondInMs },
+        { ...createExpiredGuide(), recoverUntil: Date.now() + oneSecondInMs },
       ])
       render(createElement(PeriodicExecutionRoute))
 

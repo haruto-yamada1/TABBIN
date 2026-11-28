@@ -585,6 +585,67 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     expect(state.memberships[0]).not.toHaveProperty('categoryId')
   })
 
+  it.each([true, false])(
+    'restores older direct membership before a newer missing project note (fallback collection present: %s)',
+    async (fallbackExists) => {
+      const initial = createState()
+      initial.memberships = initial.memberships.map((membership) =>
+        membership.collectionId === 'project-1'
+          ? { ...membership, notes: 'Newer deleted project note' }
+          : membership,
+      )
+      const { dataPlane, state } = createDataPlane(initial)
+      await dataPlane.removeExpiredUrls(2, 10)
+      const [recent] = state.expiredUrls
+      assert.isDefined(recent)
+      const project = recent.memberships.find(
+        ({ collection }) => collection.id === 'project-1',
+      )
+      assert.isDefined(project)
+      const fallback = { ...project.collection, id: 'custom-uncategorized' }
+      state.collections = state.collections.filter(
+        ({ id }) => id !== 'project-1',
+      )
+      if (fallbackExists) {
+        state.collections.push(fallback)
+      }
+      state.expiredUrls.push({
+        ...recent,
+        id: 'older-archive',
+        expiredAt: 9,
+        memberships: recent.memberships.map((entry) =>
+          entry === project
+            ? {
+                collection: fallback,
+                membership: {
+                  ...entry.membership,
+                  collectionId: fallback.id,
+                  notes: 'Older original note',
+                  sortOrder: 1024,
+                },
+              }
+            : entry,
+        ),
+      })
+
+      await expect(
+        dataPlane.restoreExpiredUrls([recent.id, 'older-archive']),
+      ).resolves.toBe(2)
+      expect(
+        state.memberships.filter(
+          ({ collectionId }) => collectionId === fallback.id,
+        ),
+      ).toEqual([
+        expect.objectContaining({
+          notes: 'Older original note\n\nNewer deleted project note',
+          sortOrder: 1024,
+        }),
+      ])
+      expect(state.expiredUrls).toEqual([])
+      expect(state.urls).toHaveLength(1)
+    },
+  )
+
   it('keeps recovery intact when merging notes would exceed the Backup V2 membership limit', async () => {
     const initial = createState()
     const [, project] = initial.collections

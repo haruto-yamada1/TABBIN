@@ -70,12 +70,18 @@ const archiveMemberships = (
     if (!collection) {
       throw new Error('Cannot archive a URL with an unknown collection.')
     }
+    const { categoryId, ...uncategorized } = membership
     const category =
-      membership.categoryId !== undefined
-        ? categories.get(membership.categoryId)
+      categoryId !== undefined && categoryId !== ''
+        ? categories.get(categoryId)
         : undefined
     const archived = byUrl.get(membership.urlId) ?? []
-    archived.push({ collection, membership, ...(category ? { category } : {}) })
+    archived.push({
+      collection,
+      // An empty category ID is the legacy representation of uncategorized.
+      membership: categoryId === '' ? uncategorized : membership,
+      ...(category ? { category } : {}),
+    })
     byUrl.set(membership.urlId, archived)
   }
   return byUrl
@@ -346,32 +352,24 @@ ${archived}`
   return notes
 }
 
+type RecoveryMembershipTarget = {
+  readonly archived: ExpiredUrlRecoveryMembership
+  readonly collection: PersistenceV2Collection
+  readonly fellBack: boolean
+  readonly urlId: string
+}
+
 const restoreMembership = (
   state: ExpiredUrlRecoveryState,
   index: RestoreIndex,
-  {
-    archived,
-    urlId,
-  }: {
-    readonly archived: ExpiredUrlRecoveryMembership
-    readonly urlId: string
-  },
+  { archived, collection, fellBack, urlId }: RecoveryMembershipTarget,
   options: RestoreExpiredUrlsOptions,
 ): void => {
-  const collection = resolveCollection(
-    state,
-    index,
-    archived.collection,
-    options,
-  )
   const key = membershipKey(collection.id, urlId)
   const position = index.membershipIndexes.get(key)
   const existing =
     position === undefined ? undefined : state.memberships[position]
   const { categoryId, ...membership } = archived.membership
-  const fellBack =
-    archived.collection.definition.type === 'custom' &&
-    collection.id !== archived.collection.id
   if (position !== undefined && existing) {
     // Several deleted projects may share the same fallback membership.
     const notes = fellBack
@@ -426,23 +424,35 @@ export const restoreExpiredUrls = (
     return { state: next, result: 0 }
   }
   const index = createRestoreIndex(next, selected)
+  const fallbackTargets: RecoveryMembershipTarget[] = []
   for (const record of selected) {
     const url = restoreUrl(next, index, record.url, options)
-    // Restore current destinations before merging notes from deleted projects.
-    const isMissingProject = ({ collection }: ExpiredUrlRecoveryMembership) =>
-      collection.definition.type === 'custom' &&
-      findCustomCollection(index, collection.id) === undefined
-    for (const membership of record.memberships.toSorted(
-      (left, right) =>
-        Number(isMissingProject(left)) - Number(isMissingProject(right)),
-    )) {
-      restoreMembership(
+    for (const archived of record.memberships) {
+      const collection = resolveCollection(
         next,
         index,
-        { archived: membership, urlId: url.id },
+        archived.collection,
         options,
       )
+      const target = {
+        archived,
+        collection,
+        fellBack:
+          archived.collection.definition.type === 'custom' &&
+          collection.id !== archived.collection.id,
+        urlId: url.id,
+      }
+      if (target.fellBack) {
+        fallbackTargets.push(target)
+      } else {
+        restoreMembership(next, index, target, options)
+      }
     }
+  }
+
+  // A newer archive's fallback must not replace an older direct membership.
+  for (const target of fallbackTargets) {
+    restoreMembership(next, index, target, options)
   }
   return { state: next, result: selected.length }
 }

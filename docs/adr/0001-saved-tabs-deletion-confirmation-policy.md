@@ -89,7 +89,9 @@ first-saved date and sets its last-saved date to the later of the restoration
 time and the archived last-saved date. If that normalized URL is already
 active, recovery keeps its current metadata, dates, and memberships and fills
 in missing memberships. When multiple archived versions of a URL are selected
-together, recovery starts with the most recently archived version.
+together, recovery starts with the most recently archived version. It restores
+direct memberships across the selection before appending notes from deleted
+projects to the fallback membership.
 
 Public Backup V2 and pre-import recovery snapshots cover active saved tabs.
 Import and pre-import snapshot restoration leave the local archive in place
