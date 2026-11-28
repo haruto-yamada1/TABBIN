@@ -13,7 +13,7 @@ export type MoveUrlBetweenCustomProjectsUseCaseDeps = {
  */
 export type MoveUrlBetweenCustomProjectsUseCase = (
   command: MoveUrlBetweenCustomProjectsCommand,
-) => Promise<void>
+) => Promise<(() => Promise<void>) | undefined>
 
 /**
  * `MoveUrlBetweenCustomProjectsUseCase` を生成する (issue #540)。
@@ -53,5 +53,6 @@ export const createMoveUrlBetweenCustomProjectsUseCase = (
       command.targetProjectId,
       command.url,
     )
+    return undefined
   }
 }

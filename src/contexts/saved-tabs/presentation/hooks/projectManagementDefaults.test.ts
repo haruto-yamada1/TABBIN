@@ -89,6 +89,7 @@ describe('projectManagementDefaults', () => {
       },
       t: (key) => key,
     })
+    expect(vi.mocked(toast.info).mock.calls.at(-1)?.[1]?.duration).toBe(10_000)
     await clickToastAction()
 
     expect(restore).toHaveBeenCalledWith({

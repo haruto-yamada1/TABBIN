@@ -76,8 +76,8 @@ const createCrossModeSeed = () => {
 }
 
 const switchMode = async (page: Page, mode: 'Domain mode' | 'Custom mode') => {
-  await page.getByRole('combobox', { name: 'Switch view mode' }).click()
-  await page.getByRole('option', { name: mode, exact: true }).click()
+  await page.getByRole('combobox', { name: 'Switch view mode' }).press('Enter')
+  await page.getByRole('option', { name: mode, exact: true }).press('Enter')
 }
 
 const projectCard = (page: Page, name: string) =>
@@ -169,10 +169,19 @@ for (const { name, removedIds, remove } of scenarios) {
     await expect(
       page.getByTestId('sortable-url-item').getByRole('link'),
     ).toHaveText(retainedIds.map((id) => titles[id]))
-    // Custom deletion also shows a success toast; expand the stack to expose
-    // the Undo action beneath it, as a pointer user does.
-    await page.locator('[data-sonner-toast][data-front="true"]').hover()
-    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
+    await expect(undo).toBeVisible()
+    const visibleSince = performance.now()
+    await expect
+      .poll(
+        async () => {
+          const elapsed = performance.now() - visibleSince
+          return elapsed >= 5_000 && (await undo.isVisible())
+        },
+        { timeout: 7_000 },
+      )
+      .toBe(true)
+    await undo.click()
     await expect
       .poll(async () =>
         selectionSnapshotRestorationContent(

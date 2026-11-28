@@ -79,6 +79,8 @@ export class PersistenceRevisionConflictError extends Error {
 }
 
 export type PersistenceCommitOptions = {
+  /** A synchronous precondition checked after the revision and before queuing mutations. */
+  readonly assertCanCommit?: () => void
   readonly durability?: PersistenceDurability
   readonly expectedRevision?: number
 }

@@ -4,15 +4,11 @@
  */
 
 import type { Dispatch, RefObject, SetStateAction } from 'react'
-import { toast } from 'sonner'
 
 import type { GetCustomProjectOrderQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectOrderQuery'
 import type { GetCustomProjectRawsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectRawsQuery'
 import type { GetCustomProjectsQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectsQuery'
-import type {
-  CustomProjectUndoSnapshot,
-  GetCustomProjectUndoSnapshotQuery,
-} from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
+import type { GetCustomProjectUndoSnapshotQuery } from '@/contexts/saved-tabs/application/queries/GetCustomProjectUndoSnapshotQuery'
 import type { AddCategoryToCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/AddCategoryToCustomProjectUseCase'
 import type { AddUrlToCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/AddUrlToCustomProjectUseCase'
 import type { CreateCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/CreateCustomProjectUseCase'
@@ -22,17 +18,12 @@ import type { RemoveUrlFromCustomProjectUseCase } from '@/contexts/saved-tabs/ap
 import type { RemoveUrlsFromCustomProjectUseCase } from '@/contexts/saved-tabs/application/use-cases/RemoveUrlsFromCustomProjectUseCase'
 import type { RenameCustomProjectCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/RenameCustomProjectCategoryUseCase'
 import type { ReorderCustomProjectUrlsUseCase } from '@/contexts/saved-tabs/application/use-cases/ReorderCustomProjectUrlsUseCase'
-import type {
-  RestoreCustomProjectsSnapshotPayload,
-  RestoreCustomProjectsSnapshotUseCase,
-} from '@/contexts/saved-tabs/application/use-cases/RestoreCustomProjectsSnapshotUseCase'
+import type { RestoreCustomProjectsSnapshotUseCase } from '@/contexts/saved-tabs/application/use-cases/RestoreCustomProjectsSnapshotUseCase'
 import type { SaveCustomProjectOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/SaveCustomProjectOrderUseCase'
 import type { SetCustomProjectUrlCategoryUseCase } from '@/contexts/saved-tabs/application/use-cases/SetCustomProjectUrlCategoryUseCase'
 import type { UpdateCustomProjectCategoryOrderUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectCategoryOrderUseCase'
 import type { UpdateCustomProjectKeywordsUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectKeywordsUseCase'
 import type { UpdateCustomProjectNameUseCase } from '@/contexts/saved-tabs/application/use-cases/UpdateCustomProjectNameUseCase'
-import { toSavedTabsCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
-import { toStorageCustomProjectFromRaw } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsSnapshotViewMapper'
 import type { ViewMode } from '@/contexts/saved-tabs/presentation/types/mode'
 import type {
   SavedTabsCustomProjectDto as CustomProject,
@@ -106,118 +97,6 @@ const asyncNoopRemoveCategoryFromCustomProject: RemoveCategoryFromCustomProjectU
   () => {
     throw new Error('removeCategoryFromCustomProjectUseCase is not provided')
   }
-
-const getArraySnapshot = <T>(
-  value: readonly T[] | undefined,
-): readonly T[] | undefined => (Array.isArray(value) ? value : undefined)
-
-/**
- * `getCustomProjectRawsQuery` 戻り値の要素 shape (issue #538)。
- *
- * `CustomProjectRepository.findAllRaw()` 由来の `CustomProjectRawSnapshot`
- * を domain repository モジュールから直接 import するのを避け、
- * `GetCustomProjectRawsQuery` 戻り値から派生させたローカル alias を
- * 使う。presentation 層が `CustomProjectRepository` 型を import しない
- * ことを保証する目的 (issue 受け入れ条件)。
- */
-type RawCustomProjectEntry = Awaited<
-  ReturnType<GetCustomProjectRawsQuery>
->[number]
-
-/** rich フィールド込みの `CustomProject` へ raw snapshot を投影する */
-const toRawStorageCustomProject = (raw: RawCustomProjectEntry): CustomProject =>
-  toStorageCustomProjectFromRaw(raw)
-
-const createCustomProjectUndoPayload = (
-  snapshot: CustomProjectUndoSnapshot,
-): RestoreCustomProjectsSnapshotPayload | null => {
-  const customProjects = getArraySnapshot(snapshot.customProjects)
-  if (!customProjects) {
-    return null
-  }
-
-  const customProjectOrder = getArraySnapshot(snapshot.customProjectOrder)
-  const customProjectsRaw = getArraySnapshot(snapshot.customProjectsRaw)
-  return {
-    ...(customProjectOrder ? { customProjectOrder } : {}),
-    customProjects,
-    ...(customProjectsRaw ? { customProjectsRaw } : {}),
-    ...(snapshot.openedUrlsSnapshot
-      ? { openedUrlsSnapshot: snapshot.openedUrlsSnapshot }
-      : {}),
-    ...(snapshot.urlRecordsRaw
-      ? { urlRecordsRaw: snapshot.urlRecordsRaw }
-      : {}),
-  }
-}
-
-const showCustomProjectDeleteUndoToast = ({
-  count,
-  getCustomProjectRawsQuery,
-  restoreCustomProjectsSnapshotUseCase,
-  setCustomProjects,
-  snapshot,
-  t,
-}: {
-  count: number
-  getCustomProjectRawsQuery: GetCustomProjectRawsQuery
-  restoreCustomProjectsSnapshotUseCase: RestoreCustomProjectsSnapshotUseCase
-  setCustomProjects: Dispatch<SetStateAction<CustomProject[]>>
-  snapshot: CustomProjectUndoSnapshot
-  t: (key: string, fallback?: string, values?: Record<string, string>) => string
-}) => {
-  toast.info(
-    // 単複の出し分けは lib/undo-message の resolveUndoMessageKey と同じ規則。
-    // このファイルは依存数上限のため import を増やさずここで出し分ける。
-    t(
-      count === 1 ? 'savedTabs.undo.deletedTab' : 'savedTabs.undo.deletedTabs',
-      undefined,
-      { count: String(count) },
-    ),
-    {
-      description: t('savedTabs.undo.availabilityNote'),
-      action: {
-        label: t('common.undo'),
-        // eslint-disable-next-line typescript/no-misused-promises
-        onClick: async () => {
-          try {
-            const payload = createCustomProjectUndoPayload(snapshot)
-            if (!payload) {
-              return
-            }
-
-            // 削除した URL の `urls` / `urlMetadata` / `projectKeywords` のような
-            // domain entity 化されない rich フィールドを保持するため、payload に
-            // raw snapshot があれば `restoreCustomProjectsSnapshotUseCase` 内で
-            // `restoreAllRaw` 経路 (rich 保持) が走り、無ければ entity 経由
-            // `saveAll` へフォールバックする (issue #535 P1 / PR #506 review
-            // P2 対応の責務を application 層へ移設)。
-            await restoreCustomProjectsSnapshotUseCase({ payload })
-            if (payload.openedUrlsSnapshot) {
-              const currentProjects = await getCustomProjectRawsQuery()
-              setCustomProjects(currentProjects.map(toRawStorageCustomProject))
-            } else {
-              setCustomProjects(
-                payload.customProjectsRaw
-                  ? payload.customProjectsRaw.map(toRawStorageCustomProject)
-                  : payload.customProjects.map(
-                      toSavedTabsCustomProjectViewModel,
-                    ),
-              )
-            }
-            toast.success(t('savedTabs.undo.restored'))
-          } catch (error) {
-            console.error(
-              'カスタムプロジェクトURL削除の復元に失敗しました:',
-              error,
-            )
-            toast.error(t('savedTabs.undo.restoreError'))
-          }
-        },
-      },
-    },
-  )
-}
 
 /**
  * 選択削除の 1 項目。`SavedTabSelectionItem` と同形だが、この層から
@@ -411,6 +290,9 @@ export {
   asyncNoopSetCustomProjectUrlCategory,
   asyncNoopUpdateCustomProjectCategoryOrder,
   asyncNoopUpdateCustomProjectKeywords,
+}
+
+export {
   showCustomProjectDeleteUndoToast,
   toRawStorageCustomProject,
-}
+} from '@/contexts/saved-tabs/presentation/services/savedTabsUndoNotificationService'

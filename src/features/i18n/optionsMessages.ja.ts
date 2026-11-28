@@ -52,6 +52,8 @@ const optionsMessagesJa = {
   'periodicExecution.recovery.noLocation': '元の所属なし',
   'periodicExecution.recovery.restore': '復元',
   'periodicExecution.recovery.restoreTab': '復元 {{name}}',
+  'periodicExecution.recovery.restoreCompleted':
+    '保存済みタブの復元が完了しました',
   'periodicExecution.recovery.restoreAll': 'すべて復元',
   'periodicExecution.recovery.discard': '完全に削除',
   'periodicExecution.recovery.discardTab': '完全に削除 {{name}}',

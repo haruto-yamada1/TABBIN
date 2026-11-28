@@ -14,6 +14,8 @@ const expiredUrlRecovery = {
   purge: async () => getBackgroundSavedTabsDataPlane().purgeExpiredUrls(),
   restore: async (ids: readonly string[]) =>
     getBackgroundSavedTabsDataPlane().restoreExpiredUrls(ids),
+  restoreWithUndo: async (ids: readonly string[]) =>
+    getBackgroundSavedTabsDataPlane().restoreExpiredUrlsWithUndo(ids),
   subscribe: (onChange: () => void) =>
     createBroadcastChannelPersistenceChangeAdapter().subscribe((event) => {
       if (event.scopes.includes('expiredUrls')) {

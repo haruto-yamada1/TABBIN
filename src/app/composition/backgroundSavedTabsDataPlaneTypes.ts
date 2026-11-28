@@ -44,6 +44,10 @@ export type BackgroundSavedTabsDataPlane = {
   readonly listExpiredUrls: () => Promise<readonly ExpiredUrlRecoveryDto[]>
   readonly purgeExpiredUrls: () => Promise<void>
   readonly restoreExpiredUrls: (ids: readonly string[]) => Promise<number>
+  readonly restoreExpiredUrlsWithUndo: (ids: readonly string[]) => Promise<{
+    readonly result: number
+    readonly undo?: () => Promise<void>
+  }>
   readonly readAnalyticsRecords: () => Promise<
     readonly SavedTabsAnalyticsRecord[]
   >

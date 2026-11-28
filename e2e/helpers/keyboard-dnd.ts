@@ -735,7 +735,9 @@ export const verifyKeyboardCustomHierarchy = async ({
     }[],
     collectionId: string,
     expectedCategory: string | null,
+    verifyUndo = false,
   ): Promise<void> => {
+    const before = await readMembership()
     await tabTo(page, handle)
     await startKeyboardDrag(page, handle, 'Space')
     await expect(archive).toHaveAttribute('data-drop-state', /available|over/)
@@ -762,9 +764,19 @@ export const verifyKeyboardCustomHierarchy = async ({
         notes: 'Keep this note across keyboard moves',
       },
     ])
+    if (verifyUndo) {
+      const undo = page.getByRole('button', { name: 'Undo', exact: true })
+      await expect(undo).toBeVisible()
+      await undo.click()
+      await expect.poll(readMembership).toEqual(before)
+      await expect(row).toHaveAttribute('data-project-id', sourceProjectId)
+    }
     await page.reload()
 
-    await expect(row).toHaveAttribute('data-project-id', collectionId)
+    await expect(row).toHaveAttribute(
+      'data-project-id',
+      verifyUndo ? sourceProjectId : collectionId,
+    )
   }
 
   // Archive's card begins to the left of the indented uncategorized URL row.
@@ -804,13 +816,14 @@ export const verifyKeyboardCustomHierarchy = async ({
     [{ key: 'ArrowDown', targetName: 'Target project' }],
     targetProjectId,
     null,
+    true,
   )
   await expect(
     page.getByRole('link', { name: title, exact: true }),
   ).toHaveCount(1)
   expect(await readMembership()).toEqual([
     {
-      collectionId: targetProjectId,
+      collectionId: sourceProjectId,
       categoryId: null,
       notes: 'Keep this note across keyboard moves',
     },

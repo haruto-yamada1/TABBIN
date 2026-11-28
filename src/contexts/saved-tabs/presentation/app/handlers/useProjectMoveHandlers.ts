@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 
+import { showUndoToast } from '@/components/ui/undo-toast'
 import type { SavedTabsUseCases } from '@/contexts/saved-tabs/application/createSavedTabsUseCases'
 import { moveCustomProjectUrlAndSyncState } from '@/contexts/saved-tabs/presentation/lib/custom-project-move'
 import { toSavedTabsCustomProjectViewModel } from '@/contexts/saved-tabs/presentation/mappers/SavedTabsCompatibilityViewModelMapper'
@@ -33,23 +34,34 @@ export const useProjectMoveHandlers = ({
         console.log(
           `URL移動: ${sourceProjectId} → ${targetProjectId}, URL: ${redactUrlForLog(url)}`,
         )
+        const getCustomProjects = async () => {
+          const projects = await savedTabsUseCases.getCustomProjects()
+          return projects.map(toSavedTabsCustomProjectViewModel)
+        }
         await moveCustomProjectUrlAndSyncState({
-          // application query `getCustomProjects` は
-          // domain entity `CustomProject` を返すが、state 同期先で
-          // 必要なのは storage 形 (`@/types/storage` の `CustomProject`)
-          // のため、mapper 経由で projection する。
-          getCustomProjects: async () => {
-            const projects = await savedTabsUseCases.getCustomProjects()
-            return projects.map(toSavedTabsCustomProjectViewModel)
-          },
+          getCustomProjects,
           moveUrlBetweenCustomProjects:
             savedTabsUseCases.moveUrlBetweenCustomProjects,
+          onMoved: (undo) => {
+            const message = t('savedTabs.tab.movedBetweenProjects')
+            if (!undo) {
+              toast.success(message)
+              return
+            }
+            showUndoToast({
+              message,
+              t,
+              undo,
+              onUndone: async () => {
+                setCustomProjects(await getCustomProjects())
+              },
+            })
+          },
           setCustomProjects,
           sourceProjectId,
           targetProjectId,
           url,
         })
-        toast.success(t('savedTabs.tab.movedBetweenProjects'))
         return null
       } catch (error) {
         console.error('URL移動エラー:', error)
