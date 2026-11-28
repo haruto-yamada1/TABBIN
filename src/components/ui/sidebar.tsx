@@ -36,6 +36,25 @@ const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
 const SIDEBAR_WIDTH_STORAGE_KEY = 'tabbin-extension-sidebar-width'
 // 初回に展開幅で開始する最小 viewport 幅 (useMobile の MOBILE_BREAKPOINT と揃える)
 const FIRST_RUN_EXPANDED_MIN_VIEWPORT_PX = 768
+
+const isEditableKeyboardTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+  // Ctrl/⌘+B はテキスト入力中の操作と競合するため、入力可能な要素に
+  // フォーカスがある間は発火させない (#1128)。
+  if (target.isContentEditable || target.contentEditable === 'true') {
+    return true
+  }
+  if (target.closest('input, textarea, select') !== null) {
+    return true
+  }
+  const editableAncestor = target.closest('[contenteditable]')
+  return (
+    editableAncestor !== null &&
+    editableAncestor.getAttribute('contenteditable') !== 'false'
+  )
+}
 const MAX_SIDEBAR_WIDTH = 420
 const SIDEBAR_VIEWPORT_GUTTER = 96
 
@@ -159,7 +178,8 @@ const SidebarProvider = ({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-        (event.metaKey || event.ctrlKey)
+        (event.metaKey || event.ctrlKey) &&
+        !isEditableKeyboardTarget(event.target)
       ) {
         event.preventDefault()
         toggleSidebar()
