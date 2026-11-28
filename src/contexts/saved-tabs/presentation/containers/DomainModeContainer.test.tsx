@@ -332,14 +332,16 @@ describe('DomainModeContainer', () => {
     expect(onSaveAllOpenTabs).toHaveBeenCalledTimes(1)
   })
 
-  it('空状態ではセクションが残りの高さに広がり、タブがあるときは広がらない', () => {
+  it('空状態ではセクションは広がらず、空表示が画面全体の中央配置になる', () => {
     const { unmount } = render(<DomainModeContainer {...createProps()} />)
 
-    // 空表示を垂直中央に配置するための flex chain (issue #1131 フォローアップ)。
+    // 空表示は配置基準 (SavedTabsApp の relative なレイアウト) いっぱいに
+    // 広がって画面全体の垂直中央に配置される (issue #1131 フォローアップ)。
     // セクションルート自体に testid がないため親要素のクラスで検証する。
     const emptyState = screen.getByTestId('saved-tabs-empty-state')
+    expect(emptyState).toHaveClass('absolute', 'inset-0', 'pointer-events-none')
     // eslint-disable-next-line testing-library/no-node-access
-    expect(emptyState.parentElement).toHaveClass('flex', 'flex-1', 'flex-col')
+    expect(emptyState.parentElement).not.toHaveClass('flex-1')
     unmount()
 
     render(

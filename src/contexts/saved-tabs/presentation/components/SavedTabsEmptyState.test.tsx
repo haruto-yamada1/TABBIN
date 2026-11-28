@@ -90,6 +90,39 @@ describe('SavedTabsEmptyState', () => {
     toastErrorSpy.mockRestore()
   })
 
+  it('centerInViewport のときは画面全体へ広がり、root はクリック透過で CTA 行だけ操作可能になる', async () => {
+    const user = userEvent.setup()
+    const onSaveAllOpenTabs = vi.fn(async () => {})
+    render(
+      <SavedTabsEmptyState
+        centerInViewport
+        onSaveAllOpenTabs={onSaveAllOpenTabs}
+      />,
+    )
+
+    const root = screen.getByTestId('saved-tabs-empty-state')
+    expect(root).toHaveClass('absolute', 'inset-0', 'pointer-events-none')
+    expect(root).not.toHaveClass('flex-1')
+
+    const saveButton = screen.getByRole('button', {
+      name: /savedTabs\.emptyState\.saveAllOpenTabsCta/,
+    })
+    // CTA 行だけ pointer-events を戻し、背後のヘッダー操作と両立させる
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(saveButton.parentElement).toHaveClass('pointer-events-auto')
+
+    await user.click(saveButton)
+    expect(onSaveAllOpenTabs).toHaveBeenCalledTimes(1)
+  })
+
+  it('centerInViewport がないときは従来どおり親の高さに広がるレイアウトになる', () => {
+    render(<SavedTabsEmptyState onSaveAllOpenTabs={vi.fn()} />)
+
+    const root = screen.getByTestId('saved-tabs-empty-state')
+    expect(root).toHaveClass('min-h-[200px]', 'flex-1')
+    expect(root).not.toHaveClass('absolute', 'pointer-events-none')
+  })
+
   it('保存ハンドラがないときは CTA を出さず説明文だけを表示する', () => {
     render(<SavedTabsEmptyState />)
 

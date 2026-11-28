@@ -578,10 +578,10 @@ const useSavedTabsAppView = ({
         isSearchFilterSettled={filteredCustomProjectsResult.isSettled}
       />
     )
-  // ドメインモードの空状態では、空表示を画面の垂直中央に配置するため
-  // レイアウトを flex column にし、セクション側の flex-1 と連動させる
-  // (issue #1131 フォローアップ)。タブがある通常表示のレイアウトには
-  // 影響しないよう、空状態のときだけ有効にする。
+  // ドメインモードの空状態では、空表示をヘッダーを含めた画面全体の
+  // 垂直中央に配置するため、レイアウトを空表示 (absolute inset-0) の
+  // 配置基準にする (issue #1131 フォローアップ)。タブがある通常表示の
+  // レイアウトには影響しないよう、空状態のときだけ有効にする。
   const isDomainEmptyState =
     viewMode === 'domain' && hasContentTabGroups.length === 0
   return (
@@ -593,7 +593,7 @@ const useSavedTabsAppView = ({
           isAiSidebarOpen
             ? 'min-h-screen w-full'
             : 'container mx-auto min-h-screen'
-        } py-2${isDomainEmptyState ? ' flex flex-col' : ''}`}
+        } py-2${isDomainEmptyState ? ' relative' : ''}`}
       >
         <h1 className='sr-only'>{t('sidebar.tabList')}</h1>
         <Header

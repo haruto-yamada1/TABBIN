@@ -1218,17 +1218,15 @@ describe('SavedTabsApp custom search', () => {
     )
   })
 
-  it('ドメインモードの空状態ではレイアウトを flex column にし、タブがあるときはしない', () => {
+  it('ドメインモードの空状態ではレイアウトが空表示の配置基準になり、タブがあるときはならない', () => {
     mocked.projectState.viewMode = 'domain'
     mocked.projectState.viewModeRef = { current: 'domain' }
 
     const { unmount } = render(<SavedTabsApp initialViewMode='domain' />)
 
-    // 空状態を垂直中央に配置するための flex chain (issue #1131 フォローアップ)
-    expect(screen.getByTestId('saved-tabs-layout')).toHaveClass(
-      'flex',
-      'flex-col',
-    )
+    // 空表示を画面全体の垂直中央に配置するための配置基準
+    // (issue #1131 フォローアップ)
+    expect(screen.getByTestId('saved-tabs-layout')).toHaveClass('relative')
     unmount()
 
     const group: TabGroup = {
@@ -1248,7 +1246,7 @@ describe('SavedTabsApp custom search', () => {
 
     render(<SavedTabsApp initialViewMode='domain' />)
 
-    expect(screen.getByTestId('saved-tabs-layout')).not.toHaveClass('flex-col')
+    expect(screen.getByTestId('saved-tabs-layout')).not.toHaveClass('relative')
   })
 
   it('カテゴリ並び替えモードでは一時順序とフッター表示条件を使う', async () => {

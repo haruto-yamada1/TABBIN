@@ -363,10 +363,6 @@ const UncategorizedDomainSection = ({
 
   return (
     <div
-      // 空状態のときだけ残りの高さいっぱいに広げ、空表示を垂直中央に
-      // 配置する (issue #1131 フォローアップ)。通常表示では従来の
-      // block レイアウトのままにする。
-      className={hasContentCount === 0 ? 'flex flex-1 flex-col' : undefined}
       data-saved-tabs-scroll-target={
         shouldShowSectionHeader ? 'parent' : undefined
       }
@@ -506,6 +502,10 @@ const UncategorizedDomainSection = ({
           />
         ) : (
           <SavedTabsEmptyState
+            // 空表示はヘッダーを含めた画面全体の垂直中央に配置する
+            // (issue #1131 フォローアップ)。配置基準は SavedTabsApp が
+            // 空状態のときだけ付与する relative なレイアウト。
+            centerInViewport
             onSaveAllOpenTabs={
               savedTabGroupsCount === 0 ? onSaveAllOpenTabs : undefined
             }
