@@ -501,6 +501,7 @@ const useAnalyticsRouteView = () => {
           count: String(count),
         }),
         {
+          description: t('savedTabs.undo.availabilityNote'),
           action: {
             label: t('common.undo'),
             // eslint-disable-next-line typescript/no-misused-promises

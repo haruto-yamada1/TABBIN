@@ -435,6 +435,38 @@ const coreMessagesJa = {
   'options.contact': 'お問い合わせ',
   'options.contactDescription':
     'Google Formsを使用します。※画像アップロード可能な設定ですので、Googleアカウントでのログインが必要です。',
+  'options.deletePolicy.title': '削除ポリシー',
+  'options.deletePolicy.description':
+    '操作ごとに、削除前に確認を表示するか、元に戻せるかどうかとその期間をまとめた一覧です。',
+  'options.deletePolicy.columnOperation': '操作',
+  'options.deletePolicy.columnConfirmation': '確認ダイアログ',
+  'options.deletePolicy.columnUndo': '元に戻す',
+  'options.deletePolicy.columnUndoWindow': '元に戻せる期間',
+  'options.deletePolicy.confirmAlways': '常に表示',
+  'options.deletePolicy.confirmBySettingOn': '表示する（設定がオン）',
+  'options.deletePolicy.confirmBySettingOff': '表示しない（設定がオフ）',
+  'options.deletePolicy.confirmNone': '表示しない',
+  'options.deletePolicy.undoAvailable': 'あり',
+  'options.deletePolicy.undoUnavailable': 'なし',
+  'options.deletePolicy.windowWhileNotification': '通知が表示されている間',
+  'options.deletePolicy.windowPageOpen30Minutes':
+    'ページを開いている間、30分以内',
+  'options.deletePolicy.windowNone': '-',
+  'options.deletePolicy.rowDeleteOneUrl': '保存URLを1件削除',
+  'options.deletePolicy.rowDeleteGroupUrls': 'ドメイン一括・複数URLの削除',
+  'options.deletePolicy.rowRemoveFromProject':
+    'カスタムプロジェクトからURLを外す（保存URL自体は残ります）',
+  'options.deletePolicy.rowRemoveAfterOpen': '開いた後に保存リストから削除',
+  'options.deletePolicy.rowRemoveAfterExternalDrop':
+    '別ブラウザへドラッグした後に保存リストから削除',
+  'options.deletePolicy.rowDeleteProject': 'カスタムプロジェクトの削除',
+  'options.deletePolicy.rowDeleteCategory': 'カテゴリ（親・子・サブ）の削除',
+  'options.deletePolicy.rowAutoDelete': '期限切れURLの自動削除',
+  'options.deletePolicy.rowReviewReminderDelete':
+    '見直しリマインダーからの削除',
+  'options.deletePolicy.rowAiActionDelete': 'AI提案による削除',
+  'options.deletePolicy.autoDeleteNote':
+    '自動削除は、定期実行で期間を設定した場合にだけ動作します（既定ではオフ）。',
   'options.excludePatterns.add': '追加',
   'options.excludePatterns.empty': '除外パターンはありません',
   'options.excludePatterns.help':

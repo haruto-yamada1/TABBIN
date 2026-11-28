@@ -436,6 +436,42 @@ const coreMessagesEn = {
   'options.contact': 'Contact',
   'options.contactDescription':
     'Google Forms is used. A Google account is required because image uploads are enabled.',
+  'options.deletePolicy.title': 'Deletion policy',
+  'options.deletePolicy.description':
+    'How each operation deletes data: whether it asks for confirmation first, and whether it can be undone and for how long.',
+  'options.deletePolicy.columnOperation': 'Operation',
+  'options.deletePolicy.columnConfirmation': 'Confirmation',
+  'options.deletePolicy.columnUndo': 'Undo',
+  'options.deletePolicy.columnUndoWindow': 'Undo window',
+  'options.deletePolicy.confirmAlways': 'Always shown',
+  'options.deletePolicy.confirmBySettingOn': 'Shown (setting is on)',
+  'options.deletePolicy.confirmBySettingOff': 'Not shown (setting is off)',
+  'options.deletePolicy.confirmNone': 'Not shown',
+  'options.deletePolicy.undoAvailable': 'Available',
+  'options.deletePolicy.undoUnavailable': 'Not available',
+  'options.deletePolicy.windowWhileNotification':
+    'While the notification is shown',
+  'options.deletePolicy.windowPageOpen30Minutes':
+    'Up to 30 minutes while the page stays open',
+  'options.deletePolicy.windowNone': '-',
+  'options.deletePolicy.rowDeleteOneUrl': 'Delete one saved URL',
+  'options.deletePolicy.rowDeleteGroupUrls':
+    'Delete a domain group or multiple saved URLs',
+  'options.deletePolicy.rowRemoveFromProject':
+    'Remove a URL from a custom project (the saved URL itself is kept)',
+  'options.deletePolicy.rowRemoveAfterOpen':
+    'Remove a saved URL after opening it',
+  'options.deletePolicy.rowRemoveAfterExternalDrop':
+    'Remove a saved URL after dragging it to another browser',
+  'options.deletePolicy.rowDeleteProject': 'Delete a custom project',
+  'options.deletePolicy.rowDeleteCategory':
+    'Delete a category (parent, child, or subcategory)',
+  'options.deletePolicy.rowAutoDelete': 'Automatic deletion of expired URLs',
+  'options.deletePolicy.rowReviewReminderDelete':
+    'Delete from the review reminder',
+  'options.deletePolicy.rowAiActionDelete': 'Delete via an AI proposal',
+  'options.deletePolicy.autoDeleteNote':
+    'Automatic deletion runs only when a period is set in Scheduled tasks; it is off by default.',
   'options.excludePatterns.add': 'Add',
   'options.excludePatterns.empty': 'No exclude patterns',
   'options.excludePatterns.help':
