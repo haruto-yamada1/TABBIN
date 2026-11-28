@@ -85,6 +85,27 @@ const projectCard = (page: Page, name: string) =>
     .locator('[data-saved-tabs-scroll-target="project"]')
     .filter({ has: page.getByText(name, { exact: true }) })
 
+const undoToastShown = 'custom-deletion-undo-toast-shown'
+
+const markUndoToastWhenMounted = async (page: Page) =>
+  page.evaluate((mark) => {
+    const observer = new MutationObserver(() => {
+      const action = document.querySelector(
+        '[data-sonner-toast][data-mounted="true"][data-visible="true"] button[data-action]',
+      )
+      if (action) {
+        performance.mark(mark)
+        observer.disconnect()
+      }
+    })
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-mounted', 'data-visible'],
+      childList: true,
+      subtree: true,
+    })
+  }, undoToastShown)
+
 const scenarios = [
   {
     name: 'single',
@@ -143,7 +164,10 @@ for (const { name, removedIds, remove } of scenarios) {
     )
     await expect(page.getByTestId('project-url-item')).toHaveCount(5)
     const before = await readPersistenceV2SavedTabsSnapshot(serviceWorker)
+    // Capture the display time while the storage and mode assertions run.
+    await markUndoToastWhenMounted(page)
     await remove(page)
+    await page.mouse.move(0, 0)
 
     const retainedIds = urlIds.filter((id) => !removedIds.includes(id))
     await expect
@@ -171,16 +195,18 @@ for (const { name, removedIds, remove } of scenarios) {
     ).toHaveText(retainedIds.map((id) => titles[id]))
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
     await expect(undo).toBeVisible()
-    const visibleSince = performance.now()
     await expect
       .poll(
-        async () => {
-          const elapsed = performance.now() - visibleSince
-          return elapsed >= 5_000 && (await undo.isVisible())
-        },
+        async () =>
+          page.evaluate((mark) => {
+            const shown = performance.getEntriesByName(mark, 'mark').at(0)
+            const now = performance.now()
+            return now - (shown?.startTime ?? now)
+          }, undoToastShown),
         { timeout: 7_000 },
       )
-      .toBe(true)
+      .toBeGreaterThanOrEqual(5_000)
+    await expect(undo).toBeVisible()
     await undo.click()
     await expect
       .poll(async () =>
