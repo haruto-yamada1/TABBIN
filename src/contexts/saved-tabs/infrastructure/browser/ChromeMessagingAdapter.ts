@@ -31,9 +31,9 @@
 
 import { CHROME_MESSAGING_ADAPTER_MARKER } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import type {
-  ExternalDragMessage,
   MessagingPort,
   MessagingPortResponse,
+  SavedTabsBackgroundMessage,
 } from '@/contexts/saved-tabs/application/ports/MessagingPort'
 import { getChromeGlobal, isObjectLike } from '@/lib/browser/chrome-global'
 
@@ -43,7 +43,7 @@ export type ChromeRuntimeSendMessageLike = {
    * callback 受け取りは port 側で `Promise` 化する。
    */
   readonly sendMessage?: (
-    message: ExternalDragMessage,
+    message: SavedTabsBackgroundMessage,
     callback?: (response: MessagingPortResponse | undefined) => void,
   ) => void
 }

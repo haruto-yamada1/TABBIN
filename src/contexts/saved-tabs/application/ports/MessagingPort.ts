@@ -37,6 +37,7 @@
  */
 
 import type {
+  SaveAllOpenTabsMessage,
   UrlDragStartedMessage,
   UrlDroppedMessage,
 } from '@/types/background'
@@ -52,6 +53,17 @@ import type {
  * そのまま共有する (`action` discriminant で switch 絞り込み可能)。
  */
 export type ExternalDragMessage = UrlDragStartedMessage | UrlDroppedMessage
+
+/**
+ * port 経由で送れる background メッセージ全体。
+ *
+ * 外部ウィンドウ D&D 通知 (`ExternalDragMessage`) に加え、保存タブ一覧の
+ * 空状態 CTA (issue #1131) から既存キャプチャフローを起動する
+ * `saveAllOpenTabs` を含む。
+ */
+export type SavedTabsBackgroundMessage =
+  | ExternalDragMessage
+  | SaveAllOpenTabsMessage
 
 /**
  * port 経由で受け取る background レスポンスの最小 DTO。
@@ -104,7 +116,7 @@ export type MessagingPort = {
    * fire-and-forget 呼び出し (`void port.send(...)`) を基本とする。
    */
   send: (
-    message: ExternalDragMessage,
+    message: SavedTabsBackgroundMessage,
   ) => Promise<MessagingPortResponse | undefined>
 }
 

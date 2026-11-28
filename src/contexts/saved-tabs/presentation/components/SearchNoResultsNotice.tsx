@@ -39,3 +39,5 @@ export const SearchNoResultsNotice = ({
     </output>
   )
 }
+
+export { SavedTabsEmptyState } from './SavedTabsEmptyState'

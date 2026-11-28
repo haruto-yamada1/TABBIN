@@ -36,6 +36,7 @@ import {
   isAutoDeletePeriod,
   updateTabTimestamps,
 } from './expired-tabs'
+import { handleSaveWindowTabs } from './extension-actions'
 import {
   handleLinkCaptureMessage,
   linkCaptureSenderOrigin,
@@ -302,6 +303,21 @@ const setupMessageListener = (): void => {
       }
       case 'listOllamaModels': {
         handleListOllamaModelsMessage(sendResponse)
+        return true
+      }
+      case 'saveAllOpenTabs': {
+        // 空状態 CTA (issue #1131) からの保存依頼。保存自体はコンテキスト
+        // メニュー「ウィンドウのすべてのタブを保存」と同じ既存キャプチャ
+        // フロー (`handleSaveWindowTabs`) を再利用する。
+        void handlePromiseSettlement(
+          handleSaveWindowTabs(),
+          () => {
+            sendResponse({ status: 'ok' })
+          },
+          () => {
+            sendResponse({ status: 'error' })
+          },
+        )
         return true
       }
       case 'runAiChat': {

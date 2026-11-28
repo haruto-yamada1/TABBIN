@@ -18,7 +18,10 @@ import type {
 } from '@/contexts/saved-tabs/presentation/components/CategoryManagementModal'
 import { EmptyCategoriesCleanup } from '@/contexts/saved-tabs/presentation/components/EmptyCategoriesCleanup'
 import { OpenTabsSection } from '@/contexts/saved-tabs/presentation/components/OpenTabsSection'
-import { SearchNoResultsNotice } from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
+import {
+  SavedTabsEmptyState,
+  SearchNoResultsNotice,
+} from '@/contexts/saved-tabs/presentation/components/SearchNoResultsNotice'
 import {
   SavedTabsSelectionProvider,
   useSavedTabsMarkdownCopyHandler,
@@ -152,6 +155,14 @@ type DomainModeContainerProps = {
   onClearSearch?: () => void
   /** 空カテゴリの削除 (issue #898)。整理候補の確認後に呼ばれる。 */
   onDeleteEmptyCategory?: (categoryId: string) => Promise<void>
+  /**
+   * 空状態 CTA「このウィンドウのタブをすべて保存」(issue #1131)。
+   * background の既存キャプチャフローへ委譲する。未指定のときは
+   * CTA を出さず従来の空表示にする。保存タブが 1 件以上ある状態では
+   * CTA を表示しない (CodeRabbit 指摘対応: 検索で 0 件でも保存済み
+   * がある場合は空状態の前提を満たさないため)。
+   */
+  onSaveAllOpenTabs?: (() => Promise<void>) | undefined
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
   /**
    * 「今開いているタブ」行。コンテンツ最上部に表示する。空または未指定の
@@ -263,12 +274,20 @@ type UncategorizedDomainSectionProps = {
   searchQuery: string
   hasContentCount: number
   /**
+   * 保存タブグループの総数 (検索フィルタ前)。空状態 CTA は保存タブ
+   * 0 件のときにだけ表示するため、検索で 0 件になった場合と区別する
+   * (CodeRabbit 指摘対応)。
+   */
+  savedTabGroupsCount: number
+  /**
    * 検索中かつ保存データがあるのに表示が 0 件のとき、空表示の代わりに
    * 検索語と解除操作を示すための情報 (issue #890)。未指定または条件を
    * 満たさないときは従来の「保存タブなし」表示を使う。
    */
   searchNoResults: SearchNoResults | undefined
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
+  /** 空状態 CTA の保存操作 (issue #1131)。未指定時は CTA を出さない。 */
+  onSaveAllOpenTabs?: (() => Promise<void>) | undefined
 }
 
 const UncategorizedDomainSection = ({
@@ -301,8 +320,10 @@ const UncategorizedDomainSection = ({
   handleDeleteCategory,
   searchQuery,
   hasContentCount,
+  savedTabGroupsCount,
   searchNoResults,
   reorderTabGroupUrlsUseCase,
+  onSaveAllOpenTabs,
 }: UncategorizedDomainSectionProps) => {
   const { t } = useI18n()
   const accessibility = useDndAccessibility()
@@ -470,14 +491,11 @@ const UncategorizedDomainSection = ({
             onClearSearch={searchNoResults.handleClearSearch}
           />
         ) : (
-          <div className='flex min-h-[200px] flex-col items-center justify-center gap-4'>
-            <div className='text-2xl text-foreground'>
-              {t('savedTabs.emptyTitle')}
-            </div>
-            <div className='text-muted-foreground'>
-              {t('savedTabs.emptyDescription')}
-            </div>
-          </div>
+          <SavedTabsEmptyState
+            onSaveAllOpenTabs={
+              savedTabGroupsCount === 0 ? onSaveAllOpenTabs : undefined
+            }
+          />
         ))}
     </div>
   )
@@ -548,6 +566,7 @@ export const DomainModeContainer = ({
   hasContentTabGroupsCount,
   onClearSearch,
   onDeleteEmptyCategory,
+  onSaveAllOpenTabs,
   reorderTabGroupUrlsUseCase,
   openTabsRows,
   renameParentCategoryUseCase,
@@ -763,8 +782,10 @@ export const DomainModeContainer = ({
         handleDeleteCategory={handleDeleteCategory}
         searchQuery={searchQuery}
         hasContentCount={hasContentTabGroupsCount}
+        savedTabGroupsCount={tabGroups.length}
         searchNoResults={searchNoResults}
         reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
+        onSaveAllOpenTabs={onSaveAllOpenTabs}
       />
 
       <EmptyCategoriesCleanupSection

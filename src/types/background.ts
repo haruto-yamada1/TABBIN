@@ -95,6 +95,9 @@ export const backgroundMessageSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('listOllamaModels'),
   }),
+  z.strictObject({
+    action: z.literal('saveAllOpenTabs'),
+  }),
   z.object({
     action: z.literal('runAiChat'),
     attachments: z.array(aiChatAttachmentSchema).optional(),
@@ -205,6 +208,16 @@ export type ListOllamaModelsMessage = Extract<
 export type RunAiChatMessage = Extract<
   BackgroundMessage,
   { action: 'runAiChat' }
+>
+
+/**
+ * 空状態 CTA から「このウィンドウのタブをすべて保存」を依頼するメッセージ
+ * (issue #1131)。background 側は既存のキャプチャフロー
+ * (`handleSaveWindowTabs`) をそのまま実行する。
+ */
+export type SaveAllOpenTabsMessage = Extract<
+  BackgroundMessage,
+  { action: 'saveAllOpenTabs' }
 >
 
 /**
