@@ -675,7 +675,7 @@ const coreMessagesEn = {
   'savedTabs.emptyDescription':
     'Right-click a tab to save it, or click the extension icon.',
   'savedTabs.emptyState.academyCta': 'Learn how to use TABBIN in Academy',
-  'savedTabs.emptyState.saveAllOpenTabsCta': 'Save all open tabs',
+  'savedTabs.emptyState.saveAllOpenTabsCta': 'Save all tabs in this window',
   'savedTabs.emptyState.saveAllOpenTabsError': 'Failed to save the tabs',
   'savedTabs.emptyState.saveAllOpenTabsSaving': 'Saving...',
   'savedTabs.emptyTitle': 'No saved tabs',

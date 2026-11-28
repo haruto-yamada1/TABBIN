@@ -327,7 +327,7 @@ describe('DomainModeContainer', () => {
     ).toBeTruthy()
 
     await user.click(
-      screen.getByRole('button', { name: /開いているタブをすべて保存/ }),
+      screen.getByRole('button', { name: /このウィンドウのタブをすべて保存/ }),
     )
     expect(onSaveAllOpenTabs).toHaveBeenCalledTimes(1)
   })
@@ -355,6 +355,41 @@ describe('DomainModeContainer', () => {
 
     await user.click(screen.getByRole('button', { name: '検索をクリア' }))
     expect(onClearSearch).toHaveBeenCalledTimes(1)
+  })
+
+  it('保存タブがある状態で検索 0 件のときは空状態 CTA を表示しない', () => {
+    const props = createProps()
+    const onSaveAllOpenTabs = vi.fn(async () => {})
+
+    render(
+      <DomainModeContainer
+        {...props}
+        tabGroups={uncategorizedGroups}
+        searchQuery='nomatch'
+        onClearSearch={vi.fn()}
+        onSaveAllOpenTabs={onSaveAllOpenTabs}
+        openTabsRows={[
+          {
+            id: 'open-nomatch',
+            groupId: 'group-1',
+            isFavorite: false,
+            title: 'nomatch',
+            url: 'https://example.com/nomatch',
+          },
+        ]}
+      />,
+    )
+
+    // 保存タブに一致がなく開いているタブに一致があるため検索結果なし
+    // 案内は出さず従来の空表示になる (issue #890)。
+    expect(screen.queryByTestId('search-no-results')).toBeNull()
+    expect(screen.getByTestId('saved-tabs-empty-state')).toBeTruthy()
+    // 保存タブが 1 件以上あるため CTA は出さない (CodeRabbit 指摘対応)。
+    expect(
+      screen.queryByRole('button', {
+        name: /このウィンドウのタブをすべて保存/,
+      }),
+    ).toBeNull()
   })
 
   it('検索 0 件でも解除操作がなければ従来の空表示を使う', () => {

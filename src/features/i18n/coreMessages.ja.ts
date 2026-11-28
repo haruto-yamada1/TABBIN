@@ -672,7 +672,7 @@ const coreMessagesJa = {
   'savedTabs.emptyDescription':
     'タブを右クリックして保存するか、拡張機能のアイコンをクリックしてください',
   'savedTabs.emptyState.academyCta': 'Academyで使い方を見る',
-  'savedTabs.emptyState.saveAllOpenTabsCta': '開いているタブをすべて保存',
+  'savedTabs.emptyState.saveAllOpenTabsCta': 'このウィンドウのタブをすべて保存',
   'savedTabs.emptyState.saveAllOpenTabsError': 'タブの保存に失敗しました',
   'savedTabs.emptyState.saveAllOpenTabsSaving': '保存中...',
   'savedTabs.emptyTitle': '保存されたタブはありません',

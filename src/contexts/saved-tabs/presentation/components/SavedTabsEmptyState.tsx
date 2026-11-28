@@ -8,7 +8,7 @@ import { getPageHref } from '@/features/navigation/lib/pageNavigation'
 
 type SavedTabsEmptyStateProps = {
   /**
-   * 「開いているタブをすべて保存」CTA の操作 (issue #1131)。
+   * 「このウィンドウのタブをすべて保存」CTA の操作 (issue #1131)。
    *
    * background の既存キャプチャフローへ委譲するハンドラ。未指定のときは
    * CTA を出さず、従来の説明文だけの空表示にする (practice / Storybook

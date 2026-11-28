@@ -169,9 +169,11 @@ type DomainModeContainerProps = {
   /** 空カテゴリの削除 (issue #898)。整理候補の確認後に呼ばれる。 */
   onDeleteEmptyCategory?: (categoryId: string) => Promise<void>
   /**
-   * 空状態 CTA「開いているタブをすべて保存」(issue #1131)。
+   * 空状態 CTA「このウィンドウのタブをすべて保存」(issue #1131)。
    * background の既存キャプチャフローへ委譲する。未指定のときは
-   * CTA を出さず従来の空表示にする。
+   * CTA を出さず従来の空表示にする。保存タブが 1 件以上ある状態では
+   * CTA を表示しない (CodeRabbit 指摘対応: 検索で 0 件でも保存済み
+   * がある場合は空状態の前提を満たさないため)。
    */
   onSaveAllOpenTabs?: (() => Promise<void>) | undefined
   reorderTabGroupUrlsUseCase: ReorderTabGroupUrlsUseCase
@@ -285,6 +287,12 @@ type UncategorizedDomainSectionProps = {
   searchQuery: string
   hasContentCount: number
   /**
+   * 保存タブグループの総数 (検索フィルタ前)。空状態 CTA は保存タブ
+   * 0 件のときにだけ表示するため、検索で 0 件になった場合と区別する
+   * (CodeRabbit 指摘対応)。
+   */
+  savedTabGroupsCount: number
+  /**
    * 検索中かつ保存データがあるのに表示が 0 件のとき、空表示の代わりに
    * 検索語と解除操作を示すための情報 (issue #890)。未指定または条件を
    * 満たさないときは従来の「保存タブなし」表示を使う。
@@ -325,6 +333,7 @@ const UncategorizedDomainSection = ({
   handleDeleteCategory,
   searchQuery,
   hasContentCount,
+  savedTabGroupsCount,
   searchNoResults,
   reorderTabGroupUrlsUseCase,
   onSaveAllOpenTabs,
@@ -492,7 +501,11 @@ const UncategorizedDomainSection = ({
             onClearSearch={searchNoResults.handleClearSearch}
           />
         ) : (
-          <SavedTabsEmptyState onSaveAllOpenTabs={onSaveAllOpenTabs} />
+          <SavedTabsEmptyState
+            onSaveAllOpenTabs={
+              savedTabGroupsCount === 0 ? onSaveAllOpenTabs : undefined
+            }
+          />
         ))}
     </div>
   )
@@ -779,6 +792,7 @@ export const DomainModeContainer = ({
         handleDeleteCategory={handleDeleteCategory}
         searchQuery={searchQuery}
         hasContentCount={hasContentTabGroupsCount}
+        savedTabGroupsCount={tabGroups.length}
         searchNoResults={searchNoResults}
         reorderTabGroupUrlsUseCase={reorderTabGroupUrlsUseCase}
         onSaveAllOpenTabs={onSaveAllOpenTabs}

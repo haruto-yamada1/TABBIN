@@ -211,7 +211,7 @@ export type RunAiChatMessage = Extract<
 >
 
 /**
- * 空状態 CTA から「開いているタブをすべて保存」を依頼するメッセージ
+ * 空状態 CTA から「このウィンドウのタブをすべて保存」を依頼するメッセージ
  * (issue #1131)。background 側は既存のキャプチャフロー
  * (`handleSaveWindowTabs`) をそのまま実行する。
  */
