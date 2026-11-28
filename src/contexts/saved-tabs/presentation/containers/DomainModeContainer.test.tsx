@@ -453,6 +453,7 @@ describe('DomainModeContainer', () => {
             name: 'Used One',
           },
         ]}
+        hasContentTabGroupsCount={2}
         onDeleteEmptyCategory={onDeleteEmptyCategory}
       />,
     )
@@ -470,6 +471,22 @@ describe('DomainModeContainer', () => {
     ).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '削除' }))
     expect(onDeleteEmptyCategory).toHaveBeenCalledExactlyOnceWith('empty-1')
+  })
+
+  it('保存タブが0件のときは空カテゴリの整理候補を表示しない（空表示と重なるため）', () => {
+    const props = createProps()
+
+    render(
+      <DomainModeContainer
+        {...props}
+        categories={[{ collections: [], id: 'empty-1', name: 'Empty One' }]}
+        onDeleteEmptyCategory={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId('saved-tabs-empty-state')).toBeTruthy()
+    expect(screen.queryByTestId('empty-categories-cleanup')).toBeNull()
+    expect(screen.queryByText('Empty One')).toBeNull()
   })
 
   it('削除ハンドラがなければ空カテゴリの整理候補を表示しない', () => {

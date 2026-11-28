@@ -520,17 +520,21 @@ type EmptyCategoriesCleanupSectionProps = {
   enableCategories: boolean
   onDeleteEmptyCategory: ((categoryId: string) => Promise<void>) | undefined
   searchQuery: string
+  hasContentTabGroupsCount: number
 }
 
 /**
  * 空カテゴリの整理候補セクション (issue #898)。カテゴリ機能が有効で、
- * 検索中でなく、削除ハンドラがある場合だけ候補を提示する。
+ * 検索中でなく、削除ハンドラがある場合だけ候補を提示する。保存タブが
+ * 0 件のときは空表示が画面全体の中央に absolute 配置されるため通常
+ * フローのこのセクションと重なるので、その場合は表示しない。
  */
 const EmptyCategoriesCleanupSection = ({
   categories,
   enableCategories,
   onDeleteEmptyCategory,
   searchQuery,
+  hasContentTabGroupsCount,
 }: EmptyCategoriesCleanupSectionProps) => {
   const emptyCategories = useMemo(
     () => categories.filter((category) => category.collections.length === 0),
@@ -540,7 +544,8 @@ const EmptyCategoriesCleanupSection = ({
     !enableCategories ||
     searchQuery.trim().length > 0 ||
     onDeleteEmptyCategory === undefined ||
-    emptyCategories.length === 0
+    emptyCategories.length === 0 ||
+    hasContentTabGroupsCount === 0
   ) {
     return null
   }
@@ -807,6 +812,7 @@ export const DomainModeContainer = ({
         enableCategories={settings.enableCategories}
         onDeleteEmptyCategory={onDeleteEmptyCategory}
         searchQuery={searchQuery}
+        hasContentTabGroupsCount={hasContentTabGroupsCount}
       />
     </>
   )
