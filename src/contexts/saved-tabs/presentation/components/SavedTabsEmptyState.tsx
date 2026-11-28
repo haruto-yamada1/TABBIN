@@ -15,6 +15,17 @@ type SavedTabsEmptyStateProps = {
    * など保存を実行できない環境向け)。
    */
   onSaveAllOpenTabs?: (() => Promise<void>) | undefined
+  /**
+   * 空表示を画面全体の垂直中央に配置するか (issue #1131 フォローアップ)。
+   *
+   * true のとき root を `absolute inset-0` にして、配置基準を最も近い
+   * positioned な祖先 (= SavedTabsApp のレイアウト全体 = 検索バー等の
+   * ヘッダーを含めた画面全体) へ広げる。呼び出し側は空状態のときだけ
+   * 祖先へ `relative` を付与する前提。root はクリックを透過させて
+   * 背後のヘッダー操作を妨げず、CTA 行だけ `pointer-events-auto` で
+   * 操作可能に戻す。未指定 (単体表示) では従来どおり親の高さに広がる。
+   */
+  centerInViewport?: boolean
 }
 
 /**
@@ -26,6 +37,7 @@ type SavedTabsEmptyStateProps = {
  * と同じ `getPageHref('academy')` を使う。従来の説明文は補助として残す。
  */
 export const SavedTabsEmptyState = ({
+  centerInViewport = false,
   onSaveAllOpenTabs,
 }: SavedTabsEmptyStateProps) => {
   const { t } = useI18n()
@@ -49,10 +61,19 @@ export const SavedTabsEmptyState = ({
     void handleSaveAllOpenTabs()
   }, [handleSaveAllOpenTabs])
 
+  // 通常は親の高さいっぱいに広げて (flex-1) その中で垂直中央に配置
+  // する。centerInViewport のときは配置基準を画面全体へ広げるため
+  // absolute で祖先いっぱいに広げ、justify-center で画面の垂直中央に
+  // 置く。root の pointer-events-none は背後のヘッダー操作を通すため
+  // で、CTA 行だけ後段で pointer-events-auto に戻す。
   return (
     <div
       data-testid='saved-tabs-empty-state'
-      className='flex min-h-[200px] flex-col items-center justify-center gap-4 py-8'
+      className={`flex flex-col items-center justify-center gap-4 py-8 ${
+        centerInViewport
+          ? 'pointer-events-none absolute inset-0'
+          : 'min-h-[200px] flex-1'
+      }`}
     >
       <Bookmark
         aria-hidden='true'
@@ -64,7 +85,11 @@ export const SavedTabsEmptyState = ({
         {t('savedTabs.emptyTitle')}
       </div>
       {onSaveAllOpenTabs && (
-        <div className='flex flex-wrap items-center justify-center gap-3'>
+        <div
+          className={`flex flex-wrap items-center justify-center gap-3${
+            centerInViewport ? ' pointer-events-auto' : ''
+          }`}
+        >
           <Button disabled={isSaving} onClick={handleSaveClick}>
             <SaveAll aria-hidden='true' size={16} />
             {isSaving

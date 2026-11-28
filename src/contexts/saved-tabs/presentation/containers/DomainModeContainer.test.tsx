@@ -332,6 +332,36 @@ describe('DomainModeContainer', () => {
     expect(onSaveAllOpenTabs).toHaveBeenCalledTimes(1)
   })
 
+  it('空状態ではセクションは広がらず、空表示が画面全体の中央配置になる', () => {
+    const { unmount } = render(<DomainModeContainer {...createProps()} />)
+
+    // 空表示は配置基準 (SavedTabsApp の relative なレイアウト) いっぱいに
+    // 広がって画面全体の垂直中央に配置される (issue #1131 フォローアップ)。
+    // セクションルート自体に testid がないため親要素のクラスで検証する。
+    const emptyState = screen.getByTestId('saved-tabs-empty-state')
+    expect(emptyState).toHaveClass('absolute', 'inset-0', 'pointer-events-none')
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(emptyState.parentElement).not.toHaveClass('flex-1')
+    unmount()
+
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        state={{
+          ...createProps().state,
+          shouldShowUncategorizedList: true,
+          shouldShowUncategorizedSectionHeader: true,
+        }}
+        uncategorizedForDisplay={uncategorizedGroups}
+        hasContentTabGroupsCount={uncategorizedGroups.length}
+      />,
+    )
+
+    const sectionHeader = screen.getByTestId('uncategorized-section-header')
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(sectionHeader.parentElement).not.toHaveClass('flex-1')
+  })
+
   it('検索で 0 件のときは保存データなしと区別し、検索語と解除操作を表示する', async () => {
     const user = userEvent.setup()
     const onClearSearch = vi.fn()
@@ -423,6 +453,7 @@ describe('DomainModeContainer', () => {
             name: 'Used One',
           },
         ]}
+        hasContentTabGroupsCount={2}
         onDeleteEmptyCategory={onDeleteEmptyCategory}
       />,
     )
@@ -440,6 +471,22 @@ describe('DomainModeContainer', () => {
     ).toBeTruthy()
     await user.click(screen.getByRole('button', { name: '削除' }))
     expect(onDeleteEmptyCategory).toHaveBeenCalledExactlyOnceWith('empty-1')
+  })
+
+  it('保存タブが0件のときは空カテゴリの整理候補を表示しない（空表示と重なるため）', () => {
+    const props = createProps()
+
+    render(
+      <DomainModeContainer
+        {...props}
+        categories={[{ collections: [], id: 'empty-1', name: 'Empty One' }]}
+        onDeleteEmptyCategory={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId('saved-tabs-empty-state')).toBeTruthy()
+    expect(screen.queryByTestId('empty-categories-cleanup')).toBeNull()
+    expect(screen.queryByText('Empty One')).toBeNull()
   })
 
   it('削除ハンドラがなければ空カテゴリの整理候補を表示しない', () => {
