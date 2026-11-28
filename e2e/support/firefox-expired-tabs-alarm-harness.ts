@@ -26,6 +26,7 @@ const STORAGE_KEYS = [
 export type FirefoxExpiredTabsAlarmSmokeResult = {
   readonly alarmFired: boolean
   readonly expiredRemoved: boolean
+  readonly expiredRecovered: boolean
   readonly freshPreserved: boolean
   readonly favoritePreserved: boolean
   readonly otherAlarmsUnchanged: boolean
@@ -213,8 +214,33 @@ export const runFirefoxExpiredTabsAlarmSmoke =
       const storageAfter = await local.get(STORAGE_KEYS)
       await local.set({ userSettings: disabledSettings })
       await waitForExpirationSchedule(false)
+      const expiredUrl = fixture.savedTabs.urls.find(
+        ({ id }) => id === EXPIRING_URL_ID,
+      )
+      const archived = (await dataPlane.listExpiredUrls()).find(
+        ({ url }) => url === expiredUrl?.url,
+      )
+      const restoredCount = archived
+        ? await dataPlane.restoreExpiredUrls([archived.id])
+        : 0
+      const restoredSnapshot = await dataPlane.readUndoSnapshot()
       result = {
         alarmFired,
+        expiredRecovered:
+          restoredCount === 1 &&
+          restoredSnapshot.savedTabs.urls.some(
+            ({ id, firstSavedAt }) =>
+              id === EXPIRING_URL_ID &&
+              firstSavedAt === expiredUrl?.firstSavedAt,
+          ) &&
+          restoredSnapshot.savedTabs.memberships.some(
+            ({ urlId, collectionId }) =>
+              urlId === EXPIRING_URL_ID &&
+              collectionId === 'firefox-alarm-domain',
+          ) &&
+          !(await dataPlane.listExpiredUrls()).some(
+            ({ id }) => id === archived?.id,
+          ),
         expiredRemoved:
           !after.savedTabs.urls.some(({ id }) => id === EXPIRING_URL_ID) &&
           !after.savedTabs.memberships.some(
@@ -245,6 +271,12 @@ export const runFirefoxExpiredTabsAlarmSmoke =
       // Disable deletion before restoring the old profile rows and schedule.
       await local.set({ userSettings: disabledSettings })
       await browser.alarms.clear(EXPIRATION_ALARM)
+      const remainingArchive = (await dataPlane.listExpiredUrls()).find(
+        ({ url }) => url === 'https://firefox-alarm.example/expired',
+      )
+      if (remainingArchive) {
+        await dataPlane.discardExpiredUrls([remainingArchive.id])
+      }
       await dataPlane.restoreUndoSnapshot(previousSnapshot)
       await local.remove(['userSettings', 'reviewReminderNotification'])
       const restoreStorage = Object.fromEntries(

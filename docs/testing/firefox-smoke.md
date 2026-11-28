@@ -39,8 +39,8 @@ artifact 構造を検証する。
 - `bun run quality:check` の中の `bun run test` 経由で helper test が走る。
 - `bun run verify:firefox-artifact` を `bun run release:check` が build:firefox 直後
   に呼ぶ。配布 ZIP を作る前に manifest / artifact contract を弾く。
-- CI の `verify-build` job が `verify:firefox-artifact` を実行する。push / pull_request
-  毎に走り、Firefox artifact の退化を即座に検出する。
+- CI の `Build Extension Artifacts` job が `verify:firefox-artifact` を実行する。
+  push / pull_request 毎に走り、必須の `Verify Build` へ結果を渡す。
 
 ### Phase 2 — Firefox startup smoke
 
@@ -157,7 +157,7 @@ Issue #722 の受け入れ条件に対する Phase 1 + 2 + 3 の対応と残課�
 - [x] options または saved tabs の主要画面を開けることを検証する — Phase 3b の title render assertion
 - [x] Chrome 専用 API 利用が混入した場合の検出方法がある — Phase 3a verifier が `chrome-extension://` literal と chrome-only API を CI 常時 enforce
 - [x] IndexedDB の fresh / restart / read / write / recovery / Backup V2 を検証する — Phase 4 の non-skippable smoke。Chrome Storage の旧 control / preflight metadata が現在の起動を妨げないことも検証する
-- [x] CI / release gate の実行タイミングが決定されている — Phase 1 / 3a は CI / release:check で常時、Phase 4 IndexedDB smoke は release:check / release:zip の必須 gate。Phase 2 / 3b は workflow_dispatch で manual gate。nightly cron 自動実行は follow-up issue で整備
+- [x] CI / release gate の実行タイミングが決定されている — Phase 1 / 3a / 4 は PR の必須 CI と release gate で実行。Phase 2 / 3b は opt-in で実行
 
 ## follow-up 候補
 
@@ -198,7 +198,7 @@ FIREFOX_EXTENSION_SMOKE=1 bun run test:firefox:smoke
 CI で manual 実行する場合は `Actions` タブから `CI` workflow を
 `Run workflow` で dispatch する。`firefox-extension-smoke` job が走る。
 
-### Phase 4 Firefox IndexedDB smoke (release gate / manual CI)
+### Phase 4 Firefox IndexedDB smoke (PR CI / release gate)
 
 ```bash
 export GECKODRIVER_PATH=/path/to/geckodriver
@@ -207,11 +207,12 @@ bun run test:firefox:indexeddb-smoke
 ```
 
 この command は Firefox artifact と browser harness を build してから、WebDriver で
-fresh / native IndexedDB fixture / restart / read / write / recovery / Backup V2 を実行する。
-skip や `|| true` で unsupported 環境を成功扱いにしない。
-`release:check` は `release:e2e` 経由でこの command を必ず実行し、`release:zip` も
-成功を配布条件にします。通常 PR CI の範囲は増やしません。前提環境と Chrome 側の
-必須導線は [リリース手順](../release.md#配布前の-e2e) を参照してください。
+fresh / native IndexedDB fixture / restart / read / write / recovery / Backup V2 と
+Academy の実 UI を検証します。PR CI の `Firefox Native Release Smoke` では、この command
+で作った Firefox build をリンクキャプチャの native smoke にも使います。両方の成功が
+必須の `Verify Build` に必要です。`release:check` と `release:zip` は `release:e2e`
+経由で同じ検証を実行します。前提環境と Chrome 側の必須導線は
+[リリース手順](../release.md#配布前の-e2e) を参照してください。
 
 Chrome の更新 smoke は、公開済み artifact の pin と現行 build を使って実行する。
 

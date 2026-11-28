@@ -39,8 +39,11 @@ const createProductionBackgroundSavedTabsDataPlane =
     return createBackgroundSavedTabsIndexedDbDataPlane({
       idGenerator: () => crypto.randomUUID(),
       now: () => Date.now(),
+      readExpiredUrls: async () => snapshotReader.readExpiredUrls(),
       readSnapshot: async () => snapshotReader.readVerifiedSavedTabsSnapshot(),
       session: new IndexedDbSavedTabsSessionService({
+        readWithExpiredUrls: async () =>
+          snapshotReader.readVerifiedSavedTabsWithExpiredUrls(),
         snapshotReaderPort: snapshotReader,
         unitOfWorkPort: unitOfWork,
       }),

@@ -3,8 +3,12 @@ import { assert, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
   checkAndRemoveExpiredTabs: vi.fn(async () => {}),
+  purge: vi.fn(async () => {}),
   requireUserSettings: vi.fn(),
   logger: { error: vi.fn(), warn: vi.fn() },
+}))
+vi.mock('@/app/composition/expiredUrlRecovery', () => ({
+  getExpiredUrlRecovery: () => ({ purge: mocked.purge }),
 }))
 vi.mock('./expired-tabs', () => ({
   checkAndRemoveExpiredTabs: mocked.checkAndRemoveExpiredTabs,
@@ -554,6 +558,24 @@ describe('alarm-notification モジュール', () => {
       error,
       { action: 'initialCheck' },
     )
+  })
+
+  it('自動削除を無効にしても起動時と期限切れ退避の専用 Alarm で期限切れを消去する', async () => {
+    const harness = createAlarmChromeMock()
+    mocked.requireUserSettings.mockResolvedValue({ autoDeletePeriod: 'never' })
+    const alarm = await loadAlarm()
+    alarm.registerExpiredTabsAlarmListener()
+    await alarm.setupExpiredUrlRecoveryPurgeAlarm()
+
+    expect(harness.alarmsCreate).toHaveBeenCalledExactlyOnceWith(
+      'purgeExpiredUrlRecovery',
+      { periodInMinutes: 60 },
+    )
+    expect(mocked.purge).toHaveBeenCalledTimes(1)
+    harness.fire('purgeExpiredUrlRecovery', { periodInMinutes: 60 })
+    await flush()
+    expect(mocked.purge).toHaveBeenCalledTimes(2)
+    expect(mocked.checkAndRemoveExpiredTabs).not.toHaveBeenCalled()
   })
 
   it('拡張機能アイコン URL 付きの通知を表示する', async () => {

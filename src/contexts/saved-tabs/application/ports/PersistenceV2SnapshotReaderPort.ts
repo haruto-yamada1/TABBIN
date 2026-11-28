@@ -1,3 +1,4 @@
+import type { ExpiredUrlRecoveryRecord } from '@/contexts/saved-tabs/domain/entities/ExpiredUrlRecovery'
 import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 
 import type {
@@ -17,6 +18,11 @@ export type PersistenceVersionedSavedTabsSnapshot = {
   readonly revision: number
   readonly savedTabs: PersistenceV2Snapshot
 }
+
+export type PersistenceVersionedExpiredUrlsSnapshot =
+  PersistenceVersionedSavedTabsSnapshot & {
+    readonly expiredUrls: readonly ExpiredUrlRecoveryRecord[]
+  }
 
 export type PersistenceV2SnapshotReaderPort = {
   readonly readConsistentSnapshot: () => Promise<PersistenceLogicalSnapshot>

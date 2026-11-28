@@ -1,4 +1,5 @@
 import type { PersistenceChangeScope } from '@/contexts/saved-tabs/application/ports/PersistenceChangePort'
+import type { ExpiredUrlRecoveryRecord } from '@/contexts/saved-tabs/domain/entities/ExpiredUrlRecovery'
 import type {
   PersistenceV2Collection,
   PersistenceV2CollectionCategory,
@@ -45,6 +46,7 @@ export type PersistenceV2WritePlan = {
   readonly categories?: PersistenceRecordMutation<PersistenceV2CollectionCategory>
   readonly collections?: PersistenceRecordMutation<PersistenceV2Collection>
   readonly conversations?: PersistenceRecordMutation<PersistenceJsonRecord>
+  readonly expiredUrls?: PersistenceRecordMutation<ExpiredUrlRecoveryRecord>
   readonly groups?: PersistenceRecordMutation<PersistenceV2CollectionGroup>
   readonly memberships?: PersistenceRecordMutation<
     PersistenceV2CollectionMembership,

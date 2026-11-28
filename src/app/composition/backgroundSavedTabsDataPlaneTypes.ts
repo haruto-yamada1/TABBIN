@@ -1,3 +1,4 @@
+import type { ExpiredUrlRecoveryDto } from '@/contexts/saved-tabs/application/dto/ExpiredUrlRecoveryDto'
 import type { PersistenceVersionedSavedTabsSnapshot } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
 
 export type SavedTabsInsightRecord = {
@@ -39,6 +40,10 @@ export type BackgroundSavedTabsRemoveUrlOptions = {
 }
 
 export type BackgroundSavedTabsDataPlane = {
+  readonly discardExpiredUrls: (ids: readonly string[]) => Promise<number>
+  readonly listExpiredUrls: () => Promise<readonly ExpiredUrlRecoveryDto[]>
+  readonly purgeExpiredUrls: () => Promise<void>
+  readonly restoreExpiredUrls: (ids: readonly string[]) => Promise<number>
   readonly readAnalyticsRecords: () => Promise<
     readonly SavedTabsAnalyticsRecord[]
   >

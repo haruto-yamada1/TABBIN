@@ -10,11 +10,16 @@ Dependency Review を追加した構成では、両ブランチで GitHub Action
 
 | チェック                 | 成功条件                                                                                                          |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `Lint & Type Check`      | toolchain、依存監査、型、format、lint、アーキテクチャなどの検証を通過                                             |
-| `Verify Build`           | Chrome / Firefox のビルド、配布物・互換性検証、初期ロード計測を通過                                               |
+| `Lint & Type Check`      | ローカルの `quality:check` に含まれる静的検査と依存監査を通過                                                     |
+| `Verify Build`           | `Build Extension Artifacts` と `Firefox Native Release Smoke` がともに `success`                                  |
 | `Run Vitest Tests`       | 上流の `Coverage Thresholds` が `success`。上流が失敗した場合は集約ジョブも失敗                                   |
 | `React Doctor Score 100` | 全体のスキャンが完了し、100/100 を取得。PR へのレビュー投稿は別ジョブ                                             |
 | `Dependency Review`      | patch、承認済みライセンス、Bun の解決依存差分、GitHub Dependency Graph などの検査を通過。依存変更のない PR も実行 |
+
+`Build Extension Artifacts` は Chrome / Firefox のビルド、初期ロード、配布物・互換性、
+Chromium のリリース E2E、Chrome Web Store 公開版からの更新を検証する。
+`Firefox Native Release Smoke` は Firefox 実機で IndexedDB、Academy、リンクキャプチャを検証する。
+どちらかが失敗または未実行の場合、`Verify Build` も失敗する。
 
 `main` は最新 base での再検証が必須。`develop` は最新 base との同期を必須にせず、
 [Update PR Branches](../../.github/workflows/update-pr-branches.yml) が同一リポジトリの対象 PR を更新する。

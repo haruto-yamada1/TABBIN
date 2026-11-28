@@ -1,4 +1,6 @@
+import type { ExpiredUrlRecoveryDto } from '@/contexts/saved-tabs/application/dto/ExpiredUrlRecoveryDto'
 import type { PersistenceVersionedSavedTabsSnapshot } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
+import type { ExpiredUrlRecoveryRecord } from '@/contexts/saved-tabs/domain/entities/ExpiredUrlRecovery'
 import type {
   PersistenceV2Collection,
   PersistenceV2CollectionMembership,
@@ -6,8 +8,17 @@ import type {
   PersistenceV2Url,
 } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import { PERSISTENCE_V2_ORDERING_POLICY } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
+import {
+  discardExpiredUrls,
+  expireSavedUrls,
+  isRecoverableExpiredUrl,
+  getRecoverableExpiredUrls,
+  restoreExpiredUrls,
+} from '@/contexts/saved-tabs/domain/services/ExpiredUrlRecoveryService'
+import type { ExpiredUrlRecoveryState } from '@/contexts/saved-tabs/domain/services/ExpiredUrlRecoveryService'
 import { createUrlIdentityKey } from '@/contexts/saved-tabs/domain/services/UrlIdentityPolicy'
 import type { IndexedDbSavedTabsMutableState } from '@/contexts/saved-tabs/infrastructure/composition/IndexedDbSavedTabsSessionService'
+import { BACKUP_RESOURCE_LIMITS } from '@/lib/persistence/backupResourcePolicy'
 import { toHostname } from '@/utils/domain-normalize'
 
 import type {
@@ -18,6 +29,9 @@ import type {
 } from './backgroundSavedTabsDataPlaneTypes'
 
 type NativeSession = {
+  readonly runWithExpiredUrls: <Result>(
+    operation: (state: ExpiredUrlRecoveryState) => Result,
+  ) => Promise<Result>
   readonly run: <Result>(
     operation: (
       state: IndexedDbSavedTabsMutableState,
@@ -28,6 +42,7 @@ type NativeSession = {
 export type CreateBackgroundSavedTabsIndexedDbDataPlaneOptions = {
   readonly idGenerator: () => string
   readonly now: () => number
+  readonly readExpiredUrls: () => Promise<readonly ExpiredUrlRecoveryRecord[]>
   readonly readSnapshot: () => Promise<PersistenceVersionedSavedTabsSnapshot>
   readonly session: NativeSession
 }
@@ -210,6 +225,7 @@ const buildAnalyticsRecords = (
 
 const removeEmptyDomainCollections = (
   state: IndexedDbSavedTabsMutableState,
+  affectedCollectionIds: ReadonlySet<string>,
 ): void => {
   const referencedCollectionIds = new Set(
     state.memberships.map(({ collectionId }) => collectionId),
@@ -219,6 +235,7 @@ const removeEmptyDomainCollections = (
       .filter(
         (collection) =>
           collection.definition.type === 'domain' &&
+          affectedCollectionIds.has(collection.id) &&
           !referencedCollectionIds.has(collection.id),
       )
       .map(({ id }) => id),
@@ -245,10 +262,15 @@ const removeSelectedUrls = (
     return 0
   }
   state.urls = state.urls.filter(({ id }) => !removedIds.has(id))
-  state.memberships = state.memberships.filter(
-    ({ urlId }) => !removedIds.has(urlId),
-  )
-  removeEmptyDomainCollections(state)
+  const affectedCollectionIds = new Set<string>()
+  state.memberships = state.memberships.filter(({ collectionId, urlId }) => {
+    if (!removedIds.has(urlId)) {
+      return true
+    }
+    affectedCollectionIds.add(collectionId)
+    return false
+  })
+  removeEmptyDomainCollections(state, affectedCollectionIds)
   return removedIds.size
 }
 
@@ -531,58 +553,55 @@ const saveTabs = (
   }
 }
 
-const removeExpiredUrls = (
-  state: IndexedDbSavedTabsMutableState,
-  cutoffTime: number,
-  _currentTime: number,
-  options: { readonly protectFavoriteFromAutoRemoval: boolean },
-): { readonly removedCount: number; readonly sourceCount: number } => {
-  const collections = new Map(
-    state.collections.map((collection) => [collection.id, collection]),
-  )
-  const urls = new Map(state.urls.map((url) => [url.id, url]))
-  const expired = new Set<string>()
-  const expiredUrlIds = new Set<string>()
-  let sourceCount = 0
-  for (const membership of state.memberships) {
-    const collection = collections.get(membership.collectionId)
-    if (collection?.definition.type !== 'domain') {
-      continue
-    }
-    sourceCount += 1
-    if (
-      options.protectFavoriteFromAutoRemoval &&
-      urls.get(membership.urlId)?.isFavorite
-    ) {
-      continue
-    }
-    const savedAt =
-      urls.get(membership.urlId)?.lastSavedAt ?? collection.createdAt
-    if (savedAt < cutoffTime) {
-      expired.add(`${membership.collectionId}\u0000${membership.urlId}`)
-      expiredUrlIds.add(membership.urlId)
-    }
-  }
-  if (expired.size === 0) {
-    return { removedCount: 0, sourceCount }
-  }
-  state.memberships = state.memberships.filter(
-    ({ collectionId, urlId }) => !expired.has(`${collectionId}\u0000${urlId}`),
-  )
-  removeEmptyDomainCollections(state)
-  const referencedUrlIds = new Set(state.memberships.map(({ urlId }) => urlId))
-  state.urls = state.urls.filter(
-    ({ id }) => !expiredUrlIds.has(id) || referencedUrlIds.has(id),
-  )
-  return { removedCount: expired.size, sourceCount }
-}
+const toExpiredUrlRecoveryDto = (
+  record: ExpiredUrlRecoveryRecord,
+): ExpiredUrlRecoveryDto => ({
+  expiredAt: record.expiredAt,
+  id: record.id,
+  memberships: record.memberships.map(({ category, collection }) => ({
+    ...(category ? { categoryName: category.name } : {}),
+    collectionName: collection.name,
+  })),
+  recoverUntil: record.recoverUntil,
+  title: record.url.title,
+  url: record.url.url,
+})
 
 export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   idGenerator,
   now,
+  readExpiredUrls,
   readSnapshot,
   session,
 }: CreateBackgroundSavedTabsIndexedDbDataPlaneOptions): BackgroundSavedTabsDataPlane => ({
+  discardExpiredUrls: async (ids) =>
+    session.runWithExpiredUrls((state) => {
+      const outcome = discardExpiredUrls(state.expiredUrls, new Set(ids), now())
+      state.expiredUrls = outcome.expiredUrls
+      return outcome.removedCount
+    }),
+  listExpiredUrls: async () => {
+    const records = await readExpiredUrls()
+    const currentTime = now()
+    return records
+      .filter((record) => isRecoverableExpiredUrl(record, currentTime))
+      .toSorted(
+        (left, right) =>
+          right.expiredAt - left.expiredAt || left.id.localeCompare(right.id),
+      )
+      .map(toExpiredUrlRecoveryDto)
+  },
+  purgeExpiredUrls: async () => {
+    const records = await readExpiredUrls()
+    const currentTime = now()
+    if (
+      records.some((record) => !isRecoverableExpiredUrl(record, currentTime))
+    ) {
+      await session.runWithExpiredUrls((state) => {
+        state.expiredUrls = getRecoverableExpiredUrls(state.expiredUrls, now())
+      })
+    }
+  },
   readAnalyticsRecords: async () =>
     buildAnalyticsRecords((await readSnapshot()).savedTabs),
   readInsightRecords: async () =>
@@ -593,9 +612,16 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
     currentTime,
     options = { protectFavoriteFromAutoRemoval: true },
   ) =>
-    session.run((state) =>
-      removeExpiredUrls(state, cutoffTime, currentTime, options),
-    ),
+    session.runWithExpiredUrls((state) => {
+      const outcome = expireSavedUrls(state, {
+        cutoff: cutoffTime,
+        generateId: idGenerator,
+        now: currentTime,
+        protectFavorite: options.protectFavoriteFromAutoRemoval,
+      })
+      Object.assign(state, outcome.state)
+      return outcome.result
+    }),
   removeUrl: async (url, urlRecordId, options = {}) => {
     const identity = validUrlIdentityKey(url)
     if (!identity) {
@@ -620,6 +646,26 @@ export const createBackgroundSavedTabsIndexedDbDataPlane = ({
   },
   removeUrlIds: async (urlIds) =>
     session.run((state) => removeSelectedUrls(state, new Set(urlIds))),
+  restoreExpiredUrls: async (ids) =>
+    session.runWithExpiredUrls((state) => {
+      const timestamp = now()
+      const outcome = restoreExpiredUrls(state, new Set(ids), {
+        generateId: idGenerator,
+        getFallbackCollection: (next) => {
+          const fallback = ensureUncategorizedCollection(next, timestamp)
+          if (fallback.definition.type !== 'custom') {
+            throw new Error(
+              'The Custom uncategorized collection ID is occupied.',
+            )
+          }
+          return fallback
+        },
+        maxNoteBytes: BACKUP_RESOURCE_LIMITS.maxNotesBytes,
+        now: timestamp,
+      })
+      Object.assign(state, outcome.state)
+      return outcome.result
+    }),
   restoreUndoSnapshot: async (snapshot) =>
     session.run((state) => {
       state.categories = [...structuredClone(snapshot.savedTabs.categories)]

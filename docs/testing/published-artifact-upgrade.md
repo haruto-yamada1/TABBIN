@@ -12,8 +12,9 @@ bun run test:production-artifact-upgrade
 ```
 
 `release:check` と `release:zip` は `release:e2e` 経由でこの command を必須実行します。
-通常の PR CI と `quality:check` では browser を起動せず、pin の構造・checksum 検証・
-互換性 verifier の unit test だけを常時実行します。
+通常の PR CI でも、`Build Extension Artifacts` が実際の公開 CRX から更新を検証します。
+このジョブの成功は必須チェック `Verify Build` の条件です。`quality:check` では
+pin の構造・checksum 検証・互換性 verifier の unit test を実行します。
 
 ## 固定する配布物
 
@@ -25,7 +26,7 @@ bun run test:production-artifact-upgrade
 
 Chrome Web Store が pin より新しい version を返すようになった場合、または CRX の
 bytes が変わった場合は version / checksum mismatch として失敗します。公開直後に
-pin を更新してください。過去の build を暗黙に使う fallback はありません。
+pin を更新してください。
 
 ### pin の更新
 
@@ -38,6 +39,12 @@ curl -fL -o /tmp/tabbin.crx \
 shasum -a 256 /tmp/tabbin.crx
 bun run test:production-artifact-upgrade
 ```
+
+同じ version で SHA-256 が変わった場合も、公式 update endpoint から CRX を取り直します。
+CRX3 の署名を検証し、TABBIN の extension ID に対応する developer proof と
+Chromium が定める Google 本番 publisher proof の両方を確認してください。
+展開した `manifest.json` の version と `persistence-release.json` の互換性 metadata を
+既存 pin と照合し、署名・metadata の確認結果を PR に残してから SHA-256 を更新します。
 
 ## 検証フロー
 
@@ -95,9 +102,10 @@ Firefox の公開済み artifact が用意できた時点で、同じ pin 形式
 
 ## CI 配置と実測
 
-- `release:check` / `release:zip`: `release:e2e` の最後に必須実行（release 専用）
-- 通常 PR CI: unit test のみ。`quality:check` から browser 更新 smoke は起動しない
-- 手動: `bun run build && bun run test:production-artifact-upgrade`
+- `release:check` と `release:zip` は `release:e2e` の最後に実行します。
+- PR と `develop` / `main` への push では、CI が候補 build を使って実行します。download、
+  checksum、または更新の失敗は必須の `Verify Build` の失敗になります。
+- 手動では `bun run build && bun run test:production-artifact-upgrade` を実行します。
 
 2026-11-13 のローカル実測（Chrome 2.0.20 → 2.0.20、macOS）:
 

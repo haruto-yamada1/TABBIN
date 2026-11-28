@@ -1,5 +1,11 @@
+import * as fc from 'fast-check'
 import { assert, describe, expect, it, vi } from 'vitest'
 
+import {
+  EXPIRED_URL_RECOVERY_DAYS,
+  MAX_EXPIRED_URL_RECOVERY_COUNT,
+} from '@/contexts/saved-tabs/domain/services/ExpiredUrlRecoveryService'
+import type { ExpiredUrlRecoveryState } from '@/contexts/saved-tabs/domain/services/ExpiredUrlRecoveryService'
 import type { IndexedDbSavedTabsMutableState } from '@/contexts/saved-tabs/infrastructure/composition/IndexedDbSavedTabsSessionService'
 
 import { createBackgroundSavedTabsIndexedDbDataPlane } from './backgroundSavedTabsIndexedDbDataPlane'
@@ -81,9 +87,16 @@ const createState = (): IndexedDbSavedTabsMutableState => ({
   ],
 })
 
-const createDataPlane = (state = createState()) => {
+const createDataPlane = (initialState = createState(), now = () => 10) => {
+  const state: ExpiredUrlRecoveryState = Object.assign(initialState, {
+    expiredUrls: [],
+  })
+  let nextId = 0
   const sessionRun = vi.fn()
   const session = {
+    runWithExpiredUrls: async <Result>(
+      operation: (value: ExpiredUrlRecoveryState) => Result,
+    ): Promise<Result> => operation(state),
     run: async <Result>(
       operation: (
         value: IndexedDbSavedTabsMutableState,
@@ -98,8 +111,10 @@ const createDataPlane = (state = createState()) => {
       .fn<() => string>()
       .mockReturnValueOnce('url-new')
       .mockReturnValueOnce('domain-new')
-      .mockReturnValueOnce('uncategorized'),
-    now: () => 10,
+      .mockReturnValueOnce('uncategorized')
+      .mockImplementation(() => `generated-${nextId++}`),
+    now,
+    readExpiredUrls: async () => structuredClone(state.expiredUrls),
     readSnapshot: async () => ({
       revision: 1,
       savedTabs: structuredClone(state),
@@ -366,7 +381,7 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     expect(state.categories).toStrictEqual([])
   })
 
-  it('expires only affected domain memberships and preserves unrelated legacy orphans', async () => {
+  it('retires the URL across modes and preserves unrelated legacy orphans', async () => {
     const state = createState()
     state.urls.push({
       firstSavedAt: 1,
@@ -388,15 +403,10 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
       sourceCount: 1,
     })
 
-    expect(state.urls.map(({ id }) => id)).toStrictEqual([
-      'url-1',
-      'legacy-orphan',
-    ])
-    expect(state.memberships).toStrictEqual([
-      expect.objectContaining({
-        collectionId: 'project-1',
-        urlId: 'url-1',
-      }),
+    expect(state.urls.map(({ id }) => id)).toStrictEqual(['legacy-orphan'])
+    expect(state.memberships).toStrictEqual([])
+    await expect(dataPlane.readInsightRecords()).resolves.toMatchObject([
+      { id: 'legacy-orphan' },
     ])
   })
 
@@ -425,7 +435,7 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     })
   })
 
-  it('favorite protection が OFF なら期限切れのお気に入りも削除する', async () => {
+  it('favorite protection が OFF なら期限切れのお気に入りも退避する', async () => {
     const state = createState()
     state.urls = state.urls.map((url) => ({ ...url, isFavorite: true }))
     const { dataPlane } = createDataPlane(state)
@@ -438,13 +448,327 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
       removedCount: 1,
       sourceCount: 1,
     })
-    expect(state.urls.map(({ id }) => id)).toStrictEqual(['url-1'])
-    expect(state.memberships).toStrictEqual([
+    expect(state.urls).toStrictEqual([])
+    expect(state.memberships).toStrictEqual([])
+  })
+
+  it('preserves membership details through generated expiration, re-save, restore and discard transitions', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.string(),
+        fc.nat(10_000),
+        fc.boolean(),
+        fc.boolean(),
+        fc.constantFrom('restore', 'discard', 'purge'),
+        async (notes, sortOrder, isFavorite, resave, action) => {
+          const fixture = createState()
+          const [original] = fixture.urls
+          assert.isDefined(original)
+          fixture.urls = [{ ...original, isFavorite }]
+          fixture.memberships = fixture.memberships.map((membership) => ({
+            ...membership,
+            notes,
+            sortOrder,
+          }))
+          let now = 10
+          const { dataPlane, state } = createDataPlane(fixture, () => now)
+          await dataPlane.removeExpiredUrls(2, now, {
+            protectFavoriteFromAutoRemoval: false,
+          })
+          expect(state.urls).toEqual([])
+          expect(state.memberships).toEqual([])
+          const [archived] = await dataPlane.listExpiredUrls()
+          assert.isDefined(archived)
+          expect(archived.memberships).toEqual([
+            { categoryName: 'Docs', collectionName: 'example.com' },
+            { collectionName: 'Research' },
+          ])
+
+          if (resave) {
+            now += 1
+            await dataPlane.saveTabs([
+              { title: 'New title', url: original.url },
+            ])
+          }
+          const saved = structuredClone(state.urls[0])
+          const savedMemberships = structuredClone(state.memberships)
+          let count = 0
+          let expiredList: readonly unknown[] = []
+          if (action === 'restore') {
+            now += 1
+            count = await dataPlane.restoreExpiredUrls([archived.id])
+          } else if (action === 'discard') {
+            count = await dataPlane.discardExpiredUrls([archived.id])
+          } else {
+            now = 10 + EXPIRED_URL_RECOVERY_DAYS * 86_400_000
+            expiredList = await dataPlane.listExpiredUrls()
+            await dataPlane.purgeExpiredUrls()
+          }
+
+          const revived = action === 'restore' && !resave
+          const restoredProject = {
+            collectionId: 'project-1',
+            notes,
+            sortOrder,
+          }
+          const expectedMemberships = revived
+            ? [
+                {
+                  categoryId: 'category-1',
+                  collectionId: 'domain-1',
+                  notes,
+                  sortOrder,
+                },
+                restoredProject,
+              ]
+            : [
+                ...savedMemberships,
+                ...(action === 'restore'
+                  ? [{ ...restoredProject, urlId: saved?.id }]
+                  : []),
+              ]
+          const previouslySaved = saved ? [saved] : []
+          const expectedUrls = revived
+            ? [
+                {
+                  firstSavedAt: original.firstSavedAt,
+                  id: original.id,
+                  isFavorite,
+                  lastSavedAt: now,
+                },
+              ]
+            : previouslySaved
+          expect(state.urls).toMatchObject(expectedUrls)
+          expect(state.memberships).toMatchObject(expectedMemberships)
+          expect(count).toBe(action === 'purge' ? 0 : 1)
+          expect(expiredList).toEqual([])
+          await expect(
+            dataPlane.restoreExpiredUrls([archived.id]),
+          ).resolves.toBe(0)
+          expect(state.expiredUrls).toEqual([])
+        },
+      ),
+    )
+  })
+
+  it('restores missing projects to Custom uncategorized and recreates the original Domain', async () => {
+    const initial = createState()
+    initial.memberships = initial.memberships.map((membership) => ({
+      ...membership,
+      notes:
+        membership.collectionId === 'project-1'
+          ? 'My original note'
+          : 'Domain note',
+    }))
+    const { dataPlane, state } = createDataPlane(initial)
+    await dataPlane.removeExpiredUrls(2, 10)
+    const [record] = await dataPlane.listExpiredUrls()
+    assert.isDefined(record)
+    state.categories = []
+    state.collections = []
+
+    await expect(dataPlane.restoreExpiredUrls([record.id])).resolves.toBe(1)
+    expect(state.collections.map(({ id }) => id)).toEqual([
+      'domain-1',
+      'custom-uncategorized',
+    ])
+    expect(state.memberships).toEqual([
       expect.objectContaining({
-        collectionId: 'project-1',
-        urlId: 'url-1',
+        collectionId: 'domain-1',
+        notes: 'Domain note',
+      }),
+      expect.objectContaining({
+        collectionId: 'custom-uncategorized',
+        notes: 'My original note',
       }),
     ])
+    expect(state.memberships[0]).not.toHaveProperty('categoryId')
+  })
+
+  it.each([true, false])(
+    'restores older direct membership before a newer missing project note (fallback collection present: %s)',
+    async (fallbackExists) => {
+      const initial = createState()
+      initial.memberships = initial.memberships.map((membership) =>
+        membership.collectionId === 'project-1'
+          ? { ...membership, notes: 'Newer deleted project note' }
+          : membership,
+      )
+      const { dataPlane, state } = createDataPlane(initial)
+      await dataPlane.removeExpiredUrls(2, 10)
+      const [recent] = state.expiredUrls
+      assert.isDefined(recent)
+      const project = recent.memberships.find(
+        ({ collection }) => collection.id === 'project-1',
+      )
+      assert.isDefined(project)
+      const fallback = { ...project.collection, id: 'custom-uncategorized' }
+      state.collections = state.collections.filter(
+        ({ id }) => id !== 'project-1',
+      )
+      if (fallbackExists) {
+        state.collections.push(fallback)
+      }
+      state.expiredUrls.push({
+        ...recent,
+        id: 'older-archive',
+        expiredAt: 9,
+        memberships: recent.memberships.map((entry) =>
+          entry === project
+            ? {
+                collection: fallback,
+                membership: {
+                  ...entry.membership,
+                  collectionId: fallback.id,
+                  notes: 'Older original note',
+                  sortOrder: 1024,
+                },
+              }
+            : entry,
+        ),
+      })
+
+      await expect(
+        dataPlane.restoreExpiredUrls([recent.id, 'older-archive']),
+      ).resolves.toBe(2)
+      expect(
+        state.memberships.filter(
+          ({ collectionId }) => collectionId === fallback.id,
+        ),
+      ).toEqual([
+        expect.objectContaining({
+          notes: 'Older original note\n\nNewer deleted project note',
+          sortOrder: 1024,
+        }),
+      ])
+      expect(state.expiredUrls).toEqual([])
+      expect(state.urls).toHaveLength(1)
+    },
+  )
+
+  it('keeps recovery intact when merging notes would exceed the Backup V2 membership limit', async () => {
+    const initial = createState()
+    const [, project] = initial.collections
+    const [, membership] = initial.memberships
+    assert.isDefined(project)
+    assert.isDefined(membership)
+    initial.collections.push({ ...project, id: 'other-project' })
+    initial.memberships = initial.memberships.map((item) =>
+      item.collectionId === project.id
+        ? { ...item, notes: 'a'.repeat(600_000) }
+        : item,
+    )
+    initial.memberships.push({
+      ...membership,
+      collectionId: 'other-project',
+      notes: 'b'.repeat(600_000),
+    })
+    const { dataPlane, state } = createDataPlane(initial)
+    await dataPlane.removeExpiredUrls(2, 10)
+    const [record] = await dataPlane.listExpiredUrls()
+    assert.isDefined(record)
+    state.collections = state.collections.filter(
+      ({ definition }) => definition.type !== 'custom',
+    )
+
+    const beforeRestore = structuredClone(state)
+    await expect(dataPlane.restoreExpiredUrls([record.id])).rejects.toThrow(
+      'notes',
+    )
+    expect(state).toEqual(beforeRestore)
+  })
+
+  it('preserves archived Domain categories when manually deleting a URL from another Domain', async () => {
+    const initial = createState()
+    const [original] = initial.urls
+    const [domain] = initial.collections
+    assert.isDefined(original)
+    assert.isDefined(domain)
+    initial.urls.push({
+      ...original,
+      id: 'other-url',
+      lastSavedAt: 8,
+      normalizedUrl: 'https://other.example/',
+      updatedAt: 8,
+      url: 'https://other.example/',
+    })
+    initial.collections.push({
+      ...domain,
+      definition: { domain: 'other.example', type: 'domain' },
+      id: 'other-domain',
+    })
+    initial.memberships.push({
+      addedAt: 8,
+      collectionId: 'other-domain',
+      sortOrder: 0,
+      updatedAt: 8,
+      urlId: 'other-url',
+    })
+    const { dataPlane, state } = createDataPlane(initial)
+    await dataPlane.removeExpiredUrls(2, 10)
+    const [record] = await dataPlane.listExpiredUrls()
+    assert.isDefined(record)
+
+    await dataPlane.removeUrlIds(['other-url'])
+    await dataPlane.restoreExpiredUrls([record.id])
+
+    expect(state.collections.map(({ id }) => id).toSorted()).toEqual([
+      'domain-1',
+      'project-1',
+    ])
+    expect(state.memberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          categoryId: 'category-1',
+          collectionId: 'domain-1',
+        }),
+      ]),
+    )
+  })
+
+  it('leaves additional URLs active while the archive is at its record limit', async () => {
+    const initial = createState()
+    const [url] = initial.urls
+    const [membership] = initial.memberships
+    assert.isDefined(url)
+    assert.isDefined(membership)
+    initial.urls = Array.from(
+      { length: MAX_EXPIRED_URL_RECOVERY_COUNT + 1 },
+      (_, index) => ({
+        ...url,
+        id: `url-${index}`,
+        normalizedUrl: `https://example.com/${index}`,
+        url: `https://example.com/${index}`,
+      }),
+    )
+    initial.memberships = initial.urls.map(({ id }) => ({
+      ...membership,
+      urlId: id,
+    }))
+    const { dataPlane, state } = createDataPlane(initial)
+    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+      removedCount: MAX_EXPIRED_URL_RECOVERY_COUNT,
+      sourceCount: MAX_EXPIRED_URL_RECOVERY_COUNT + 1,
+    })
+    expect(state.expiredUrls).toHaveLength(MAX_EXPIRED_URL_RECOVERY_COUNT)
+    expect(state.urls).toHaveLength(1)
+    expect(state.memberships).toHaveLength(1)
+  })
+
+  it('counts UTF-8 bytes and preserves an active URL if its archive would exceed the byte limit', async () => {
+    const initial = createState()
+    initial.memberships = initial.memberships.map((membership) => ({
+      ...membership,
+      notes: '日'.repeat(1_500_000),
+    }))
+    const { dataPlane, state } = createDataPlane(initial)
+    await expect(dataPlane.removeExpiredUrls(2, 10)).resolves.toEqual({
+      removedCount: 0,
+      sourceCount: 1,
+    })
+    expect(state.urls).toHaveLength(1)
+    expect(state.memberships).toHaveLength(2)
+    expect(state.expiredUrls).toEqual([])
   })
 
   it('外部ドロップ削除は transaction 内の最新 favorite 状態で保護する', async () => {
@@ -484,6 +808,7 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
   it('propagates a native session failure without another backend attempt', async () => {
     const error = new Error('indexeddb failed')
     const session = {
+      runWithExpiredUrls: vi.fn(),
       run: vi.fn(async () => {
         throw error
       }),
@@ -491,6 +816,7 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
     const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
       idGenerator: () => 'unused',
       now: () => 1,
+      readExpiredUrls: vi.fn(),
       readSnapshot: vi.fn(),
       session,
     })
@@ -500,13 +826,7 @@ describe('backgroundSavedTabsIndexedDbDataPlane', () => {
   })
 
   it('exact URL-only delete resolves one persistent ID and preserves lookalikes', async () => {
-    const state = createState()
-    const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
-      idGenerator: () => crypto.randomUUID(),
-      now: () => 10,
-      readSnapshot: async () => ({ revision: 1, savedTabs: state }),
-      session: { run: async (operation) => operation(state) },
-    })
+    const { dataPlane, state } = createDataPlane()
     await dataPlane.saveTabs([
       { url: 'https://example.com' },
       { url: 'https://example.com/' },

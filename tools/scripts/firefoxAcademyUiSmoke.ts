@@ -31,7 +31,7 @@ const browserHelpers = `
   })
   const savedSnapshot = async () => {
     const database = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      const request = indexedDB.open('tabbin-persistence-v2')
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(request.error)
     })
@@ -218,8 +218,8 @@ export const runFirefoxAcademyUiSmoke = async (
   assert.equal(narrowDarkReducedMotion, true)
   await navigate('/options')
   await evaluate(`
-    const link = await waitFor(() => [...document.querySelectorAll('a')]
-      .find((element) => element.textContent.trim().startsWith('TABBIN Academy')))
+    const link = await waitFor(() =>
+      document.querySelector('a[aria-label="TABBIN Academy プレビュー"]'))
     link.focus()
   `)
   await press('\uE007')

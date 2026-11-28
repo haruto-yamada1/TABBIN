@@ -30,12 +30,12 @@ const createUserSettings = (autoDeletePeriod: '1day' | 'never') =>
     showOpenTabs: false,
   })
 
-test('a real expiration alarm wakes a stopped MV3 worker and removes only expired non-favorite URLs', async ({
+test('@release-expiry-recovery a real expiration alarm wakes a stopped MV3 worker and makes expired non-favorite URLs recoverable', async ({
   extensionContext,
   extensionId,
   page,
   serviceWorker,
-}) => {
+}, testInfo) => {
   const now = Date.now()
   const old = now - 2 * DAY_MS
   const reminderSettings = {
@@ -207,6 +207,63 @@ test('a real expiration alarm wakes a stopped MV3 worker and removes only expire
     expect(
       await page.evaluate(async () => chrome.notifications.getAll()),
     ).toEqual(notificationsBefore)
+
+    await page.goto(
+      getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+    )
+    await expect(page.getByText('Fresh saved URL')).toBeVisible()
+    await expect(page.getByText('Expired saved URL')).toHaveCount(0)
+
+    await page.goto(
+      getExtensionUrl(extensionId, 'app.html#/periodic-execution'),
+    )
+    await page.reload()
+    const recovery = page.getByRole('region', { name: 'Recover expired tabs' })
+    await expect(recovery.getByText('Expired saved URL')).toBeVisible()
+    await expect(
+      recovery.getByText('1 saved tab available to restore'),
+    ).toBeVisible()
+    await expect(recovery.getByText('Removed on')).toBeVisible()
+    await expect(recovery.getByText('Restore by')).toBeVisible()
+    await expect(
+      recovery.getByText('alarm.test', { exact: true }),
+    ).toBeVisible()
+    const screenshot = testInfo.outputPath('expired-url-recovery.png')
+    await recovery.screenshot({ path: screenshot })
+    await testInfo.attach('expired-url-recovery', {
+      contentType: 'image/png',
+      path: screenshot,
+    })
+
+    await page.setViewportSize({ height: 812, width: 375 })
+    await page.reload()
+    await expect(recovery.getByText('Expired saved URL')).toBeVisible()
+    await expect
+      .poll(async () =>
+        recovery.evaluate(
+          (element) => element.scrollWidth <= element.clientWidth,
+        ),
+      )
+      .toBe(true)
+    const narrowScreenshot = testInfo.outputPath(
+      'expired-url-recovery-narrow.png',
+    )
+    await recovery.screenshot({ path: narrowScreenshot })
+    await testInfo.attach('expired-url-recovery-narrow', {
+      contentType: 'image/png',
+      path: narrowScreenshot,
+    })
+
+    await recovery
+      .getByRole('button', { name: 'Restore Expired saved URL' })
+      .click()
+    await expect(
+      recovery.getByText('No expired tabs to restore.'),
+    ).toBeVisible()
+    await page.goto(
+      getExtensionUrl(extensionId, 'app.html#/saved-tabs?mode=domain'),
+    )
+    await expect(page.getByText('Expired saved URL')).toBeVisible()
   } finally {
     await cdp.detach()
   }

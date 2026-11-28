@@ -10,6 +10,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   # A unique group also avoids replacing pending pushes when cancellation is off.
@@ -48,6 +49,12 @@ jobs:
       - name: Verify Firefox source contract
         run: bun run verify:firefox-source
 
+      - name: Verify tooling dependencies
+        run: bun run verify:tooling-dependencies
+
+      - name: Verify storage writer inventory
+        run: bun run verify:storage-writer-inventory
+
       - name: Verify Academy curriculum contracts
         run: bun run academy:check
 
@@ -60,14 +67,23 @@ jobs:
       - name: Run lint
         run: bun run lint
 
+      - name: Validate HTML
+        run: bun run validate:html
+
+      - name: Check for unused code
+        run: bun run knip
+
+      - name: Check for duplication
+        run: bun run check:duplication
+
       - name: Run architecture check
         run: bun run arch:check
 
       - name: Run secretlint
         run: bun run secretlint
 
-  verify-build:
-    name: Verify Build
+  build-artifacts:
+    name: Build Extension Artifacts
     runs-on: ubuntu-latest
 
     steps:
@@ -156,8 +172,35 @@ jobs:
       - name: Verify production network policy
         run: bun run verify:production-network-policy
 
+      - name: Verify production logging
+        run: bun run verify:production-logging
+
       - name: Verify Firefox artifact contract
         run: bun run verify:firefox-artifact
+
+      - name: Run required Chromium release E2E
+        run: bun run e2e:release
+
+      - name: Upgrade from the pinned Chrome Web Store artifact
+        run: bun run test:production-artifact-upgrade
+
+  # Preserve the required Ruleset context and fail when either prerequisite
+  # fails or is skipped.
+  verify-build:
+    name: Verify Build
+    runs-on: ubuntu-latest
+    needs: [build-artifacts, firefox-native-release]
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Require build and release smoke results
+        env:
+          BUILD_RESULT: ${{ needs.build-artifacts.result }}
+          FIREFOX_RESULT: ${{ needs.firefox-native-release.result }}
+        run: |
+          if [[ "$BUILD_RESULT" != success || "$FIREFOX_RESULT" != success ]]; then
+            printf '::error::Build, Chromium release checks (%s) and native Firefox release checks (%s) must pass.\n' "$BUILD_RESULT" "$FIREFOX_RESULT"
+            exit 1
+          fi
 
   # Keep the existing required check name; coverage runs the full suite.
   run-tests:
@@ -406,19 +449,10 @@ jobs:
       - name: Verify Firefox artifact contract
         run: bun run verify:firefox-artifact
 
-      - name: Build Firefox native smoke harness
-        run: bun run build:firefox:indexeddb-smoke-harness
-
       - name: Run Firefox startup smoke
         run: bun run test:firefox:smoke
         env:
           FIREFOX_EXTENSION_SMOKE: '1'
-          FIREFOX_EXECUTABLE_PATH: ${{ steps.firefox-executable.outputs.path }}
-          GECKODRIVER_PATH: /tmp/geckodriver
-
-      - name: Run Firefox Persistence v2 migration smoke
-        run: bun run test:firefox:indexeddb-smoke
-        env:
           FIREFOX_EXECUTABLE_PATH: ${{ steps.firefox-executable.outputs.path }}
           GECKODRIVER_PATH: /tmp/geckodriver
 
@@ -447,6 +481,67 @@ jobs:
             test-results/**/*.webm
           if-no-files-found: warn
           retention-days: 7
+
+  firefox-native-release:
+    name: Firefox Native Release Smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.node-version'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: '.bun-version'
+
+      - name: Verify toolchain versions
+        run: bun run verify:toolchain-versions
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Cache the runner's Firefox
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ci-native-firefox-noble-v1-${{ runner.arch }}-${{ hashFiles('.bun-version', 'bun.lock') }}
+
+      - name: Install Playwright Firefox
+        run: bunx playwright install --with-deps firefox
+
+      - name: Install pinned geckodriver
+        run: |
+          geckodriver_archive="$RUNNER_TEMP/geckodriver-v0.37.1-linux64.tar.gz"
+          curl -fL --retry 2 \
+            --output "$geckodriver_archive" \
+            https://github.com/mozilla/geckodriver/releases/download/v0.37.1/geckodriver-v0.37.1-linux64.tar.gz
+          printf '%s  %s\n' e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e "$geckodriver_archive" | sha256sum --check -
+          tar -xzf "$geckodriver_archive" -C "$RUNNER_TEMP"
+
+      - name: Resolve Playwright Firefox executable
+        id: firefox-executable
+        run: |
+          FIREFOX_EXECUTABLE_PATH=$(bun -e "import { firefox } from '@playwright/test'; console.log(firefox.executablePath())")
+          printf 'path=%s\n' "$FIREFOX_EXECUTABLE_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Run native Firefox persistence and Academy smoke
+        run: bun run test:firefox:indexeddb-smoke
+        env:
+          FIREFOX_EXECUTABLE_PATH: ${{ steps.firefox-executable.outputs.path }}
+          GECKODRIVER_PATH: ${{ runner.temp }}/geckodriver
+
+      - name: Run native Firefox link capture smoke on the same build
+        run: bun tools/scripts/firefox-link-capture-smoke.ts
+        env:
+          FIREFOX_EXECUTABLE_PATH: ${{ steps.firefox-executable.outputs.path }}
+          GECKODRIVER_PATH: ${{ runner.temp }}/geckodriver
 
   performance-budget:
     name: Saved Tabs Performance Budget

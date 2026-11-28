@@ -4,6 +4,10 @@ import type {
   PersistenceMessageRecord,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
 import type {
+  ExpiredUrlRecoveryMembership,
+  ExpiredUrlRecoveryRecord,
+} from '@/contexts/saved-tabs/domain/entities/ExpiredUrlRecovery'
+import type {
   PersistenceV2Collection,
   PersistenceV2CollectionCategory,
   PersistenceV2CollectionDefinition,
@@ -104,6 +108,63 @@ export const isPersistenceV2Category = (
   typeof value.name === 'string' &&
   typeof value.sortOrder === 'number' &&
   typeof value.updatedAt === 'number'
+
+const isArchivedMembership = (
+  value: unknown,
+  urlId: string,
+): value is ExpiredUrlRecoveryMembership =>
+  isRecord(value) &&
+  isPersistenceV2Collection(value.collection) &&
+  isPersistenceV2Membership(value.membership) &&
+  value.membership.collectionId === value.collection.id &&
+  value.membership.urlId === urlId &&
+  (value.category === undefined
+    ? value.membership.categoryId === undefined
+    : isPersistenceV2Category(value.category) &&
+      value.category.id === value.membership.categoryId &&
+      value.category.collectionId === value.collection.id)
+
+const MAX_DATE_TIMESTAMP = 8_640_000_000_000_000
+
+const isRecoveryTimestamp = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isSafeInteger(value) &&
+  value >= 0 &&
+  value <= MAX_DATE_TIMESTAMP
+
+const hasValidArchivedMemberships = (
+  values: unknown,
+  urlId: string,
+): boolean => {
+  if (
+    !Array.isArray(values) ||
+    !values.every((entry) => isArchivedMembership(entry, urlId))
+  ) {
+    return false
+  }
+  return (
+    values.some(({ collection }) => collection.definition.type === 'domain') &&
+    new Set(values.map(({ collection }) => collection.id)).size ===
+      values.length
+  )
+}
+
+export const isExpiredUrlRecoveryRecord = (
+  value: unknown,
+): value is ExpiredUrlRecoveryRecord => {
+  if (!isJsonRecord(value) || !isPersistenceV2Url(value.url)) {
+    return false
+  }
+  const urlId = value.url.id
+  return (
+    typeof value.id === 'string' &&
+    value.id.length > 0 &&
+    isRecoveryTimestamp(value.expiredAt) &&
+    isRecoveryTimestamp(value.recoverUntil) &&
+    value.recoverUntil > value.expiredAt &&
+    hasValidArchivedMemberships(value.memberships, urlId)
+  )
+}
 
 export const isPersistenceV2Group = (
   value: unknown,

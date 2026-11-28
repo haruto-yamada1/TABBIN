@@ -95,8 +95,8 @@ build / artifact 検証で拒否します。
 | `bun run test:firefox:link-capture`        | Firefox native のリンクキャプチャ。権限ダイアログの拒否 / 許可、キー＋クリック保存、矩形選択、元タブの維持を検証                                                                  |
 | `bun run test:production-artifact-upgrade` | Chrome Web Store の公開済み CRX → 現行 build の更新。同じ profile での IndexedDB / 設定 / お気に入り / メモ / AI 履歴 / Backup V2 の保持と再起動                                  |
 
-Chrome は `playwright.release.config.ts` で `@release-saved-tabs` と
-`@release-backup-v2` の必須テストを選びます。専用 reporter が必須タグの欠落、skip、
+Chrome は `playwright.release.config.ts` で `@release-saved-tabs`、
+`@release-backup-v2`、`@release-expiry-recovery` の必須テストを選びます。専用 reporter が必須タグの欠落、skip、
 期待失敗、retry を検出して非ゼロ終了にします。`test.only` も禁止します。
 Chrome は build を作り直し、各テスト専用 profile とローカル fixture を使います。
 Firefox は既存の smoke 用 artifact コピーと一時 profile を使うため、実ユーザーデータや

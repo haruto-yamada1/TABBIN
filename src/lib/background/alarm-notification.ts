@@ -5,6 +5,7 @@
 import type { Browser } from 'wxt/browser'
 import { browser } from 'wxt/browser'
 
+import { getExpiredUrlRecovery } from '@/app/composition/expiredUrlRecovery'
 import { getPersistenceBootstrapRuntime } from '@/app/composition/persistenceBootstrap'
 import { logger } from '@/lib/logging/logger'
 import { requireUserSettings } from '@/lib/storage/settings'
@@ -12,11 +13,14 @@ import { requireUserSettings } from '@/lib/storage/settings'
 import { checkAndRemoveExpiredTabs } from './expired-tabs'
 
 const EXPIRED_TABS_ALARM_NAME = 'checkExpiredTabs'
+const RECOVERY_PURGE_ALARM_NAME = 'purgeExpiredUrlRecovery'
+const RECOVERY_PURGE_PERIOD_MINUTES = 60
 const CHECK_PERIOD_MINUTES = 0.5
 const MS_PER_MINUTE = 60_000
 const CHECK_PERIOD_MS = CHECK_PERIOD_MINUTES * MS_PER_MINUTE
 const INITIAL_CHECK_DELAY_MS = 100
 let checkInFlight: Promise<void> | undefined
+let purgeInFlight: Promise<void> | undefined
 let alarmReconciliation = Promise.resolve(true)
 let retryScheduleOnAlarm = false
 let receivedExpirationAlarm = false
@@ -83,7 +87,50 @@ const reconcileExpiredTabsAlarm = async (): Promise<boolean> => {
   return alarmReconciliation
 }
 
+const runRecoveryPurge = async (): Promise<void> => {
+  purgeInFlight ??= Promise.resolve()
+    .then(async () => {
+      await getPersistenceBootstrapRuntime().bootstrap.ready()
+      await getExpiredUrlRecovery().purge()
+    })
+    .catch((error: unknown) => {
+      logger.error('background_expired_url_recovery_purge_failed', error)
+    })
+    .finally(() => {
+      purgeInFlight = undefined
+    })
+  return purgeInFlight
+}
+
+export const setupExpiredUrlRecoveryPurgeAlarm = async (): Promise<void> => {
+  try {
+    if ('alarms' in browser) {
+      const alarm = await browser.alarms.get(RECOVERY_PURGE_ALARM_NAME)
+      if (
+        alarm?.periodInMinutes !== RECOVERY_PURGE_PERIOD_MINUTES ||
+        alarm.scheduledTime >
+          Date.now() + RECOVERY_PURGE_PERIOD_MINUTES * MS_PER_MINUTE
+      ) {
+        await browser.alarms.create(RECOVERY_PURGE_ALARM_NAME, {
+          periodInMinutes: RECOVERY_PURGE_PERIOD_MINUTES,
+        })
+      }
+    }
+  } catch (error) {
+    logger.error('background_expired_url_recovery_alarm_schedule_failed', error)
+  }
+  await runRecoveryPurge()
+}
+
 const handleExpiredTabsAlarm = (alarm: Browser.alarms.Alarm): void => {
+  if (alarm.name === RECOVERY_PURGE_ALARM_NAME) {
+    if (alarm.periodInMinutes === RECOVERY_PURGE_PERIOD_MINUTES) {
+      void runRecoveryPurge()
+    } else {
+      void setupExpiredUrlRecoveryPurgeAlarm()
+    }
+    return
+  }
   if (alarm.name !== EXPIRED_TABS_ALARM_NAME) {
     return
   }

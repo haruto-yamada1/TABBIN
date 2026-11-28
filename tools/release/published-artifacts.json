@@ -5,7 +5,7 @@
     "version": "2.0.20",
     "extensionId": "dljblklbpmoocinnlcejeokopmfoldaj",
     "prodversion": "140.0",
-    "sha256": "aa5bdc1dce2b38083e121f755e9ca9a9a73892deb5dffe41938f989fec22dccb"
+    "sha256": "35c9b9cc77ff0441e65ffdb32900c645c34445536d83c516d16b7fe0a4410e54"
   },
   "firefox": {
     "status": "excluded",

@@ -60,6 +60,8 @@ export const createNativeIndexedDbSavedTabsRuntime = ({
   return {
     deps,
     session: new IndexedDbSavedTabsSessionService({
+      readWithExpiredUrls: async () =>
+        snapshotReader.readVerifiedSavedTabsWithExpiredUrls(),
       snapshotReaderPort: snapshotReader,
       unitOfWorkPort,
     }),

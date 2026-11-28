@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
 const workflow = parse(readFileSync('.github/workflows/ci.yml', 'utf8'))
+const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as {
+  readonly scripts: Readonly<Record<string, string>>
+}
 const expression = (value: string) => `\${{ ${value} }}`
 const evaluate = (expression: string, github: object) =>
   runInNewContext(expression.replace(/^\$\{\{\s*|\s*\}\}$/gu, ''), { github })
@@ -17,6 +20,7 @@ describe('CI performance quality and scheduling contract', () => {
     }[]
     const commands = jobs.flatMap((job) => job.steps.map((step) => step.run))
     expect(commands.filter((run) => run?.startsWith('bun run test'))).toEqual([
+      'bun run test:production-artifact-upgrade',
       'bun run test:coverage',
       'bun run test:indexeddb:browsers',
       'bun run test:firefox:smoke',
@@ -66,6 +70,29 @@ describe('CI performance quality and scheduling contract', () => {
     expect(commands).not.toContain('bun run check')
   })
 
+  it('runs each local quality stage through the existing required checks', () => {
+    const lintCommands = (
+      workflow.jobs['lint-typecheck'].steps as {
+        run?: string
+      }[]
+    ).map((step) => step.run)
+    const coverageCommands = (
+      workflow.jobs.coverage.steps as {
+        run?: string
+      }[]
+    ).map((step) => step.run)
+    const localQuality = pkg.scripts['quality:check']
+    if (!localQuality) {
+      throw new Error('Missing local quality script.')
+    }
+    for (const command of localQuality.split(' && ')) {
+      const usesCoverage = command === 'bun run test'
+      const commands = usesCoverage ? coverageCommands : lintCommands
+      const required = usesCoverage ? 'bun run test:coverage' : command
+      expect(commands.filter((run) => run === required)).toHaveLength(1)
+    }
+  })
+
   it('keeps all push runs and cancels only superseded runs of the same PR', () => {
     const makeEvent = (
       event_name: string,
@@ -112,7 +139,8 @@ describe('CI performance quality and scheduling contract', () => {
     expect(workflow.on.push['paths-ignore']).toBeUndefined()
     for (const name of [
       'lint-typecheck',
-      'verify-build',
+      'build-artifacts',
+      'firefox-native-release',
       'coverage',
       'indexeddb-browser-semantics',
       'e2e-accessibility',

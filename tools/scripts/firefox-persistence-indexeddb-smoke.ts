@@ -433,6 +433,7 @@ const assertExpiredTabsAlarmResult = (result: {
   assert.deepEqual(result.expiredTabsAlarm, {
     alarmFired: true,
     expiredRemoved: true,
+    expiredRecovered: true,
     freshPreserved: true,
     favoritePreserved: true,
     otherAlarmsUnchanged: true,

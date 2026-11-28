@@ -36,7 +36,7 @@ const support = `
   }
   const productionBoundary = async () => {
     const db = await new Promise((resolve, reject) => {
-      const opening = indexedDB.open('tabbin-persistence-v2', 1)
+      const opening = indexedDB.open('tabbin-persistence-v2')
       opening.onsuccess = () => resolve(opening.result)
       opening.onerror = () => reject(opening.error)
     })
@@ -311,7 +311,9 @@ export const runFirefoxDomainPracticeSmoke = async (
   `)
   await finishPage()
 
+  const notes = '[data-domain-id="practice-domain-0"]'
   await navigate('child-categories')
+  await click(`${notes} [data-tour="academy-domain-more-actions"]`)
   await click('[data-tour="academy-child-categories"]')
   await fill('[data-tour="academy-child-create"]', 'Firefox child')
   await press(enter)
@@ -403,7 +405,6 @@ export const runFirefoxDomainPracticeSmoke = async (
   await step('reorder-items-parents')
   await confirmOrder()
   await step('reorder-items-domains')
-  const notes = '[data-domain-id="practice-domain-0"]'
   await moveKeyboard(
     `${notes} [data-tour="academy-domain-drag"]`,
     'learn.academy.test',

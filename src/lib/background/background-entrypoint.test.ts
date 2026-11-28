@@ -4,6 +4,7 @@ const mocked = vi.hoisted(() => ({
   ready: vi.fn(async () => {}),
   registerExpiredTabsAlarmListener: vi.fn(),
   setupExpiredTabsCheckAlarm: vi.fn(),
+  setupExpiredUrlRecoveryPurgeAlarm: vi.fn<() => Promise<void>>(),
   registerReviewReminderListeners: vi.fn(),
   registerSavedTabTitleIndicator: vi.fn(),
   registerLinkCaptureLifecycle: vi.fn(),
@@ -39,6 +40,7 @@ vi.mock('wxt/utils/define-background', () => ({
 vi.mock('@/lib/background/alarm-notification', () => ({
   registerExpiredTabsAlarmListener: mocked.registerExpiredTabsAlarmListener,
   setupExpiredTabsCheckAlarm: mocked.setupExpiredTabsCheckAlarm,
+  setupExpiredUrlRecoveryPurgeAlarm: mocked.setupExpiredUrlRecoveryPurgeAlarm,
 }))
 vi.mock('@/lib/background/review-reminders', () => ({
   registerReviewReminderListeners: mocked.registerReviewReminderListeners,
@@ -207,6 +209,7 @@ const loadBackground = async (
   mocked.ready.mockResolvedValue(undefined)
   mocked.reconcileContextMenus.mockResolvedValue(undefined)
   mocked.setupExpiredTabsCheckAlarm.mockImplementation(() => {})
+  mocked.setupExpiredUrlRecoveryPurgeAlarm.mockResolvedValue(undefined)
   mocked.setupMessageListener.mockImplementation(() => {})
   options.setupMocks?.()
   const harness = createChromeHarness(
@@ -257,18 +260,22 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
       mocked.registerExpiredTabsAlarmListener.mock.invocationCallOrder[0],
     ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)
     expect(mocked.setupExpiredTabsCheckAlarm).not.toHaveBeenCalled()
+    expect(mocked.setupExpiredUrlRecoveryPurgeAlarm).not.toHaveBeenCalled()
     pending.resolve(undefined)
     await flushMicrotasks()
     expect(mocked.setupExpiredTabsCheckAlarm).toHaveBeenCalledOnce()
+    expect(mocked.setupExpiredUrlRecoveryPurgeAlarm).toHaveBeenCalledOnce()
     expect(mocked.registerExpiredTabsAlarmListener).toHaveBeenCalledOnce()
   })
 
-  it('reminder listenersを同期登録し、persistence readiness後にscheduleを照合する', async () => {
+  it('reminder listenersを同期登録し、退避の消去を待たずにscheduleを照合する', async () => {
     const pending = Promise.withResolvers<undefined>()
+    const purge = Promise.withResolvers<undefined>()
     await loadBackground({
       clearAfterImport: false,
       setupMocks: () => {
         mocked.ready.mockReturnValue(pending.promise)
+        mocked.setupExpiredUrlRecoveryPurgeAlarm.mockReturnValue(purge.promise)
       },
     })
     expect(mocked.registerReviewReminderListeners).toHaveBeenCalledOnce()
@@ -277,7 +284,9 @@ describe('バックグラウンドのライフサイクル時の自動オープ�
     expect(mocked.reconcileReviewReminderAlarm).not.toHaveBeenCalled()
     pending.resolve(undefined)
     await flushMicrotasks()
+    expect(mocked.setupExpiredUrlRecoveryPurgeAlarm).toHaveBeenCalledOnce()
     expect(mocked.reconcileReviewReminderAlarm).toHaveBeenCalledOnce()
+    purge.resolve(undefined)
     expect(
       mocked.registerReviewReminderListeners.mock.invocationCallOrder[0],
     ).toBeLessThan(mocked.ready.mock.invocationCallOrder[0] ?? 0)

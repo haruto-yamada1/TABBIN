@@ -300,29 +300,34 @@ describe('Academy Firefox Playwright smoke contract', () => {
 })
 
 describe('Academy Firefox UI CI prerequisites', () => {
-  it('prepares the native harness and executable paths before the Playwright startup smoke', () => {
-    const workflow = parse(readRequired(requiredFiles.ci)) as {
-      jobs: Record<
-        string,
-        { steps: { run?: string; env?: Record<string, string> }[] }
-      >
-    }
-    const job = Object.values(workflow.jobs).find((item) =>
-      item.steps.some((step) => step.run === 'bun run test:firefox:smoke'),
+  const workflow = parse(readRequired(requiredFiles.ci)) as {
+    on: Record<string, unknown>
+    jobs: Record<
+      string,
+      { steps: { run?: string; env?: Record<string, string> }[] }
+    >
+  }
+  const firefoxExecutable = `\${{ steps.firefox-executable.outputs.path }}`
+
+  it('builds the Firefox artifact before the manual Playwright startup smoke', () => {
+    expect(workflow.on).toHaveProperty('workflow_dispatch')
+    const steps = workflow.jobs['firefox-extension-smoke']?.steps ?? []
+    const smoke = steps.findIndex(
+      ({ run }) => run === 'bun run test:firefox:smoke',
     )
-    expect(job).toBeDefined()
-    const steps = job?.steps ?? []
-    const smokeIndex = steps.findIndex(
-      (step) => step.run === 'bun run test:firefox:smoke',
+    const build = steps.findIndex(({ run }) => run === 'bun run build:firefox')
+    expect(build).toBeGreaterThanOrEqual(0)
+    expect(smoke).toBeGreaterThan(build)
+    expect(steps[smoke]?.env?.GECKODRIVER_PATH).toBe('/tmp/geckodriver')
+    expect(steps[smoke]?.env?.FIREFOX_EXECUTABLE_PATH).toBe(firefoxExecutable)
+  })
+
+  it('passes pinned executable paths to the native persistence and Academy smoke', () => {
+    const steps = workflow.jobs['firefox-native-release']?.steps ?? []
+    const smoke = steps.find(
+      ({ run }) => run === 'bun run test:firefox:indexeddb-smoke',
     )
-    const buildIndex = steps.findIndex(
-      (step) => step.run === 'bun run build:firefox:indexeddb-smoke-harness',
-    )
-    expect(buildIndex).toBeGreaterThan(-1)
-    expect(buildIndex).toBeLessThan(smokeIndex)
-    expect(steps[smokeIndex]?.env?.GECKODRIVER_PATH).toBe('/tmp/geckodriver')
-    expect(steps[smokeIndex]?.env?.FIREFOX_EXECUTABLE_PATH).toBe(
-      `\${{ steps.firefox-executable.outputs.path }}`,
-    )
+    expect(smoke?.env?.GECKODRIVER_PATH).toBe(`\${{ runner.temp }}/geckodriver`)
+    expect(smoke?.env?.FIREFOX_EXECUTABLE_PATH).toBe(firefoxExecutable)
   })
 })

@@ -5,7 +5,11 @@ import type {
   Suite,
 } from '@playwright/test/reporter'
 
-const requiredTags = ['@release-saved-tabs', '@release-backup-v2']
+const requiredTags = [
+  '@release-saved-tabs',
+  '@release-backup-v2',
+  '@release-expiry-recovery',
+]
 
 export default class ReleaseE2EReporter implements Reporter {
   private suite?: Suite

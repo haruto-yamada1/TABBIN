@@ -128,7 +128,7 @@ const seedPrivateSupplementaryData = async (
 ) => {
   await serviceWorker.evaluate(async (savedAt) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      const request = indexedDB.open('tabbin-persistence-v2')
       request.addEventListener('success', () => resolve(request.result))
       request.addEventListener('error', () =>
         reject(

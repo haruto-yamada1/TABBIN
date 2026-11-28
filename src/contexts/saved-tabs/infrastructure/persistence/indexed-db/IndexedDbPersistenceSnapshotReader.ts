@@ -2,9 +2,11 @@ import { PersistenceUnavailableError } from '@/contexts/saved-tabs/application/e
 import type { PersistenceOperationGatePort } from '@/contexts/saved-tabs/application/ports/PersistenceBootstrapPort'
 import type {
   PersistenceLogicalSnapshot,
+  PersistenceVersionedExpiredUrlsSnapshot,
   PersistenceV2SnapshotReaderPort,
   PersistenceVersionedSavedTabsSnapshot,
 } from '@/contexts/saved-tabs/application/ports/PersistenceV2SnapshotReaderPort'
+import type { ExpiredUrlRecoveryRecord } from '@/contexts/saved-tabs/domain/entities/ExpiredUrlRecovery'
 import type { PersistenceV2Snapshot } from '@/contexts/saved-tabs/domain/entities/PersistenceModelV2'
 import {
   checkPersistenceIntegrity,
@@ -17,6 +19,7 @@ import { waitForIndexedDbTransaction } from './IndexedDbTransaction'
 import { PERSISTENCE_STORE_NAMES } from './persistenceDatabaseSchema'
 import {
   decodePersistenceRecords,
+  isExpiredUrlRecoveryRecord,
   isPersistenceJsonRecord,
   isPersistenceMessageRecord,
   isPersistenceV2Category,
@@ -43,6 +46,15 @@ const BACKUP_SOURCE_STORE_NAMES = [
   PERSISTENCE_STORE_NAMES.messages,
   PERSISTENCE_STORE_NAMES.analyticsViews,
 ] as const
+
+const decodeExpiredUrls = (
+  request: IDBRequest,
+): readonly ExpiredUrlRecoveryRecord[] =>
+  decodePersistenceRecords(
+    readIndexedDbRequestResult(request),
+    isExpiredUrlRecoveryRecord,
+    PERSISTENCE_STORE_NAMES.expiredUrls,
+  )
 
 const queueSavedTabsRequests = (transaction: IDBTransaction) => ({
   categories: transaction
@@ -191,6 +203,40 @@ export class IndexedDbPersistenceSnapshotReader implements PersistenceV2Snapshot
     return this.operationGate.runIndexedDbRead(async () => {
       const database = await this.connectionManager.open()
       return readSavedTabsSnapshot(database)
+    })
+  }
+
+  async readExpiredUrls(): Promise<readonly ExpiredUrlRecoveryRecord[]> {
+    return this.operationGate.runIndexedDbRead(async () => {
+      const database = await this.connectionManager.open()
+      const store = PERSISTENCE_STORE_NAMES.expiredUrls
+      const transaction = database.transaction(store, 'readonly')
+      const request = transaction.objectStore(store).getAll()
+      await waitForIndexedDbTransaction(transaction)
+      return decodeExpiredUrls(request)
+    })
+  }
+
+  async readVerifiedSavedTabsWithExpiredUrls(): Promise<PersistenceVersionedExpiredUrlsSnapshot> {
+    return this.operationGate.runIndexedDbRead(async () => {
+      const database = await this.connectionManager.open()
+      const store = PERSISTENCE_STORE_NAMES.expiredUrls
+      const transaction = database.transaction(
+        [...SAVED_TABS_STORE_NAMES, store],
+        'readonly',
+      )
+      const savedTabsRequests = queueSavedTabsRequests(transaction)
+      const archiveRequest = transaction.objectStore(store).getAll()
+      await waitForIndexedDbTransaction(transaction)
+      return {
+        expiredUrls: decodeExpiredUrls(archiveRequest),
+        revision: decodePersistenceRevision(
+          readIndexedDbRequestResult(savedTabsRequests.revision),
+        ),
+        savedTabs: verifySavedTabsSnapshot(
+          materializeSavedTabsSnapshot(savedTabsRequests),
+        ),
+      }
     })
   }
 }

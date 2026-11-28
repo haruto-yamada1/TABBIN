@@ -6,6 +6,8 @@ import path from 'node:path'
 import { test as base, chromium, expect } from '@playwright/test'
 import type { BrowserContext, Page, Request, Worker } from '@playwright/test'
 
+import { PERSISTENCE_DATABASE_VERSION } from '@/contexts/saved-tabs/public-api'
+
 import { getUnexpectedPlaywrightExtensionOutboundRequest } from './network-policy'
 
 type ExtensionFixtures = {
@@ -153,7 +155,7 @@ export const seedPersistenceV2SavedTabs = async (
   await waitForPersistenceV2Ready(serviceWorker)
   await serviceWorker.evaluate(async (value) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      const request = indexedDB.open('tabbin-persistence-v2')
       request.addEventListener('success', () => resolve(request.result))
       request.addEventListener('error', () =>
         reject(request.error ?? new Error('Failed to open persistence v2.')),
@@ -262,7 +264,7 @@ export const readPersistenceV2Store = async <T>(
 ): Promise<T[]> =>
   serviceWorker.evaluate(async (value) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      const request = indexedDB.open('tabbin-persistence-v2')
       request.addEventListener('success', () => resolve(request.result))
       request.addEventListener('error', () =>
         reject(request.error ?? new Error('Failed to open persistence v2.')),
@@ -290,7 +292,7 @@ export const readPersistenceV2SavedTabsSnapshot = async (
 ) =>
   serviceWorker.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('tabbin-persistence-v2', 1)
+      const request = indexedDB.open('tabbin-persistence-v2')
       request.addEventListener('success', () => resolve(request.result))
       request.addEventListener('error', () =>
         reject(request.error ?? new Error('Failed to open persistence v2.')),
@@ -348,13 +350,13 @@ export const waitForPersistenceV2Ready = async (
 ): Promise<void> => {
   await expect
     .poll(async () => {
-      return serviceWorker.evaluate(async () => {
+      return serviceWorker.evaluate(async (expectedVersion) => {
         const databases = await indexedDB.databases()
         return databases.some(
           ({ name, version }) =>
-            name === 'tabbin-persistence-v2' && version === 1,
+            name === 'tabbin-persistence-v2' && version === expectedVersion,
         )
-      })
+      }, PERSISTENCE_DATABASE_VERSION)
     })
     .toBe(true)
 }

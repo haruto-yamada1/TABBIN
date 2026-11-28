@@ -27,7 +27,7 @@ afterEach(() => {
   }
 })
 
-const createContext = (indexedDb: IDBFactory, name: string) => {
+const createContext = (indexedDb: IDBFactory, name: string, time = 1000) => {
   const manager = new IndexedDbConnectionManager({
     indexedDb,
     databaseName: 'synthetic-concurrency',
@@ -37,13 +37,16 @@ const createContext = (indexedDb: IDBFactory, name: string) => {
   const unit = new IndexedDbPersistenceUnitOfWork(manager, gate)
   const reader = new IndexedDbPersistenceSnapshotReader(manager, gate)
   const session = new IndexedDbSavedTabsSessionService({
+    readWithExpiredUrls: async () =>
+      reader.readVerifiedSavedTabsWithExpiredUrls(),
     snapshotReaderPort: reader,
     unitOfWorkPort: unit,
   })
   let id = 0
   const dataPlane = createBackgroundSavedTabsIndexedDbDataPlane({
     idGenerator: () => `${name}-${++id}`,
-    now: () => 1000,
+    now: () => time,
+    readExpiredUrls: async () => reader.readExpiredUrls(),
     readSnapshot: async () => reader.readVerifiedSavedTabsSnapshot(),
     session,
   })
@@ -101,6 +104,118 @@ const rejectedConflict = async (operation: Promise<unknown>) => {
 }
 
 describe('concurrent persistence operations across independent connections', () => {
+  it('archives and restores an uncategorized membership stored with a legacy empty category ID', async () => {
+    const indexedDb = new IDBFactory()
+    const background = createContext(indexedDb, 'background')
+    await save(background, SOURCE, 'Original')
+    const { savedTabs } = await readHealthy(background)
+    await background.unit.commit({
+      memberships: {
+        put: savedTabs.memberships.map((membership) => ({
+          ...membership,
+          categoryId: '',
+        })),
+      },
+    })
+    expect((await readHealthy(background)).savedTabs.memberships).toHaveLength(
+      2,
+    )
+
+    await expect(
+      background.dataPlane.removeExpiredUrls(1001, 1001),
+    ).resolves.toEqual({ removedCount: 1, sourceCount: 1 })
+    background.manager.close()
+
+    const recovery = createContext(indexedDb, 'recovery', 2000)
+    const [record] = await recovery.reader.readExpiredUrls()
+    if (!record) {
+      throw new Error('The expired URL should remain available for recovery.')
+    }
+    expect(record.memberships.map(({ membership }) => membership)).toEqual(
+      savedTabs.memberships,
+    )
+    await expect(
+      recovery.dataPlane.restoreExpiredUrls([record.id]),
+    ).resolves.toBe(1)
+    const restored = await readHealthy(recovery)
+    expect(restored.savedTabs.memberships).toHaveLength(2)
+    expect(
+      restored.savedTabs.memberships.some(
+        ({ categoryId }) => categoryId !== undefined,
+      ),
+    ).toBe(false)
+    await expect(recovery.reader.readExpiredUrls()).resolves.toEqual([])
+  })
+
+  it('rejects restore before mutating a duplicate normalized live URL', async () => {
+    const indexedDb = new IDBFactory()
+    const background = createContext(indexedDb, 'background')
+    await save(background, SOURCE)
+    await background.dataPlane.removeExpiredUrls(1001, 1001)
+    const [record] = await background.reader.readExpiredUrls()
+    const recovery = createContext(indexedDb, 'recovery', 2000)
+    await save(recovery, SOURCE, 'Current')
+    const [current] = (await readHealthy(recovery)).savedTabs.urls
+    if (!record || !current) {
+      throw new Error('Missing expired or current URL.')
+    }
+    const { revision } = await recovery.unit.commit({
+      urls: { put: [{ ...current, id: 'duplicate' }] },
+    })
+
+    await expect(
+      recovery.dataPlane.restoreExpiredUrls([record.id]),
+    ).rejects.toMatchObject({
+      code: 'PERSISTENCE_RECOVERY_REQUIRED',
+      report: {
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: 'DUPLICATE_NORMALIZED_URL' }),
+        ]),
+      },
+    })
+    await expect(recovery.unit.readRevision()).resolves.toBe(revision)
+    await expect(recovery.reader.readExpiredUrls()).resolves.toEqual([record])
+  })
+
+  it('reopens the archive and keeps it when a concurrent re-save wins over restore', async () => {
+    const indexedDb = new IDBFactory()
+    const background = createContext(indexedDb, 'background')
+    await save(background, SOURCE, 'Original')
+    await expect(
+      background.dataPlane.removeExpiredUrls(1001, 1001),
+    ).resolves.toEqual({ removedCount: 1, sourceCount: 1 })
+    background.manager.close()
+
+    const recovery = createContext(indexedDb, 'recovery', 2000)
+    const otherPage = createContext(indexedDb, 'other', 2000)
+    const [entry] = await recovery.dataPlane.listExpiredUrls()
+    if (!entry) {
+      throw new Error('The reopened archive should contain the expired URL.')
+    }
+    expect((await readHealthy(recovery)).savedTabs.urls).toEqual([])
+
+    const paused = holdNextCommit(recovery.unit)
+    const stale = recovery.dataPlane.restoreExpiredUrls([entry.id])
+    const conflict = rejectedConflict(stale)
+    await paused.entered
+    await save(otherPage, SOURCE, 'Re-saved')
+    const winner = await readHealthy(otherPage)
+    paused.release()
+    await expect(conflict).resolves.toMatchObject({
+      actualRevision: winner.revision,
+      expectedRevision: winner.revision - 1,
+    })
+    await expect(recovery.dataPlane.listExpiredUrls()).resolves.toEqual([entry])
+
+    await expect(
+      recovery.dataPlane.restoreExpiredUrls([entry.id]),
+    ).resolves.toBe(1)
+    const retried = await readHealthy(recovery)
+    expect(retried.savedTabs.urls).toEqual(winner.savedTabs.urls)
+    expect(retried.savedTabs.memberships).toEqual(winner.savedTabs.memberships)
+    await expect(otherPage.dataPlane.listExpiredUrls()).resolves.toEqual([])
+  })
+
   it('rejects one same-revision save, then retries from current exact-url identity', async () => {
     const indexedDb = new IDBFactory()
     const background = createContext(indexedDb, 'background')

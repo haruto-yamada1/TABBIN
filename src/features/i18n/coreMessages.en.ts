@@ -378,10 +378,10 @@ const coreMessagesEn = {
     'When enabled, the saved date is shown in the saved tabs list.',
   'options.autoDelete.selectPlaceholder': 'Select an auto-delete period',
   'options.autoDelete.shorterWarning':
-    'Warning: This shortens the current period, so some tabs may be deleted immediately!',
+    'This shortens the current period and may move some tabs to recovery immediately.',
   'options.autoDelete.title': 'Auto delete',
   'options.autoDelete.validateWarning':
-    'Note: Tabs older than the selected period may be deleted immediately.',
+    'Tabs older than the selected period may move to recovery immediately.',
   'options.autoDelete.zero': 'Do not auto delete',
   'options.backupRestore': 'Backup & Restore',
   'options.behavior.description':
@@ -449,6 +449,9 @@ const coreMessagesEn = {
   'options.deletePolicy.confirmNone': 'Not shown',
   'options.deletePolicy.undoAvailable': 'Available',
   'options.deletePolicy.undoUnavailable': 'Not available',
+  'options.deletePolicy.undoInScheduledTasks': 'Restore from Scheduled tasks',
+  'options.deletePolicy.windowAutoDeleteRecovery':
+    '{{days}} days from automatic deletion',
   'options.deletePolicy.windowWhileNotification':
     'While the notification is shown',
   'options.deletePolicy.windowPageOpen30Minutes':

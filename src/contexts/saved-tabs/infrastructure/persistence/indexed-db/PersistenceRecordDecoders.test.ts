@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   PersistenceRecordDecodeError,
   decodePersistenceRecords,
+  isExpiredUrlRecoveryRecord,
   isPersistenceJsonRecord,
   isPersistenceMessageRecord,
   isPersistenceV2Category,
@@ -23,6 +24,66 @@ const collection = {
 }
 
 describe('PersistenceRecordDecoders', () => {
+  it('rejects recovery records with invalid deadlines or foreign relations', () => {
+    const category = {
+      ...timestamps,
+      collectionId: collection.id,
+      id: 'category',
+      keywords: [],
+      name: 'Category',
+      sortOrder: 1024,
+    }
+    const membership = {
+      addedAt: 1,
+      categoryId: category.id,
+      collectionId: collection.id,
+      sortOrder: 1024,
+      updatedAt: 1,
+      urlId: 'url',
+    }
+    const entry = { category, collection, membership }
+    const archive = {
+      expiredAt: 2,
+      id: 'archive-record',
+      memberships: [entry],
+      recoverUntil: 3,
+      url: {
+        firstSavedAt: 1,
+        id: membership.urlId,
+        lastSavedAt: 1,
+        normalizedUrl: 'https://example.com/',
+        title: 'Example',
+        updatedAt: 1,
+        url: 'https://example.com/',
+      },
+    }
+    expect(isExpiredUrlRecoveryRecord(archive)).toBe(true)
+    for (const malformed of [
+      { ...archive, recoverUntil: archive.expiredAt },
+      { ...archive, recoverUntil: Number.MAX_SAFE_INTEGER },
+      { ...archive, expiredAt: -1 },
+      { ...archive, id: '' },
+      { ...archive, url: null },
+      { ...archive, memberships: { ...entry } },
+      { ...archive, memberships: [] },
+      { ...archive, memberships: [entry, entry] },
+      {
+        ...archive,
+        memberships: [
+          { ...entry, membership: { ...membership, urlId: 'other' } },
+        ],
+      },
+      {
+        ...archive,
+        memberships: [
+          { ...entry, category: { ...category, collectionId: 'other' } },
+        ],
+      },
+    ]) {
+      expect(isExpiredUrlRecoveryRecord(malformed)).toBe(false)
+    }
+  })
+
   it('rejects malformed favorite metadata without coercing it to false', () => {
     const url = {
       id: 'url',

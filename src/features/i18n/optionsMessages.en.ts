@@ -37,6 +37,37 @@ const optionsMessagesEn = {
     'Could not save the setting. Reload the settings page and try again.',
   'options.savedTabTitle.loadError':
     'Could not check the setting or site access. Reload the settings page and try again.',
+  'periodicExecution.recovery.title': 'Recover expired tabs',
+  'periodicExecution.recovery.description':
+    'Tabs removed after expiring can be restored for {{days}} days. Recovery is stored on this device.',
+  'periodicExecution.recovery.empty': 'No expired tabs to restore.',
+  'periodicExecution.recovery.single': '1 saved tab available to restore',
+  'periodicExecution.recovery.count':
+    '{{count}} saved tabs available to restore',
+  'periodicExecution.recovery.removedOn': 'Removed on',
+  'periodicExecution.recovery.restoreBy': 'Restore by',
+  'periodicExecution.recovery.originalLocations': 'Original locations',
+  'periodicExecution.recovery.categoryPath':
+    '{{collectionName}} / {{categoryName}}',
+  'periodicExecution.recovery.noLocation': 'No original collection',
+  'periodicExecution.recovery.restore': 'Restore',
+  'periodicExecution.recovery.restoreTab': 'Restore {{name}}',
+  'periodicExecution.recovery.restoreAll': 'Restore all',
+  'periodicExecution.recovery.discard': 'Permanently delete',
+  'periodicExecution.recovery.discardTab': 'Permanently delete {{name}}',
+  'periodicExecution.recovery.discardTitle': 'Permanently delete this tab?',
+  'periodicExecution.recovery.discardDescription':
+    '“{{name}}” will be removed from recovery and cannot be restored here.',
+  'periodicExecution.recovery.loadError': 'Could not load expired tabs.',
+  'periodicExecution.recovery.retry': 'Retry loading expired tabs',
+  'periodicExecution.recovery.error':
+    'Could not update expired tabs. Try again.',
+  'periodicExecution.recovery.pending': 'Updating expired tabs…',
+  'periodicExecution.recovery.unavailable':
+    'The selected tabs are no longer available in recovery.',
+  'periodicExecution.recovery.restored': 'Restored ({{count}}).',
+  'periodicExecution.recovery.discarded': 'Permanently deleted ({{count}}).',
+  'periodicExecution.recovery.showMore': 'Show more expired tabs',
 } as const
 
 export { optionsMessagesEn }

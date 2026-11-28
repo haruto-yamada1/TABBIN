@@ -242,7 +242,7 @@ test.describe('extension entrypoint stories', () => {
     await seedPersistenceV2SavedTabs(serviceWorker, createAnalyticsSeed())
     const seededUrlIds = await page.evaluate(async () => {
       const database = await new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open('tabbin-persistence-v2', 1)
+        const request = indexedDB.open('tabbin-persistence-v2')
         request.addEventListener('success', () => resolve(request.result))
         request.addEventListener('error', () =>
           reject(request.error ?? new Error('Failed to open persistence v2.')),
@@ -263,7 +263,7 @@ test.describe('extension entrypoint stories', () => {
     await page.reload()
     const reloadedUrlCount = await page.evaluate(async () => {
       const database = await new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open('tabbin-persistence-v2', 1)
+        const request = indexedDB.open('tabbin-persistence-v2')
         request.addEventListener('success', () => resolve(request.result))
         request.addEventListener('error', () =>
           reject(request.error ?? new Error('Failed to open persistence v2.')),

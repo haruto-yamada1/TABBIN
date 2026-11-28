@@ -1927,6 +1927,7 @@ describe('src/contexts/saved-tabs DDD layer guard', () => {
         | 'categories'
         | 'collections'
         | 'conversations'
+        | 'expiredUrls'
         | 'groups'
         | 'memberships'
         | 'recoverySnapshots'

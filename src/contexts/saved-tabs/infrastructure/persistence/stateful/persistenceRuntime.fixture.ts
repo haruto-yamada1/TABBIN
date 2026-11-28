@@ -92,6 +92,7 @@ export const createPersistenceRuntime = async () => {
         return id
       },
       now: () => clock.time,
+      readExpiredUrls: async () => reader.readExpiredUrls(),
       readSnapshot: async () => reader.readVerifiedSavedTabsSnapshot(),
       session: runtime.session,
     }),

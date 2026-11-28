@@ -1,4 +1,4 @@
-import { IDBFactory } from 'fake-indexeddb'
+import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { describe, expect, it, vi } from 'vitest'
 
 import { PersistenceRevisionConflictError } from '@/contexts/saved-tabs/application/ports/PersistenceV2UnitOfWorkPort'
@@ -37,7 +37,111 @@ const createDomainCollection = (id: string, domain = `${id}.example.com`) => ({
   updatedAt: 1,
 })
 
+const createExpiredUrl = (id: string) => ({
+  expiredAt: 2,
+  id,
+  memberships: [
+    {
+      collection: createDomainCollection('domain', `${id}.example.com`),
+      membership: {
+        addedAt: 1,
+        collectionId: 'domain',
+        sortOrder: 0,
+        updatedAt: 1,
+        urlId: id,
+      },
+    },
+  ],
+  recoverUntil: 7,
+  url: createUrl(id),
+})
+
 describe('IndexedDbPersistenceUnitOfWork', () => {
+  it('commits expiration archive and active deletion with the same revision', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'expiry-archive-commit',
+      indexedDb: new IDBFactory(),
+    })
+    const unit = new IndexedDbPersistenceUnitOfWork(manager, operationGate)
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
+    try {
+      const archive = createExpiredUrl('expired')
+      await unit.commit({ urls: { put: [archive.url] } })
+      await expect(
+        unit.commit(
+          { expiredUrls: { put: [archive] }, urls: { delete: [archive.id] } },
+          { expectedRevision: 1 },
+        ),
+      ).resolves.toEqual({
+        changedScopes: ['expiredUrls', 'urls'],
+        revision: 2,
+      })
+      await expect(reader.readExpiredUrls()).resolves.toEqual([archive])
+      await expect(
+        reader.readVerifiedSavedTabsWithExpiredUrls(),
+      ).resolves.toMatchObject({
+        expiredUrls: [archive],
+        revision: 2,
+        savedTabs: { urls: [] },
+      })
+      const backup = await reader.readConsistentSnapshot()
+      expect(backup).not.toHaveProperty('expiredUrls')
+      expect(backup.savedTabs.urls).toEqual([])
+    } finally {
+      manager.close()
+    }
+  })
+
+  it('retains active URL and revision if writing the expiration archive fails', async () => {
+    const manager = new IndexedDbConnectionManager({
+      databaseName: 'expiry-archive-quota-failure',
+      indexedDb: new IDBFactory(),
+    })
+    const unit = new IndexedDbPersistenceUnitOfWork(manager, operationGate)
+    const reader = new IndexedDbPersistenceSnapshotReader(
+      manager,
+      operationGate,
+    )
+    const archive = createExpiredUrl('expired')
+    const originalPut = IDBObjectStore.prototype.put
+    const put = vi
+      .spyOn(IDBObjectStore.prototype, 'put')
+      .mockImplementation(function putWithQuotaLimit(
+        this: IDBObjectStore,
+        ...args: Parameters<typeof originalPut>
+      ) {
+        if (this.name === 'expiredUrls') {
+          throw new DOMException('Test quota limit', 'QuotaExceededError')
+        }
+        return originalPut.apply(this, args)
+      })
+    try {
+      await unit.commit({ urls: { put: [archive.url] } })
+      await expect(
+        unit.commit({
+          expiredUrls: { put: [archive] },
+          urls: { delete: [archive.id] },
+        }),
+      ).rejects.toMatchObject({
+        cause: { name: 'QuotaExceededError' },
+        code: 'PERSISTENCE_RECOVERY_REQUIRED',
+      })
+      await expect(
+        reader.readVerifiedSavedTabsWithExpiredUrls(),
+      ).resolves.toMatchObject({
+        expiredUrls: [],
+        revision: 1,
+        savedTabs: { urls: [archive.url] },
+      })
+    } finally {
+      put.mockRestore()
+      manager.close()
+    }
+  })
+
   it('同じ domain の Collection を別 ID へ原子的に置換できる', async () => {
     const manager = new IndexedDbConnectionManager({
       databaseName: 'replace-domain-id',
