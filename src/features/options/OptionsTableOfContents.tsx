@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import type { MouseEvent } from 'react'
 
 import { useI18n } from '@/features/i18n/context/I18nProvider'
 import { SettingsCrossLink } from '@/features/navigation/components/SettingsCrossLink'
@@ -30,26 +29,29 @@ type OptionsTocLinkProps = {
 }
 
 const OptionsTocLink = ({ sectionId, label }: OptionsTocLinkProps) => {
-  // アプリは HashRouter のため、通常のアンカー遷移はルートと競合する。
-  // クリック時に該当セクションへスクロールして画面内遷移を実現する。
-  const handleClick = useCallback(
-    (event: MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault()
-      document
-        .querySelector(`#${sectionId}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    },
-    [sectionId],
-  )
+  // アプリは HashRouter のため、href を持つ a 要素は通常クリックだけでなく
+  // 中クリック (auxclick) でもハッシュを書き換え、ルートと競合する。
+  // 画面内スクロール専用の操作のため button にし、クリック時に該当セクションへ
+  // スクロールしたうえでキーボードフォーカスも移動先へ渡す。
+  const handleClick = useCallback(() => {
+    const target = document.querySelector(`#${sectionId}`)
+    if (!(target instanceof HTMLElement)) {
+      return
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // tabIndex -1 は Tab 順序に入れず、プログラムからのフォーカスだけ可能にする。
+    target.tabIndex = -1
+    target.focus({ preventScroll: true })
+  }, [sectionId])
 
   return (
-    <a
-      className='font-medium text-primary underline underline-offset-4 hover:text-primary/80'
-      href={`#${sectionId}`}
+    <button
+      type='button'
+      className='cursor-pointer font-medium text-primary underline underline-offset-4 hover:text-primary/80'
       onClick={handleClick}
     >
       {label}
-    </a>
+    </button>
   )
 }
 

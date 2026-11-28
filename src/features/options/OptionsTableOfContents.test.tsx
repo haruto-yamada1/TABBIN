@@ -28,15 +28,26 @@ afterEach(() => {
 })
 
 describe('OptionsTableOfContents', () => {
-  it('各セクションへのリンクと定期実行への相互リンクを表示する', () => {
+  it('各セクションへのボタンと定期実行への相互リンクを表示する', () => {
     render(<OptionsTableOfContents />)
 
     expect(screen.getByRole('navigation', { name: 'Contents' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Backup & Restore' })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Backup & Restore' }),
+    ).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Scheduled tasks' })).toBeTruthy()
   })
 
-  it('リンクをクリックすると対象セクションへスクロールする', async () => {
+  it('セクションへの移動はリンクではなくボタンで行う（中クリックで HashRouter のルートを書き換えない）', () => {
+    render(<OptionsTableOfContents />)
+
+    expect(screen.queryByRole('link', { name: 'Backup & Restore' })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Backup & Restore' }),
+    ).not.toHaveAttribute('href')
+  })
+
+  it('ボタンをクリックすると対象セクションへスクロールしフォーカスも移動する', async () => {
     const user = userEvent.setup()
     const target = document.createElement('div')
     target.id = 'options-section-backup'
@@ -45,11 +56,12 @@ describe('OptionsTableOfContents', () => {
     document.body.append(target)
 
     render(<OptionsTableOfContents />)
-    await user.click(screen.getByRole('link', { name: 'Backup & Restore' }))
+    await user.click(screen.getByRole('button', { name: 'Backup & Restore' }))
 
     expect(scrollIntoView).toHaveBeenCalledWith({
       behavior: 'smooth',
       block: 'start',
     })
+    expect(target).toHaveFocus()
   })
 })
