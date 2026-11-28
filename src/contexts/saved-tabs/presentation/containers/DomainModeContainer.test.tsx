@@ -332,6 +332,34 @@ describe('DomainModeContainer', () => {
     expect(onSaveAllOpenTabs).toHaveBeenCalledTimes(1)
   })
 
+  it('空状態ではセクションが残りの高さに広がり、タブがあるときは広がらない', () => {
+    const { unmount } = render(<DomainModeContainer {...createProps()} />)
+
+    // 空表示を垂直中央に配置するための flex chain (issue #1131 フォローアップ)。
+    // セクションルート自体に testid がないため親要素のクラスで検証する。
+    const emptyState = screen.getByTestId('saved-tabs-empty-state')
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(emptyState.parentElement).toHaveClass('flex', 'flex-1', 'flex-col')
+    unmount()
+
+    render(
+      <DomainModeContainer
+        {...createProps()}
+        state={{
+          ...createProps().state,
+          shouldShowUncategorizedList: true,
+          shouldShowUncategorizedSectionHeader: true,
+        }}
+        uncategorizedForDisplay={uncategorizedGroups}
+        hasContentTabGroupsCount={uncategorizedGroups.length}
+      />,
+    )
+
+    const sectionHeader = screen.getByTestId('uncategorized-section-header')
+    // eslint-disable-next-line testing-library/no-node-access
+    expect(sectionHeader.parentElement).not.toHaveClass('flex-1')
+  })
+
   it('検索で 0 件のときは保存データなしと区別し、検索語と解除操作を表示する', async () => {
     const user = userEvent.setup()
     const onClearSearch = vi.fn()

@@ -363,6 +363,10 @@ const UncategorizedDomainSection = ({
 
   return (
     <div
+      // 空状態のときだけ残りの高さいっぱいに広げ、空表示を垂直中央に
+      // 配置する (issue #1131 フォローアップ)。通常表示では従来の
+      // block レイアウトのままにする。
+      className={hasContentCount === 0 ? 'flex flex-1 flex-col' : undefined}
       data-saved-tabs-scroll-target={
         shouldShowSectionHeader ? 'parent' : undefined
       }

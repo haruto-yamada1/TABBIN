@@ -49,10 +49,13 @@ export const SavedTabsEmptyState = ({
     void handleSaveAllOpenTabs()
   }, [handleSaveAllOpenTabs])
 
+  // flex-1 は、空状態レイアウト時に親セクション (flex column) の残りの
+  // 高さいっぱいに広げて垂直中央に配置するためのもの。親が flex でない
+  // 単体表示 (practice / Storybook) では効かず、min-h が下限になる。
   return (
     <div
       data-testid='saved-tabs-empty-state'
-      className='flex min-h-[200px] flex-col items-center justify-center gap-4 py-8'
+      className='flex min-h-[200px] flex-1 flex-col items-center justify-center gap-4 py-8'
     >
       <Bookmark
         aria-hidden='true'
